@@ -1,0 +1,178 @@
+CREATE OR REPLACE FUNCTION public.case_stage_requirement_blockers(_case_id uuid)
+RETURNS text[]
+LANGUAGE plpgsql
+STABLE SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_case public.cases%ROWTYPE;
+  v_requirements jsonb := '[]'::jsonb;
+  v_req jsonb;
+  v_type text;
+  v_blocks boolean;
+  v_blockers text[] := ARRAY[]::text[];
+  v_implant_teeth integer[];
+  v_missing_implants integer[];
+BEGIN
+  SELECT * INTO v_case
+  FROM public.cases
+  WHERE id = _case_id;
+
+  IF NOT FOUND THEN
+    RETURN ARRAY['Caso não encontrado'];
+  END IF;
+
+  SELECT COALESCE(s.requirements, '[]'::jsonb)
+    INTO v_requirements
+  FROM public.stages s
+  WHERE s.id = v_case.current_stage_id;
+
+  IF v_requirements IS NULL OR jsonb_typeof(v_requirements) <> 'array' THEN
+    RETURN ARRAY[]::text[];
+  END IF;
+
+  FOR v_req IN SELECT value FROM jsonb_array_elements(v_requirements)
+  LOOP
+    v_blocks := lower(COALESCE(v_req->>'blocks_advance', 'false')) = 'true';
+    IF NOT v_blocks THEN
+      CONTINUE;
+    END IF;
+
+    v_type := v_req->>'type';
+
+    IF v_type = 'implant_components' THEN
+      v_implant_teeth := COALESCE(v_case.implant_teeth, ARRAY[]::integer[]);
+
+      IF COALESCE(array_length(v_implant_teeth, 1), 0) = 0 THEN
+        v_blockers := array_append(v_blockers, 'Marcar os dentes com implante e apontar os componentes');
+      ELSE
+        SELECT array_agg(t ORDER BY t)
+          INTO v_missing_implants
+        FROM unnest(v_implant_teeth) AS t
+        WHERE NOT EXISTS (
+          SELECT 1
+          FROM public.case_implant_teeth cit
+          WHERE cit.case_id = _case_id
+            AND cit.tooth_fdi = t
+            AND cit.reversed_at IS NULL
+        );
+
+        IF COALESCE(array_length(v_missing_implants, 1), 0) > 0 THEN
+          v_blockers := array_append(
+            v_blockers,
+            'Apontar componente para dentes com implantes (' || array_to_string(v_missing_implants, ', ') || ')'
+          );
+        END IF;
+      END IF;
+    ELSIF v_type = 'download_scans' THEN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM public.case_activity ca
+        WHERE ca.case_id = _case_id
+          AND ca.kind = 'download'
+          AND ca.metadata->>'kind' = 'scans'
+      ) THEN
+        v_blockers := array_append(v_blockers, 'Baixar arquivos da aba "Escaneamentos"');
+      END IF;
+    ELSIF v_type = 'upload_models' THEN
+      IF NOT EXISTS (
+        SELECT 1 FROM public.case_attachments a
+        WHERE a.case_id = _case_id AND a.kind = 'model' AND a.expired_at IS NULL
+      ) THEN
+        v_blockers := array_append(v_blockers, 'Enviar arquivo na aba "Modelos"');
+      END IF;
+    ELSIF v_type = 'upload_fabrication' THEN
+      IF NOT EXISTS (
+        SELECT 1 FROM public.case_attachments a
+        WHERE a.case_id = _case_id AND a.kind = 'fabrication' AND a.expired_at IS NULL
+      ) THEN
+        v_blockers := array_append(v_blockers, 'Enviar arquivo na aba "Confecção"');
+      END IF;
+    ELSIF v_type = 'upload_html' THEN
+      IF NOT EXISTS (
+        SELECT 1 FROM public.case_attachments a
+        WHERE a.case_id = _case_id AND a.kind = 'exocad_html' AND a.expired_at IS NULL
+      ) THEN
+        v_blockers := array_append(v_blockers, 'Enviar arquivo na aba "Html"');
+      END IF;
+    ELSIF v_type = 'upload_gallery' THEN
+      IF NOT EXISTS (
+        SELECT 1 FROM public.case_attachments a
+        WHERE a.case_id = _case_id AND a.kind = 'gallery' AND a.expired_at IS NULL
+      ) THEN
+        v_blockers := array_append(v_blockers, 'Enviar imagem na aba "Galeria"');
+      END IF;
+    END IF;
+  END LOOP;
+
+  RETURN v_blockers;
+END
+$$;
+
+GRANT EXECUTE ON FUNCTION public.case_stage_requirement_blockers(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.case_stage_requirement_blockers(uuid) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.advance_case_workflow(_case_id uuid, _stage_id uuid DEFAULT NULL::uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_current_stage uuid;
+  v_current_pos int;
+  v_next_stage uuid;
+  v_next_phase uuid;
+  v_blockers text[];
+BEGIN
+  IF NOT public.can_access_case(_case_id) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Sem permissão');
+  END IF;
+
+  SELECT public.case_stage_requirement_blockers(_case_id) INTO v_blockers;
+  IF COALESCE(array_length(v_blockers, 1), 0) > 0 THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'Para avançar, cumpra:' || chr(10) || '• ' || array_to_string(v_blockers, chr(10) || '• '),
+      'blockers', to_jsonb(v_blockers)
+    );
+  END IF;
+
+  SELECT current_stage_id INTO v_current_stage FROM public.cases WHERE id = _case_id;
+
+  IF _stage_id IS NOT NULL THEN
+    v_next_stage := _stage_id;
+  ELSE
+    SELECT position INTO v_current_pos FROM public.stages WHERE id = v_current_stage;
+    SELECT id INTO v_next_stage
+      FROM public.stages
+      WHERE position > COALESCE(v_current_pos, -1)
+      ORDER BY position ASC
+      LIMIT 1;
+    IF v_next_stage IS NULL THEN
+      RETURN jsonb_build_object('success', false, 'error', 'Não há próxima etapa');
+    END IF;
+  END IF;
+
+  SELECT phase_id INTO v_next_phase FROM public.stages WHERE id = v_next_stage;
+
+  UPDATE public.case_stages
+     SET completed_at = COALESCE(completed_at, now())
+   WHERE case_id = _case_id AND stage_id = v_current_stage AND completed_at IS NULL;
+
+  INSERT INTO public.case_stages (case_id, stage_id, started_at)
+    VALUES (_case_id, v_next_stage, now())
+    ON CONFLICT DO NOTHING;
+
+  UPDATE public.cases
+     SET current_stage_id = v_next_stage,
+         current_phase_id = COALESCE(v_next_phase, current_phase_id),
+         updated_at = now()
+   WHERE id = _case_id;
+
+  RETURN jsonb_build_object('success', true, 'stage_id', v_next_stage, 'phase_id', v_next_phase);
+END
+$$;
+
+GRANT EXECUTE ON FUNCTION public.advance_case_workflow(uuid, uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.advance_case_workflow(uuid, uuid) TO service_role;

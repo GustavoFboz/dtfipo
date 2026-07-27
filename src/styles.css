@@ -4,28 +4,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * Design system definition.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
- */
-
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 3px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --radius-2xl: calc(var(--radius) + 8px);
-  --radius-3xl: calc(var(--radius) + 12px);
-  --radius-4xl: calc(var(--radius) + 16px);
+  --radius-2xl: calc(var(--radius) + 10px);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -34,6 +18,7 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -45,12 +30,14 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-ring-offset-background: var(--background);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-stage-cadista: var(--stage-cadista);
+  --color-stage-forno: var(--stage-forno);
+  --color-stage-provisorio: var(--stage-provisorio);
+  --color-stage-maquiagem: var(--stage-maquiagem);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -62,83 +49,601 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
+  --radius: 1rem;
+
+  /* Base — very soft sky-tinted surface */
+  --background: oklch(0.985 0.008 245);
+  --foreground: oklch(0.22 0.05 258);
+
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.22 0.05 258);
+
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --popover-foreground: oklch(0.22 0.05 258);
+
+  /* Primary — bright friendly clinical blue (~#2D7FF9) */
+  --primary: oklch(0.62 0.2 255);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-soft: oklch(0.95 0.04 250);
+
+  --secondary: oklch(0.965 0.018 245);
+  --secondary-foreground: oklch(0.3 0.06 258);
+
+  --muted: oklch(0.965 0.015 245);
+  --muted-foreground: oklch(0.5 0.04 258);
+
+  --accent: oklch(0.94 0.045 248);
+  --accent-foreground: oklch(0.45 0.18 258);
+
+  --destructive: oklch(0.62 0.23 27);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --success: oklch(0.66 0.18 150);
+  --success-foreground: oklch(0.99 0 0);
+
+  --warning: oklch(0.8 0.16 78);
+  --warning-foreground: oklch(0.22 0.05 50);
+
+  --border: oklch(0.93 0.018 250);
+  --input: oklch(0.93 0.018 250);
+  --ring: oklch(0.62 0.2 255);
+
+  /* Stage colors */
+  --stage-cadista: oklch(0.62 0.2 255);
+  --stage-forno: oklch(0.8 0.16 78);
+  --stage-provisorio: oklch(0.92 0.09 95);
+  --stage-maquiagem: oklch(0.68 0.22 5);
+
+  /* Sidebar — light surface, blue accent (matches Codental web app) */
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.32 0.05 258);
+  --sidebar-primary: oklch(0.62 0.2 255);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.96 0.04 250);
+  --sidebar-accent-foreground: oklch(0.45 0.18 258);
+  --sidebar-border: oklch(0.93 0.018 250);
+  --sidebar-ring: oklch(0.62 0.2 255);
+
+  /* Elevation & gradients */
+  --shadow-soft: 0 1px 2px 0 oklch(0.5 0.18 258 / 0.04), 0 1px 3px -1px oklch(0.5 0.18 258 / 0.06);
+  --shadow-card: 0 10px 30px -12px oklch(0.5 0.18 258 / 0.16), 0 2px 6px -2px oklch(0.5 0.18 258 / 0.06);
+  --shadow-glow: 0 16px 40px -12px oklch(0.62 0.2 255 / 0.45);
+  --gradient-primary: linear-gradient(135deg, oklch(0.66 0.2 252), oklch(0.56 0.22 263));
+  --gradient-soft: linear-gradient(180deg, oklch(0.97 0.035 248), oklch(0.99 0.01 245));
 }
 
 .dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.208 0.042 265.755);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.279 0.041 260.031);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  /* Total Black — pure #000 base, elevated surfaces stay near-black */
+  --background: oklch(0 0 0);
+  --foreground: oklch(0.98 0 0);
+  --card: oklch(0.08 0 0);
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.08 0 0);
+  --popover-foreground: oklch(0.98 0 0);
+  --primary: oklch(0.62 0.2 255);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-soft: oklch(0.22 0.08 255);
+  --secondary: oklch(0.12 0 0);
+  --secondary-foreground: oklch(0.98 0 0);
+  --muted: oklch(0.12 0 0);
+  --muted-foreground: oklch(0.68 0 0);
+  --accent: oklch(0.16 0 0);
+  --accent-foreground: oklch(0.98 0 0);
+  --destructive: oklch(0.62 0.22 27);
+  --destructive-foreground: oklch(0.98 0 0);
+  --success: oklch(0.7 0.16 155);
+  --success-foreground: oklch(0 0 0);
+  --warning: oklch(0.82 0.14 82);
+  --warning-foreground: oklch(0 0 0);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 10%);
+  --ring: oklch(0.8 0 0);
+  --sidebar: oklch(0 0 0);
+  --sidebar-foreground: oklch(0.9 0 0);
+  --sidebar-primary: oklch(0.98 0 0);
+  --sidebar-primary-foreground: oklch(0 0 0);
+  --sidebar-accent: oklch(0.12 0 0);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
+  --sidebar-border: oklch(1 0 0 / 6%);
+  --sidebar-ring: oklch(0.8 0 0);
+
+  --shadow-soft: 0 1px 2px 0 oklch(0 0 0 / 0.4), 0 1px 3px -1px oklch(0 0 0 / 0.5);
+  --shadow-card: 0 10px 30px -12px oklch(0 0 0 / 0.7), 0 2px 6px -2px oklch(0 0 0 / 0.4);
+  --shadow-glow: 0 16px 40px -12px oklch(1 0 0 / 0.08);
+  --gradient-primary: linear-gradient(135deg, oklch(0.14 0 0), oklch(0.06 0 0));
+  --gradient-soft: linear-gradient(180deg, oklch(0.08 0 0), oklch(0 0 0));
+
 }
 
 @layer base {
-  * {
-    border-color: var(--color-border);
-  }
-
+  * { border-color: var(--color-border); }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-weight: 300;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  input, textarea, [contenteditable="true"] {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+  }
+
+  h1, h2, h3, h4 { 
+    font-weight: 200;
+    letter-spacing: -0.05em; 
+  }
+  
+  /* Minimalist scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-muted-foreground);
   }
 }
+
+@layer utilities {
+  .soft-section {
+    background-image: var(--gradient-soft);
+  }
+  .brand-gradient {
+    background-image: var(--gradient-primary);
+    color: var(--primary-foreground);
+  }
+  /* Global brand identity — usar em toda a plataforma */
+  .text-brand-gradient {
+    background-image: linear-gradient(90deg, #2D7FF9, #4a9bff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .btn-brand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 3rem;
+    padding: 0 1.5rem;
+    border-radius: 9999px;
+    background-image: linear-gradient(90deg, #2D7FF9, #4a9bff);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    box-shadow: 0 10px 28px -10px rgba(45, 127, 249, 0.6);
+    transition: filter .15s ease, transform .15s ease;
+  }
+  .btn-brand:hover { filter: brightness(1.06); }
+  .btn-brand:active { transform: translateY(1px); }
+  .btn-brand-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 3rem;
+    padding: 0 1.5rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(45,127,249,0.35);
+    color: #2D7FF9;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: transparent;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .btn-brand-outline:hover { background: rgba(45,127,249,0.06); border-color: #2D7FF9; }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    background: var(--primary-soft);
+    color: var(--accent-foreground);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .card-elev {
+    background: var(--card);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--border);
+  }
+  .glow-ring {
+    box-shadow: var(--shadow-glow);
+  }
+  .viewer-surface {
+    background-color: #f6f8fb;
+    background-image:
+      linear-gradient(to right, rgba(31, 107, 255, 0.10) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(31, 107, 255, 0.10) 1px, transparent 1px);
+    background-size: 28px 28px;
+  }
+  .dark .viewer-surface {
+    background-color: oklch(0.1 0.002 270);
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  }
+  .thumb-surface {
+    background-color: oklch(0.96 0.005 250);
+  }
+  .dark .thumb-surface {
+    background-color: oklch(0.18 0.003 270);
+  }
+}
+
+/* Black Premium — global remap of legacy hardcoded light utilities so every
+   page inherits the dark theme without per-component edits. */
+.dark {
+  color-scheme: dark;
+}
+.dark .bg-white,
+.dark .bg-white\/95,
+.dark .bg-white\/85,
+.dark .bg-white\/80,
+.dark .bg-white\/60,
+.dark .bg-white\/40 { background-color: oklch(0.08 0 0) !important; }
+.dark .focus\:bg-white:focus { background-color: oklch(0.1 0 0) !important; }
+.dark .bg-\[\#fcfdfe\] { background-color: oklch(0 0 0) !important; }
+.dark .bg-\[\#020617\] { background-color: oklch(0 0 0) !important; }
+.dark .bg-slate-50,
+.dark .bg-slate-50\/40,
+.dark .bg-slate-50\/50,
+.dark .bg-slate-50\/60,
+.dark .bg-slate-50\/80 { background-color: oklch(0.1 0 0) !important; }
+.dark .bg-slate-100,
+.dark .bg-slate-100\/50,
+.dark .bg-slate-100\/70 { background-color: oklch(0.14 0 0) !important; }
+.dark .hover\:bg-slate-100\/70:hover,
+.dark .hover\:bg-slate-100:hover { background-color: oklch(0.16 0 0) !important; }
+.dark .hover\:bg-slate-50:hover,
+.dark .hover\:bg-slate-50\/60:hover { background-color: oklch(0.12 0 0) !important; }
+.dark .bg-slate-900,
+.dark .bg-slate-900\/50,
+.dark .bg-slate-900\/40,
+.dark .bg-slate-900\/30,
+.dark .bg-slate-900\/20 { background-color: oklch(0.08 0 0) !important; }
+.dark .bg-slate-950 { background-color: oklch(0 0 0) !important; }
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-slate-700 { color: oklch(0.96 0 0) !important; }
+.dark .text-slate-600,
+.dark .text-slate-500 { color: oklch(0.72 0 0) !important; }
+.dark .text-slate-400,
+.dark .text-slate-300 { color: oklch(0.6 0 0) !important; }
+.dark .border-slate-100,
+.dark .border-slate-100\/50,
+.dark .border-slate-200,
+.dark .border-slate-300,
+.dark .border-slate-800,
+.dark .border-slate-700 { border-color: oklch(1 0 0 / 0.08) !important; }
+.dark .border-amber-100 { border-color: oklch(1 0 0 / 0.1) !important; }
+
+/* Dark theme: bg-primary/5 & /10 (white/5, white/10 in dark) are near-invisible.
+   Give profile chips and avatar wells a subtle elevated tone that contrasts. */
+.dark .bg-primary\/5 { background-color: oklch(0.16 0 0) !important; }
+.dark .bg-primary\/10 { background-color: oklch(0.2 0 0) !important; }
+.dark .hover\:bg-primary\/5:hover { background-color: oklch(0.18 0 0) !important; }
+.dark .hover\:bg-primary\/10:hover { background-color: oklch(0.22 0 0) !important; }
+
+/* Force any hardcoded #0C84FA bright blue to adopt the theme primary in dark. */
+.dark [style*="#0C84FA"] { color: var(--foreground) !important; }
+
+/* Black Premium — form controls inside dialogs/popovers/sheets.
+   The case dialog styles inputs via arbitrary Tailwind selectors
+   ([&_input]:bg-slate-100/70), which don't match our .dark .bg-slate-100/70
+   overrides because the child element never carries that class literally.
+   Force every input/textarea/combobox inside a dark surface to a dark tone
+   with a lighter grayscale text for readable contrast. */
+.dark [role="dialog"] input,
+.dark [role="dialog"] textarea,
+.dark [role="dialog"] select,
+.dark [role="dialog"] [role="combobox"],
+.dark [role="alertdialog"] input,
+.dark [role="alertdialog"] textarea,
+.dark [role="alertdialog"] [role="combobox"] {
+  background-color: oklch(0.14 0 0) !important;
+  color: oklch(0.9 0 0) !important;
+  border-color: oklch(1 0 0 / 0.08) !important;
+}
+.dark [role="dialog"] input:focus,
+.dark [role="dialog"] textarea:focus,
+.dark [role="dialog"] [role="combobox"]:focus,
+.dark [role="dialog"] [role="combobox"][data-state="open"],
+.dark [role="alertdialog"] input:focus,
+.dark [role="alertdialog"] textarea:focus,
+.dark [role="alertdialog"] [role="combobox"]:focus {
+  background-color: oklch(0.18 0 0) !important;
+  color: oklch(0.98 0 0) !important;
+  box-shadow: inset 0 0 0 1px oklch(1 0 0 / 0.12) !important;
+}
+.dark [role="dialog"] input::placeholder,
+.dark [role="dialog"] textarea::placeholder,
+.dark [role="alertdialog"] input::placeholder,
+.dark [role="alertdialog"] textarea::placeholder {
+  color: oklch(0.55 0 0) !important;
+}
+/* Radix Select/Popover content surfaces */
+.dark [role="listbox"],
+.dark [data-radix-popper-content-wrapper] > * {
+  background-color: oklch(0.1 0 0) !important;
+  color: oklch(0.92 0 0) !important;
+  border-color: oklch(1 0 0 / 0.08) !important;
+}
+/* Dialog panel itself — override hardcoded bg-white on inner wrappers */
+.dark [role="dialog"] .bg-white,
+.dark [role="dialog"] [class*="bg-white"] {
+  background-color: oklch(0.06 0 0) !important;
+}
+
+
+
+
+#lovable-badge {
+  display: none !important;
+}
+
+/* ============================================
+   MOBILE APP-LIKE ADAPTATIONS
+   Applies to phones/tablets < 768px so any Radix
+   dialog/sheet feels like a native bottom sheet.
+   ============================================ */
+@media (max-width: 767px) {
+  /* Full-width, near full-height dialogs anchored to bottom */
+  [role="dialog"][data-state]:not([data-side]) {
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    bottom: 0 !important;
+    transform: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 92vh !important;
+    border-radius: 1.5rem 1.5rem 0 0 !important;
+    padding: 1.25rem !important;
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom)) !important;
+    overflow-y: auto !important;
+    animation-duration: 250ms !important;
+  }
+  [role="dialog"][data-state="open"]:not([data-side]) {
+    animation-name: slideUpMobile !important;
+  }
+  [role="dialog"][data-state="closed"]:not([data-side]) {
+    animation-name: slideDownMobile !important;
+  }
+  /* Grabber handle for mobile dialogs */
+  [role="dialog"][data-state]:not([data-side])::before {
+    content: "";
+    position: sticky;
+    top: 0;
+    display: block;
+    width: 3rem;
+    height: 0.3rem;
+    margin: -0.25rem auto 0.75rem;
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--muted-foreground) 30%, transparent);
+  }
+
+  /* Larger tap targets */
+  button, [role="button"], a { touch-action: manipulation; }
+
+  /* Inputs: prevent iOS zoom (needs >=16px) */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* Tables → allow horizontal scroll containers to breathe */
+  .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+}
+
+@keyframes slideUpMobile {
+  from { transform: translateY(100%); opacity: 0.6; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes slideDownMobile {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(100%); opacity: 0; }
+}
+
+
+
+@keyframes heroDrift {
+  0%, 100% { transform: scale(1.05) translate(0, 0); }
+  50% { transform: scale(1.12) translate(-1.5%, -1%); }
+}
+@keyframes heroPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@keyframes dentesEnter {
+  from { opacity: 0; transform: translate3d(48px, 0, 0); filter: blur(4px); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0); }
+}
+.animate-dentes-enter {
+  animation: dentesEnter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity, filter;
+}
+@keyframes labExit {
+  from { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0); }
+  to { opacity: 0; transform: translate3d(-48px, 0, 0); filter: blur(4px); }
+}
+.animate-lab-exit {
+  animation: labExit 320ms cubic-bezier(0.4, 0, 1, 1) both;
+  will-change: transform, opacity, filter;
+}
+@keyframes dentesExit {
+  from { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0); }
+  to { opacity: 0; transform: translate3d(48px, 0, 0); filter: blur(4px); }
+}
+.animate-dentes-exit {
+  animation: dentesExit 320ms cubic-bezier(0.4, 0, 1, 1) both;
+  will-change: transform, opacity, filter;
+}
+@keyframes labEnter {
+  from { opacity: 0; transform: translate3d(-48px, 0, 0); filter: blur(4px); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0); }
+}
+.animate-lab-enter {
+  animation: labEnter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity, filter;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-dentes-enter,
+  .animate-lab-exit,
+  .animate-dentes-exit,
+  .animate-lab-enter { animation: none; }
+}
+
+
+
+/* Arcada — Tema escuro
+   Padrão (grayscale): identidade discreta em tons de preto/cinza.
+   Variante "azul": paleta original da marca (arquivada como personalização). */
+.dark #gengivasuperior,
+.dark #gengivainferior { fill: #1A1A1A !important; }
+.dark [id^="basedente"] { fill: #4D4D4D !important; }
+.dark [id^="implante"] { fill: #2E2E2E !important; }
+.dark [id^="numero"] { fill: #BDBDBD !important; }
+
+.dark[data-arcada="azul"] #gengivasuperior,
+.dark[data-arcada="azul"] #gengivainferior { fill: #0C84FA !important; }
+.dark[data-arcada="azul"] [id^="basedente"] { fill: #A5D2FF !important; }
+.dark[data-arcada="azul"] [id^="numero"] { fill: #0C84FA !important; }
+.dark[data-arcada="azul"] [id^="implante"] { fill: #63B1FF !important; }
+
+/* ============================================================
+   Global popup animation (WhatsApp-like scale+fade from origin)
+   Applies to every Radix overlay Content (dropdown, popover,
+   select, context-menu, menubar, hover-card, tooltip, dialog,
+   alert-dialog) that already uses tw-animate-css's animate-in
+   / animate-out utilities. Unifies timing and easing.
+   ============================================================ */
+[data-state="open"].animate-in,
+[data-state="closed"].animate-out {
+  animation-duration: 160ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+[data-state="closed"].animate-out {
+  animation-duration: 110ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/* ============================================================
+   Global instant tactile feedback
+   Every clickable surface reacts visually the instant the
+   pointer goes down — before any async work runs.
+   ============================================================ */
+button,
+[role="button"],
+[role="menuitem"],
+[role="menuitemcheckbox"],
+[role="menuitemradio"],
+[role="option"],
+[role="tab"],
+[role="switch"],
+[role="checkbox"],
+[role="radio"],
+[data-slot="toast-action"],
+[data-slot="toast-close"],
+a[href],
+summary,
+label[for],
+.cursor-pointer {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition:
+    background-color 80ms ease-out,
+    color 80ms ease-out,
+    border-color 80ms ease-out,
+    opacity 80ms ease-out,
+    transform 80ms ease-out,
+    box-shadow 80ms ease-out;
+}
+
+button:active:not(:disabled),
+[role="button"]:active:not([aria-disabled="true"]),
+[role="menuitem"]:active,
+[role="menuitemcheckbox"]:active,
+[role="menuitemradio"]:active,
+[role="option"]:active,
+[role="tab"]:active,
+[data-slot="toast-action"]:active,
+[data-slot="toast-close"]:active,
+a[href]:active,
+summary:active,
+label[for]:active,
+.cursor-pointer:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+  transition-duration: 0ms;
+}
+
+[role="menuitem"][data-highlighted],
+[role="menuitemcheckbox"][data-highlighted],
+[role="menuitemradio"][data-highlighted],
+[role="option"][data-highlighted] {
+  transition-duration: 0ms;
+}
+
+
+
+@keyframes pageRiseIn {
+  0% { opacity: 0; transform: translateY(18px); filter: blur(2px); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.animate-page-rise {
+  animation: pageRiseIn 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes pageExitUp {
+  0% { opacity: 1; transform: translateY(0); filter: blur(0); }
+  100% { opacity: 0; transform: translateY(-18px); filter: blur(2px); }
+}
+.animate-page-exit {
+  animation: pageExitUp 220ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  pointer-events: none;
+  will-change: transform, opacity, filter;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-page-rise,
+  .animate-page-exit { animation: none !important; }
+}
+
+
+/* Refresh boot animation — só dispara em recarregamento total (F5/reload),
+   nunca em navegação client-side entre rotas. */
+@keyframes refreshBootRise {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+html.refresh-boot body > *:not(.tpb-root) {
+  animation: refreshBootRise 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.refresh-boot body > *:not(.tpb-root) { animation: none !important; }
+}
+

@@ -1,0 +1,41 @@
+
+ALTER TABLE public.case_types ADD COLUMN IF NOT EXISTS position integer NOT NULL DEFAULT 100;
+ALTER TABLE public.case_types ADD CONSTRAINT case_types_name_unique UNIQUE (name);
+
+INSERT INTO public.case_types (name, position) VALUES
+  ('Coroa', 100),
+  ('Faceta', 100),
+  ('Lente de Contato', 100),
+  ('Inlay', 100),
+  ('Onlay', 100),
+  ('Overlay', 100),
+  ('Endocrown', 100),
+  ('Pôntico', 100),
+  ('Ponte Fixa', 100),
+  ('Prótese Parcial Removível (PPR)', 100),
+  ('Prótese Total (PT)', 100),
+  ('Overdenture', 100),
+  ('Protocolo', 100),
+  ('Barra Protética', 100),
+  ('Pilar Personalizado', 100),
+  ('Guia Cirúrgica', 100),
+  ('Mock-up', 100),
+  ('Enceramento Diagnóstico', 100),
+  ('Alinhador Ortodôntico', 100),
+  ('Contenção Ortodôntica', 100),
+  ('Placa Miorrelaxante', 100),
+  ('Placa de Clareamento', 100),
+  ('Protetor Bucal', 100),
+  ('Jig de Verificação', 100),
+  ('Jig de Escaneamento', 100),
+  ('Moldeira Individual', 100),
+  ('Base de Prova', 100),
+  ('Plano de Cera', 100),
+  ('Caracterização Gengival', 100),
+  ('Reembasamento', 100),
+  ('Conserto de Prótese', 100),
+  ('Conversão de Prótese', 100),
+  ('Impressão 3D', 100),
+  ('Fresagem CAD/CAM', 100),
+  ('Outro', 9999)
+ON CONFLICT (name) DO UPDATE SET position = EXCLUDED.position;

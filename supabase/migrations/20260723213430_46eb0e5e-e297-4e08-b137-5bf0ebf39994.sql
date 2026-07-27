@@ -1,0 +1,1 @@
+UPDATE auth.users SET email_confirmed_at = COALESCE(email_confirmed_at, now()), updated_at = now() WHERE id = '9f0e3ac2-4872-4cd0-af01-12f3f8ebdd3b';

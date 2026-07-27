@@ -1,14 +1,28 @@
 import * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 
+import { usePreservePageScrollOnOpenChange } from "@/hooks/use-preserve-page-scroll";
 import { cn } from "@/lib/utils";
 
 const Drawer = ({
   shouldScaleBackground = true,
+  open,
+  defaultOpen,
+  onOpenChange,
   ...props
-}: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
-  <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} {...props} />
-);
+}: React.ComponentProps<typeof DrawerPrimitive.Root>) => {
+  const handleOpenChange = usePreservePageScrollOnOpenChange(open, defaultOpen, onOpenChange);
+
+  return (
+    <DrawerPrimitive.Root
+      shouldScaleBackground={shouldScaleBackground}
+      open={open}
+      defaultOpen={defaultOpen}
+      onOpenChange={handleOpenChange}
+      {...props}
+    />
+  );
+};
 Drawer.displayName = "Drawer";
 
 const DrawerTrigger = DrawerPrimitive.Trigger;

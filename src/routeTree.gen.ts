@@ -9,50 +9,1024 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as LpRouteImport } from './routes/lp'
+import { Route as JoinClinicRouteImport } from './routes/join-clinic'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as AuthResetRouteImport } from './routes/auth.reset'
+import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
+import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
+import { Route as AuthenticatedMeuFinanceiroRouteImport } from './routes/_authenticated/meu-financeiro'
+import { Route as AuthenticatedMaquinasRouteImport } from './routes/_authenticated/maquinas'
+import { Route as AuthenticatedLabRouteImport } from './routes/_authenticated/lab'
+import { Route as AuthenticatedFluxoRouteImport } from './routes/_authenticated/fluxo'
+import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
+import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
+import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
+import { Route as AuthenticatedDentesRouteImport } from './routes/_authenticated/dentes'
+import { Route as AuthenticatedConsumoAutomaticoRouteImport } from './routes/_authenticated/consumo-automatico'
+import { Route as AuthenticatedCadistaRouteImport } from './routes/_authenticated/cadista'
+import { Route as AuthenticatedBurrsRouteImport } from './routes/_authenticated/burrs'
+import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
+import { Route as AuthenticatedPatientsIndexRouteImport } from './routes/_authenticated/patients.index'
+import { Route as AuthenticatedFinanceiroIndexRouteImport } from './routes/_authenticated/financeiro.index'
+import { Route as AuthenticatedConfiguracoesIndexRouteImport } from './routes/_authenticated/configuracoes.index'
+import { Route as AuthenticatedPatientsIdRouteImport } from './routes/_authenticated/patients.$id'
+import { Route as AuthenticatedFinanceiroRelatoriosRouteImport } from './routes/_authenticated/financeiro.relatorios'
+import { Route as AuthenticatedFinanceiroProducaoRouteImport } from './routes/_authenticated/financeiro.producao'
+import { Route as AuthenticatedFinanceiroPrevisaoRouteImport } from './routes/_authenticated/financeiro.previsao'
+import { Route as AuthenticatedFinanceiroPrecosRouteImport } from './routes/_authenticated/financeiro.precos'
+import { Route as AuthenticatedFinanceiroPermissoesRouteImport } from './routes/_authenticated/financeiro.permissoes'
+import { Route as AuthenticatedFinanceiroParticipantesRouteImport } from './routes/_authenticated/financeiro.participantes'
+import { Route as AuthenticatedFinanceiroPagamentosRouteImport } from './routes/_authenticated/financeiro.pagamentos'
+import { Route as AuthenticatedFinanceiroFluxoCaixaRouteImport } from './routes/_authenticated/financeiro.fluxo-caixa'
+import { Route as AuthenticatedFinanceiroFechamentoRouteImport } from './routes/_authenticated/financeiro.fechamento'
+import { Route as AuthenticatedFinanceiroConfiguracoesRouteImport } from './routes/_authenticated/financeiro.configuracoes'
+import { Route as AuthenticatedFinanceiroCarteirasRouteImport } from './routes/_authenticated/financeiro.carteiras'
+import { Route as AuthenticatedFinanceiroAprovacoesRouteImport } from './routes/_authenticated/financeiro.aprovacoes'
+import { Route as AuthenticatedEstoqueMovimentacoesRouteImport } from './routes/_authenticated/estoque.movimentacoes'
+import { Route as AuthenticatedConfiguracoesNotaRouteImport } from './routes/_authenticated/configuracoes.nota'
+import { Route as AuthenticatedConfiguracoesImplantesRouteImport } from './routes/_authenticated/configuracoes.implantes'
+import { Route as AuthenticatedCadistasCadistaIdRouteImport } from './routes/_authenticated/cadistas.$cadistaId'
+import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin.usuarios'
+import { Route as AuthenticatedAdminRestauracaoRouteImport } from './routes/_authenticated/admin.restauracao'
+import { Route as AuthenticatedAdminBackupRouteImport } from './routes/_authenticated/admin.backup'
+import { Route as ApiPublicHooksCleanupCaseFilesRouteImport } from './routes/api/public/hooks/cleanup-case-files'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const LpRoute = LpRouteImport.update({
+  id: '/lp',
+  path: '/lp',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JoinClinicRoute = JoinClinicRouteImport.update({
+  id: '/join-clinic',
+  path: '/join-clinic',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthResetRoute = AuthResetRouteImport.update({
+  id: '/reset',
+  path: '/reset',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthForgotRoute = AuthForgotRouteImport.update({
+  id: '/forgot',
+  path: '/forgot',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthenticatedTarefasRoute = AuthenticatedTarefasRouteImport.update({
+  id: '/tarefas',
+  path: '/tarefas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMeuFinanceiroRoute =
+  AuthenticatedMeuFinanceiroRouteImport.update({
+    id: '/meu-financeiro',
+    path: '/meu-financeiro',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMaquinasRoute = AuthenticatedMaquinasRouteImport.update({
+  id: '/maquinas',
+  path: '/maquinas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLabRoute = AuthenticatedLabRouteImport.update({
+  id: '/lab',
+  path: '/lab',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFluxoRoute = AuthenticatedFluxoRouteImport.update({
+  id: '/fluxo',
+  path: '/fluxo',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFinanceiroRoute = AuthenticatedFinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEstoqueRoute = AuthenticatedEstoqueRouteImport.update({
+  id: '/estoque',
+  path: '/estoque',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEquipeRoute = AuthenticatedEquipeRouteImport.update({
+  id: '/equipe',
+  path: '/equipe',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDentesRoute = AuthenticatedDentesRouteImport.update({
+  id: '/dentes',
+  path: '/dentes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedConsumoAutomaticoRoute =
+  AuthenticatedConsumoAutomaticoRouteImport.update({
+    id: '/consumo-automatico',
+    path: '/consumo-automatico',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCadistaRoute = AuthenticatedCadistaRouteImport.update({
+  id: '/cadista',
+  path: '/cadista',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedBurrsRoute = AuthenticatedBurrsRouteImport.update({
+  id: '/burrs',
+  path: '/burrs',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAgendaRoute = AuthenticatedAgendaRouteImport.update({
+  id: '/agenda',
+  path: '/agenda',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPatientsIndexRoute =
+  AuthenticatedPatientsIndexRouteImport.update({
+    id: '/patients/',
+    path: '/patients/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFinanceiroIndexRoute =
+  AuthenticatedFinanceiroIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedFinanceiroRoute,
+  } as any)
+const AuthenticatedConfiguracoesIndexRoute =
+  AuthenticatedConfiguracoesIndexRouteImport.update({
+    id: '/configuracoes/',
+    path: '/configuracoes/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPatientsIdRoute = AuthenticatedPatientsIdRouteImport.update({
+  id: '/patients/$id',
+  path: '/patients/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedFinanceiroRelatoriosRoute =
+  AuthenticatedFinanceiroRelatoriosRouteImport.update({
+    id: '/relatorios',
+    path: '/relatorios',
+    getParentRoute: () => AuthenticatedFinanceiroRoute,
+  } as any)
+const AuthenticatedFinanceiroProducaoRoute =
+  AuthenticatedFinanceiroProducaoRouteImport.update({
+    id: '/producao',
+    path: '/producao',
+    getParentRoute: () => AuthenticatedFinanceiroRoute,
+  } as any)
+const AuthenticatedFinanceiroPrevisaoRoute =
+  AuthenticatedFinanceiroPrevisaoRouteImport.update({
+    id: '/previsao',
+    path: '/previsao',
+    getParentRoute: () => AuthenticatedFinanceiroRoute,
+  } as any)
+const AuthenticatedFinanceiroPrecosRoute =
+  AuthenticatedFinanceiroPrecosRouteImport.update({
+    id: '/precos',
+    path: '/precos',
+    getParentRoute: () => AuthenticatedFinanceiroRoute,
+  } as any)
+const AuthenticatedFinanceiroPermissoesRoute =
+  AuthenticatedFinanceiroPermissoesRouteImport.update({
+    id: '/permissoes',
+    path: '/permissoes',
+    getParentRoute: () => AuthenticatedFinanceiroRoute,
+  } as any)
+const AuthenticatedFinanceiroParticipantesRoute =
+  AuthenticatedFinanceiroParticipantesRouteImport.update({
+    id: '/participantes',
+    path: '/participantes',
+    getParentRoute: () => AuthenticatedFinanceiroRoute,
+  } as any)
+const AuthenticatedFinanceiroPagamentosRoute =
+  AuthenticatedFinanceiroPagamentosRouteImport.update({
+    id: '/pagamentos',
+    path: '/pagamentos',
+    getParentRoute: () => AuthenticatedFinanceiroRoute,
+  } as any)
+const AuthenticatedFinanceiroFluxoCaixaRoute =
+  AuthenticatedFinanceiroFluxoCaixaRouteImport.update({
+    id: '/fluxo-caixa',
+    path: '/fluxo-caixa',
+    getParentRoute: () => AuthenticatedFinanceiroRoute,
+  } as any)
+const AuthenticatedFinanceiroFechamentoRoute =
+  AuthenticatedFinanceiroFechamentoRouteImport.update({
+    id: '/fechamento',
+    path: '/fechamento',
+    getParentRoute: () => AuthenticatedFinanceiroRoute,
+  } as any)
+const AuthenticatedFinanceiroConfiguracoesRoute =
+  AuthenticatedFinanceiroConfiguracoesRouteImport.update({
+    id: '/configuracoes',
+    path: '/configuracoes',
+    getParentRoute: () => AuthenticatedFinanceiroRoute,
+  } as any)
+const AuthenticatedFinanceiroCarteirasRoute =
+  AuthenticatedFinanceiroCarteirasRouteImport.update({
+    id: '/carteiras',
+    path: '/carteiras',
+    getParentRoute: () => AuthenticatedFinanceiroRoute,
+  } as any)
+const AuthenticatedFinanceiroAprovacoesRoute =
+  AuthenticatedFinanceiroAprovacoesRouteImport.update({
+    id: '/aprovacoes',
+    path: '/aprovacoes',
+    getParentRoute: () => AuthenticatedFinanceiroRoute,
+  } as any)
+const AuthenticatedEstoqueMovimentacoesRoute =
+  AuthenticatedEstoqueMovimentacoesRouteImport.update({
+    id: '/movimentacoes',
+    path: '/movimentacoes',
+    getParentRoute: () => AuthenticatedEstoqueRoute,
+  } as any)
+const AuthenticatedConfiguracoesNotaRoute =
+  AuthenticatedConfiguracoesNotaRouteImport.update({
+    id: '/configuracoes/nota',
+    path: '/configuracoes/nota',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedConfiguracoesImplantesRoute =
+  AuthenticatedConfiguracoesImplantesRouteImport.update({
+    id: '/configuracoes/implantes',
+    path: '/configuracoes/implantes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCadistasCadistaIdRoute =
+  AuthenticatedCadistasCadistaIdRouteImport.update({
+    id: '/cadistas/$cadistaId',
+    path: '/cadistas/$cadistaId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminUsuariosRoute =
+  AuthenticatedAdminUsuariosRouteImport.update({
+    id: '/admin/usuarios',
+    path: '/admin/usuarios',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminRestauracaoRoute =
+  AuthenticatedAdminRestauracaoRouteImport.update({
+    id: '/admin/restauracao',
+    path: '/admin/restauracao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminBackupRoute =
+  AuthenticatedAdminBackupRouteImport.update({
+    id: '/admin/backup',
+    path: '/admin/backup',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const ApiPublicHooksCleanupCaseFilesRoute =
+  ApiPublicHooksCleanupCaseFilesRouteImport.update({
+    id: '/api/public/hooks/cleanup-case-files',
+    path: '/api/public/hooks/cleanup-case-files',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/auth': typeof AuthRouteWithChildren
+  '/join-clinic': typeof JoinClinicRoute
+  '/lp': typeof LpRoute
+  '/agenda': typeof AuthenticatedAgendaRoute
+  '/burrs': typeof AuthenticatedBurrsRoute
+  '/cadista': typeof AuthenticatedCadistaRoute
+  '/consumo-automatico': typeof AuthenticatedConsumoAutomaticoRoute
+  '/dentes': typeof AuthenticatedDentesRoute
+  '/equipe': typeof AuthenticatedEquipeRoute
+  '/estoque': typeof AuthenticatedEstoqueRouteWithChildren
+  '/financeiro': typeof AuthenticatedFinanceiroRouteWithChildren
+  '/fluxo': typeof AuthenticatedFluxoRoute
+  '/lab': typeof AuthenticatedLabRoute
+  '/maquinas': typeof AuthenticatedMaquinasRoute
+  '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
+  '/tarefas': typeof AuthenticatedTarefasRoute
+  '/auth/forgot': typeof AuthForgotRoute
+  '/auth/reset': typeof AuthResetRoute
+  '/admin/backup': typeof AuthenticatedAdminBackupRoute
+  '/admin/restauracao': typeof AuthenticatedAdminRestauracaoRoute
+  '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/cadistas/$cadistaId': typeof AuthenticatedCadistasCadistaIdRoute
+  '/configuracoes/implantes': typeof AuthenticatedConfiguracoesImplantesRoute
+  '/configuracoes/nota': typeof AuthenticatedConfiguracoesNotaRoute
+  '/estoque/movimentacoes': typeof AuthenticatedEstoqueMovimentacoesRoute
+  '/financeiro/aprovacoes': typeof AuthenticatedFinanceiroAprovacoesRoute
+  '/financeiro/carteiras': typeof AuthenticatedFinanceiroCarteirasRoute
+  '/financeiro/configuracoes': typeof AuthenticatedFinanceiroConfiguracoesRoute
+  '/financeiro/fechamento': typeof AuthenticatedFinanceiroFechamentoRoute
+  '/financeiro/fluxo-caixa': typeof AuthenticatedFinanceiroFluxoCaixaRoute
+  '/financeiro/pagamentos': typeof AuthenticatedFinanceiroPagamentosRoute
+  '/financeiro/participantes': typeof AuthenticatedFinanceiroParticipantesRoute
+  '/financeiro/permissoes': typeof AuthenticatedFinanceiroPermissoesRoute
+  '/financeiro/precos': typeof AuthenticatedFinanceiroPrecosRoute
+  '/financeiro/previsao': typeof AuthenticatedFinanceiroPrevisaoRoute
+  '/financeiro/producao': typeof AuthenticatedFinanceiroProducaoRoute
+  '/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
+  '/patients/$id': typeof AuthenticatedPatientsIdRoute
+  '/configuracoes/': typeof AuthenticatedConfiguracoesIndexRoute
+  '/financeiro/': typeof AuthenticatedFinanceiroIndexRoute
+  '/patients/': typeof AuthenticatedPatientsIndexRoute
+  '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/auth': typeof AuthRouteWithChildren
+  '/join-clinic': typeof JoinClinicRoute
+  '/lp': typeof LpRoute
+  '/agenda': typeof AuthenticatedAgendaRoute
+  '/burrs': typeof AuthenticatedBurrsRoute
+  '/cadista': typeof AuthenticatedCadistaRoute
+  '/consumo-automatico': typeof AuthenticatedConsumoAutomaticoRoute
+  '/dentes': typeof AuthenticatedDentesRoute
+  '/equipe': typeof AuthenticatedEquipeRoute
+  '/estoque': typeof AuthenticatedEstoqueRouteWithChildren
+  '/fluxo': typeof AuthenticatedFluxoRoute
+  '/lab': typeof AuthenticatedLabRoute
+  '/maquinas': typeof AuthenticatedMaquinasRoute
+  '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
+  '/tarefas': typeof AuthenticatedTarefasRoute
+  '/auth/forgot': typeof AuthForgotRoute
+  '/auth/reset': typeof AuthResetRoute
+  '/': typeof AuthenticatedIndexRoute
+  '/admin/backup': typeof AuthenticatedAdminBackupRoute
+  '/admin/restauracao': typeof AuthenticatedAdminRestauracaoRoute
+  '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/cadistas/$cadistaId': typeof AuthenticatedCadistasCadistaIdRoute
+  '/configuracoes/implantes': typeof AuthenticatedConfiguracoesImplantesRoute
+  '/configuracoes/nota': typeof AuthenticatedConfiguracoesNotaRoute
+  '/estoque/movimentacoes': typeof AuthenticatedEstoqueMovimentacoesRoute
+  '/financeiro/aprovacoes': typeof AuthenticatedFinanceiroAprovacoesRoute
+  '/financeiro/carteiras': typeof AuthenticatedFinanceiroCarteirasRoute
+  '/financeiro/configuracoes': typeof AuthenticatedFinanceiroConfiguracoesRoute
+  '/financeiro/fechamento': typeof AuthenticatedFinanceiroFechamentoRoute
+  '/financeiro/fluxo-caixa': typeof AuthenticatedFinanceiroFluxoCaixaRoute
+  '/financeiro/pagamentos': typeof AuthenticatedFinanceiroPagamentosRoute
+  '/financeiro/participantes': typeof AuthenticatedFinanceiroParticipantesRoute
+  '/financeiro/permissoes': typeof AuthenticatedFinanceiroPermissoesRoute
+  '/financeiro/precos': typeof AuthenticatedFinanceiroPrecosRoute
+  '/financeiro/previsao': typeof AuthenticatedFinanceiroPrevisaoRoute
+  '/financeiro/producao': typeof AuthenticatedFinanceiroProducaoRoute
+  '/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
+  '/patients/$id': typeof AuthenticatedPatientsIdRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesIndexRoute
+  '/financeiro': typeof AuthenticatedFinanceiroIndexRoute
+  '/patients': typeof AuthenticatedPatientsIndexRoute
+  '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRouteWithChildren
+  '/join-clinic': typeof JoinClinicRoute
+  '/lp': typeof LpRoute
+  '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
+  '/_authenticated/burrs': typeof AuthenticatedBurrsRoute
+  '/_authenticated/cadista': typeof AuthenticatedCadistaRoute
+  '/_authenticated/consumo-automatico': typeof AuthenticatedConsumoAutomaticoRoute
+  '/_authenticated/dentes': typeof AuthenticatedDentesRoute
+  '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
+  '/_authenticated/estoque': typeof AuthenticatedEstoqueRouteWithChildren
+  '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRouteWithChildren
+  '/_authenticated/fluxo': typeof AuthenticatedFluxoRoute
+  '/_authenticated/lab': typeof AuthenticatedLabRoute
+  '/_authenticated/maquinas': typeof AuthenticatedMaquinasRoute
+  '/_authenticated/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
+  '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
+  '/auth/forgot': typeof AuthForgotRoute
+  '/auth/reset': typeof AuthResetRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/admin/backup': typeof AuthenticatedAdminBackupRoute
+  '/_authenticated/admin/restauracao': typeof AuthenticatedAdminRestauracaoRoute
+  '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
+  '/_authenticated/cadistas/$cadistaId': typeof AuthenticatedCadistasCadistaIdRoute
+  '/_authenticated/configuracoes/implantes': typeof AuthenticatedConfiguracoesImplantesRoute
+  '/_authenticated/configuracoes/nota': typeof AuthenticatedConfiguracoesNotaRoute
+  '/_authenticated/estoque/movimentacoes': typeof AuthenticatedEstoqueMovimentacoesRoute
+  '/_authenticated/financeiro/aprovacoes': typeof AuthenticatedFinanceiroAprovacoesRoute
+  '/_authenticated/financeiro/carteiras': typeof AuthenticatedFinanceiroCarteirasRoute
+  '/_authenticated/financeiro/configuracoes': typeof AuthenticatedFinanceiroConfiguracoesRoute
+  '/_authenticated/financeiro/fechamento': typeof AuthenticatedFinanceiroFechamentoRoute
+  '/_authenticated/financeiro/fluxo-caixa': typeof AuthenticatedFinanceiroFluxoCaixaRoute
+  '/_authenticated/financeiro/pagamentos': typeof AuthenticatedFinanceiroPagamentosRoute
+  '/_authenticated/financeiro/participantes': typeof AuthenticatedFinanceiroParticipantesRoute
+  '/_authenticated/financeiro/permissoes': typeof AuthenticatedFinanceiroPermissoesRoute
+  '/_authenticated/financeiro/precos': typeof AuthenticatedFinanceiroPrecosRoute
+  '/_authenticated/financeiro/previsao': typeof AuthenticatedFinanceiroPrevisaoRoute
+  '/_authenticated/financeiro/producao': typeof AuthenticatedFinanceiroProducaoRoute
+  '/_authenticated/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
+  '/_authenticated/patients/$id': typeof AuthenticatedPatientsIdRoute
+  '/_authenticated/configuracoes/': typeof AuthenticatedConfiguracoesIndexRoute
+  '/_authenticated/financeiro/': typeof AuthenticatedFinanceiroIndexRoute
+  '/_authenticated/patients/': typeof AuthenticatedPatientsIndexRoute
+  '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/join-clinic'
+    | '/lp'
+    | '/agenda'
+    | '/burrs'
+    | '/cadista'
+    | '/consumo-automatico'
+    | '/dentes'
+    | '/equipe'
+    | '/estoque'
+    | '/financeiro'
+    | '/fluxo'
+    | '/lab'
+    | '/maquinas'
+    | '/meu-financeiro'
+    | '/tarefas'
+    | '/auth/forgot'
+    | '/auth/reset'
+    | '/admin/backup'
+    | '/admin/restauracao'
+    | '/admin/usuarios'
+    | '/cadistas/$cadistaId'
+    | '/configuracoes/implantes'
+    | '/configuracoes/nota'
+    | '/estoque/movimentacoes'
+    | '/financeiro/aprovacoes'
+    | '/financeiro/carteiras'
+    | '/financeiro/configuracoes'
+    | '/financeiro/fechamento'
+    | '/financeiro/fluxo-caixa'
+    | '/financeiro/pagamentos'
+    | '/financeiro/participantes'
+    | '/financeiro/permissoes'
+    | '/financeiro/precos'
+    | '/financeiro/previsao'
+    | '/financeiro/producao'
+    | '/financeiro/relatorios'
+    | '/patients/$id'
+    | '/configuracoes/'
+    | '/financeiro/'
+    | '/patients/'
+    | '/api/public/hooks/cleanup-case-files'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/auth'
+    | '/join-clinic'
+    | '/lp'
+    | '/agenda'
+    | '/burrs'
+    | '/cadista'
+    | '/consumo-automatico'
+    | '/dentes'
+    | '/equipe'
+    | '/estoque'
+    | '/fluxo'
+    | '/lab'
+    | '/maquinas'
+    | '/meu-financeiro'
+    | '/tarefas'
+    | '/auth/forgot'
+    | '/auth/reset'
+    | '/'
+    | '/admin/backup'
+    | '/admin/restauracao'
+    | '/admin/usuarios'
+    | '/cadistas/$cadistaId'
+    | '/configuracoes/implantes'
+    | '/configuracoes/nota'
+    | '/estoque/movimentacoes'
+    | '/financeiro/aprovacoes'
+    | '/financeiro/carteiras'
+    | '/financeiro/configuracoes'
+    | '/financeiro/fechamento'
+    | '/financeiro/fluxo-caixa'
+    | '/financeiro/pagamentos'
+    | '/financeiro/participantes'
+    | '/financeiro/permissoes'
+    | '/financeiro/precos'
+    | '/financeiro/previsao'
+    | '/financeiro/producao'
+    | '/financeiro/relatorios'
+    | '/patients/$id'
+    | '/configuracoes'
+    | '/financeiro'
+    | '/patients'
+    | '/api/public/hooks/cleanup-case-files'
+  id:
+    | '__root__'
+    | '/_authenticated'
+    | '/auth'
+    | '/join-clinic'
+    | '/lp'
+    | '/_authenticated/agenda'
+    | '/_authenticated/burrs'
+    | '/_authenticated/cadista'
+    | '/_authenticated/consumo-automatico'
+    | '/_authenticated/dentes'
+    | '/_authenticated/equipe'
+    | '/_authenticated/estoque'
+    | '/_authenticated/financeiro'
+    | '/_authenticated/fluxo'
+    | '/_authenticated/lab'
+    | '/_authenticated/maquinas'
+    | '/_authenticated/meu-financeiro'
+    | '/_authenticated/tarefas'
+    | '/auth/forgot'
+    | '/auth/reset'
+    | '/_authenticated/'
+    | '/_authenticated/admin/backup'
+    | '/_authenticated/admin/restauracao'
+    | '/_authenticated/admin/usuarios'
+    | '/_authenticated/cadistas/$cadistaId'
+    | '/_authenticated/configuracoes/implantes'
+    | '/_authenticated/configuracoes/nota'
+    | '/_authenticated/estoque/movimentacoes'
+    | '/_authenticated/financeiro/aprovacoes'
+    | '/_authenticated/financeiro/carteiras'
+    | '/_authenticated/financeiro/configuracoes'
+    | '/_authenticated/financeiro/fechamento'
+    | '/_authenticated/financeiro/fluxo-caixa'
+    | '/_authenticated/financeiro/pagamentos'
+    | '/_authenticated/financeiro/participantes'
+    | '/_authenticated/financeiro/permissoes'
+    | '/_authenticated/financeiro/precos'
+    | '/_authenticated/financeiro/previsao'
+    | '/_authenticated/financeiro/producao'
+    | '/_authenticated/financeiro/relatorios'
+    | '/_authenticated/patients/$id'
+    | '/_authenticated/configuracoes/'
+    | '/_authenticated/financeiro/'
+    | '/_authenticated/patients/'
+    | '/api/public/hooks/cleanup-case-files'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRouteWithChildren
+  JoinClinicRoute: typeof JoinClinicRoute
+  LpRoute: typeof LpRoute
+  ApiPublicHooksCleanupCaseFilesRoute: typeof ApiPublicHooksCleanupCaseFilesRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/lp': {
+      id: '/lp'
+      path: '/lp'
+      fullPath: '/lp'
+      preLoaderRoute: typeof LpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/join-clinic': {
+      id: '/join-clinic'
+      path: '/join-clinic'
+      fullPath: '/join-clinic'
+      preLoaderRoute: typeof JoinClinicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/auth/reset': {
+      id: '/auth/reset'
+      path: '/reset'
+      fullPath: '/auth/reset'
+      preLoaderRoute: typeof AuthResetRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/forgot': {
+      id: '/auth/forgot'
+      path: '/forgot'
+      fullPath: '/auth/forgot'
+      preLoaderRoute: typeof AuthForgotRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_authenticated/tarefas': {
+      id: '/_authenticated/tarefas'
+      path: '/tarefas'
+      fullPath: '/tarefas'
+      preLoaderRoute: typeof AuthenticatedTarefasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/meu-financeiro': {
+      id: '/_authenticated/meu-financeiro'
+      path: '/meu-financeiro'
+      fullPath: '/meu-financeiro'
+      preLoaderRoute: typeof AuthenticatedMeuFinanceiroRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/maquinas': {
+      id: '/_authenticated/maquinas'
+      path: '/maquinas'
+      fullPath: '/maquinas'
+      preLoaderRoute: typeof AuthenticatedMaquinasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lab': {
+      id: '/_authenticated/lab'
+      path: '/lab'
+      fullPath: '/lab'
+      preLoaderRoute: typeof AuthenticatedLabRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fluxo': {
+      id: '/_authenticated/fluxo'
+      path: '/fluxo'
+      fullPath: '/fluxo'
+      preLoaderRoute: typeof AuthenticatedFluxoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/financeiro': {
+      id: '/_authenticated/financeiro'
+      path: '/financeiro'
+      fullPath: '/financeiro'
+      preLoaderRoute: typeof AuthenticatedFinanceiroRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/estoque': {
+      id: '/_authenticated/estoque'
+      path: '/estoque'
+      fullPath: '/estoque'
+      preLoaderRoute: typeof AuthenticatedEstoqueRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/equipe': {
+      id: '/_authenticated/equipe'
+      path: '/equipe'
+      fullPath: '/equipe'
+      preLoaderRoute: typeof AuthenticatedEquipeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dentes': {
+      id: '/_authenticated/dentes'
+      path: '/dentes'
+      fullPath: '/dentes'
+      preLoaderRoute: typeof AuthenticatedDentesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/consumo-automatico': {
+      id: '/_authenticated/consumo-automatico'
+      path: '/consumo-automatico'
+      fullPath: '/consumo-automatico'
+      preLoaderRoute: typeof AuthenticatedConsumoAutomaticoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cadista': {
+      id: '/_authenticated/cadista'
+      path: '/cadista'
+      fullPath: '/cadista'
+      preLoaderRoute: typeof AuthenticatedCadistaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/burrs': {
+      id: '/_authenticated/burrs'
+      path: '/burrs'
+      fullPath: '/burrs'
+      preLoaderRoute: typeof AuthenticatedBurrsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/agenda': {
+      id: '/_authenticated/agenda'
+      path: '/agenda'
+      fullPath: '/agenda'
+      preLoaderRoute: typeof AuthenticatedAgendaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/patients/': {
+      id: '/_authenticated/patients/'
+      path: '/patients'
+      fullPath: '/patients/'
+      preLoaderRoute: typeof AuthenticatedPatientsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/financeiro/': {
+      id: '/_authenticated/financeiro/'
+      path: '/'
+      fullPath: '/financeiro/'
+      preLoaderRoute: typeof AuthenticatedFinanceiroIndexRouteImport
+      parentRoute: typeof AuthenticatedFinanceiroRoute
+    }
+    '/_authenticated/configuracoes/': {
+      id: '/_authenticated/configuracoes/'
+      path: '/configuracoes'
+      fullPath: '/configuracoes/'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/patients/$id': {
+      id: '/_authenticated/patients/$id'
+      path: '/patients/$id'
+      fullPath: '/patients/$id'
+      preLoaderRoute: typeof AuthenticatedPatientsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/financeiro/relatorios': {
+      id: '/_authenticated/financeiro/relatorios'
+      path: '/relatorios'
+      fullPath: '/financeiro/relatorios'
+      preLoaderRoute: typeof AuthenticatedFinanceiroRelatoriosRouteImport
+      parentRoute: typeof AuthenticatedFinanceiroRoute
+    }
+    '/_authenticated/financeiro/producao': {
+      id: '/_authenticated/financeiro/producao'
+      path: '/producao'
+      fullPath: '/financeiro/producao'
+      preLoaderRoute: typeof AuthenticatedFinanceiroProducaoRouteImport
+      parentRoute: typeof AuthenticatedFinanceiroRoute
+    }
+    '/_authenticated/financeiro/previsao': {
+      id: '/_authenticated/financeiro/previsao'
+      path: '/previsao'
+      fullPath: '/financeiro/previsao'
+      preLoaderRoute: typeof AuthenticatedFinanceiroPrevisaoRouteImport
+      parentRoute: typeof AuthenticatedFinanceiroRoute
+    }
+    '/_authenticated/financeiro/precos': {
+      id: '/_authenticated/financeiro/precos'
+      path: '/precos'
+      fullPath: '/financeiro/precos'
+      preLoaderRoute: typeof AuthenticatedFinanceiroPrecosRouteImport
+      parentRoute: typeof AuthenticatedFinanceiroRoute
+    }
+    '/_authenticated/financeiro/permissoes': {
+      id: '/_authenticated/financeiro/permissoes'
+      path: '/permissoes'
+      fullPath: '/financeiro/permissoes'
+      preLoaderRoute: typeof AuthenticatedFinanceiroPermissoesRouteImport
+      parentRoute: typeof AuthenticatedFinanceiroRoute
+    }
+    '/_authenticated/financeiro/participantes': {
+      id: '/_authenticated/financeiro/participantes'
+      path: '/participantes'
+      fullPath: '/financeiro/participantes'
+      preLoaderRoute: typeof AuthenticatedFinanceiroParticipantesRouteImport
+      parentRoute: typeof AuthenticatedFinanceiroRoute
+    }
+    '/_authenticated/financeiro/pagamentos': {
+      id: '/_authenticated/financeiro/pagamentos'
+      path: '/pagamentos'
+      fullPath: '/financeiro/pagamentos'
+      preLoaderRoute: typeof AuthenticatedFinanceiroPagamentosRouteImport
+      parentRoute: typeof AuthenticatedFinanceiroRoute
+    }
+    '/_authenticated/financeiro/fluxo-caixa': {
+      id: '/_authenticated/financeiro/fluxo-caixa'
+      path: '/fluxo-caixa'
+      fullPath: '/financeiro/fluxo-caixa'
+      preLoaderRoute: typeof AuthenticatedFinanceiroFluxoCaixaRouteImport
+      parentRoute: typeof AuthenticatedFinanceiroRoute
+    }
+    '/_authenticated/financeiro/fechamento': {
+      id: '/_authenticated/financeiro/fechamento'
+      path: '/fechamento'
+      fullPath: '/financeiro/fechamento'
+      preLoaderRoute: typeof AuthenticatedFinanceiroFechamentoRouteImport
+      parentRoute: typeof AuthenticatedFinanceiroRoute
+    }
+    '/_authenticated/financeiro/configuracoes': {
+      id: '/_authenticated/financeiro/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/financeiro/configuracoes'
+      preLoaderRoute: typeof AuthenticatedFinanceiroConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedFinanceiroRoute
+    }
+    '/_authenticated/financeiro/carteiras': {
+      id: '/_authenticated/financeiro/carteiras'
+      path: '/carteiras'
+      fullPath: '/financeiro/carteiras'
+      preLoaderRoute: typeof AuthenticatedFinanceiroCarteirasRouteImport
+      parentRoute: typeof AuthenticatedFinanceiroRoute
+    }
+    '/_authenticated/financeiro/aprovacoes': {
+      id: '/_authenticated/financeiro/aprovacoes'
+      path: '/aprovacoes'
+      fullPath: '/financeiro/aprovacoes'
+      preLoaderRoute: typeof AuthenticatedFinanceiroAprovacoesRouteImport
+      parentRoute: typeof AuthenticatedFinanceiroRoute
+    }
+    '/_authenticated/estoque/movimentacoes': {
+      id: '/_authenticated/estoque/movimentacoes'
+      path: '/movimentacoes'
+      fullPath: '/estoque/movimentacoes'
+      preLoaderRoute: typeof AuthenticatedEstoqueMovimentacoesRouteImport
+      parentRoute: typeof AuthenticatedEstoqueRoute
+    }
+    '/_authenticated/configuracoes/nota': {
+      id: '/_authenticated/configuracoes/nota'
+      path: '/configuracoes/nota'
+      fullPath: '/configuracoes/nota'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesNotaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/configuracoes/implantes': {
+      id: '/_authenticated/configuracoes/implantes'
+      path: '/configuracoes/implantes'
+      fullPath: '/configuracoes/implantes'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesImplantesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/cadistas/$cadistaId': {
+      id: '/_authenticated/cadistas/$cadistaId'
+      path: '/cadistas/$cadistaId'
+      fullPath: '/cadistas/$cadistaId'
+      preLoaderRoute: typeof AuthenticatedCadistasCadistaIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/usuarios': {
+      id: '/_authenticated/admin/usuarios'
+      path: '/admin/usuarios'
+      fullPath: '/admin/usuarios'
+      preLoaderRoute: typeof AuthenticatedAdminUsuariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/restauracao': {
+      id: '/_authenticated/admin/restauracao'
+      path: '/admin/restauracao'
+      fullPath: '/admin/restauracao'
+      preLoaderRoute: typeof AuthenticatedAdminRestauracaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/backup': {
+      id: '/_authenticated/admin/backup'
+      path: '/admin/backup'
+      fullPath: '/admin/backup'
+      preLoaderRoute: typeof AuthenticatedAdminBackupRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/hooks/cleanup-case-files': {
+      id: '/api/public/hooks/cleanup-case-files'
+      path: '/api/public/hooks/cleanup-case-files'
+      fullPath: '/api/public/hooks/cleanup-case-files'
+      preLoaderRoute: typeof ApiPublicHooksCleanupCaseFilesRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
 }
 
+interface AuthenticatedEstoqueRouteChildren {
+  AuthenticatedEstoqueMovimentacoesRoute: typeof AuthenticatedEstoqueMovimentacoesRoute
+}
+
+const AuthenticatedEstoqueRouteChildren: AuthenticatedEstoqueRouteChildren = {
+  AuthenticatedEstoqueMovimentacoesRoute:
+    AuthenticatedEstoqueMovimentacoesRoute,
+}
+
+const AuthenticatedEstoqueRouteWithChildren =
+  AuthenticatedEstoqueRoute._addFileChildren(AuthenticatedEstoqueRouteChildren)
+
+interface AuthenticatedFinanceiroRouteChildren {
+  AuthenticatedFinanceiroAprovacoesRoute: typeof AuthenticatedFinanceiroAprovacoesRoute
+  AuthenticatedFinanceiroCarteirasRoute: typeof AuthenticatedFinanceiroCarteirasRoute
+  AuthenticatedFinanceiroConfiguracoesRoute: typeof AuthenticatedFinanceiroConfiguracoesRoute
+  AuthenticatedFinanceiroFechamentoRoute: typeof AuthenticatedFinanceiroFechamentoRoute
+  AuthenticatedFinanceiroFluxoCaixaRoute: typeof AuthenticatedFinanceiroFluxoCaixaRoute
+  AuthenticatedFinanceiroPagamentosRoute: typeof AuthenticatedFinanceiroPagamentosRoute
+  AuthenticatedFinanceiroParticipantesRoute: typeof AuthenticatedFinanceiroParticipantesRoute
+  AuthenticatedFinanceiroPermissoesRoute: typeof AuthenticatedFinanceiroPermissoesRoute
+  AuthenticatedFinanceiroPrecosRoute: typeof AuthenticatedFinanceiroPrecosRoute
+  AuthenticatedFinanceiroPrevisaoRoute: typeof AuthenticatedFinanceiroPrevisaoRoute
+  AuthenticatedFinanceiroProducaoRoute: typeof AuthenticatedFinanceiroProducaoRoute
+  AuthenticatedFinanceiroRelatoriosRoute: typeof AuthenticatedFinanceiroRelatoriosRoute
+  AuthenticatedFinanceiroIndexRoute: typeof AuthenticatedFinanceiroIndexRoute
+}
+
+const AuthenticatedFinanceiroRouteChildren: AuthenticatedFinanceiroRouteChildren =
+  {
+    AuthenticatedFinanceiroAprovacoesRoute:
+      AuthenticatedFinanceiroAprovacoesRoute,
+    AuthenticatedFinanceiroCarteirasRoute:
+      AuthenticatedFinanceiroCarteirasRoute,
+    AuthenticatedFinanceiroConfiguracoesRoute:
+      AuthenticatedFinanceiroConfiguracoesRoute,
+    AuthenticatedFinanceiroFechamentoRoute:
+      AuthenticatedFinanceiroFechamentoRoute,
+    AuthenticatedFinanceiroFluxoCaixaRoute:
+      AuthenticatedFinanceiroFluxoCaixaRoute,
+    AuthenticatedFinanceiroPagamentosRoute:
+      AuthenticatedFinanceiroPagamentosRoute,
+    AuthenticatedFinanceiroParticipantesRoute:
+      AuthenticatedFinanceiroParticipantesRoute,
+    AuthenticatedFinanceiroPermissoesRoute:
+      AuthenticatedFinanceiroPermissoesRoute,
+    AuthenticatedFinanceiroPrecosRoute: AuthenticatedFinanceiroPrecosRoute,
+    AuthenticatedFinanceiroPrevisaoRoute: AuthenticatedFinanceiroPrevisaoRoute,
+    AuthenticatedFinanceiroProducaoRoute: AuthenticatedFinanceiroProducaoRoute,
+    AuthenticatedFinanceiroRelatoriosRoute:
+      AuthenticatedFinanceiroRelatoriosRoute,
+    AuthenticatedFinanceiroIndexRoute: AuthenticatedFinanceiroIndexRoute,
+  }
+
+const AuthenticatedFinanceiroRouteWithChildren =
+  AuthenticatedFinanceiroRoute._addFileChildren(
+    AuthenticatedFinanceiroRouteChildren,
+  )
+
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
+  AuthenticatedBurrsRoute: typeof AuthenticatedBurrsRoute
+  AuthenticatedCadistaRoute: typeof AuthenticatedCadistaRoute
+  AuthenticatedConsumoAutomaticoRoute: typeof AuthenticatedConsumoAutomaticoRoute
+  AuthenticatedDentesRoute: typeof AuthenticatedDentesRoute
+  AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
+  AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRouteWithChildren
+  AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRouteWithChildren
+  AuthenticatedFluxoRoute: typeof AuthenticatedFluxoRoute
+  AuthenticatedLabRoute: typeof AuthenticatedLabRoute
+  AuthenticatedMaquinasRoute: typeof AuthenticatedMaquinasRoute
+  AuthenticatedMeuFinanceiroRoute: typeof AuthenticatedMeuFinanceiroRoute
+  AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAdminBackupRoute: typeof AuthenticatedAdminBackupRoute
+  AuthenticatedAdminRestauracaoRoute: typeof AuthenticatedAdminRestauracaoRoute
+  AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
+  AuthenticatedCadistasCadistaIdRoute: typeof AuthenticatedCadistasCadistaIdRoute
+  AuthenticatedConfiguracoesImplantesRoute: typeof AuthenticatedConfiguracoesImplantesRoute
+  AuthenticatedConfiguracoesNotaRoute: typeof AuthenticatedConfiguracoesNotaRoute
+  AuthenticatedPatientsIdRoute: typeof AuthenticatedPatientsIdRoute
+  AuthenticatedConfiguracoesIndexRoute: typeof AuthenticatedConfiguracoesIndexRoute
+  AuthenticatedPatientsIndexRoute: typeof AuthenticatedPatientsIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
+  AuthenticatedBurrsRoute: AuthenticatedBurrsRoute,
+  AuthenticatedCadistaRoute: AuthenticatedCadistaRoute,
+  AuthenticatedConsumoAutomaticoRoute: AuthenticatedConsumoAutomaticoRoute,
+  AuthenticatedDentesRoute: AuthenticatedDentesRoute,
+  AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
+  AuthenticatedEstoqueRoute: AuthenticatedEstoqueRouteWithChildren,
+  AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRouteWithChildren,
+  AuthenticatedFluxoRoute: AuthenticatedFluxoRoute,
+  AuthenticatedLabRoute: AuthenticatedLabRoute,
+  AuthenticatedMaquinasRoute: AuthenticatedMaquinasRoute,
+  AuthenticatedMeuFinanceiroRoute: AuthenticatedMeuFinanceiroRoute,
+  AuthenticatedTarefasRoute: AuthenticatedTarefasRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAdminBackupRoute: AuthenticatedAdminBackupRoute,
+  AuthenticatedAdminRestauracaoRoute: AuthenticatedAdminRestauracaoRoute,
+  AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
+  AuthenticatedCadistasCadistaIdRoute: AuthenticatedCadistasCadistaIdRoute,
+  AuthenticatedConfiguracoesImplantesRoute:
+    AuthenticatedConfiguracoesImplantesRoute,
+  AuthenticatedConfiguracoesNotaRoute: AuthenticatedConfiguracoesNotaRoute,
+  AuthenticatedPatientsIdRoute: AuthenticatedPatientsIdRoute,
+  AuthenticatedConfiguracoesIndexRoute: AuthenticatedConfiguracoesIndexRoute,
+  AuthenticatedPatientsIndexRoute: AuthenticatedPatientsIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
+interface AuthRouteChildren {
+  AuthForgotRoute: typeof AuthForgotRoute
+  AuthResetRoute: typeof AuthResetRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
+  AuthForgotRoute: AuthForgotRoute,
+  AuthResetRoute: AuthResetRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRouteWithChildren,
+  JoinClinicRoute: JoinClinicRoute,
+  LpRoute: LpRoute,
+  ApiPublicHooksCleanupCaseFilesRoute: ApiPublicHooksCleanupCaseFilesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
