@@ -38,7 +38,7 @@ function PatientAvatarView({
   photoUrl, name,
 }: { photoUrl: string | null; name: string }) {
   return (
-    <div className="relative h-[104px] w-[104px] shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-hidden grid place-items-center">
+    <div className="relative h-[104px] w-[104px] shrink-0 rounded-full bg-slate-100 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 overflow-hidden grid place-items-center">
       {photoUrl ? (
         <img src={photoUrl} alt={name} className="h-full w-full object-cover" />
       ) : (
@@ -121,7 +121,7 @@ function MobileFieldGroup({ title, children }: { title: string; children: React.
   return (
     <div>
       <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500 mb-2">{title}</div>
-      <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 divide-y divide-slate-100 dark:divide-slate-800">{children}</div>
+      <div className="rounded-2xl border border-slate-100 dark:border-neutral-900 bg-white dark:bg-neutral-950 divide-y divide-slate-100 dark:divide-slate-800">{children}</div>
     </div>
   );
 }
@@ -251,7 +251,7 @@ function CaseHeaderActions({ caseRow, currentTab }: { caseRow: CaseRow; currentT
         disabled={printing}
         title="Imprimir ordem de serviço"
         aria-label="Imprimir ordem de serviço"
-        className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-[#1F8AFF]/30 bg-white dark:bg-slate-900 text-[#1F8AFF] hover:bg-[#1F8AFF]/10 transition text-xs font-medium disabled:opacity-60"
+        className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full border border-[#1F8AFF]/30 bg-white dark:bg-neutral-950 text-[#1F8AFF] hover:bg-[#1F8AFF]/10 transition text-xs font-medium disabled:opacity-60"
       >
         <Printer className="h-3.5 w-3.5" />
         Imprimir OS
@@ -559,10 +559,10 @@ export function CaseDetailDialog({
               const target = (e.detail?.originalEvent?.target as Element | null) ?? null;
               if (target?.closest("[data-upload-dock]")) e.preventDefault();
             }}
-            className="p-0 gap-0 border-0 rounded-none w-screen h-[100dvh] max-w-none translate-x-0 translate-y-0 left-0 top-0 bg-white dark:bg-slate-900 overflow-hidden [&>.absolute.right-4]:hidden flex flex-col"
+            className="p-0 gap-0 border-0 rounded-none w-screen h-[100dvh] max-w-none translate-x-0 translate-y-0 left-0 top-0 bg-white dark:bg-neutral-950 overflow-hidden [&>.absolute.right-4]:hidden flex flex-col"
           >
             {/* Header */}
-            <header className="px-5 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 border-b border-slate-100 dark:border-slate-800">
+            <header className="px-5 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-3 border-b border-slate-100 dark:border-neutral-900">
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500">
@@ -585,7 +585,7 @@ export function CaseDetailDialog({
                   <button
                     type="button"
                     aria-label="Fechar"
-                    className="h-9 w-9 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 grid place-items-center active:scale-90 transition"
+                    className="h-9 w-9 shrink-0 rounded-full bg-slate-100 dark:bg-neutral-900 text-slate-600 dark:text-slate-300 grid place-items-center active:scale-90 transition"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -608,8 +608,8 @@ export function CaseDetailDialog({
                           active
                             ? "bg-slate-900 text-white font-normal"
                             : locked
-                            ? "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 font-light opacity-50"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-light"
+                            ? "bg-slate-100 dark:bg-neutral-900 text-slate-400 dark:text-slate-500 font-light opacity-50"
+                            : "bg-slate-100 dark:bg-neutral-900 text-slate-600 dark:text-slate-300 font-light"
                         }`}
                       >
                         {t.label}
@@ -680,13 +680,13 @@ export function CaseDetailDialog({
                       <button
                         type="button"
                         onClick={() => setShowFdiMobile(true)}
-                        className="w-full h-12 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-[13px] font-light tracking-tight inline-flex items-center justify-center gap-2 active:scale-[0.98] transition"
+                        className="w-full h-12 rounded-2xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-slate-700 dark:text-slate-300 text-[13px] font-light tracking-tight inline-flex items-center justify-center gap-2 active:scale-[0.98] transition"
                       >
                         Carregar arcada FDI
                         <ChevronRight className="h-4 w-4 text-slate-400 dark:text-slate-500" />
                       </button>
                     ) : (
-                      <div className="rounded-2xl border border-slate-100 dark:border-slate-800 p-3 bg-white dark:bg-slate-900">
+                      <div className="rounded-2xl border border-slate-100 dark:border-neutral-900 p-3 bg-white dark:bg-neutral-950">
                         <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-600 dark:text-slate-300 font-light">
                           <span className="inline-flex items-center gap-1.5">
                             <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "#0C84FA" }} />
@@ -738,7 +738,7 @@ export function CaseDetailDialog({
                     )}
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                  <div className="pt-4 border-t border-slate-100 dark:border-neutral-900">
                     <div className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-400 dark:text-slate-500 mb-2">
                       Ações
                     </div>
@@ -811,9 +811,9 @@ export function CaseDetailDialog({
         className="max-w-[min(1200px,calc(100vw-1.5rem))] w-[calc(100vw-1.5rem)] h-[min(92vh,calc(100dvh-1.5rem))] max-h-[calc(100dvh-1.5rem)] p-0 gap-0 overflow-hidden rounded-3xl border-0 shadow-2xl
                    [&>.absolute.right-4]:hidden"
       >
-        <div className="flex flex-col h-full w-full min-h-0 bg-white dark:bg-slate-900" style={{ fontFamily: '"Google Sans Display", "Google Sans Text", system-ui, sans-serif' }}>
+        <div className="flex flex-col h-full w-full min-h-0 bg-white dark:bg-neutral-950" style={{ fontFamily: '"Google Sans Display", "Google Sans Text", system-ui, sans-serif' }}>
           {/* Header estilo referência — ocupa o topo inteiro do dialog */}
-          <header className="shrink-0 px-6 lg:px-8 pt-6 lg:pt-7 pb-5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+          <header className="shrink-0 px-6 lg:px-8 pt-6 lg:pt-7 pb-5 border-b border-slate-100 dark:border-neutral-900 bg-white dark:bg-neutral-950">
             <div className="flex items-start gap-4">
               {/* Avatar do paciente */}
               <PatientAvatarView
@@ -880,7 +880,7 @@ export function CaseDetailDialog({
           <div className="flex-1 min-h-0 flex flex-col md:flex-row w-full">
           {/* Sidebar branca com tabs verticais (referência) */}
           <nav
-            className="shrink-0 min-h-0 flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden overflow-y-hidden md:overflow-visible w-full md:w-[220px] md:min-w-[220px] lg:w-[240px] lg:min-w-[240px] bg-[#f5f5f7] dark:bg-slate-900 md:border-r border-slate-200 dark:border-slate-700/70 py-2 md:py-4"
+            className="shrink-0 min-h-0 flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden overflow-y-hidden md:overflow-visible w-full md:w-[220px] md:min-w-[220px] lg:w-[240px] lg:min-w-[240px] bg-[#f5f5f7] dark:bg-neutral-950 md:border-r border-slate-200 dark:border-neutral-800/70 py-2 md:py-4"
           >
             {TABS.map((t) => {
               const active = tab === t.key;
@@ -913,7 +913,7 @@ export function CaseDetailDialog({
 
 
           {/* Conteúdo */}
-          <div className="flex-1 min-w-0 min-h-0 flex flex-col bg-white dark:bg-slate-900 overflow-hidden">
+          <div className="flex-1 min-w-0 min-h-0 flex flex-col bg-white dark:bg-neutral-950 overflow-hidden">
             {/* Corpo */}
             <div className={`flex-1 min-h-0 px-4 sm:px-6 lg:px-8 pb-6 flex flex-col ${tab === "detalhes" ? "overflow-hidden" : "overflow-y-auto"}`}>
 
