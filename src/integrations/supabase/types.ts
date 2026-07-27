@@ -183,30 +183,42 @@ export type Database = {
       case_activity: {
         Row: {
           actor_id: string | null
+          attachment_id: string | null
           case_id: string
+          content: string | null
           created_at: string
           id: string
           kind: string
+          mentions: string[]
           message: string | null
           metadata: Json | null
+          user_id: string | null
         }
         Insert: {
           actor_id?: string | null
+          attachment_id?: string | null
           case_id: string
+          content?: string | null
           created_at?: string
           id?: string
           kind: string
+          mentions?: string[]
           message?: string | null
           metadata?: Json | null
+          user_id?: string | null
         }
         Update: {
           actor_id?: string | null
+          attachment_id?: string | null
           case_id?: string
+          content?: string | null
           created_at?: string
           id?: string
           kind?: string
+          mentions?: string[]
           message?: string | null
           metadata?: Json | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -991,28 +1003,34 @@ export type Database = {
           content: string
           created_at: string | null
           id: string
+          metadata: Json
           read_at: string | null
           recipient_id: string | null
           sender_id: string | null
           title: string
+          type: string
         }
         Insert: {
           content: string
           created_at?: string | null
           id?: string
+          metadata?: Json
           read_at?: string | null
           recipient_id?: string | null
           sender_id?: string | null
           title: string
+          type?: string
         }
         Update: {
           content?: string
           created_at?: string | null
           id?: string
+          metadata?: Json
           read_at?: string | null
           recipient_id?: string | null
           sender_id?: string | null
           title?: string
+          type?: string
         }
         Relationships: [
           {
@@ -1089,6 +1107,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_default_admin: boolean
+          notification_preferences: Json
           phone: string | null
           role: string | null
           updated_at: string
@@ -1103,6 +1122,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_default_admin?: boolean
+          notification_preferences?: Json
           phone?: string | null
           role?: string | null
           updated_at?: string
@@ -1117,6 +1137,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_default_admin?: boolean
+          notification_preferences?: Json
           phone?: string | null
           role?: string | null
           updated_at?: string
