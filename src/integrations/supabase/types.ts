@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          entity: string | null
+          entity_id: string | null
+          id: string
+          metadata: Json | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          metadata?: Json | null
+        }
+        Relationships: []
+      }
       backups: {
         Row: {
           created_at: string
@@ -150,6 +180,44 @@ export type Database = {
         }
         Relationships: []
       }
+      case_activity: {
+        Row: {
+          actor_id: string | null
+          case_id: string
+          created_at: string
+          id: string
+          kind: string
+          message: string | null
+          metadata: Json | null
+        }
+        Insert: {
+          actor_id?: string | null
+          case_id: string
+          created_at?: string
+          id?: string
+          kind: string
+          message?: string | null
+          metadata?: Json | null
+        }
+        Update: {
+          actor_id?: string | null
+          case_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          message?: string | null
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_activity_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_attachments: {
         Row: {
           case_id: string
@@ -233,6 +301,61 @@ export type Database = {
             columns: ["component_id"]
             isOneToOne: false
             referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_implant_teeth: {
+        Row: {
+          case_id: string
+          created_at: string
+          id: string
+          implant_system_id: string | null
+          qty: number
+          reversed_at: string | null
+          stock_item_id: string | null
+          tooth_fdi: number
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          id?: string
+          implant_system_id?: string | null
+          qty?: number
+          reversed_at?: string | null
+          stock_item_id?: string | null
+          tooth_fdi: number
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          id?: string
+          implant_system_id?: string | null
+          qty?: number
+          reversed_at?: string | null
+          stock_item_id?: string | null
+          tooth_fdi?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_implant_teeth_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_implant_teeth_implant_system_id_fkey"
+            columns: ["implant_system_id"]
+            isOneToOne: false
+            referencedRelation: "implant_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_implant_teeth_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
             referencedColumns: ["id"]
           },
         ]
@@ -361,19 +484,26 @@ export type Database = {
           gum_info: Json | null
           has_provisional: boolean
           id: string
+          implant_system_id: string | null
+          implant_system_ids: string[]
+          implant_teeth: number[]
           model_done: boolean
           notes: string | null
           patient_id: string
           reopened_at: string | null
           reopened_count: number
           scan_done: boolean
+          scan_jig_id: string | null
           sibling_case_id: string | null
           status: string
           stock_consumed_at: string | null
           teeth_dissilicato: number[]
           teeth_numbers: number[]
           teeth_zirconia: number[]
+          tooth_case_types: Json
           tooth_color_id: string | null
+          tooth_implant_systems: Json
+          tooth_ti_bases: Json
           updated_at: string
           zirconia_stock_item_id: string | null
         }
@@ -398,19 +528,26 @@ export type Database = {
           gum_info?: Json | null
           has_provisional?: boolean
           id?: string
+          implant_system_id?: string | null
+          implant_system_ids?: string[]
+          implant_teeth?: number[]
           model_done?: boolean
           notes?: string | null
           patient_id: string
           reopened_at?: string | null
           reopened_count?: number
           scan_done?: boolean
+          scan_jig_id?: string | null
           sibling_case_id?: string | null
           status?: string
           stock_consumed_at?: string | null
           teeth_dissilicato?: number[]
           teeth_numbers?: number[]
           teeth_zirconia?: number[]
+          tooth_case_types?: Json
           tooth_color_id?: string | null
+          tooth_implant_systems?: Json
+          tooth_ti_bases?: Json
           updated_at?: string
           zirconia_stock_item_id?: string | null
         }
@@ -435,19 +572,26 @@ export type Database = {
           gum_info?: Json | null
           has_provisional?: boolean
           id?: string
+          implant_system_id?: string | null
+          implant_system_ids?: string[]
+          implant_teeth?: number[]
           model_done?: boolean
           notes?: string | null
           patient_id?: string
           reopened_at?: string | null
           reopened_count?: number
           scan_done?: boolean
+          scan_jig_id?: string | null
           sibling_case_id?: string | null
           status?: string
           stock_consumed_at?: string | null
           teeth_dissilicato?: number[]
           teeth_numbers?: number[]
           teeth_zirconia?: number[]
+          tooth_case_types?: Json
           tooth_color_id?: string | null
+          tooth_implant_systems?: Json
+          tooth_ti_bases?: Json
           updated_at?: string
           zirconia_stock_item_id?: string | null
         }
@@ -495,10 +639,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cases_implant_system_id_fkey"
+            columns: ["implant_system_id"]
+            isOneToOne: false
+            referencedRelation: "implant_systems"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cases_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
             referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cases_scan_jig_id_fkey"
+            columns: ["scan_jig_id"]
+            isOneToOne: false
+            referencedRelation: "scan_jigs"
             referencedColumns: ["id"]
           },
           {
@@ -601,6 +759,27 @@ export type Database = {
         }
         Relationships: []
       }
+      component_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          position: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+        }
+        Relationships: []
+      }
       components: {
         Row: {
           category: string | null
@@ -664,29 +843,148 @@ export type Database = {
         }
         Relationships: []
       }
+      implant_component_types: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          position: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          position?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          position?: number
+        }
+        Relationships: []
+      }
+      implant_system_components: {
+        Row: {
+          component_type_id: string | null
+          created_at: string
+          id: string
+          implant_system_id: string
+          name: string
+          notes: string | null
+          sku: string | null
+        }
+        Insert: {
+          component_type_id?: string | null
+          created_at?: string
+          id?: string
+          implant_system_id: string
+          name: string
+          notes?: string | null
+          sku?: string | null
+        }
+        Update: {
+          component_type_id?: string | null
+          created_at?: string
+          id?: string
+          implant_system_id?: string
+          name?: string
+          notes?: string | null
+          sku?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "implant_system_components_component_type_id_fkey"
+            columns: ["component_type_id"]
+            isOneToOne: false
+            referencedRelation: "implant_component_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "implant_system_components_implant_system_id_fkey"
+            columns: ["implant_system_id"]
+            isOneToOne: false
+            referencedRelation: "implant_systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       implant_systems: {
         Row: {
           created_at: string
           id: string
+          line: string | null
           manufacturer: string | null
           name: string
           notes: string | null
+          sort_order: number
         }
         Insert: {
           created_at?: string
           id?: string
+          line?: string | null
           manufacturer?: string | null
           name: string
           notes?: string | null
+          sort_order?: number
         }
         Update: {
           created_at?: string
           id?: string
+          line?: string | null
           manufacturer?: string | null
           name?: string
           notes?: string | null
+          sort_order?: number
         }
         Relationships: []
+      }
+      model_annotations: {
+        Row: {
+          author_id: string | null
+          case_id: string
+          color: string | null
+          content: string | null
+          created_at: string
+          id: string
+          label: string | null
+          position: Json | null
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          case_id: string
+          color?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          position?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          case_id?: string
+          color?: string | null
+          content?: string | null
+          created_at?: string
+          id?: string
+          label?: string | null
+          position?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "model_annotations_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -826,6 +1124,38 @@ export type Database = {
         }
         Relationships: []
       }
+      scan_jigs: {
+        Row: {
+          created_at: string
+          id: string
+          implant_system_id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          implant_system_id: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          implant_system_id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scan_jigs_implant_system_id_fkey"
+            columns: ["implant_system_id"]
+            isOneToOne: false
+            referencedRelation: "implant_systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stages: {
         Row: {
           color: string
@@ -866,14 +1196,17 @@ export type Database = {
           block_type: string | null
           brand: string | null
           category: Database["public"]["Enums"]["stock_category"]
+          category_id: string | null
           color: string | null
           component_id: string | null
           created_at: string
           id: string
+          implant_system_component_id: string | null
           min_qty: number
           name: string
           notes: string | null
           qty_on_hand: number
+          type: string | null
           unit: string
           updated_at: string
         }
@@ -881,14 +1214,17 @@ export type Database = {
           block_type?: string | null
           brand?: string | null
           category: Database["public"]["Enums"]["stock_category"]
+          category_id?: string | null
           color?: string | null
           component_id?: string | null
           created_at?: string
           id?: string
+          implant_system_component_id?: string | null
           min_qty?: number
           name: string
           notes?: string | null
           qty_on_hand?: number
+          type?: string | null
           unit?: string
           updated_at?: string
         }
@@ -896,23 +1232,40 @@ export type Database = {
           block_type?: string | null
           brand?: string | null
           category?: Database["public"]["Enums"]["stock_category"]
+          category_id?: string | null
           color?: string | null
           component_id?: string | null
           created_at?: string
           id?: string
+          implant_system_component_id?: string | null
           min_qty?: number
           name?: string
           notes?: string | null
           qty_on_hand?: number
+          type?: string | null
           unit?: string
           updated_at?: string
         }
         Relationships: [
           {
+            foreignKeyName: "stock_items_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "component_categories"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stock_items_component_id_fkey"
             columns: ["component_id"]
             isOneToOne: false
             referencedRelation: "components"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_items_implant_system_component_id_fkey"
+            columns: ["implant_system_component_id"]
+            isOneToOne: false
+            referencedRelation: "implant_system_components"
             referencedColumns: ["id"]
           },
         ]
