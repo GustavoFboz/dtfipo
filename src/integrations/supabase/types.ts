@@ -518,6 +518,83 @@ export type Database = {
           },
         ]
       }
+      clinic_members: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          id: string
+          role: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          role?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          id?: string
+          role?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_members_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinics: {
+        Row: {
+          company_type: string
+          created_at: string
+          id: string
+          invite_code: string | null
+          kind: string | null
+          modules_enabled: string[]
+          name: string
+          owner_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_type?: string
+          created_at?: string
+          id?: string
+          invite_code?: string | null
+          kind?: string | null
+          modules_enabled?: string[]
+          name: string
+          owner_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_type?: string
+          created_at?: string
+          id?: string
+          invite_code?: string | null
+          kind?: string | null
+          modules_enabled?: string[]
+          name?: string
+          owner_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       components: {
         Row: {
           category: string | null
@@ -576,6 +653,30 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          name?: string
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      implant_systems: {
+        Row: {
+          created_at: string
+          id: string
+          manufacturer: string | null
+          name: string
+          notes: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          manufacturer?: string | null
+          name: string
+          notes?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          manufacturer?: string | null
           name?: string
           notes?: string | null
         }
@@ -677,6 +778,8 @@ export type Database = {
       profiles: {
         Row: {
           account_subtype: string | null
+          avatar_url: string | null
+          clinic_id: string | null
           created_at: string
           email: string | null
           full_name: string | null
@@ -685,9 +788,12 @@ export type Database = {
           phone: string | null
           role: string | null
           updated_at: string
+          user_code: string | null
         }
         Insert: {
           account_subtype?: string | null
+          avatar_url?: string | null
+          clinic_id?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
@@ -696,9 +802,12 @@ export type Database = {
           phone?: string | null
           role?: string | null
           updated_at?: string
+          user_code?: string | null
         }
         Update: {
           account_subtype?: string | null
+          avatar_url?: string | null
+          clinic_id?: string | null
           created_at?: string
           email?: string | null
           full_name?: string | null
@@ -707,6 +816,7 @@ export type Database = {
           phone?: string | null
           role?: string | null
           updated_at?: string
+          user_code?: string | null
         }
         Relationships: []
       }
@@ -900,6 +1010,7 @@ export type Database = {
     }
     Functions: {
       can_access_case: { Args: { _case_id: string }; Returns: boolean }
+      generate_user_code: { Args: never; Returns: string }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
@@ -915,6 +1026,10 @@ export type Database = {
         Returns: boolean
       }
       is_cadista: { Args: { _user_id: string }; Returns: boolean }
+      is_clinic_member: {
+        Args: { _clinic_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
