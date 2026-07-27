@@ -359,6 +359,7 @@ export type Database = {
           folder_done: boolean
           folder_url: string | null
           gum_info: Json | null
+          has_provisional: boolean
           id: string
           model_done: boolean
           notes: string | null
@@ -395,6 +396,7 @@ export type Database = {
           folder_done?: boolean
           folder_url?: string | null
           gum_info?: Json | null
+          has_provisional?: boolean
           id?: string
           model_done?: boolean
           notes?: string | null
@@ -431,6 +433,7 @@ export type Database = {
           folder_done?: boolean
           folder_url?: string | null
           gum_info?: Json | null
+          has_provisional?: boolean
           id?: string
           model_done?: boolean
           notes?: string | null
