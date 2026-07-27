@@ -1,0 +1,1 @@
+ALTER TABLE public.cases ADD COLUMN IF NOT EXISTS has_provisional boolean NOT NULL DEFAULT false;

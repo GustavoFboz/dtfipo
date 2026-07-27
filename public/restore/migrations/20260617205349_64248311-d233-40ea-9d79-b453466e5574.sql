@@ -1,0 +1,2 @@
+ALTER TABLE public.case_attachments DROP CONSTRAINT IF EXISTS case_attachments_kind_check;
+ALTER TABLE public.case_attachments ADD CONSTRAINT case_attachments_kind_check CHECK (kind IN ('fabrication','model','exocad_html','scans','other'));

@@ -1,0 +1,1 @@
+UPDATE public.clinics SET name = 'IPO - Instituto Praia de Odontologia' WHERE id = '990bbafa-c15b-4845-976e-c457c7821db4';
