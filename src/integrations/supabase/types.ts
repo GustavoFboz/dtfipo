@@ -479,6 +479,7 @@ export type Database = {
           arch: string | null
           cadista_id: string | null
           case_label: string | null
+          case_number: number | null
           case_type_id: string | null
           created_at: string
           current_phase_id: string | null
@@ -523,6 +524,7 @@ export type Database = {
           arch?: string | null
           cadista_id?: string | null
           case_label?: string | null
+          case_number?: number | null
           case_type_id?: string | null
           created_at?: string
           current_phase_id?: string | null
@@ -567,6 +569,7 @@ export type Database = {
           arch?: string | null
           cadista_id?: string | null
           case_label?: string | null
+          case_number?: number | null
           case_type_id?: string | null
           created_at?: string
           current_phase_id?: string | null
