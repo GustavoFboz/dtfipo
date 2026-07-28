@@ -701,6 +701,7 @@ export type Database = {
           decided_at: string | null
           decided_by: string | null
           id: string
+          invited_by: string | null
           role: string
           status: string
           user_id: string
@@ -711,6 +712,7 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           id?: string
+          invited_by?: string | null
           role?: string
           status?: string
           user_id: string
@@ -721,6 +723,7 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           id?: string
+          invited_by?: string | null
           role?: string
           status?: string
           user_id?: string
