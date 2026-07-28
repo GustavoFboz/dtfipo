@@ -1387,12 +1387,45 @@ export type Database = {
         }
         Relationships: []
       }
+      user_stock_access: {
+        Row: {
+          category_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_stock_access_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "component_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
       can_access_case: { Args: { _case_id: string }; Returns: boolean }
+      current_user_is_admin: { Args: never; Returns: boolean }
       generate_user_code: { Args: never; Returns: string }
       has_any_role: {
         Args: {
@@ -1414,6 +1447,17 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      update_team_member: {
+        Args: {
+          p_category_ids: string[]
+          p_email: string
+          p_full_name: string
+          p_phone: string
+          p_role: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role:
