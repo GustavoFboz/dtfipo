@@ -484,8 +484,13 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
             !!next && next.kind === "comment" && (next.user_id ?? "") === (a.user_id ?? "") && !nextShowsDay;
           const isLastOfGroup = !groupedWithNext;
 
+          const isSending = outgoingIds.has(a.id);
           return (
-            <div key={a.id} data-activity-id={a.id} className="rounded-2xl transition-all duration-500">
+            <div key={a.id} data-activity-id={a.id} className={cn(
+              "rounded-2xl transition-all duration-500",
+              isSending && "opacity-55",
+            )}>
+
               {showDay && <DaySeparator label={dayLabel(a.created_at)} />}
               {firstUnreadId === a.id && <UnreadDivider />}
               <div className={cn(
