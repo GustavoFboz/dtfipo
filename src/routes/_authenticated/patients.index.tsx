@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { PatientFormDialog } from "@/components/PatientFormDialog";
 import type { Patient } from "@/lib/types";
 import { normalizeText } from "@/lib/utils";
+import { SkeletonCardGrid } from "@/components/ui/skeleton-blocks";
+
 
 export const Route = createFileRoute("/_authenticated/patients/")({
   component: PatientsPage,
