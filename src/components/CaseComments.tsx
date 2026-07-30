@@ -46,7 +46,7 @@ function hhmm(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
-export function CaseComments({ caseId }: { caseId: string }) {
+export function CaseComments({ caseId, focusActivityId = null }: { caseId: string; focusActivityId?: string | null }) {
   const qc = useQueryClient();
   const [text, setText] = useState("");
   const [me, setMe] = useState<string | null | undefined>(undefined);
@@ -319,12 +319,28 @@ export function CaseComments({ caseId }: { caseId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sorted]);
 
+  // Jump straight to a specific message (deep link from a notification)
+  const focusDoneRef = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (!focusActivityId || focusDoneRef.current === focusActivityId) return;
+    if (!visible.some((a) => a.id === focusActivityId)) return;
+    const container = scrollRef.current;
+    const el = container?.querySelector(`[data-activity-id="${focusActivityId}"]`) as HTMLElement | null;
+    if (!container || !el) return;
+    focusDoneRef.current = focusActivityId;
+    container.scrollTop = el.offsetTop - container.clientHeight / 2 + el.clientHeight / 2;
+    el.classList.add("df-msg-focus");
+    const t = setTimeout(() => el.classList.remove("df-msg-focus"), 2600);
+    return () => clearTimeout(t);
+  }, [focusActivityId, visible]);
+
   // auto-scroll to bottom on new content
   useEffect(() => {
+    if (focusActivityId && focusDoneRef.current === focusActivityId) return;
     const el = scrollRef.current;
     if (!el) return;
     requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
-  }, [visible.length]);
+  }, [visible.length, focusActivityId]);
 
   return (
     <div className="flex flex-col h-full min-h-[420px]">
@@ -370,7 +386,7 @@ export function CaseComments({ caseId }: { caseId: string }) {
           const isLastOfGroup = !groupedWithNext;
 
           return (
-            <div key={a.id}>
+            <div key={a.id} data-activity-id={a.id} className="rounded-2xl transition-all duration-500">
               {showDay && <DaySeparator label={dayLabel(a.created_at)} />}
               <div className={cn(
                 "flex items-start gap-3 animate-fade-in",
