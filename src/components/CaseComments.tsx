@@ -92,7 +92,7 @@ export function CaseComments({ caseId }: { caseId: string }) {
 
   const activityIds = useMemo(() => activities.map((a) => a.id).filter((id) => !id.startsWith("optimistic-")), [activities]);
   const { data: reads = [] } = useQuery({
-    queryKey: ["case_activity_reads", caseId, activityIds.length],
+    queryKey: ["case_activity_reads", caseId, activityIds.join(",")],
     queryFn: async () => {
       if (activityIds.length === 0) return [] as { activity_id: string; user_id: string }[];
       const { data, error } = await supabase
