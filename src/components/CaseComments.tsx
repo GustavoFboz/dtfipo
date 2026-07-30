@@ -46,6 +46,11 @@ function hhmm(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
+// Remembers the chat scroll offset per case while the app session lasts
+const chatScrollMemory = new Map<string, number>();
+
+
+
 export function CaseComments({ caseId, focusActivityId = null }: { caseId: string; focusActivityId?: string | null }) {
   const qc = useQueryClient();
   const [text, setText] = useState("");
@@ -335,7 +340,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   }
   const firstUnreadId = firstUnreadRef.current ?? null;
 
-  // Initial positioning: notification deep link > first unread > bottom
+  // Initial positioning: notification deep link > saved position > first unread > bottom
   const initialScrollDoneRef = useRef(false);
   const focusDoneRef = useRef<string | null>(null);
   useLayoutEffect(() => {
@@ -361,35 +366,70 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     }
 
     if (!initialScrollDoneRef.current) {
+      initialScrollDoneRef.current = true;
+
+      // Restore the position the user was at when they last left the chat tab
+      const saved = chatScrollMemory.get(caseId);
+      if (saved != null) {
+        container.scrollTop = saved;
+        requestAnimationFrame(() => { container.scrollTop = saved; });
+        return;
+      }
+
       if (firstUnreadId) {
         const el = container.querySelector(`[data-unread-divider="true"]`) as HTMLElement | null;
         if (el) {
-          initialScrollDoneRef.current = true;
           scrollToEl(el, false);
           return;
         }
       }
-      initialScrollDoneRef.current = true;
       container.scrollTop = container.scrollHeight;
       requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; });
       return;
     }
-  }, [focusActivityId, visible, firstUnreadId]);
+  }, [focusActivityId, visible, firstUnreadId, caseId]);
 
-  // keep pinned to the bottom for new content (unless deep-linked / reading unread)
+  // Persist scroll position so returning to the chat tab resumes where it was
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => { chatScrollMemory.set(caseId, el.scrollTop); };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      chatScrollMemory.set(caseId, el.scrollTop);
+    };
+  }, [caseId]);
+
+  // keep pinned to the bottom for new content
   const lastCountRef = useRef(0);
+  const lastIdRef = useRef<string | null>(null);
   useEffect(() => {
     const el = scrollRef.current;
     if (!el || !initialScrollDoneRef.current) return;
     const grew = visible.length > lastCountRef.current;
     lastCountRef.current = visible.length;
+    const last = visible[visible.length - 1];
+    const isNewMessage = !!last && last.id !== lastIdRef.current;
+    lastIdRef.current = last?.id ?? null;
+
+    const pin = () => {
+      requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
+      setTimeout(() => { el.scrollTop = el.scrollHeight; }, 120);
+    };
+
+    // A brand new message arrived (from anyone) while the chat is open: reveal it fully
+    if (grew && isNewMessage) {
+      pin();
+      return;
+    }
     if (focusActivityId && focusDoneRef.current === focusActivityId) return;
-    if (firstUnreadId && !grew) return;
+    if (firstUnreadId) return;
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 240;
-    if (!grew && !nearBottom) return;
-    requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
-    setTimeout(() => { el.scrollTop = el.scrollHeight; }, 120);
-  }, [visible.length, signedUrls, focusActivityId, firstUnreadId]);
+    if (!nearBottom) return;
+    pin();
+  }, [visible, signedUrls, focusActivityId, firstUnreadId]);
+
 
   return (
     <div className="flex flex-col h-full min-h-[420px]">
