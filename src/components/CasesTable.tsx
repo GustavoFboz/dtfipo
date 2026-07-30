@@ -309,7 +309,7 @@ export function CasesTable({
           <div className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
           {filtered.length === 0 ? (
             <div className="text-center py-20 text-slate-400 font-light text-sm">Nenhum caso encontrado.</div>
-          ) : filtered.map((c) => {
+          ) : filtered.map((c, i) => {
             const late = isLate(c.delivery_date);
             return (
               <div
@@ -317,7 +317,8 @@ export function CasesTable({
                 role="button"
                 tabIndex={0}
                 onClick={() => setDetail(c)}
-                className="grid grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_40px] gap-6 items-center px-2 py-5 cursor-pointer transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-900/40"
+                style={{ ["--df-stagger" as string]: `${Math.min(i, 14) * 55}ms` }}
+                className="df-item-in grid grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_40px] gap-6 items-center px-2 py-5 cursor-pointer transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-900/40"
               >
                 {/* Paciente */}
                 <div className="flex items-center gap-4 min-w-0">
