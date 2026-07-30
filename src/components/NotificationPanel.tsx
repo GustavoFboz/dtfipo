@@ -13,8 +13,34 @@ import { cn } from '@/lib/utils';
 
 
 
+type NotifFilter = 'all' | 'updates' | 'messages';
+
+const FILTERS: { key: NotifFilter; label: string }[] = [
+  { key: 'all', label: 'Todos' },
+  { key: 'updates', label: 'Atualizações' },
+  { key: 'messages', label: 'Mensagens' },
+];
+
+const MESSAGE_TYPES = ['comment', 'attachment', 'mention', 'message'];
+const UPDATE_TYPES = ['update', 'system', 'release'];
+
+function matchesFilter(type: string | null | undefined, filter: NotifFilter) {
+  if (filter === 'all') return true;
+  const t = (type ?? '').toLowerCase();
+  if (filter === 'messages') return MESSAGE_TYPES.includes(t);
+  return UPDATE_TYPES.includes(t);
+}
+
+function initialsOf(name?: string | null) {
+  const n = (name ?? '').trim();
+  if (!n) return '?';
+  const parts = n.split(/\s+/);
+  return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?';
+}
+
 export function NotificationPanel() {
   const [isOpen, setIsOpen] = useState(false);
+  const [filter, setFilter] = useState<NotifFilter>('all');
   const { popups, unreadCount, removePopup, setUnreadCount } = useNotificationPopups();
   const queryClient = useQueryClient();
 
