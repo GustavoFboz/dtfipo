@@ -40,6 +40,7 @@ import { CaseDeepLink } from "./CaseDeepLink";
 import { DialogAutoReopen } from "./DialogAutoReopen";
 import { useCasesRealtime } from "@/hooks/use-cases-realtime";
 import { useEntityRealtime } from "@/hooks/use-entity-realtime";
+import { useChatRealtime } from "@/hooks/use-chat-realtime";
 
 
 
