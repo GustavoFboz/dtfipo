@@ -115,6 +115,8 @@ function PatientsPage() {
           </div>
         )}
       </div>
+      )}
+
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
