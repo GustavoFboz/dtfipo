@@ -1,3 +1,4 @@
+import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -93,4 +94,49 @@ export function SkeletonTableRows({ rows = 6, cols = 4 }: { rows?: number; cols?
 /** Bloco de imagem/miniatura. */
 export function SkeletonImage({ className }: { className?: string }) {
   return <SkeletonBlock className={cn("w-full aspect-square rounded-2xl", className)} />;
+}
+
+/**
+ * Crossfade entre skeleton e conteúdo: o skeleton se dissolve (fade + blur)
+ * enquanto o conteúdo surge de baixo para cima, sem "corte duro".
+ */
+export function SkeletonSwap({
+  loading,
+  skeleton,
+  children,
+  className,
+}: {
+  loading: boolean;
+  skeleton: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const [showSkeleton, setShowSkeleton] = React.useState(loading);
+  const [leaving, setLeaving] = React.useState(false);
+
+  React.useEffect(() => {
+    if (loading) {
+      setLeaving(false);
+      setShowSkeleton(true);
+      return;
+    }
+    if (!showSkeleton) return;
+    setLeaving(true);
+    const t = window.setTimeout(() => {
+      setShowSkeleton(false);
+      setLeaving(false);
+    }, 380);
+    return () => window.clearTimeout(t);
+  }, [loading, showSkeleton]);
+
+  return (
+    <div className={cn("relative", className)}>
+      {showSkeleton && (
+        <div className={cn(leaving && "df-skeleton-out", !loading && "absolute inset-0 z-10")}>
+          {skeleton}
+        </div>
+      )}
+      {!loading && <div className="df-content-in">{children}</div>}
+    </div>
+  );
 }
