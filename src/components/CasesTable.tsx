@@ -726,6 +726,8 @@ export function CasesTable({
           );
         })}
       </div>
+      </SkeletonSwap>
+
 
       <CaseDetailDialog
         caseRow={detail}
