@@ -293,7 +293,6 @@ export function CasesTable({
         <div className="flex-1 min-h-0 overflow-y-auto">
         <SkeletonSwap
           loading={cases.isLoading}
-        animateContent={false}
           animateContent={false}
           skeleton={
             <div className="p-3 space-y-2">
