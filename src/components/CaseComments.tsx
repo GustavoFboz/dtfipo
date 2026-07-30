@@ -436,6 +436,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
           return (
             <div key={a.id} data-activity-id={a.id} className="rounded-2xl transition-all duration-500">
               {showDay && <DaySeparator label={dayLabel(a.created_at)} />}
+              {firstUnreadId === a.id && <UnreadDivider />}
               <div className={cn(
                 "flex items-start gap-3 animate-fade-in",
                 isMine ? "justify-end" : "justify-start",
