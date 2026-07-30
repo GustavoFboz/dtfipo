@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Trash2, Paperclip, Mic, X, Loader2, Smile } from "lucide-react";
+import { Send, Trash2, Paperclip, Mic, X, Smile } from "lucide-react";
 import { toast } from "sonner";
 import {
   fetchCaseActivity,
@@ -207,13 +207,16 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     });
   }
 
-  const send = useMutation({
-    mutationFn: async (payload: { value: string; images: PendingImage[] }) => {
-      const value = payload.value.trim();
-      if (!value && payload.images.length === 0) return;
+  // ---- Outgoing queue: multiple messages can be in flight at once ----
+  const [outgoing, setOutgoing] = useState<
+    { id: string; value: string; images: PendingImage[]; created_at: string; failed?: boolean }[]
+  >([]);
 
+  async function sendOne(item: { id: string; value: string; images: PendingImage[]; created_at: string }) {
+    try {
+      const value = item.value.trim();
       const uploadedPaths: { path: string; name: string }[] = [];
-      for (const p of payload.images) {
+      for (const p of item.images) {
         const att = await uploadCaseAttachment(caseId, p.file, undefined, "comment_image");
         uploadedPaths.push({ path: att.storage_path, name: att.file_name });
       }
@@ -225,66 +228,41 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
       if (uploadedPaths.length) metadata.images = uploadedPaths;
 
       const created = await addCaseActivity(caseId, "comment", value || "(imagem)", mentionIds, metadata);
-      await notifyCaseStakeholders({
+
+      // Make the real message visible everywhere as fast as possible
+      await qc.refetchQueries({ queryKey: ["case_activity", caseId] });
+      setOutgoing((s) => s.filter((o) => o.id !== item.id));
+      for (const p of item.images) URL.revokeObjectURL(p.previewUrl);
+
+      notifyCaseStakeholders({
         activityId: (created as { id?: string } | null)?.id,
         caseId,
         title: "Novo comentário no caso",
         content: (value || "(imagem)").length > 140 ? (value || "(imagem)").slice(0, 140) + "…" : (value || "(imagem)"),
         type: "comment",
         extraRecipientIds: mentionIds,
-      });
-    },
-    onMutate: async (payload: { value: string; images: PendingImage[] }) => {
-      const value = payload.value.trim();
-      if (!value && payload.images.length === 0) return;
-      await qc.cancelQueries({ queryKey: ["case_activity", caseId] });
-      const previous = qc.getQueryData<CaseActivity[]>(["case_activity", caseId]);
-      const tempId = `optimistic-${Date.now()}`;
-      const optimisticImages = payload.images.map((p) => ({ path: p.previewUrl, name: p.file.name }));
-      // Pre-populate signedUrls so previews render instantly
-      if (optimisticImages.length) {
-        setSignedUrls((prev) => {
-          const next = { ...prev };
-          for (const img of optimisticImages) next[img.path] = img.path;
-          return next;
-        });
-      }
-      const optimistic: CaseActivity = {
-        id: tempId,
-        case_id: caseId,
-        user_id: me ?? "",
-        kind: "comment",
-        content: value || "(imagem)",
-        created_at: new Date().toISOString(),
-        metadata: optimisticImages.length ? { images: optimisticImages } : null,
-        user: {
-          id: me ?? "",
-          full_name: profileById.get(me ?? "")?.full_name ?? null,
-          email: profileById.get(me ?? "")?.email ?? null,
-          role: null,
-        },
-      } as unknown as CaseActivity;
-      qc.setQueryData<CaseActivity[]>(["case_activity", caseId], (old = []) => [...old, optimistic]);
-      // Clear composer immediately for optimistic UX
-      setText("");
-      setPickedMentions({});
-      setPendingImages([]);
-      return { previous, tempId };
-    },
-    onError: (e: Error, _v, ctx) => {
-      if (ctx?.previous) qc.setQueryData(["case_activity", caseId], ctx.previous);
-      toast.error(e.message);
-    },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["case_activity", caseId] });
+      }).catch(() => { /* notification failure must not block the chat */ });
+
       qc.invalidateQueries({ queryKey: ["case_attachments", caseId] });
-    },
-  });
+    } catch (e) {
+      setOutgoing((s) => s.map((o) => (o.id === item.id ? { ...o, failed: true } : o)));
+      toast.error((e as Error).message);
+    }
+  }
 
   function submitMessage() {
-    if (send.isPending) return;
     if (!text.trim() && pendingImages.length === 0) return;
-    send.mutate({ value: text, images: pendingImages });
+    const item = {
+      id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      value: text,
+      images: pendingImages,
+      created_at: new Date().toISOString(),
+    };
+    setOutgoing((s) => [...s, item]);
+    setText("");
+    setPickedMentions({});
+    setPendingImages([]);
+    void sendOne(item);
   }
 
   const remove = useMutation({
@@ -292,15 +270,47 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     onSuccess: () => qc.invalidateQueries({ queryKey: ["case_activity", caseId] }),
   });
 
+
   // ascending order for chat
   const sorted = useMemo(
     () => [...activities].sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at)),
     [activities],
   );
-  const visible = useMemo(
-    () => sorted.filter((a) => a.kind === "comment"),
-    [sorted],
-  );
+  const visible = useMemo(() => {
+    const server = sorted.filter((a) => a.kind === "comment");
+    if (outgoing.length === 0) return server;
+    const prof = profileById.get(me ?? "");
+    const pending = outgoing.map((o) => ({
+      id: o.id,
+      case_id: caseId,
+      user_id: me ?? "",
+      kind: "comment",
+      content: o.value.trim() || "(imagem)",
+      created_at: o.created_at,
+      metadata: o.images.length
+        ? { images: o.images.map((p) => ({ path: p.previewUrl, name: p.file.name })) }
+        : null,
+      user: { id: me ?? "", full_name: prof?.full_name ?? null, email: prof?.email ?? null, role: null },
+    })) as unknown as CaseActivity[];
+    return [...server, ...pending];
+  }, [sorted, outgoing, me, caseId, profileById]);
+
+  // local blob previews resolve to themselves
+  useEffect(() => {
+    if (outgoing.length === 0) return;
+    setSignedUrls((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const o of outgoing) {
+        for (const p of o.images) {
+          if (!next[p.previewUrl]) { next[p.previewUrl] = p.previewUrl; changed = true; }
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [outgoing]);
+  const outgoingIds = useMemo(() => new Set(outgoing.map((o) => o.id)), [outgoing]);
+
 
   // signed urls for comment images
   useEffect(() => {
@@ -474,8 +484,13 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
             !!next && next.kind === "comment" && (next.user_id ?? "") === (a.user_id ?? "") && !nextShowsDay;
           const isLastOfGroup = !groupedWithNext;
 
+          const isSending = outgoingIds.has(a.id);
           return (
-            <div key={a.id} data-activity-id={a.id} className="rounded-2xl transition-all duration-500">
+            <div key={a.id} data-activity-id={a.id} className={cn(
+              "rounded-2xl transition-all duration-500",
+              isSending && "opacity-55",
+            )}>
+
               {showDay && <DaySeparator label={dayLabel(a.created_at)} />}
               {firstUnreadId === a.id && <UnreadDivider />}
               <div className={cn(
@@ -630,6 +645,14 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
                   submitMessage();
                 }
               }}
+              onPaste={(e) => {
+                const files = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith("image/"));
+                if (files.length === 0) return;
+                e.preventDefault();
+                const dt = new DataTransfer();
+                for (const f of files) dt.items.add(f);
+                addImages(dt.files);
+              }}
               placeholder="Mensagem"
               rows={1}
               className="flex-1 text-[15px] resize-none border-0 focus-visible:ring-0 bg-transparent shadow-none px-0 py-0 min-h-0 h-6 leading-6 placeholder:text-slate-400 dark:text-slate-500"
@@ -648,18 +671,17 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
           <button
             type="button"
             onClick={submitMessage}
-            disabled={send.isPending || (!text.trim() && pendingImages.length === 0)}
+            disabled={!text.trim() && pendingImages.length === 0}
             aria-label={text.trim() || pendingImages.length ? "Enviar" : "Gravar áudio"}
             className="h-14 w-14 shrink-0 rounded-full bg-[#1F8AFF] hover:bg-[#1877E8] text-white grid place-items-center shadow-md transition disabled:opacity-60"
           >
-            {send.isPending ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : text.trim() || pendingImages.length ? (
+            {text.trim() || pendingImages.length ? (
               <Send className="h-5 w-5" />
             ) : (
               <Mic className="h-5 w-5" />
             )}
           </button>
+
         </div>
         {showEmoji && (
           <div className="absolute left-0 bottom-full mb-2 z-30">
