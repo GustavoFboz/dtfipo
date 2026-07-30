@@ -670,6 +670,36 @@ html.refresh-boot body > *:not(.tpb-root) {
 @keyframes df-shimmer-slide {
   100% { transform: translateX(100%); }
 }
+
+/* ── Transição skeleton → conteúdo (crossfade fluido) ────────────────── */
+@keyframes df-skeleton-dissolve {
+  0%   { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+  100% { opacity: 0; transform: translateY(-6px) scale(0.985); filter: blur(3px); }
+}
+@keyframes df-content-rise {
+  0%   { opacity: 0; transform: translateY(12px); filter: blur(2px); }
+  60%  { filter: blur(0); }
+  100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.df-skeleton-out {
+  animation: df-skeleton-dissolve 380ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  pointer-events: none;
+}
+.df-content-in {
+  animation: df-content-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 90ms;
+  will-change: transform, opacity;
+}
+/* Escalonamento opcional: define --df-i no item para atrasar a entrada. */
+.df-content-in > * {
+  animation: df-content-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(90ms + var(--df-stagger, 0ms));
+}
+
 @media (prefers-reduced-motion: reduce) {
   .df-shimmer::after { animation: none; }
+  .df-skeleton-out,
+  .df-content-in,
+  .df-content-in > * { animation: none !important; }
 }
+
