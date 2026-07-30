@@ -5,23 +5,23 @@ import { CaseDetailDialog } from "./CaseDetailDialog";
 
 const OPEN_CASE_KEY = "case_dialog:open";
 
-type DeepLinkState = { caseId: string | null; focus: string | null; source: "hash" | "session" | null };
+type DeepLinkState = { caseId: string | null; focus: string | null; msgId: string | null; source: "hash" | "session" | null };
 
 function parseHash(): DeepLinkState {
-  if (typeof window === "undefined") return { caseId: null, focus: null, source: null };
+  if (typeof window === "undefined") return { caseId: null, focus: null, msgId: null, source: null };
   const h = window.location.hash.replace(/^#/, "");
-  if (!h) return { caseId: null, focus: null, source: null };
+  if (!h) return { caseId: null, focus: null, msgId: null, source: null };
   const params = new URLSearchParams(h);
-  return { caseId: params.get("case"), focus: params.get("focus"), source: "hash" };
+  return { caseId: params.get("case"), focus: params.get("focus"), msgId: params.get("msg"), source: "hash" };
 }
 
 function parseSession(): DeepLinkState {
-  if (typeof window === "undefined") return { caseId: null, focus: null, source: null };
+  if (typeof window === "undefined") return { caseId: null, focus: null, msgId: null, source: null };
   try {
     const saved = JSON.parse(sessionStorage.getItem(OPEN_CASE_KEY) || "null") as { caseId?: string } | null;
-    return saved?.caseId ? { caseId: saved.caseId, focus: null, source: "session" } : { caseId: null, focus: null, source: null };
+    return saved?.caseId ? { caseId: saved.caseId, focus: null, msgId: null, source: "session" } : { caseId: null, focus: null, msgId: null, source: null };
   } catch {
-    return { caseId: null, focus: null, source: null };
+    return { caseId: null, focus: null, msgId: null, source: null };
   }
 }
 
@@ -48,7 +48,7 @@ export function CaseDeepLink() {
 
   // Highlight focus area after dialog opens
   useEffect(() => {
-    if (!caseRow || !state.focus || state.source !== "hash") return;
+    if (!caseRow || !state.focus || state.source !== "hash" || state.msgId) return;
     const t = setTimeout(() => {
       const sel =
         state.focus === "comments"
@@ -69,7 +69,7 @@ export function CaseDeepLink() {
 
   function close(open: boolean) {
     if (!open) {
-      setState({ caseId: null, focus: null, source: null });
+      setState({ caseId: null, focus: null, msgId: null, source: null });
       try {
         sessionStorage.removeItem(OPEN_CASE_KEY);
       } catch {
@@ -82,5 +82,5 @@ export function CaseDeepLink() {
   }
 
   if (!state.caseId || !caseRow) return null;
-  return <CaseDetailDialog caseRow={caseRow} open onOpenChange={close} syncUrlHash={state.source === "hash"} />;
+  return <CaseDetailDialog caseRow={caseRow} open onOpenChange={close} syncUrlHash={state.source === "hash"} focusActivityId={state.msgId} />;
 }

@@ -715,3 +715,9 @@ html.refresh-boot body > *:not(.tpb-root) {
 
 }
 
+
+/* Highlight for a chat message opened from a notification */
+.df-msg-focus {
+  background-color: hsl(var(--primary) / 0.10);
+  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.35);
+}

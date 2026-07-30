@@ -266,11 +266,13 @@ export function CaseDetailDialog({
   open,
   onOpenChange,
   syncUrlHash = false,
+  focusActivityId = null,
 }: {
   caseRow: CaseRow | null;
   open: boolean;
   onOpenChange: (o: boolean) => void;
   syncUrlHash?: boolean;
+  focusActivityId?: string | null;
 }) {
   const caseId = caseRowProp?.id ?? null;
   // Subscribe to the cases cache so workflow advances reflect immediately without prop changes.
@@ -822,7 +824,7 @@ export function CaseDetailDialog({
               )}
               {tab === "comentarios" && (
                 <div className="px-3 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                  <CaseComments caseId={caseRow.id} />
+                  <CaseComments caseId={caseRow.id} focusActivityId={focusActivityId} />
                 </div>
               )}
               {/* Aba "financeiro" removida — módulo desativado. */}
@@ -1140,7 +1142,7 @@ export function CaseDetailDialog({
                   caseRow={caseRow}
                 />
               )}
-              {tab === "comentarios" && <CaseComments caseId={caseRow.id} />}
+              {tab === "comentarios" && <CaseComments caseId={caseRow.id} focusActivityId={focusActivityId} />}
               {/* Aba "financeiro" removida — módulo desativado. */}
             </div>
 

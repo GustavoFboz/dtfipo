@@ -72,12 +72,16 @@ export function NotificationPanel() {
 
   function openFromNotification(n: { id: string; read_at: string | null; type: string | null; metadata: any }) {
     if (!n.read_at) markRead.mutate(n.id);
-    const meta = (n.metadata || {}) as { case_id?: string };
+    const meta = (n.metadata || {}) as { case_id?: string; activity_id?: string | null };
     const caseId = meta.case_id;
+    const activityId = meta.activity_id;
     const focus = n.type === 'comment' ? 'comments' : n.type === 'attachment' ? 'attachments' : 'overview';
     setIsOpen(false);
     if (caseId) {
-      window.location.hash = `case=${caseId}&focus=${focus}`;
+      const parts = [`case=${caseId}`, `focus=${focus}`];
+      if (focus === 'comments') parts.push('tab=comentarios');
+      if (activityId) parts.push(`msg=${activityId}`);
+      window.location.hash = parts.join('&');
       window.dispatchEvent(new Event('hashchange'));
     }
   }
