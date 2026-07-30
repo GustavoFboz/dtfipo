@@ -288,7 +288,19 @@ export function CasesTable({
         {/* Scrollable list */}
         <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-200/60 dark:divide-slate-800/60">
           {cases.isLoading ? (
-            <div className="text-center py-16 text-slate-400 font-light tracking-[0.08em] text-xs uppercase">Carregando…</div>
+            <div className="p-3 space-y-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 py-2">
+                  <SkeletonCircle className="h-10 w-10 shrink-0" />
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <SkeletonBlock className="h-3 w-2/5" />
+                    <SkeletonBlock className="h-2.5 w-3/5" />
+                  </div>
+                  <SkeletonBlock className="h-5 w-16 rounded-full" />
+                </div>
+              ))}
+            </div>
+
           ) : filtered.length === 0 ? (
             <div className="text-center py-20 text-slate-400 font-light text-sm">Nenhum caso encontrado.</div>
           ) : filtered.map((c) => {
