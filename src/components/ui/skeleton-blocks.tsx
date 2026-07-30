@@ -100,16 +100,47 @@ export function SkeletonImage({ className }: { className?: string }) {
  * Crossfade entre skeleton e conteúdo: o skeleton se dissolve (fade + blur)
  * enquanto o conteúdo surge de baixo para cima, sem "corte duro".
  */
+const revealedLists = new Set<string>();
+
+/**
+ * Controla a "chegada" escalonada dos itens de uma lista.
+ * A animação roda apenas na primeira revelação de cada lista na sessão —
+ * ao voltar de outra página (dados já em cache) nada re-anima, evitando o flash.
+ */
+export function useListReveal(key: string, loading: boolean) {
+  const [alreadyRevealed] = React.useState(() => revealedLists.has(key));
+  React.useEffect(() => {
+    if (!loading) revealedLists.add(key);
+  }, [key, loading]);
+
+  const itemProps = React.useCallback(
+    (index: number) =>
+      alreadyRevealed
+        ? { className: "", style: undefined as React.CSSProperties | undefined }
+        : {
+            className: "df-item-in",
+            style: {
+              ["--df-stagger" as string]: `${Math.min(index, 20) * 110}ms`,
+            } as React.CSSProperties,
+          },
+    [alreadyRevealed],
+  );
+
+  return { animate: !alreadyRevealed, itemProps };
+}
+
 export function SkeletonSwap({
   loading,
   skeleton,
   children,
   className,
+  animateContent = true,
 }: {
   loading: boolean;
   skeleton: React.ReactNode;
   children: React.ReactNode;
   className?: string;
+  animateContent?: boolean;
 }) {
   const [showSkeleton, setShowSkeleton] = React.useState(loading);
   const [leaving, setLeaving] = React.useState(false);
@@ -136,7 +167,7 @@ export function SkeletonSwap({
           {skeleton}
         </div>
       )}
-      {!loading && <div className="df-content-in">{children}</div>}
+      {!loading && <div className={animateContent ? "df-content-in" : undefined}>{children}</div>}
     </div>
   );
 }
