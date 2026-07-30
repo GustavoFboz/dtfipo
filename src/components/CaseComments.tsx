@@ -384,7 +384,7 @@ export function CaseComments({ caseId }: { caseId: string }) {
                   );
                 })()}
                 <div className={cn("order-2 max-w-[68%] flex flex-col", isMine ? "items-end" : "items-start")}>
-                  {!groupedWithPrev && (
+                  {!groupedWithPrev && !isMine && (
                     <span className="text-[15px] text-slate-500 dark:text-slate-400 px-2 mb-1.5">{name}</span>
                   )}
                   <ChatBubble isMine={isMine} tail={!groupedWithPrev} time={hhmm(a.created_at)}>
