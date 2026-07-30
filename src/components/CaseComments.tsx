@@ -643,6 +643,18 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   );
 }
 
+function UnreadDivider() {
+  return (
+    <div data-unread-divider="true" className="flex items-center gap-2 my-4 scroll-mt-4">
+      <div className="flex-1 h-px bg-primary/40" />
+      <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-primary px-2.5 py-1 rounded-full bg-primary/10 border border-primary/30">
+        Não lidas
+      </span>
+      <div className="flex-1 h-px bg-primary/40" />
+    </div>
+  );
+}
+
 function DaySeparator({ label }: { label: string }) {
   return (
     <div className="flex items-center gap-2 my-3">
