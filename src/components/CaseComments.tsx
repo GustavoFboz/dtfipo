@@ -91,7 +91,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   });
 
   const activityIds = useMemo(() => activities.map((a) => a.id).filter((id) => !id.startsWith("optimistic-")), [activities]);
-  const { data: reads = [] } = useQuery({
+  const { data: reads = [], isFetched: readsFetched } = useQuery({
     queryKey: ["case_activity_reads", caseId, activityIds.join(",")],
     queryFn: async () => {
       if (activityIds.length === 0) return [] as { activity_id: string; user_id: string }[];
