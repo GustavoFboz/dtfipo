@@ -105,8 +105,8 @@ export function MobileDashboard() {
         ) : list.length === 0 ? (
           <div className="py-12 text-center text-slate-400 text-sm font-light">Nenhum caso encontrado.</div>
         ) : (
-          list.map((c) => (
-            <MobileCaseRow key={c.id} c={c} onClick={() => setSelected(c)} />
+          list.map((c, i) => (
+            <MobileCaseRow key={c.id} c={c} index={i} onClick={() => setSelected(c)} />
           ))
         )}
       </div>
