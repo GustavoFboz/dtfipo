@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { PatientFormDialog } from "@/components/PatientFormDialog";
 import type { Patient } from "@/lib/types";
 import { normalizeText } from "@/lib/utils";
-import { SkeletonCardGrid } from "@/components/ui/skeleton-blocks";
+import { SkeletonCardGrid, SkeletonSwap } from "@/components/ui/skeleton-blocks";
 
 
 export const Route = createFileRoute("/_authenticated/patients/")({
@@ -73,9 +73,10 @@ function PatientsPage() {
         />
       )}
 
-      {patients.isPending && !patients.data ? (
-        <SkeletonCardGrid count={9} />
-      ) : (
+      <SkeletonSwap
+        loading={patients.isPending && !patients.data}
+        skeleton={<SkeletonCardGrid count={9} />}
+      >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 
         {filtered.map((p) => (
@@ -117,7 +118,7 @@ function PatientsPage() {
           </div>
         )}
       </div>
-      )}
+      </SkeletonSwap>
 
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
