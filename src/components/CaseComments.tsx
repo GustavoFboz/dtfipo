@@ -46,6 +46,11 @@ function hhmm(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
+// Remembers the chat scroll offset per case while the app session lasts
+const chatScrollMemory = new Map<string, number>();
+
+
+
 export function CaseComments({ caseId, focusActivityId = null }: { caseId: string; focusActivityId?: string | null }) {
   const qc = useQueryClient();
   const [text, setText] = useState("");
