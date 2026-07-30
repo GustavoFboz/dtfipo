@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { SkeletonBlock, SkeletonCircle } from "@/components/ui/skeleton-blocks";
+import { SkeletonBlock, SkeletonCircle, SkeletonSwap } from "@/components/ui/skeleton-blocks";
 
 import { useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
@@ -288,8 +288,10 @@ export function CasesTable({
         </div>
 
         {/* Scrollable list */}
-        <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-200/60 dark:divide-slate-800/60">
-          {cases.isLoading ? (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+        <SkeletonSwap
+          loading={cases.isLoading}
+          skeleton={
             <div className="p-3 space-y-2">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-3 py-2">
@@ -302,8 +304,10 @@ export function CasesTable({
                 </div>
               ))}
             </div>
-
-          ) : filtered.length === 0 ? (
+          }
+        >
+          <div className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
+          {filtered.length === 0 ? (
             <div className="text-center py-20 text-slate-400 font-light text-sm">Nenhum caso encontrado.</div>
           ) : filtered.map((c) => {
             const late = isLate(c.delivery_date);
