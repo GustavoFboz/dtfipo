@@ -343,9 +343,10 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     if (!container || visible.length === 0) return;
 
     const scrollToEl = (el: HTMLElement, center: boolean) => {
-      container.scrollTop = center
-        ? el.offsetTop - container.clientHeight / 2 + el.clientHeight / 2
-        : el.offsetTop - 16;
+      const delta = el.getBoundingClientRect().top - container.getBoundingClientRect().top;
+      container.scrollTop += center
+        ? delta - container.clientHeight / 2 + el.clientHeight / 2
+        : delta - 16;
     };
 
     if (focusActivityId && focusDoneRef.current !== focusActivityId) {
