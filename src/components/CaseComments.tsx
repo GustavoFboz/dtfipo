@@ -319,28 +319,76 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sorted]);
 
-  // Jump straight to a specific message (deep link from a notification)
+  // Freeze the first unread message (from others) when the chat first opens
+  const firstUnreadRef = useRef<string | null | undefined>(undefined);
+  if (
+    firstUnreadRef.current === undefined &&
+    me !== undefined &&
+    !isLoading &&
+    readsFetched
+  ) {
+    const mine = new Set(reads.filter((r) => r.user_id === me).map((r) => r.activity_id));
+    const first = visible.find(
+      (a) => a.user_id && a.user_id !== me && !a.id.startsWith("optimistic-") && !mine.has(a.id),
+    );
+    firstUnreadRef.current = first?.id ?? null;
+  }
+  const firstUnreadId = firstUnreadRef.current ?? null;
+
+  // Initial positioning: notification deep link > first unread > bottom
+  const initialScrollDoneRef = useRef(false);
   const focusDoneRef = useRef<string | null>(null);
   useLayoutEffect(() => {
-    if (!focusActivityId || focusDoneRef.current === focusActivityId) return;
-    if (!visible.some((a) => a.id === focusActivityId)) return;
     const container = scrollRef.current;
-    const el = container?.querySelector(`[data-activity-id="${focusActivityId}"]`) as HTMLElement | null;
-    if (!container || !el) return;
-    focusDoneRef.current = focusActivityId;
-    container.scrollTop = el.offsetTop - container.clientHeight / 2 + el.clientHeight / 2;
-    el.classList.add("df-msg-focus");
-    const t = setTimeout(() => el.classList.remove("df-msg-focus"), 2600);
-    return () => clearTimeout(t);
-  }, [focusActivityId, visible]);
+    if (!container || visible.length === 0) return;
 
-  // auto-scroll to bottom on new content
+    const scrollToEl = (el: HTMLElement, center: boolean) => {
+      container.scrollTop = center
+        ? el.offsetTop - container.clientHeight / 2 + el.clientHeight / 2
+        : el.offsetTop - 16;
+    };
+
+    if (focusActivityId && focusDoneRef.current !== focusActivityId) {
+      const el = container.querySelector(`[data-activity-id="${focusActivityId}"]`) as HTMLElement | null;
+      if (!el) return;
+      focusDoneRef.current = focusActivityId;
+      initialScrollDoneRef.current = true;
+      scrollToEl(el, true);
+      el.classList.add("df-msg-focus");
+      const t = setTimeout(() => el.classList.remove("df-msg-focus"), 2600);
+      return () => clearTimeout(t);
+    }
+
+    if (!initialScrollDoneRef.current) {
+      if (firstUnreadId) {
+        const el = container.querySelector(`[data-unread-divider="true"]`) as HTMLElement | null;
+        if (el) {
+          initialScrollDoneRef.current = true;
+          scrollToEl(el, false);
+          return;
+        }
+      }
+      initialScrollDoneRef.current = true;
+      container.scrollTop = container.scrollHeight;
+      requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; });
+      return;
+    }
+  }, [focusActivityId, visible, firstUnreadId]);
+
+  // keep pinned to the bottom for new content (unless deep-linked / reading unread)
+  const lastCountRef = useRef(0);
   useEffect(() => {
-    if (focusActivityId && focusDoneRef.current === focusActivityId) return;
     const el = scrollRef.current;
-    if (!el) return;
+    if (!el || !initialScrollDoneRef.current) return;
+    const grew = visible.length > lastCountRef.current;
+    lastCountRef.current = visible.length;
+    if (focusActivityId && focusDoneRef.current === focusActivityId) return;
+    if (firstUnreadId && !grew) return;
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 240;
+    if (!grew && !nearBottom) return;
     requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
-  }, [visible.length, focusActivityId]);
+    setTimeout(() => { el.scrollTop = el.scrollHeight; }, 120);
+  }, [visible.length, signedUrls, focusActivityId, firstUnreadId]);
 
   return (
     <div className="flex flex-col h-full min-h-[420px]">
