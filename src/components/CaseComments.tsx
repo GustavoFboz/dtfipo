@@ -251,7 +251,12 @@ export function CaseComments({ caseId }: { caseId: string }) {
         content: value || "(imagem)",
         created_at: new Date().toISOString(),
         metadata: optimisticImages.length ? { images: optimisticImages } : null,
-        user: { id: me ?? "", full_name: null, email: null, role: null },
+        user: {
+          id: me ?? "",
+          full_name: profileById.get(me ?? "")?.full_name ?? null,
+          email: profileById.get(me ?? "")?.email ?? null,
+          role: null,
+        },
       } as unknown as CaseActivity;
       qc.setQueryData<CaseActivity[]>(["case_activity", caseId], (old = []) => [...old, optimistic]);
       // Clear composer immediately for optimistic UX
@@ -349,20 +354,18 @@ export function CaseComments({ caseId }: { caseId: string }) {
             );
           }
           const isMine = !!me && a.user_id === me;
-          const name = a.user?.full_name || a.user?.email || "Sistema";
+          const prof = profileById.get(a.user_id ?? "");
+          const name =
+            a.user?.full_name || prof?.full_name || a.user?.email || prof?.email || (isMine ? "Você" : "Sistema");
           const images = (a.metadata as { images?: { path: string; name: string }[] } | null)?.images ?? [];
           const visibleImages = images
             .map((img) => ({ url: signedUrls[img.path], name: img.name }))
             .filter((x) => !!x.url);
           const groupedWithPrev =
-            prev && prev.kind === "comment" && prev.user_id === a.user_id &&
-            !showDay &&
-            (new Date(a.created_at).getTime() - new Date(prev.created_at).getTime()) < 5 * 60_000;
-          const nextShowsDay = next && dayLabel(a.created_at) !== dayLabel(next.created_at);
+            !!prev && prev.kind === "comment" && (prev.user_id ?? "") === (a.user_id ?? "") && !showDay;
+          const nextShowsDay = !!next && dayLabel(a.created_at) !== dayLabel(next.created_at);
           const groupedWithNext =
-            next && next.kind === "comment" && next.user_id === a.user_id &&
-            !nextShowsDay &&
-            (new Date(next.created_at).getTime() - new Date(a.created_at).getTime()) < 5 * 60_000;
+            !!next && next.kind === "comment" && (next.user_id ?? "") === (a.user_id ?? "") && !nextShowsDay;
           const isLastOfGroup = !groupedWithNext;
 
           return (
@@ -386,7 +389,7 @@ export function CaseComments({ caseId }: { caseId: string }) {
                   );
                 })()}
                 <div className={cn("order-2 max-w-[68%] flex flex-col", isMine ? "items-end" : "items-start")}>
-                  {!groupedWithPrev && (
+                  {!groupedWithPrev && !isMine && (
                     <span className="text-[15px] text-slate-500 dark:text-slate-400 px-2 mb-1.5">{name}</span>
                   )}
                   <ChatBubble isMine={isMine} tail={!groupedWithPrev} time={hhmm(a.created_at)}>
@@ -616,7 +619,6 @@ function ChatBubble({ isMine, tail, time, children }: { isMine: boolean; tail?: 
     if (!el) return;
     const update = () => {
       const lh = parseFloat(getComputedStyle(el).lineHeight || "0");
-      // considera "linha única" quando o conteúdo cabe em ~1 linha (com folga p/ padding)
       setSingleLine(!!lh && el.scrollHeight <= lh * 1.6);
     };
     update();
@@ -625,8 +627,6 @@ function ChatBubble({ isMine, tail, time, children }: { isMine: boolean; tail?: 
     return () => ro.disconnect();
   }, [children]);
 
-  // Raio grande padrão vs "ponta" (canto adjacente ao avatar) — usa CSS inline
-  // para evitar conflito de cascade entre rounded-full e rounded-br-sm.
   const big = singleLine ? 999 : 22;
   const tip = 6;
   const style: React.CSSProperties = {
@@ -638,27 +638,27 @@ function ChatBubble({ isMine, tail, time, children }: { isMine: boolean; tail?: 
 
   return (
     <div
-      ref={ref}
       style={style}
       className={cn(
-        "px-5 py-3 text-[16px] leading-[1.45] shadow-sm break-words whitespace-pre-wrap max-w-full",
+        "px-5 py-3 text-[16px] leading-[1.45] shadow-sm break-words max-w-full",
         isMine
           ? "bg-[#1F8AFF] text-white"
           : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100",
       )}
     >
-      {time && (
-        <span
-          className={cn(
-            "float-right ml-3 mt-2 translate-y-[2px] text-[11px] leading-none whitespace-nowrap select-none",
-            isMine ? "text-white/70" : "text-slate-400 dark:text-slate-500",
-          )}
-        >
-          {time}
-        </span>
-      )}
-      {children}
+      <div className="flex flex-col">
+        <div ref={ref} className="whitespace-pre-wrap">{children}</div>
+        {time && (
+          <span
+            className={cn(
+              "self-end mt-1 text-[11px] leading-none whitespace-nowrap select-none",
+              isMine ? "text-white/70" : "text-slate-400 dark:text-slate-500",
+            )}
+          >
+            {time}
+          </span>
+        )}
+      </div>
     </div>
   );
-
 }
