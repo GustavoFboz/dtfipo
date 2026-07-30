@@ -361,10 +361,48 @@ export function CaseDetailDialog({
     staleTime: 60_000,
   });
 
-  const commentsCount = useMemo(
-    () => (activity.data ?? []).filter((a) => a.kind === "comment").length,
+  const [meId, setMeId] = useState<string | null>(null);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setMeId(data.user?.id ?? null));
+  }, []);
+
+  const commentIds = useMemo(
+    () => (activity.data ?? [])
+      .filter((a) => a.kind === "comment" && !a.id.startsWith("optimistic-"))
+      .map((a) => a.id),
     [activity.data],
   );
+
+  const readsQuery = useQuery({
+    queryKey: ["case_activity_reads", caseRow?.id, commentIds.length],
+    enabled: !!caseRow && open && commentIds.length > 0,
+    refetchInterval: 5000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("case_activity_reads" as never)
+        .select("activity_id,user_id")
+        .in("activity_id", commentIds);
+      if (error) throw error;
+      return (data ?? []) as unknown as { activity_id: string; user_id: string }[];
+    },
+  });
+
+  // Somente mensagens de OUTROS usuários que ainda não foram lidas por mim.
+  const commentsCount = useMemo(() => {
+    if (!meId) return 0;
+    const mine = new Set(
+      (readsQuery.data ?? []).filter((r) => r.user_id === meId).map((r) => r.activity_id),
+    );
+    return (activity.data ?? []).filter(
+      (a) =>
+        a.kind === "comment" &&
+        a.user_id &&
+        a.user_id !== meId &&
+        !a.id.startsWith("optimistic-") &&
+        !mine.has(a.id),
+    ).length;
+  }, [activity.data, readsQuery.data, meId]);
+
 
   const stageReqs = useStageRequirements(caseRow);
   const tabBlocker = useBlockedActionDialog();

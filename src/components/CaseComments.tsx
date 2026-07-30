@@ -386,13 +386,11 @@ export function CaseComments({ caseId }: { caseId: string }) {
                   );
                 })()}
                 <div className={cn("order-2 max-w-[68%] flex flex-col", isMine ? "items-end" : "items-start")}>
-                  {!groupedWithPrev && !isMine && (
-                    <span className="text-[15px] text-slate-500 dark:text-slate-400 dark:text-slate-500 px-2 mb-1.5">{name}</span>
+                  {!groupedWithPrev && (
+                    <span className="text-[15px] text-slate-500 dark:text-slate-400 px-2 mb-1.5">{name}</span>
                   )}
-                  {!groupedWithPrev && isMine && (
-                    <span className="text-[15px] text-slate-500 dark:text-slate-400 dark:text-slate-500 px-2 mb-1.5">{name}</span>
-                  )}
-                  <ChatBubble isMine={isMine} tail={!groupedWithPrev}>
+                  <ChatBubble isMine={isMine} tail={!groupedWithPrev} time={hhmm(a.created_at)}>
+
                     {a.content && a.content !== "(imagem)" && (
                       <div>{renderContent(a.content)}</div>
                     )}
@@ -414,12 +412,12 @@ export function CaseComments({ caseId }: { caseId: string }) {
                       </div>
                     )}
                   </ChatBubble>
-                  {isLastOfGroup && (
+                  {isLastOfGroup && isMine && (
                     <span className={cn(
                       "text-[12px] text-slate-400 dark:text-slate-500 mt-1.5 px-2 flex items-center gap-1.5",
                       isMine ? "text-right justify-end" : "text-left"
                     )}>
-                      {hhmm(a.created_at)}
+
                       {isMine && (() => {
                         const expected = stakeholders.filter((id) => id !== me);
                         const readers = (readersByActivity.get(a.id) ?? []).filter((id) => id !== me);
@@ -609,7 +607,7 @@ function renderContent(text: string) {
   });
 }
 
-function ChatBubble({ isMine, tail, children }: { isMine: boolean; tail?: boolean; children: React.ReactNode }) {
+function ChatBubble({ isMine, tail, time, children }: { isMine: boolean; tail?: boolean; time?: string; children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const [singleLine, setSingleLine] = useState(true);
 
@@ -646,10 +644,21 @@ function ChatBubble({ isMine, tail, children }: { isMine: boolean; tail?: boolea
         "px-5 py-3 text-[16px] leading-[1.45] shadow-sm break-words whitespace-pre-wrap max-w-full",
         isMine
           ? "bg-[#1F8AFF] text-white"
-          : "bg-slate-100 dark:bg-slate-800 text-slate-800",
+          : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100",
       )}
     >
+      {time && (
+        <span
+          className={cn(
+            "float-right ml-3 mt-2 translate-y-[2px] text-[11px] leading-none whitespace-nowrap select-none",
+            isMine ? "text-white/70" : "text-slate-400 dark:text-slate-500",
+          )}
+        >
+          {time}
+        </span>
+      )}
       {children}
     </div>
   );
+
 }
