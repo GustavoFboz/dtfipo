@@ -710,6 +710,8 @@ html.refresh-boot body > *:not(.tpb-root) {
 @media (prefers-reduced-motion: reduce) {
   .df-shimmer::after { animation: none; }
   .df-skeleton-out,
+  .df-item-in,
   .df-content-in { animation: none !important; }
+
 }
 
