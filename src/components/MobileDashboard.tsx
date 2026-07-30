@@ -126,12 +126,12 @@ export function MobileDashboard() {
   );
 }
 
-function MobileCaseRow({ c, onClick }: { c: CaseRow; onClick: () => void }) {
+function MobileCaseRow({ c, index = 0, onClick }: { c: CaseRow; index?: number; onClick: () => void }) {
   const late = !c.finished_at && isLate(c.delivery_date);
   const isNovo = isNew(c);
   const initial = (c.patient?.name?.[0] ?? "?").toUpperCase();
   return (
-    <div className="px-6">
+    <div className="px-6 df-item-in" style={{ ["--df-stagger" as string]: `${Math.min(index, 14) * 55}ms` }}>
       <button
         onClick={onClick}
         className="w-full text-left py-5 border-b border-slate-100 dark:border-white/5 active:opacity-70 transition-opacity flex gap-4"
