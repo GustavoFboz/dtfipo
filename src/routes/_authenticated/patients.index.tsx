@@ -23,6 +23,7 @@ export const Route = createFileRoute("/_authenticated/patients/")({
 function PatientsPage() {
   const qc = useQueryClient();
   const patients = useQuery({ queryKey: ["patients"], queryFn: fetchPatients });
+  const reveal = useListReveal("patients-grid", patients.isPending && !patients.data);
   const [openNew, setOpenNew] = useState(false);
   const [editPatient, setEditPatient] = useState<Patient | null>(null);
   const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
