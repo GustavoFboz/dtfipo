@@ -33,10 +33,30 @@ export function Lightbox({
         className="absolute top-4 right-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">
         <X className="h-6 w-6" />
       </button>
-      <a href={cur.url} download={cur.name} onClick={(e) => e.stopPropagation()}
+      <button
+        type="button"
+        aria-label="Baixar imagem"
+        onClick={async (e) => {
+          e.stopPropagation();
+          try {
+            const res = await fetch(cur.url);
+            const blob = await res.blob();
+            const href = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = href;
+            a.download = cur.name || "imagem";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(href), 1000);
+          } catch {
+            window.open(cur.url, "_blank");
+          }
+        }}
         className="absolute top-4 right-16 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">
         <Download className="h-5 w-5" />
-      </a>
+      </button>
+
       {images.length > 1 && (
         <>
           <button onClick={(e) => { e.stopPropagation(); onIndexChange((index - 1 + images.length) % images.length); }}
