@@ -412,7 +412,7 @@ export function CaseComments({ caseId }: { caseId: string }) {
                       </div>
                     )}
                   </ChatBubble>
-                  {isLastOfGroup && (
+                  {isLastOfGroup && isMine && (
                     <span className={cn(
                       "text-[12px] text-slate-400 dark:text-slate-500 mt-1.5 px-2 flex items-center gap-1.5",
                       isMine ? "text-right justify-end" : "text-left"
