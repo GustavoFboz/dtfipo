@@ -349,20 +349,18 @@ export function CaseComments({ caseId }: { caseId: string }) {
             );
           }
           const isMine = !!me && a.user_id === me;
-          const name = a.user?.full_name || a.user?.email || "Sistema";
+          const prof = profileById.get(a.user_id ?? "");
+          const name =
+            a.user?.full_name || prof?.full_name || a.user?.email || prof?.email || (isMine ? "Você" : "Sistema");
           const images = (a.metadata as { images?: { path: string; name: string }[] } | null)?.images ?? [];
           const visibleImages = images
             .map((img) => ({ url: signedUrls[img.path], name: img.name }))
             .filter((x) => !!x.url);
           const groupedWithPrev =
-            prev && prev.kind === "comment" && prev.user_id === a.user_id &&
-            !showDay &&
-            (new Date(a.created_at).getTime() - new Date(prev.created_at).getTime()) < 5 * 60_000;
-          const nextShowsDay = next && dayLabel(a.created_at) !== dayLabel(next.created_at);
+            !!prev && prev.kind === "comment" && (prev.user_id ?? "") === (a.user_id ?? "") && !showDay;
+          const nextShowsDay = !!next && dayLabel(a.created_at) !== dayLabel(next.created_at);
           const groupedWithNext =
-            next && next.kind === "comment" && next.user_id === a.user_id &&
-            !nextShowsDay &&
-            (new Date(next.created_at).getTime() - new Date(a.created_at).getTime()) < 5 * 60_000;
+            !!next && next.kind === "comment" && (next.user_id ?? "") === (a.user_id ?? "") && !nextShowsDay;
           const isLastOfGroup = !groupedWithNext;
 
           return (
