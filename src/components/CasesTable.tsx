@@ -412,7 +412,10 @@ export function CasesTable({
               </div>
             );
           })}
+          </div>
+        </SkeletonSwap>
         </div>
+
 
         <CaseDetailDialog caseRow={detail} open={!!detail} onOpenChange={(o) => !o && setDetail(null)} />
         <EditCaseDialog caseRow={editing} open={!!editing} onOpenChange={(o) => !o && setEditing(null)} />
