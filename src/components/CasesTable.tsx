@@ -535,8 +535,9 @@ export function CasesTable({
         <div></div>
       </div>
 
-      <div className="space-y-3">
-        {cases.isLoading ? (
+      <SkeletonSwap
+        loading={cases.isLoading}
+        skeleton={
           <div className="space-y-3">
             {Array.from({ length: 7 }).map((_, i) => (
               <div key={i} className="flex items-center gap-4 rounded-2xl border border-slate-200/70 dark:border-neutral-800 bg-card px-5 py-4">
@@ -550,8 +551,10 @@ export function CasesTable({
               </div>
             ))}
           </div>
-
-        ) : filtered.length === 0 ? (
+        }
+      >
+      <div className="space-y-3">
+        {filtered.length === 0 ? (
           <div className="text-center py-24 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-200">
             <div className="h-16 w-16 bg-slate-100 rounded-3xl grid place-items-center mx-auto mb-4">
               <Search className="h-8 w-8 text-slate-300" />
