@@ -338,7 +338,8 @@ export function CaseDetailDialog({
     queryKey: ["case_activity", caseRow?.id],
     queryFn: () => fetchCaseActivity(caseRow!.id),
     enabled: !!caseRow && open,
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchInterval: 5000,
   });
 
   const implantSystems = useQuery({
