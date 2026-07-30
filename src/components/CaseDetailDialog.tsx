@@ -375,8 +375,10 @@ export function CaseDetailDialog({
   );
 
   const readsQuery = useQuery({
-    queryKey: ["case_activity_reads", caseRow?.id, commentIds.length],
+    queryKey: ["case_activity_reads", caseRow?.id, commentIds.join(",")],
     enabled: !!caseRow && open && commentIds.length > 0,
+    placeholderData: (prev) => prev,
+    staleTime: 0,
     refetchInterval: 5000,
     queryFn: async () => {
       const { data, error } = await supabase
