@@ -276,10 +276,41 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     () => [...activities].sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at)),
     [activities],
   );
-  const visible = useMemo(
-    () => sorted.filter((a) => a.kind === "comment"),
-    [sorted],
-  );
+  const visible = useMemo(() => {
+    const server = sorted.filter((a) => a.kind === "comment");
+    if (outgoing.length === 0) return server;
+    const prof = profileById.get(me ?? "");
+    const pending = outgoing.map((o) => ({
+      id: o.id,
+      case_id: caseId,
+      user_id: me ?? "",
+      kind: "comment",
+      content: o.value.trim() || "(imagem)",
+      created_at: o.created_at,
+      metadata: o.images.length
+        ? { images: o.images.map((p) => ({ path: p.previewUrl, name: p.file.name })) }
+        : null,
+      user: { id: me ?? "", full_name: prof?.full_name ?? null, email: prof?.email ?? null, role: null },
+    })) as unknown as CaseActivity[];
+    return [...server, ...pending];
+  }, [sorted, outgoing, me, caseId, profileById]);
+
+  // local blob previews resolve to themselves
+  useEffect(() => {
+    if (outgoing.length === 0) return;
+    setSignedUrls((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const o of outgoing) {
+        for (const p of o.images) {
+          if (!next[p.previewUrl]) { next[p.previewUrl] = p.previewUrl; changed = true; }
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [outgoing]);
+  const outgoingIds = useMemo(() => new Set(outgoing.map((o) => o.id)), [outgoing]);
+
 
   // signed urls for comment images
   useEffect(() => {
