@@ -690,16 +690,14 @@ html.refresh-boot body > *:not(.tpb-root) {
   animation-delay: 90ms;
   will-change: transform, opacity;
 }
-/* Escalonamento opcional: define --df-i no item para atrasar a entrada. */
-.df-content-in > * {
-  animation: df-content-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+/* Escalonamento opcional: define --df-stagger no item. */
+.df-content-in {
   animation-delay: calc(90ms + var(--df-stagger, 0ms));
 }
 
 @media (prefers-reduced-motion: reduce) {
   .df-shimmer::after { animation: none; }
   .df-skeleton-out,
-  .df-content-in,
-  .df-content-in > * { animation: none !important; }
+  .df-content-in { animation: none !important; }
 }
 
