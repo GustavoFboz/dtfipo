@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { SkeletonBlock, SkeletonCircle } from "@/components/ui/skeleton-blocks";
+import { SkeletonBlock, SkeletonCircle, SkeletonSwap } from "@/components/ui/skeleton-blocks";
 
 import { useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
@@ -288,8 +288,10 @@ export function CasesTable({
         </div>
 
         {/* Scrollable list */}
-        <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-200/60 dark:divide-slate-800/60">
-          {cases.isLoading ? (
+        <div className="flex-1 min-h-0 overflow-y-auto">
+        <SkeletonSwap
+          loading={cases.isLoading}
+          skeleton={
             <div className="p-3 space-y-2">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-3 py-2">
@@ -302,8 +304,10 @@ export function CasesTable({
                 </div>
               ))}
             </div>
-
-          ) : filtered.length === 0 ? (
+          }
+        >
+          <div className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
+          {filtered.length === 0 ? (
             <div className="text-center py-20 text-slate-400 font-light text-sm">Nenhum caso encontrado.</div>
           ) : filtered.map((c) => {
             const late = isLate(c.delivery_date);
@@ -408,7 +412,10 @@ export function CasesTable({
               </div>
             );
           })}
+          </div>
+        </SkeletonSwap>
         </div>
+
 
         <CaseDetailDialog caseRow={detail} open={!!detail} onOpenChange={(o) => !o && setDetail(null)} />
         <EditCaseDialog caseRow={editing} open={!!editing} onOpenChange={(o) => !o && setEditing(null)} />
@@ -528,8 +535,9 @@ export function CasesTable({
         <div></div>
       </div>
 
-      <div className="space-y-3">
-        {cases.isLoading ? (
+      <SkeletonSwap
+        loading={cases.isLoading}
+        skeleton={
           <div className="space-y-3">
             {Array.from({ length: 7 }).map((_, i) => (
               <div key={i} className="flex items-center gap-4 rounded-2xl border border-slate-200/70 dark:border-neutral-800 bg-card px-5 py-4">
@@ -543,8 +551,10 @@ export function CasesTable({
               </div>
             ))}
           </div>
-
-        ) : filtered.length === 0 ? (
+        }
+      >
+      <div className="space-y-3">
+        {filtered.length === 0 ? (
           <div className="text-center py-24 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-200">
             <div className="h-16 w-16 bg-slate-100 rounded-3xl grid place-items-center mx-auto mb-4">
               <Search className="h-8 w-8 text-slate-300" />
@@ -716,6 +726,8 @@ export function CasesTable({
           );
         })}
       </div>
+      </SkeletonSwap>
+
 
       <CaseDetailDialog
         caseRow={detail}
