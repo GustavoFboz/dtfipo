@@ -219,8 +219,9 @@ export function CaseComments({ caseId }: { caseId: string }) {
       const metadata: Record<string, unknown> = {};
       if (uploadedPaths.length) metadata.images = uploadedPaths;
 
-      await addCaseActivity(caseId, "comment", value || "(imagem)", mentionIds, metadata);
+      const created = await addCaseActivity(caseId, "comment", value || "(imagem)", mentionIds, metadata);
       await notifyCaseStakeholders({
+        activityId: (created as { id?: string } | null)?.id,
         caseId,
         title: "Novo comentário no caso",
         content: (value || "(imagem)").length > 140 ? (value || "(imagem)").slice(0, 140) + "…" : (value || "(imagem)"),

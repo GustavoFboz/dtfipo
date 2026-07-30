@@ -84,6 +84,7 @@ export async function notifyCaseStakeholders(opts: {
   type?: string;
   extraRecipientIds?: string[];
   excludeSelf?: boolean;
+  activityId?: string;
 }) {
   const { data: { user } } = await supabase.auth.getUser();
   const baseIds = await fetchCaseStakeholderIds(opts.caseId);
@@ -97,7 +98,7 @@ export async function notifyCaseStakeholders(opts: {
     title: opts.title,
     content: opts.content,
     type: opts.type ?? "case",
-    metadata: { case_id: opts.caseId },
+    metadata: { case_id: opts.caseId, activity_id: opts.activityId ?? null },
     read_at: null,
     created_at: new Date().toISOString(),
   }));
