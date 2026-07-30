@@ -563,7 +563,7 @@ export function CasesTable({
             <p className="text-slate-500 font-bold uppercase tracking-wider text-sm">Nenhum caso encontrado.</p>
             <Button variant="link" onClick={() => { setSearch(""); setStageFilter("all"); setStatusFilter("all"); }} className="mt-2 text-primary font-bold">Limpar filtros</Button>
           </div>
-        ) : filtered.map((c) => {
+        ) : filtered.map((c, i) => {
           const late = isLate(c.delivery_date);
           const isSel = selected.has(c.id);
           return (
@@ -572,7 +572,8 @@ export function CasesTable({
               role="button"
               tabIndex={0}
               onClick={() => setDetail(c)}
-              className={`group md:grid md:grid-cols-[48px_2.5fr_1.5fr_1fr_1fr_1.5fr_1.5fr_0.5fr] md:items-center gap-4 px-6 py-6 bg-white rounded-[2rem] border-2 transition-all duration-700 cursor-pointer ${
+              style={{ ["--df-stagger" as string]: `${Math.min(i, 14) * 55}ms` }}
+              className={`df-item-in group md:grid md:grid-cols-[48px_2.5fr_1.5fr_1fr_1fr_1.5fr_1.5fr_0.5fr] md:items-center gap-4 px-6 py-6 bg-white rounded-[2rem] border-2 transition-all duration-700 cursor-pointer ${
                 isSel 
                   ? "border-primary ring-[8px] ring-primary/5 shadow-xl translate-x-1" 
                   : "border-transparent hover:border-slate-100 hover:shadow-[0_20px_50px_rgba(0,0,0,0.04)] hover:scale-[1.008]"
