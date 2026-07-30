@@ -695,9 +695,23 @@ html.refresh-boot body > *:not(.tpb-root) {
   animation-delay: calc(90ms + var(--df-stagger, 0ms));
 }
 
+/* ── Chegada escalonada dos itens de lista ───────────────────────────── */
+@keyframes df-item-arrive {
+  0%   { opacity: 0; transform: translateY(14px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.df-item-in {
+  animation: df-item-arrive 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--df-stagger, 0ms);
+  will-change: transform, opacity;
+}
+
+
 @media (prefers-reduced-motion: reduce) {
   .df-shimmer::after { animation: none; }
   .df-skeleton-out,
+  .df-item-in,
   .df-content-in { animation: none !important; }
+
 }
 

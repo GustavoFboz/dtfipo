@@ -79,10 +79,11 @@ function PatientsPage() {
       >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 
-        {filtered.map((p) => (
+        {filtered.map((p, i) => (
           <div
             key={p.id}
-            className="bg-card rounded-2xl border border-border/60 p-4 flex items-center gap-3 hover:shadow-[var(--shadow-card)] transition"
+            style={{ ["--df-stagger" as string]: `${Math.min(i, 14) * 55}ms` }}
+            className="df-item-in bg-card rounded-2xl border border-border/60 p-4 flex items-center gap-3 hover:shadow-[var(--shadow-card)] transition"
           >
             <Link
               to="/patients/$id"
