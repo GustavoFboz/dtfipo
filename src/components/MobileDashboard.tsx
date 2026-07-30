@@ -4,6 +4,7 @@ import { Search, Plus, SlidersHorizontal, MoreHorizontal } from "lucide-react";
 import { fetchCases, fetchProfile } from "@/lib/api";
 import { NewCaseDialog } from "./NewCaseDialog";
 import { CaseDetailDialog } from "./CaseDetailDialog";
+import { useListReveal } from "@/components/ui/skeleton-blocks";
 import type { CaseRow } from "@/lib/types";
 
 type Filter = "all" | "active" | "late" | "month" | "finished";
@@ -61,6 +62,8 @@ export function MobileDashboard() {
     return src;
   }, [active.data, finished.data, filter, search]);
 
+  const reveal = useListReveal("mobile-cases", active.isLoading);
+
   const firstName = profile?.full_name?.split(" ")[0] ?? "";
 
   return (
@@ -106,7 +109,7 @@ export function MobileDashboard() {
           <div className="py-12 text-center text-slate-400 text-sm font-light">Nenhum caso encontrado.</div>
         ) : (
           list.map((c, i) => (
-            <MobileCaseRow key={c.id} c={c} index={i} onClick={() => setSelected(c)} />
+            <MobileCaseRow key={c.id} c={c} reveal={reveal.itemProps(i)} onClick={() => setSelected(c)} />
           ))
         )}
       </div>
@@ -126,12 +129,12 @@ export function MobileDashboard() {
   );
 }
 
-function MobileCaseRow({ c, index = 0, onClick }: { c: CaseRow; index?: number; onClick: () => void }) {
+function MobileCaseRow({ c, reveal, onClick }: { c: CaseRow; reveal: { className: string; style?: React.CSSProperties }; onClick: () => void }) {
   const late = !c.finished_at && isLate(c.delivery_date);
   const isNovo = isNew(c);
   const initial = (c.patient?.name?.[0] ?? "?").toUpperCase();
   return (
-    <div className="px-6 df-item-in" style={{ ["--df-stagger" as string]: `${Math.min(index, 14) * 55}ms` }}>
+    <div className={`px-6 ${reveal.className}`} style={reveal.style}>
       <button
         onClick={onClick}
         className="w-full text-left py-5 border-b border-slate-100 dark:border-white/5 active:opacity-70 transition-opacity flex gap-4"

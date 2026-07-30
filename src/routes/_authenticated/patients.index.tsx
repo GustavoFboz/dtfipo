@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { PatientFormDialog } from "@/components/PatientFormDialog";
 import type { Patient } from "@/lib/types";
 import { normalizeText } from "@/lib/utils";
-import { SkeletonCardGrid, SkeletonSwap } from "@/components/ui/skeleton-blocks";
+import { SkeletonCardGrid, SkeletonSwap, useListReveal } from "@/components/ui/skeleton-blocks";
 
 
 export const Route = createFileRoute("/_authenticated/patients/")({
@@ -75,6 +75,7 @@ function PatientsPage() {
 
       <SkeletonSwap
         loading={patients.isPending && !patients.data}
+        animateContent={false}
         skeleton={<SkeletonCardGrid count={9} />}
       >
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -82,8 +83,8 @@ function PatientsPage() {
         {filtered.map((p, i) => (
           <div
             key={p.id}
-            style={{ ["--df-stagger" as string]: `${Math.min(i, 14) * 55}ms` }}
-            className="df-item-in bg-card rounded-2xl border border-border/60 p-4 flex items-center gap-3 hover:shadow-[var(--shadow-card)] transition"
+            style={reveal.itemProps(i).style}
+            className={`${reveal.itemProps(i).className} bg-card rounded-2xl border border-border/60 p-4 flex items-center gap-3 hover:shadow-[var(--shadow-card)] transition`}
           >
             <Link
               to="/patients/$id"
