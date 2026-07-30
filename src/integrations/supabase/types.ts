@@ -230,6 +230,35 @@ export type Database = {
           },
         ]
       }
+      case_activity_reads: {
+        Row: {
+          activity_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          activity_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          activity_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_activity_reads_activity_id_fkey"
+            columns: ["activity_id"]
+            isOneToOne: false
+            referencedRelation: "case_activity"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_attachments: {
         Row: {
           case_id: string
