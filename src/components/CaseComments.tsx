@@ -614,7 +614,6 @@ function ChatBubble({ isMine, tail, time, children }: { isMine: boolean; tail?: 
     if (!el) return;
     const update = () => {
       const lh = parseFloat(getComputedStyle(el).lineHeight || "0");
-      // considera "linha única" quando o conteúdo cabe em ~1 linha (com folga p/ padding)
       setSingleLine(!!lh && el.scrollHeight <= lh * 1.6);
     };
     update();
@@ -623,8 +622,6 @@ function ChatBubble({ isMine, tail, time, children }: { isMine: boolean; tail?: 
     return () => ro.disconnect();
   }, [children]);
 
-  // Raio grande padrão vs "ponta" (canto adjacente ao avatar) — usa CSS inline
-  // para evitar conflito de cascade entre rounded-full e rounded-br-sm.
   const big = singleLine ? 999 : 22;
   const tip = 6;
   const style: React.CSSProperties = {
@@ -636,27 +633,27 @@ function ChatBubble({ isMine, tail, time, children }: { isMine: boolean; tail?: 
 
   return (
     <div
-      ref={ref}
       style={style}
       className={cn(
-        "px-5 py-3 text-[16px] leading-[1.45] shadow-sm break-words whitespace-pre-wrap max-w-full",
+        "px-5 py-3 text-[16px] leading-[1.45] shadow-sm break-words max-w-full",
         isMine
           ? "bg-[#1F8AFF] text-white"
           : "bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100",
       )}
     >
-      {time && (
-        <span
-          className={cn(
-            "float-right ml-3 mt-2 translate-y-[2px] text-[11px] leading-none whitespace-nowrap select-none",
-            isMine ? "text-white/70" : "text-slate-400 dark:text-slate-500",
-          )}
-        >
-          {time}
-        </span>
-      )}
-      {children}
+      <div className="flex flex-col">
+        <div ref={ref} className="whitespace-pre-wrap">{children}</div>
+        {time && (
+          <span
+            className={cn(
+              "self-end mt-1 text-[11px] leading-none whitespace-nowrap select-none",
+              isMine ? "text-white/70" : "text-slate-400 dark:text-slate-500",
+            )}
+          >
+            {time}
+          </span>
+        )}
+      </div>
     </div>
   );
-
 }
