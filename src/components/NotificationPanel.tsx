@@ -86,6 +86,7 @@ export function NotificationPanel() {
 
   const unreadDbCount = notifications.filter(n => !n.read_at).length;
   const displayCount = Math.max(unreadCount, unreadDbCount);
+  const filtered = notifications.filter((n: any) => matchesFilter(n.type, filter));
 
   return (
     <>
