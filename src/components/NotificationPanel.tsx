@@ -132,13 +132,29 @@ export function NotificationPanel() {
                     <CheckCheck className="h-3 w-3" /> Marcar todas
                   </button>
                 )}
-                <span className="text-[10px] font-bold text-primary/60 uppercase tracking-[0.08em]">{notifications.length}</span>
+                <span className="text-[10px] font-bold text-primary/60 uppercase tracking-[0.08em]">{filtered.length}</span>
               </div>
             </div>
 
-            
+            <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-slate-50 dark:border-slate-800/50">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setFilter(f.key)}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-[11px] font-medium transition-colors",
+                    filter === f.key
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700",
+                  )}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
             <ScrollArea className="h-[400px]">
-              {notifications.length === 0 ? (
+              {filtered.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-3">
                   <div className="h-12 w-12 rounded-full bg-slate-50 dark:bg-slate-800/50 grid place-items-center">
                     <Bell className="h-6 w-6 text-slate-200 dark:text-slate-700" />
@@ -147,7 +163,16 @@ export function NotificationPanel() {
                 </div>
               ) : (
                 <div className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                  {notifications.map((n) => (
+                  {filtered.map((n: any) => {
+                    const sender = n.sender ?? null;
+                    const isMessage = MESSAGE_TYPES.includes((n.type ?? '').toLowerCase());
+                    const senderName = sender?.full_name ?? sender?.email ?? null;
+                    const title = isMessage && senderName
+                      ? (n.type === 'attachment'
+                          ? `${senderName} anexou um arquivo`
+                          : `${senderName} comentou`)
+                      : n.title;
+                    return (
                     <div 
                       key={n.id} 
                       className={cn(
@@ -158,16 +183,30 @@ export function NotificationPanel() {
                     >
                       <div className="flex gap-3">
 
-                        <div className={cn(
-                          "h-8 w-8 shrink-0 rounded-lg flex items-center justify-center",
-                          !n.read_at ? "bg-primary/10 text-primary" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
-                        )}>
-                          <Bell className="h-4 w-4" />
-                        </div>
+                        {isMessage ? (
+                          sender?.avatar_url ? (
+                            <img
+                              src={sender.avatar_url}
+                              alt={senderName ?? 'Usuário'}
+                              className="h-9 w-9 shrink-0 rounded-full object-cover border border-slate-100 dark:border-slate-800"
+                            />
+                          ) : (
+                            <div className="h-9 w-9 shrink-0 rounded-full bg-primary/10 text-primary grid place-items-center text-[11px] font-semibold">
+                              {initialsOf(senderName)}
+                            </div>
+                          )
+                        ) : (
+                          <div className={cn(
+                            "h-9 w-9 shrink-0 rounded-full flex items-center justify-center",
+                            !n.read_at ? "bg-primary/10 text-primary" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                          )}>
+                            <Bell className="h-4 w-4" />
+                          </div>
+                        )}
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex items-center justify-between gap-2">
-                            <p className={cn("text-xs leading-none", !n.read_at ? "font-semibold" : "font-medium text-slate-600 dark:text-slate-400")}>
-                              {n.title}
+                            <p className={cn("text-xs leading-tight truncate", !n.read_at ? "font-semibold" : "font-medium text-slate-600 dark:text-slate-400")}>
+                              {title}
                             </p>
                             <span className="text-[10px] text-slate-300 dark:text-slate-600 whitespace-nowrap">
                               {format(new Date(n.created_at), "HH:mm", { locale: ptBR })}
@@ -196,7 +235,7 @@ export function NotificationPanel() {
                         </div>
                       </div>
                     </div>
-                  ))}
+                  );})}
                 </div>
               )}
             </ScrollArea>
