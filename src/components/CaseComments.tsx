@@ -251,7 +251,12 @@ export function CaseComments({ caseId }: { caseId: string }) {
         content: value || "(imagem)",
         created_at: new Date().toISOString(),
         metadata: optimisticImages.length ? { images: optimisticImages } : null,
-        user: { id: me ?? "", full_name: null, email: null, role: null },
+        user: {
+          id: me ?? "",
+          full_name: profileById.get(me ?? "")?.full_name ?? null,
+          email: profileById.get(me ?? "")?.email ?? null,
+          role: null,
+        },
       } as unknown as CaseActivity;
       qc.setQueryData<CaseActivity[]>(["case_activity", caseId], (old = []) => [...old, optimistic]);
       // Clear composer immediately for optimistic UX
