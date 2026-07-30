@@ -207,13 +207,16 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     });
   }
 
-  const send = useMutation({
-    mutationFn: async (payload: { value: string; images: PendingImage[] }) => {
-      const value = payload.value.trim();
-      if (!value && payload.images.length === 0) return;
+  // ---- Outgoing queue: multiple messages can be in flight at once ----
+  const [outgoing, setOutgoing] = useState<
+    { id: string; value: string; images: PendingImage[]; created_at: string; failed?: boolean }[]
+  >([]);
 
+  async function sendOne(item: { id: string; value: string; images: PendingImage[]; created_at: string }) {
+    try {
+      const value = item.value.trim();
       const uploadedPaths: { path: string; name: string }[] = [];
-      for (const p of payload.images) {
+      for (const p of item.images) {
         const att = await uploadCaseAttachment(caseId, p.file, undefined, "comment_image");
         uploadedPaths.push({ path: att.storage_path, name: att.file_name });
       }
@@ -225,72 +228,48 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
       if (uploadedPaths.length) metadata.images = uploadedPaths;
 
       const created = await addCaseActivity(caseId, "comment", value || "(imagem)", mentionIds, metadata);
-      await notifyCaseStakeholders({
+
+      // Make the real message visible everywhere as fast as possible
+      await qc.refetchQueries({ queryKey: ["case_activity", caseId] });
+      setOutgoing((s) => s.filter((o) => o.id !== item.id));
+      for (const p of item.images) URL.revokeObjectURL(p.previewUrl);
+
+      notifyCaseStakeholders({
         activityId: (created as { id?: string } | null)?.id,
         caseId,
         title: "Novo comentário no caso",
         content: (value || "(imagem)").length > 140 ? (value || "(imagem)").slice(0, 140) + "…" : (value || "(imagem)"),
         type: "comment",
         extraRecipientIds: mentionIds,
-      });
-    },
-    onMutate: async (payload: { value: string; images: PendingImage[] }) => {
-      const value = payload.value.trim();
-      if (!value && payload.images.length === 0) return;
-      await qc.cancelQueries({ queryKey: ["case_activity", caseId] });
-      const previous = qc.getQueryData<CaseActivity[]>(["case_activity", caseId]);
-      const tempId = `optimistic-${Date.now()}`;
-      const optimisticImages = payload.images.map((p) => ({ path: p.previewUrl, name: p.file.name }));
-      // Pre-populate signedUrls so previews render instantly
-      if (optimisticImages.length) {
-        setSignedUrls((prev) => {
-          const next = { ...prev };
-          for (const img of optimisticImages) next[img.path] = img.path;
-          return next;
-        });
-      }
-      const optimistic: CaseActivity = {
-        id: tempId,
-        case_id: caseId,
-        user_id: me ?? "",
-        kind: "comment",
-        content: value || "(imagem)",
-        created_at: new Date().toISOString(),
-        metadata: optimisticImages.length ? { images: optimisticImages } : null,
-        user: {
-          id: me ?? "",
-          full_name: profileById.get(me ?? "")?.full_name ?? null,
-          email: profileById.get(me ?? "")?.email ?? null,
-          role: null,
-        },
-      } as unknown as CaseActivity;
-      qc.setQueryData<CaseActivity[]>(["case_activity", caseId], (old = []) => [...old, optimistic]);
-      // Clear composer immediately for optimistic UX
-      setText("");
-      setPickedMentions({});
-      setPendingImages([]);
-      return { previous, tempId };
-    },
-    onError: (e: Error, _v, ctx) => {
-      if (ctx?.previous) qc.setQueryData(["case_activity", caseId], ctx.previous);
-      toast.error(e.message);
-    },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["case_activity", caseId] });
+      }).catch(() => { /* notification failure must not block the chat */ });
+
       qc.invalidateQueries({ queryKey: ["case_attachments", caseId] });
-    },
-  });
+    } catch (e) {
+      setOutgoing((s) => s.map((o) => (o.id === item.id ? { ...o, failed: true } : o)));
+      toast.error((e as Error).message);
+    }
+  }
 
   function submitMessage() {
-    if (send.isPending) return;
     if (!text.trim() && pendingImages.length === 0) return;
-    send.mutate({ value: text, images: pendingImages });
+    const item = {
+      id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      value: text,
+      images: pendingImages,
+      created_at: new Date().toISOString(),
+    };
+    setOutgoing((s) => [...s, item]);
+    setText("");
+    setPickedMentions({});
+    setPendingImages([]);
+    void sendOne(item);
   }
 
   const remove = useMutation({
     mutationFn: (id: string) => deleteCaseActivity(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["case_activity", caseId] }),
   });
+
 
   // ascending order for chat
   const sorted = useMemo(
