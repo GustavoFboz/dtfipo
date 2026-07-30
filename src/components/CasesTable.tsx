@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { SkeletonBlock, SkeletonCircle } from "@/components/ui/skeleton-blocks";
+
 import { useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -288,7 +290,19 @@ export function CasesTable({
         {/* Scrollable list */}
         <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-200/60 dark:divide-slate-800/60">
           {cases.isLoading ? (
-            <div className="text-center py-16 text-slate-400 font-light tracking-[0.08em] text-xs uppercase">Carregando…</div>
+            <div className="p-3 space-y-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 py-2">
+                  <SkeletonCircle className="h-10 w-10 shrink-0" />
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <SkeletonBlock className="h-3 w-2/5" />
+                    <SkeletonBlock className="h-2.5 w-3/5" />
+                  </div>
+                  <SkeletonBlock className="h-5 w-16 rounded-full" />
+                </div>
+              ))}
+            </div>
+
           ) : filtered.length === 0 ? (
             <div className="text-center py-20 text-slate-400 font-light text-sm">Nenhum caso encontrado.</div>
           ) : filtered.map((c) => {
@@ -516,7 +530,20 @@ export function CasesTable({
 
       <div className="space-y-3">
         {cases.isLoading ? (
-          <div className="text-center py-20 text-slate-400 font-bold uppercase tracking-[0.08em] animate-pulse">Carregando dados...</div>
+          <div className="space-y-3">
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 rounded-2xl border border-slate-200/70 dark:border-neutral-800 bg-card px-5 py-4">
+                <SkeletonCircle className="h-11 w-11 shrink-0" />
+                <div className="flex-1 min-w-0 space-y-2">
+                  <SkeletonBlock className="h-3.5 w-1/3" />
+                  <SkeletonBlock className="h-2.5 w-1/2" />
+                </div>
+                <SkeletonBlock className="hidden md:block h-3 w-24" />
+                <SkeletonBlock className="h-6 w-20 rounded-full" />
+              </div>
+            ))}
+          </div>
+
         ) : filtered.length === 0 ? (
           <div className="text-center py-24 bg-slate-50/50 rounded-[2rem] border-2 border-dashed border-slate-200">
             <div className="h-16 w-16 bg-slate-100 rounded-3xl grid place-items-center mx-auto mb-4">
