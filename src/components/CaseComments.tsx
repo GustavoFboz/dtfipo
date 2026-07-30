@@ -645,6 +645,14 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
                   submitMessage();
                 }
               }}
+              onPaste={(e) => {
+                const files = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith("image/"));
+                if (files.length === 0) return;
+                e.preventDefault();
+                const dt = new DataTransfer();
+                for (const f of files) dt.items.add(f);
+                addImages(dt.files);
+              }}
               placeholder="Mensagem"
               rows={1}
               className="flex-1 text-[15px] resize-none border-0 focus-visible:ring-0 bg-transparent shadow-none px-0 py-0 min-h-0 h-6 leading-6 placeholder:text-slate-400 dark:text-slate-500"
@@ -663,18 +671,17 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
           <button
             type="button"
             onClick={submitMessage}
-            disabled={send.isPending || (!text.trim() && pendingImages.length === 0)}
+            disabled={!text.trim() && pendingImages.length === 0}
             aria-label={text.trim() || pendingImages.length ? "Enviar" : "Gravar áudio"}
             className="h-14 w-14 shrink-0 rounded-full bg-[#1F8AFF] hover:bg-[#1877E8] text-white grid place-items-center shadow-md transition disabled:opacity-60"
           >
-            {send.isPending ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : text.trim() || pendingImages.length ? (
+            {text.trim() || pendingImages.length ? (
               <Send className="h-5 w-5" />
             ) : (
               <Mic className="h-5 w-5" />
             )}
           </button>
+
         </div>
         {showEmoji && (
           <div className="absolute left-0 bottom-full mb-2 z-30">
