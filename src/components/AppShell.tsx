@@ -75,6 +75,7 @@ function getMobilePageTitle(pathname: string, items: readonly { to: string; labe
 
 export function AppShell() {
   useCasesRealtime();
+  useChatRealtime();
   // Realtime global: qualquer alteração no banco reflete instantaneamente em todos os clientes.
   useEntityRealtime("patients", ["patients"]);
   useEntityRealtime("doctors", ["doctors"]);
