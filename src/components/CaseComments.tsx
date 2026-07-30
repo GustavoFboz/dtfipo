@@ -386,13 +386,11 @@ export function CaseComments({ caseId }: { caseId: string }) {
                   );
                 })()}
                 <div className={cn("order-2 max-w-[68%] flex flex-col", isMine ? "items-end" : "items-start")}>
-                  {!groupedWithPrev && !isMine && (
-                    <span className="text-[15px] text-slate-500 dark:text-slate-400 dark:text-slate-500 px-2 mb-1.5">{name}</span>
+                  {!groupedWithPrev && (
+                    <span className="text-[15px] text-slate-500 dark:text-slate-400 px-2 mb-1.5">{name}</span>
                   )}
-                  {!groupedWithPrev && isMine && (
-                    <span className="text-[15px] text-slate-500 dark:text-slate-400 dark:text-slate-500 px-2 mb-1.5">{name}</span>
-                  )}
-                  <ChatBubble isMine={isMine} tail={!groupedWithPrev}>
+                  <ChatBubble isMine={isMine} tail={!groupedWithPrev} time={hhmm(a.created_at)}>
+
                     {a.content && a.content !== "(imagem)" && (
                       <div>{renderContent(a.content)}</div>
                     )}
