@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { SkeletonBlock, SkeletonCircle, SkeletonSwap } from "@/components/ui/skeleton-blocks";
+import { SkeletonBlock, SkeletonCircle, SkeletonSwap, useListReveal } from "@/components/ui/skeleton-blocks";
 
 import { useState, useMemo } from "react";
 import { Link } from "@tanstack/react-router";
@@ -144,6 +144,8 @@ export function CasesTable({
     // Realtime (useCasesRealtime) mantém a lista atualizada — sem polling.
     staleTime: 60_000,
   });
+
+  const reveal = useListReveal("cases-table", cases.isLoading);
 
   const stages = useQuery({ queryKey: ["stages"], queryFn: fetchStages });
 
@@ -291,6 +293,8 @@ export function CasesTable({
         <div className="flex-1 min-h-0 overflow-y-auto">
         <SkeletonSwap
           loading={cases.isLoading}
+        animateContent={false}
+          animateContent={false}
           skeleton={
             <div className="p-3 space-y-2">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -317,8 +321,8 @@ export function CasesTable({
                 role="button"
                 tabIndex={0}
                 onClick={() => setDetail(c)}
-                style={{ ["--df-stagger" as string]: `${Math.min(i, 14) * 55}ms` }}
-                className="df-item-in grid grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_40px] gap-6 items-center px-2 py-5 cursor-pointer transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-900/40"
+                style={reveal.itemProps(i).style}
+                className={`${reveal.itemProps(i).className} grid grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_40px] gap-6 items-center px-2 py-5 cursor-pointer transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-900/40`}
               >
                 {/* Paciente */}
                 <div className="flex items-center gap-4 min-w-0">
@@ -538,6 +542,7 @@ export function CasesTable({
 
       <SkeletonSwap
         loading={cases.isLoading}
+        animateContent={false}
         skeleton={
           <div className="space-y-3">
             {Array.from({ length: 7 }).map((_, i) => (
@@ -572,8 +577,8 @@ export function CasesTable({
               role="button"
               tabIndex={0}
               onClick={() => setDetail(c)}
-              style={{ ["--df-stagger" as string]: `${Math.min(i, 14) * 55}ms` }}
-              className={`df-item-in group md:grid md:grid-cols-[48px_2.5fr_1.5fr_1fr_1fr_1.5fr_1.5fr_0.5fr] md:items-center gap-4 px-6 py-6 bg-white rounded-[2rem] border-2 transition-all duration-700 cursor-pointer ${
+              style={reveal.itemProps(i).style}
+              className={`${reveal.itemProps(i).className} group md:grid md:grid-cols-[48px_2.5fr_1.5fr_1fr_1fr_1.5fr_1.5fr_0.5fr] md:items-center gap-4 px-6 py-6 bg-white rounded-[2rem] border-2 transition-all duration-700 cursor-pointer ${
                 isSel 
                   ? "border-primary ring-[8px] ring-primary/5 shadow-xl translate-x-1" 
                   : "border-transparent hover:border-slate-100 hover:shadow-[0_20px_50px_rgba(0,0,0,0.04)] hover:scale-[1.008]"
