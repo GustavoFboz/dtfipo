@@ -291,6 +291,9 @@ export function useNotificationPopups() {
       window.removeEventListener('touchstart', primeAudio, interactionOpts);
       window.removeEventListener('click', primeAudio, interactionOpts);
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pointerdown', requestPermission, interactionOpts);
+      window.removeEventListener('keydown', requestPermission, keydownOpts);
+
       unsubPeer();
       if (activeChannel) supabase.removeChannel(activeChannel);
     };
