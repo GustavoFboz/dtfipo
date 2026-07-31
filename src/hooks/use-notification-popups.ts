@@ -182,6 +182,51 @@ export function useNotificationPopups() {
       }
     };
 
+    // Gera um avatar circular com iniciais (data URL) para quando o usuário
+    // não tem foto — assim a notificação do sistema sempre mostra algo ao lado.
+    const buildInitialsIcon = (name: string | null) => {
+      try {
+        const size = 192;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return null;
+        const initials = (name || "?")
+          .trim()
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((p) => p[0]?.toUpperCase() ?? "")
+          .join("");
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        ctx.fillStyle = "#2563eb";
+        ctx.fill();
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "600 84px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(initials || "?", size / 2, size / 2 + 4);
+        return canvas.toDataURL("image/png");
+      } catch {
+        return null;
+      }
+    };
+
+    // Converte a foto do usuário em data URL: o Chrome no Windows às vezes não
+    // renderiza URLs assinadas remotas no ícone da notificação.
+    const toDataUrl = async (url: string) => {
+      const res = await fetch(url, { mode: "cors" });
+      if (!res.ok) throw new Error("avatar fetch failed");
+      const blob = await res.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("avatar read failed"));
+        reader.readAsDataURL(blob);
+      });
+    };
+
     const showDesktopNotification = (n: any) => {
       if (typeof Notification === "undefined" || Notification.permission !== "granted") return false;
       try {
@@ -200,12 +245,30 @@ export function useNotificationPopups() {
         } else if (caseLabel) {
           title = `${title} · ${caseLabel}`;
         }
+        const fallbackIcon = buildInitialsIcon(sender) || "/icon-512.png";
         const notif = new Notification(title, {
           body: n.content || "",
-          icon: meta.sender_avatar || "/icon-512.png",
-          badge: "/icon-512.png",
+          icon: fallbackIcon,
+          badge: fallbackIcon,
           tag: n.id,
         });
+
+        // Se houver foto, troca o ícone por ela assim que baixar (mesma tag
+        // substitui a notificação já exibida).
+        if (meta.sender_avatar) {
+          toDataUrl(meta.sender_avatar)
+            .then((dataUrl) => {
+              const replaced = new Notification(title, {
+                body: n.content || "",
+                icon: dataUrl,
+                badge: dataUrl,
+                tag: n.id,
+              });
+              replaced.onclick = notif.onclick;
+            })
+            .catch(() => {});
+        }
+
 
         notif.onclick = () => {
           window.focus();
