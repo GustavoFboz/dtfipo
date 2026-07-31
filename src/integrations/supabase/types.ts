@@ -449,6 +449,129 @@ export type Database = {
           },
         ]
       }
+      case_stock_consumptions: {
+        Row: {
+          case_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          qty: number
+          reversed_at: string | null
+          rule_id: string | null
+          stage_id: string | null
+          stock_item_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          qty?: number
+          reversed_at?: string | null
+          rule_id?: string | null
+          stage_id?: string | null
+          stock_item_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          qty?: number
+          reversed_at?: string | null
+          rule_id?: string | null
+          stage_id?: string | null
+          stock_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_stock_consumptions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_stock_consumptions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "stock_consumption_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_stock_consumptions_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_stock_consumptions_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_tooth_stock_usage: {
+        Row: {
+          case_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          qty: number
+          reversed_at: string | null
+          rule_id: string | null
+          stock_item_id: string
+          tooth_fdi: number
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          qty?: number
+          reversed_at?: string | null
+          rule_id?: string | null
+          stock_item_id: string
+          tooth_fdi: number
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          qty?: number
+          reversed_at?: string | null
+          rule_id?: string | null
+          stock_item_id?: string
+          tooth_fdi?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_tooth_stock_usage_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_tooth_stock_usage_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "stock_consumption_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_tooth_stock_usage_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_types: {
         Row: {
           abbreviation: string | null
@@ -812,18 +935,21 @@ export type Database = {
           id: string
           name: string
           position: number
+          updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
           position?: number
+          updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
           position?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1378,6 +1504,108 @@ export type Database = {
           },
         ]
       }
+      stock_consumption_rules: {
+        Row: {
+          active: boolean
+          applies_to: string
+          case_type_id: string | null
+          created_at: string
+          id: string
+          mode: string
+          notes: string | null
+          qty_per_case: number
+          qty_per_tooth: number
+          required: boolean
+          stage_id: string | null
+          stock_item_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          applies_to?: string
+          case_type_id?: string | null
+          created_at?: string
+          id?: string
+          mode?: string
+          notes?: string | null
+          qty_per_case?: number
+          qty_per_tooth?: number
+          required?: boolean
+          stage_id?: string | null
+          stock_item_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          applies_to?: string
+          case_type_id?: string | null
+          created_at?: string
+          id?: string
+          mode?: string
+          notes?: string | null
+          qty_per_case?: number
+          qty_per_tooth?: number
+          required?: boolean
+          stage_id?: string | null
+          stock_item_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_consumption_rules_case_type_id_fkey"
+            columns: ["case_type_id"]
+            isOneToOne: false
+            referencedRelation: "case_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_consumption_rules_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_consumption_rules_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_item_custom_fields: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          stock_item_id: string
+          value: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          stock_item_id: string
+          value?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          stock_item_id?: string
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_item_custom_fields_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_items: {
         Row: {
           block_type: string | null
@@ -1389,6 +1617,7 @@ export type Database = {
           created_at: string
           id: string
           implant_system_component_id: string | null
+          last_restocked_at: string | null
           min_qty: number
           name: string
           notes: string | null
@@ -1407,6 +1636,7 @@ export type Database = {
           created_at?: string
           id?: string
           implant_system_component_id?: string | null
+          last_restocked_at?: string | null
           min_qty?: number
           name: string
           notes?: string | null
@@ -1425,6 +1655,7 @@ export type Database = {
           created_at?: string
           id?: string
           implant_system_component_id?: string | null
+          last_restocked_at?: string | null
           min_qty?: number
           name?: string
           notes?: string | null
@@ -1614,11 +1845,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_implant_component: {
+        Args: {
+          _min_qty?: number
+          _name: string
+          _qty?: number
+          _sku?: string
+          _system_id: string
+          _type_id: string
+          _unit?: string
+        }
+        Returns: Json
+      }
       advance_case_workflow: {
         Args: { _case_id: string; _stage_id?: string }
         Returns: Json
       }
       can_access_case: { Args: { _case_id: string }; Returns: boolean }
+      consume_case_stock: {
+        Args: { _case_id: string; _user?: string }
+        Returns: Json
+      }
+      create_implant_system_with_stock: {
+        Args: { _components?: Json; _line?: string; _name: string }
+        Returns: Json
+      }
       current_user_is_admin: { Args: never; Returns: boolean }
       generate_user_code: { Args: never; Returns: string }
       has_any_role: {
@@ -1641,6 +1892,21 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      register_case_implant_tooth: {
+        Args: { _case_id: string; _stock_item_id: string; _tooth_fdi: number }
+        Returns: Json
+      }
+      register_tooth_stock_usage: {
+        Args: {
+          _case_id: string
+          _rule_id: string
+          _stock_item_id: string
+          _tooth_fdi: number
+        }
+        Returns: Json
+      }
+      remove_case_implant_tooth: { Args: { _id: string }; Returns: Json }
+      remove_tooth_stock_usage: { Args: { _usage_id: string }; Returns: Json }
       return_case_workflow: {
         Args: {
           _case_id: string
@@ -1648,6 +1914,11 @@ export type Database = {
           _reason_id?: string
           _to_stage_id?: string
         }
+        Returns: Json
+      }
+      reverse_all_case_stock: { Args: { _case_id: string }; Returns: Json }
+      reverse_case_stock: {
+        Args: { _case_id: string; _user?: string }
         Returns: Json
       }
       seed_default_workflow: { Args: never; Returns: Json }
@@ -1682,6 +1953,10 @@ export type Database = {
         | "auto_case"
         | "reverse_case"
         | "adjust"
+        | "tooth_usage"
+        | "tooth_usage_reverse"
+        | "auto_rule"
+        | "reverse_rule"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1818,7 +2093,17 @@ export const Constants = {
         "cadista",
       ],
       stock_category: ["zirconia", "dissilicato", "component", "hygiene"],
-      stock_movement_type: ["in", "out", "auto_case", "reverse_case", "adjust"],
+      stock_movement_type: [
+        "in",
+        "out",
+        "auto_case",
+        "reverse_case",
+        "adjust",
+        "tooth_usage",
+        "tooth_usage_reverse",
+        "auto_rule",
+        "reverse_rule",
+      ],
     },
   },
 } as const
