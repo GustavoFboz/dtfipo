@@ -35,7 +35,7 @@ const CASE_SELECT = `
 `;
 
 type StatusFilter = "all" | "active" | "finished" | "cancelled" | "reopened";
-type MaterialFilter = "all" | "zirconia" | "dissilicato" | "implant";
+type MaterialFilter = "all" | "zirconia" | "dissilicato";
 type ProfKind = "doctor" | "cadista";
 type ProfSel = { kind: ProfKind; id: string; name: string };
 
