@@ -498,8 +498,15 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
 
 
   return (
-    <div className="flex flex-col h-full min-h-[420px]">
+    <div className="flex flex-col h-full min-h-[420px] relative">
+      {!ready && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+          <span className="h-6 w-6 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+          <span className="text-[13px] font-light">Carregando mensagens…</span>
+        </div>
+      )}
       {/* Messages */}
+
       <div
         ref={scrollRef}
         className={cn(
