@@ -271,7 +271,6 @@ function TeethDashboard() {
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="zirconia">Zircônia</SelectItem>
                     <SelectItem value="dissilicato">Dissilicato</SelectItem>
-                    <SelectItem value="implant">Implante</SelectItem>
                   </SelectContent>
                 </Select>
               </FilterBlock>
