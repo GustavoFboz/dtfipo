@@ -110,7 +110,7 @@ function TeethDashboard() {
     return cases.filter((c) => {
       if (materialF === "zirconia" && !(c.teeth_zirconia?.length)) return false;
       if (materialF === "dissilicato" && !(c.teeth_dissilicato?.length)) return false;
-      if (materialF === "implant" && !(c.implant_teeth?.length)) return false;
+      
       if (!q) return true;
       const hay = normalizeText([
         c.patient?.name, c.doctor?.name, c.cadista?.name,
