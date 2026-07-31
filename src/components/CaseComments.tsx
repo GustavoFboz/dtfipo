@@ -671,6 +671,8 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
             <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden"
               onChange={(e) => addImages(e.target.files)} />
           </div>
+          )}
+
           <button
             type="button"
             onClick={async () => {
