@@ -621,7 +621,15 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
           </div>
         )}
         <div className="flex items-center gap-3">
+          {recorder.state !== "idle" ? (
+            <RecordingBar
+              seconds={recorder.seconds}
+              transcribing={recorder.state === "transcribing"}
+              onCancel={recorder.cancel}
+            />
+          ) : (
           <div className="flex-1 h-14 rounded-full bg-[#f1f1f3] dark:bg-slate-800 flex items-center pl-4 pr-3 gap-2">
+
             <button
               type="button"
               aria-label="Emoji"
@@ -663,6 +671,8 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
             <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden"
               onChange={(e) => addImages(e.target.files)} />
           </div>
+          )}
+
           <button
             type="button"
             onClick={async () => {
@@ -828,6 +838,68 @@ function ChatBubble({ isMine, tail, time, children }: { isMine: boolean; tail?: 
           >
             {time}
           </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Barra de gravação de áudio (estilo mensageiro): lixeira, tempo, waveform. */
+function RecordingBar({
+  seconds,
+  transcribing,
+  onCancel,
+}: {
+  seconds: number;
+  transcribing: boolean;
+  onCancel: () => void;
+}) {
+  const mm = String(Math.floor(seconds / 60)).padStart(1, "0");
+  const ss = String(seconds % 60).padStart(2, "0");
+  const bars = useMemo(
+    () => Array.from({ length: 28 }, (_, i) => 0.25 + Math.abs(Math.sin(i * 1.7)) * 0.75),
+    [],
+  );
+
+  return (
+    <div className="flex-1 h-14 rounded-full bg-[#f1f1f3] dark:bg-slate-800 flex items-center pl-3 pr-5 gap-3">
+      <button
+        type="button"
+        aria-label="Cancelar gravação"
+        onClick={onCancel}
+        disabled={transcribing}
+        className="h-9 w-9 shrink-0 rounded-full grid place-items-center text-slate-400 hover:text-rose-500 hover:bg-white/60 dark:hover:bg-slate-700/60 transition disabled:opacity-40"
+      >
+        <Trash2 className="h-5 w-5" />
+      </button>
+
+      <div className="flex-1 flex items-center justify-end gap-4 min-w-0">
+        {transcribing ? (
+          <span className="text-[13px] font-medium text-slate-500 dark:text-slate-300 flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" /> Transcrevendo áudio…
+          </span>
+        ) : (
+          <>
+            <span className="flex items-center gap-2 shrink-0">
+              <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+              <span className="text-[14px] font-medium tabular-nums text-slate-600 dark:text-slate-200">
+                {mm}:{ss}
+              </span>
+            </span>
+            <div className="flex items-end gap-[2px] h-7 overflow-hidden">
+              {bars.map((h, i) => (
+                <span
+                  key={i}
+                  className="w-[3px] rounded-full bg-slate-400/80 dark:bg-slate-400/70 animate-pulse"
+                  style={{
+                    height: `${Math.round(h * 100)}%`,
+                    animationDuration: `${700 + (i % 5) * 120}ms`,
+                    animationDelay: `${(i % 7) * 60}ms`,
+                  }}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>

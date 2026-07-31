@@ -185,11 +185,28 @@ export function useNotificationPopups() {
     const showDesktopNotification = (n: any) => {
       if (typeof Notification === "undefined" || Notification.permission !== "granted") return false;
       try {
-        const notif = new Notification(n.title || "Nova notificação", {
+        const meta = (n.metadata || {}) as {
+          sender_name?: string | null;
+          sender_avatar?: string | null;
+          case_label?: string | null;
+        };
+        const sender = meta.sender_name || null;
+        const caseLabel = meta.case_label || null;
+        const type = (n.type ?? "").toLowerCase();
+        let title = n.title || "Nova notificação";
+        if (sender) {
+          const verb = type === "attachment" ? "anexou um arquivo" : "comentou";
+          title = caseLabel ? `${sender} ${verb} no caso ${caseLabel}` : `${sender} ${verb}`;
+        } else if (caseLabel) {
+          title = `${title} · ${caseLabel}`;
+        }
+        const notif = new Notification(title, {
           body: n.content || "",
-          icon: "/icon-512.png",
+          icon: meta.sender_avatar || "/icon-512.png",
+          badge: "/icon-512.png",
           tag: n.id,
         });
+
         notif.onclick = () => {
           window.focus();
           const meta = (n.metadata || {}) as { case_id?: string; activity_id?: string | null };
