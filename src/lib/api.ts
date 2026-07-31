@@ -48,6 +48,30 @@ export async function markNotificationAsRead(id: string) {
   if (error) throw error;
 }
 
+/**
+ * Marca como lidas as notificações do usuário atual relacionadas a um caso.
+ * Usado para que, ao visualizar o "relacionado" (chat do caso, anexos, etc.),
+ * o contador da central de notificações caia imediatamente.
+ * Retorna os ids afetados (vazio quando não havia nada pendente).
+ */
+export async function markCaseNotificationsRead(caseId: string, types?: string[]): Promise<string[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  let q = supabase
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .is("read_at", null)
+    .eq("recipient_id", user.id)
+    .filter("metadata->>case_id", "eq", caseId);
+  if (types && types.length > 0) q = q.in("type", types);
+  const { data, error } = await q.select("id");
+  if (error) {
+    console.error("markCaseNotificationsRead error:", error);
+    return [];
+  }
+  return ((data ?? []) as { id: string }[]).map((r) => r.id);
+}
+
 export async function markAllNotificationsAsRead() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;

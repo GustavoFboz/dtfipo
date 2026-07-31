@@ -32,6 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { startFileUpload } from "@/lib/upload-manager";
 import { localPreviews } from "@/lib/local-previews";
 import { confirm } from "@/lib/confirm";
+import { PendingFileDialog } from "./PendingFileDialog";
 
 import { ExocadViewer } from "./ExocadViewer";
 import { Lightbox } from "./Lightbox";
@@ -420,6 +421,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
   const [multi3D, setMulti3D] = useState<Multi3DFile[] | null>(null);
   const [galleryUrls, setGalleryUrls] = useState<Record<string, string>>({});
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [pendingNotice, setPendingNotice] = useState<string | null>(null);
   const [galleryView, setGalleryView] = useState<"grid" | "list">("grid");
   const [modelView, setModelView] = useState<"grid" | "list">("grid");
   const [zipping, setZipping] = useState(false);
@@ -523,7 +525,40 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
   });
 
 
+  // O usuário está vendo os anexos deste caso: derruba na hora as notificações
+  // relacionadas a arquivos na central de notificações.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { markCaseNotificationsRead } = await import("@/lib/api");
+      const ids = await markCaseNotificationsRead(caseId, ["attachment"]);
+      if (cancelled || ids.length === 0) return;
+      const nowIso = new Date().toISOString();
+      const idSet = new Set(ids);
+      qc.setQueryData(["notifications"], (old: unknown) =>
+        Array.isArray(old)
+          ? old.map((n: { id: string; read_at: string | null }) =>
+              idSet.has(n.id) ? { ...n, read_at: n.read_at ?? nowIso } : n)
+          : old,
+      );
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    })();
+    return () => { cancelled = true; };
+  }, [caseId, qc]);
+
+  /** Arquivo ainda em envio (linha otimista) — não existe no storage ainda. */
+  const isPendingUpload = (a: { storage_path?: string | null }) =>
+    !!a.storage_path && a.storage_path.startsWith("__local__/");
+
+  /** Retorna true (e abre o aviso) quando o arquivo ainda está sendo enviado. */
+  const guardPending = (a: { storage_path?: string | null; file_name?: string }) => {
+    if (!isPendingUpload(a)) return false;
+    setPendingNotice(a.file_name ?? null);
+    return true;
+  };
+
   const download = async (att: CaseAttachment) => {
+    if (guardPending(att)) return;
     try {
       const url = await getCaseAttachmentUrl(att.storage_path);
       const res = await fetch(url);
@@ -778,13 +813,13 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
           </Popover>
         )}
         {kind === "exocad_html" && !isGone && (
-          <Button size="sm" variant="ghost" onClick={() => setViewer({ path: a.storage_path, name: a.file_name })}>
+          <Button size="sm" variant="ghost" onClick={() => { if (!guardPending(a)) setViewer({ path: a.storage_path, name: a.file_name }); }}>
             <Eye className="h-4 w-4" />
           </Button>
         )}
         {!isGone && /\.(stl|ply)$/i.test(a.file_name) && (
           <Button size="sm" variant="ghost" title="Visualizar em 3D"
-            onClick={() => setViewer3D({ path: a.storage_path, name: a.file_name, id: a.id, uploadedAt: a.uploaded_at })}>
+            onClick={() => { if (!guardPending(a)) setViewer3D({ path: a.storage_path, name: a.file_name, id: a.id, uploadedAt: a.uploaded_at }); }}>
             <Boxes className="h-4 w-4" />
           </Button>
         )}
@@ -978,7 +1013,11 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
               return (
                 <Button
                   type="button" size="sm" variant="outline" className="gap-1.5"
-                  onClick={() => setMulti3D(stlPly.map((a) => ({ id: a.id, storagePath: a.storage_path, fileName: a.file_name })))}
+                  onClick={() => {
+                    const stillUploading = stlPly.find(isPendingUpload);
+                    if (stillUploading) { setPendingNotice(stillUploading.file_name); return; }
+                    setMulti3D(stlPly.map((a) => ({ id: a.id, storagePath: a.storage_path, fileName: a.file_name })));
+                  }}
                 >
                   <Boxes className="h-4 w-4" /> Ver em oclusão ({stlPly.length})
                 </Button>
@@ -1062,6 +1101,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
                           select.handleClick(g.id, e, orderedIds);
                           return;
                         }
+                        if (guardPending(g.att)) return;
                         setLightboxIndex(i);
                       }}
                       className="absolute inset-0"
@@ -1120,6 +1160,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
                           select.handleClick(a.id, e, orderedIds);
                           return;
                         }
+                        if (guardPending(a)) return;
                         if (canThumb) setViewer3D({ path: a.storage_path, name: a.file_name, id: a.id, uploadedAt: a.uploaded_at });
                         else download(a);
                       }}
@@ -1181,6 +1222,12 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
       )}
 
 
+
+      <PendingFileDialog
+        open={pendingNotice !== null}
+        fileName={pendingNotice}
+        onOpenChange={(v) => { if (!v) setPendingNotice(null); }}
+      />
 
       {viewer && (
         <ExocadViewer

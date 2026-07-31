@@ -30,7 +30,7 @@ export function useNotificationPopups() {
     // visibilitychange, mas isso é *auxiliar* — nunca gate.
     const audioPool: HTMLAudioElement[] = Array.from({ length: 3 }, () => {
       const a = new Audio(notificationSound);
-      a.volume = 0.75;
+      a.volume = 1;
       a.preload = "auto";
       a.crossOrigin = "anonymous";
       a.load();
@@ -82,7 +82,7 @@ export function useNotificationPopups() {
         const src = audioCtx.createBufferSource();
         src.buffer = audioBuffer;
         const gain = audioCtx.createGain();
-        gain.gain.value = 0.8;
+        gain.gain.value = 1;
         src.connect(gain).connect(audioCtx.destination);
         src.start(0);
         return true;
@@ -114,7 +114,7 @@ export function useNotificationPopups() {
       poolIdx = (poolIdx + 1) % audioPool.length;
       try {
         a.muted = false;
-        a.volume = 0.8;
+        a.volume = 1;
         a.currentTime = 0;
         const p = a.play();
         if (p && typeof p.then === "function") {
