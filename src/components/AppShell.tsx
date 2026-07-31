@@ -4,11 +4,9 @@ import {
   LayoutDashboard,
   Users,
   Stethoscope,
-  Cog,
   LogOut,
   Users2,
   Box,
-  Wrench,
   
   CalendarDays,
   ChevronLeft,
