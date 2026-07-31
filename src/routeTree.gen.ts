@@ -16,6 +16,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
+import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
 import { Route as AuthenticatedMeuFinanceiroRouteImport } from './routes/_authenticated/meu-financeiro'
 import { Route as AuthenticatedMaquinasRouteImport } from './routes/_authenticated/maquinas'
@@ -87,6 +88,11 @@ const AuthForgotRoute = AuthForgotRouteImport.update({
   id: '/forgot',
   path: '/forgot',
   getParentRoute: () => AuthRoute,
+} as any)
+const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
+  id: '/api/transcribe',
+  path: '/api/transcribe',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedTarefasRoute = AuthenticatedTarefasRouteImport.update({
   id: '/tarefas',
@@ -317,6 +323,7 @@ export interface FileRoutesByFullPath {
   '/maquinas': typeof AuthenticatedMaquinasRoute
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/reset': typeof AuthResetRoute
   '/admin/backup': typeof AuthenticatedAdminBackupRoute
@@ -360,6 +367,7 @@ export interface FileRoutesByTo {
   '/maquinas': typeof AuthenticatedMaquinasRoute
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/reset': typeof AuthResetRoute
   '/': typeof AuthenticatedIndexRoute
@@ -407,6 +415,7 @@ export interface FileRoutesById {
   '/_authenticated/maquinas': typeof AuthenticatedMaquinasRoute
   '/_authenticated/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
+  '/api/transcribe': typeof ApiTranscribeRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/reset': typeof AuthResetRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
@@ -455,6 +464,7 @@ export interface FileRouteTypes {
     | '/maquinas'
     | '/meu-financeiro'
     | '/tarefas'
+    | '/api/transcribe'
     | '/auth/forgot'
     | '/auth/reset'
     | '/admin/backup'
@@ -498,6 +508,7 @@ export interface FileRouteTypes {
     | '/maquinas'
     | '/meu-financeiro'
     | '/tarefas'
+    | '/api/transcribe'
     | '/auth/forgot'
     | '/auth/reset'
     | '/'
@@ -544,6 +555,7 @@ export interface FileRouteTypes {
     | '/_authenticated/maquinas'
     | '/_authenticated/meu-financeiro'
     | '/_authenticated/tarefas'
+    | '/api/transcribe'
     | '/auth/forgot'
     | '/auth/reset'
     | '/_authenticated/'
@@ -578,6 +590,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   JoinClinicRoute: typeof JoinClinicRoute
   LpRoute: typeof LpRoute
+  ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiPublicHooksCleanupCaseFilesRoute: typeof ApiPublicHooksCleanupCaseFilesRoute
 }
 
@@ -631,6 +644,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/forgot'
       preLoaderRoute: typeof AuthForgotRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/api/transcribe': {
+      id: '/api/transcribe'
+      path: '/api/transcribe'
+      fullPath: '/api/transcribe'
+      preLoaderRoute: typeof ApiTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/tarefas': {
       id: '/_authenticated/tarefas'
@@ -1026,6 +1046,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   JoinClinicRoute: JoinClinicRoute,
   LpRoute: LpRoute,
+  ApiTranscribeRoute: ApiTranscribeRoute,
   ApiPublicHooksCleanupCaseFilesRoute: ApiPublicHooksCleanupCaseFilesRoute,
 }
 export const routeTree = rootRouteImport
