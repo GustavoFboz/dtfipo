@@ -391,14 +391,8 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     if (!initialScrollDoneRef.current) {
       initialScrollDoneRef.current = true;
 
-      // Restore the position the user was at when they last left the chat tab
-      const saved = chatScrollMemory.get(caseId);
-      if (saved != null) {
-        container.scrollTop = saved;
-        requestAnimationFrame(() => { container.scrollTop = saved; });
-        return;
-      }
-
+      // Abrir o chat: se houver mensagens não lidas, começar no divider;
+      // caso contrário, ir direto para a mensagem mais recente (fim da rolagem).
       if (firstUnreadId) {
         const el = container.querySelector(`[data-unread-divider="true"]`) as HTMLElement | null;
         if (el) {
@@ -410,6 +404,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
       requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; });
       return;
     }
+
   }, [focusActivityId, visible, firstUnreadId, caseId]);
 
   // Persist scroll position so returning to the chat tab resumes where it was
