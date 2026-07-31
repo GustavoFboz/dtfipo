@@ -234,6 +234,10 @@ export function useNotificationPopups() {
       setPopups((prev) => (prev.some((p) => p.id === newNotif.id) ? prev : [newNotif, ...prev]));
     };
 
+    requestPermission();
+    window.addEventListener('pointerdown', requestPermission, interactionOpts);
+    window.addEventListener('keydown', requestPermission, keydownOpts);
+
 
     // Peer broadcast: chega ANTES do postgres_changes (otimista).
     const unsubPeer = subscribeEntity('notifications', (p) => {
