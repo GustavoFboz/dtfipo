@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils";
 import { EmojiStickerPicker } from "./EmojiStickerPicker";
 import { Sticker } from "./stickers";
 import { Lightbox } from "./Lightbox";
+import { useAudioTranscription } from "@/hooks/use-audio-transcription";
+
 
 type MentionItem = { id: string; full_name: string | null; email: string | null; role: string | null };
 type PendingImage = { id: string; file: File; previewUrl: string };
