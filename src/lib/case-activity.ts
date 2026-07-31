@@ -91,6 +91,23 @@ export async function notifyCaseStakeholders(opts: {
   const all = new Set<string>([...baseIds, ...(opts.extraRecipientIds ?? [])]);
   if (opts.excludeSelf !== false && user?.id) all.delete(user.id);
   if (all.size === 0) return;
+
+  // Dados de apresentação (usados nas notificações do sistema operacional).
+  let senderName: string | null = null;
+  let senderAvatar: string | null = null;
+  let caseLabel: string | null = null;
+  try {
+    const [{ data: prof }, { data: cse }] = await Promise.all([
+      user?.id
+        ? supabase.from("profiles").select("full_name, email, avatar_url").eq("id", user.id).maybeSingle()
+        : Promise.resolve({ data: null } as never),
+      supabase.from("cases").select("patient:patients(name)").eq("id", opts.caseId).maybeSingle(),
+    ]);
+    senderName = (prof as any)?.full_name ?? (prof as any)?.email ?? null;
+    senderAvatar = (prof as any)?.avatar_url ?? null;
+    caseLabel = (cse as any)?.patient?.name ?? null;
+  } catch { /* apresentação é opcional */ }
+
   const rows = Array.from(all).map((rid) => ({
     id: (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2),
     sender_id: user?.id ?? null,
@@ -98,10 +115,17 @@ export async function notifyCaseStakeholders(opts: {
     title: opts.title,
     content: opts.content,
     type: opts.type ?? "case",
-    metadata: { case_id: opts.caseId, activity_id: opts.activityId ?? null },
+    metadata: {
+      case_id: opts.caseId,
+      activity_id: opts.activityId ?? null,
+      sender_name: senderName,
+      sender_avatar: senderAvatar,
+      case_label: caseLabel,
+    },
     read_at: null,
     created_at: new Date().toISOString(),
   }));
+
   // Broadcast otimista para cada destinatário antes do round-trip.
   try {
     const { broadcastEntity } = await import("./optimistic");
