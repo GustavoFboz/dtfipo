@@ -62,6 +62,8 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [lightbox, setLightbox] = useState<{ images: { url: string; name: string }[]; index: number } | null>(null);
   const [showEmoji, setShowEmoji] = useState(false);
+  const recorder = useAudioTranscription();
+
 
   // profiles para "Visualizado por"
   const { data: readerProfiles = [] } = useQuery({
