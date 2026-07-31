@@ -312,6 +312,13 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     return [...server, ...pending];
   }, [sorted, outgoing, me, caseId, profileById]);
 
+  // ---- Janela de mensagens: começa pelas mais recentes, carrega antigas ao rolar ----
+  const PAGE = 30;
+  const [windowSize, setWindowSize] = useState(PAGE);
+  useEffect(() => { setWindowSize(PAGE); }, [caseId]);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+
+
   // local blob previews resolve to themselves
   useEffect(() => {
     if (outgoing.length === 0) return;
