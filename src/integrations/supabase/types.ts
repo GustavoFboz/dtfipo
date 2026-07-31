@@ -1108,29 +1108,75 @@ export type Database = {
         }
         Relationships: []
       }
+      phase_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          phase_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          phase_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          phase_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "phase_assignments_phase_id_fkey"
+            columns: ["phase_id"]
+            isOneToOne: false
+            referencedRelation: "phases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       phases: {
         Row: {
           color: string
           created_at: string
           id: string
+          is_terminal: boolean
           name: string
+          on_complete_action: string
           position: number
+          target_phase_id: string | null
         }
         Insert: {
           color?: string
           created_at?: string
           id?: string
+          is_terminal?: boolean
           name: string
+          on_complete_action?: string
           position?: number
+          target_phase_id?: string | null
         }
         Update: {
           color?: string
           created_at?: string
           id?: string
+          is_terminal?: boolean
           name?: string
+          on_complete_action?: string
           position?: number
+          target_phase_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "phases_target_phase_id_fkey"
+            columns: ["target_phase_id"]
+            isOneToOne: false
+            referencedRelation: "phases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -1212,30 +1258,101 @@ export type Database = {
           },
         ]
       }
+      stage_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          stage_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          stage_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          stage_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stage_assignments_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stage_return_reasons: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          position: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          position?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          position?: number
+        }
+        Relationships: []
+      }
       stages: {
         Row: {
           color: string
           created_at: string
           id: string
           name: string
+          notify_cadista: boolean
+          notify_role: string | null
+          on_complete_action: string
           phase_id: string | null
           position: number
+          requirements: Json
+          requires_implant_components: boolean
+          target_phase_id: string | null
+          target_stage_id: string | null
         }
         Insert: {
           color?: string
           created_at?: string
           id?: string
           name: string
+          notify_cadista?: boolean
+          notify_role?: string | null
+          on_complete_action?: string
           phase_id?: string | null
           position?: number
+          requirements?: Json
+          requires_implant_components?: boolean
+          target_phase_id?: string | null
+          target_stage_id?: string | null
         }
         Update: {
           color?: string
           created_at?: string
           id?: string
           name?: string
+          notify_cadista?: boolean
+          notify_role?: string | null
+          on_complete_action?: string
           phase_id?: string | null
           position?: number
+          requirements?: Json
+          requires_implant_components?: boolean
+          target_phase_id?: string | null
+          target_stage_id?: string | null
         }
         Relationships: [
           {
@@ -1243,6 +1360,20 @@ export type Database = {
             columns: ["phase_id"]
             isOneToOne: false
             referencedRelation: "phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stages_target_phase_id_fkey"
+            columns: ["target_phase_id"]
+            isOneToOne: false
+            referencedRelation: "phases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stages_target_stage_id_fkey"
+            columns: ["target_stage_id"]
+            isOneToOne: false
+            referencedRelation: "stages"
             referencedColumns: ["id"]
           },
         ]
@@ -1451,11 +1582,42 @@ export type Database = {
           },
         ]
       }
+      workflow_settings: {
+        Row: {
+          auto_advance_enabled: boolean
+          id: boolean
+          phases_enabled: boolean
+          progress_bar_enabled: boolean
+          stages_enabled: boolean
+          updated_at: string
+        }
+        Insert: {
+          auto_advance_enabled?: boolean
+          id?: boolean
+          phases_enabled?: boolean
+          progress_bar_enabled?: boolean
+          stages_enabled?: boolean
+          updated_at?: string
+        }
+        Update: {
+          auto_advance_enabled?: boolean
+          id?: boolean
+          phases_enabled?: boolean
+          progress_bar_enabled?: boolean
+          stages_enabled?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      advance_case_workflow: {
+        Args: { _case_id: string; _stage_id?: string }
+        Returns: Json
+      }
       can_access_case: { Args: { _case_id: string }; Returns: boolean }
       current_user_is_admin: { Args: never; Returns: boolean }
       generate_user_code: { Args: never; Returns: string }
@@ -1479,6 +1641,16 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      return_case_workflow: {
+        Args: {
+          _case_id: string
+          _notes?: string
+          _reason_id?: string
+          _to_stage_id?: string
+        }
+        Returns: Json
+      }
+      seed_default_workflow: { Args: never; Returns: Json }
       update_team_member: {
         Args: {
           p_category_ids: string[]
@@ -1489,6 +1661,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      user_can_advance: {
+        Args: { _phase_id: string; _stage_id: string; _user: string }
+        Returns: boolean
       }
     }
     Enums: {
