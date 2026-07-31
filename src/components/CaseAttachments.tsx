@@ -525,6 +525,27 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
   });
 
 
+  // O usuário está vendo os anexos deste caso: derruba na hora as notificações
+  // relacionadas a arquivos na central de notificações.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { markCaseNotificationsRead } = await import("@/lib/api");
+      const ids = await markCaseNotificationsRead(caseId, ["attachment"]);
+      if (cancelled || ids.length === 0) return;
+      const nowIso = new Date().toISOString();
+      const idSet = new Set(ids);
+      qc.setQueryData(["notifications"], (old: unknown) =>
+        Array.isArray(old)
+          ? old.map((n: { id: string; read_at: string | null }) =>
+              idSet.has(n.id) ? { ...n, read_at: n.read_at ?? nowIso } : n)
+          : old,
+      );
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    })();
+    return () => { cancelled = true; };
+  }, [caseId, qc]);
+
   /** Arquivo ainda em envio (linha otimista) — não existe no storage ainda. */
   const isPendingUpload = (a: { storage_path?: string | null }) =>
     !!a.storage_path && a.storage_path.startsWith("__local__/");
