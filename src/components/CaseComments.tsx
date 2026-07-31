@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Trash2, Paperclip, Mic, X, Smile } from "lucide-react";
+import { Send, Trash2, Paperclip, Mic, X, Smile, Loader2, Square } from "lucide-react";
 import { toast } from "sonner";
 import {
   fetchCaseActivity,
