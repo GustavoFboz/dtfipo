@@ -312,6 +312,13 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     return [...server, ...pending];
   }, [sorted, outgoing, me, caseId, profileById]);
 
+  // ---- Janela de mensagens: começa pelas mais recentes, carrega antigas ao rolar ----
+  const PAGE = 30;
+  const [windowSize, setWindowSize] = useState(PAGE);
+  useEffect(() => { setWindowSize(PAGE); }, [caseId]);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+
+
   // local blob previews resolve to themselves
   useEffect(() => {
     if (outgoing.length === 0) return;
@@ -351,14 +358,12 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sorted]);
 
+  // Pronto para posicionar (perfil, mensagens e leituras carregados)
+  const ready = me !== undefined && !isLoading && readsFetched;
+
   // Freeze the first unread message (from others) when the chat first opens
   const firstUnreadRef = useRef<string | null | undefined>(undefined);
-  if (
-    firstUnreadRef.current === undefined &&
-    me !== undefined &&
-    !isLoading &&
-    readsFetched
-  ) {
+  if (firstUnreadRef.current === undefined && ready) {
     const mine = new Set(reads.filter((r) => r.user_id === me).map((r) => r.activity_id));
     const first = visible.find(
       (a) => a.user_id && a.user_id !== me && !a.id.startsWith("optimistic-") && !mine.has(a.id),
@@ -367,12 +372,27 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   }
   const firstUnreadId = firstUnreadRef.current ?? null;
 
-  // Initial positioning: notification deep link > saved position > first unread > bottom
+  // Mensagens renderizadas: últimas `windowSize`, garantindo o divider de não lidas
+  // e a mensagem alvo de notificação dentro da janela.
+  const windowed = useMemo(() => {
+    let size = windowSize;
+    const ensure = (id: string | null) => {
+      if (!id) return;
+      const idx = visible.findIndex((a) => a.id === id);
+      if (idx >= 0) size = Math.max(size, visible.length - idx + 5);
+    };
+    ensure(firstUnreadId);
+    ensure(focusActivityId ?? null);
+    return visible.slice(Math.max(0, visible.length - size));
+  }, [visible, windowSize, firstUnreadId, focusActivityId]);
+  const hasOlder = windowed.length < visible.length;
+
+  // Initial positioning: notification deep link > first unread > bottom
   const initialScrollDoneRef = useRef(false);
   const focusDoneRef = useRef<string | null>(null);
   useLayoutEffect(() => {
     const container = scrollRef.current;
-    if (!container || visible.length === 0) return;
+    if (!container || !ready || windowed.length === 0) return;
 
     const scrollToEl = (el: HTMLElement, center: boolean) => {
       const delta = el.getBoundingClientRect().top - container.getBoundingClientRect().top;
@@ -397,19 +417,43 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
 
       // Abrir o chat: se houver mensagens não lidas, começar no divider;
       // caso contrário, ir direto para a mensagem mais recente (fim da rolagem).
-      if (firstUnreadId) {
-        const el = container.querySelector(`[data-unread-divider="true"]`) as HTMLElement | null;
-        if (el) {
-          scrollToEl(el, false);
-          return;
+      const place = () => {
+        if (firstUnreadId) {
+          const el = container.querySelector(`[data-unread-divider="true"]`) as HTMLElement | null;
+          if (el) {
+            scrollToEl(el, false);
+            return;
+          }
         }
-      }
-      container.scrollTop = container.scrollHeight;
-      requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; });
-      return;
+        container.scrollTop = container.scrollHeight;
+      };
+      // repete por alguns frames: imagens/avatares mudam a altura depois do 1º layout
+      place();
+      const timers = [16, 60, 150, 320, 600].map((ms) => setTimeout(place, ms));
+      return () => timers.forEach(clearTimeout);
     }
 
-  }, [focusActivityId, visible, firstUnreadId, caseId]);
+  }, [focusActivityId, windowed, firstUnreadId, caseId, ready]);
+
+  // Carregar mensagens antigas ao rolar para o topo (estilo WhatsApp)
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !initialScrollDoneRef.current) return;
+    const onScroll = () => {
+      if (el.scrollTop > 80 || !hasOlder || loadingOlder) return;
+      const prevHeight = el.scrollHeight;
+      setLoadingOlder(true);
+      setWindowSize((s) => s + PAGE);
+      requestAnimationFrame(() => {
+        el.scrollTop += el.scrollHeight - prevHeight;
+        setLoadingOlder(false);
+      });
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [hasOlder, loadingOlder, ready]);
+
+
 
   // Persist scroll position so returning to the chat tab resumes where it was
   useEffect(() => {
@@ -454,24 +498,38 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
 
 
   return (
-    <div className="flex flex-col h-full min-h-[420px]">
+    <div className="flex flex-col h-full min-h-[420px] relative">
+      {!ready && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 text-muted-foreground">
+          <span className="h-6 w-6 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+          <span className="text-[13px] font-light">Carregando mensagens…</span>
+        </div>
+      )}
       {/* Messages */}
+
       <div
         ref={scrollRef}
-        className="flex-1 min-h-0 overflow-y-auto px-2 py-2 space-y-1"
-      >
-        {isLoading && (
-          <p className="text-xs text-muted-foreground text-center py-6">Carregando…</p>
+        className={cn(
+          "flex-1 min-h-0 overflow-y-auto px-2 py-2 space-y-1 transition-opacity duration-300",
+          ready ? "opacity-100" : "opacity-0",
         )}
-        {!isLoading && visible.length === 0 && (
+      >
+        {hasOlder && (
+          <div className="flex items-center justify-center gap-2 py-3 text-[11px] text-muted-foreground">
+            <span className="h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
+            Carregando mensagens anteriores…
+          </div>
+        )}
+        {ready && windowed.length === 0 && (
           <div className="text-xs text-muted-foreground text-center py-10">
             Nenhuma mensagem ainda. Diga algo abaixo 👋
           </div>
         )}
 
-        {me !== undefined && visible.map((a, idx) => {
-          const prev = visible[idx - 1];
-          const next = visible[idx + 1];
+        {ready && windowed.map((a, idx) => {
+          const prev = windowed[idx - 1];
+          const next = windowed[idx + 1];
+
           const showDay = !prev || dayLabel(prev.created_at) !== dayLabel(a.created_at);
           if (a.kind !== "comment") {
             return (
