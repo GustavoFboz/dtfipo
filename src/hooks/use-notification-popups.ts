@@ -172,6 +172,43 @@ export function useNotificationPopups() {
     const seenIds = new Set<string>();
     let currentUserId: string | null = null;
 
+    // ---------- Notificações do sistema operacional ----------
+    // Pede permissão uma vez (após qualquer interação do usuário) e, quando a
+    // aba não estiver visível/focada, entrega a notificação no computador.
+    const requestPermission = () => {
+      if (typeof Notification === "undefined") return;
+      if (Notification.permission === "default") {
+        Notification.requestPermission().catch(() => {});
+      }
+    };
+
+    const showDesktopNotification = (n: any) => {
+      if (typeof Notification === "undefined" || Notification.permission !== "granted") return false;
+      try {
+        const notif = new Notification(n.title || "Nova notificação", {
+          body: n.content || "",
+          icon: "/icon-512.png",
+          tag: n.id,
+        });
+        notif.onclick = () => {
+          window.focus();
+          const meta = (n.metadata || {}) as { case_id?: string; activity_id?: string | null };
+          if (meta.case_id) {
+            const focus = n.type === "comment" ? "comments" : n.type === "attachment" ? "attachments" : "overview";
+            const parts = [`case=${meta.case_id}`, `focus=${focus}`];
+            if (focus === "comments") parts.push("tab=comentarios");
+            if (meta.activity_id) parts.push(`msg=${meta.activity_id}`);
+            window.location.hash = parts.join("&");
+            window.dispatchEvent(new Event("hashchange"));
+          }
+          notif.close();
+        };
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
     const handleNewNotif = (newNotif: any) => {
       if (!newNotif?.id) return;
       if (seenIds.has(newNotif.id)) return;
@@ -186,10 +223,17 @@ export function useNotificationPopups() {
 
       setUnreadCount((prev) => prev + 1);
 
+      const away = document.hidden || !document.hasFocus();
+      if (away && showDesktopNotification(newNotif)) {
+        // Entregue no computador — nada de popup/som na tela.
+        return;
+      }
+
       playNotificationSound();
 
       setPopups((prev) => (prev.some((p) => p.id === newNotif.id) ? prev : [newNotif, ...prev]));
     };
+
 
     // Peer broadcast: chega ANTES do postgres_changes (otimista).
     const unsubPeer = subscribeEntity('notifications', (p) => {
