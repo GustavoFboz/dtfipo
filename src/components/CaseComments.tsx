@@ -661,17 +661,52 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
           </div>
           <button
             type="button"
-            onClick={submitMessage}
-            disabled={!text.trim() && pendingImages.length === 0}
-            aria-label={text.trim() || pendingImages.length ? "Enviar" : "Gravar áudio"}
-            className="h-14 w-14 shrink-0 rounded-full bg-[#1F8AFF] hover:bg-[#1877E8] text-white grid place-items-center shadow-md transition disabled:opacity-60"
+            onClick={async () => {
+              const hasContent = !!text.trim() || pendingImages.length > 0;
+              if (recorder.state === "recording") {
+                try {
+                  const transcript = await recorder.stopAndTranscribe();
+                  if (transcript) {
+                    setText((t) => (t ? `${t} ${transcript}` : transcript));
+                    taRef.current?.focus();
+                  } else {
+                    toast.info("Não identifiquei fala no áudio.");
+                  }
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Falha na transcrição.");
+                }
+                return;
+              }
+              if (recorder.state === "transcribing") return;
+              if (hasContent) { submitMessage(); return; }
+              const ok = await recorder.start();
+              if (!ok) toast.error("Não foi possível acessar o microfone.");
+            }}
+            aria-label={
+              recorder.state === "recording"
+                ? "Parar e transcrever"
+                : text.trim() || pendingImages.length
+                  ? "Enviar"
+                  : "Gravar áudio"
+            }
+            className={cn(
+              "h-14 w-14 shrink-0 rounded-full text-white grid place-items-center shadow-md transition disabled:opacity-60",
+              recorder.state === "recording"
+                ? "bg-rose-500 hover:bg-rose-600 animate-pulse"
+                : "bg-[#1F8AFF] hover:bg-[#1877E8]",
+            )}
           >
-            {text.trim() || pendingImages.length ? (
+            {recorder.state === "transcribing" ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : recorder.state === "recording" ? (
+              <Square className="h-5 w-5" />
+            ) : text.trim() || pendingImages.length ? (
               <Send className="h-5 w-5" />
             ) : (
               <Mic className="h-5 w-5" />
             )}
           </button>
+
 
         </div>
         {showEmoji && (
