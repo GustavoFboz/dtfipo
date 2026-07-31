@@ -27,10 +27,10 @@ export function Lightbox({
   if (!open || images.length === 0) return null;
   const cur = images[index];
   return (
-    <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center"
+    <div className="fixed inset-0 z-[100] bg-background/90 dark:bg-black/90 backdrop-blur-sm flex items-center justify-center"
       onClick={onClose}>
       <button onClick={(e) => { e.stopPropagation(); onClose(); }}
-        className="absolute top-4 right-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">
+        className="absolute top-4 right-4 text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-accent">
         <X className="h-6 w-6" />
       </button>
       <button
@@ -53,27 +53,28 @@ export function Lightbox({
             window.open(cur.url, "_blank");
           }
         }}
-        className="absolute top-4 right-16 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">
+        className="absolute top-4 right-16 text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-accent">
         <Download className="h-5 w-5" />
       </button>
 
       {images.length > 1 && (
         <>
           <button onClick={(e) => { e.stopPropagation(); onIndexChange((index - 1 + images.length) % images.length); }}
-            className="absolute left-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">
+            className="absolute left-4 text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-accent">
             <ChevronLeft className="h-7 w-7" />
           </button>
           <button onClick={(e) => { e.stopPropagation(); onIndexChange((index + 1) % images.length); }}
-            className="absolute right-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10">
+            className="absolute right-4 text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-accent">
             <ChevronRight className="h-7 w-7" />
           </button>
         </>
       )}
       <img src={cur.url} alt={cur.name} onClick={(e) => e.stopPropagation()}
         className="max-w-[92vw] max-h-[88vh] object-contain rounded-lg shadow-2xl" />
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/70 text-xs px-3 py-1 rounded-full bg-white/10">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-muted-foreground text-xs px-3 py-1 rounded-full bg-muted border border-border">
         {cur.name} · {index + 1}/{images.length}
       </div>
     </div>
   );
+
 }
