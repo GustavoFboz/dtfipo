@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Trash2, Paperclip, Mic, X, Smile } from "lucide-react";
+import { Send, Trash2, Paperclip, Mic, X, Smile, Loader2, Square } from "lucide-react";
 import { toast } from "sonner";
 import {
   fetchCaseActivity,
@@ -19,6 +19,8 @@ import { cn } from "@/lib/utils";
 import { EmojiStickerPicker } from "./EmojiStickerPicker";
 import { Sticker } from "./stickers";
 import { Lightbox } from "./Lightbox";
+import { useAudioTranscription } from "@/hooks/use-audio-transcription";
+
 
 type MentionItem = { id: string; full_name: string | null; email: string | null; role: string | null };
 type PendingImage = { id: string; file: File; previewUrl: string };
@@ -62,6 +64,8 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [lightbox, setLightbox] = useState<{ images: { url: string; name: string }[]; index: number } | null>(null);
   const [showEmoji, setShowEmoji] = useState(false);
+  const recorder = useAudioTranscription();
+
 
   // profiles para "Visualizado por"
   const { data: readerProfiles = [] } = useQuery({
@@ -391,14 +395,8 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     if (!initialScrollDoneRef.current) {
       initialScrollDoneRef.current = true;
 
-      // Restore the position the user was at when they last left the chat tab
-      const saved = chatScrollMemory.get(caseId);
-      if (saved != null) {
-        container.scrollTop = saved;
-        requestAnimationFrame(() => { container.scrollTop = saved; });
-        return;
-      }
-
+      // Abrir o chat: se houver mensagens não lidas, começar no divider;
+      // caso contrário, ir direto para a mensagem mais recente (fim da rolagem).
       if (firstUnreadId) {
         const el = container.querySelector(`[data-unread-divider="true"]`) as HTMLElement | null;
         if (el) {
@@ -410,6 +408,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
       requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; });
       return;
     }
+
   }, [focusActivityId, visible, firstUnreadId, caseId]);
 
   // Persist scroll position so returning to the chat tab resumes where it was
@@ -666,17 +665,52 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
           </div>
           <button
             type="button"
-            onClick={submitMessage}
-            disabled={!text.trim() && pendingImages.length === 0}
-            aria-label={text.trim() || pendingImages.length ? "Enviar" : "Gravar áudio"}
-            className="h-14 w-14 shrink-0 rounded-full bg-[#1F8AFF] hover:bg-[#1877E8] text-white grid place-items-center shadow-md transition disabled:opacity-60"
+            onClick={async () => {
+              const hasContent = !!text.trim() || pendingImages.length > 0;
+              if (recorder.state === "recording") {
+                try {
+                  const transcript = await recorder.stopAndTranscribe();
+                  if (transcript) {
+                    setText((t) => (t ? `${t} ${transcript}` : transcript));
+                    taRef.current?.focus();
+                  } else {
+                    toast.info("Não identifiquei fala no áudio.");
+                  }
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Falha na transcrição.");
+                }
+                return;
+              }
+              if (recorder.state === "transcribing") return;
+              if (hasContent) { submitMessage(); return; }
+              const ok = await recorder.start();
+              if (!ok) toast.error("Não foi possível acessar o microfone.");
+            }}
+            aria-label={
+              recorder.state === "recording"
+                ? "Parar e transcrever"
+                : text.trim() || pendingImages.length
+                  ? "Enviar"
+                  : "Gravar áudio"
+            }
+            className={cn(
+              "h-14 w-14 shrink-0 rounded-full text-white grid place-items-center shadow-md transition disabled:opacity-60",
+              recorder.state === "recording"
+                ? "bg-rose-500 hover:bg-rose-600 animate-pulse"
+                : "bg-[#1F8AFF] hover:bg-[#1877E8]",
+            )}
           >
-            {text.trim() || pendingImages.length ? (
+            {recorder.state === "transcribing" ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : recorder.state === "recording" ? (
+              <Square className="h-5 w-5" />
+            ) : text.trim() || pendingImages.length ? (
               <Send className="h-5 w-5" />
             ) : (
               <Mic className="h-5 w-5" />
             )}
           </button>
+
 
         </div>
         {showEmoji && (
