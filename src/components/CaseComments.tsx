@@ -502,20 +502,27 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
       {/* Messages */}
       <div
         ref={scrollRef}
-        className="flex-1 min-h-0 overflow-y-auto px-2 py-2 space-y-1"
-      >
-        {isLoading && (
-          <p className="text-xs text-muted-foreground text-center py-6">Carregando…</p>
+        className={cn(
+          "flex-1 min-h-0 overflow-y-auto px-2 py-2 space-y-1 transition-opacity duration-300",
+          ready ? "opacity-100" : "opacity-0",
         )}
-        {!isLoading && visible.length === 0 && (
+      >
+        {hasOlder && (
+          <div className="flex items-center justify-center gap-2 py-3 text-[11px] text-muted-foreground">
+            <span className="h-3 w-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
+            Carregando mensagens anteriores…
+          </div>
+        )}
+        {ready && windowed.length === 0 && (
           <div className="text-xs text-muted-foreground text-center py-10">
             Nenhuma mensagem ainda. Diga algo abaixo 👋
           </div>
         )}
 
-        {me !== undefined && visible.map((a, idx) => {
-          const prev = visible[idx - 1];
-          const next = visible[idx + 1];
+        {ready && windowed.map((a, idx) => {
+          const prev = windowed[idx - 1];
+          const next = windowed[idx + 1];
+
           const showDay = !prev || dayLabel(prev.created_at) !== dayLabel(a.created_at);
           if (a.kind !== "comment") {
             return (
