@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Moon, Sun, Settings as SettingsIcon, GitBranch, Printer, Boxes, ChevronRight, Building2, Copy, RefreshCw, Shield, Wrench } from "lucide-react";
+import { Moon, Sun, Settings as SettingsIcon, GitBranch, Printer, Boxes, ChevronRight, Building2, Copy, RefreshCw, Shield, Wrench, Factory, Cog } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
