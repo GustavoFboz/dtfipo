@@ -41,7 +41,7 @@ function initialsOf(name?: string | null) {
 export function NotificationPanel() {
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState<NotifFilter>('all');
-  const { popups, unreadCount, removePopup, setUnreadCount } = useNotificationPopups();
+  const { popups, removePopup } = useNotificationPopups();
   const queryClient = useQueryClient();
 
 
@@ -89,7 +89,8 @@ export function NotificationPanel() {
 
 
   const unreadDbCount = notifications.filter(n => !n.read_at).length;
-  const displayCount = Math.max(unreadCount, unreadDbCount);
+  // Somente o que o usuário ainda NÃO visualizou (fonte única: banco).
+  const displayCount = unreadDbCount;
   const filtered = notifications.filter((n: any) => matchesFilter(n.type, filter));
 
   return (
@@ -103,7 +104,6 @@ export function NotificationPanel() {
               whileTap={{ scale: 0.95 }}
               className="pointer-events-auto relative flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-slate-900 shadow-md hover:shadow-lg border border-slate-100 dark:border-slate-800 transition-all text-slate-400 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               onClick={() => {
-                setUnreadCount(0);
                 const dummyAudio = new Audio();
                 dummyAudio.play().catch(() => {});
               }}
@@ -212,8 +212,11 @@ export function NotificationPanel() {
                             <p className={cn("text-xs leading-tight truncate", !n.read_at ? "font-semibold" : "font-medium text-slate-600 dark:text-slate-400")}>
                               {title}
                             </p>
-                            <span className="text-[10px] text-slate-300 dark:text-slate-600 whitespace-nowrap">
-                              {format(new Date(n.created_at), "HH:mm", { locale: ptBR })}
+                            <span className="flex items-center gap-1.5 whitespace-nowrap">
+                              <span className="text-[10px] text-slate-300 dark:text-slate-600">
+                                {format(new Date(n.created_at), "HH:mm", { locale: ptBR })}
+                              </span>
+                              {!n.read_at && <span className="h-2 w-2 rounded-full bg-primary shrink-0" />}
                             </span>
                           </div>
                           <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-normal line-clamp-2">

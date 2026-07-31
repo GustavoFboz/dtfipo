@@ -14,7 +14,8 @@ import {
   type CaseActivity,
 } from "@/lib/case-activity";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadCaseAttachment, getCaseAttachmentUrl } from "@/lib/api";
+import { uploadCaseAttachment, getCaseAttachmentUrl, markCaseNotificationsRead } from "@/lib/api";
+import { ReadReceipts, type Reader } from "./ReadReceipts";
 import { cn } from "@/lib/utils";
 import { EmojiStickerPicker } from "./EmojiStickerPicker";
 import { Sticker } from "./stickers";
@@ -99,13 +100,13 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   const { data: reads = [], isFetched: readsFetched } = useQuery({
     queryKey: ["case_activity_reads", caseId, activityIds.join(",")],
     queryFn: async () => {
-      if (activityIds.length === 0) return [] as { activity_id: string; user_id: string }[];
+      if (activityIds.length === 0) return [] as { activity_id: string; user_id: string; created_at: string }[];
       const { data, error } = await supabase
         .from("case_activity_reads" as never)
-        .select("activity_id,user_id")
+        .select("activity_id,user_id,created_at")
         .in("activity_id", activityIds);
       if (error) throw error;
-      return (data ?? []) as unknown as { activity_id: string; user_id: string }[];
+      return (data ?? []) as unknown as { activity_id: string; user_id: string; created_at: string }[];
     },
     refetchInterval: 5000,
   });
@@ -116,6 +117,12 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
       arr.push(r.user_id);
       m.set(r.activity_id, arr);
     }
+    return m;
+  }, [reads]);
+  // Horário da visualização por (mensagem + usuário)
+  const readAtByKey = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of reads) m.set(`${r.activity_id}:${r.user_id}`, r.created_at);
     return m;
   }, [reads]);
 
@@ -130,6 +137,17 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     (async () => {
       await supabase.from("case_activity_reads" as never).upsert(toMark as never, { onConflict: "activity_id,user_id" } as never);
       qc.invalidateQueries({ queryKey: ["case_activity_reads", caseId] });
+      // O "relacionado" foi visto aqui: derruba na hora as notificações de
+      // mensagem/menção deste caso na central de notificações.
+      const ids = await markCaseNotificationsRead(caseId, ["comment", "mention", "message"]);
+      if (ids.length > 0) {
+        const nowIso = new Date().toISOString();
+        const idSet = new Set(ids);
+        qc.setQueryData(["notifications"], (old: any) =>
+          Array.isArray(old) ? old.map((n: any) => (idSet.has(n.id) ? { ...n, read_at: n.read_at ?? nowIso } : n)) : old,
+        );
+        qc.invalidateQueries({ queryKey: ["notifications"] });
+      }
     })();
   }, [activities, reads, me, caseId, qc]);
 
@@ -544,35 +562,18 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
                     )}>
 
                       {isMine && (() => {
-                        const expected = stakeholders.filter((id) => id !== me);
-                        const readers = (readersByActivity.get(a.id) ?? []).filter((id) => id !== me);
-                        if (expected.length === 0) return null;
-                        const readerSet = new Set(readers);
-                        const allRead = expected.every((id) => readerSet.has(id));
-                        if (allRead) {
-                          return <span>· Visualizado por <span className="font-semibold text-slate-500 dark:text-slate-400 dark:text-slate-500">TODOS</span></span>;
-                        }
-                        if (readers.length === 0) return null;
-                        return (
-                          <span className="flex items-center gap-1">
-                            <span>· Visualizado por</span>
-                            <span className="flex -space-x-1.5">
-                              {readers.slice(0, 4).map((rid) => {
-                                const p = profileById.get(rid);
-                                const nm = p?.full_name || p?.email || "?";
-                                return p?.avatar_url ? (
-                                  <img key={rid} src={p.avatar_url} alt={nm}
-                                    className="h-4 w-4 rounded-full border border-white object-cover" />
-                                ) : (
-                                  <span key={rid}
-                                    className="h-4 w-4 rounded-full border border-white bg-slate-300 text-[8px] font-semibold text-slate-600 dark:text-slate-300 grid place-items-center">
-                                    {initials(nm)}
-                                  </span>
-                                );
-                              })}
-                            </span>
-                          </span>
-                        );
+                        const readerIds = (readersByActivity.get(a.id) ?? []).filter((id) => id !== me);
+                        if (readerIds.length === 0) return null;
+                        const readers: Reader[] = readerIds.map((rid) => {
+                          const p = profileById.get(rid);
+                          return {
+                            id: rid,
+                            name: p?.full_name || p?.email || "Usuário",
+                            avatarUrl: p?.avatar_url ?? null,
+                            readAt: readAtByKey.get(`${a.id}:${rid}`) ?? null,
+                          };
+                        });
+                        return <ReadReceipts readers={readers} />;
                       })()}
                     </span>
                   )}

@@ -267,6 +267,7 @@ export type Database = {
           expires_at: string
           file_name: string
           id: string
+          kind: string
           mime_type: string | null
           notes: string | null
           size_bytes: number | null
@@ -281,6 +282,7 @@ export type Database = {
           expires_at?: string
           file_name: string
           id?: string
+          kind?: string
           mime_type?: string | null
           notes?: string | null
           size_bytes?: number | null
@@ -295,6 +297,7 @@ export type Database = {
           expires_at?: string
           file_name?: string
           id?: string
+          kind?: string
           mime_type?: string | null
           notes?: string | null
           size_bytes?: number | null
