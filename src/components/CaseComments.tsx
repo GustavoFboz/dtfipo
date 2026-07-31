@@ -10,7 +10,6 @@ import {
   deleteCaseActivity,
   fetchMentionableProfiles,
   notifyCaseStakeholders,
-  fetchCaseStakeholderIds,
   type CaseActivity,
 } from "@/lib/case-activity";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,11 +63,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   const [lightbox, setLightbox] = useState<{ images: { url: string; name: string }[]; index: number } | null>(null);
   const [showEmoji, setShowEmoji] = useState(false);
 
-  // stakeholders + profiles for "Visualizado por"
-  const { data: stakeholders = [] } = useQuery({
-    queryKey: ["case_stakeholders", caseId],
-    queryFn: () => fetchCaseStakeholderIds(caseId),
-  });
+  // profiles para "Visualizado por"
   const { data: readerProfiles = [] } = useQuery({
     queryKey: ["profiles_min"],
     queryFn: async () => {

@@ -32,6 +32,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { startFileUpload } from "@/lib/upload-manager";
 import { localPreviews } from "@/lib/local-previews";
 import { confirm } from "@/lib/confirm";
+import { PendingFileDialog } from "./PendingFileDialog";
 
 import { ExocadViewer } from "./ExocadViewer";
 import { Lightbox } from "./Lightbox";
