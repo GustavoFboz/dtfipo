@@ -35,7 +35,7 @@ const CASE_SELECT = `
 `;
 
 type StatusFilter = "all" | "active" | "finished" | "cancelled" | "reopened";
-type MaterialFilter = "all" | "zirconia" | "dissilicato" | "implant";
+type MaterialFilter = "all" | "zirconia" | "dissilicato";
 type ProfKind = "doctor" | "cadista";
 type ProfSel = { kind: ProfKind; id: string; name: string };
 
@@ -110,7 +110,7 @@ function TeethDashboard() {
     return cases.filter((c) => {
       if (materialF === "zirconia" && !(c.teeth_zirconia?.length)) return false;
       if (materialF === "dissilicato" && !(c.teeth_dissilicato?.length)) return false;
-      if (materialF === "implant" && !(c.implant_teeth?.length)) return false;
+      
       if (!q) return true;
       const hay = normalizeText([
         c.patient?.name, c.doctor?.name, c.cadista?.name,
@@ -271,7 +271,6 @@ function TeethDashboard() {
                     <SelectItem value="all">Todos</SelectItem>
                     <SelectItem value="zirconia">Zircônia</SelectItem>
                     <SelectItem value="dissilicato">Dissilicato</SelectItem>
-                    <SelectItem value="implant">Implante</SelectItem>
                   </SelectContent>
                 </Select>
               </FilterBlock>

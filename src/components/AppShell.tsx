@@ -4,11 +4,9 @@ import {
   LayoutDashboard,
   Users,
   Stethoscope,
-  Cog,
   LogOut,
   Users2,
   Box,
-  Wrench,
   
   CalendarDays,
   ChevronLeft,
@@ -55,8 +53,6 @@ const navItems = [
   { to: "/agenda", label: "Agenda", icon: CalendarDays, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA"] },
   { to: "/equipe", label: "Equipe", icon: Users2, roles: ["CEO"] },
   { to: "/estoque", label: "Estoque", icon: Box, roles: ["CEO", "ATENDIMENTO", "PROTETICO"] },
-  { to: "/maquinas", label: "Maquinário", icon: Wrench, roles: ["CEO", "PROTETICO"] },
-  { to: "/burrs", label: "Brocas", icon: Cog, roles: ["CEO", "PROTETICO"] },
 
 ] as const;
 

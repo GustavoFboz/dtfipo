@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Moon, Sun, Settings as SettingsIcon, GitBranch, Printer, Boxes, ChevronRight, Building2, Copy, RefreshCw, Shield, Wrench } from "lucide-react";
+import { Moon, Sun, Settings as SettingsIcon, GitBranch, Printer, Boxes, ChevronRight, Building2, Copy, RefreshCw, Shield, Wrench, Factory, Cog } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -246,6 +246,8 @@ function ConfiguracoesPage() {
           <NavCard to="/consumo-automatico" icon={<Boxes className="h-4.5 w-4.5" />} title="Consumo automático" desc="Vincular estoque a etapas" />
           <NavCard to="/configuracoes/nota" icon={<Printer className="h-4.5 w-4.5" />} title="Nota impressa" desc="Layout, checklist e impressora" />
           <NavCard to="/configuracoes/implantes" icon={<Wrench className="h-4.5 w-4.5" />} title="Implantes" desc="Sistemas, componentes e estoque dedicado" />
+          <NavCard to="/maquinas" icon={<Factory className="h-4.5 w-4.5" />} title="Maquinário" desc="Fresadoras, impressoras e manutenções" />
+          <NavCard to="/burrs" icon={<Cog className="h-4.5 w-4.5" />} title="Brocas" desc="Holders, brocas ativas e uso por dente" />
           <NavCard to="/admin/backup" icon={<Shield className="h-4.5 w-4.5" />} title="Backup e restauração" desc="Salve todos os dados e configurações" />
         </div>
       </div>
