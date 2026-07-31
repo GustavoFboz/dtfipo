@@ -621,7 +621,15 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
           </div>
         )}
         <div className="flex items-center gap-3">
+          {recorder.state !== "idle" ? (
+            <RecordingBar
+              seconds={recorder.seconds}
+              transcribing={recorder.state === "transcribing"}
+              onCancel={recorder.cancel}
+            />
+          ) : (
           <div className="flex-1 h-14 rounded-full bg-[#f1f1f3] dark:bg-slate-800 flex items-center pl-4 pr-3 gap-2">
+
             <button
               type="button"
               aria-label="Emoji"
