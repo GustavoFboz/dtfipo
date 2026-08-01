@@ -741,7 +741,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
               type="button"
               aria-label="Emoji"
               onClick={() => setShowEmoji((s) => !s)}
-              className="h-9 w-9 rounded-full grid place-items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-300 hover:bg-white/60 transition"
+              className="h-9 w-9 shrink-0 rounded-full grid place-items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 hover:bg-white/60 transition"
             >
               <Smile className="h-5 w-5" />
             </button>
@@ -765,8 +765,10 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
               }}
               placeholder="Mensagem"
               rows={1}
-              className="flex-1 text-[15px] resize-none border-0 focus-visible:ring-0 bg-transparent shadow-none px-0 py-0 min-h-0 h-6 leading-6 placeholder:text-slate-400 dark:text-slate-500"
+              className="flex-1 text-[15px] resize-none border-0 focus-visible:ring-0 bg-transparent shadow-none px-0 py-1 min-h-0 leading-6 overflow-y-auto caret-foreground text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              style={{ maxHeight: 96 }}
             />
+
             <button
               type="button"
               aria-label="Anexar"
