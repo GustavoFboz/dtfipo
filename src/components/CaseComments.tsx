@@ -374,6 +374,11 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   // "Sticky": uma vez pronto, nunca volta a exibir o carregamento — mensagens
   // novas não devem re-disparar o overlay nem reposicionar a rolagem.
   const readyOnceRef = useRef(false);
+  const readyCaseRef = useRef(caseId);
+  if (readyCaseRef.current !== caseId) {
+    readyCaseRef.current = caseId;
+    readyOnceRef.current = false;
+  }
   if (me !== undefined && !isLoading && readsFetched) readyOnceRef.current = true;
   const ready = readyOnceRef.current;
 
