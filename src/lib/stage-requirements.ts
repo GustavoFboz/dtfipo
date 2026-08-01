@@ -260,9 +260,11 @@ export function useStageRequirements(caseRow: CaseRow | null | undefined) {
       scanDownloadsQ.isLoading,
     tabBlockedMessage,
     advanceBlockedMessage,
+    isStageOwner,
     canEditImplantComponents:
-      requirements.some((r) => r.type === "implant_components") &&
-      (isAdmin || !hasAssignees || isResponsible),
-    hasImplantRequirement: requirements.some((r) => r.type === "implant_components"),
+      requirements.some((r) => r.type === "implant_components") && isStageOwner,
+    hasImplantRequirement:
+      requirements.some((r) => r.type === "implant_components") && isStageOwner,
+
   };
 }
