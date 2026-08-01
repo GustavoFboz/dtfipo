@@ -735,7 +735,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
               onCancel={recorder.cancel}
             />
           ) : (
-          <div className="flex-1 h-14 rounded-full bg-[#f1f1f3] dark:bg-slate-800 flex items-center pl-4 pr-3 gap-2">
+          <div className="flex-1 min-h-14 rounded-3xl bg-[#f1f1f3] dark:bg-slate-800 flex items-end pl-4 pr-3 gap-2 py-2.5">
 
             <button
               type="button"
