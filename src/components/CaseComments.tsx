@@ -64,7 +64,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     const ta = taRef.current;
     if (!ta) return;
     ta.style.height = "auto";
-    ta.style.height = `${Math.min(ta.scrollHeight, 96)}px`;
+    ta.style.height = `${Math.min(ta.scrollHeight, 216)}px`;
   }, [text]);
 
   const imageInputRef = useRef<HTMLInputElement | null>(null);
@@ -774,7 +774,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
               placeholder="Mensagem"
               rows={1}
               className="flex-1 text-[15px] resize-none border-0 focus-visible:ring-0 bg-transparent shadow-none px-0 py-1 min-h-0 leading-6 overflow-y-auto caret-foreground text-foreground placeholder:text-slate-400 dark:placeholder:text-slate-500"
-              style={{ maxHeight: 96 }}
+              style={{ maxHeight: 216 }}
             />
 
             <button
