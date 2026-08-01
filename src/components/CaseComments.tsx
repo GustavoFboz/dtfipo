@@ -59,6 +59,14 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   const [text, setText] = useState("");
   const [me, setMe] = useState<string | null | undefined>(undefined);
   const taRef = useRef<HTMLTextAreaElement | null>(null);
+  // auto-crescimento do campo de mensagem (até ~4 linhas, depois scroll)
+  useEffect(() => {
+    const ta = taRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = `${Math.min(ta.scrollHeight, 96)}px`;
+  }, [text]);
+
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
