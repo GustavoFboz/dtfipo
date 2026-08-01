@@ -304,12 +304,14 @@ export function useNotificationPopups() {
       setUnreadCount((prev) => prev + 1);
 
       const away = document.hidden || !document.hasFocus();
+
+      // Som sempre toca, inclusive quando a notificação vai para o sistema.
+      void playNotificationSound();
+
       if (away && showDesktopNotification(newNotif)) {
-        // Entregue no computador — nada de popup/som na tela.
+        // Entregue no computador — sem popup na tela.
         return;
       }
-
-      playNotificationSound();
 
       setPopups((prev) => (prev.some((p) => p.id === newNotif.id) ? prev : [newNotif, ...prev]));
     };

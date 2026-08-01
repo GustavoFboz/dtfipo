@@ -96,14 +96,19 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   });
 
   const activityIds = useMemo(() => activities.map((a) => a.id).filter((id) => !id.startsWith("optimistic-")), [activities]);
+  // A chave NÃO inclui os ids: se incluísse, cada mensagem nova criaria uma
+  // query nova (sem cache) e o chat voltaria ao estado "carregando".
+  const activityIdsRef = useRef<string[]>([]);
+  activityIdsRef.current = activityIds;
   const { data: reads = [], isFetched: readsFetched } = useQuery({
-    queryKey: ["case_activity_reads", caseId, activityIds.join(",")],
+    queryKey: ["case_activity_reads", caseId],
     queryFn: async () => {
-      if (activityIds.length === 0) return [] as { activity_id: string; user_id: string; created_at: string }[];
+      const ids = activityIdsRef.current;
+      if (ids.length === 0) return [] as { activity_id: string; user_id: string; created_at: string }[];
       const { data, error } = await supabase
         .from("case_activity_reads" as never)
         .select("activity_id,user_id,created_at")
-        .in("activity_id", activityIds);
+        .in("activity_id", ids);
       if (error) throw error;
       return (data ?? []) as unknown as { activity_id: string; user_id: string; created_at: string }[];
     },
@@ -358,8 +363,24 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sorted]);
 
-  // Pronto para posicionar (perfil, mensagens e leituras carregados)
-  const ready = me !== undefined && !isLoading && readsFetched;
+  // Busca as leituras novamente quando surgem mensagens novas (chave estável).
+  useEffect(() => {
+    if (activityIds.length === 0) return;
+    void qc.refetchQueries({ queryKey: ["case_activity_reads", caseId] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activityIds.join(",")]);
+
+  // Pronto para posicionar (perfil, mensagens e leituras carregados).
+  // "Sticky": uma vez pronto, nunca volta a exibir o carregamento — mensagens
+  // novas não devem re-disparar o overlay nem reposicionar a rolagem.
+  const readyOnceRef = useRef(false);
+  const readyCaseRef = useRef(caseId);
+  if (readyCaseRef.current !== caseId) {
+    readyCaseRef.current = caseId;
+    readyOnceRef.current = false;
+  }
+  if (me !== undefined && !isLoading && readsFetched) readyOnceRef.current = true;
+  const ready = readyOnceRef.current;
 
   // Freeze the first unread message (from others) when the chat first opens
   const firstUnreadRef = useRef<string | null | undefined>(undefined);
