@@ -281,8 +281,8 @@ export function useNotificationPopups() {
         // Se houver foto, troca o ícone por ela assim que baixar (mesma tag
         // substitui a notificação já exibida).
         if (meta.sender_avatar) {
-          toDataUrl(meta.sender_avatar)
-            .then((dataUrl) => {
+          toCircularDataUrl(meta.sender_avatar)
+            .then((dataUrl: string) => {
               const replaced = new Notification(title, {
                 body: n.content || "",
                 icon: dataUrl,
