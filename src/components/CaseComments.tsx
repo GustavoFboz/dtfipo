@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Trash2, Paperclip, Mic, X, Smile, Loader2, Square } from "lucide-react";
+import { Send, Trash2, Paperclip, Mic, X, Smile, Loader2, Square, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import {
   fetchCaseActivity,
@@ -20,6 +20,7 @@ import { EmojiStickerPicker } from "./EmojiStickerPicker";
 import { Sticker } from "./stickers";
 import { Lightbox } from "./Lightbox";
 import { useAudioTranscription } from "@/hooks/use-audio-transcription";
+import { ImageEditorDialog } from "./ImageEditorDialog";
 
 
 type MentionItem = { id: string; full_name: string | null; email: string | null; role: string | null };
@@ -61,6 +62,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
+  const [editingImage, setEditingImage] = useState<string | null>(null);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [lightbox, setLightbox] = useState<{ images: { url: string; name: string }[]; index: number } | null>(null);
   const [showEmoji, setShowEmoji] = useState(false);
