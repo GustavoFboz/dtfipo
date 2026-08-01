@@ -213,19 +213,44 @@ export function useNotificationPopups() {
       }
     };
 
-    // Converte a foto do usuário em data URL: o Chrome no Windows às vezes não
-    // renderiza URLs assinadas remotas no ícone da notificação.
-    const toDataUrl = async (url: string) => {
+    // Converte a foto do usuário em data URL CIRCULAR: o Chrome no Windows às
+    // vezes não renderiza URLs assinadas remotas no ícone da notificação, e o
+    // ícone é exibido quadrado se a imagem não vier já recortada em círculo.
+    const toCircularDataUrl = async (url: string) => {
       const res = await fetch(url, { mode: "cors" });
       if (!res.ok) throw new Error("avatar fetch failed");
       const blob = await res.blob();
-      return await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error("avatar read failed"));
-        reader.readAsDataURL(blob);
-      });
+      const bitmapUrl = URL.createObjectURL(blob);
+      try {
+        const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const i = new Image();
+          i.onload = () => resolve(i);
+          i.onerror = () => reject(new Error("avatar decode failed"));
+          i.src = bitmapUrl;
+        });
+        const size = 192;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("canvas unavailable");
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        // cover centralizado
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width - side) / 2;
+        const sy = (img.height - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+        ctx.restore();
+        return canvas.toDataURL("image/png");
+      } finally {
+        URL.revokeObjectURL(bitmapUrl);
+      }
     };
+
 
     const showDesktopNotification = (n: any) => {
       if (typeof Notification === "undefined" || Notification.permission !== "granted") return false;
@@ -256,8 +281,8 @@ export function useNotificationPopups() {
         // Se houver foto, troca o ícone por ela assim que baixar (mesma tag
         // substitui a notificação já exibida).
         if (meta.sender_avatar) {
-          toDataUrl(meta.sender_avatar)
-            .then((dataUrl) => {
+          toCircularDataUrl(meta.sender_avatar)
+            .then((dataUrl: string) => {
               const replaced = new Notification(title, {
                 body: n.content || "",
                 icon: dataUrl,
