@@ -674,16 +674,42 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
         {pendingImages.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-2">
             {pendingImages.map((p) => (
-              <div key={p.id} className="relative h-16 w-16 rounded-lg border border-border overflow-hidden bg-muted">
+              <div key={p.id} className="relative h-16 w-16 rounded-lg border border-border overflow-hidden bg-muted group">
                 <img src={p.previewUrl} alt="" className="h-full w-full object-cover" />
                 <button type="button" onClick={() => removePending(p.id)}
                   className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-black/60 text-white grid place-items-center hover:bg-black/80">
                   <X className="h-3 w-3" />
                 </button>
+                <button type="button" aria-label="Editar imagem" onClick={() => setEditingImage(p.id)}
+                  className="absolute bottom-0.5 left-0.5 h-5 w-5 rounded-full bg-black/60 text-white grid place-items-center hover:bg-black/80">
+                  <Pencil className="h-3 w-3" />
+                </button>
               </div>
             ))}
           </div>
         )}
+        <ImageEditorDialog
+          open={!!editingImage}
+          file={pendingImages.find((p) => p.id === editingImage)?.file ?? null}
+          mode="free"
+          outputSize={1080}
+          title="Editar imagem"
+          onCancel={() => setEditingImage(null)}
+          onConfirm={(blob) => {
+            const id = editingImage;
+            setEditingImage(null);
+            if (!id) return;
+            setPendingImages((s) =>
+              s.map((p) => {
+                if (p.id !== id) return p;
+                URL.revokeObjectURL(p.previewUrl);
+                const file = new File([blob], p.file.name.replace(/\.\w+$/, "") + "-editada.jpg", { type: "image/jpeg" });
+                return { ...p, file, previewUrl: URL.createObjectURL(file) };
+              }),
+            );
+          }}
+        />
+
         {mentionQuery !== null && mentionOptions.length > 0 && (
           <div className="absolute left-3 right-3 bottom-full mb-2 z-30 max-h-52 overflow-auto rounded-xl border bg-popover shadow-lg">
             {mentionOptions.map((o) => (
