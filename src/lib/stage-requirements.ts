@@ -210,9 +210,12 @@ export function useStageRequirements(caseRow: CaseRow | null | undefined) {
   const pending = status.filter((r) => !r.fulfilled);
   const blockingPending = pending.filter((r) => r.blocks_advance);
 
-  // Exigências pendentes travam o caso para qualquer usuário que tente avançar
-  // ou abrir abas fora do caminho necessário para cumprir a etapa.
-  const applies = requirements.length > 0;
+  // Somente o responsável pela etapa (ou admin, ou etapa sem responsáveis)
+  // é cobrado pelas exigências. Para os demais usuários nada é exigido nem
+  // bloqueado — e eles também não podem executar a ação exigida.
+  const isStageOwner = isAdmin || !hasAssignees || isResponsible;
+  const applies = requirements.length > 0 && isStageOwner;
+
 
   // Abas liberadas quando exigências pendentes existem
   const pendingTargetTabs = pending.map((r) => REQUIREMENT_CATALOG[r.type].targetTab);
