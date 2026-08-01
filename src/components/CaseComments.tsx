@@ -363,8 +363,19 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sorted]);
 
-  // Pronto para posicionar (perfil, mensagens e leituras carregados)
-  const ready = me !== undefined && !isLoading && readsFetched;
+  // Busca as leituras novamente quando surgem mensagens novas (chave estável).
+  useEffect(() => {
+    if (activityIds.length === 0) return;
+    void qc.refetchQueries({ queryKey: ["case_activity_reads", caseId] });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activityIds.join(",")]);
+
+  // Pronto para posicionar (perfil, mensagens e leituras carregados).
+  // "Sticky": uma vez pronto, nunca volta a exibir o carregamento — mensagens
+  // novas não devem re-disparar o overlay nem reposicionar a rolagem.
+  const readyOnceRef = useRef(false);
+  if (me !== undefined && !isLoading && readsFetched) readyOnceRef.current = true;
+  const ready = readyOnceRef.current;
 
   // Freeze the first unread message (from others) when the chat first opens
   const firstUnreadRef = useRef<string | null | undefined>(undefined);
