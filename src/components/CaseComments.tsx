@@ -96,14 +96,19 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   });
 
   const activityIds = useMemo(() => activities.map((a) => a.id).filter((id) => !id.startsWith("optimistic-")), [activities]);
+  // A chave NÃO inclui os ids: se incluísse, cada mensagem nova criaria uma
+  // query nova (sem cache) e o chat voltaria ao estado "carregando".
+  const activityIdsRef = useRef<string[]>([]);
+  activityIdsRef.current = activityIds;
   const { data: reads = [], isFetched: readsFetched } = useQuery({
-    queryKey: ["case_activity_reads", caseId, activityIds.join(",")],
+    queryKey: ["case_activity_reads", caseId],
     queryFn: async () => {
-      if (activityIds.length === 0) return [] as { activity_id: string; user_id: string; created_at: string }[];
+      const ids = activityIdsRef.current;
+      if (ids.length === 0) return [] as { activity_id: string; user_id: string; created_at: string }[];
       const { data, error } = await supabase
         .from("case_activity_reads" as never)
         .select("activity_id,user_id,created_at")
-        .in("activity_id", activityIds);
+        .in("activity_id", ids);
       if (error) throw error;
       return (data ?? []) as unknown as { activity_id: string; user_id: string; created_at: string }[];
     },
