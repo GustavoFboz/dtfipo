@@ -64,7 +64,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     const ta = taRef.current;
     if (!ta) return;
     ta.style.height = "auto";
-    ta.style.height = `${Math.min(ta.scrollHeight, 96)}px`;
+    ta.style.height = `${Math.min(ta.scrollHeight, 216)}px`;
   }, [text]);
 
   const imageInputRef = useRef<HTMLInputElement | null>(null);
