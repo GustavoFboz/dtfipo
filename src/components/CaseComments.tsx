@@ -309,17 +309,23 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   }
 
   // ---- Outgoing queue: multiple messages can be in flight at once ----
+  type OutFile = { id: string; file: File; kind: AttachKind };
   const [outgoing, setOutgoing] = useState<
-    { id: string; value: string; images: PendingImage[]; created_at: string; failed?: boolean }[]
+    { id: string; value: string; images: PendingImage[]; files: OutFile[]; created_at: string; failed?: boolean }[]
   >([]);
 
-  async function sendOne(item: { id: string; value: string; images: PendingImage[]; created_at: string }) {
+  async function sendOne(item: { id: string; value: string; images: PendingImage[]; files: OutFile[]; created_at: string }) {
     try {
       const value = item.value.trim();
-      const uploadedPaths: { path: string; name: string }[] = [];
+      const uploadedPaths: { path: string; name: string; att_id?: string; kind?: string }[] = [];
       for (const p of item.images) {
-        const att = await uploadCaseAttachment(caseId, p.file, undefined, "comment_image");
-        uploadedPaths.push({ path: att.storage_path, name: att.file_name });
+        const att = await uploadCaseAttachment(caseId, p.file, undefined, p.kind ?? "comment_image");
+        uploadedPaths.push({ path: att.storage_path, name: att.file_name, att_id: att.id, kind: p.kind ?? "comment_image" });
+      }
+      const uploadedFiles: { att_id: string; name: string; size: number; kind: AttachKind }[] = [];
+      for (const f of item.files) {
+        const att = await uploadCaseAttachment(caseId, f.file, undefined, f.kind);
+        uploadedFiles.push({ att_id: att.id, name: att.file_name, size: f.file.size, kind: f.kind });
       }
 
       const mentionedLabels = Array.from(value.matchAll(/@([\w.\-@]+)/g)).map((mm) => mm[1]);
@@ -327,8 +333,10 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
 
       const metadata: Record<string, unknown> = {};
       if (uploadedPaths.length) metadata.images = uploadedPaths;
+      if (uploadedFiles.length) metadata.files = uploadedFiles;
 
-      const created = await addCaseActivity(caseId, "comment", value || "(imagem)", mentionIds, metadata);
+      const fallback = uploadedFiles.length ? "(anexo)" : "(imagem)";
+      const created = await addCaseActivity(caseId, "comment", value || fallback, mentionIds, metadata);
 
       // Make the real message visible everywhere as fast as possible
       await qc.refetchQueries({ queryKey: ["case_activity", caseId] });
@@ -339,7 +347,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
         activityId: (created as { id?: string } | null)?.id,
         caseId,
         title: "Novo comentário no caso",
-        content: (value || "(imagem)").length > 140 ? (value || "(imagem)").slice(0, 140) + "…" : (value || "(imagem)"),
+        content: (value || fallback).length > 140 ? (value || fallback).slice(0, 140) + "…" : (value || fallback),
         type: "comment",
         extraRecipientIds: mentionIds,
       }).catch(() => { /* notification failure must not block the chat */ });
@@ -352,17 +360,20 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   }
 
   function submitMessage() {
-    if (!text.trim() && pendingImages.length === 0) return;
+    if (!text.trim() && pendingImages.length === 0 && pendingFiles.length === 0) return;
     const item = {
       id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       value: text,
       images: pendingImages,
+      files: pendingFiles,
       created_at: new Date().toISOString(),
     };
     setOutgoing((s) => [...s, item]);
     setText("");
     setPickedMentions({});
     setPendingImages([]);
+    setPendingFiles([]);
+
     void sendOne(item);
   }
 
