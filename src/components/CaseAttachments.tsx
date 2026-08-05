@@ -43,6 +43,7 @@ import { prefetchModelThumb } from "@/lib/model-thumb";
 
 import { useMultiSelect } from "@/hooks/useMultiSelect";
 import { useMarqueeSelection } from "@/hooks/useMarqueeSelection";
+import { onAttachmentFocus } from "@/lib/attachment-focus";
 
 function timeLeft(iso: string): { label: string; expired: boolean; warn: boolean } {
   const ms = new Date(iso).getTime() - Date.now();
