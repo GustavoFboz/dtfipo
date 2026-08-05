@@ -60,7 +60,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "scans", label: "Escaneamentos" },
   { key: "html", label: "HTML" },
   { key: "modelos", label: "Modelos" },
-  { key: "confeccao", label: "Confecção" },
+  { key: "confeccao", label: "Elementos" },
   { key: "comentarios", label: "Chat" },
 ];
 
@@ -159,7 +159,7 @@ const KIND_LABEL_BR: Record<CaseAttachmentKind, string> = {
   gallery: "Galeria",
   scans: "Escaneamentos",
   model: "Modelos",
-  fabrication: "Confecção",
+  fabrication: "Elementos",
   exocad_html: "Exocad",
   comment_image: "Imagens de comentário",
   other: "Outros",
