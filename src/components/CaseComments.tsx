@@ -219,17 +219,34 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     setTimeout(() => taRef.current?.focus(), 10);
   }
 
-  function addImages(files: FileList | null) {
+  function addImages(files: FileList | null, kind: "comment_image" | "gallery" = "comment_image") {
     if (!files) return;
     const list = Array.from(files).filter((f) => f.type.startsWith("image/"));
     const next = list.map((f) => ({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       file: f,
       previewUrl: URL.createObjectURL(f),
+      kind,
     }));
     setPendingImages((s) => [...s, ...next]);
     if (imageInputRef.current) imageInputRef.current.value = "";
   }
+
+  function addFiles(files: FileList | null, kind: AttachKind) {
+    if (!files) return;
+    const next = Array.from(files).map((f) => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      file: f,
+      kind,
+    }));
+    setPendingFiles((s) => [...s, ...next]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function removePendingFile(id: string) {
+    setPendingFiles((s) => s.filter((p) => p.id !== id));
+  }
+
 
   function removePending(id: string) {
     setPendingImages((s) => {
