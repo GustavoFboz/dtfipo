@@ -703,14 +703,49 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
                   )}
                   <ChatBubble isMine={isMine} tail={!groupedWithPrev} time={hhmm(a.created_at)}>
 
-                    {a.content && a.content !== "(imagem)" && (
+                    {a.content && a.content !== "(imagem)" && a.content !== "(anexo)" && (
                       <div>{renderContent(a.content)}</div>
+                    )}
+                    {attFiles.length > 0 && (
+                      <div className={cn(
+                        "flex flex-col gap-1.5",
+                        a.content && a.content !== "(imagem)" && a.content !== "(anexo)" && "mt-2",
+                      )}>
+                        {attFiles.map((f, i) => (
+                          <button
+                            key={`${f.att_id}-${i}`}
+                            type="button"
+                            disabled={!f.att_id}
+                            onClick={() => requestAttachmentFocus({ caseId, kind: f.kind, attachmentId: f.att_id })}
+                            className={cn(
+                              "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition w-[240px] max-w-full",
+                              isMine ? "bg-white/15 hover:bg-white/25" : "bg-black/[0.05] dark:bg-white/10 hover:bg-black/[0.09] dark:hover:bg-white/15",
+                            )}
+                            title={f.att_id ? "Abrir na aba do caso" : "Enviando…"}
+                          >
+                            <span className={cn(
+                              "h-10 w-10 shrink-0 rounded-xl grid place-items-center",
+                              isMine ? "bg-white/20" : "bg-primary/10 text-primary",
+                            )}>
+                              <AttachKindIcon kind={f.kind} className="h-5 w-5" />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block text-[10px] uppercase tracking-[0.08em] opacity-70">
+                                {ATTACH_LABEL[f.kind]}
+                              </span>
+                              <span className="block text-[13px] font-medium truncate">{f.name}</span>
+                              <span className="block text-[11px] opacity-70">{fmtBytes(f.size)}</span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     )}
                     {visibleImages.length > 0 && (
                       <div className={cn(
                         "flex flex-wrap gap-1.5",
-                        a.content && a.content !== "(imagem)" && "mt-2"
+                        (attFiles.length > 0 || (a.content && a.content !== "(imagem)" && a.content !== "(anexo)")) && "mt-2"
                       )}>
+
                         {visibleImages.map((img, i) => (
                           <button
                             key={i}
