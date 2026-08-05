@@ -43,6 +43,7 @@ import { prefetchModelThumb } from "@/lib/model-thumb";
 
 import { useMultiSelect } from "@/hooks/useMultiSelect";
 import { useMarqueeSelection } from "@/hooks/useMarqueeSelection";
+import { onAttachmentFocus } from "@/lib/attachment-focus";
 
 function timeLeft(iso: string): { label: string; expired: boolean; warn: boolean } {
   const ms = new Date(iso).getTime() - Date.now();
@@ -438,6 +439,25 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
 
   // Reset cached signed URLs when switching cases/tabs (forces fresh load on reopen).
   useEffect(() => { setGalleryUrls({}); select.clear(); }, [caseId, onlyKind]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Vindo de uma miniatura no chat: pré-seleciona e rola até o anexo.
+  useEffect(() => {
+    return onAttachmentFocus((req) => {
+      if (req.caseId !== caseId) return;
+      if (onlyKind && req.kind !== onlyKind) return;
+      let tries = 0;
+      const tick = () => {
+        const el = document.querySelector<HTMLElement>(`[data-att-id="${req.attachmentId}"]`);
+        if (el) {
+          select.setMany([req.attachmentId], false);
+          el.scrollIntoView({ block: "center", behavior: "smooth" });
+          return;
+        }
+        if (tries++ < 20) window.setTimeout(tick, 150);
+      };
+      tick();
+    });
+  }, [caseId, onlyKind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));

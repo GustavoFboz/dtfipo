@@ -2,7 +2,19 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Trash2, Paperclip, Mic, X, Smile, Loader2, Square, Pencil } from "lucide-react";
+import { Send, Trash2, Paperclip, Mic, X, Smile, Loader2, Square, Pencil, ScanLine, FileCode2, Layers, Box, Image as ImageIcon, ChevronRight } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { requestAttachmentFocus } from "@/lib/attachment-focus";
 import { toast } from "sonner";
 import {
   fetchCaseActivity,
@@ -24,7 +36,43 @@ import { ImageEditorDialog } from "./ImageEditorDialog";
 
 
 type MentionItem = { id: string; full_name: string | null; email: string | null; role: string | null };
-type PendingImage = { id: string; file: File; previewUrl: string };
+type PendingImage = { id: string; file: File; previewUrl: string; kind?: "comment_image" | "gallery" };
+
+/** Tipos de anexo que podem ser enviados pelo chat (mapeiam para as abas do caso). */
+export type AttachKind = "gallery" | "scans" | "exocad_html" | "model" | "fabrication";
+
+const ATTACH_LABEL: Record<AttachKind, string> = {
+  gallery: "Imagem",
+  scans: "Escaneamento",
+  exocad_html: "HTML",
+  model: "Modelo",
+  fabrication: "Elemento",
+};
+
+const ATTACH_ACCEPT: Record<AttachKind, string> = {
+  gallery: "image/*",
+  scans: ".stl,.ply,.dcm,.obj,.3mf,.zip",
+  exocad_html: ".html,.htm",
+  model: ".stl,.obj,.3mf,.ply,.dcm,.zip",
+  fabrication: ".stl,.obj,.zip,.3mf,.ply,.dcm",
+};
+
+function AttachKindIcon({ kind, className }: { kind: AttachKind; className?: string }) {
+  if (kind === "scans") return <ScanLine className={className} />;
+  if (kind === "exocad_html") return <FileCode2 className={className} />;
+  if (kind === "fabrication") return <Layers className={className} />;
+  if (kind === "gallery") return <ImageIcon className={className} />;
+  return <Box className={className} />;
+}
+
+function fmtBytes(b?: number | null) {
+  if (!b) return "—";
+  if (b < 1024) return `${b} B`;
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+  if (b < 1024 * 1024 * 1024) return `${(b / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(b / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
 
 function initials(name: string) {
   return name
@@ -70,6 +118,10 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [pendingImages, setPendingImages] = useState<PendingImage[]>([]);
+  const [pendingFiles, setPendingFiles] = useState<{ id: string; file: File; kind: AttachKind }[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const fileKindRef = useRef<AttachKind>("model");
+  const imageKindRef = useRef<"comment_image" | "gallery">("comment_image");
   const [editingImage, setEditingImage] = useState<string | null>(null);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [lightbox, setLightbox] = useState<{ images: { url: string; name: string }[]; index: number } | null>(null);
@@ -219,17 +271,34 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     setTimeout(() => taRef.current?.focus(), 10);
   }
 
-  function addImages(files: FileList | null) {
+  function addImages(files: FileList | null, kind: "comment_image" | "gallery" = "comment_image") {
     if (!files) return;
     const list = Array.from(files).filter((f) => f.type.startsWith("image/"));
     const next = list.map((f) => ({
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       file: f,
       previewUrl: URL.createObjectURL(f),
+      kind,
     }));
     setPendingImages((s) => [...s, ...next]);
     if (imageInputRef.current) imageInputRef.current.value = "";
   }
+
+  function addFiles(files: FileList | null, kind: AttachKind) {
+    if (!files) return;
+    const next = Array.from(files).map((f) => ({
+      id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      file: f,
+      kind,
+    }));
+    setPendingFiles((s) => [...s, ...next]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function removePendingFile(id: string) {
+    setPendingFiles((s) => s.filter((p) => p.id !== id));
+  }
+
 
   function removePending(id: string) {
     setPendingImages((s) => {
@@ -240,17 +309,23 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   }
 
   // ---- Outgoing queue: multiple messages can be in flight at once ----
+  type OutFile = { id: string; file: File; kind: AttachKind };
   const [outgoing, setOutgoing] = useState<
-    { id: string; value: string; images: PendingImage[]; created_at: string; failed?: boolean }[]
+    { id: string; value: string; images: PendingImage[]; files: OutFile[]; created_at: string; failed?: boolean }[]
   >([]);
 
-  async function sendOne(item: { id: string; value: string; images: PendingImage[]; created_at: string }) {
+  async function sendOne(item: { id: string; value: string; images: PendingImage[]; files: OutFile[]; created_at: string }) {
     try {
       const value = item.value.trim();
-      const uploadedPaths: { path: string; name: string }[] = [];
+      const uploadedPaths: { path: string; name: string; att_id?: string; kind?: string }[] = [];
       for (const p of item.images) {
-        const att = await uploadCaseAttachment(caseId, p.file, undefined, "comment_image");
-        uploadedPaths.push({ path: att.storage_path, name: att.file_name });
+        const att = await uploadCaseAttachment(caseId, p.file, undefined, p.kind ?? "comment_image");
+        uploadedPaths.push({ path: att.storage_path, name: att.file_name, att_id: att.id, kind: p.kind ?? "comment_image" });
+      }
+      const uploadedFiles: { att_id: string; name: string; size: number; kind: AttachKind }[] = [];
+      for (const f of item.files) {
+        const att = await uploadCaseAttachment(caseId, f.file, undefined, f.kind);
+        uploadedFiles.push({ att_id: att.id, name: att.file_name, size: f.file.size, kind: f.kind });
       }
 
       const mentionedLabels = Array.from(value.matchAll(/@([\w.\-@]+)/g)).map((mm) => mm[1]);
@@ -258,8 +333,10 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
 
       const metadata: Record<string, unknown> = {};
       if (uploadedPaths.length) metadata.images = uploadedPaths;
+      if (uploadedFiles.length) metadata.files = uploadedFiles;
 
-      const created = await addCaseActivity(caseId, "comment", value || "(imagem)", mentionIds, metadata);
+      const fallback = uploadedFiles.length ? "(anexo)" : "(imagem)";
+      const created = await addCaseActivity(caseId, "comment", value || fallback, mentionIds, metadata);
 
       // Make the real message visible everywhere as fast as possible
       await qc.refetchQueries({ queryKey: ["case_activity", caseId] });
@@ -270,7 +347,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
         activityId: (created as { id?: string } | null)?.id,
         caseId,
         title: "Novo comentário no caso",
-        content: (value || "(imagem)").length > 140 ? (value || "(imagem)").slice(0, 140) + "…" : (value || "(imagem)"),
+        content: (value || fallback).length > 140 ? (value || fallback).slice(0, 140) + "…" : (value || fallback),
         type: "comment",
         extraRecipientIds: mentionIds,
       }).catch(() => { /* notification failure must not block the chat */ });
@@ -283,17 +360,20 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   }
 
   function submitMessage() {
-    if (!text.trim() && pendingImages.length === 0) return;
+    if (!text.trim() && pendingImages.length === 0 && pendingFiles.length === 0) return;
     const item = {
       id: `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       value: text,
       images: pendingImages,
+      files: pendingFiles,
       created_at: new Date().toISOString(),
     };
     setOutgoing((s) => [...s, item]);
     setText("");
     setPickedMentions({});
     setPendingImages([]);
+    setPendingFiles([]);
+
     void sendOne(item);
   }
 
@@ -317,11 +397,14 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
       case_id: caseId,
       user_id: me ?? "",
       kind: "comment",
-      content: o.value.trim() || "(imagem)",
+      content: o.value.trim() || (o.files.length ? "(anexo)" : "(imagem)"),
       created_at: o.created_at,
-      metadata: o.images.length
-        ? { images: o.images.map((p) => ({ path: p.previewUrl, name: p.file.name })) }
-        : null,
+      metadata: {
+        ...(o.images.length ? { images: o.images.map((p) => ({ path: p.previewUrl, name: p.file.name })) } : {}),
+        ...(o.files.length
+          ? { files: o.files.map((f) => ({ att_id: "", name: f.file.name, size: f.file.size, kind: f.kind })) }
+          : {}),
+      },
       user: { id: me ?? "", full_name: prof?.full_name ?? null, email: prof?.email ?? null, role: null },
     })) as unknown as CaseActivity[];
     return [...server, ...pending];
@@ -575,6 +658,9 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
           const name =
             a.user?.full_name || prof?.full_name || a.user?.email || prof?.email || (isMine ? "Você" : "Sistema");
           const images = (a.metadata as { images?: { path: string; name: string }[] } | null)?.images ?? [];
+          const attFiles =
+            (a.metadata as { files?: { att_id: string; name: string; size: number; kind: AttachKind }[] } | null)
+              ?.files ?? [];
           const visibleImages = images
             .map((img) => ({ url: signedUrls[img.path], name: img.name }))
             .filter((x) => !!x.url);
@@ -617,14 +703,49 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
                   )}
                   <ChatBubble isMine={isMine} tail={!groupedWithPrev} time={hhmm(a.created_at)}>
 
-                    {a.content && a.content !== "(imagem)" && (
+                    {a.content && a.content !== "(imagem)" && a.content !== "(anexo)" && (
                       <div>{renderContent(a.content)}</div>
+                    )}
+                    {attFiles.length > 0 && (
+                      <div className={cn(
+                        "flex flex-col gap-1.5",
+                        a.content && a.content !== "(imagem)" && a.content !== "(anexo)" && "mt-2",
+                      )}>
+                        {attFiles.map((f, i) => (
+                          <button
+                            key={`${f.att_id}-${i}`}
+                            type="button"
+                            disabled={!f.att_id}
+                            onClick={() => requestAttachmentFocus({ caseId, kind: f.kind, attachmentId: f.att_id })}
+                            className={cn(
+                              "flex items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition w-[240px] max-w-full",
+                              isMine ? "bg-white/15 hover:bg-white/25" : "bg-black/[0.05] dark:bg-white/10 hover:bg-black/[0.09] dark:hover:bg-white/15",
+                            )}
+                            title={f.att_id ? "Abrir na aba do caso" : "Enviando…"}
+                          >
+                            <span className={cn(
+                              "h-10 w-10 shrink-0 rounded-xl grid place-items-center",
+                              isMine ? "bg-white/20" : "bg-primary/10 text-primary",
+                            )}>
+                              <AttachKindIcon kind={f.kind} className="h-5 w-5" />
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block text-[10px] uppercase tracking-[0.08em] opacity-70">
+                                {ATTACH_LABEL[f.kind]}
+                              </span>
+                              <span className="block text-[13px] font-medium truncate">{f.name}</span>
+                              <span className="block text-[11px] opacity-70">{fmtBytes(f.size)}</span>
+                            </span>
+                          </button>
+                        ))}
+                      </div>
                     )}
                     {visibleImages.length > 0 && (
                       <div className={cn(
                         "flex flex-wrap gap-1.5",
-                        a.content && a.content !== "(imagem)" && "mt-2"
+                        (attFiles.length > 0 || (a.content && a.content !== "(imagem)" && a.content !== "(anexo)")) && "mt-2"
                       )}>
+
                         {visibleImages.map((img, i) => (
                           <button
                             key={i}
@@ -693,6 +814,26 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
                 <button type="button" aria-label="Editar imagem" onClick={() => setEditingImage(p.id)}
                   className="absolute bottom-0.5 left-0.5 h-5 w-5 rounded-full bg-black/60 text-white grid place-items-center hover:bg-black/80">
                   <Pencil className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {pendingFiles.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {pendingFiles.map((p) => (
+              <div key={p.id} className="relative flex items-center gap-2 rounded-xl border border-border bg-muted/60 pl-2.5 pr-8 py-2 max-w-[240px]">
+                <span className="h-8 w-8 shrink-0 rounded-lg grid place-items-center bg-primary/10 text-primary">
+                  <AttachKindIcon kind={p.kind} className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[10px] uppercase tracking-[0.08em] text-muted-foreground">{ATTACH_LABEL[p.kind]}</span>
+                  <span className="block text-[12px] font-medium truncate">{p.file.name}</span>
+                  <span className="block text-[10px] text-muted-foreground">{fmtBytes(p.file.size)}</span>
+                </span>
+                <button type="button" onClick={() => removePendingFile(p.id)}
+                  className="absolute top-1 right-1 h-5 w-5 rounded-full bg-black/50 text-white grid place-items-center hover:bg-black/70">
+                  <X className="h-3 w-3" />
                 </button>
               </div>
             ))}
@@ -777,23 +918,73 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
               style={{ maxHeight: 216 }}
             />
 
-            <button
-              type="button"
-              aria-label="Anexar"
-              onClick={() => imageInputRef.current?.click()}
-              className="h-9 w-9 rounded-full grid place-items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-300 hover:bg-white/60 transition"
-            >
-              <Paperclip className="h-5 w-5" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Anexar"
+                  className="h-9 w-9 rounded-full grid place-items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 hover:bg-white/60 transition"
+                >
+                  <Paperclip className="h-5 w-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="top" className="w-60">
+                <DropdownMenuLabel className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">
+                  Arquivos de
+                </DropdownMenuLabel>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="gap-2">
+                    <ImageIcon className="h-4 w-4 text-primary" /> Imagem
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem
+                      onSelect={() => { imageKindRef.current = "comment_image"; imageInputRef.current?.click(); }}
+                    >
+                      Só no chat
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => { imageKindRef.current = "gallery"; imageInputRef.current?.click(); }}
+                    >
+                      Também na galeria do caso
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                <DropdownMenuSeparator />
+                {(["scans", "exocad_html", "model", "fabrication"] as AttachKind[]).map((k) => (
+                  <DropdownMenuItem
+                    key={k}
+                    className="gap-2"
+                    onSelect={() => {
+                      fileKindRef.current = k;
+                      // aguarda o accept ser aplicado antes de abrir o seletor
+                      setTimeout(() => fileInputRef.current?.click(), 0);
+                    }}
+                  >
+                    <AttachKindIcon kind={k} className="h-4 w-4 text-primary" />
+                    {k === "scans" ? "Escaneamentos" : k === "exocad_html" ? "HTML" : k === "model" ? "Modelos" : "Elementos"}
+                    <ChevronRight className="h-3.5 w-3.5 ml-auto opacity-0" />
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden"
-              onChange={(e) => addImages(e.target.files)} />
+              onChange={(e) => addImages(e.target.files, imageKindRef.current)} />
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              accept={ATTACH_ACCEPT[fileKindRef.current]}
+              onChange={(e) => addFiles(e.target.files, fileKindRef.current)}
+            />
+
           </div>
           )}
 
           <button
             type="button"
             onClick={async () => {
-              const hasContent = !!text.trim() || pendingImages.length > 0;
+              const hasContent = !!text.trim() || pendingImages.length > 0 || pendingFiles.length > 0;
               if (recorder.state === "recording") {
                 try {
                   const transcript = await recorder.stopAndTranscribe();
@@ -816,7 +1007,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
             aria-label={
               recorder.state === "recording"
                 ? "Parar e transcrever"
-                : text.trim() || pendingImages.length
+                : text.trim() || pendingImages.length || pendingFiles.length
                   ? "Enviar"
                   : "Gravar áudio"
             }
@@ -831,7 +1022,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : recorder.state === "recording" ? (
               <Square className="h-5 w-5" />
-            ) : text.trim() || pendingImages.length ? (
+            ) : text.trim() || pendingImages.length || pendingFiles.length ? (
               <Send className="h-5 w-5" />
             ) : (
               <Mic className="h-5 w-5" />
