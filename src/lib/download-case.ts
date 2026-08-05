@@ -5,7 +5,7 @@
  *     ├── Galeria/
  *     ├── Escaneamentos/
  *     ├── Modelos/
- *     └── Confecção/
+ *     └── Elementos/
  */
 import { fetchCaseAttachments, getCaseAttachmentUrl, type CaseAttachment, type CaseAttachmentKind } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +30,7 @@ const FOLDER_FOR: Record<CaseAttachmentKind, string | null> = {
   gallery: "Galeria",
   scans: "Escaneamentos",
   model: "Modelos",
-  fabrication: "Confecção",
+  fabrication: "Elementos",
   exocad_html: "Exocad",
   comment_image: null, // skip
   other: "Outros",
@@ -40,7 +40,7 @@ export const SECTION_LABEL: Partial<Record<CaseAttachmentKind, string>> = {
   gallery: "Galeria",
   scans: "Escaneamentos",
   model: "Modelos",
-  fabrication: "Confecção",
+  fabrication: "Elementos",
   exocad_html: "Exocad",
 };
 
@@ -72,7 +72,7 @@ export async function downloadCaseZip(caseRow: CaseRow): Promise<void> {
   root.file("Ordem de Serviço.pdf", pdfBlob);
 
   // Ensure standard folders always exist, even when empty.
-  const STANDARD_FOLDERS = ["Galeria", "Escaneamentos", "Modelos", "Confecção"];
+  const STANDARD_FOLDERS = ["Galeria", "Escaneamentos", "Modelos", "Elementos"];
   for (const f of STANDARD_FOLDERS) root.folder(f);
 
   const live = attachments.filter((a) => !a.expired_at);

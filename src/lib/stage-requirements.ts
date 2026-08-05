@@ -47,8 +47,8 @@ export const REQUIREMENT_CATALOG: Record<
     targetTab: "modelos",
   },
   upload_fabrication: {
-    label: 'Enviar arquivo na aba "Confecção"',
-    description: "Pelo menos um arquivo precisa ser enviado em Confecção.",
+    label: 'Enviar arquivo na aba "Elementos"',
+    description: "Pelo menos um arquivo precisa ser enviado em Elementos.",
     targetTab: "confeccao",
   },
   upload_html: {

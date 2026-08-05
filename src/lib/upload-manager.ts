@@ -103,7 +103,7 @@ async function postUploadNotify(
     const patientName = (caseData as { patient?: { name?: string } } | null)?.patient?.name || "Paciente";
     const cadistaName = (caseData as { cadista?: { name?: string } } | null)?.cadista?.name || "Cadista";
     const kindLabel: Record<CaseAttachmentKind, string> = {
-      fabrication: "Arquivos de confecção", model: "Modelos para impressão",
+      fabrication: "Arquivos de elementos", model: "Modelos para impressão",
       exocad_html: "Visualizações exocad", scans: "Escaneamentos",
       gallery: "Galeria do caso", comment_image: "Imagem de comentário", other: "Outros arquivos",
     };

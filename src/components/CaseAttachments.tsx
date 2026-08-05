@@ -61,7 +61,7 @@ function fmtSize(b: number | null): string {
 const KIND_LABEL: Record<CaseAttachmentKind, string> = {
   scans: "Escaneamentos",
   model: "Modelos",
-  fabrication: "Confecção",
+  fabrication: "Elementos",
   exocad_html: "Exocad",
   gallery: "Galeria",
   comment_image: "Imagens de comentário",
@@ -78,7 +78,7 @@ const ACCEPT: Record<UploadKind, string | undefined> = {
   gallery: "image/*",
 };
 
-// Extensões que representam arquivos 3D nas abas de Escaneamentos/Modelos/Confecção.
+// Extensões que representam arquivos 3D nas abas de Escaneamentos/Modelos/Elementos.
 const RE_3D_ANY = /\.(stl|ply|dcm|obj|3mf)$/i;
 // Extensões cuja miniatura 3D é renderizável pelo ModelThumb hoje.
 const RE_3D_THUMB = /\.(stl|ply)$/i;
@@ -288,8 +288,8 @@ const EMPTY_META: Record<UploadKind, { img: string; title: string; hint: string 
   },
   fabrication: {
     img: emptyModels.url,
-    title: "Nenhum arquivo de confecção",
-    hint: "Arraste arquivos de confecção para esta aba ou use o botão + para adicioná-los ao caso.",
+    title: "Nenhum arquivo de elementos",
+    hint: "Arraste arquivos de elementos para esta aba ou use o botão + para adicioná-los ao caso.",
   },
   exocad_html: {
     img: emptyHtml.url,
@@ -664,7 +664,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
     return g;
   }, [data]);
 
-  // Prewarm STL/PLY thumbnails para Modelos, Escaneamentos e Confecção — mesmo
+  // Prewarm STL/PLY thumbnails para Modelos, Escaneamentos e Elementos — mesmo
   // antes de abrir a aba — para que a troca seja instantânea e o cache do
   // IndexedDB sirva os thumbs após um reload.
   useEffect(() => {
@@ -986,7 +986,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
   };
 
   const isGalleryTab = onlyKind === "gallery";
-  // Abas 3D — Escaneamentos, Modelos e Confecção compartilham a mesma
+  // Abas 3D — Escaneamentos, Modelos e Elementos compartilham a mesma
   // apresentação (grade de miniaturas 3D / lista) e o mesmo estado de view.
   const is3DTab = onlyKind === "model" || onlyKind === "scans" || onlyKind === "fabrication";
   const items3D = onlyKind && is3DTab
@@ -1132,7 +1132,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
         </div>
       )}
 
-      {/* Modelos/Escaneamentos/Confecção — miniaturas com prévia STL/PLY ou lista */}
+      {/* Modelos/Escaneamentos/Elementos — miniaturas com prévia STL/PLY ou lista */}
       {is3DTab && modelView === "grid" ? (
         <div className="flex-1">
           {items3D.length === 0 ? (
