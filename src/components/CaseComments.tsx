@@ -397,11 +397,14 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
       case_id: caseId,
       user_id: me ?? "",
       kind: "comment",
-      content: o.value.trim() || "(imagem)",
+      content: o.value.trim() || (o.files.length ? "(anexo)" : "(imagem)"),
       created_at: o.created_at,
-      metadata: o.images.length
-        ? { images: o.images.map((p) => ({ path: p.previewUrl, name: p.file.name })) }
-        : null,
+      metadata: {
+        ...(o.images.length ? { images: o.images.map((p) => ({ path: p.previewUrl, name: p.file.name })) } : {}),
+        ...(o.files.length
+          ? { files: o.files.map((f) => ({ att_id: "", name: f.file.name, size: f.file.size, kind: f.kind })) }
+          : {}),
+      },
       user: { id: me ?? "", full_name: prof?.full_name ?? null, email: prof?.email ?? null, role: null },
     })) as unknown as CaseActivity[];
     return [...server, ...pending];
