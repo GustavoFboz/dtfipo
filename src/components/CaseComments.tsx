@@ -984,7 +984,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
           <button
             type="button"
             onClick={async () => {
-              const hasContent = !!text.trim() || pendingImages.length > 0;
+              const hasContent = !!text.trim() || pendingImages.length > 0 || pendingFiles.length > 0;
               if (recorder.state === "recording") {
                 try {
                   const transcript = await recorder.stopAndTranscribe();
@@ -1007,7 +1007,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
             aria-label={
               recorder.state === "recording"
                 ? "Parar e transcrever"
-                : text.trim() || pendingImages.length
+                : text.trim() || pendingImages.length || pendingFiles.length
                   ? "Enviar"
                   : "Gravar áudio"
             }
@@ -1022,7 +1022,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : recorder.state === "recording" ? (
               <Square className="h-5 w-5" />
-            ) : text.trim() || pendingImages.length ? (
+            ) : text.trim() || pendingImages.length || pendingFiles.length ? (
               <Send className="h-5 w-5" />
             ) : (
               <Mic className="h-5 w-5" />
