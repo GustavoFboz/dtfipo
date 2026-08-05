@@ -658,6 +658,9 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
           const name =
             a.user?.full_name || prof?.full_name || a.user?.email || prof?.email || (isMine ? "Você" : "Sistema");
           const images = (a.metadata as { images?: { path: string; name: string }[] } | null)?.images ?? [];
+          const attFiles =
+            (a.metadata as { files?: { att_id: string; name: string; size: number; kind: AttachKind }[] } | null)
+              ?.files ?? [];
           const visibleImages = images
             .map((img) => ({ url: signedUrls[img.path], name: img.name }))
             .filter((x) => !!x.url);
