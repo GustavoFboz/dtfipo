@@ -2,7 +2,19 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Trash2, Paperclip, Mic, X, Smile, Loader2, Square, Pencil } from "lucide-react";
+import { Send, Trash2, Paperclip, Mic, X, Smile, Loader2, Square, Pencil, ScanLine, FileCode2, Layers, Box, Image as ImageIcon, ChevronRight } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { requestAttachmentFocus } from "@/lib/attachment-focus";
 import { toast } from "sonner";
 import {
   fetchCaseActivity,
