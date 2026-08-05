@@ -819,6 +819,26 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
             ))}
           </div>
         )}
+        {pendingFiles.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {pendingFiles.map((p) => (
+              <div key={p.id} className="relative flex items-center gap-2 rounded-xl border border-border bg-muted/60 pl-2.5 pr-8 py-2 max-w-[240px]">
+                <span className="h-8 w-8 shrink-0 rounded-lg grid place-items-center bg-primary/10 text-primary">
+                  <AttachKindIcon kind={p.kind} className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[10px] uppercase tracking-[0.08em] text-muted-foreground">{ATTACH_LABEL[p.kind]}</span>
+                  <span className="block text-[12px] font-medium truncate">{p.file.name}</span>
+                  <span className="block text-[10px] text-muted-foreground">{fmtBytes(p.file.size)}</span>
+                </span>
+                <button type="button" onClick={() => removePendingFile(p.id)}
+                  className="absolute top-1 right-1 h-5 w-5 rounded-full bg-black/50 text-white grid place-items-center hover:bg-black/70">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         <ImageEditorDialog
           open={!!editingImage}
           file={pendingImages.find((p) => p.id === editingImage)?.file ?? null}
