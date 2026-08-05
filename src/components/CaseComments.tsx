@@ -24,7 +24,43 @@ import { ImageEditorDialog } from "./ImageEditorDialog";
 
 
 type MentionItem = { id: string; full_name: string | null; email: string | null; role: string | null };
-type PendingImage = { id: string; file: File; previewUrl: string };
+type PendingImage = { id: string; file: File; previewUrl: string; kind?: "comment_image" | "gallery" };
+
+/** Tipos de anexo que podem ser enviados pelo chat (mapeiam para as abas do caso). */
+export type AttachKind = "gallery" | "scans" | "exocad_html" | "model" | "fabrication";
+
+const ATTACH_LABEL: Record<AttachKind, string> = {
+  gallery: "Imagem",
+  scans: "Escaneamento",
+  exocad_html: "HTML",
+  model: "Modelo",
+  fabrication: "Elemento",
+};
+
+const ATTACH_ACCEPT: Record<AttachKind, string> = {
+  gallery: "image/*",
+  scans: ".stl,.ply,.dcm,.obj,.3mf,.zip",
+  exocad_html: ".html,.htm",
+  model: ".stl,.obj,.3mf,.ply,.dcm,.zip",
+  fabrication: ".stl,.obj,.zip,.3mf,.ply,.dcm",
+};
+
+function AttachKindIcon({ kind, className }: { kind: AttachKind; className?: string }) {
+  if (kind === "scans") return <ScanLine className={className} />;
+  if (kind === "exocad_html") return <FileCode2 className={className} />;
+  if (kind === "fabrication") return <Layers className={className} />;
+  if (kind === "gallery") return <ImageIcon className={className} />;
+  return <Box className={className} />;
+}
+
+function fmtBytes(b?: number | null) {
+  if (!b) return "—";
+  if (b < 1024) return `${b} B`;
+  if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
+  if (b < 1024 * 1024 * 1024) return `${(b / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(b / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+}
+
 
 function initials(name: string) {
   return name
