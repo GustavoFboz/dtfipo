@@ -308,6 +308,15 @@ export function CaseDetailDialog({
     setRestoredCaseId(caseId);
   }, [open, caseId, syncUrlHash]);
 
+  // Miniatura de anexo clicada no chat → abre a aba correspondente.
+  useEffect(() => {
+    return onAttachmentFocus((req) => {
+      if (!caseId || req.caseId !== caseId) return;
+      const target = (Object.keys(TAB_TO_KIND) as TabKey[]).find((k) => TAB_TO_KIND[k] === req.kind);
+      if (target) setTab(target);
+    });
+  }, [caseId]);
+
   // Persist current tab per case
   useEffect(() => {
     if (!tabReady || !caseId) return;
