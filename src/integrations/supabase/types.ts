@@ -307,6 +307,76 @@ export type Database = {
         }
         Relationships: []
       }
+      case_checklist_items: {
+        Row: {
+          checked_at: string | null
+          checked_by: string | null
+          checklist_id: string
+          created_at: string
+          id: string
+          label: string
+          position: number
+        }
+        Insert: {
+          checked_at?: string | null
+          checked_by?: string | null
+          checklist_id: string
+          created_at?: string
+          id?: string
+          label: string
+          position?: number
+        }
+        Update: {
+          checked_at?: string | null
+          checked_by?: string | null
+          checklist_id?: string
+          created_at?: string
+          id?: string
+          label?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_checklist_items_checklist_id_fkey"
+            columns: ["checklist_id"]
+            isOneToOne: false
+            referencedRelation: "case_checklists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      case_checklists: {
+        Row: {
+          case_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          title: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          title: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_checklists_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_components: {
         Row: {
           case_id: string
@@ -852,6 +922,30 @@ export type Database = {
           },
         ]
       }
+      checklist_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          items: string[]
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          items?: string[]
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          items?: string[]
+          title?: string
+        }
+        Relationships: []
+      }
       clinic_members: {
         Row: {
           clinic_id: string
@@ -1355,6 +1449,112 @@ export type Database = {
         }
         Relationships: []
       }
+      resin_pots: {
+        Row: {
+          active: boolean
+          brand: string | null
+          color: string | null
+          created_at: string
+          created_by: string | null
+          current_net_g: number
+          declared_net_g: number
+          expires_on: string | null
+          id: string
+          min_net_g: number
+          name: string
+          notes: string | null
+          stock_item_id: string | null
+          tare_g: number
+          type: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          brand?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_net_g?: number
+          declared_net_g?: number
+          expires_on?: string | null
+          id?: string
+          min_net_g?: number
+          name: string
+          notes?: string | null
+          stock_item_id?: string | null
+          tare_g?: number
+          type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          brand?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_net_g?: number
+          declared_net_g?: number
+          expires_on?: string | null
+          id?: string
+          min_net_g?: number
+          name?: string
+          notes?: string | null
+          stock_item_id?: string | null
+          tare_g?: number
+          type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resin_pots_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resin_weighings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          gross_g: number
+          id: string
+          net_g: number
+          notes: string | null
+          pot_id: string
+          source: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          gross_g: number
+          id?: string
+          net_g: number
+          notes?: string | null
+          pot_id: string
+          source?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          gross_g?: number
+          id?: string
+          net_g?: number
+          notes?: string | null
+          pot_id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resin_weighings_pot_id_fkey"
+            columns: ["pot_id"]
+            isOneToOne: false
+            referencedRelation: "resin_pots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scan_jigs: {
         Row: {
           created_at: string
@@ -1517,6 +1717,7 @@ export type Database = {
           mode: string
           notes: string | null
           qty_per_case: number
+          qty_per_implant: number
           qty_per_tooth: number
           required: boolean
           stage_id: string | null
@@ -1532,6 +1733,7 @@ export type Database = {
           mode?: string
           notes?: string | null
           qty_per_case?: number
+          qty_per_implant?: number
           qty_per_tooth?: number
           required?: boolean
           stage_id?: string | null
@@ -1547,6 +1749,7 @@ export type Database = {
           mode?: string
           notes?: string | null
           qty_per_case?: number
+          qty_per_implant?: number
           qty_per_tooth?: number
           required?: boolean
           stage_id?: string | null
