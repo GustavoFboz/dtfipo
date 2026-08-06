@@ -143,6 +143,7 @@ function ConsumoAutomaticoPage() {
               <th className="text-left px-4 py-3">Item</th>
               <th className="text-left px-4 py-3">Qtd/caso</th>
               <th className="text-left px-4 py-3">Qtd/dente</th>
+              <th className="text-left px-4 py-3">Qtd/implante</th>
               <th className="text-left px-4 py-3">Obrig.</th>
               <th className="text-left px-4 py-3">Ativa</th>
               <th className="px-4 py-3"></th>
@@ -150,7 +151,7 @@ function ConsumoAutomaticoPage() {
           </thead>
           <tbody>
             {rules.data?.length === 0 && (
-              <tr><td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">Nenhuma regra cadastrada.</td></tr>
+              <tr><td colSpan={9} className="px-4 py-8 text-center text-muted-foreground">Nenhuma regra cadastrada.</td></tr>
             )}
             {rules.data?.map((r) => (
               <tr key={r.id} className="border-t border-border">
@@ -159,6 +160,7 @@ function ConsumoAutomaticoPage() {
                 <td className="px-4 py-3">{nameById(items.data as any, r.stock_item_id)}</td>
                 <td className="px-4 py-3">{r.qty_per_case}</td>
                 <td className="px-4 py-3">{r.qty_per_tooth}</td>
+                <td className="px-4 py-3">{r.qty_per_implant ?? 0}</td>
                 <td className="px-4 py-3">{r.required ? "Sim" : "Não"}</td>
                 <td className="px-4 py-3">
                   <Switch checked={r.active} onCheckedChange={(v) => toggleActive.mutate({ id: r.id, active: v })} />
@@ -216,6 +218,7 @@ function RuleDialog({
         stock_item_id: form.stock_item_id,
         qty_per_case: Number(form.qty_per_case ?? 0),
         qty_per_tooth: Number(form.qty_per_tooth ?? 0),
+        qty_per_implant: Number(form.qty_per_implant ?? 0),
         required: !!form.required,
         active: form.active ?? true,
         notes: form.notes || null,
@@ -305,7 +308,7 @@ function RuleDialog({
             </div>
           </div>
           {(form.mode ?? "auto") === "auto" && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Qtd por caso</Label>
                 <Input type="number" min={0} step="any" value={form.qty_per_case ?? 0}
@@ -316,6 +319,12 @@ function RuleDialog({
                 <Label className="text-xs">Qtd por dente</Label>
                 <Input type="number" min={0} step="any" value={form.qty_per_tooth ?? 0}
                   onChange={(e) => setForm({ ...form, qty_per_tooth: Number(e.target.value) })}
+                  className="rounded-xl" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Qtd por implante</Label>
+                <Input type="number" min={0} step="any" value={form.qty_per_implant ?? 0}
+                  onChange={(e) => setForm({ ...form, qty_per_implant: Number(e.target.value) })}
                   className="rounded-xl" />
               </div>
             </div>
