@@ -28,6 +28,8 @@ type Rule = {
   stock_item_id: string;
   qty_per_case: number;
   qty_per_tooth: number;
+  qty_per_implant: number;
+
   required: boolean;
   active: boolean;
   notes: string | null;
