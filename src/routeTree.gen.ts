@@ -46,7 +46,7 @@ import { Route as AuthenticatedFinanceiroFechamentoRouteImport } from './routes/
 import { Route as AuthenticatedFinanceiroConfiguracoesRouteImport } from './routes/_authenticated/financeiro.configuracoes'
 import { Route as AuthenticatedFinanceiroCarteirasRouteImport } from './routes/_authenticated/financeiro.carteiras'
 import { Route as AuthenticatedFinanceiroAprovacoesRouteImport } from './routes/_authenticated/financeiro.aprovacoes'
-import { Route as AuthenticatedEstoqueResinasRouteImport } from './routes/_authenticated/estoque.resinas'
+import { Route as AuthenticatedEstoqueResinasRouteImport } from './routes/_authenticated/estoque_.resinas'
 import { Route as AuthenticatedEstoqueMovimentacoesRouteImport } from './routes/_authenticated/estoque.movimentacoes'
 import { Route as AuthenticatedConfiguracoesNotaRouteImport } from './routes/_authenticated/configuracoes.nota'
 import { Route as AuthenticatedConfiguracoesImplantesRouteImport } from './routes/_authenticated/configuracoes.implantes'
@@ -259,9 +259,9 @@ const AuthenticatedFinanceiroAprovacoesRoute =
   } as any)
 const AuthenticatedEstoqueResinasRoute =
   AuthenticatedEstoqueResinasRouteImport.update({
-    id: '/resinas',
-    path: '/resinas',
-    getParentRoute: () => AuthenticatedEstoqueRoute,
+    id: '/estoque_/resinas',
+    path: '/estoque/resinas',
+    getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedEstoqueMovimentacoesRoute =
   AuthenticatedEstoqueMovimentacoesRouteImport.update({
@@ -435,7 +435,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracoes/implantes': typeof AuthenticatedConfiguracoesImplantesRoute
   '/_authenticated/configuracoes/nota': typeof AuthenticatedConfiguracoesNotaRoute
   '/_authenticated/estoque/movimentacoes': typeof AuthenticatedEstoqueMovimentacoesRoute
-  '/_authenticated/estoque/resinas': typeof AuthenticatedEstoqueResinasRoute
+  '/_authenticated/estoque_/resinas': typeof AuthenticatedEstoqueResinasRoute
   '/_authenticated/financeiro/aprovacoes': typeof AuthenticatedFinanceiroAprovacoesRoute
   '/_authenticated/financeiro/carteiras': typeof AuthenticatedFinanceiroCarteirasRoute
   '/_authenticated/financeiro/configuracoes': typeof AuthenticatedFinanceiroConfiguracoesRoute
@@ -578,7 +578,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracoes/implantes'
     | '/_authenticated/configuracoes/nota'
     | '/_authenticated/estoque/movimentacoes'
-    | '/_authenticated/estoque/resinas'
+    | '/_authenticated/estoque_/resinas'
     | '/_authenticated/financeiro/aprovacoes'
     | '/_authenticated/financeiro/carteiras'
     | '/_authenticated/financeiro/configuracoes'
@@ -868,12 +868,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFinanceiroAprovacoesRouteImport
       parentRoute: typeof AuthenticatedFinanceiroRoute
     }
-    '/_authenticated/estoque/resinas': {
-      id: '/_authenticated/estoque/resinas'
-      path: '/resinas'
+    '/_authenticated/estoque_/resinas': {
+      id: '/_authenticated/estoque_/resinas'
+      path: '/estoque/resinas'
       fullPath: '/estoque/resinas'
       preLoaderRoute: typeof AuthenticatedEstoqueResinasRouteImport
-      parentRoute: typeof AuthenticatedEstoqueRoute
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/estoque/movimentacoes': {
       id: '/_authenticated/estoque/movimentacoes'
@@ -936,13 +936,11 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedEstoqueRouteChildren {
   AuthenticatedEstoqueMovimentacoesRoute: typeof AuthenticatedEstoqueMovimentacoesRoute
-  AuthenticatedEstoqueResinasRoute: typeof AuthenticatedEstoqueResinasRoute
 }
 
 const AuthenticatedEstoqueRouteChildren: AuthenticatedEstoqueRouteChildren = {
   AuthenticatedEstoqueMovimentacoesRoute:
     AuthenticatedEstoqueMovimentacoesRoute,
-  AuthenticatedEstoqueResinasRoute: AuthenticatedEstoqueResinasRoute,
 }
 
 const AuthenticatedEstoqueRouteWithChildren =
@@ -1016,6 +1014,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCadistasCadistaIdRoute: typeof AuthenticatedCadistasCadistaIdRoute
   AuthenticatedConfiguracoesImplantesRoute: typeof AuthenticatedConfiguracoesImplantesRoute
   AuthenticatedConfiguracoesNotaRoute: typeof AuthenticatedConfiguracoesNotaRoute
+  AuthenticatedEstoqueResinasRoute: typeof AuthenticatedEstoqueResinasRoute
   AuthenticatedPatientsIdRoute: typeof AuthenticatedPatientsIdRoute
   AuthenticatedConfiguracoesIndexRoute: typeof AuthenticatedConfiguracoesIndexRoute
   AuthenticatedPatientsIndexRoute: typeof AuthenticatedPatientsIndexRoute
@@ -1043,6 +1042,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfiguracoesImplantesRoute:
     AuthenticatedConfiguracoesImplantesRoute,
   AuthenticatedConfiguracoesNotaRoute: AuthenticatedConfiguracoesNotaRoute,
+  AuthenticatedEstoqueResinasRoute: AuthenticatedEstoqueResinasRoute,
   AuthenticatedPatientsIdRoute: AuthenticatedPatientsIdRoute,
   AuthenticatedConfiguracoesIndexRoute: AuthenticatedConfiguracoesIndexRoute,
   AuthenticatedPatientsIndexRoute: AuthenticatedPatientsIndexRoute,

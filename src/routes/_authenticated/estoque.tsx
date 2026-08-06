@@ -102,12 +102,19 @@ function EstoquePage() {
           >
             <Wrench className="h-3.5 w-3.5" /> Sistemas de Implantes
           </button>
+          <Link
+            to="/estoque/resinas"
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium border border-border bg-background hover:bg-accent"
+          >
+            <Droplet className="h-3.5 w-3.5" /> Resinas (kg)
+          </Link>
           <button
             onClick={() => setManagingCats(true)}
             className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium border border-border bg-background hover:bg-accent"
           >
             <FolderPlus className="h-3.5 w-3.5" /> Categorias
           </button>
+
           <button
             onClick={() => setCreating(true)}
             disabled={!cats.data?.length}
