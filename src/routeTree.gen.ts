@@ -46,6 +46,7 @@ import { Route as AuthenticatedFinanceiroFechamentoRouteImport } from './routes/
 import { Route as AuthenticatedFinanceiroConfiguracoesRouteImport } from './routes/_authenticated/financeiro.configuracoes'
 import { Route as AuthenticatedFinanceiroCarteirasRouteImport } from './routes/_authenticated/financeiro.carteiras'
 import { Route as AuthenticatedFinanceiroAprovacoesRouteImport } from './routes/_authenticated/financeiro.aprovacoes'
+import { Route as AuthenticatedEstoqueResinasRouteImport } from './routes/_authenticated/estoque.resinas'
 import { Route as AuthenticatedEstoqueMovimentacoesRouteImport } from './routes/_authenticated/estoque.movimentacoes'
 import { Route as AuthenticatedConfiguracoesNotaRouteImport } from './routes/_authenticated/configuracoes.nota'
 import { Route as AuthenticatedConfiguracoesImplantesRouteImport } from './routes/_authenticated/configuracoes.implantes'
@@ -256,6 +257,12 @@ const AuthenticatedFinanceiroAprovacoesRoute =
     path: '/aprovacoes',
     getParentRoute: () => AuthenticatedFinanceiroRoute,
   } as any)
+const AuthenticatedEstoqueResinasRoute =
+  AuthenticatedEstoqueResinasRouteImport.update({
+    id: '/resinas',
+    path: '/resinas',
+    getParentRoute: () => AuthenticatedEstoqueRoute,
+  } as any)
 const AuthenticatedEstoqueMovimentacoesRoute =
   AuthenticatedEstoqueMovimentacoesRouteImport.update({
     id: '/movimentacoes',
@@ -333,6 +340,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes/implantes': typeof AuthenticatedConfiguracoesImplantesRoute
   '/configuracoes/nota': typeof AuthenticatedConfiguracoesNotaRoute
   '/estoque/movimentacoes': typeof AuthenticatedEstoqueMovimentacoesRoute
+  '/estoque/resinas': typeof AuthenticatedEstoqueResinasRoute
   '/financeiro/aprovacoes': typeof AuthenticatedFinanceiroAprovacoesRoute
   '/financeiro/carteiras': typeof AuthenticatedFinanceiroCarteirasRoute
   '/financeiro/configuracoes': typeof AuthenticatedFinanceiroConfiguracoesRoute
@@ -378,6 +386,7 @@ export interface FileRoutesByTo {
   '/configuracoes/implantes': typeof AuthenticatedConfiguracoesImplantesRoute
   '/configuracoes/nota': typeof AuthenticatedConfiguracoesNotaRoute
   '/estoque/movimentacoes': typeof AuthenticatedEstoqueMovimentacoesRoute
+  '/estoque/resinas': typeof AuthenticatedEstoqueResinasRoute
   '/financeiro/aprovacoes': typeof AuthenticatedFinanceiroAprovacoesRoute
   '/financeiro/carteiras': typeof AuthenticatedFinanceiroCarteirasRoute
   '/financeiro/configuracoes': typeof AuthenticatedFinanceiroConfiguracoesRoute
@@ -426,6 +435,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracoes/implantes': typeof AuthenticatedConfiguracoesImplantesRoute
   '/_authenticated/configuracoes/nota': typeof AuthenticatedConfiguracoesNotaRoute
   '/_authenticated/estoque/movimentacoes': typeof AuthenticatedEstoqueMovimentacoesRoute
+  '/_authenticated/estoque/resinas': typeof AuthenticatedEstoqueResinasRoute
   '/_authenticated/financeiro/aprovacoes': typeof AuthenticatedFinanceiroAprovacoesRoute
   '/_authenticated/financeiro/carteiras': typeof AuthenticatedFinanceiroCarteirasRoute
   '/_authenticated/financeiro/configuracoes': typeof AuthenticatedFinanceiroConfiguracoesRoute
@@ -474,6 +484,7 @@ export interface FileRouteTypes {
     | '/configuracoes/implantes'
     | '/configuracoes/nota'
     | '/estoque/movimentacoes'
+    | '/estoque/resinas'
     | '/financeiro/aprovacoes'
     | '/financeiro/carteiras'
     | '/financeiro/configuracoes'
@@ -519,6 +530,7 @@ export interface FileRouteTypes {
     | '/configuracoes/implantes'
     | '/configuracoes/nota'
     | '/estoque/movimentacoes'
+    | '/estoque/resinas'
     | '/financeiro/aprovacoes'
     | '/financeiro/carteiras'
     | '/financeiro/configuracoes'
@@ -566,6 +578,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracoes/implantes'
     | '/_authenticated/configuracoes/nota'
     | '/_authenticated/estoque/movimentacoes'
+    | '/_authenticated/estoque/resinas'
     | '/_authenticated/financeiro/aprovacoes'
     | '/_authenticated/financeiro/carteiras'
     | '/_authenticated/financeiro/configuracoes'
@@ -855,6 +868,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFinanceiroAprovacoesRouteImport
       parentRoute: typeof AuthenticatedFinanceiroRoute
     }
+    '/_authenticated/estoque/resinas': {
+      id: '/_authenticated/estoque/resinas'
+      path: '/resinas'
+      fullPath: '/estoque/resinas'
+      preLoaderRoute: typeof AuthenticatedEstoqueResinasRouteImport
+      parentRoute: typeof AuthenticatedEstoqueRoute
+    }
     '/_authenticated/estoque/movimentacoes': {
       id: '/_authenticated/estoque/movimentacoes'
       path: '/movimentacoes'
@@ -916,11 +936,13 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedEstoqueRouteChildren {
   AuthenticatedEstoqueMovimentacoesRoute: typeof AuthenticatedEstoqueMovimentacoesRoute
+  AuthenticatedEstoqueResinasRoute: typeof AuthenticatedEstoqueResinasRoute
 }
 
 const AuthenticatedEstoqueRouteChildren: AuthenticatedEstoqueRouteChildren = {
   AuthenticatedEstoqueMovimentacoesRoute:
     AuthenticatedEstoqueMovimentacoesRoute,
+  AuthenticatedEstoqueResinasRoute: AuthenticatedEstoqueResinasRoute,
 }
 
 const AuthenticatedEstoqueRouteWithChildren =
@@ -1052,13 +1074,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -16,7 +16,7 @@ import {
 } from "@/lib/resins";
 import { connectScale, isScaleSupported } from "@/lib/scale-bluetooth";
 
-export const Route = createFileRoute("/_authenticated/estoque/resinas")({
+export const Route = createFileRoute("/_authenticated/estoque_/resinas")({
   component: ResinasPage,
   head: () => ({
     meta: [
