@@ -1,10 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { confirm } from "@/lib/confirm";
 import { toast } from "sonner";
 import {
-  Package, Plus, Trash2, Pencil, ArrowUpDown, AlertTriangle, FolderPlus, X, Wrench,
+  Package, Plus, Trash2, Pencil, ArrowUpDown, AlertTriangle, FolderPlus, X, Wrench, Droplet,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -102,12 +102,19 @@ function EstoquePage() {
           >
             <Wrench className="h-3.5 w-3.5" /> Sistemas de Implantes
           </button>
+          <Link
+            to="/estoque/resinas"
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium border border-border bg-background hover:bg-accent"
+          >
+            <Droplet className="h-3.5 w-3.5" /> Resinas (kg)
+          </Link>
           <button
             onClick={() => setManagingCats(true)}
             className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium border border-border bg-background hover:bg-accent"
           >
             <FolderPlus className="h-3.5 w-3.5" /> Categorias
           </button>
+
           <button
             onClick={() => setCreating(true)}
             disabled={!cats.data?.length}

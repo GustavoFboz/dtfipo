@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { CaseChecklistFab } from "@/components/CaseChecklists";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -613,6 +615,8 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
 
   return (
     <div className="flex flex-col h-full min-h-[420px] relative">
+      <CaseChecklistFab caseId={caseId} />
+
       {!ready && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 text-muted-foreground">
           <span className="h-6 w-6 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
