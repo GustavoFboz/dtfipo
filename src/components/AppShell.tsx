@@ -334,7 +334,7 @@ export function AppShell() {
           <div className={`flex items-center gap-6 w-full ${isCollapsed ? 'justify-center' : 'pl-6'}`}>
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0"
+              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0 flex items-center justify-center w-10 h-10"
               aria-label="Toggle sidebar"
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -397,7 +397,7 @@ export function AppShell() {
         <TooltipProvider>
         <div className="flex flex-col h-full overflow-hidden">
           {profile && (
-            <div className={`transition-all duration-300 ${isCollapsed ? "pt-6 px-[26px]" : "p-6 pt-10"}`}>
+            <div className={`transition-all duration-300 ${isCollapsed ? "pt-6 px-5" : "p-6 pt-10"}`}>
               <h2 className={`text-[17px] font-medium text-primary mb-6 transition-all duration-300 overflow-hidden whitespace-nowrap ${isCollapsed ? "opacity-0 h-0 mb-0" : "opacity-100 h-auto"}`}>
                 Bem-vindo <span className="text-slate-500 dark:text-slate-400 font-light text-[15px]">de volta,</span>
               </h2>
@@ -432,11 +432,11 @@ export function AppShell() {
             </div>
           )}
 
-          <div className={`transition-all duration-300 ${isCollapsed ? "px-7 pb-2" : "px-6 pb-4"}`}>
+          <div className={`transition-all duration-300 ${isCollapsed ? "px-5 pb-2" : "px-6 pb-4"}`}>
             <div className="h-px bg-slate-100/80 dark:bg-white/5 w-full" />
           </div>
 
-          <nav className={`flex flex-col gap-1 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none py-2 transition-all duration-300 ${isCollapsed ? "px-7" : "px-3"}`}>
+          <nav className={`flex flex-col gap-1 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none py-2 transition-all duration-300 ${isCollapsed ? "px-5" : "px-3"}`}>
 
             {filteredNavItems.map((n) => {
               const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
