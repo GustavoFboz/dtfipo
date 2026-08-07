@@ -394,6 +394,7 @@ export function AppShell() {
           isCollapsed ? "w-[80px]" : "w-64"
         }`}
       >
+        <TooltipProvider>
         <div className="flex flex-col h-full overflow-hidden">
           {profile && (
             <div className={`transition-all duration-300 ${isCollapsed ? "pt-6 px-[26px]" : "p-6 pt-10"}`}>
@@ -436,7 +437,7 @@ export function AppShell() {
           </div>
 
           <nav className={`flex flex-col gap-1 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none py-2 transition-all duration-300 ${isCollapsed ? "px-7" : "px-3"}`}>
-            <TooltipProvider>
+
             {filteredNavItems.map((n) => {
               const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
               const badgeCount =
@@ -494,7 +495,6 @@ export function AppShell() {
                 </Tooltip>
               );
             })}
-            </TooltipProvider>
           </nav>
 
           <div className="mt-auto border-t border-slate-100 dark:border-white/5 bg-white dark:bg-black overflow-hidden flex flex-col">
@@ -589,6 +589,7 @@ export function AppShell() {
             </Tooltip>
           </div>
         </div>
+        </TooltipProvider>
       </aside>
 
       <div className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:block"} transition-all duration-300 shrink-0 ${isCollapsed ? "w-[80px]" : "w-64"}`} />
