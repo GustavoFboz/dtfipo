@@ -390,7 +390,7 @@ export function AppShell() {
       </header>
 
       <aside
-        className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 transition-all duration-300 ease-out z-[60] fixed h-[calc(100vh-72px)] overflow-hidden top-[72px] ${
+        className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 transition-[width,padding] duration-300 ease-in-out z-[60] fixed h-[calc(100vh-72px)] overflow-hidden top-[72px] ${
           isCollapsed ? "w-[80px]" : "w-64"
         }`}
       >
