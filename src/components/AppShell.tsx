@@ -430,7 +430,7 @@ export function AppShell() {
           </div>
         </header>
 
-        <main data-scroll-container="app" className={`relative flex-1 min-w-0 md:ml-64 transition-all duration-500 overflow-y-auto overflow-x-hidden bg-white dark:bg-black ${pathname.startsWith("/dentes") ? "md:ml-0" : ""}`} style={{ marginLeft: !pathname.startsWith("/dentes") && (isCollapsed ? '70px' : '240px') }}>
+        <main data-scroll-container="app" className={`relative flex-1 min-w-0 md:ml-64 transition-all duration-500 overflow-y-auto overflow-x-hidden bg-white dark:bg-black ${pathname.startsWith("/dentes") ? "md:ml-0" : ""}`} style={{ marginLeft: !pathname.startsWith("/dentes") ? (isCollapsed ? '70px' : '240px') : '0' }}>
           <PageTransition pathname={pathname} phase={pageTransitionPhase} transitionKey={pageTransitionKey}>
             <Outlet />
           </PageTransition>
