@@ -479,7 +479,7 @@ export function AppShell() {
             >
               <div className="absolute inset-x-0 top-0 h-px bg-[#EEF1F6] dark:bg-white/5" />
               <div className="absolute inset-x-0 bottom-0 h-px bg-[#EEF1F6] dark:bg-white/5" />
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[#54A8FB] blur-[40px] transition-opacity duration-500 -z-10" />
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[#54A8FB] blur-[40px] transition-opacity duration-300 -z-10" />
               <span className={`transition-all duration-300 whitespace-nowrap ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
                 RADIOGRAFIA
               </span>
@@ -490,13 +490,13 @@ export function AppShell() {
               )}
             </Link>
             <Link
-              to="/"
-              onClick={(event) => handleAnimatedNavigation(event, "/")}
+              to="/lp"
+              onClick={(event) => handleAnimatedNavigation(event, "/lp")}
               className={`flex items-center justify-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative ${pathname === "/" || pathname === "/lp" ? "text-primary font-bold" : "text-slate-500"}`}
             >
               <div className="absolute inset-x-0 top-0 h-px bg-[#EEF1F6] dark:bg-white/5" />
               <div className="absolute inset-x-0 bottom-0 h-px bg-[#EEF1F6] dark:bg-white/5" />
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[#54A8FB] blur-[40px] transition-opacity duration-500 -z-10" />
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[#54A8FB] blur-[40px] transition-opacity duration-300 -z-10" />
               <span className={`transition-all duration-300 whitespace-nowrap ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
                 CLÍNICA
               </span>
