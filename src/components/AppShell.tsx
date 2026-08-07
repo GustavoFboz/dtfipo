@@ -47,6 +47,109 @@ const PAGE_EXIT_DURATION_MS = 220;
 const PAGE_BLANK_DURATION_MS = 55;
 const PAGE_ENTER_DURATION_MS = 300;
 
+function GlobalSearch() {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  const { data: cases } = useQuery({
+    queryKey: ["global-search", "cases", query],
+    queryFn: () => fetchCases("active").then(list => 
+      list.filter(c => 
+        c.patient?.full_name?.toLowerCase().includes(query.toLowerCase()) ||
+        c.doctor_name?.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 3)
+    ),
+    enabled: query.length > 2
+  });
+
+  const { data: patients } = useQuery({
+    queryKey: ["global-search", "patients", query],
+    queryFn: () => fetchPatients().then(list => 
+      list.filter(p => p.full_name?.toLowerCase().includes(query.toLowerCase())).slice(0, 3)
+    ),
+    enabled: query.length > 2
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside as any);
+    return () => document.removeEventListener("mousedown", handleClickOutside as any);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative w-full max-w-md">
+      <div className="relative group">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#2D7FF9] transition-colors" />
+        <input 
+          type="text"
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          placeholder="Pesquise por casos, pacientes, arquivos..."
+          className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl pl-11 pr-4 py-2.5 text-sm font-light focus:ring-1 focus:ring-[#2D7FF9]/20 transition-all placeholder:text-slate-400"
+        />
+      </div>
+
+      {open && query.length > 2 && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-white/5 overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="p-2">
+            {cases && cases.length > 0 && (
+              <div className="mb-2">
+                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Casos</div>
+                {cases.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      setOpen(false);
+                      setQuery("");
+                      navigate({ to: "/lab", hash: `case=${c.id}` } as any);
+                    }}
+                    className="w-full px-3 py-2 text-left rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex flex-col"
+                  >
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{c.patient?.full_name}</span>
+                    <span className="text-[10px] text-slate-400">{c.doctor_name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {patients && patients.length > 0 && (
+              <div>
+                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pacientes</div>
+                {patients.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      setOpen(false);
+                      setQuery("");
+                      navigate({ to: "/patients" } as any);
+                    }}
+                    className="w-full px-3 py-2 text-left rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{p.full_name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {(!cases || cases.length === 0) && (!patients || patients.length === 0) && (
+              <div className="px-3 py-4 text-center text-sm text-slate-400 font-light">
+                Nenhum resultado encontrado para "{query}"
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const navItems = [
   { to: "/lab", label: "Casos", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO"] },
   { to: "/patients", label: "Pacientes", icon: Users, roles: ["CEO", "DR", "ATENDIMENTO"] },
