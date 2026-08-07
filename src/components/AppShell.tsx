@@ -382,101 +382,105 @@ export function AppShell() {
 
       <aside
         className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] z-[60] fixed h-screen overflow-hidden top-[72px] ${
-          isCollapsed ? "w-[70px]" : "w-64"
+          isCollapsed ? "w-0 opacity-0 -translate-x-full" : "w-64 opacity-100 translate-x-0"
         }`}
       >
-
-        <nav className="px-3 flex flex-col gap-1.5 mt-6 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none">
-          {filteredNavItems.map((n) => {
-            const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
-            const badgeCount =
-              n.to === "/equipe" ? pendingCount :
-              n.to === "/tarefas" ? tasksCount : 0;
-            const showBadge = badgeCount > 0;
-            return (
-              <Link
-                key={n.to}
-                to={n.to}
-                preload="intent"
-                onClick={(event) => handleAnimatedNavigation(event, n.to)}
-                className={`group relative flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition-colors duration-150 ${
-                  active
-                    ? "bg-primary/[0.03] text-primary shadow-[inset_0_0_0_1px_rgba(var(--primary),0.1)]"
-                    : "text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-primary dark:hover:text-primary"
-                }`}
-              >
-                <div className={`relative flex items-center justify-center shrink-0 ${isCollapsed ? "w-full" : "w-5"}`}>
-                  <n.icon className={`h-5 w-5 stroke-[1.2px] transition-transform duration-150 ${active ? "text-primary scale-110" : "group-hover:text-primary group-hover:scale-110"}`} />
-                  {showBadge && (
-                    <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
-                  )}
-                  {active && isCollapsed && (
-                    <div className="absolute -left-3 w-1 h-5 bg-primary rounded-r-full" />
-                  )}
-                </div>
-                {!isCollapsed && (
-                  <span className={`font-light tracking-wide whitespace-nowrap overflow-hidden flex-1 ${active ? "opacity-100 font-normal" : "opacity-70 group-hover:opacity-100"}`}>
-                    {n.label}
-                  </span>
-                )}
-                {showBadge && !isCollapsed && (
-                  <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold">
-                    {badgeCount}
-                  </span>
-                )}
-                {active && !isCollapsed && (
-                  <div className="absolute left-0 w-1 h-5 bg-primary rounded-r-full" />
-                )}
-              </Link>
-            );
-          })}
-        </nav>
-
-
-        <div className={`p-4 space-y-4 mt-auto border-t border-slate-50 dark:border-slate-800/50 transition-all duration-500 shrink-0 ${isCollapsed ? "items-center" : ""}`}>
-          <div className={`flex flex-col gap-2 ${isCollapsed ? "items-center" : ""}`}>
-            {profile && (
+        <div className="flex flex-col h-full overflow-hidden">
+          {profile && (
+            <div className="p-6 pt-10">
+              <h2 className="text-[17px] font-medium text-primary mb-6">
+                Bem-vindo <span className="text-slate-500 dark:text-slate-400 font-light text-[15px]">de volta,</span>
+              </h2>
+              
               <Link
                 to="/configuracoes"
-                aria-label="Abrir perfil e configurações"
                 onClick={(event) => handleAnimatedNavigation(event, "/configuracoes")}
-                className={`block rounded-xl transition-all duration-500 ${
-                  isCollapsed
-                    ? "p-2 hover:bg-primary/5"
-                    : "p-3 bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100/50 dark:border-slate-800/50 group hover:border-primary/30 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                }`}
+                className="flex items-center gap-3 p-3.5 bg-slate-50/50 dark:bg-slate-800/30 rounded-[32px] border border-slate-100/50 dark:border-slate-800/50 group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.98]"
               >
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 shrink-0 rounded-lg overflow-hidden bg-white dark:bg-slate-800 shadow-sm grid place-items-center text-xs font-light text-primary border border-slate-100 dark:border-slate-700 transition-transform group-hover:scale-105">
-                    {profile.avatar_url ? (
-                      <img
-                        src={profile.avatar_url}
-                        alt={profile.full_name ?? "Perfil"}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span>{profile.full_name?.[0]?.toUpperCase() ?? "U"}</span>
-                    )}
-                  </div>
-                  {!isCollapsed && (
-                    <div className="min-w-0 animate-in fade-in slide-in-from-left-4 duration-500">
-                      <div className="text-[13px] font-light text-slate-900 dark:text-slate-100 truncate tracking-tight">{profile.full_name}</div>
-                      <div className="text-[9px] text-primary/60 font-bold tracking-[0.15em] uppercase">{ROLE_LABELS[profile.role] ?? profile.role}</div>
+                <div className="h-12 w-12 shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
+                  {profile.avatar_url ? (
+                    <img
+                      src={profile.avatar_url}
+                      alt={profile.full_name ?? "Perfil"}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full grid place-items-center text-primary text-sm font-semibold">
+                      {profile.full_name?.[0]?.toUpperCase() ?? "U"}
                     </div>
                   )}
                 </div>
+                <div className="min-w-0">
+                  <div className="text-[15px] font-medium text-slate-900 dark:text-slate-100 truncate tracking-tight">{profile.full_name?.split(' ')[0]}</div>
+                  <div className="text-[11px] text-slate-400 font-light">Acessar perfil</div>
+                </div>
               </Link>
-            )}
+            </div>
+          )}
 
+          <div className="px-6 pb-4">
+            <div className="h-px bg-slate-100/80 dark:bg-white/5 w-full" />
           </div>
 
-          <button
-            onClick={handleLogout}
-            className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-400 hover:bg-rose-50/50 dark:hover:bg-rose-950/20 hover:text-rose-500 transition-all duration-500 ${isCollapsed ? "w-full justify-center" : "w-full"}`}
-          >
-            <LogOut className="h-5 w-5 stroke-[1.2px]" /> 
-            {!isCollapsed && <span className="font-light tracking-wide">Sair</span>}
-          </button>
+          <nav className="px-3 flex flex-col gap-1.5 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none py-2">
+            {filteredNavItems.map((n) => {
+              const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
+              const badgeCount =
+                n.to === "/equipe" ? pendingCount :
+                n.to === "/tarefas" ? tasksCount : 0;
+              const showBadge = badgeCount > 0;
+              return (
+                <Link
+                  key={n.to}
+                  to={n.to}
+                  preload="intent"
+                  onClick={(event) => handleAnimatedNavigation(event, n.to)}
+                  className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-150 ${
+                    active
+                      ? "text-primary bg-primary/[0.02]"
+                      : "text-slate-400 dark:text-slate-500 hover:text-primary"
+                  }`}
+                >
+                  <div className="relative flex items-center justify-center shrink-0 w-5">
+                    <n.icon className={`h-5 w-5 stroke-[1.2px] transition-transform duration-150 ${active ? "text-primary scale-110" : "group-hover:text-primary group-hover:scale-110"}`} />
+                    {showBadge && (
+                      <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
+                    )}
+                  </div>
+                  <span className={`font-light tracking-wide whitespace-nowrap overflow-hidden flex-1 ${active ? "opacity-100 font-normal" : "opacity-70 group-hover:opacity-100"}`}>
+                    {n.label}
+                  </span>
+                  {showBadge && (
+                    <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold">
+                      {badgeCount}
+                    </span>
+                  )}
+                  {active && (
+                    <div className="absolute left-0 w-1 h-5 bg-primary rounded-r-full" />
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="mt-auto border-t border-slate-100 dark:border-white/5 bg-white dark:bg-black">
+            <Link
+              to="/lab"
+              onClick={(event) => handleAnimatedNavigation(event, "/lab")}
+              className={`flex items-center justify-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all border-b border-slate-100 dark:border-white/5 hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative ${pathname.startsWith("/lab") ? "text-primary" : "text-slate-500"}`}
+            >
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[#54A8FB] blur-[40px] transition-opacity duration-500 -z-10" />
+              LABORATÓRIO
+            </Link>
+            <Link
+              to="/clinica"
+              onClick={(event) => handleAnimatedNavigation(event, "/clinica")}
+              className={`flex items-center justify-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative ${pathname.startsWith("/clinica") ? "text-primary" : "text-slate-500"}`}
+            >
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[#54A8FB] blur-[40px] transition-opacity duration-500 -z-10" />
+              CLÍNICA
+            </Link>
+          </div>
         </div>
       </aside>
 
