@@ -347,7 +347,7 @@ export function AppShell() {
             <Link 
               to="/" 
               aria-label="DentalFlow — início" 
-              className={`flex items-center gap-2 rounded-xl transition-all duration-300 hover:opacity-80 shrink-0 ${isCollapsed ? 'hidden' : 'flex'}`}
+              className={`flex items-center gap-2 rounded-xl transition-all duration-300 hover:opacity-80 shrink-0 ${isCollapsed ? 'ml-[-2px]' : 'flex'}`}
             >
               <div className="h-9 w-9 shrink-0 rounded-full bg-[#4a9bff] grid place-items-center transition-all hover:scale-105 duration-500 shadow-[0_4px_12px_-4px_rgba(74,155,255,0.55)]">
                 <span className="text-white text-[15px] font-semibold leading-none">D</span>
