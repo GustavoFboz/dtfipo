@@ -431,7 +431,7 @@ export function AppShell() {
             </div>
           )}
 
-          <div className={`transition-all duration-300 ${isCollapsed ? "px-6 pb-2" : "px-6 pb-4"}`}>
+          <div className={`transition-all duration-300 ${isCollapsed ? "px-7 pb-2" : "px-6 pb-4"}`}>
             <div className="h-px bg-slate-100/80 dark:bg-white/5 w-full" />
           </div>
 
