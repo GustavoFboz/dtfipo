@@ -51,17 +51,17 @@ function PatientAvatarView({
   );
 }
 
-type TabKey = "detalhes" | "galeria" | "html" | "scans" | "modelos" | "elementos" | "comentarios";
+type TabKey = "detalhes" | "galeria" | "html" | "scans" | "modelos" | "confeccao" | "comentarios";
 
 const OPEN_CASE_KEY = "case_dialog:open";
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: "detalhes", label: "Detalhes" },
   { key: "galeria", label: "Galeria" },
-  { key: "scans", label: "Scans" },
-  { key: "html", label: "Prévias" },
+  { key: "scans", label: "Escaneamentos" },
+  { key: "html", label: "HTML" },
   { key: "modelos", label: "Modelos" },
-  { key: "elementos", label: "Elementos" },
+  { key: "confeccao", label: "Elementos" },
   { key: "comentarios", label: "Chat" },
 ];
 
@@ -153,15 +153,15 @@ const TAB_TO_KIND: Partial<Record<TabKey, CaseAttachmentKind>> = {
   galeria: "gallery",
   scans: "scans",
   modelos: "model",
-  elementos: "elementos",
+  confeccao: "fabrication",
   html: "exocad_html",
 };
 const KIND_LABEL_BR: Record<CaseAttachmentKind, string> = {
   gallery: "Galeria",
   scans: "Escaneamentos",
   model: "Modelos",
-  elementos: "Elementos",
-  exocad_html: "Prévias",
+  fabrication: "Elementos",
+  exocad_html: "Exocad",
   comment_image: "Imagens de comentário",
   other: "Outros",
 };
@@ -827,9 +827,9 @@ export function CaseDetailDialog({
                   <CaseAttachments key={`${caseRow.id}:model:${open ? "o" : "c"}`} caseId={caseRow.id} canUpload onlyKind="model" caseRow={caseRow} />
                 </div>
               )}
-              {tab === "elementos" && (
+              {tab === "confeccao" && (
                 <div className="px-3 py-4">
-                  <CaseAttachments key={`${caseRow.id}:elementos:${open ? "o" : "c"}`} caseId={caseRow.id} canUpload onlyKind="elementos" caseRow={caseRow} />
+                  <CaseAttachments key={`${caseRow.id}:fabrication:${open ? "o" : "c"}`} caseId={caseRow.id} canUpload onlyKind="fabrication" caseRow={caseRow} />
                 </div>
               )}
               {tab === "comentarios" && (
@@ -1143,12 +1143,12 @@ export function CaseDetailDialog({
                   caseRow={caseRow}
                 />
               )}
-              {tab === "elementos" && (
+              {tab === "confeccao" && (
                 <CaseAttachments
-                  key={`${caseRow.id}:elementos:${open ? "open" : "closed"}`}
+                  key={`${caseRow.id}:fabrication:${open ? "open" : "closed"}`}
                   caseId={caseRow.id}
                   canUpload
-                  onlyKind="elementos"
+                  onlyKind="fabrication"
                   caseRow={caseRow}
                 />
               )}

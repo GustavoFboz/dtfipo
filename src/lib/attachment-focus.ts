@@ -2,7 +2,7 @@ import type { CaseAttachmentKind } from "@/lib/api";
 
 export type AttachmentFocusRequest = {
   caseId: string;
-  kind: string;
+  kind: CaseAttachmentKind;
   attachmentId: string;
 };
 

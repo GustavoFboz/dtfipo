@@ -62,19 +62,19 @@ function fmtSize(b: number | null): string {
 const KIND_LABEL: Record<CaseAttachmentKind, string> = {
   scans: "Escaneamentos",
   model: "Modelos",
-  elementos: "Elementos",
-  exocad_html: "Prévias",
+  fabrication: "Elementos",
+  exocad_html: "Exocad",
   gallery: "Galeria",
   comment_image: "Imagens de comentário",
   other: "Outros",
 };
 
-type UploadKind = "scans" | "model" | "elementos" | "exocad_html" | "gallery";
+type UploadKind = "scans" | "model" | "fabrication" | "exocad_html" | "gallery";
 
 const ACCEPT: Record<UploadKind, string | undefined> = {
   scans: ".stl,.ply,.dcm,.obj,.3mf,.zip",
   model: ".stl,.obj,.3mf,.ply,.dcm,.zip",
-  elementos: ".stl,.obj,.zip,.3mf,.ply,.dcm",
+  fabrication: ".stl,.obj,.zip,.3mf,.ply,.dcm",
   exocad_html: ".html,.htm",
   gallery: "image/*",
 };
@@ -287,14 +287,14 @@ const EMPTY_META: Record<UploadKind, { img: string; title: string; hint: string 
     title: "Nenhum escaneamento por aqui",
     hint: "Arraste escaneamentos para esta aba ou use o botão + para adicionar arquivos ao caso.",
   },
-  elementos: {
+  fabrication: {
     img: emptyModels.url,
     title: "Nenhum arquivo de elementos",
     hint: "Arraste arquivos de elementos para esta aba ou use o botão + para adicioná-los ao caso.",
   },
   exocad_html: {
     img: emptyHtml.url,
-    title: "Nenhuma prévia por aqui",
+    title: "Nenhum HTML por aqui",
     hint: "Arraste visualizações exocad (.html) para esta aba ou use o botão + para adicioná-las ao caso.",
   },
 };
@@ -676,15 +676,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
 
 
   const grouped = useMemo(() => {
-    const g: Record<CaseAttachmentKind, CaseAttachment[]> = {
-      elementos: [],
-      model: [],
-      exocad_html: [],
-      scans: [],
-      gallery: [],
-      comment_image: [],
-      other: [],
-    };
+    const g: Record<CaseAttachmentKind, CaseAttachment[]> = { fabrication: [], model: [], exocad_html: [], scans: [], gallery: [], comment_image: [], other: [] };
     for (const a of data ?? []) {
       const k = (a.kind ?? "other") as CaseAttachmentKind;
       (g[k] ?? g.other).push(a);
@@ -696,12 +688,12 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
   // antes de abrir a aba — para que a troca seja instantânea e o cache do
   // IndexedDB sirva os thumbs após um reload.
   useEffect(() => {
-    const pool = [...grouped.model, ...grouped.scans, ...grouped.elementos];
+    const pool = [...grouped.model, ...grouped.scans, ...grouped.fabrication];
     for (const a of pool) {
       if (a.expired_at) continue;
       if (RE_3D_THUMB.test(a.file_name)) prefetchModelThumb(a.storage_path, a.file_name);
     }
-  }, [grouped.model, grouped.scans, grouped.elementos]);
+  }, [grouped.model, grouped.scans, grouped.fabrication]);
 
 
   // Linear order of all visible attachments — used for Shift-range click.
@@ -1016,7 +1008,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
   const isGalleryTab = onlyKind === "gallery";
   // Abas 3D — Escaneamentos, Modelos e Elementos compartilham a mesma
   // apresentação (grade de miniaturas 3D / lista) e o mesmo estado de view.
-  const is3DTab = onlyKind === "model" || onlyKind === "scans" || onlyKind === "elementos";
+  const is3DTab = onlyKind === "model" || onlyKind === "scans" || onlyKind === "fabrication";
   const items3D = onlyKind && is3DTab
     ? (grouped[onlyKind as CaseAttachmentKind] ?? []).filter((a) => !a.expired_at)
     : [];

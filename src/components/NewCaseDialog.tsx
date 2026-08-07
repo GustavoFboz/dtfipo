@@ -208,9 +208,9 @@ export function NewCaseDialog({
   const [systemPickerTooth, setSystemPickerTooth] = useState<number | null>(null);
   const [systemPickerRect, setSystemPickerRect] = useState<{ left: number; top: number; right: number; bottom: number; width: number; height: number } | null>(null);
   // Scans pendentes (somente criação) — anexados após salvar
-  const [pendingScanFiles, setPendingScanFiles] = useState<Array<{ file: File; kind: "scans" | "model" | "elementos" | "exocad_html" }>>([]);
+  const [pendingScanFiles, setPendingScanFiles] = useState<Array<{ file: File; kind: "scans" | "model" | "fabrication" | "exocad_html" }>>([]);
   const pendingScanFileInput = useRef<HTMLInputElement>(null);
-  const pendingKindRef = useRef<"scans" | "model" | "elementos" | "exocad_html">("scans");
+  const pendingKindRef = useRef<"scans" | "model" | "fabrication" | "exocad_html">("scans");
   const [pendingAccept, setPendingAccept] = useState<string | undefined>(undefined);
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [pendingGalleryFiles, setPendingGalleryFiles] = useState<File[]>([]);
@@ -1196,8 +1196,8 @@ export function NewCaseDialog({
                       {([
                         { kind: "scans", label: "Escaneamentos", Icon: ScanLine, accept: ".stl,.ply,.dcm,.obj,.3mf,.zip" },
                         { kind: "model", label: "Modelos", Icon: Box, accept: ".stl,.obj,.3mf,.ply,.dcm,.zip" },
-                        { kind: "elementos", label: "Elementos", Icon: Wrench, accept: ".stl,.obj,.zip,.3mf,.ply,.dcm" },
-                        { kind: "exocad_html", label: "Prévias", Icon: Monitor, accept: ".html,.htm" },
+                        { kind: "fabrication", label: "Elementos", Icon: Wrench, accept: ".stl,.obj,.zip,.3mf,.ply,.dcm" },
+                        { kind: "exocad_html", label: "Exocad (HTML)", Icon: Monitor, accept: ".html,.htm" },
                       ] as const).map(({ kind, label, Icon, accept }) => (
                         <button
                           key={kind}
