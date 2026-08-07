@@ -130,7 +130,7 @@ export type CaseRow = {
   entry_date: string;
   delivery_date: string;
   finished_at: string | null;
-  finished: boolean;
+  finished?: boolean;
   status: string;
   model_done: boolean;
   scan_done: boolean;
