@@ -1197,7 +1197,7 @@ export function NewCaseDialog({
                         { kind: "scans", label: "Escaneamentos", Icon: ScanLine, accept: ".stl,.ply,.dcm,.obj,.3mf,.zip" },
                         { kind: "model", label: "Modelos", Icon: Box, accept: ".stl,.obj,.3mf,.ply,.dcm,.zip" },
                         { kind: "elementos", label: "Elementos", Icon: Wrench, accept: ".stl,.obj,.zip,.3mf,.ply,.dcm" },
-                        { kind: "exocad_html", label: "Exocad (HTML)", Icon: Monitor, accept: ".html,.htm" },
+                        { kind: "exocad_html", label: "Prévias", Icon: Monitor, accept: ".html,.htm" },
                       ] as const).map(({ kind, label, Icon, accept }) => (
                         <button
                           key={kind}
