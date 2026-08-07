@@ -9,7 +9,7 @@ export type StageRequirementType =
   | "implant_components"
   | "download_scans"
   | "upload_models"
-  | "upload_fabrication"
+  | "upload_elementos"
   | "upload_html"
   | "upload_gallery";
 
@@ -24,7 +24,7 @@ export type TabKey =
   | "html"
   | "scans"
   | "modelos"
-  | "confeccao"
+  | "elementos"
   | "comentarios";
 
 export const REQUIREMENT_CATALOG: Record<
@@ -46,10 +46,10 @@ export const REQUIREMENT_CATALOG: Record<
     description: "Pelo menos um arquivo precisa ser enviado em Modelos.",
     targetTab: "modelos",
   },
-  upload_fabrication: {
+  upload_elementos: {
     label: 'Enviar arquivo na aba "Elementos"',
     description: "Pelo menos um arquivo precisa ser enviado em Elementos.",
-    targetTab: "confeccao",
+    targetTab: "elementos",
   },
   upload_html: {
     label: 'Enviar arquivo na aba "Html"',
@@ -158,7 +158,7 @@ export function useStageRequirements(caseRow: CaseRow | null | undefined) {
     implant_components: null,
     download_scans: null,
     upload_models: "model",
-    upload_fabrication: "fabrication",
+    upload_elementos: "elementos",
     upload_html: "exocad_html",
     upload_gallery: "gallery",
   };
@@ -193,7 +193,7 @@ export function useStageRequirements(caseRow: CaseRow | null | undefined) {
       case "download_scans":
         return (scanDownloadsQ.data ?? 0) > 0;
       case "upload_models":
-      case "upload_fabrication":
+      case "upload_elementos":
       case "upload_html":
       case "upload_gallery": {
         const k = kindByType[req.type]!;
@@ -221,7 +221,7 @@ export function useStageRequirements(caseRow: CaseRow | null | undefined) {
   const pendingTargetTabs = pending.map((r) => REQUIREMENT_CATALOG[r.type].targetTab);
   const allowedTabs: TabKey[] = applies && pending.length > 0
     ? Array.from(new Set([...ALWAYS_OPEN_TABS, ...pendingTargetTabs]))
-    : (["detalhes", "galeria", "html", "scans", "modelos", "confeccao", "comentarios"] as TabKey[]);
+    : (["detalhes", "galeria", "html", "scans", "modelos", "elementos", "comentarios"] as TabKey[]);
 
   function tabBlockedMessage(tab: TabKey): string | null {
     if (!applies || allowedTabs.includes(tab)) return null;

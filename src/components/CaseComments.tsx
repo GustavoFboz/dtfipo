@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { CaseAttachmentKind } from "@/lib/api";
+
 import { CaseChecklistFab } from "@/components/CaseChecklists";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,14 +43,14 @@ type MentionItem = { id: string; full_name: string | null; email: string | null;
 type PendingImage = { id: string; file: File; previewUrl: string; kind?: "comment_image" | "gallery" };
 
 /** Tipos de anexo que podem ser enviados pelo chat (mapeiam para as abas do caso). */
-export type AttachKind = "gallery" | "scans" | "exocad_html" | "model" | "fabrication";
+export type AttachKind = "gallery" | "scans" | "exocad_html" | "model" | "elementos";
 
 const ATTACH_LABEL: Record<AttachKind, string> = {
   gallery: "Imagem",
   scans: "Escaneamento",
   exocad_html: "HTML",
   model: "Modelo",
-  fabrication: "Elemento",
+  elementos: "Elemento",
 };
 
 const ATTACH_ACCEPT: Record<AttachKind, string> = {
@@ -56,13 +58,13 @@ const ATTACH_ACCEPT: Record<AttachKind, string> = {
   scans: ".stl,.ply,.dcm,.obj,.3mf,.zip",
   exocad_html: ".html,.htm",
   model: ".stl,.obj,.3mf,.ply,.dcm,.zip",
-  fabrication: ".stl,.obj,.zip,.3mf,.ply,.dcm",
+  elementos: ".stl,.obj,.zip,.3mf,.ply,.dcm",
 };
 
 function AttachKindIcon({ kind, className }: { kind: AttachKind; className?: string }) {
   if (kind === "scans") return <ScanLine className={className} />;
   if (kind === "exocad_html") return <FileCode2 className={className} />;
-  if (kind === "fabrication") return <Layers className={className} />;
+  if (kind === "elementos") return <Layers className={className} />;
   if (kind === "gallery") return <ImageIcon className={className} />;
   return <Box className={className} />;
 }
@@ -321,7 +323,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
       const value = item.value.trim();
       const uploadedPaths: { path: string; name: string; att_id?: string; kind?: string }[] = [];
       for (const p of item.images) {
-        const att = await uploadCaseAttachment(caseId, p.file, undefined, p.kind ?? "comment_image");
+        const att = await uploadCaseAttachment(caseId, p.file, undefined, (p.kind === "gallery" ? "gallery" : "comment_image") as CaseAttachmentKind);
         uploadedPaths.push({ path: att.storage_path, name: att.file_name, att_id: att.id, kind: p.kind ?? "comment_image" });
       }
       const uploadedFiles: { att_id: string; name: string; size: number; kind: AttachKind }[] = [];

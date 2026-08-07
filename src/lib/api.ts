@@ -1,5 +1,90 @@
 // @ts-nocheck
 import { supabase } from "@/integrations/supabase/client";
+import { autoRecordCaseMilling } from "./burrs";
+import { broadcastEntity, markDeleted } from "./optimistic";
+import type { CaseRow, Doctor, Cadista, Patient, CaseType, ToothColor, Stage, Phase, Component, Profile, Notification, ComponentCategory } from "./types";
+
+export type CaseAttachmentKind = "gallery" | "scans" | "exocad_html" | "model" | "elementos" | "comment_image" | "other";
+
+export type CaseAttachment = {
+  id: string;
+  case_id: string;
+  file_name: string;
+  storage_path: string;
+  size_bytes: number | null;
+  mime_type: string | null;
+  uploaded_by: string | null;
+  uploaded_at: string;
+  expires_at: string;
+  expired_at: string | null;
+  notes: string | null;
+  kind: CaseAttachmentKind;
+};
+
+export async function fetchCaseAttachments(caseId: string, kind?: string): Promise<CaseAttachment[]> {
+  let q = supabase
+    .from("case_attachments" as never)
+    .select("*")
+    .eq("case_id", caseId)
+    .is("expired_at", null)
+    .order("uploaded_at", { ascending: false });
+  if (kind) q = q.eq("kind", kind);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as CaseAttachment[];
+}
+
+export async function uploadCaseAttachment(
+  caseId: string,
+  file: File,
+  notes?: string,
+  kind: CaseAttachmentKind = "scans",
+) {
+  const { data: { user } } = await supabase.auth.getUser();
+  const fileExt = file.name.split(".").pop();
+  const filePath = `${caseId}/${kind}/${Math.random().toString(36).slice(2, 10)}.${fileExt}`;
+
+  const { error: uploadError } = await supabase.storage.from("case-files").upload(filePath, file);
+  if (uploadError) throw uploadError;
+
+  const { data, error } = await supabase
+    .from("case_attachments" as never)
+    .insert({
+      case_id: caseId,
+      file_name: file.name,
+      storage_path: filePath,
+      size_bytes: file.size,
+      mime_type: file.type || null,
+      uploaded_by: user?.id,
+      notes: notes || null,
+      kind,
+    } as never)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as CaseAttachment;
+}
+
+export async function deleteCaseAttachment(id: string | { id: string }) {
+  const targetId = typeof id === "string" ? id : id.id;
+  const { data: att } = await supabase.from("case_attachments" as any).select("storage_path").eq("id", targetId).single();
+  if (att) {
+    await supabase.storage.from("case-files").remove([att.storage_path]);
+  }
+  const { error } = await supabase.from("case_attachments" as any).delete().eq("id", targetId);
+  if (error) throw error;
+}
+
+
+export async function getCaseAttachmentUrl(path: string) {
+  const { data, error } = await supabase.storage.from("case-files").createSignedUrl(path, 3600);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+
+
 import type { CaseRow, Doctor, Cadista, Patient, CaseType, ToothColor, Stage, Phase, Component, Profile, Notification, ComponentCategory } from "./types";
 import { autoRecordCaseMilling } from "./burrs";
 import { broadcastEntity, markDeleted } from "./optimistic";
@@ -822,85 +907,13 @@ export async function refreshAttachmentSignedUrl(path: string): Promise<string> 
   return data.signedUrl;
 }
 
-// ===== Case attachments (72h auto-expire) =====
-export type CaseAttachment = {
-  id: string;
-  case_id: string;
-  file_name: string;
-  storage_path: string;
-  size_bytes: number | null;
-  mime_type: string | null;
-  uploaded_by: string | null;
-  uploaded_at: string;
-  expires_at: string;
-  expired_at: string | null;
-  notes: string | null;
-  kind?: "fabrication" | "model" | "exocad_html" | "scans" | "gallery" | "comment_image" | "other" | null;
-};
-
-export async function fetchCaseAttachments(caseId: string): Promise<CaseAttachment[]> {
-  const { data, error } = await supabase
-    .from("case_attachments" as never)
-    .select("*")
-    .eq("case_id", caseId)
-    .order("uploaded_at", { ascending: false });
-  if (error) throw error;
-  return (data ?? []) as unknown as CaseAttachment[];
-}
-
-export type CaseAttachmentKind = "fabrication" | "model" | "exocad_html" | "scans" | "gallery" | "comment_image" | "other";
-
-export async function uploadCaseAttachment(
-  caseId: string,
-  file: File,
-  notes?: string,
-  kind: CaseAttachmentKind = "other",
-): Promise<CaseAttachment> {
-  const ext = file.name.split(".").pop() ?? "bin";
-  const path = `${caseId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const { error: upErr } = await supabase.storage
-    .from("case-files")
-    .upload(path, file, { contentType: file.type || undefined, upsert: false });
-  if (upErr) throw upErr;
-  const { data: userRes } = await supabase.auth.getUser();
-  const { data, error } = await supabase
-    .from("case_attachments" as never)
-    .insert({
-      case_id: caseId,
-      file_name: file.name,
-      storage_path: path,
-      size_bytes: file.size,
-      mime_type: file.type || null,
-      uploaded_by: userRes.user?.id ?? null,
-      notes: notes ?? null,
-      kind,
-    } as never)
-    .select()
-    .single();
-  if (error) throw error;
-  return data as unknown as CaseAttachment;
-}
-
+// (Duplicated attachment code removed)
 export async function fetchCaseAttachmentText(path: string): Promise<string> {
   const { data, error } = await supabase.storage.from("case-files").download(path);
   if (error) throw error;
   return await data.text();
 }
 
-export async function getCaseAttachmentUrl(path: string): Promise<string> {
-  const { data, error } = await supabase.storage
-    .from("case-files")
-    .createSignedUrl(path, 60 * 60);
-  if (error) throw error;
-  return data.signedUrl;
-}
-
-export async function deleteCaseAttachment(att: CaseAttachment) {
-  markDeleted(att.id);
-  try { await supabase.storage.from("case-files").remove([att.storage_path]); } catch {}
-  const { error } = await supabase.from("case_attachments" as never).delete().eq("id", att.id);
-  if (error) throw error;
-}
 
 // ===== Ad-hoc component on a case (creates component then links) =====
 export async function addAdhocCaseComponent(caseId: string, name: string, qty = 1, notes?: string) {
