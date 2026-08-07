@@ -464,7 +464,7 @@ export function AppShell() {
                         )}
                       </div>
                       {!isCollapsed && (
-                        <span className="font-light tracking-wide whitespace-nowrap transition-opacity duration-300 flex-1">
+                        <span className="font-light tracking-wide whitespace-nowrap transition-all duration-300 ease-in-out flex-1">
                           {n.label}
                         </span>
                       )}
