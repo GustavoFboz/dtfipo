@@ -382,22 +382,26 @@ export function AppShell() {
 
       <aside
         className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] z-[60] fixed h-screen overflow-hidden top-[72px] ${
-          isCollapsed ? "w-0 opacity-0 -translate-x-full" : "w-64 opacity-100 translate-x-0"
+          isCollapsed ? "w-20" : "w-64"
         }`}
       >
         <div className="flex flex-col h-full overflow-hidden">
           {profile && (
-            <div className="p-6 pt-10">
-              <h2 className="text-[17px] font-medium text-primary mb-6">
+            <div className={`p-6 transition-all duration-500 ${isCollapsed ? "pt-6 px-3" : "pt-10"}`}>
+              <h2 className={`text-[17px] font-medium text-primary mb-6 transition-all duration-500 overflow-hidden whitespace-nowrap ${isCollapsed ? "opacity-0 h-0 mb-0" : "opacity-100 h-auto"}`}>
                 Bem-vindo <span className="text-slate-500 dark:text-slate-400 font-light text-[15px]">de volta,</span>
               </h2>
               
               <Link
                 to="/configuracoes"
                 onClick={(event) => handleAnimatedNavigation(event, "/configuracoes")}
-                className="flex items-center gap-3 p-3.5 bg-slate-50/50 dark:bg-slate-800/30 rounded-[32px] border border-slate-100/50 dark:border-slate-800/50 group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.98]"
+                className={`flex items-center bg-slate-50/50 dark:bg-slate-800/30 rounded-[32px] border border-slate-100/50 dark:border-slate-800/50 group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.98] ${
+                  isCollapsed ? "p-1.5 gap-0 justify-center" : "p-3.5 gap-3"
+                }`}
               >
-                <div className="h-12 w-12 shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
+                <div className={`shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 transition-all duration-500 ${
+                  isCollapsed ? "h-11 w-11" : "h-12 w-12"
+                }`}>
                   {profile.avatar_url ? (
                     <img
                       src={profile.avatar_url}
@@ -410,7 +414,7 @@ export function AppShell() {
                     </div>
                   )}
                 </div>
-                <div className="min-w-0">
+                <div className={`min-w-0 transition-all duration-500 overflow-hidden ${isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100 ml-0"}`}>
                   <div className="text-[15px] font-medium text-slate-900 dark:text-slate-100 truncate tracking-tight">{profile.full_name?.split(' ')[0]}</div>
                   <div className="text-[11px] text-slate-400 font-light">Acessar perfil</div>
                 </div>
@@ -418,11 +422,11 @@ export function AppShell() {
             </div>
           )}
 
-          <div className="px-6 pb-4">
+          <div className={`transition-all duration-500 ${isCollapsed ? "px-3 pb-2" : "px-6 pb-4"}`}>
             <div className="h-px bg-slate-100/80 dark:bg-white/5 w-full" />
           </div>
 
-          <nav className="px-3 flex flex-col gap-1.5 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none py-2">
+          <nav className={`flex flex-col gap-1.5 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none py-2 transition-all duration-500 ${isCollapsed ? "px-2" : "px-3"}`}>
             {filteredNavItems.map((n) => {
               const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
               const badgeCount =
@@ -435,11 +439,11 @@ export function AppShell() {
                   to={n.to}
                   preload="intent"
                   onClick={(event) => handleAnimatedNavigation(event, n.to)}
-                  className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-150 ${
+                  className={`group relative flex items-center rounded-xl text-sm transition-all duration-150 ${
                     active
                       ? "text-primary bg-primary/[0.02]"
                       : "text-slate-400 dark:text-slate-500 hover:text-primary"
-                  }`}
+                  } ${isCollapsed ? "px-0 justify-center py-3" : "px-4 py-3 gap-3"}`}
                 >
                   <div className="relative flex items-center justify-center shrink-0 w-5">
                     <n.icon className={`h-5 w-5 stroke-[1.2px] transition-transform duration-150 ${active ? "text-primary scale-110" : "group-hover:text-primary group-hover:scale-110"}`} />
@@ -447,10 +451,12 @@ export function AppShell() {
                       <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
                     )}
                   </div>
-                  <span className={`font-light tracking-wide whitespace-nowrap overflow-hidden flex-1 ${active ? "opacity-100 font-normal" : "opacity-70 group-hover:opacity-100"}`}>
+                  <span className={`font-light tracking-wide whitespace-nowrap transition-all duration-500 overflow-hidden ${
+                    isCollapsed ? "w-0 opacity-0" : "flex-1 opacity-70 group-hover:opacity-100"
+                  } ${active && !isCollapsed ? "opacity-100 font-normal" : ""}`}>
                     {n.label}
                   </span>
-                  {showBadge && (
+                  {showBadge && !isCollapsed && (
                     <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold">
                       {badgeCount}
                     </span>
@@ -463,7 +469,7 @@ export function AppShell() {
             })}
           </nav>
 
-          <div className="mt-auto border-t border-slate-100 dark:border-white/5 bg-white dark:bg-black">
+          <div className="mt-auto border-t border-slate-100 dark:border-white/5 bg-white dark:bg-black overflow-hidden">
             <Link
               to="/lab"
               onClick={(event) => handleAnimatedNavigation(event, "/lab")}
@@ -472,7 +478,14 @@ export function AppShell() {
               <div className="absolute inset-x-0 top-0 h-px bg-[#EEF1F6] dark:bg-white/5" />
               <div className="absolute inset-x-0 bottom-0 h-px bg-[#EEF1F6] dark:bg-white/5" />
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[#54A8FB] blur-[40px] transition-opacity duration-500 -z-10" />
-              RADIOGRAFIA
+              <span className={`transition-all duration-500 whitespace-nowrap ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
+                RADIOGRAFIA
+              </span>
+              {isCollapsed && (
+                <div className="absolute inset-0 grid place-items-center">
+                  <LayoutDashboard className="h-5 w-5" />
+                </div>
+              )}
             </Link>
             <Link
               to="/"
@@ -482,13 +495,20 @@ export function AppShell() {
               <div className="absolute inset-x-0 top-0 h-px bg-[#EEF1F6] dark:bg-white/5" />
               <div className="absolute inset-x-0 bottom-0 h-px bg-[#EEF1F6] dark:bg-white/5" />
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[#54A8FB] blur-[40px] transition-opacity duration-500 -z-10" />
-              CLÍNICA
+              <span className={`transition-all duration-500 whitespace-nowrap ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
+                CLÍNICA
+              </span>
+              {isCollapsed && (
+                <div className="absolute inset-0 grid place-items-center">
+                  <Stethoscope className="h-5 w-5" />
+                </div>
+              )}
             </Link>
           </div>
         </div>
       </aside>
 
-      <div className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:block"} transition-all duration-500 shrink-0 ${isCollapsed ? "w-0" : "w-64"}`} />
+      <div className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:block"} transition-all duration-500 shrink-0 ${isCollapsed ? "w-20" : "w-64"}`} />
 
       {pathname.startsWith("/dentes") && (
         <>
