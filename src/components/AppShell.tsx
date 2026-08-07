@@ -327,12 +327,28 @@ export function AppShell() {
   return (
     <div className="flex h-screen overflow-hidden bg-[#fcfdfe] dark:bg-black font-light transition-colors duration-500">
       {/* ============ DESKTOP TOP HEADER ============ */}
-      <header className="hidden md:flex fixed top-0 right-0 z-50 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-8 transition-all duration-500" style={{ left: isCollapsed ? "70px" : "256px", height: "72px" }}>
-        <div className="flex-1 max-w-2xl">
+      <header className="hidden md:flex fixed top-0 right-0 z-50 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-8 transition-all duration-500 left-0 h-[72px]">
+        <div className={`flex items-center transition-all duration-500 shrink-0 ${isCollapsed ? "w-[70px] justify-center" : "w-64 px-6"}`}>
+          <Link to="/" aria-label="DentalFlow — início" className="flex items-center gap-2.5 rounded-xl transition-opacity hover:opacity-80">
+            <div className="h-9 w-9 shrink-0 rounded-full bg-[#4a9bff] grid place-items-center transition-all hover:scale-105 duration-500 shadow-[0_4px_12px_-4px_rgba(74,155,255,0.55)]">
+              <span className="text-white text-[15px] font-semibold leading-none">D</span>
+            </div>
+            {!isCollapsed && (
+              <div className="leading-tight animate-in fade-in slide-in-from-left-4 duration-500">
+                <div className="text-[15px] tracking-[0.02em] text-slate-800 dark:text-slate-100 uppercase">
+                  <span className="font-light">DENTAL</span>
+                  <span className="font-bold">FLOW</span>
+                </div>
+              </div>
+            )}
+          </Link>
+        </div>
+
+        <div className="flex-1 max-w-2xl px-4">
           <GlobalSearch />
         </div>
 
-        <div className="flex items-center gap-2 ml-4">
+        <div className="flex items-center gap-2">
           <NotificationPanel />
           
           <Link
@@ -355,26 +371,10 @@ export function AppShell() {
       </header>
 
       <aside
-        className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] z-[60] fixed h-screen overflow-hidden ${
+        className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] z-[60] fixed h-screen overflow-hidden top-[72px] ${
           isCollapsed ? "w-[70px]" : "w-64"
         }`}
       >
-
-        <div className={`px-4 flex items-center transition-all duration-500 shrink-0 ${isCollapsed ? "justify-center h-[72px]" : "px-6 h-[72px]"}`}>
-          <Link to="/" aria-label="DentalFlow — início" className="flex items-center gap-2.5 rounded-xl transition-opacity hover:opacity-80">
-            <div className="h-9 w-9 shrink-0 rounded-full bg-[#4a9bff] grid place-items-center transition-all hover:scale-105 duration-500 shadow-[0_4px_12px_-4px_rgba(74,155,255,0.55)]">
-              <span className="text-white text-[15px] font-semibold leading-none">D</span>
-            </div>
-            {!isCollapsed && (
-              <div className="leading-tight animate-in fade-in slide-in-from-left-4 duration-500">
-                <div className="text-[15px] tracking-[0.02em] text-slate-800 dark:text-slate-100 uppercase">
-                  <span className="font-light">DENTAL</span>
-                  <span className="font-bold">FLOW</span>
-                </div>
-              </div>
-            )}
-          </Link>
-        </div>
 
         <nav className="px-3 flex flex-col gap-1.5 mt-6 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none">
           {filteredNavItems.map((n) => {
@@ -553,7 +553,7 @@ export function AppShell() {
         </div>
       </header>
 
-      <main data-scroll-container="app" className="relative h-screen flex-1 min-w-0 pt-[calc(4rem+env(safe-area-inset-top))] md:pt-[72px] overflow-y-auto overflow-x-hidden bg-white dark:bg-slate-950">
+      <main data-scroll-container="app" className="relative h-screen flex-1 min-w-0 pt-[72px] md:pt-[72px] overflow-y-auto overflow-x-hidden bg-white dark:bg-slate-950">
         <PageTransition pathname={pathname} phase={pageTransitionPhase} transitionKey={pageTransitionKey}>
           <Outlet />
         </PageTransition>
