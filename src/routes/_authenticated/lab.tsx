@@ -78,7 +78,7 @@ function Index() {
       </header>
 
       <section className="flex-1 min-h-0 flex flex-col">
-        <CasesTable hideToolbar minimal />
+        <CasesTable hideToolbar minimal hideSearch />
       </section>
 
       <section className="shrink-0 pt-8 pb-10 md:pb-14 border-t border-slate-200/70 dark:border-slate-800/70 mt-6">
