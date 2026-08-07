@@ -63,7 +63,7 @@ const KIND_LABEL: Record<CaseAttachmentKind, string> = {
   scans: "Escaneamentos",
   model: "Modelos",
   elementos: "Elementos",
-  exocad_html: "Exocad",
+  exocad_html: "Prévias",
   gallery: "Galeria",
   comment_image: "Imagens de comentário",
   other: "Outros",
@@ -294,7 +294,7 @@ const EMPTY_META: Record<UploadKind, { img: string; title: string; hint: string 
   },
   exocad_html: {
     img: emptyHtml.url,
-    title: "Nenhum HTML por aqui",
+    title: "Nenhuma prévia por aqui",
     hint: "Arraste visualizações exocad (.html) para esta aba ou use o botão + para adicioná-las ao caso.",
   },
 };

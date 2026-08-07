@@ -7,7 +7,6 @@ import {
   LogOut,
   Users2,
   Box,
-  
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -19,7 +18,8 @@ import {
   X,
   User,
   Home,
-  // Wallet removido — módulo Financeiro desativado.
+  Bell,
+  Search,
 } from "lucide-react";
 import { Settings as SettingsIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -47,8 +47,112 @@ const PAGE_EXIT_DURATION_MS = 220;
 const PAGE_BLANK_DURATION_MS = 55;
 const PAGE_ENTER_DURATION_MS = 300;
 
+function GlobalSearch() {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const { data: cases } = useQuery({
+    queryKey: ["global-search", "cases", query],
+    queryFn: () => fetchCases("active").then(list => 
+      list.filter(c => 
+        c.patient?.name?.toLowerCase().includes(query.toLowerCase()) ||
+        c.doctor?.name?.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 3)
+    ),
+    enabled: query.length > 2
+  });
+
+  const { data: patients } = useQuery({
+    queryKey: ["global-search", "patients", query],
+    queryFn: () => fetchPatients().then(list => 
+      list.filter(p => p.name?.toLowerCase().includes(query.toLowerCase())).slice(0, 3)
+    ),
+    enabled: query.length > 2
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside as any);
+    return () => document.removeEventListener("mousedown", handleClickOutside as any);
+  }, []);
+
+  return (
+    <div ref={containerRef} className="relative w-full max-w-md">
+      <div className="relative group">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#2D7FF9] transition-colors" />
+        <input 
+          type="text"
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          placeholder="Pesquise por casos, pacientes, arquivos..."
+          className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl pl-11 pr-4 py-2.5 text-sm font-light focus:ring-1 focus:ring-[#2D7FF9]/20 transition-all placeholder:text-slate-400"
+        />
+      </div>
+
+      {open && query.length > 2 && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-100 dark:border-white/5 overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="p-2">
+            {cases && cases.length > 0 && (
+              <div className="mb-2">
+                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Casos</div>
+                {cases.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      setOpen(false);
+                      setQuery("");
+                      navigate({ to: "/lab", hash: `case=${c.id}` } as any);
+                    }}
+                    className="w-full px-3 py-2 text-left rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex flex-col"
+                  >
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{c.patient?.name}</span>
+                    <span className="text-[10px] text-slate-400">{c.doctor?.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {patients && patients.length > 0 && (
+              <div>
+                <div className="px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pacientes</div>
+                {patients.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      setOpen(false);
+                      setQuery("");
+                      navigate({ to: "/patients" } as any);
+                    }}
+                    className="w-full px-3 py-2 text-left rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{p.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {(!cases || cases.length === 0) && (!patients || patients.length === 0) && (
+              <div className="px-3 py-4 text-center text-sm text-slate-400 font-light">
+                Nenhum resultado encontrado para "{query}"
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const navItems = [
-  { to: "/lab", label: "Laboratório", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO"] },
+  { to: "/lab", label: "Casos", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO"] },
   { to: "/patients", label: "Pacientes", icon: Users, roles: ["CEO", "DR", "ATENDIMENTO"] },
   { to: "/agenda", label: "Agenda", icon: CalendarDays, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA"] },
   { to: "/equipe", label: "Equipe", icon: Users2, roles: ["CEO"] },
@@ -59,7 +163,7 @@ const navItems = [
 
 function getMobilePageTitle(pathname: string, items: readonly { to: string; label: string }[]): string {
   if (pathname === "/") return "IPO";
-  if (pathname === "/lab") return "Laboratório";
+  if (pathname === "/lab") return "Casos";
   // "/financeiro" removido — módulo desativado.
   const match = items.find((n) => n.to !== "/lab" && pathname.startsWith(n.to));
   if (match) return match.label;
@@ -325,28 +429,28 @@ export function AppShell() {
   ];
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#fcfdfe] dark:bg-black font-light transition-colors duration-500">
+    <div className="flex h-screen overflow-hidden bg-white dark:bg-black font-light transition-colors duration-500">
       <aside
         className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] z-40 fixed h-screen overflow-hidden ${
-          isCollapsed ? "w-[70px]" : "w-64"
+          isCollapsed ? "w-[70px]" : "w-[240px]"
         }`}
       >
-
-        <div className={`px-4 py-8 flex items-center transition-all duration-500 shrink-0 ${isCollapsed ? "justify-center" : "px-6"}`}>
-          <Link to="/" aria-label="DentalFlow — início" className="flex items-center gap-3 rounded-xl transition-opacity hover:opacity-80">
-            <div className="h-10 w-10 shrink-0 rounded-xl bg-primary/5 dark:bg-white/[0.06] grid place-items-center transition-all hover:scale-105 duration-500 border border-primary/10 dark:border-white/10 shadow-[0_0_15px_rgba(var(--primary),0.05)]">
-              <Stethoscope className="h-5 w-5 text-primary stroke-[1.2px]" />
+        <div className={`px-4 py-8 flex items-center transition-all duration-500 shrink-0 ${isCollapsed ? "justify-center" : "px-7"}`}>
+          <Link to="/" aria-label="DentalFlow — início" className="flex items-center gap-3 transition-opacity hover:opacity-80">
+            <div className="h-10 w-10 shrink-0 rounded-full bg-[#2D7FF9] grid place-items-center transition-all hover:scale-105 duration-500 shadow-[0_4px_12px_-4px_rgba(45,127,249,0.55)]">
+              <span className="text-white text-[16px] font-semibold">D</span>
             </div>
             {!isCollapsed && (
               <div className="leading-tight animate-in fade-in slide-in-from-left-4 duration-500">
-                <div className="text-[16px] font-light tracking-tight text-slate-900 dark:text-slate-100 uppercase tracking-[0.08em]">DentalFlow</div>
-                <div className="text-[9px] text-primary/60 font-bold tracking-[0.08em] uppercase">Lab System</div>
+                <div className="text-[16px] font-bold tracking-tight text-slate-800 dark:text-slate-100 uppercase tracking-[0.05em]">
+                  <span className="font-light">D</span>FLOW
+                </div>
               </div>
             )}
           </Link>
         </div>
 
-        <nav className="px-3 flex flex-col gap-1.5 mt-6 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none">
+        <nav className="px-3 flex flex-col gap-1 mt-6 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none">
           {filteredNavItems.map((n) => {
             const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
             const badgeCount =
@@ -359,91 +463,85 @@ export function AppShell() {
                 to={n.to}
                 preload="intent"
                 onClick={(event) => handleAnimatedNavigation(event, n.to)}
-                className={`group relative flex items-center gap-3 px-3 py-3 rounded-xl text-sm transition-colors duration-150 ${
+                className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all duration-200 ${
                   active
-                    ? "bg-primary/[0.03] text-primary shadow-[inset_0_0_0_1px_rgba(var(--primary),0.1)]"
-                    : "text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-primary dark:hover:text-primary"
+                    ? "bg-[#2D7FF9]/[0.05] text-[#2D7FF9]"
+                    : "text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-[#2D7FF9]"
                 }`}
               >
                 <div className={`relative flex items-center justify-center shrink-0 ${isCollapsed ? "w-full" : "w-5"}`}>
-                  <n.icon className={`h-5 w-5 stroke-[1.2px] transition-transform duration-150 ${active ? "text-primary scale-110" : "group-hover:text-primary group-hover:scale-110"}`} />
+                  <n.icon className={`h-5 w-5 stroke-[1.4px] transition-transform duration-200 ${active ? "text-[#2D7FF9]" : "group-hover:text-[#2D7FF9]"}`} />
                   {showBadge && (
-                    <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
-                  )}
-                  {active && isCollapsed && (
-                    <div className="absolute -left-3 w-1 h-5 bg-primary rounded-r-full" />
+                    <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
                   )}
                 </div>
                 {!isCollapsed && (
-                  <span className={`font-light tracking-wide whitespace-nowrap overflow-hidden flex-1 ${active ? "opacity-100 font-normal" : "opacity-70 group-hover:opacity-100"}`}>
+                  <span className={`font-normal tracking-wide whitespace-nowrap overflow-hidden flex-1 ${active ? "opacity-100" : "opacity-70 group-hover:opacity-100"}`}>
                     {n.label}
                   </span>
                 )}
-                {showBadge && !isCollapsed && (
-                  <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold">
-                    {badgeCount}
-                  </span>
-                )}
                 {active && !isCollapsed && (
-                  <div className="absolute left-0 w-1 h-5 bg-primary rounded-r-full" />
+                  <div className="absolute right-0 w-1 h-5 bg-[#2D7FF9] rounded-l-full" />
                 )}
               </Link>
             );
           })}
         </nav>
 
-
-        <div className={`p-4 space-y-4 mt-auto border-t border-slate-50 dark:border-slate-800/50 transition-all duration-500 shrink-0 ${isCollapsed ? "items-center" : ""}`}>
-          <div className={`flex flex-col gap-2 ${isCollapsed ? "items-center" : ""}`}>
-            {profile && (
-              <Link
-                to="/configuracoes"
-                aria-label="Abrir perfil e configurações"
-                onClick={(event) => handleAnimatedNavigation(event, "/configuracoes")}
-                className={`block rounded-xl transition-all duration-500 ${
-                  isCollapsed
-                    ? "p-2 hover:bg-primary/5"
-                    : "p-3 bg-slate-50/50 dark:bg-slate-800/30 border border-slate-100/50 dark:border-slate-800/50 group hover:border-primary/30 hover:bg-slate-50 dark:hover:bg-slate-800/50"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 shrink-0 rounded-lg overflow-hidden bg-white dark:bg-slate-800 shadow-sm grid place-items-center text-xs font-light text-primary border border-slate-100 dark:border-slate-700 transition-transform group-hover:scale-105">
-                    {profile.avatar_url ? (
-                      <img
-                        src={profile.avatar_url}
-                        alt={profile.full_name ?? "Perfil"}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span>{profile.full_name?.[0]?.toUpperCase() ?? "U"}</span>
-                    )}
-                  </div>
-                  {!isCollapsed && (
-                    <div className="min-w-0 animate-in fade-in slide-in-from-left-4 duration-500">
-                      <div className="text-[13px] font-light text-slate-900 dark:text-slate-100 truncate tracking-tight">{profile.full_name}</div>
-                      <div className="text-[9px] text-primary/60 font-bold tracking-[0.15em] uppercase">{ROLE_LABELS[profile.role] ?? profile.role}</div>
-                    </div>
-                  )}
-                </div>
-              </Link>
-            )}
-
-          </div>
-
-          <button
-            onClick={handleLogout}
-            className={`flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-400 hover:bg-rose-50/50 dark:hover:bg-rose-950/20 hover:text-rose-500 transition-all duration-500 ${isCollapsed ? "w-full justify-center" : "w-full"}`}
-          >
-            <LogOut className="h-5 w-5 stroke-[1.2px]" /> 
-            {!isCollapsed && <span className="font-light tracking-wide">Sair</span>}
-          </button>
+        <div className={`p-4 mt-auto transition-all duration-500 shrink-0 ${isCollapsed ? "items-center" : ""}`}>
+           <button
+             onClick={handleLogout}
+             className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-slate-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 hover:text-rose-500 transition-all duration-500 ${isCollapsed ? "w-full justify-center" : "w-full"}`}
+           >
+             <LogOut className="h-5 w-5 stroke-[1.4px]" /> 
+             {!isCollapsed && <span className="font-light tracking-wide">Sair</span>}
+           </button>
         </div>
       </aside>
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="hidden md:flex items-center justify-between px-10 h-20 bg-white dark:bg-black border-b border-slate-100 dark:border-white/5 shrink-0 z-30 ml-64 transition-all duration-500" style={{ marginLeft: isCollapsed ? '70px' : '240px' }}>
+          <div className="flex-1 max-w-md">
+            <GlobalSearch />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Link to="/" className="h-10 w-10 grid place-items-center text-slate-400 hover:text-[#2D7FF9] transition-colors">
+              <Home className="h-5 w-5 stroke-[1.4px]" />
+            </Link>
+            <div className="relative">
+               <button 
+                 id="notification-trigger"
+                 onClick={() => {
+                   const btn = document.querySelector('[aria-label="Notificações"]') as HTMLButtonElement | null;
+                   btn?.click();
+                 }}
+                 className="h-10 w-10 grid place-items-center text-slate-400 hover:text-[#2D7FF9] transition-colors"
+               >
+                 <Bell className="h-5 w-5 stroke-[1.4px]" />
+                 <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-[#2D7FF9] ring-2 ring-white dark:ring-black" />
+               </button>
+            </div>
+            <button 
+              onClick={handleLogout}
+              className="h-10 w-10 grid place-items-center text-slate-400 hover:text-rose-500 transition-colors"
+            >
+              <LogOut className="h-5 w-5 stroke-[1.4px]" />
+            </button>
+          </div>
+        </header>
+
+        <main data-scroll-container="app" className={`relative flex-1 min-w-0 md:ml-64 transition-all duration-500 overflow-y-auto overflow-x-hidden bg-white dark:bg-black ${pathname.startsWith("/dentes") ? "md:ml-0" : ""}`} style={{ marginLeft: !pathname.startsWith("/dentes") ? (isCollapsed ? '70px' : '240px') : '0' }}>
+          <PageTransition pathname={pathname} phase={pageTransitionPhase} transitionKey={pageTransitionKey}>
+            <Outlet />
+          </PageTransition>
+        </main>
+      </div>
 
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
         aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
-        className={`${dialogOpen || pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} fixed top-20 z-[60] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-full p-1.5 shadow-md transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] text-slate-400 hover:text-primary items-center justify-center ${isCollapsed ? "left-[58px]" : "left-[244px]"}`}
+        className={`${dialogOpen || pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} fixed top-20 z-[60] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-full p-1.5 shadow-md transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] text-slate-400 hover:text-[#2D7FF9] items-center justify-center ${isCollapsed ? "left-[58px]" : "left-[228px]"}`}
       >
         {isCollapsed ? <ChevronRight className="h-3 w-3 stroke-[2px]" /> : <ChevronLeft className="h-3 w-3 stroke-[2px]" />}
       </button>
