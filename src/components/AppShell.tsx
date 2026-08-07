@@ -398,23 +398,20 @@ export function AppShell() {
       <div className="flex-1 flex flex-col min-w-0">
         <header className="hidden md:flex items-center justify-between px-10 h-20 bg-white dark:bg-black border-b border-slate-100 dark:border-white/5 shrink-0 z-30 ml-64 transition-all duration-500" style={{ marginLeft: isCollapsed ? '70px' : '240px' }}>
           <div className="flex-1 max-w-md">
-            <div className="relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#2D7FF9] transition-colors" />
-              <input 
-                type="text"
-                placeholder="Pesquise por casos, pacientes, arquivos..."
-                className="w-full bg-slate-50 dark:bg-slate-900 border-none rounded-xl pl-11 pr-4 py-2.5 text-sm font-light focus:ring-1 focus:ring-[#2D7FF9]/20 transition-all placeholder:text-slate-400"
-              />
-            </div>
+            <GlobalSearch />
           </div>
           
           <div className="flex items-center gap-2">
-            <button className="h-10 w-10 grid place-items-center text-slate-400 hover:text-[#2D7FF9] transition-colors">
+            <Link to="/" className="h-10 w-10 grid place-items-center text-slate-400 hover:text-[#2D7FF9] transition-colors">
               <Home className="h-5 w-5 stroke-[1.4px]" />
-            </button>
+            </Link>
             <div className="relative">
                <button 
                  id="notification-trigger"
+                 onClick={() => {
+                   const btn = document.querySelector('[aria-label="Notificações"]') as HTMLButtonElement | null;
+                   btn?.click();
+                 }}
                  className="h-10 w-10 grid place-items-center text-slate-400 hover:text-[#2D7FF9] transition-colors"
                >
                  <Bell className="h-5 w-5 stroke-[1.4px]" />
