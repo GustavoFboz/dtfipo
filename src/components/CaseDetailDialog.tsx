@@ -160,7 +160,7 @@ const KIND_LABEL_BR: Record<CaseAttachmentKind, string> = {
   gallery: "Galeria",
   scans: "Escaneamentos",
   model: "Modelos",
-  fabrication: "Elementos",
+  elementos: "Elementos",
   exocad_html: "Exocad",
   comment_image: "Imagens de comentário",
   other: "Outros",

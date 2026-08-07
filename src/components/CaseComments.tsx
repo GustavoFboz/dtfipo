@@ -1,4 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { CaseAttachmentKind } from "@/lib/api";
+
 import { CaseChecklistFab } from "@/components/CaseChecklists";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

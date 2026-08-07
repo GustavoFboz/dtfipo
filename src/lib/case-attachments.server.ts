@@ -63,7 +63,7 @@ export async function uploadCaseAttachment(
 }
 
 export async function deleteCaseAttachment(id: string) {
-  const { data: att } = await supabase.from("case_attachments" as never).select("storage_path").eq("id", id).single();
+  const { data: att } = await supabase.from("case_attachments" as any).select("storage_path").eq("id", id).single();
   if (att) {
     await supabase.storage.from("case-files").remove([att.storage_path]);
   }
