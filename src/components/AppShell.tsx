@@ -330,8 +330,8 @@ export function AppShell() {
     <div className="flex h-screen overflow-hidden bg-[#fcfdfe] dark:bg-black font-light transition-colors duration-500">
       {/* ============ DESKTOP TOP HEADER ============ */}
       <header className="hidden md:flex fixed top-0 right-0 z-50 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-8 transition-all duration-500 left-0 h-[72px]">
-        <div className="flex items-center w-[72px] md:w-64 shrink-0 h-full border-r border-slate-100 dark:border-white/5 bg-white dark:bg-black">
-          <div className="flex items-center gap-6 w-full pl-6 transition-all duration-300">
+        <div className={`flex items-center shrink-0 h-full border-r border-slate-100 dark:border-white/5 bg-white dark:bg-black transition-all duration-300 ${isCollapsed ? 'w-[72px]' : 'w-64'}`}>
+          <div className="flex items-center gap-6 w-full pl-6">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="p-2 -ml-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0"
