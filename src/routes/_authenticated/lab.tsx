@@ -61,11 +61,11 @@ function Index() {
           {dt}
         </div>
 
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-          <h1 className="text-5xl md:text-7xl font-extralight text-slate-900 dark:text-slate-100 tracking-[-0.03em] leading-[1] flex items-baseline gap-4">
-            <span>Controle de</span>
+        <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-8">
+          <h1 className="text-4xl lg:text-5xl xl:text-7xl font-extralight text-slate-900 dark:text-slate-100 tracking-[-0.03em] leading-[1] flex flex-wrap items-baseline gap-2 md:gap-4">
+            <span className="whitespace-nowrap">Controle de</span>
             <span className="text-primary">Casos</span>
-            <ChevronRight className="h-8 w-8 md:h-10 md:w-10 text-slate-300 dark:text-slate-700 stroke-[1.2px] self-center" />
+            <ChevronRight className="h-6 w-6 md:h-8 md:w-8 xl:h-10 xl:w-10 text-slate-300 dark:text-slate-700 stroke-[1.2px] self-center shrink-0" />
           </h1>
 
           <div className="flex items-center gap-4 w-full lg:w-auto lg:min-w-[300px] justify-end">
