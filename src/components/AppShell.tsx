@@ -498,59 +498,95 @@ export function AppShell() {
           </nav>
 
           <div className="mt-auto border-t border-slate-100 dark:border-white/5 bg-white dark:bg-black overflow-hidden flex flex-col">
-            <div
-              onMouseMove={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-                e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
-              }}
-              className={`flex items-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative overflow-hidden text-slate-500 ${isCollapsed ? "justify-center" : "pl-12"}`}
-            >
-              <div className="absolute inset-x-0 bottom-0 h-px bg-slate-100 dark:bg-white/5" />
-              <div 
-                className="absolute w-24 h-24 bg-[#54A8FB] rounded-full blur-[30px] opacity-0 group-hover:opacity-20 pointer-events-none transition-opacity duration-300"
-                style={{
-                  left: 'var(--mouse-x, 50%)',
-                  top: 'var(--mouse-y, 50%)',
-                  transform: 'translate(-50%, -50%)',
-                }}
-              />
-              <span className={`transition-all duration-300 whitespace-nowrap group-hover:text-primary ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
-                CLÍNICA
-              </span>
-              {isCollapsed && (
-                <div className="absolute inset-0 grid place-items-center group-hover:text-primary transition-colors">
-                  <Stethoscope className="h-6 w-6 stroke-[1.4px]" />
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <div
+                  onMouseMove={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                    e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+                  }}
+                  className={`flex items-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative overflow-hidden text-slate-500 ${isCollapsed ? "justify-center" : "pl-12"}`}
+                >
+                  <div className="absolute inset-x-0 bottom-0 h-px bg-slate-100 dark:bg-white/5" />
+                  <div 
+                    className="absolute w-24 h-24 bg-[#54A8FB] rounded-full blur-[30px] opacity-0 group-hover:opacity-20 pointer-events-none transition-opacity duration-300"
+                    style={{
+                      left: 'var(--mouse-x, 50%)',
+                      top: 'var(--mouse-y, 50%)',
+                      transform: 'translate(-50%, -50%)',
+                    }}
+                  />
+                  <span className={`transition-all duration-300 whitespace-nowrap group-hover:text-primary ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
+                    CLÍNICA
+                  </span>
+                  {isCollapsed && (
+                    <div className="absolute inset-0 grid place-items-center group-hover:text-primary transition-colors">
+                      <Stethoscope className="h-6 w-6 stroke-[1.4px]" />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </TooltipTrigger>
+              <TooltipContent 
+                side="right" 
+                sideOffset={20} 
+                className={`z-[100] border-none shadow-xl bg-white dark:bg-slate-900 px-4 py-2.5 rounded-2xl transition-all duration-300 ${isCollapsed ? 'opacity-100' : 'opacity-0 invisible pointer-events-none'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <Stethoscope className="h-4 w-4 stroke-[1.5px]" />
+                  </div>
+                  <span className="text-[14px] font-medium text-slate-900 dark:text-slate-100 tracking-tight">
+                    CLÍNICA
+                  </span>
+                </div>
+              </TooltipContent>
+            </Tooltip>
 
-            <div
-              onMouseMove={(e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-                e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
-              }}
-              className={`flex items-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative overflow-hidden text-slate-500 ${isCollapsed ? "justify-center" : "pl-12"}`}
-            >
-              <div className="absolute inset-x-0 bottom-0 h-px bg-slate-100 dark:bg-white/5" />
-              <div 
-                className="absolute w-24 h-24 bg-[#54A8FB] rounded-full blur-[30px] opacity-0 group-hover:opacity-20 pointer-events-none transition-opacity duration-300"
-                style={{
-                  left: 'var(--mouse-x, 50%)',
-                  top: 'var(--mouse-y, 50%)',
-                  transform: 'translate(-50%, -50%)',
-                }}
-              />
-              <span className={`transition-all duration-300 whitespace-nowrap group-hover:text-primary ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
-                RADIOLOGIA
-              </span>
-              {isCollapsed && (
-                <div className="absolute inset-0 grid place-items-center group-hover:text-primary transition-colors">
-                  <LayoutDashboard className="h-6 w-6 stroke-[1.4px]" />
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <div
+                  onMouseMove={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                    e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+                  }}
+                  className={`flex items-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative overflow-hidden text-slate-500 ${isCollapsed ? "justify-center" : "pl-12"}`}
+                >
+                  <div className="absolute inset-x-0 bottom-0 h-px bg-slate-100 dark:bg-white/5" />
+                  <div 
+                    className="absolute w-24 h-24 bg-[#54A8FB] rounded-full blur-[30px] opacity-0 group-hover:opacity-20 pointer-events-none transition-opacity duration-300"
+                    style={{
+                      left: 'var(--mouse-x, 50%)',
+                      top: 'var(--mouse-y, 50%)',
+                      transform: 'translate(-50%, -50%)',
+                    }}
+                  />
+                  <span className={`transition-all duration-300 whitespace-nowrap group-hover:text-primary ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
+                    RADIOLOGIA
+                  </span>
+                  {isCollapsed && (
+                    <div className="absolute inset-0 grid place-items-center group-hover:text-primary transition-colors">
+                      <LayoutDashboard className="h-6 w-6 stroke-[1.4px]" />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </TooltipTrigger>
+              <TooltipContent 
+                side="right" 
+                sideOffset={20} 
+                className={`z-[100] border-none shadow-xl bg-white dark:bg-slate-900 px-4 py-2.5 rounded-2xl transition-all duration-300 ${isCollapsed ? 'opacity-100' : 'opacity-0 invisible pointer-events-none'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                    <LayoutDashboard className="h-4 w-4 stroke-[1.5px]" />
+                  </div>
+                  <span className="text-[14px] font-medium text-slate-900 dark:text-slate-100 tracking-tight">
+                    RADIOLOGIA
+                  </span>
+                </div>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </aside>
