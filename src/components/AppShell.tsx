@@ -451,7 +451,7 @@ export function AppShell() {
                       to={n.to}
                       preload="intent"
                       onClick={(event) => handleAnimatedNavigation(event, n.to)}
-                      className={`group relative flex items-center rounded-xl text-sm transition-all duration-300 ${
+                      className={`group relative flex items-center rounded-xl text-sm transition-all duration-300 ease-in-out ${
                         active
                           ? "text-primary bg-primary/[0.04] font-medium"
                           : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5"
