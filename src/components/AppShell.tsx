@@ -28,7 +28,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { NotificationPanel } from "./NotificationPanel";
 import { GlobalSearch } from "./GlobalSearch";
-
+ 
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BackupButton } from "./BackupButton";
 import { fetchCases, fetchPatients, fetchPendingJoinRequests, fetchProfile, fetchStages } from "@/lib/api";
 import { fetchWorkflowSettings, fetchMyTasks, fetchWorkflowStages, fetchAllStageAssignments } from "@/lib/workflow";
@@ -329,8 +330,8 @@ export function AppShell() {
     <div className="flex h-screen overflow-hidden bg-[#fcfdfe] dark:bg-black font-light transition-colors duration-500">
       {/* ============ DESKTOP TOP HEADER ============ */}
       <header className="hidden md:flex fixed top-0 right-0 z-50 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-8 transition-all duration-500 left-0 h-[72px]">
-        <div className="flex items-center w-64 shrink-0 h-full">
-          <div className="flex items-center gap-4 w-full pl-6">
+        <div className={`flex items-center shrink-0 h-full border-r border-slate-100 dark:border-white/5 bg-white dark:bg-black transition-all duration-300 ${isCollapsed ? 'w-[72px]' : 'w-64'}`}>
+          <div className="flex items-center gap-6 w-full pl-6">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="p-2 -ml-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0"
@@ -343,7 +344,7 @@ export function AppShell() {
               </svg>
             </button>
             
-            <Link to="/" aria-label="DentalFlow — início" className="flex items-center gap-2 rounded-xl transition-opacity hover:opacity-80 shrink-0">
+            <Link to="/" aria-label="DentalFlow — início" className={`flex items-center gap-2 rounded-xl transition-all duration-300 hover:opacity-80 shrink-0 ${isCollapsed ? 'opacity-0 pointer-events-none -translate-x-4' : 'opacity-100 translate-x-0'}`}>
               <div className="h-9 w-9 shrink-0 rounded-full bg-[#4a9bff] grid place-items-center transition-all hover:scale-105 duration-500 shadow-[0_4px_12px_-4px_rgba(74,155,255,0.55)]">
                 <span className="text-white text-[15px] font-semibold leading-none">D</span>
               </div>
@@ -385,16 +386,14 @@ export function AppShell() {
       </header>
 
       <aside
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 transition-all duration-300 ease-out z-[60] fixed h-[calc(100vh-72px)] overflow-hidden top-[72px] ${
-          isCollapsed && !isHovered ? "w-[72px]" : "w-64"
+          isCollapsed ? "w-[72px]" : "w-64"
         }`}
       >
         <div className="flex flex-col h-full overflow-hidden">
           {profile && (
-            <div className={`transition-all duration-300 ${isCollapsed && !isHovered ? "pt-6 px-[22px]" : "p-6 pt-10"}`}>
-              <h2 className={`text-[17px] font-medium text-primary mb-6 transition-all duration-300 overflow-hidden whitespace-nowrap ${isCollapsed && !isHovered ? "opacity-0 h-0 mb-0" : "opacity-100 h-auto"}`}>
+            <div className={`transition-all duration-300 ${isCollapsed ? "pt-6 px-[22px]" : "p-6 pt-10"}`}>
+              <h2 className={`text-[17px] font-medium text-primary mb-6 transition-all duration-300 overflow-hidden whitespace-nowrap ${isCollapsed ? "opacity-0 h-0 mb-0" : "opacity-100 h-auto"}`}>
                 Bem-vindo <span className="text-slate-500 dark:text-slate-400 font-light text-[15px]">de volta,</span>
               </h2>
               
@@ -402,11 +401,11 @@ export function AppShell() {
                 to="/configuracoes"
                 onClick={(event) => handleAnimatedNavigation(event, "/configuracoes")}
                 className={`flex items-center bg-slate-50/50 dark:bg-slate-800/30 rounded-[32px] border border-slate-100/50 dark:border-slate-800/50 group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.98] ${
-                  isCollapsed && !isHovered ? "p-0 bg-transparent border-transparent" : "p-3.5 gap-3"
+                  isCollapsed ? "p-0 bg-transparent border-transparent" : "p-3.5 gap-3"
                 }`}
               >
                 <div className={`shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 transition-all duration-300 ${
-                  isCollapsed && !isHovered ? "h-[28px] w-[28px]" : "h-12 w-12"
+                  isCollapsed ? "h-[28px] w-[28px]" : "h-12 w-12"
                 }`}>
                   {profile.avatar_url ? (
                     <img
@@ -420,7 +419,7 @@ export function AppShell() {
                     </div>
                   )}
                 </div>
-                <div className={`min-w-0 transition-all duration-300 overflow-hidden ${isCollapsed && !isHovered ? "w-0 opacity-0" : "w-auto opacity-100 ml-0"}`}>
+                <div className={`min-w-0 transition-all duration-300 overflow-hidden ${isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100 ml-0"}`}>
                   <div className="text-[15px] font-medium text-slate-900 dark:text-slate-100 truncate tracking-tight">{profile.full_name?.split(' ')[0]}</div>
                   <div className="text-[11px] text-slate-400 font-light">Acessar perfil</div>
                 </div>
@@ -428,11 +427,12 @@ export function AppShell() {
             </div>
           )}
 
-          <div className={`transition-all duration-300 ${isCollapsed && !isHovered ? "px-6 pb-2" : "px-6 pb-4"}`}>
+          <div className={`transition-all duration-300 ${isCollapsed ? "px-6 pb-2" : "px-6 pb-4"}`}>
             <div className="h-px bg-slate-100/80 dark:bg-white/5 w-full" />
           </div>
 
-          <nav className={`flex flex-col gap-1 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none py-2 transition-all duration-300 ${isCollapsed && !isHovered ? "px-6" : "px-3"}`}>
+          <nav className={`flex flex-col gap-1 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none py-2 transition-all duration-300 ${isCollapsed ? "px-6" : "px-3"}`}>
+            <TooltipProvider>
             {filteredNavItems.map((n) => {
               const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
               const badgeCount =
@@ -440,39 +440,48 @@ export function AppShell() {
                 n.to === "/tarefas" ? tasksCount : 0;
               const showBadge = badgeCount > 0;
               return (
-                <Link
-                  key={n.to}
-                  to={n.to}
-                  preload="intent"
-                  onClick={(event) => handleAnimatedNavigation(event, n.to)}
-                  className={`group relative flex items-center rounded-xl text-sm transition-all duration-300 ${
-                    active
-                      ? "text-primary bg-primary/[0.04] font-medium"
-                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5"
-                  } ${isCollapsed && !isHovered ? "px-0 py-3 w-6 justify-center" : "px-4 py-3 gap-6"}`}
-                >
-                  <div className="relative flex items-center justify-center shrink-0 w-6">
-                    <n.icon className={`h-6 w-6 stroke-[1.4px] transition-colors duration-150 ${active ? "text-primary" : "group-hover:text-slate-900 dark:group-hover:text-slate-100"}`} />
-                    {showBadge && (
-                      <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
-                    )}
-                  </div>
-                  {!(isCollapsed && !isHovered) && (
-                    <span className="font-light tracking-wide whitespace-nowrap transition-opacity duration-300 flex-1">
+                <Tooltip key={n.to} delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to={n.to}
+                      preload="intent"
+                      onClick={(event) => handleAnimatedNavigation(event, n.to)}
+                      className={`group relative flex items-center rounded-xl text-sm transition-all duration-300 ${
+                        active
+                          ? "text-primary bg-primary/[0.04] font-medium"
+                          : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5"
+                      } ${isCollapsed ? "px-0 py-3 w-6 justify-center" : "px-4 py-3 gap-6"}`}
+                    >
+                      <div className="relative flex items-center justify-center shrink-0 w-6">
+                        <n.icon className={`h-6 w-6 stroke-[1.4px] transition-colors duration-150 ${active ? "text-primary" : "group-hover:text-slate-900 dark:group-hover:text-slate-100"}`} />
+                        {showBadge && (
+                          <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
+                        )}
+                      </div>
+                      {!isCollapsed && (
+                        <span className="font-light tracking-wide whitespace-nowrap transition-opacity duration-300 flex-1">
+                          {n.label}
+                        </span>
+                      )}
+                      {showBadge && !isCollapsed && (
+                        <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold">
+                          {badgeCount}
+                        </span>
+                      )}
+                      {active && !isCollapsed && (
+                        <div className="absolute left-0 w-1 h-6 bg-primary rounded-r-full" />
+                      )}
+                    </Link>
+                  </TooltipTrigger>
+                  {isCollapsed && (
+                    <TooltipContent side="right" sideOffset={15} className="bg-slate-900 text-white border-none text-[12px] py-1.5 px-3">
                       {n.label}
-                    </span>
+                    </TooltipContent>
                   )}
-                  {showBadge && !(isCollapsed && !isHovered) && (
-                    <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold">
-                      {badgeCount}
-                    </span>
-                  )}
-                  {active && !(isCollapsed && !isHovered) && (
-                    <div className="absolute left-0 w-1 h-6 bg-primary rounded-r-full" />
-                  )}
-                </Link>
+                </Tooltip>
               );
             })}
+            </TooltipProvider>
           </nav>
 
           <div className="mt-auto border-t border-slate-100 dark:border-white/5 bg-white dark:bg-black overflow-hidden flex flex-col">
@@ -482,7 +491,7 @@ export function AppShell() {
                 e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
                 e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
               }}
-              className={`flex items-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative overflow-hidden text-slate-500 ${isCollapsed && !isHovered ? "justify-center" : "pl-12"}`}
+              className={`flex items-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative overflow-hidden text-slate-500 ${isCollapsed ? "justify-center" : "pl-12"}`}
             >
               <div className="absolute inset-x-0 bottom-0 h-px bg-slate-100 dark:bg-white/5" />
               <div 
@@ -493,10 +502,10 @@ export function AppShell() {
                   transform: 'translate(-50%, -50%)',
                 }}
               />
-              <span className={`transition-all duration-300 whitespace-nowrap group-hover:text-primary ${isCollapsed && !isHovered ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
+              <span className={`transition-all duration-300 whitespace-nowrap group-hover:text-primary ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
                 CLÍNICA
               </span>
-              {isCollapsed && !isHovered && (
+              {isCollapsed && (
                 <div className="absolute inset-0 grid place-items-center group-hover:text-primary transition-colors">
                   <Stethoscope className="h-6 w-6 stroke-[1.4px]" />
                 </div>
@@ -509,7 +518,7 @@ export function AppShell() {
                 e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
                 e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
               }}
-              className={`flex items-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative overflow-hidden text-slate-500 ${isCollapsed && !isHovered ? "justify-center" : "pl-12"}`}
+              className={`flex items-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative overflow-hidden text-slate-500 ${isCollapsed ? "justify-center" : "pl-12"}`}
             >
               <div className="absolute inset-x-0 bottom-0 h-px bg-slate-100 dark:bg-white/5" />
               <div 
@@ -520,10 +529,10 @@ export function AppShell() {
                   transform: 'translate(-50%, -50%)',
                 }}
               />
-              <span className={`transition-all duration-300 whitespace-nowrap group-hover:text-primary ${isCollapsed && !isHovered ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
+              <span className={`transition-all duration-300 whitespace-nowrap group-hover:text-primary ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
                 RADIOLOGIA
               </span>
-              {isCollapsed && !isHovered && (
+              {isCollapsed && (
                 <div className="absolute inset-0 grid place-items-center group-hover:text-primary transition-colors">
                   <LayoutDashboard className="h-6 w-6 stroke-[1.4px]" />
                 </div>
@@ -533,7 +542,7 @@ export function AppShell() {
         </div>
       </aside>
 
-      <div className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:block"} transition-all duration-300 shrink-0 ${isCollapsed && !isHovered ? "w-[72px]" : "w-64"}`} />
+      <div className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:block"} transition-all duration-300 shrink-0 ${isCollapsed ? "w-[72px]" : "w-64"}`} />
 
       {pathname.startsWith("/dentes") && (
         <>
