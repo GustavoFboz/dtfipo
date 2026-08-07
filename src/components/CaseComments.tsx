@@ -48,7 +48,7 @@ export type AttachKind = "gallery" | "scans" | "exocad_html" | "model" | "elemen
 const ATTACH_LABEL: Record<AttachKind, string> = {
   gallery: "Imagem",
   scans: "Escaneamento",
-  exocad_html: "HTML",
+  exocad_html: "Prévias",
   model: "Modelo",
   elementos: "Elemento",
 };
