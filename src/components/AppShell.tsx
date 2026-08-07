@@ -329,38 +329,36 @@ export function AppShell() {
   return (
     <div className="flex h-screen overflow-hidden bg-[#fcfdfe] dark:bg-black font-light transition-colors duration-500">
       {/* ============ DESKTOP TOP HEADER ============ */}
-      <header className="hidden md:flex fixed top-0 right-0 z-50 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-8 transition-all duration-500 left-0 h-[72px]">
-        <div className={`flex items-center shrink-0 h-full transition-all duration-300 ${isCollapsed ? 'w-[80px]' : 'w-64'}`}>
-          <div className={`flex items-center w-full transition-all duration-300 ${isCollapsed ? 'px-[28px] overflow-hidden' : 'pl-6 gap-6'}`}>
-            <button
-              onClick={() => setIsCollapsed(!isCollapsed)}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0 flex items-center justify-center w-[24px] h-10"
-              aria-label="Toggle sidebar"
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="6" x2="21" y2="6" />
-                <line x1="3" y1="12" x2="21" y2="12" />
-                <line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-            </button>
-            
-            <Link 
-              to="/" 
-              aria-label="DentalFlow — início" 
-              className={`flex items-center gap-2 rounded-xl transition-all duration-300 hover:opacity-80 shrink-0 ${isCollapsed ? 'ml-[-2px]' : 'flex'}`}
-            >
-              <div className="h-9 w-9 shrink-0 rounded-full bg-[#4a9bff] grid place-items-center transition-all hover:scale-105 duration-500 shadow-[0_4px_12px_-4px_rgba(74,155,255,0.55)]">
-                <span className="text-white text-[15px] font-semibold leading-none">D</span>
+      <header className="hidden md:flex fixed top-0 left-0 right-0 z-50 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-8 transition-all duration-500 h-[72px]">
+        <div className="flex items-center gap-6 shrink-0 h-full">
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0 flex items-center justify-center w-[24px] h-10"
+            aria-label="Toggle sidebar"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          
+          <Link 
+            to="/" 
+            aria-label="DentalFlow — início" 
+            className="flex items-center gap-2 rounded-xl transition-all duration-300 hover:opacity-80 shrink-0"
+          >
+            <div className="h-9 w-9 shrink-0 rounded-full bg-[#4a9bff] grid place-items-center transition-all hover:scale-105 duration-500 shadow-[0_4px_12px_-4px_rgba(74,155,255,0.55)]">
+              <span className="text-white text-[15px] font-semibold leading-none">D</span>
+            </div>
+            <div className="leading-tight transition-all duration-300">
+              <div className="text-[15px] tracking-[0.01em] text-slate-800 dark:text-slate-100 uppercase flex items-baseline whitespace-nowrap">
+                <span className="font-light">DENTAL</span>
+                <span className="font-bold">FLOW</span>
+                <span className="text-[10px] ml-0.5 text-slate-400 font-medium self-start mt-0.5">BR</span>
               </div>
-              <div className="leading-tight transition-all duration-300">
-                <div className="text-[15px] tracking-[0.01em] text-slate-800 dark:text-slate-100 uppercase flex items-baseline whitespace-nowrap">
-                  <span className="font-light">DENTAL</span>
-                  <span className="font-bold">FLOW</span>
-                  <span className="text-[10px] ml-0.5 text-slate-400 font-medium self-start mt-0.5">BR</span>
-                </div>
-              </div>
-            </Link>
-          </div>
+            </div>
+          </Link>
         </div>
 
         <div className="flex-1 max-w-2xl px-4">
