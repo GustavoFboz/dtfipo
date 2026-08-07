@@ -7,7 +7,6 @@ import {
   LogOut,
   Users2,
   Box,
-  
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -19,7 +18,8 @@ import {
   X,
   User,
   Home,
-  // Wallet removido — módulo Financeiro desativado.
+  Bell,
+  Search as SearchIcon
 } from "lucide-react";
 import { Settings as SettingsIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -27,6 +27,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { NotificationPanel } from "./NotificationPanel";
+import { GlobalSearch } from "./GlobalSearch";
 
 import { BackupButton } from "./BackupButton";
 import { fetchCases, fetchPatients, fetchPendingJoinRequests, fetchProfile, fetchStages } from "@/lib/api";
@@ -326,21 +327,51 @@ export function AppShell() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#fcfdfe] dark:bg-black font-light transition-colors duration-500">
+      {/* ============ DESKTOP TOP HEADER ============ */}
+      <header className="hidden md:flex fixed top-0 right-0 z-50 bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-8 transition-all duration-500" style={{ left: isCollapsed ? "70px" : "256px", height: "72px" }}>
+        <div className="flex-1 max-w-2xl">
+          <GlobalSearch />
+        </div>
+
+        <div className="flex items-center gap-2 ml-4">
+          <NotificationPanel />
+          
+          <Link
+            to="/"
+            onClick={(event) => handleAnimatedNavigation(event, "/")}
+            className="h-10 w-10 grid place-items-center rounded-xl text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-primary transition-all active:scale-95"
+            title="Início"
+          >
+            <Home className="h-[21px] w-[21px] stroke-[1.4px]" />
+          </Link>
+
+          <button
+            onClick={handleLogout}
+            className="h-10 w-10 grid place-items-center rounded-xl text-slate-400 hover:bg-rose-50/50 dark:hover:bg-rose-950/20 hover:text-rose-500 transition-all active:scale-95"
+            title="Sair"
+          >
+            <LogOut className="h-[21px] w-[21px] stroke-[1.4px]" />
+          </button>
+        </div>
+      </header>
+
       <aside
-        className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] z-40 fixed h-screen overflow-hidden ${
+        className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] z-[60] fixed h-screen overflow-hidden ${
           isCollapsed ? "w-[70px]" : "w-64"
         }`}
       >
 
-        <div className={`px-4 py-8 flex items-center transition-all duration-500 shrink-0 ${isCollapsed ? "justify-center" : "px-6"}`}>
-          <Link to="/" aria-label="DentalFlow — início" className="flex items-center gap-3 rounded-xl transition-opacity hover:opacity-80">
-            <div className="h-10 w-10 shrink-0 rounded-xl bg-primary/5 dark:bg-white/[0.06] grid place-items-center transition-all hover:scale-105 duration-500 border border-primary/10 dark:border-white/10 shadow-[0_0_15px_rgba(var(--primary),0.05)]">
-              <Stethoscope className="h-5 w-5 text-primary stroke-[1.2px]" />
+        <div className={`px-4 flex items-center transition-all duration-500 shrink-0 ${isCollapsed ? "justify-center h-[72px]" : "px-6 h-[72px]"}`}>
+          <Link to="/" aria-label="DentalFlow — início" className="flex items-center gap-2.5 rounded-xl transition-opacity hover:opacity-80">
+            <div className="h-9 w-9 shrink-0 rounded-full bg-[#4a9bff] grid place-items-center transition-all hover:scale-105 duration-500 shadow-[0_4px_12px_-4px_rgba(74,155,255,0.55)]">
+              <span className="text-white text-[15px] font-semibold leading-none">D</span>
             </div>
             {!isCollapsed && (
               <div className="leading-tight animate-in fade-in slide-in-from-left-4 duration-500">
-                <div className="text-[16px] font-light tracking-tight text-slate-900 dark:text-slate-100 uppercase tracking-[0.08em]">DentalFlow</div>
-                <div className="text-[9px] text-primary/60 font-bold tracking-[0.08em] uppercase">Lab System</div>
+                <div className="text-[15px] tracking-[0.02em] text-slate-800 dark:text-slate-100 uppercase">
+                  <span className="font-light">DENTAL</span>
+                  <span className="font-bold">FLOW</span>
+                </div>
               </div>
             )}
           </Link>
@@ -523,18 +554,11 @@ export function AppShell() {
         </div>
       </header>
 
-      <main data-scroll-container="app" className="relative h-screen flex-1 min-w-0 pt-[calc(4rem+env(safe-area-inset-top))] md:pt-0 overflow-y-auto overflow-x-hidden bg-white dark:bg-slate-950">
+      <main data-scroll-container="app" className="relative h-screen flex-1 min-w-0 pt-[calc(4rem+env(safe-area-inset-top))] md:pt-[72px] overflow-y-auto overflow-x-hidden bg-white dark:bg-slate-950">
         <PageTransition pathname={pathname} phase={pageTransitionPhase} transitionKey={pageTransitionKey}>
           <Outlet />
         </PageTransition>
       </main>
-
-
-
-
-      <div className="hidden md:block fixed top-4 right-6 z-50">
-        <NotificationPanel />
-      </div>
 
       {isAdmin && <BackupButton />}
 
