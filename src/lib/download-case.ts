@@ -30,7 +30,7 @@ const FOLDER_FOR: Record<CaseAttachmentKind, string | null> = {
   gallery: "Galeria",
   scans: "Escaneamentos",
   model: "Modelos",
-  fabrication: "Elementos",
+  elementos: "Elementos",
   exocad_html: "Exocad",
   comment_image: null, // skip
   other: "Outros",
@@ -40,7 +40,7 @@ export const SECTION_LABEL: Partial<Record<CaseAttachmentKind, string>> = {
   gallery: "Galeria",
   scans: "Escaneamentos",
   model: "Modelos",
-  fabrication: "Elementos",
+  elementos: "Elementos",
   exocad_html: "Exocad",
 };
 

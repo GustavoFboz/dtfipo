@@ -82,6 +82,7 @@ export async function getCaseAttachmentUrl(path: string) {
 }
 
 
+
 import type { CaseRow, Doctor, Cadista, Patient, CaseType, ToothColor, Stage, Phase, Component, Profile, Notification, ComponentCategory } from "./types";
 import { autoRecordCaseMilling } from "./burrs";
 import { broadcastEntity, markDeleted } from "./optimistic";

@@ -287,7 +287,7 @@ const EMPTY_META: Record<UploadKind, { img: string; title: string; hint: string 
     title: "Nenhum escaneamento por aqui",
     hint: "Arraste escaneamentos para esta aba ou use o botão + para adicionar arquivos ao caso.",
   },
-  fabrication: {
+  elementos: {
     img: emptyModels.url,
     title: "Nenhum arquivo de elementos",
     hint: "Arraste arquivos de elementos para esta aba ou use o botão + para adicioná-los ao caso.",
@@ -1016,7 +1016,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
   const isGalleryTab = onlyKind === "gallery";
   // Abas 3D — Escaneamentos, Modelos e Elementos compartilham a mesma
   // apresentação (grade de miniaturas 3D / lista) e o mesmo estado de view.
-  const is3DTab = onlyKind === "model" || onlyKind === "scans" || onlyKind === "fabrication";
+  const is3DTab = onlyKind === "model" || onlyKind === "scans" || onlyKind === "elementos";
   const items3D = onlyKind && is3DTab
     ? (grouped[onlyKind as CaseAttachmentKind] ?? []).filter((a) => !a.expired_at)
     : [];
