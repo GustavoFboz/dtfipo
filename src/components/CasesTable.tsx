@@ -121,6 +121,7 @@ export function CasesTable({
   externalSearch,
   hideToolbar,
   minimal,
+  hideSearch,
 }: { externalSearch?: string; hideToolbar?: boolean; minimal?: boolean; hideSearch?: boolean } = {}) {
   const qc = useQueryClient();
   const [internalSearch, setSearch] = useState("");
