@@ -517,7 +517,7 @@ export function CasesTable({
         </div>
       )}
 
-      <div className="hidden md:grid grid-cols-[48px_2.5fr_1.5fr_1fr_1fr_1.5fr_1.5fr_0.5fr] gap-4 px-6 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400 items-center border-b border-slate-100 pb-4">
+      <div className="hidden md:grid grid-cols-[48px_2.5fr_1.5fr_1fr_1fr_1.5fr_1.5fr_0.5fr] gap-4 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 items-center border-b border-slate-100 pb-4">
         <div className="flex justify-center">
           {!isCadista && (
             <Checkbox
