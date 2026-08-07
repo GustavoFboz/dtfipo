@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import { CasesTable } from "@/components/CasesTable";
 import { NewCaseDialog } from "@/components/NewCaseDialog";
+import { PatientFormDialog } from "@/components/PatientFormDialog";
 import { DashboardStats } from "@/components/DashboardStats";
 import { MobileDashboard } from "@/components/MobileDashboard";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,8 @@ export const Route = createFileRoute("/_authenticated/lab")({
 function Index() {
   const now = useNow();
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [openNewPatient, setOpenNewPatient] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(false);
   const isMobile = useIsMobile();
@@ -60,12 +63,21 @@ function Index() {
 
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
           <h1 className="text-5xl md:text-7xl font-extralight text-slate-900 dark:text-slate-100 tracking-[-0.03em] leading-[1] flex items-baseline gap-4">
-            <span>Fluxo de</span>
-            <span className="text-primary">Demanda</span>
+            <span>Controle de</span>
+            <span className="text-primary">Casos</span>
             <ChevronRight className="h-8 w-8 md:h-10 md:w-10 text-slate-300 dark:text-slate-700 stroke-[1.2px] self-center" />
           </h1>
 
           <div className="flex items-center gap-4 w-full lg:w-auto lg:min-w-[300px] justify-end">
+            <PatientFormDialog
+              open={openNewPatient}
+              onOpenChange={setOpenNewPatient}
+              trigger={
+                <Button variant="ghost" className="h-14 px-8 rounded-full bg-white hover:bg-slate-50 text-slate-400 border border-slate-100 shadow-sm font-normal text-[15px] gap-2 transition-all hover:-translate-y-[1px]">
+                  <Plus className="h-4 w-4 stroke-[1.5px]" /> Novo paciente
+                </Button>
+              }
+            />
             <NewCaseDialog
               trigger={
                 <Button className="h-14 px-8 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-normal text-[15px] gap-2 transition-all hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-[1px]">
@@ -78,7 +90,28 @@ function Index() {
       </header>
 
       <section className="flex-1 min-h-0 flex flex-col">
-        <CasesTable hideToolbar minimal hideSearch />
+        <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-none">
+          {[
+            { id: "all", label: "Todos" },
+            { id: "em_andamento", label: "Em andamento" },
+            { id: "finalizados", label: "Finalizados" },
+            { id: "arquivados", label: "Arquivados" },
+            { id: "cancelados", label: "Cancelados" },
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setFilter(t.id)}
+              className={`px-6 py-2 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${
+                filter === t.id
+                  ? "bg-[#54A8FB] text-white shadow-md shadow-blue-400/20"
+                  : "bg-white dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 border border-slate-100 dark:border-white/5"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <CasesTable hideToolbar minimal hideSearch activeFilter={filter} onFilterChange={setFilter} />
       </section>
 
       <section className="shrink-0 pt-8 pb-10 md:pb-14 border-t border-slate-200/70 dark:border-slate-800/70 mt-6">

@@ -49,12 +49,11 @@ const PAGE_BLANK_DURATION_MS = 55;
 const PAGE_ENTER_DURATION_MS = 300;
 
 const navItems = [
-  { to: "/lab", label: "Laboratório", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO"] },
+  { to: "/lab", label: "Casos", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO"] },
   { to: "/patients", label: "Pacientes", icon: Users, roles: ["CEO", "DR", "ATENDIMENTO"] },
   { to: "/agenda", label: "Agenda", icon: CalendarDays, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA"] },
   { to: "/equipe", label: "Equipe", icon: Users2, roles: ["CEO"] },
   { to: "/estoque", label: "Estoque", icon: Box, roles: ["CEO", "ATENDIMENTO", "PROTETICO"] },
-
 ] as const;
 
 
@@ -328,7 +327,7 @@ export function AppShell() {
   return (
     <div className="flex h-screen overflow-hidden bg-[#fcfdfe] dark:bg-black font-light transition-colors duration-500">
       {/* ============ DESKTOP TOP HEADER ============ */}
-      <header className="hidden md:flex fixed top-0 right-0 z-50 bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-8 transition-all duration-500" style={{ left: isCollapsed ? "70px" : "256px", height: "72px" }}>
+      <header className="hidden md:flex fixed top-0 right-0 z-50 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-8 transition-all duration-500" style={{ left: isCollapsed ? "70px" : "256px", height: "72px" }}>
         <div className="flex-1 max-w-2xl">
           <GlobalSearch />
         </div>

@@ -122,7 +122,16 @@ export function CasesTable({
   hideToolbar,
   minimal,
   hideSearch,
-}: { externalSearch?: string; hideToolbar?: boolean; minimal?: boolean; hideSearch?: boolean } = {}) {
+  activeFilter = "all",
+  onFilterChange,
+}: { 
+  externalSearch?: string; 
+  hideToolbar?: boolean; 
+  minimal?: boolean; 
+  hideSearch?: boolean;
+  activeFilter?: string;
+  onFilterChange?: (filter: string) => void;
+} = {}) {
   const qc = useQueryClient();
   const [internalSearch, setSearch] = useState("");
   const search = hideSearch ? "" : (externalSearch !== undefined ? externalSearch : internalSearch);
@@ -214,6 +223,20 @@ export function CasesTable({
   const filtered = useMemo<CaseRow[]>(() => {
     const list = cases.data ?? [];
     const f = list.filter((c) => {
+      // Apply the new status-based tag filter
+      if (activeFilter === "em_andamento") {
+        if (c.finished || c.status === "finalizado") return false;
+      } else if (activeFilter === "finalizados") {
+        if (!c.finished && c.status !== "finalizado") return false;
+      } else if (activeFilter === "arquivados") {
+        // Assuming archived is a property or handled elsewhere, for now just filter out if requested
+        // if (!c.archived) return false;
+        return false; // Placeholder
+      } else if (activeFilter === "cancelados") {
+        // if (!c.cancelled) return false;
+        return false; // Placeholder
+      }
+
       if (search) {
         const q = normalizeText(search);
         const haystack = normalizeText([
