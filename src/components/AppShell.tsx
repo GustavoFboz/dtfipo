@@ -496,7 +496,7 @@ export function AppShell() {
               <span className={`transition-all duration-300 whitespace-nowrap group-hover:text-primary ${isCollapsed && !isHovered ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
                 CLÍNICA
               </span>
-              {isCollapsed && (
+              {isCollapsed && !isHovered && (
                 <div className="absolute inset-0 grid place-items-center group-hover:text-primary transition-colors">
                   <Stethoscope className="h-6 w-6 stroke-[1.4px]" />
                 </div>
