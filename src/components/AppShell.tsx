@@ -507,7 +507,6 @@ export function AppShell() {
               }}
               className="flex items-center justify-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative overflow-hidden text-slate-500"
             >
-              <div className="absolute inset-x-0 top-0 h-px bg-slate-100 dark:bg-white/5" />
               <div className="absolute inset-x-0 bottom-0 h-px bg-slate-100 dark:bg-white/5" />
               <div 
                 className="absolute w-24 h-24 bg-[#54A8FB] rounded-full blur-[30px] opacity-0 group-hover:opacity-20 pointer-events-none transition-opacity duration-300"
