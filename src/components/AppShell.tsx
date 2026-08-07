@@ -48,7 +48,7 @@ const PAGE_BLANK_DURATION_MS = 55;
 const PAGE_ENTER_DURATION_MS = 300;
 
 const navItems = [
-  { to: "/lab", label: "Laboratório", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO"] },
+  { to: "/lab", label: "Casos", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO"] },
   { to: "/patients", label: "Pacientes", icon: Users, roles: ["CEO", "DR", "ATENDIMENTO"] },
   { to: "/agenda", label: "Agenda", icon: CalendarDays, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA"] },
   { to: "/equipe", label: "Equipe", icon: Users2, roles: ["CEO"] },
