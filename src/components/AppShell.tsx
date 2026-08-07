@@ -541,7 +541,7 @@ export function AppShell() {
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
         aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
-        className={`${dialogOpen || pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} fixed top-20 z-[60] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-full p-1.5 shadow-md transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] text-slate-400 hover:text-primary items-center justify-center ${isCollapsed ? "left-[58px]" : "left-[244px]"}`}
+        className={`${dialogOpen || pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} fixed top-20 z-[60] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-full p-1.5 shadow-md transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] text-slate-400 hover:text-[#2D7FF9] items-center justify-center ${isCollapsed ? "left-[58px]" : "left-[228px]"}`}
       >
         {isCollapsed ? <ChevronRight className="h-3 w-3 stroke-[2px]" /> : <ChevronLeft className="h-3 w-3 stroke-[2px]" />}
       </button>
