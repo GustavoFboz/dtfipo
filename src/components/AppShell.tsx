@@ -467,16 +467,20 @@ export function AppShell() {
             <Link
               to="/lab"
               onClick={(event) => handleAnimatedNavigation(event, "/lab")}
-              className={`flex items-center justify-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all border-b border-slate-100 dark:border-white/5 hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative ${pathname.startsWith("/lab") ? "text-primary" : "text-slate-500"}`}
+              className={`flex items-center justify-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all border-b border-slate-100 dark:border-white/5 hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative ${pathname.startsWith("/lab") ? "text-primary font-bold" : "text-slate-500"}`}
             >
+              <div className="absolute inset-x-0 top-0 h-px bg-[#EEF1F6] dark:bg-white/5" />
+              <div className="absolute inset-x-0 bottom-0 h-px bg-[#EEF1F6] dark:bg-white/5" />
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[#54A8FB] blur-[40px] transition-opacity duration-500 -z-10" />
-              LABORATÓRIO
+              RADIOGRAFIA
             </Link>
             <Link
-              to="/clinica"
-              onClick={(event) => handleAnimatedNavigation(event, "/clinica")}
-              className={`flex items-center justify-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative ${pathname.startsWith("/clinica") ? "text-primary" : "text-slate-500"}`}
+              to="/"
+              onClick={(event) => handleAnimatedNavigation(event, "/")}
+              className={`flex items-center justify-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative ${pathname === "/" || pathname === "/lp" ? "text-primary font-bold" : "text-slate-500"}`}
             >
+              <div className="absolute inset-x-0 top-0 h-px bg-[#EEF1F6] dark:bg-white/5" />
+              <div className="absolute inset-x-0 bottom-0 h-px bg-[#EEF1F6] dark:bg-white/5" />
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[#54A8FB] blur-[40px] transition-opacity duration-500 -z-10" />
               CLÍNICA
             </Link>
@@ -484,15 +488,7 @@ export function AppShell() {
         </div>
       </aside>
 
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        aria-label={isCollapsed ? "Expandir menu" : "Recolher menu"}
-        className={`${dialogOpen || pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} fixed top-20 z-[60] bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-full p-1.5 shadow-md transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] text-slate-400 hover:text-primary items-center justify-center ${isCollapsed ? "left-[58px]" : "left-[244px]"}`}
-      >
-        {isCollapsed ? <ChevronRight className="h-3 w-3 stroke-[2px]" /> : <ChevronLeft className="h-3 w-3 stroke-[2px]" />}
-      </button>
-
-      <div className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:block"} transition-all duration-500 shrink-0 ${isCollapsed ? "w-[70px]" : "w-64"}`} />
+      <div className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:block"} transition-all duration-500 shrink-0 ${isCollapsed ? "w-0" : "w-64"}`} />
 
       {pathname.startsWith("/dentes") && (
         <>
