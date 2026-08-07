@@ -85,14 +85,14 @@ function Index() {
 
             <NewCaseDialog
               trigger={
-                <Button className="h-12 px-6 rounded-full bg-[#2D7FF9] hover:bg-[#2D7FF9]/90 text-white shadow-lg shadow-[#2D7FF9]/20 font-medium text-sm gap-2 transition-all hover:-translate-y-[1px]">
+                <Button className="h-12 px-6 rounded-xl bg-[#2D7FF9] hover:bg-[#2D7FF9]/90 text-white shadow-lg shadow-[#2D7FF9]/20 font-medium text-sm gap-2 transition-all hover:-translate-y-[1px]">
                   <Plus className="h-4 w-4 stroke-[2px]" /> Nova entrada
                 </Button>
               }
             />
           </div>
 
-          <div className="flex-1 min-h-0 bg-white dark:bg-black rounded-[32px] border border-slate-100 dark:border-white/5 overflow-hidden flex flex-col">
+          <div className="flex-1 min-h-0 bg-white dark:bg-black rounded-[32px] border border-slate-100 dark:border-white/5 overflow-hidden flex flex-col shadow-sm">
              <CasesTable hideToolbar minimal />
           </div>
         </div>
@@ -100,7 +100,7 @@ function Index() {
         {/* LADO DIREITO: PERFIL, ADS, ATALHOS */}
         <div className="w-[320px] flex flex-col gap-8 shrink-0">
           {/* BLOCO DE PERFIL */}
-          <div className="bg-white dark:bg-slate-900/50 rounded-[32px] p-6 border border-slate-100 dark:border-white/5 shadow-sm">
+          <div className="bg-slate-50 dark:bg-slate-900/50 rounded-[32px] p-6 border border-slate-100 dark:border-white/5">
             <div className="flex items-center gap-4">
               <div className="h-14 w-14 rounded-2xl overflow-hidden bg-white dark:bg-black shadow-sm grid place-items-center border border-slate-100 dark:border-white/10">
                 {profile?.avatar_url ? (
@@ -117,7 +117,7 @@ function Index() {
           </div>
 
           {/* CARROSSEL DE ADS */}
-          <div className="relative aspect-[4/8] bg-white dark:bg-slate-900/50 rounded-[32px] overflow-hidden border border-slate-100 dark:border-white/5 shadow-sm">
+          <div className="relative aspect-[4/8] bg-slate-50 dark:bg-slate-900/50 rounded-[32px] overflow-hidden border border-slate-100 dark:border-white/5">
             {ads.map((ad, i) => (
               <div 
                 key={ad.id}
@@ -145,7 +145,7 @@ function Index() {
 
           {/* BOTÕES DE ATALHO */}
           <div className="grid grid-cols-1 gap-4">
-            <button className="group relative w-full h-20 rounded-[24px] bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-white/5 overflow-hidden transition-all hover:border-[#2D7FF9]/30 shadow-sm">
+            <button className="group relative w-full h-20 rounded-[24px] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-white/5 overflow-hidden transition-all hover:border-[#2D7FF9]/30">
               <div className="absolute -right-4 -top-4 w-16 h-16 bg-[#2D7FF9]/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
               <div className="relative z-10 flex items-center gap-4 px-6 h-full">
                 <div className="h-10 w-10 rounded-xl bg-white dark:bg-black shadow-sm grid place-items-center text-[#2D7FF9]">
@@ -159,7 +159,7 @@ function Index() {
               </div>
             </button>
 
-            <button className="group relative w-full h-20 rounded-[24px] bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-white/5 overflow-hidden transition-all hover:border-[#2D7FF9]/30 shadow-sm">
+            <button className="group relative w-full h-20 rounded-[24px] bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-white/5 overflow-hidden transition-all hover:border-[#2D7FF9]/30">
               <div className="absolute -right-4 -top-4 w-16 h-16 bg-[#2D7FF9]/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
               <div className="relative z-10 flex items-center gap-4 px-6 h-full">
                 <div className="h-10 w-10 rounded-xl bg-white dark:bg-black shadow-sm grid place-items-center text-[#2D7FF9]">

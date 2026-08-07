@@ -56,8 +56,8 @@ function ResinasPage() {
             <Droplet className="h-5 w-5 text-primary" /> Resinas por peso
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Informe o peso total do pote lacrado uma única vez no campo "Peso Inicial".
-            A cada reabastecimento do tanque, pese o pote novamente para atualizar a quantidade restante.
+            Informe a tara (peso do pote vazio) uma única vez. A cada pesagem o sistema desconta a tara e
+            atualiza a quantidade real de resina.
           </p>
         </div>
         <Button className="rounded-xl" onClick={() => setCreating(true)}>
@@ -115,7 +115,7 @@ function ResinasPage() {
                   <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${pct}%` }} />
                 </div>
                 <div className="text-[11px] text-muted-foreground mt-1">
-                  Peso Inicial: {fmtKg(p.tare_g)} · Validade: {p.expires_on ? new Date(p.expires_on).toLocaleDateString("pt-BR") : "—"}
+                  Tara: {fmtKg(p.tare_g)} · Validade: {p.expires_on ? new Date(p.expires_on).toLocaleDateString("pt-BR") : "—"}
                 </div>
               </div>
 
@@ -170,8 +170,7 @@ function PotDialog({ open, pot, onOpenChange }: { open: boolean; pot: ResinPot |
         <DialogHeader>
           <DialogTitle className="text-xl font-light">{pot ? "Editar pote" : "Novo pote de resina"}</DialogTitle>
           <DialogDescription className="text-xs">
-            O peso inicial é o peso total do pote lacrado (resina + embalagem).
-            O sistema controlará o consumo conforme você pesar o pote após os reabastecimentos.
+            A tara é o peso do pote vazio (excedente). Informe uma vez — todas as pesagens já saem descontadas.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3 py-1">
@@ -199,15 +198,15 @@ function PotDialog({ open, pot, onOpenChange }: { open: boolean; pot: ResinPot |
               <Input type="date" value={form.expires_on ?? ""} onChange={(e) => setForm({ ...form, expires_on: e.target.value })} className="rounded-xl" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">Conteúdo útil de resina (kg)</Label>
+              <Label className="text-xs">Conteúdo declarado (kg)</Label>
               <Input type="number" step="0.001" value={num(form.declared_net_g)}
                 onChange={(e) => setForm({ ...form, declared_net_g: Math.round(Number(e.target.value) * 1000) })}
-                className="rounded-xl" placeholder="Ex.: 1,000" />
+                className="rounded-xl" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">Peso inicial do pote lacrado (kg)</Label>
+              <Label className="text-xs">Tara — pote vazio (kg)</Label>
               <Input type="number" step="0.001" value={num(form.tare_g)}
                 onChange={(e) => setForm({ ...form, tare_g: Math.round(Number(e.target.value) * 1000) })}
                 className="rounded-xl" />
@@ -283,13 +282,13 @@ function WeighDialog({ pot, onOpenChange }: { pot: ResinPot | null; onOpenChange
         <DialogHeader>
           <DialogTitle className="text-xl font-light">Pesar {pot?.name}</DialogTitle>
           <DialogDescription className="text-xs">
-            Pese o pote após o reabastecimento. O sistema calculará quanto de resina resta baseado no peso inicial.
+            Coloque o pote na balança. Digite o peso bruto ou conecte a balança Bluetooth.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 py-1">
           <div className="space-y-1.5">
-            <Label className="text-xs">Peso atual do pote (kg)</Label>
+            <Label className="text-xs">Peso bruto (kg)</Label>
             <Input
               type="number" step="0.001" value={live !== null ? (live / 1000).toFixed(3) : gross}
               onChange={(e) => { setLive(null); setGross(e.target.value); }}
@@ -297,7 +296,7 @@ function WeighDialog({ pot, onOpenChange }: { pot: ResinPot | null; onOpenChange
             />
           </div>
           <div className="rounded-xl border border-border px-3 py-2.5 text-sm flex items-center justify-between">
-            <span className="text-muted-foreground">Resina restante (atual − tara calculada)</span>
+            <span className="text-muted-foreground">Resina (bruto − tara {fmtKg(pot?.tare_g ?? 0)})</span>
             <span className="font-medium tabular-nums">{fmtKg(netG)}</span>
           </div>
           {isScaleSupported() && (

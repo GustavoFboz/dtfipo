@@ -152,7 +152,7 @@ function GlobalSearch() {
 }
 
 const navItems = [
-  { to: "/lab", label: "Laboratório", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO"] },
+  { to: "/lab", label: "Casos", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO"] },
   { to: "/patients", label: "Pacientes", icon: Users, roles: ["CEO", "DR", "ATENDIMENTO"] },
   { to: "/agenda", label: "Agenda", icon: CalendarDays, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA"] },
   { to: "/equipe", label: "Equipe", icon: Users2, roles: ["CEO"] },
@@ -443,7 +443,7 @@ export function AppShell() {
             {!isCollapsed && (
               <div className="leading-tight animate-in fade-in slide-in-from-left-4 duration-500">
                 <div className="text-[16px] font-bold tracking-tight text-slate-800 dark:text-slate-100 uppercase tracking-[0.05em]">
-                  DFLOW
+                  <span className="font-light">D</span>FLOW
                 </div>
               </div>
             )}
@@ -519,7 +519,7 @@ export function AppShell() {
                  className="h-10 w-10 grid place-items-center text-slate-400 hover:text-[#2D7FF9] transition-colors"
                >
                  <Bell className="h-5 w-5 stroke-[1.4px]" />
-                 <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-black" />
+                 <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full bg-[#2D7FF9] ring-2 ring-white dark:ring-black" />
                </button>
             </div>
             <button 
@@ -571,7 +571,7 @@ export function AppShell() {
       >
         {/* Marca: círculo azul com "D" + logotipo DENTALFLOW */}
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="h-9 w-9 rounded-full bg-primary grid place-items-center shrink-0 shadow-[0_4px_12px_-4px_rgba(var(--primary),0.55)]">
+          <div className="h-9 w-9 rounded-full bg-[#4a9bff] grid place-items-center shrink-0 shadow-[0_4px_12px_-4px_rgba(74,155,255,0.55)]">
             <span className="text-white text-[15px] font-semibold leading-none">D</span>
           </div>
           <div className="text-[15px] tracking-[0.02em] text-slate-800 dark:text-slate-100 truncate">
@@ -593,7 +593,7 @@ export function AppShell() {
               <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
               <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
             </svg>
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-rose-500" />
+            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[#4a9bff]" />
           </button>
           {/* Avatar do usuário (foto de perfil) */}
           <Link
