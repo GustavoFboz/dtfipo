@@ -331,7 +331,7 @@ export function AppShell() {
       {/* ============ DESKTOP TOP HEADER ============ */}
       <header className="hidden md:flex fixed top-0 right-0 z-50 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-8 transition-all duration-500 left-0 h-[72px]">
         <div className={`flex items-center shrink-0 h-full transition-all duration-300 ${isCollapsed ? 'w-[80px]' : 'w-64'}`}>
-          <div className={`flex items-center w-full transition-all duration-300 ${isCollapsed ? 'px-5' : 'pl-6 gap-6'}`}>
+          <div className={`flex items-center w-full transition-all duration-300 ${isCollapsed ? 'justify-center' : 'pl-6 gap-6'}`}>
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0 flex items-center justify-center w-6 h-10"
