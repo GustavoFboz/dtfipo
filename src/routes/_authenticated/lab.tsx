@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 import { CasesTable } from "@/components/CasesTable";
 import { NewCaseDialog } from "@/components/NewCaseDialog";
-import { NewPatientDialog } from "@/components/NewPatientDialog";
+import { PatientFormDialog } from "@/components/PatientFormDialog";
 import { DashboardStats } from "@/components/DashboardStats";
 import { MobileDashboard } from "@/components/MobileDashboard";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ function Index() {
   const now = useNow();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [openNewPatient, setOpenNewPatient] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(false);
   const isMobile = useIsMobile();
@@ -68,7 +69,9 @@ function Index() {
           </h1>
 
           <div className="flex items-center gap-4 w-full lg:w-auto lg:min-w-[300px] justify-end">
-            <NewPatientDialog
+            <PatientFormDialog
+              open={openNewPatient}
+              onOpenChange={setOpenNewPatient}
               trigger={
                 <Button variant="ghost" className="h-14 px-8 rounded-full bg-white hover:bg-slate-50 text-slate-400 border border-slate-100 shadow-sm font-normal text-[15px] gap-2 transition-all hover:-translate-y-[1px]">
                   <Plus className="h-4 w-4 stroke-[1.5px]" /> Novo paciente
