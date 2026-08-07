@@ -329,7 +329,7 @@ export function AppShell() {
   return (
     <div className="flex h-screen overflow-hidden bg-[#fcfdfe] dark:bg-black font-light transition-colors duration-500">
       {/* ============ DESKTOP TOP HEADER ============ */}
-      <header className="hidden md:flex fixed top-0 left-0 right-0 z-50 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-6 transition-all duration-500 h-[72px]">
+      <header className="hidden md:flex fixed top-0 left-0 right-0 z-50 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-6 transition-all duration-300 ease-in-out h-[72px]">
         <div className="flex items-center gap-6 shrink-0 h-full">
           {!pathname.startsWith("/dentes") && (
             <button
@@ -390,26 +390,26 @@ export function AppShell() {
       </header>
 
       <aside
-        className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 transition-all duration-300 ease-out z-[60] fixed h-[calc(100vh-72px)] overflow-hidden top-[72px] ${
+        className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 transition-[width,padding] duration-300 ease-in-out z-[60] fixed h-[calc(100vh-72px)] overflow-hidden top-[72px] ${
           isCollapsed ? "w-[80px]" : "w-64"
         }`}
       >
         <TooltipProvider>
         <div className="flex flex-col h-full overflow-hidden">
           {profile && (
-            <div className={`transition-all duration-300 ${isCollapsed ? "pt-6 px-5" : "p-6 pt-10"}`}>
-              <h2 className={`text-[17px] font-medium text-primary mb-6 transition-all duration-300 overflow-hidden whitespace-nowrap ${isCollapsed ? "opacity-0 h-0 mb-0" : "opacity-100 h-auto"}`}>
+            <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? "pt-6 px-5" : "p-6 pt-10"}`}>
+              <h2 className={`text-[17px] font-medium text-primary mb-6 transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${isCollapsed ? "opacity-0 h-0 mb-0 pointer-events-none" : "opacity-100 h-auto"}`}>
                 Bem-vindo <span className="text-slate-500 dark:text-slate-400 font-light text-[15px]">de volta,</span>
               </h2>
               
               <Link
                 to="/configuracoes"
                 onClick={(event) => handleAnimatedNavigation(event, "/configuracoes")}
-                className={`flex items-center bg-slate-50/50 dark:bg-slate-800/30 rounded-[32px] border border-slate-100/50 dark:border-slate-800/50 group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.98] ${
+                className={`flex items-center bg-slate-50/50 dark:bg-slate-800/30 rounded-[32px] border border-slate-100/50 dark:border-slate-800/50 group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-300 ease-in-out active:scale-[0.98] ${
                   isCollapsed ? "p-0 bg-transparent border-transparent" : "p-3.5 gap-3"
                 }`}
               >
-                <div className={`shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 transition-all duration-300 ${
+                <div className={`shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 transition-all duration-300 ease-in-out ${
                   isCollapsed ? "h-[28px] w-[28px]" : "h-12 w-12"
                 }`}>
                   {profile.avatar_url ? (
@@ -424,7 +424,7 @@ export function AppShell() {
                     </div>
                   )}
                 </div>
-                <div className={`min-w-0 transition-all duration-300 overflow-hidden ${isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100 ml-0"}`}>
+                <div className={`min-w-0 transition-all duration-300 ease-in-out overflow-hidden ${isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-auto opacity-100 ml-0"}`}>
                   <div className="text-[15px] font-medium text-slate-900 dark:text-slate-100 truncate tracking-tight">{profile.full_name?.split(' ')[0]}</div>
                   <div className="text-[11px] text-slate-400 font-light">Acessar perfil</div>
                 </div>
@@ -432,11 +432,11 @@ export function AppShell() {
             </div>
           )}
 
-          <div className={`transition-all duration-300 ${isCollapsed ? "px-5 pb-2" : "px-6 pb-4"}`}>
+          <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? "px-5 pb-2" : "px-6 pb-4"}`}>
             <div className="h-px bg-slate-100/80 dark:bg-white/5 w-full" />
           </div>
 
-          <nav className={`flex flex-col gap-1 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none py-2 transition-all duration-300 ${isCollapsed ? "px-5" : "px-3"}`}>
+          <nav className={`flex flex-col gap-1 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none py-2 transition-all duration-300 ease-in-out ${isCollapsed ? "px-5" : "px-3"}`}>
 
             {filteredNavItems.map((n) => {
               const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
@@ -451,7 +451,7 @@ export function AppShell() {
                       to={n.to}
                       preload="intent"
                       onClick={(event) => handleAnimatedNavigation(event, n.to)}
-                      className={`group relative flex items-center rounded-xl text-sm transition-all duration-300 ${
+                      className={`group relative flex items-center rounded-xl text-sm transition-all duration-300 ease-in-out ${
                         active
                           ? "text-primary bg-primary/[0.04] font-medium"
                           : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5"
@@ -464,7 +464,7 @@ export function AppShell() {
                         )}
                       </div>
                       {!isCollapsed && (
-                        <span className="font-light tracking-wide whitespace-nowrap transition-opacity duration-300 flex-1">
+                        <span className="font-light tracking-wide whitespace-nowrap transition-all duration-300 ease-in-out flex-1">
                           {n.label}
                         </span>
                       )}
@@ -517,7 +517,7 @@ export function AppShell() {
                       transform: 'translate(-50%, -50%)',
                     }}
                   />
-                  <span className={`transition-all duration-300 whitespace-nowrap group-hover:text-primary ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
+                  <span className={`transition-all duration-300 ease-in-out whitespace-nowrap group-hover:text-primary ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
                     CLÍNICA
                   </span>
                   {isCollapsed && (
@@ -562,7 +562,7 @@ export function AppShell() {
                       transform: 'translate(-50%, -50%)',
                     }}
                   />
-                  <span className={`transition-all duration-300 whitespace-nowrap group-hover:text-primary ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
+                  <span className={`transition-all duration-300 ease-in-out whitespace-nowrap group-hover:text-primary ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
                     RADIOLOGIA
                   </span>
                   {isCollapsed && (
