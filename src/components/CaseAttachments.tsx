@@ -294,7 +294,7 @@ const EMPTY_META: Record<UploadKind, { img: string; title: string; hint: string 
   },
   exocad_html: {
     img: emptyHtml.url,
-    title: "Nenhum HTML por aqui",
+    title: "Nenhuma prévia por aqui",
     hint: "Arraste visualizações exocad (.html) para esta aba ou use o botão + para adicioná-las ao caso.",
   },
 };
