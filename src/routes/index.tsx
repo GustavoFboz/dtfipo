@@ -5,10 +5,10 @@ export const Route = createFileRoute("/")({
   beforeLoad: async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-      // @ts-ignore - Route /lab exists but tree might not be gen yet
+      // @ts-ignore
       throw redirect({ to: "/lab" });
     }
-    // @ts-ignore - Route /lp exists but tree might not be gen yet
+    // @ts-ignore
     throw redirect({ to: "/lp" });
   },
 });
