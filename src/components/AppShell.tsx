@@ -59,7 +59,7 @@ const navItems = [
 
 function getMobilePageTitle(pathname: string, items: readonly { to: string; label: string }[]): string {
   if (pathname === "/") return "IPO";
-  if (pathname === "/lab") return "Laboratório";
+  if (pathname === "/lab") return "Casos";
   // "/financeiro" removido — módulo desativado.
   const match = items.find((n) => n.to !== "/lab" && pathname.startsWith(n.to));
   if (match) return match.label;
