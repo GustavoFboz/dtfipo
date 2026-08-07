@@ -369,7 +369,7 @@ export function NewCaseDialog({
   useEntityRealtime("cadistas", ["cadistas"]);
   useEntityRealtime("doctors", ["doctors"]);
   const caseTypes = useQuery({ queryKey: ["case_types"], queryFn: fetchCaseTypes, enabled: open });
-  const colors = useQuery({ queryKey: ["tooth_colors"], queryFn: fetchToothColors, enabled: open });
+  const colors = useQuery({ queryKey: ["tooth_colors"], queryFn: fetchToothColors, enabled: open, staleTime: Infinity });
   const stages = useQuery({ queryKey: ["stages"], queryFn: fetchStages, enabled: open });
   const implants = useQuery({ queryKey: ["implant_systems"], queryFn: fetchImplantSystems, enabled: open });
   const scanJigs = useQuery({

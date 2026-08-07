@@ -1953,16 +1953,19 @@ export type Database = {
           code: string
           created_at: string
           id: string
+          sort_order: number | null
         }
         Insert: {
           code: string
           created_at?: string
           id?: string
+          sort_order?: number | null
         }
         Update: {
           code?: string
           created_at?: string
           id?: string
+          sort_order?: number | null
         }
         Relationships: []
       }
