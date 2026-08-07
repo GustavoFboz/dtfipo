@@ -113,6 +113,7 @@ export function AppShell() {
   const [email, setEmail] = useState<string | null>(null);
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
   const isAdmin = profile?.role === "CEO" || profile?.role === "DR";
+  const [isHovered, setIsHovered] = useState(false);
   const { data: pendingRequests = [] } = useQuery({
     queryKey: ["join_requests"],
     queryFn: fetchPendingJoinRequests,
