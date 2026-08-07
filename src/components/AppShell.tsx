@@ -553,7 +553,7 @@ export function AppShell() {
         </div>
       </header>
 
-      <main data-scroll-container="app" className="relative h-screen flex-1 min-w-0 pt-[calc(4rem+env(safe-area-inset-top))] md:pt-[72px] overflow-y-auto overflow-x-hidden bg-white dark:bg-slate-950">
+      <main data-scroll-container="app" className="relative h-screen flex-1 min-w-0 pt-[72px] md:pt-[72px] overflow-y-auto overflow-x-hidden bg-white dark:bg-slate-950">
         <PageTransition pathname={pathname} phase={pageTransitionPhase} transitionKey={pageTransitionKey}>
           <Outlet />
         </PageTransition>
