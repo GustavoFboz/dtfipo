@@ -328,19 +328,29 @@ export function AppShell() {
     <div className="flex h-screen overflow-hidden bg-[#fcfdfe] dark:bg-black font-light transition-colors duration-500">
       {/* ============ DESKTOP TOP HEADER ============ */}
       <header className="hidden md:flex fixed top-0 right-0 z-50 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-8 transition-all duration-500 left-0 h-[72px]">
-        <div className={`flex items-center transition-all duration-500 shrink-0 ${isCollapsed ? "w-[70px] justify-center" : "w-64 px-6"}`}>
-          <Link to="/" aria-label="DentalFlow — início" className="flex items-center gap-2.5 rounded-xl transition-opacity hover:opacity-80">
+        <div className="flex items-center w-64 px-6 shrink-0 h-full">
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-2 -ml-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+            aria-label="Toggle sidebar"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="18" x2="20" y2="18" />
+            </svg>
+          </button>
+          
+          <Link to="/" aria-label="DentalFlow — início" className="flex items-center gap-2.5 rounded-xl transition-opacity hover:opacity-80 ml-2">
             <div className="h-9 w-9 shrink-0 rounded-full bg-[#4a9bff] grid place-items-center transition-all hover:scale-105 duration-500 shadow-[0_4px_12px_-4px_rgba(74,155,255,0.55)]">
               <span className="text-white text-[15px] font-semibold leading-none">D</span>
             </div>
-            {!isCollapsed && (
-              <div className="leading-tight animate-in fade-in slide-in-from-left-4 duration-500">
-                <div className="text-[15px] tracking-[0.02em] text-slate-800 dark:text-slate-100 uppercase">
-                  <span className="font-light">DENTAL</span>
-                  <span className="font-bold">FLOW</span>
-                </div>
+            <div className="leading-tight animate-in fade-in slide-in-from-left-4 duration-500">
+              <div className="text-[15px] tracking-[0.02em] text-slate-800 dark:text-slate-100 uppercase">
+                <span className="font-light">DENTAL</span>
+                <span className="font-bold">FLOW</span>
               </div>
-            )}
+            </div>
           </Link>
         </div>
 
