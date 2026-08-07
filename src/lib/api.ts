@@ -66,14 +66,16 @@ export async function uploadCaseAttachment(
   return data as CaseAttachment;
 }
 
-export async function deleteCaseAttachment(id: string) {
-  const { data: att } = await supabase.from("case_attachments" as never).select("storage_path").eq("id", id).single();
+export async function deleteCaseAttachment(id: string | { id: string }) {
+  const targetId = typeof id === "string" ? id : id.id;
+  const { data: att } = await supabase.from("case_attachments" as any).select("storage_path").eq("id", targetId).single();
   if (att) {
     await supabase.storage.from("case-files").remove([att.storage_path]);
   }
-  const { error } = await supabase.from("case_attachments" as never).delete().eq("id", id);
+  const { error } = await supabase.from("case_attachments" as any).delete().eq("id", targetId);
   if (error) throw error;
 }
+
 
 export async function getCaseAttachmentUrl(path: string) {
   const { data, error } = await supabase.storage.from("case-files").createSignedUrl(path, 3600);
