@@ -451,11 +451,11 @@ export function AppShell() {
                       to={n.to}
                       preload="intent"
                       onClick={(event) => handleAnimatedNavigation(event, n.to)}
-                      className={`group relative flex items-center rounded-xl text-sm transition-all duration-300 ease-in-out ${
+                      className={`group relative flex items-center rounded-xl text-sm transition-all duration-300 ease-in-out overflow-hidden ${
                         active
                           ? "text-primary bg-primary/[0.04] font-medium"
                           : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5"
-                      } ${isCollapsed ? "px-0 py-3 w-6 justify-center" : "px-4 py-3 gap-6"}`}
+                      } ${isCollapsed ? "px-0 py-3 w-8 justify-center ml-0" : "px-4 py-3 gap-6"}`}
                     >
                       <div className="relative flex items-center justify-center shrink-0 w-6">
                         <n.icon className={`h-6 w-6 stroke-[1.4px] transition-colors duration-150 ${active ? "text-primary" : "group-hover:text-slate-900 dark:group-hover:text-slate-100"}`} />
