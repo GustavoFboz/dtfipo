@@ -405,7 +405,7 @@ export function AppShell() {
               <Link
                 to="/configuracoes"
                 onClick={(event) => handleAnimatedNavigation(event, "/configuracoes")}
-                className={`flex items-center bg-slate-50/50 dark:bg-slate-800/30 rounded-[32px] border border-slate-100/50 dark:border-slate-800/50 group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.98] ${
+                className={`flex items-center bg-slate-50/50 dark:bg-slate-800/30 rounded-[32px] border border-slate-100/50 dark:border-slate-800/50 group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-300 ease-in-out active:scale-[0.98] ${
                   isCollapsed ? "p-0 bg-transparent border-transparent" : "p-3.5 gap-3"
                 }`}
               >
