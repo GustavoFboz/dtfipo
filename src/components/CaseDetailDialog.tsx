@@ -58,8 +58,8 @@ const OPEN_CASE_KEY = "case_dialog:open";
 const TABS: { key: TabKey; label: string }[] = [
   { key: "detalhes", label: "Detalhes" },
   { key: "galeria", label: "Galeria" },
-  { key: "scans", label: "Escaneamentos" },
-  { key: "html", label: "HTML" },
+  { key: "scans", label: "Scans" },
+  { key: "html", label: "Prévias" },
   { key: "modelos", label: "Modelos" },
   { key: "elementos", label: "Elementos" },
   { key: "comentarios", label: "Chat" },
