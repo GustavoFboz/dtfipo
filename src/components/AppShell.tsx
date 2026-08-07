@@ -395,10 +395,10 @@ export function AppShell() {
         } ${isCollapsed ? "w-[80px]" : "w-64"}`}
       >
         <TooltipProvider>
-        <div className="flex flex-col h-full overflow-hidden">
+        <div className="flex flex-col h-full">
           {profile && (
-            <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? "pt-6 px-5" : "p-6 pt-10"}`}>
-              <h2 className={`text-[17px] font-medium text-primary mb-6 transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${isCollapsed ? "opacity-0 h-0 mb-0 pointer-events-none" : "opacity-100 h-auto"}`}>
+            <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isCollapsed ? "pt-6 px-5" : "p-6 pt-10"}`}>
+              <h2 className={`text-[17px] font-medium text-primary mb-6 transition-all duration-300 ease-in-out whitespace-nowrap ${isCollapsed ? "opacity-0 h-0 mb-0 pointer-events-none" : "opacity-100 h-auto"}`}>
                 Bem-vindo <span className="text-slate-500 dark:text-slate-400 font-light text-[15px]">de volta,</span>
               </h2>
               
