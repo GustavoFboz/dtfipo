@@ -90,7 +90,7 @@ function Index() {
       </header>
 
       <section className="flex-1 min-h-0 flex flex-col">
-        <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-2 scrollbar-none">
+        <div className="flex flex-wrap items-center gap-2 mb-8">
           {[
             { id: "all", label: "Todos" },
             { id: "em_andamento", label: "Em andamento" },

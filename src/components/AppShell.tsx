@@ -475,13 +475,25 @@ export function AppShell() {
             <Link
               to="/lab"
               onClick={(event) => handleAnimatedNavigation(event, "/lab")}
-              className={`flex items-center justify-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all border-b border-slate-100 dark:border-white/5 hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative ${pathname.startsWith("/lab") ? "text-primary font-bold" : "text-slate-500"}`}
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+              }}
+              className={`flex items-center justify-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all border-b border-slate-100 dark:border-white/5 hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative overflow-hidden ${pathname.startsWith("/lab") ? "text-primary font-bold" : "text-slate-500"}`}
             >
               <div className="absolute inset-x-0 top-0 h-px bg-[#EEF1F6] dark:bg-white/5" />
               <div className="absolute inset-x-0 bottom-0 h-px bg-[#EEF1F6] dark:bg-white/5" />
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[#54A8FB] blur-[40px] transition-opacity duration-300 -z-10" />
+              <div 
+                className="absolute w-24 h-24 bg-[#54A8FB] rounded-full blur-[30px] opacity-0 group-hover:opacity-20 pointer-events-none transition-opacity duration-300"
+                style={{
+                  left: 'var(--mouse-x, 50%)',
+                  top: 'var(--mouse-y, 50%)',
+                  transform: 'translate(-50%, -50%)',
+                }}
+              />
               <span className={`transition-all duration-300 whitespace-nowrap ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
-                RADIOGRAFIA
+                RADIOLOGIA
               </span>
               {isCollapsed && (
                 <div className="absolute inset-0 grid place-items-center">
@@ -492,11 +504,23 @@ export function AppShell() {
             <Link
               to="/lp"
               onClick={(event) => handleAnimatedNavigation(event, "/lp")}
-              className={`flex items-center justify-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative ${pathname === "/" || pathname === "/lp" ? "text-primary font-bold" : "text-slate-500"}`}
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+              }}
+              className={`flex items-center justify-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative overflow-hidden ${pathname === "/" || pathname === "/lp" ? "text-primary font-bold" : "text-slate-500"}`}
             >
               <div className="absolute inset-x-0 top-0 h-px bg-[#EEF1F6] dark:bg-white/5" />
               <div className="absolute inset-x-0 bottom-0 h-px bg-[#EEF1F6] dark:bg-white/5" />
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-[#54A8FB] blur-[40px] transition-opacity duration-300 -z-10" />
+              <div 
+                className="absolute w-24 h-24 bg-[#54A8FB] rounded-full blur-[30px] opacity-0 group-hover:opacity-20 pointer-events-none transition-opacity duration-300"
+                style={{
+                  left: 'var(--mouse-x, 50%)',
+                  top: 'var(--mouse-y, 50%)',
+                  transform: 'translate(-50%, -50%)',
+                }}
+              />
               <span className={`transition-all duration-300 whitespace-nowrap ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
                 CLÍNICA
               </span>
