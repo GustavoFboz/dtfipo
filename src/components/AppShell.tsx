@@ -334,7 +334,7 @@ export function AppShell() {
           <div className={`flex items-center gap-6 w-full ${isCollapsed ? 'justify-center' : 'pl-6'}`}>
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0"
+              className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0 flex items-center justify-center w-10 h-10"
               aria-label="Toggle sidebar"
             >
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
