@@ -7,7 +7,7 @@ import { useAuthReady } from "@/hooks/use-auth-ready";
 import { useIsBetaTester } from "@/hooks/use-is-beta-tester";
 
 
-export const Route = createFileRoute("/_authenticated/")({
+export const Route = createFileRoute("/_authenticated/hub")({
   component: HubPage,
 });
 

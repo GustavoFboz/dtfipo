@@ -13,7 +13,7 @@ import { Route as LpRouteImport } from './routes/lp'
 import { Route as JoinClinicRouteImport } from './routes/join-clinic'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
-import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
@@ -21,6 +21,7 @@ import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedMeuFinanceiroRouteImport } from './routes/_authenticated/meu-financeiro'
 import { Route as AuthenticatedMaquinasRouteImport } from './routes/_authenticated/maquinas'
 import { Route as AuthenticatedLabRouteImport } from './routes/_authenticated/lab'
+import { Route as AuthenticatedHubRouteImport } from './routes/_authenticated/hub'
 import { Route as AuthenticatedFluxoRouteImport } from './routes/_authenticated/fluxo'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
@@ -75,10 +76,10 @@ const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AuthenticatedRouteRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthResetRoute = AuthResetRouteImport.update({
   id: '/reset',
@@ -114,6 +115,11 @@ const AuthenticatedMaquinasRoute = AuthenticatedMaquinasRouteImport.update({
 const AuthenticatedLabRoute = AuthenticatedLabRouteImport.update({
   id: '/lab',
   path: '/lab',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedHubRoute = AuthenticatedHubRouteImport.update({
+  id: '/hub',
+  path: '/hub',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedFluxoRoute = AuthenticatedFluxoRouteImport.update({
@@ -313,7 +319,7 @@ const ApiPublicHooksCleanupCaseFilesRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof AuthenticatedIndexRoute
+  '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/join-clinic': typeof JoinClinicRoute
   '/lp': typeof LpRoute
@@ -326,6 +332,7 @@ export interface FileRoutesByFullPath {
   '/estoque': typeof AuthenticatedEstoqueRouteWithChildren
   '/financeiro': typeof AuthenticatedFinanceiroRouteWithChildren
   '/fluxo': typeof AuthenticatedFluxoRoute
+  '/hub': typeof AuthenticatedHubRoute
   '/lab': typeof AuthenticatedLabRoute
   '/maquinas': typeof AuthenticatedMaquinasRoute
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
@@ -360,6 +367,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/join-clinic': typeof JoinClinicRoute
   '/lp': typeof LpRoute
@@ -371,6 +379,7 @@ export interface FileRoutesByTo {
   '/equipe': typeof AuthenticatedEquipeRoute
   '/estoque': typeof AuthenticatedEstoqueRouteWithChildren
   '/fluxo': typeof AuthenticatedFluxoRoute
+  '/hub': typeof AuthenticatedHubRoute
   '/lab': typeof AuthenticatedLabRoute
   '/maquinas': typeof AuthenticatedMaquinasRoute
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
@@ -378,7 +387,6 @@ export interface FileRoutesByTo {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/reset': typeof AuthResetRoute
-  '/': typeof AuthenticatedIndexRoute
   '/admin/backup': typeof AuthenticatedAdminBackupRoute
   '/admin/restauracao': typeof AuthenticatedAdminRestauracaoRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
@@ -407,6 +415,7 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/join-clinic': typeof JoinClinicRoute
@@ -420,6 +429,7 @@ export interface FileRoutesById {
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRouteWithChildren
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRouteWithChildren
   '/_authenticated/fluxo': typeof AuthenticatedFluxoRoute
+  '/_authenticated/hub': typeof AuthenticatedHubRoute
   '/_authenticated/lab': typeof AuthenticatedLabRoute
   '/_authenticated/maquinas': typeof AuthenticatedMaquinasRoute
   '/_authenticated/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
@@ -427,7 +437,6 @@ export interface FileRoutesById {
   '/api/transcribe': typeof ApiTranscribeRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/reset': typeof AuthResetRoute
-  '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/admin/backup': typeof AuthenticatedAdminBackupRoute
   '/_authenticated/admin/restauracao': typeof AuthenticatedAdminRestauracaoRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
@@ -470,6 +479,7 @@ export interface FileRouteTypes {
     | '/estoque'
     | '/financeiro'
     | '/fluxo'
+    | '/hub'
     | '/lab'
     | '/maquinas'
     | '/meu-financeiro'
@@ -504,6 +514,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cleanup-case-files'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/auth'
     | '/join-clinic'
     | '/lp'
@@ -515,6 +526,7 @@ export interface FileRouteTypes {
     | '/equipe'
     | '/estoque'
     | '/fluxo'
+    | '/hub'
     | '/lab'
     | '/maquinas'
     | '/meu-financeiro'
@@ -522,7 +534,6 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/auth/forgot'
     | '/auth/reset'
-    | '/'
     | '/admin/backup'
     | '/admin/restauracao'
     | '/admin/usuarios'
@@ -550,6 +561,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/cleanup-case-files'
   id:
     | '__root__'
+    | '/'
     | '/_authenticated'
     | '/auth'
     | '/join-clinic'
@@ -563,6 +575,7 @@ export interface FileRouteTypes {
     | '/_authenticated/estoque'
     | '/_authenticated/financeiro'
     | '/_authenticated/fluxo'
+    | '/_authenticated/hub'
     | '/_authenticated/lab'
     | '/_authenticated/maquinas'
     | '/_authenticated/meu-financeiro'
@@ -570,7 +583,6 @@ export interface FileRouteTypes {
     | '/api/transcribe'
     | '/auth/forgot'
     | '/auth/reset'
-    | '/_authenticated/'
     | '/_authenticated/admin/backup'
     | '/_authenticated/admin/restauracao'
     | '/_authenticated/admin/usuarios'
@@ -599,6 +611,7 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   JoinClinicRoute: typeof JoinClinicRoute
@@ -637,12 +650,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/': {
-      id: '/_authenticated/'
+    '/': {
+      id: '/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth/reset': {
       id: '/auth/reset'
@@ -691,6 +704,13 @@ declare module '@tanstack/react-router' {
       path: '/lab'
       fullPath: '/lab'
       preLoaderRoute: typeof AuthenticatedLabRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/hub': {
+      id: '/_authenticated/hub'
+      path: '/hub'
+      fullPath: '/hub'
+      preLoaderRoute: typeof AuthenticatedHubRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/fluxo': {
@@ -1003,11 +1023,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRouteWithChildren
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRouteWithChildren
   AuthenticatedFluxoRoute: typeof AuthenticatedFluxoRoute
+  AuthenticatedHubRoute: typeof AuthenticatedHubRoute
   AuthenticatedLabRoute: typeof AuthenticatedLabRoute
   AuthenticatedMaquinasRoute: typeof AuthenticatedMaquinasRoute
   AuthenticatedMeuFinanceiroRoute: typeof AuthenticatedMeuFinanceiroRoute
   AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
-  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAdminBackupRoute: typeof AuthenticatedAdminBackupRoute
   AuthenticatedAdminRestauracaoRoute: typeof AuthenticatedAdminRestauracaoRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
@@ -1030,11 +1050,11 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRouteWithChildren,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRouteWithChildren,
   AuthenticatedFluxoRoute: AuthenticatedFluxoRoute,
+  AuthenticatedHubRoute: AuthenticatedHubRoute,
   AuthenticatedLabRoute: AuthenticatedLabRoute,
   AuthenticatedMaquinasRoute: AuthenticatedMaquinasRoute,
   AuthenticatedMeuFinanceiroRoute: AuthenticatedMeuFinanceiroRoute,
   AuthenticatedTarefasRoute: AuthenticatedTarefasRoute,
-  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAdminBackupRoute: AuthenticatedAdminBackupRoute,
   AuthenticatedAdminRestauracaoRoute: AuthenticatedAdminRestauracaoRoute,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
@@ -1064,6 +1084,7 @@ const AuthRouteChildren: AuthRouteChildren = {
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
+  IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   JoinClinicRoute: JoinClinicRoute,
@@ -1074,13 +1095,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
