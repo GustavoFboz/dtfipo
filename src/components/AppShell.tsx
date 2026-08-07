@@ -330,8 +330,8 @@ export function AppShell() {
     <div className="flex h-screen overflow-hidden bg-[#fcfdfe] dark:bg-black font-light transition-colors duration-500">
       {/* ============ DESKTOP TOP HEADER ============ */}
       <header className="hidden md:flex fixed top-0 right-0 z-50 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-8 transition-all duration-500 left-0 h-[72px]">
-        <div className={`flex items-center shrink-0 h-full border-r border-slate-100 dark:border-white/5 bg-white dark:bg-black transition-all duration-300 ${isCollapsed ? 'w-[72px]' : 'w-64'}`}>
-          <div className="flex items-center gap-6 w-full pl-6">
+        <div className={`flex items-center shrink-0 h-full transition-all duration-300 ${isCollapsed ? 'w-[80px]' : 'w-64'}`}>
+          <div className="flex items-center gap-6 w-full pl-7">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
               className="p-2 -ml-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0"
@@ -344,12 +344,16 @@ export function AppShell() {
               </svg>
             </button>
             
-            <Link to="/" aria-label="DentalFlow — início" className={`flex items-center gap-2 rounded-xl transition-all duration-300 hover:opacity-80 shrink-0 ${isCollapsed ? 'opacity-0 pointer-events-none -translate-x-4' : 'opacity-100 translate-x-0'}`}>
+            <Link 
+              to="/" 
+              aria-label="DentalFlow — início" 
+              className={`flex items-center gap-2 rounded-xl transition-all duration-300 hover:opacity-80 shrink-0 ${isCollapsed ? 'opacity-0 invisible -translate-x-4' : 'opacity-100 visible translate-x-0'}`}
+            >
               <div className="h-9 w-9 shrink-0 rounded-full bg-[#4a9bff] grid place-items-center transition-all hover:scale-105 duration-500 shadow-[0_4px_12px_-4px_rgba(74,155,255,0.55)]">
                 <span className="text-white text-[15px] font-semibold leading-none">D</span>
               </div>
               <div className="leading-tight">
-                <div className="text-[15px] tracking-[0.01em] text-slate-800 dark:text-slate-100 uppercase flex items-baseline">
+                <div className="text-[15px] tracking-[0.01em] text-slate-800 dark:text-slate-100 uppercase flex items-baseline whitespace-nowrap">
                   <span className="font-light">DENTAL</span>
                   <span className="font-bold">FLOW</span>
                   <span className="text-[10px] ml-0.5 text-slate-400 font-medium self-start mt-0.5">BR</span>
@@ -387,12 +391,12 @@ export function AppShell() {
 
       <aside
         className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 transition-all duration-300 ease-out z-[60] fixed h-[calc(100vh-72px)] overflow-hidden top-[72px] ${
-          isCollapsed ? "w-[72px]" : "w-64"
+          isCollapsed ? "w-[80px]" : "w-64"
         }`}
       >
         <div className="flex flex-col h-full overflow-hidden">
           {profile && (
-            <div className={`transition-all duration-300 ${isCollapsed ? "pt-6 px-[22px]" : "p-6 pt-10"}`}>
+            <div className={`transition-all duration-300 ${isCollapsed ? "pt-6 px-[26px]" : "p-6 pt-10"}`}>
               <h2 className={`text-[17px] font-medium text-primary mb-6 transition-all duration-300 overflow-hidden whitespace-nowrap ${isCollapsed ? "opacity-0 h-0 mb-0" : "opacity-100 h-auto"}`}>
                 Bem-vindo <span className="text-slate-500 dark:text-slate-400 font-light text-[15px]">de volta,</span>
               </h2>
@@ -427,11 +431,11 @@ export function AppShell() {
             </div>
           )}
 
-          <div className={`transition-all duration-300 ${isCollapsed ? "px-6 pb-2" : "px-6 pb-4"}`}>
+          <div className={`transition-all duration-300 ${isCollapsed ? "px-7 pb-2" : "px-6 pb-4"}`}>
             <div className="h-px bg-slate-100/80 dark:bg-white/5 w-full" />
           </div>
 
-          <nav className={`flex flex-col gap-1 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none py-2 transition-all duration-300 ${isCollapsed ? "px-6" : "px-3"}`}>
+          <nav className={`flex flex-col gap-1 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none py-2 transition-all duration-300 ${isCollapsed ? "px-7" : "px-3"}`}>
             <TooltipProvider>
             {filteredNavItems.map((n) => {
               const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
@@ -542,7 +546,7 @@ export function AppShell() {
         </div>
       </aside>
 
-      <div className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:block"} transition-all duration-300 shrink-0 ${isCollapsed ? "w-[72px]" : "w-64"}`} />
+      <div className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:block"} transition-all duration-300 shrink-0 ${isCollapsed ? "w-[80px]" : "w-64"}`} />
 
       {pathname.startsWith("/dentes") && (
         <>
