@@ -51,7 +51,7 @@ function PatientAvatarView({
   );
 }
 
-type TabKey = "detalhes" | "galeria" | "html" | "scans" | "modelos" | "confeccao" | "comentarios";
+type TabKey = "detalhes" | "galeria" | "html" | "scans" | "modelos" | "elementos" | "comentarios";
 
 const OPEN_CASE_KEY = "case_dialog:open";
 
@@ -61,7 +61,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "scans", label: "Escaneamentos" },
   { key: "html", label: "HTML" },
   { key: "modelos", label: "Modelos" },
-  { key: "confeccao", label: "Elementos" },
+  { key: "elementos", label: "Elementos" },
   { key: "comentarios", label: "Chat" },
 ];
 
