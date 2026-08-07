@@ -436,7 +436,7 @@ export function AppShell() {
             <div className="h-px bg-slate-100/80 dark:bg-white/5 w-full" />
           </div>
 
-          <nav className={`flex flex-col gap-1 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none py-2 transition-all duration-300 ${isCollapsed ? "px-7" : "px-3"}`}>
+          <nav className={`flex flex-col gap-1 flex-1 overflow-y-auto overflow-x-hidden scrollbar-none py-2 transition-all duration-300 ${isCollapsed ? "px-5" : "px-3"}`}>
 
             {filteredNavItems.map((n) => {
               const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
