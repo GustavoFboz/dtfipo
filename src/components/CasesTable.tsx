@@ -124,7 +124,7 @@ export function CasesTable({
 }: { externalSearch?: string; hideToolbar?: boolean; minimal?: boolean; hideSearch?: boolean } = {}) {
   const qc = useQueryClient();
   const [internalSearch, setSearch] = useState("");
-  const search = externalSearch !== undefined ? externalSearch : internalSearch;
+  const search = hideSearch ? "" : (externalSearch !== undefined ? externalSearch : internalSearch);
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "late" | "ontime">("all");
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "created_at", dir: "desc" });
