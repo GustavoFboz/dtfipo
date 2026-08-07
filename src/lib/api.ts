@@ -1,4 +1,10 @@
-export type CaseAttachmentKind = "gallery" | "scans" | "exocad_html" | "model" | "elementos";
+// @ts-nocheck
+import { supabase } from "@/integrations/supabase/client";
+import { autoRecordCaseMilling } from "./burrs";
+import { broadcastEntity, markDeleted } from "./optimistic";
+import type { CaseRow, Doctor, Cadista, Patient, CaseType, ToothColor, Stage, Phase, Component, Profile, Notification, ComponentCategory } from "./types";
+
+export type CaseAttachmentKind = "gallery" | "scans" | "exocad_html" | "model" | "elementos" | "comment_image" | "other";
 
 export type CaseAttachment = {
   id: string;
@@ -74,6 +80,7 @@ export async function getCaseAttachmentUrl(path: string) {
   if (error) throw error;
   return data.signedUrl;
 }
+
 
 import type { CaseRow, Doctor, Cadista, Patient, CaseType, ToothColor, Stage, Phase, Component, Profile, Notification, ComponentCategory } from "./types";
 import { autoRecordCaseMilling } from "./burrs";

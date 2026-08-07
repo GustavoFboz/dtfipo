@@ -208,9 +208,9 @@ export function NewCaseDialog({
   const [systemPickerTooth, setSystemPickerTooth] = useState<number | null>(null);
   const [systemPickerRect, setSystemPickerRect] = useState<{ left: number; top: number; right: number; bottom: number; width: number; height: number } | null>(null);
   // Scans pendentes (somente criação) — anexados após salvar
-  const [pendingScanFiles, setPendingScanFiles] = useState<Array<{ file: File; kind: "scans" | "model" | "fabrication" | "exocad_html" }>>([]);
+  const [pendingScanFiles, setPendingScanFiles] = useState<Array<{ file: File; kind: "scans" | "model" | "elementos" | "exocad_html" }>>([]);
   const pendingScanFileInput = useRef<HTMLInputElement>(null);
-  const pendingKindRef = useRef<"scans" | "model" | "fabrication" | "exocad_html">("scans");
+  const pendingKindRef = useRef<"scans" | "model" | "elementos" | "exocad_html">("scans");
   const [pendingAccept, setPendingAccept] = useState<string | undefined>(undefined);
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [pendingGalleryFiles, setPendingGalleryFiles] = useState<File[]>([]);

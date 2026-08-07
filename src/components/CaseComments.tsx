@@ -321,7 +321,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
       const value = item.value.trim();
       const uploadedPaths: { path: string; name: string; att_id?: string; kind?: string }[] = [];
       for (const p of item.images) {
-        const att = await uploadCaseAttachment(caseId, p.file, undefined, p.kind ?? "comment_image");
+        const att = await uploadCaseAttachment(caseId, p.file, undefined, (p.kind === "gallery" ? "gallery" : "comment_image") as CaseAttachmentKind);
         uploadedPaths.push({ path: att.storage_path, name: att.file_name, att_id: att.id, kind: p.kind ?? "comment_image" });
       }
       const uploadedFiles: { att_id: string; name: string; size: number; kind: AttachKind }[] = [];
