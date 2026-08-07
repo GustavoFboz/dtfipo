@@ -594,21 +594,7 @@ export function AppShell() {
 
       <div className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:block"} transition-all duration-300 shrink-0 ${isCollapsed ? "w-[80px]" : "w-64"}`} />
 
-      {pathname.startsWith("/dentes") && (
-        <>
-          <div className="hidden md:flex fixed top-8 left-6 z-[60] items-center gap-3">
-            <Link
-              to="/"
-              aria-label="DentalFlow — início"
-              className="h-10 w-10 shrink-0 rounded-xl bg-primary/5 dark:bg-primary/10 grid place-items-center border border-primary/10 shadow-[0_0_15px_rgba(var(--primary),0.05)] transition-transform hover:scale-105 duration-500"
-            >
-              <Stethoscope className="h-5 w-5 text-primary stroke-[1.2px]" />
-            </Link>
-
-
-          </div>
-        </>
-      )}
+      {/* Removido o ícone de estetoscópio que aparecia sobreposto em páginas como contador de dentes */}
 
       {/* ============ MOBILE APP HEADER (SVG-fiel) ============ */}
       <header
