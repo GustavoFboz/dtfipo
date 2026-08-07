@@ -390,7 +390,7 @@ export function AppShell() {
       >
         <div className="flex flex-col h-full overflow-hidden">
           {profile && (
-            <div className={`p-6 transition-all duration-300 ${isCollapsed ? "pt-6 px-3.5" : "pt-10"}`}>
+            <div className={`transition-all duration-300 ${isCollapsed ? "pt-6 px-[22px]" : "p-6 pt-10"}`}>
               <h2 className={`text-[17px] font-medium text-primary mb-6 transition-all duration-300 overflow-hidden whitespace-nowrap ${isCollapsed ? "opacity-0 h-0 mb-0" : "opacity-100 h-auto"}`}>
                 Bem-vindo <span className="text-slate-500 dark:text-slate-400 font-light text-[15px]">de volta,</span>
               </h2>
@@ -399,11 +399,11 @@ export function AppShell() {
                 to="/configuracoes"
                 onClick={(event) => handleAnimatedNavigation(event, "/configuracoes")}
                 className={`flex items-center bg-slate-50/50 dark:bg-slate-800/30 rounded-[32px] border border-slate-100/50 dark:border-slate-800/50 group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all active:scale-[0.98] ${
-                  isCollapsed ? "p-1 gap-0 justify-center" : "p-3.5 gap-3"
+                  isCollapsed ? "p-0 bg-transparent border-transparent" : "p-3.5 gap-3"
                 }`}
               >
                 <div className={`shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 transition-all duration-300 ${
-                  isCollapsed ? "h-10 w-10" : "h-12 w-12"
+                  isCollapsed ? "h-[28px] w-[28px]" : "h-12 w-12"
                 }`}>
                   {profile.avatar_url ? (
                     <img
