@@ -442,30 +442,30 @@ export function AppShell() {
                   to={n.to}
                   preload="intent"
                   onClick={(event) => handleAnimatedNavigation(event, n.to)}
-                  className={`group relative flex items-center rounded-xl text-sm transition-all duration-150 ${
+                  className={`group relative flex items-center rounded-xl text-sm transition-all duration-300 ${
                     active
-                      ? "text-primary bg-primary/[0.02]"
-                      : "text-slate-400 dark:text-slate-500 hover:text-primary"
-                  } ${isCollapsed ? "px-0 justify-center py-3" : "px-4 py-3 gap-3"}`}
+                      ? "text-primary bg-primary/[0.04] font-medium"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5"
+                  } ${isCollapsed ? "px-0 py-3 w-6 justify-center" : "px-4 py-3 gap-6"}`}
                 >
-                  <div className="relative flex items-center justify-center shrink-0 w-5">
-                    <n.icon className={`h-5 w-5 stroke-[1.2px] transition-transform duration-150 ${active ? "text-primary scale-110" : "group-hover:text-primary group-hover:scale-110"}`} />
+                  <div className="relative flex items-center justify-center shrink-0 w-6">
+                    <n.icon className={`h-6 w-6 stroke-[1.4px] transition-colors duration-150 ${active ? "text-primary" : "group-hover:text-slate-900 dark:group-hover:text-slate-100"}`} />
                     {showBadge && (
                       <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
                     )}
                   </div>
-                  <span className={`font-light tracking-wide whitespace-nowrap transition-all duration-300 overflow-hidden ${
-                    isCollapsed ? "w-0 opacity-0" : "flex-1 opacity-70 group-hover:opacity-100"
-                  } ${active && !isCollapsed ? "opacity-100 font-normal" : ""}`}>
-                    {n.label}
-                  </span>
+                  {!isCollapsed && (
+                    <span className="font-light tracking-wide whitespace-nowrap transition-opacity duration-300 flex-1">
+                      {n.label}
+                    </span>
+                  )}
                   {showBadge && !isCollapsed && (
                     <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold">
                       {badgeCount}
                     </span>
                   )}
-                  {active && (
-                    <div className="absolute left-0 w-1 h-5 bg-primary rounded-r-full" />
+                  {active && !isCollapsed && (
+                    <div className="absolute left-0 w-1 h-6 bg-primary rounded-r-full" />
                   )}
                 </Link>
               );
