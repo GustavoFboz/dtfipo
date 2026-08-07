@@ -409,7 +409,7 @@ export function AppShell() {
                   isCollapsed ? "p-0 bg-transparent border-transparent" : "p-3.5 gap-3"
                 }`}
               >
-                <div className={`shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 transition-all duration-300 ${
+                <div className={`shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 transition-all duration-300 ease-in-out ${
                   isCollapsed ? "h-[28px] w-[28px]" : "h-12 w-12"
                 }`}>
                   {profile.avatar_url ? (
