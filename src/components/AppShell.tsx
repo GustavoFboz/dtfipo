@@ -406,7 +406,7 @@ export function AppShell() {
                 }`}
               >
                 <div className={`shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 transition-all duration-300 ${
-                  isCollapsed ? "h-[28px] w-[28px]" : "h-12 w-12"
+                  isCollapsed && !isHovered ? "h-[28px] w-[28px]" : "h-12 w-12"
                 }`}>
                   {profile.avatar_url ? (
                     <img
