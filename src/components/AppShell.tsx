@@ -562,7 +562,7 @@ export function AppShell() {
                       transform: 'translate(-50%, -50%)',
                     }}
                   />
-                  <span className={`transition-all duration-300 whitespace-nowrap group-hover:text-primary ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
+                  <span className={`transition-all duration-300 ease-in-out whitespace-nowrap group-hover:text-primary ${isCollapsed ? "opacity-0 w-0 scale-75" : "opacity-100 w-auto scale-100"}`}>
                     RADIOLOGIA
                   </span>
                   {isCollapsed && (
