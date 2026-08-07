@@ -7,7 +7,6 @@ import {
   LogOut,
   Users2,
   Box,
-  
   CalendarDays,
   ChevronLeft,
   ChevronRight,
@@ -19,7 +18,8 @@ import {
   X,
   User,
   Home,
-  // Wallet removido — módulo Financeiro desativado.
+  Bell,
+  Search,
 } from "lucide-react";
 import { Settings as SettingsIcon } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
