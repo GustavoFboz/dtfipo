@@ -530,6 +530,11 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
 
     if (!initialScrollDoneRef.current) {
       initialScrollDoneRef.current = true;
+      const mem = chatScrollMemory.get(caseId);
+      if (typeof mem === "number" && mem > 0) {
+        container.scrollTop = mem;
+        return;
+      }
 
       // Abrir o chat: se houver mensagens não lidas, começar no divider;
       // caso contrário, ir direto para a mensagem mais recente (fim da rolagem).
