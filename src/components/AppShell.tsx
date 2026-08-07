@@ -420,7 +420,7 @@ export function AppShell() {
                     </div>
                   )}
                 </div>
-                <div className={`min-w-0 transition-all duration-300 overflow-hidden ${isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100 ml-0"}`}>
+                <div className={`min-w-0 transition-all duration-300 overflow-hidden ${isCollapsed && !isHovered ? "w-0 opacity-0" : "w-auto opacity-100 ml-0"}`}>
                   <div className="text-[15px] font-medium text-slate-900 dark:text-slate-100 truncate tracking-tight">{profile.full_name?.split(' ')[0]}</div>
                   <div className="text-[11px] text-slate-400 font-light">Acessar perfil</div>
                 </div>
