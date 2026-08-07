@@ -21,7 +21,6 @@ import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedMeuFinanceiroRouteImport } from './routes/_authenticated/meu-financeiro'
 import { Route as AuthenticatedMaquinasRouteImport } from './routes/_authenticated/maquinas'
 import { Route as AuthenticatedLabRouteImport } from './routes/_authenticated/lab'
-import { Route as AuthenticatedHubRouteImport } from './routes/_authenticated/hub'
 import { Route as AuthenticatedFluxoRouteImport } from './routes/_authenticated/fluxo'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
@@ -115,11 +114,6 @@ const AuthenticatedMaquinasRoute = AuthenticatedMaquinasRouteImport.update({
 const AuthenticatedLabRoute = AuthenticatedLabRouteImport.update({
   id: '/lab',
   path: '/lab',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedHubRoute = AuthenticatedHubRouteImport.update({
-  id: '/hub',
-  path: '/hub',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedFluxoRoute = AuthenticatedFluxoRouteImport.update({
@@ -332,7 +326,6 @@ export interface FileRoutesByFullPath {
   '/estoque': typeof AuthenticatedEstoqueRouteWithChildren
   '/financeiro': typeof AuthenticatedFinanceiroRouteWithChildren
   '/fluxo': typeof AuthenticatedFluxoRoute
-  '/hub': typeof AuthenticatedHubRoute
   '/lab': typeof AuthenticatedLabRoute
   '/maquinas': typeof AuthenticatedMaquinasRoute
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
@@ -379,7 +372,6 @@ export interface FileRoutesByTo {
   '/equipe': typeof AuthenticatedEquipeRoute
   '/estoque': typeof AuthenticatedEstoqueRouteWithChildren
   '/fluxo': typeof AuthenticatedFluxoRoute
-  '/hub': typeof AuthenticatedHubRoute
   '/lab': typeof AuthenticatedLabRoute
   '/maquinas': typeof AuthenticatedMaquinasRoute
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
@@ -429,7 +421,6 @@ export interface FileRoutesById {
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRouteWithChildren
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRouteWithChildren
   '/_authenticated/fluxo': typeof AuthenticatedFluxoRoute
-  '/_authenticated/hub': typeof AuthenticatedHubRoute
   '/_authenticated/lab': typeof AuthenticatedLabRoute
   '/_authenticated/maquinas': typeof AuthenticatedMaquinasRoute
   '/_authenticated/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
@@ -479,7 +470,6 @@ export interface FileRouteTypes {
     | '/estoque'
     | '/financeiro'
     | '/fluxo'
-    | '/hub'
     | '/lab'
     | '/maquinas'
     | '/meu-financeiro'
@@ -526,7 +516,6 @@ export interface FileRouteTypes {
     | '/equipe'
     | '/estoque'
     | '/fluxo'
-    | '/hub'
     | '/lab'
     | '/maquinas'
     | '/meu-financeiro'
@@ -575,7 +564,6 @@ export interface FileRouteTypes {
     | '/_authenticated/estoque'
     | '/_authenticated/financeiro'
     | '/_authenticated/fluxo'
-    | '/_authenticated/hub'
     | '/_authenticated/lab'
     | '/_authenticated/maquinas'
     | '/_authenticated/meu-financeiro'
@@ -704,13 +692,6 @@ declare module '@tanstack/react-router' {
       path: '/lab'
       fullPath: '/lab'
       preLoaderRoute: typeof AuthenticatedLabRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/hub': {
-      id: '/_authenticated/hub'
-      path: '/hub'
-      fullPath: '/hub'
-      preLoaderRoute: typeof AuthenticatedHubRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/fluxo': {
@@ -1023,7 +1004,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRouteWithChildren
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRouteWithChildren
   AuthenticatedFluxoRoute: typeof AuthenticatedFluxoRoute
-  AuthenticatedHubRoute: typeof AuthenticatedHubRoute
   AuthenticatedLabRoute: typeof AuthenticatedLabRoute
   AuthenticatedMaquinasRoute: typeof AuthenticatedMaquinasRoute
   AuthenticatedMeuFinanceiroRoute: typeof AuthenticatedMeuFinanceiroRoute
@@ -1050,7 +1030,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRouteWithChildren,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRouteWithChildren,
   AuthenticatedFluxoRoute: AuthenticatedFluxoRoute,
-  AuthenticatedHubRoute: AuthenticatedHubRoute,
   AuthenticatedLabRoute: AuthenticatedLabRoute,
   AuthenticatedMaquinasRoute: AuthenticatedMaquinasRoute,
   AuthenticatedMeuFinanceiroRoute: AuthenticatedMeuFinanceiroRoute,
