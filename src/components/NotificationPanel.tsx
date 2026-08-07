@@ -1,17 +1,14 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, X, CheckCircle2, Trash2, CheckCheck } from 'lucide-react';
+import { Bell, X, CheckCircle2, Trash2, CheckCheck, MessageSquare, Image as ImageIcon, FileText } from 'lucide-react';
 import { useNotificationPopups, type PopupNotification } from '@/hooks/use-notification-popups';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchNotifications, markNotificationAsRead, markAllNotificationsAsRead, adminDelete } from '@/lib/api';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-
-
 
 type NotifFilter = 'all' | 'updates' | 'messages';
 
@@ -43,8 +40,6 @@ export function NotificationPanel() {
   const [filter, setFilter] = useState<NotifFilter>('all');
   const { popups, removePopup } = useNotificationPopups();
   const queryClient = useQueryClient();
-
-
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],
@@ -86,97 +81,97 @@ export function NotificationPanel() {
     }
   }
 
-
-
   const unreadDbCount = notifications.filter(n => !n.read_at).length;
-  // Somente o que o usuário ainda NÃO visualizou (fonte única: banco).
   const displayCount = unreadDbCount;
   const filtered = notifications.filter((n: any) => matchesFilter(n.type, filter));
 
   return (
     <>
-      <div className="hidden md:flex fixed top-6 right-6 z-[100] flex-col items-end gap-3 pointer-events-none">
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
-          <PopoverTrigger asChild>
-            <motion.button
-              id="notification-trigger"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="pointer-events-auto relative flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-slate-900 shadow-md hover:shadow-lg border border-slate-100 dark:border-slate-800 transition-all text-slate-400 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-              onClick={() => {
-                const dummyAudio = new Audio();
-                dummyAudio.play().catch(() => {});
-              }}
-            >
-              <Bell className="h-5 w-5" />
-              <AnimatePresence>
-                {displayCount > 0 && (
-                  <motion.span
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0, opacity: 0 }}
-                    className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white border-2 border-white dark:border-slate-900"
-                  >
-                    {displayCount > 99 ? '99+' : displayCount}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </motion.button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-[380px] p-0 rounded-2xl border-slate-100 dark:border-slate-800 shadow-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl overflow-hidden">
-            <div className="p-4 border-b border-slate-50 dark:border-slate-800/50 flex items-center justify-between">
-              <h3 className="text-sm font-semibold tracking-tight">Notificações</h3>
-              <div className="flex items-center gap-2">
-                {unreadDbCount > 0 && (
-                  <button
-                    onClick={() => markAll.mutate()}
-                    disabled={markAll.isPending}
-                    className="text-[10px] font-bold text-primary uppercase tracking-[0.08em] hover:underline flex items-center gap-1"
-                  >
-                    <CheckCheck className="h-3 w-3" /> Marcar todas
-                  </button>
-                )}
-                <span className="text-[10px] font-bold text-primary/60 uppercase tracking-[0.08em]">{filtered.length}</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-slate-50 dark:border-slate-800/50">
-              {FILTERS.map((f) => (
-                <button
-                  key={f.key}
-                  onClick={() => setFilter(f.key)}
-                  className={cn(
-                    "rounded-full px-3 py-1 text-[11px] font-medium transition-colors",
-                    filter === f.key
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700",
-                  )}
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <motion.button
+            id="notification-trigger"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative h-10 w-10 grid place-items-center rounded-xl text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-primary transition-all focus:outline-none"
+            aria-label="Notificações"
+            onClick={() => {
+              const dummyAudio = new Audio();
+              dummyAudio.play().catch(() => {});
+            }}
+          >
+            <Bell className="h-[21px] w-[21px] stroke-[1.4px]" />
+            <AnimatePresence>
+              {displayCount > 0 && (
+                <motion.span
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white ring-2 ring-white dark:ring-slate-950"
                 >
-                  {f.label}
+                  {displayCount > 99 ? '99+' : displayCount}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-[380px] p-0 rounded-2xl border-slate-100 dark:border-slate-800 shadow-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl overflow-hidden">
+          <div className="p-4 border-b border-slate-50 dark:border-slate-800/50 flex items-center justify-between">
+            <h3 className="text-sm font-semibold tracking-tight">Notificações</h3>
+            <div className="flex items-center gap-2">
+              {unreadDbCount > 0 && (
+                <button
+                  onClick={() => markAll.mutate()}
+                  disabled={markAll.isPending}
+                  className="text-[10px] font-bold text-primary uppercase tracking-[0.08em] hover:underline flex items-center gap-1"
+                >
+                  <CheckCheck className="h-3 w-3" /> Marcar todas
                 </button>
-              ))}
+              )}
+              <span className="text-[10px] font-bold text-primary/60 uppercase tracking-[0.08em]">{filtered.length}</span>
             </div>
+          </div>
 
-            <ScrollArea className="h-[400px]">
-              {filtered.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-3">
-                  <div className="h-12 w-12 rounded-full bg-slate-50 dark:bg-slate-800/50 grid place-items-center">
-                    <Bell className="h-6 w-6 text-slate-200 dark:text-slate-700" />
-                  </div>
-                  <p className="text-sm text-slate-400 font-light">Nenhuma notificação por aqui.</p>
+          <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-slate-50 dark:border-slate-800/50">
+            {FILTERS.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={cn(
+                  "rounded-full px-3 py-1 text-[11px] font-medium transition-colors",
+                  filter === f.key
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700",
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          <ScrollArea className="h-[400px]">
+            {filtered.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-3">
+                <div className="h-12 w-12 rounded-full bg-slate-50 dark:bg-slate-800/50 grid place-items-center">
+                  <Bell className="h-6 w-6 text-slate-200 dark:text-slate-700" />
                 </div>
-              ) : (
-                <div className="divide-y divide-slate-50 dark:divide-slate-800/50">
-                  {filtered.map((n: any) => {
-                    const sender = n.sender ?? null;
-                    const isMessage = MESSAGE_TYPES.includes((n.type ?? '').toLowerCase());
-                    const senderName = sender?.full_name ?? sender?.email ?? null;
-                    const title = isMessage && senderName
-                      ? (n.type === 'attachment'
-                          ? `${senderName} anexou um arquivo`
-                          : `${senderName} comentou`)
-                      : n.title;
-                    return (
+                <p className="text-sm text-slate-400 font-light">Nenhuma notificação por aqui.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                {filtered.map((n: any) => {
+                  const sender = n.sender ?? null;
+                  const isMessage = MESSAGE_TYPES.includes((n.type ?? '').toLowerCase());
+                  const senderName = n.metadata?.sender_name ?? sender?.full_name ?? sender?.email ?? null;
+                  const avatarUrl = n.metadata?.sender_avatar ?? sender?.avatar_url;
+                  
+                  const title = isMessage && senderName
+                    ? (n.type === 'attachment'
+                        ? `${senderName} anexou um arquivo`
+                        : `${senderName} comentou`)
+                    : n.title;
+
+                  return (
                     <div 
                       key={n.id} 
                       className={cn(
@@ -186,11 +181,10 @@ export function NotificationPanel() {
                       onClick={() => openFromNotification(n as any)}
                     >
                       <div className="flex gap-3">
-
                         {isMessage ? (
-                          sender?.avatar_url ? (
+                          avatarUrl ? (
                             <img
-                              src={sender.avatar_url}
+                              src={avatarUrl}
                               alt={senderName ?? 'Usuário'}
                               className="h-9 w-9 shrink-0 rounded-full object-cover border border-slate-100 dark:border-slate-800"
                             />
@@ -209,12 +203,12 @@ export function NotificationPanel() {
                         )}
                         <div className="flex-1 min-w-0 space-y-1">
                           <div className="flex items-center justify-between gap-2">
-                            <p className={cn("text-xs leading-tight truncate", !n.read_at ? "font-semibold" : "font-medium text-slate-600 dark:text-slate-400")}>
+                            <p className={cn("text-xs leading-tight truncate", !n.read_at ? "font-semibold text-slate-900 dark:text-slate-100" : "font-medium text-slate-600 dark:text-slate-400")}>
                               {title}
                             </p>
                             <span className="flex items-center gap-1.5 whitespace-nowrap">
-                              <span className="text-[10px] text-slate-300 dark:text-slate-600">
-                                {format(new Date(n.created_at), "HH:mm", { locale: ptBR })}
+                              <span className="text-[10px] text-slate-400">
+                                {formatDistanceToNow(new Date(n.created_at), { addSuffix: false, locale: ptBR })}
                               </span>
                               {!n.read_at && <span className="h-2 w-2 rounded-full bg-primary shrink-0" />}
                             </span>
@@ -238,38 +232,36 @@ export function NotificationPanel() {
                               <Trash2 className="h-3 w-3" /> Excluir
                             </button>
                           </div>
-
                         </div>
                       </div>
                     </div>
-                  );})}
-                </div>
-              )}
-            </ScrollArea>
-          </PopoverContent>
-        </Popover>
+                  );
+                })}
+              </div>
+            )}
+          </ScrollArea>
+        </PopoverContent>
+      </Popover>
 
-        <div className="flex flex-col items-end gap-2 w-80">
-          <AnimatePresence mode="popLayout">
-            {popups.map((popup, index) => (
-              <NotificationPopup 
-                key={popup.id} 
-                popup={popup} 
-                index={index} 
-                onClose={() => removePopup(popup.id)} 
-                onClick={() => {
-                  openFromNotification(popup as any);
-                  removePopup(popup.id);
-                }}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
+      <div className="flex flex-col items-end gap-2 w-80 pointer-events-none fixed top-6 right-6 z-[100]">
+        <AnimatePresence mode="popLayout">
+          {popups.map((popup, index) => (
+            <NotificationPopup 
+              key={popup.id} 
+              popup={popup} 
+              index={index} 
+              onClose={() => removePopup(popup.id)} 
+              onClick={() => {
+                openFromNotification(popup as any);
+                removePopup(popup.id);
+              }}
+            />
+          ))}
+        </AnimatePresence>
       </div>
     </>
   );
 }
-
 
 function NotificationPopup({ 
   popup, 
@@ -292,7 +284,7 @@ function NotificationPopup({
   useEffect(() => {
     const timer = setTimeout(onClose, getDuration());
     return () => clearTimeout(timer);
-  }, [onClose, index]); // Adicionado index para recalcular tempo se novas chegarem
+  }, [onClose, index]);
 
   return (
     <motion.div

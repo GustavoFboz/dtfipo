@@ -65,18 +65,7 @@ function Index() {
             <ChevronRight className="h-8 w-8 md:h-10 md:w-10 text-slate-300 dark:text-slate-700 stroke-[1.2px] self-center" />
           </h1>
 
-          <div className="flex items-center gap-4 w-full lg:w-auto lg:min-w-[560px]">
-            <div className="relative flex-1 group">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 transition-colors group-focus-within:text-primary" />
-              <Input
-                placeholder="Procure por caso, paciente, doutor, data..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-12 h-14 rounded-full border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-[15px] font-light placeholder:text-slate-400"
-              />
-              <div className="absolute inset-x-4 bottom-1 h-px bg-slate-200 dark:bg-slate-800" />
-            </div>
-
+          <div className="flex items-center gap-4 w-full lg:w-auto lg:min-w-[300px] justify-end">
             <NewCaseDialog
               trigger={
                 <Button className="h-14 px-8 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-normal text-[15px] gap-2 transition-all hover:shadow-xl hover:shadow-primary/30 hover:-translate-y-[1px]">
@@ -89,7 +78,7 @@ function Index() {
       </header>
 
       <section className="flex-1 min-h-0 flex flex-col">
-        <CasesTable externalSearch={search} hideToolbar minimal />
+        <CasesTable hideToolbar minimal />
       </section>
 
       <section className="shrink-0 pt-8 pb-10 md:pb-14 border-t border-slate-200/70 dark:border-slate-800/70 mt-6">
