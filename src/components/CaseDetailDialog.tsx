@@ -153,7 +153,7 @@ const TAB_TO_KIND: Partial<Record<TabKey, CaseAttachmentKind>> = {
   galeria: "gallery",
   scans: "scans",
   modelos: "model",
-  confeccao: "fabrication",
+  elementos: "elementos",
   html: "exocad_html",
 };
 const KIND_LABEL_BR: Record<CaseAttachmentKind, string> = {
@@ -827,9 +827,9 @@ export function CaseDetailDialog({
                   <CaseAttachments key={`${caseRow.id}:model:${open ? "o" : "c"}`} caseId={caseRow.id} canUpload onlyKind="model" caseRow={caseRow} />
                 </div>
               )}
-              {tab === "confeccao" && (
+              {tab === "elementos" && (
                 <div className="px-3 py-4">
-                  <CaseAttachments key={`${caseRow.id}:fabrication:${open ? "o" : "c"}`} caseId={caseRow.id} canUpload onlyKind="fabrication" caseRow={caseRow} />
+                  <CaseAttachments key={`${caseRow.id}:elementos:${open ? "o" : "c"}`} caseId={caseRow.id} canUpload onlyKind="elementos" caseRow={caseRow} />
                 </div>
               )}
               {tab === "comentarios" && (
@@ -1143,12 +1143,12 @@ export function CaseDetailDialog({
                   caseRow={caseRow}
                 />
               )}
-              {tab === "confeccao" && (
+              {tab === "elementos" && (
                 <CaseAttachments
-                  key={`${caseRow.id}:fabrication:${open ? "open" : "closed"}`}
+                  key={`${caseRow.id}:elementos:${open ? "open" : "closed"}`}
                   caseId={caseRow.id}
                   canUpload
-                  onlyKind="fabrication"
+                  onlyKind="elementos"
                   caseRow={caseRow}
                 />
               )}
