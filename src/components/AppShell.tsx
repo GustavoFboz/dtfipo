@@ -390,9 +390,9 @@ export function AppShell() {
       </header>
 
       <aside
-        className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"} flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 transition-[width,padding] duration-300 ease-in-out z-[60] fixed h-[calc(100vh-72px)] overflow-hidden top-[72px] ${
-          isCollapsed ? "w-[80px]" : "w-64"
-        }`}
+        className={`flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 z-[60] fixed h-[calc(100vh-72px)] top-[72px] transition-[width,padding,transform,opacity] duration-300 ease-in-out ${
+          pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"
+        } ${isCollapsed ? "w-[80px]" : "w-64"}`}
       >
         <TooltipProvider>
         <div className="flex flex-col h-full overflow-hidden">
