@@ -467,7 +467,7 @@ export function AppShell() {
                       {badgeCount}
                     </span>
                   )}
-                  {active && !isCollapsed && (
+                  {active && !(isCollapsed && !isHovered) && (
                     <div className="absolute left-0 w-1 h-6 bg-primary rounded-r-full" />
                   )}
                 </Link>
