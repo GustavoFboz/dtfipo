@@ -509,7 +509,7 @@ export function AppShell() {
                 e.currentTarget.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
                 e.currentTarget.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
               }}
-              className={`flex items-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative overflow-hidden text-slate-500 ${isCollapsed ? "justify-center" : "pl-12"}`}
+              className={`flex items-center w-full py-6 text-[13px] font-medium tracking-[0.1em] uppercase transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] group relative overflow-hidden text-slate-500 ${isCollapsed && !isHovered ? "justify-center" : "pl-12"}`}
             >
               <div className="absolute inset-x-0 bottom-0 h-px bg-slate-100 dark:bg-white/5" />
               <div 
