@@ -517,7 +517,7 @@ export function CasesTable({
         </div>
       )}
 
-      <div className="hidden md:grid grid-cols-[48px_2.5fr_1.5fr_1fr_1fr_1.5fr_1.5fr_0.5fr] gap-4 px-6 text-[11px] font-black uppercase tracking-[0.1em] text-slate-400 items-center border-b border-slate-100 pb-4">
+      <div className="hidden md:grid grid-cols-[48px_2.5fr_1.5fr_1fr_1fr_1.5fr_1.5fr_0.5fr] gap-4 px-6 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 items-center border-b border-slate-100 pb-4">
         <div className="flex justify-center">
           {!isCadista && (
             <Checkbox
@@ -577,10 +577,10 @@ export function CasesTable({
               tabIndex={0}
               onClick={() => setDetail(c)}
               style={reveal.itemProps(i).style}
-              className={`${reveal.itemProps(i).className} group md:grid md:grid-cols-[48px_2.5fr_1.5fr_1fr_1fr_1.5fr_1.5fr_0.5fr] md:items-center gap-4 px-6 py-6 bg-white rounded-[2rem] border-2 transition-all duration-700 cursor-pointer ${
+              className={`${reveal.itemProps(i).className} group md:grid md:grid-cols-[48px_2.5fr_1.5fr_1fr_1fr_1.5fr_1.5fr_0.5fr] md:items-center gap-4 px-6 py-6 bg-white rounded-[2rem] border transition-all duration-700 cursor-pointer ${
                 isSel 
                   ? "border-primary ring-[8px] ring-primary/5 shadow-xl translate-x-1" 
-                  : "border-transparent hover:border-slate-100 hover:shadow-[0_20px_50px_rgba(0,0,0,0.04)] hover:scale-[1.008]"
+                  : "border-slate-100 hover:border-slate-200 hover:shadow-[0_20px_50px_rgba(0,0,0,0.04)] hover:scale-[1.008]"
               }`}
             >
               <div onClick={(e) => e.stopPropagation()} className="flex justify-center items-center">
@@ -601,7 +601,7 @@ export function CasesTable({
                 </div>
                 <div className="min-w-0">
                   <div
-                    className="font-black text-[15px] text-slate-900 truncate block font-outfit"
+                    className="font-normal text-[17px] text-slate-900 truncate block font-sans"
                   >
                     {c.patient?.name ?? "—"}
                     {c.arch && <span className="ml-2 text-[10px] font-black uppercase text-slate-400 tracking-wider">[{archLabel(c.arch)}]</span>}
