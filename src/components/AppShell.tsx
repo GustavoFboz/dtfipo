@@ -546,7 +546,7 @@ export function AppShell() {
         </div>
       </aside>
 
-      <div className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:block"} transition-all duration-300 shrink-0 ${isCollapsed ? "w-[72px]" : "w-64"}`} />
+      <div className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:block"} transition-all duration-300 shrink-0 ${isCollapsed ? "w-[80px]" : "w-64"}`} />
 
       {pathname.startsWith("/dentes") && (
         <>
