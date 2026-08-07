@@ -331,17 +331,19 @@ export function AppShell() {
       {/* ============ DESKTOP TOP HEADER ============ */}
       <header className="hidden md:flex fixed top-0 left-0 right-0 z-50 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-6 transition-all duration-500 h-[72px]">
         <div className="flex items-center gap-6 shrink-0 h-full">
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0 flex items-center justify-center w-[24px] h-10"
-            aria-label="Toggle sidebar"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          </button>
+          {!pathname.startsWith("/dentes") && (
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors shrink-0 flex items-center justify-center w-[24px] h-10"
+              aria-label="Toggle sidebar"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+          )}
           
           <Link 
             to="/" 
@@ -592,21 +594,7 @@ export function AppShell() {
 
       <div className={`${pathname.startsWith("/dentes") ? "hidden" : "hidden md:block"} transition-all duration-300 shrink-0 ${isCollapsed ? "w-[80px]" : "w-64"}`} />
 
-      {pathname.startsWith("/dentes") && (
-        <>
-          <div className="hidden md:flex fixed top-8 left-6 z-[60] items-center gap-3">
-            <Link
-              to="/"
-              aria-label="DentalFlow — início"
-              className="h-10 w-10 shrink-0 rounded-xl bg-primary/5 dark:bg-primary/10 grid place-items-center border border-primary/10 shadow-[0_0_15px_rgba(var(--primary),0.05)] transition-transform hover:scale-105 duration-500"
-            >
-              <Stethoscope className="h-5 w-5 text-primary stroke-[1.2px]" />
-            </Link>
-
-
-          </div>
-        </>
-      )}
+      {/* Removido o ícone de estetoscópio que aparecia sobreposto em páginas como contador de dentes */}
 
       {/* ============ MOBILE APP HEADER (SVG-fiel) ============ */}
       <header
