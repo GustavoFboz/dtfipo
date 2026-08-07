@@ -1,15 +1,17 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { CasesTable } from "@/components/CasesTable";
 import { NewCaseDialog } from "@/components/NewCaseDialog";
 import { DashboardStats } from "@/components/DashboardStats";
 import { MobileDashboard } from "@/components/MobileDashboard";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Plus, Search, ChevronRight } from "lucide-react";
+import { Plus, ChevronRight, LayoutGrid, Building2, Stethoscope } from "lucide-react";
 import { useNow } from "@/hooks/use-now";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { fetchProfile } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/lab")({
   component: Index,
