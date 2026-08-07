@@ -330,7 +330,7 @@ export function AppShell() {
     <div className="flex h-screen overflow-hidden bg-[#fcfdfe] dark:bg-black font-light transition-colors duration-500">
       {/* ============ DESKTOP TOP HEADER ============ */}
       <header className="hidden md:flex fixed top-0 right-0 z-50 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-8 transition-all duration-500 left-0 h-[72px]">
-        <div className={`flex items-center shrink-0 h-full border-r border-slate-100 dark:border-white/5 bg-white dark:bg-black transition-all duration-300 ${isCollapsed ? 'w-[72px]' : 'w-64'}`}>
+        <div className={`flex items-center shrink-0 h-full transition-all duration-300 ${isCollapsed ? 'w-[72px]' : 'w-64'}`}>
           <div className="flex items-center gap-6 w-full pl-6">
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
@@ -344,12 +344,16 @@ export function AppShell() {
               </svg>
             </button>
             
-            <Link to="/" aria-label="DentalFlow — início" className={`flex items-center gap-2 rounded-xl transition-all duration-300 hover:opacity-80 shrink-0 ${isCollapsed ? 'opacity-0 pointer-events-none -translate-x-4' : 'opacity-100 translate-x-0'}`}>
+            <Link 
+              to="/" 
+              aria-label="DentalFlow — início" 
+              className={`flex items-center gap-2 rounded-xl transition-all duration-300 hover:opacity-80 shrink-0 ${isCollapsed ? 'opacity-0 invisible -translate-x-4' : 'opacity-100 visible translate-x-0'}`}
+            >
               <div className="h-9 w-9 shrink-0 rounded-full bg-[#4a9bff] grid place-items-center transition-all hover:scale-105 duration-500 shadow-[0_4px_12px_-4px_rgba(74,155,255,0.55)]">
                 <span className="text-white text-[15px] font-semibold leading-none">D</span>
               </div>
               <div className="leading-tight">
-                <div className="text-[15px] tracking-[0.01em] text-slate-800 dark:text-slate-100 uppercase flex items-baseline">
+                <div className="text-[15px] tracking-[0.01em] text-slate-800 dark:text-slate-100 uppercase flex items-baseline whitespace-nowrap">
                   <span className="font-light">DENTAL</span>
                   <span className="font-bold">FLOW</span>
                   <span className="text-[10px] ml-0.5 text-slate-400 font-medium self-start mt-0.5">BR</span>
