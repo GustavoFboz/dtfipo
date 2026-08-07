@@ -52,13 +52,14 @@ function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: cases } = useQuery({
     queryKey: ["global-search", "cases", query],
     queryFn: () => fetchCases("active").then(list => 
       list.filter(c => 
-        c.patient?.full_name?.toLowerCase().includes(query.toLowerCase()) ||
-        c.doctor_name?.toLowerCase().includes(query.toLowerCase())
+        c.patient?.name?.toLowerCase().includes(query.toLowerCase()) ||
+        c.doctor?.name?.toLowerCase().includes(query.toLowerCase())
       ).slice(0, 3)
     ),
     enabled: query.length > 2
@@ -67,7 +68,7 @@ function GlobalSearch() {
   const { data: patients } = useQuery({
     queryKey: ["global-search", "patients", query],
     queryFn: () => fetchPatients().then(list => 
-      list.filter(p => p.full_name?.toLowerCase().includes(query.toLowerCase())).slice(0, 3)
+      list.filter(p => p.name?.toLowerCase().includes(query.toLowerCase())).slice(0, 3)
     ),
     enabled: query.length > 2
   });
@@ -112,8 +113,8 @@ function GlobalSearch() {
                     }}
                     className="w-full px-3 py-2 text-left rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors flex flex-col"
                   >
-                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{c.patient?.full_name}</span>
-                    <span className="text-[10px] text-slate-400">{c.doctor_name}</span>
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{c.patient?.name}</span>
+                    <span className="text-[10px] text-slate-400">{c.doctor?.name}</span>
                   </button>
                 ))}
               </div>
@@ -132,7 +133,7 @@ function GlobalSearch() {
                     }}
                     className="w-full px-3 py-2 text-left rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                   >
-                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{p.full_name}</span>
+                    <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{p.name}</span>
                   </button>
                 ))}
               </div>
