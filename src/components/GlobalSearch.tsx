@@ -17,7 +17,7 @@ interface SearchResult {
 
 export function GlobalSearch() {
   const [query, setQuery] = useState("");
-  const debouncedQuery = useDebounce(query, 300);
+  const debouncedQuery = useDebounce(query, 0);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState<CaseRow | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -78,7 +78,7 @@ export function GlobalSearch() {
           }}
           onFocus={() => setIsOpen(true)}
           placeholder="Buscar caso, paciente, profissional..."
-          className="pl-11 pr-10 h-11 w-full rounded-full border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 focus-visible:ring-primary/20 focus-visible:bg-white dark:focus-visible:bg-slate-900 transition-all text-sm font-light"
+          className="pl-11 pr-10 h-11 w-full rounded-full border-slate-100 dark:border-white/10 bg-white dark:bg-white/5 focus-visible:ring-primary/20 focus-visible:bg-white dark:focus-visible:bg-slate-900 transition-all text-sm font-light shadow-sm"
         />
         {query && (
           <button
@@ -93,9 +93,10 @@ export function GlobalSearch() {
       <AnimatePresence>
         {isOpen && (debouncedQuery.length >= 2 || isLoading) && (
           <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
             className="absolute top-full mt-2 w-full bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-100 dark:border-white/10 overflow-hidden z-[100]"
           >
             <div className="max-h-[400px] overflow-y-auto p-2 scrollbar-none">
