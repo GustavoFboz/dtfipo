@@ -449,7 +449,7 @@ export function AppShell() {
                     active
                       ? "text-primary bg-primary/[0.04] font-medium"
                       : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5"
-                  } ${isCollapsed ? "px-0 py-3 w-6 justify-center" : "px-4 py-3 gap-6"}`}
+                  } ${isCollapsed && !isHovered ? "px-0 py-3 w-6 justify-center" : "px-4 py-3 gap-6"}`}
                 >
                   <div className="relative flex items-center justify-center shrink-0 w-6">
                     <n.icon className={`h-6 w-6 stroke-[1.4px] transition-colors duration-150 ${active ? "text-primary" : "group-hover:text-slate-900 dark:group-hover:text-slate-100"}`} />
@@ -457,12 +457,12 @@ export function AppShell() {
                       <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
                     )}
                   </div>
-                  {!isCollapsed && (
+                  {!(isCollapsed && !isHovered) && (
                     <span className="font-light tracking-wide whitespace-nowrap transition-opacity duration-300 flex-1">
                       {n.label}
                     </span>
                   )}
-                  {showBadge && !isCollapsed && (
+                  {showBadge && !(isCollapsed && !isHovered) && (
                     <span className="ml-auto inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-bold">
                       {badgeCount}
                     </span>
