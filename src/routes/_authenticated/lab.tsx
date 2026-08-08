@@ -23,6 +23,7 @@ function Index() {
   const [openNewPatient, setOpenNewPatient] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(false);
+  const [caseYear, setCaseYear] = useState<number | null>(null);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
