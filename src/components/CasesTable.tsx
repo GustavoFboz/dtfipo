@@ -9,6 +9,8 @@ import {
 import { openFolderLink, copyToClipboard } from "@/lib/folder";
 import { normalizeText } from "@/lib/utils";
 import { StageBadge } from "./StageBadge";
+import { CaseProfessionals } from "./CaseProfessionals";
+
 import { EditCaseDialog } from "./EditCaseDialog";
 import { CaseDetailDialog } from "./CaseDetailDialog";
 import { Button } from "@/components/ui/button";
@@ -306,7 +308,7 @@ export function CasesTable({
         {/* Sticky column header */}
         <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_40px] gap-6 px-2 pb-4 text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400 border-b border-slate-200/70 dark:border-slate-800/70">
           <SortHeaderMinimal label="Paciente" k="patient" sort={sort} setSort={setSort} />
-          <div>Dentista</div>
+          <div>Profissionais</div>
           <SortHeaderMinimal label="Entrada" k="entry_date" sort={sort} setSort={setSort} />
           <SortHeaderMinimal label="Entrega" k="delivery_date" sort={sort} setSort={setSort} />
           <SortHeaderMinimal label="Etapa" k="stage" sort={sort} setSort={setSort} />
@@ -367,10 +369,11 @@ export function CasesTable({
                   </div>
                 </div>
 
-                {/* Dentista */}
-                <div className="text-[15px] font-light text-slate-600 dark:text-slate-300 truncate">
-                  {c.doctor?.name ?? "—"}
+                {/* Profissionais */}
+                <div className="min-w-0">
+                  <CaseProfessionals caseRow={c} />
                 </div>
+
 
                 {/* Entrada */}
                 <div className={`text-[15px] font-light tabular-nums ${late ? "text-slate-500" : "text-slate-500"}`}>
