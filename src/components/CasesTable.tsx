@@ -41,15 +41,16 @@ import { ScanIcon } from "./icons/ScanIcon";
 import { toast } from "sonner";
 import type { CaseRow } from "@/lib/types";
 
+const monthAbbr = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+function fmtDayMonth(iso: string) {
+  if (!iso) return "";
+  const d = new Date(iso + "T00:00:00");
+  return `${String(d.getDate()).padStart(2, "0")}/${monthAbbr[d.getMonth()]}`;
+}
 function fmtBR(iso: string) {
   if (!iso) return "";
   const d = new Date(iso + "T00:00:00");
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-function fmtBRfull(iso: string) {
-  if (!iso) return "";
-  const d = new Date(iso + "T00:00:00");
-  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
 function isLate(deliveryISO: string) {
   const d = new Date(deliveryISO + "T00:00:00");
