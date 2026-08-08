@@ -9,6 +9,8 @@ import {
 import { openFolderLink, copyToClipboard } from "@/lib/folder";
 import { normalizeText } from "@/lib/utils";
 import { StageBadge } from "./StageBadge";
+import { CaseProfessionals } from "./CaseProfessionals";
+
 import { EditCaseDialog } from "./EditCaseDialog";
 import { CaseDetailDialog } from "./CaseDetailDialog";
 import { Button } from "@/components/ui/button";
