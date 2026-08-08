@@ -367,10 +367,11 @@ export function CasesTable({
                   </div>
                 </div>
 
-                {/* Dentista */}
-                <div className="text-[15px] font-light text-slate-600 dark:text-slate-300 truncate">
-                  {c.doctor?.name ?? "—"}
+                {/* Profissionais */}
+                <div className="min-w-0">
+                  <CaseProfessionals caseRow={c} />
                 </div>
+
 
                 {/* Entrada */}
                 <div className={`text-[15px] font-light tabular-nums ${late ? "text-slate-500" : "text-slate-500"}`}>
