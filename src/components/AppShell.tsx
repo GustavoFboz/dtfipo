@@ -405,8 +405,8 @@ export function AppShell() {
               <Link
                 to="/configuracoes"
                 onClick={(event) => handleAnimatedNavigation(event, "/configuracoes")}
-                className={`flex items-center bg-slate-50/50 dark:bg-slate-800/30 rounded-[32px] border border-slate-100/50 dark:border-slate-800/50 group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all duration-300 ease-in-out active:scale-[0.98] ${
-                  isCollapsed ? "p-0 bg-transparent border-transparent" : "p-3.5 gap-3"
+                className={`flex items-center gap-3 whitespace-nowrap bg-slate-50/50 dark:bg-slate-800/30 rounded-[32px] border border-slate-100/50 dark:border-slate-800/50 group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-[padding,background-color,border-color] duration-300 ease-in-out active:scale-[0.98] ${
+                  isCollapsed ? "p-0 bg-transparent border-transparent" : "p-3.5"
                 }`}
               >
                 <div className={`shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 transition-all duration-300 ease-in-out ${
@@ -424,9 +424,9 @@ export function AppShell() {
                     </div>
                   )}
                 </div>
-                <div className={`min-w-0 transition-opacity duration-300 ease-in-out overflow-hidden ${isCollapsed ? "opacity-0 pointer-events-none w-0" : "opacity-100 ml-0 w-auto"}`}>
+                <div className={`min-w-0 shrink-0 overflow-hidden whitespace-nowrap transition-[width,opacity] duration-300 ease-in-out ${isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-[128px] opacity-100"}`}>
                   <div className="text-[15px] font-medium text-slate-900 dark:text-slate-100 truncate tracking-tight">{profile.full_name?.split(' ')[0]}</div>
-                  <div className="text-[11px] text-slate-400 font-light">Acessar perfil</div>
+                  <div className="text-[11px] text-slate-400 font-light whitespace-nowrap">Ver perfil</div>
                 </div>
               </Link>
             </div>
