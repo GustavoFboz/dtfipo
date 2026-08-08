@@ -67,6 +67,9 @@ function Index() {
             <span className="whitespace-nowrap">Controle de</span>
             <span className="text-primary">Casos</span>
             <ChevronRight className="h-6 w-6 md:h-8 md:w-8 xl:h-10 xl:w-10 text-slate-300 dark:text-slate-700 stroke-[1.2px] self-center shrink-0" />
+            {caseYear != null && (
+              <span className="text-primary whitespace-nowrap">{caseYear}</span>
+            )}
           </h1>
 
           <div className="flex items-center gap-4 w-full lg:w-auto lg:min-w-[300px] justify-end">
