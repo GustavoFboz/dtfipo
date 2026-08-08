@@ -656,7 +656,7 @@ export function CasesTable({
 
               <div className="md:block flex items-center gap-2 text-[13px] font-bold text-slate-500">
                 <span className="md:hidden text-xs text-slate-400 uppercase tracking-[0.08em] mr-2">Entrada</span>
-                {fmtBR(c.entry_date)}
+                {fmtDayMonth(c.entry_date)}
               </div>
 
               <div className="md:block flex items-center gap-2">
@@ -665,7 +665,7 @@ export function CasesTable({
                   late ? "bg-rose-50 text-rose-600 shadow-sm" : "bg-emerald-50 text-emerald-600 shadow-sm"
                 }`}>
                   {late ? <AlertCircle className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
-                  {fmtBR(c.delivery_date)}
+                  {fmtDayMonth(c.delivery_date)}
                 </div>
               </div>
 
