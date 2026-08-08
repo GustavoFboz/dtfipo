@@ -285,6 +285,16 @@ export function CasesTable({
     return f;
   }, [cases.data, search, stageFilter, statusFilter, sort]);
 
+  useEffect(() => {
+    if (!onYearChange) return;
+    if (filtered.length === 0) {
+      onYearChange(null);
+      return;
+    }
+    const years = filtered.map((c) => new Date((c.entry_date || c.created_at || "") + "T00:00:00").getFullYear()).filter((y) => !Number.isNaN(y));
+    onYearChange(years.length ? Math.max(...years) : null);
+  }, [filtered, onYearChange]);
+
   const handleOpenFolder = async (c: CaseRow) => {
     if (!c.folder_url) {
       setFolderEdit({ row: c, url: "" });
