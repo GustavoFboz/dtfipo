@@ -378,12 +378,12 @@ export function CasesTable({
 
                 {/* Entrada */}
                 <div className={`text-[15px] font-light tabular-nums ${late ? "text-slate-500" : "text-slate-500"}`}>
-                  {fmtBRfull(c.entry_date)}
+                  {fmtDayMonth(c.entry_date)}
                 </div>
 
                 {/* Entrega */}
                 <div className={`text-[15px] font-light tabular-nums ${late ? "text-rose-500" : "text-slate-500"}`}>
-                  {fmtBRfull(c.delivery_date)}
+                  {fmtDayMonth(c.delivery_date)}
                 </div>
 
                 {/* Etapa */}
