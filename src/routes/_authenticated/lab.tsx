@@ -115,7 +115,7 @@ function Index() {
             </button>
           ))}
         </div>
-        <CasesTable hideToolbar minimal hideSearch activeFilter={filter} onFilterChange={setFilter} />
+        <CasesTable hideToolbar minimal hideSearch activeFilter={filter} onFilterChange={setFilter} onYearChange={setCaseYear} />
       </section>
 
       <section className="shrink-0 pt-8 pb-10 md:pb-14 border-t border-slate-200/70 dark:border-slate-800/70 mt-6">
