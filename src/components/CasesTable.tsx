@@ -127,6 +127,7 @@ export function CasesTable({
   hideSearch,
   activeFilter = "all",
   onFilterChange,
+  onYearChange,
 }: { 
   externalSearch?: string; 
   hideToolbar?: boolean; 
@@ -134,6 +135,7 @@ export function CasesTable({
   hideSearch?: boolean;
   activeFilter?: string;
   onFilterChange?: (filter: string) => void;
+  onYearChange?: (year: number | null) => void;
 } = {}) {
   const qc = useQueryClient();
   const [internalSearch, setSearch] = useState("");
