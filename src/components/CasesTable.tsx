@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SkeletonBlock, SkeletonCircle, SkeletonSwap, useListReveal } from "@/components/ui/skeleton-blocks";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   fetchCases, fetchStages, finishCase, updateCase, setCurrentStage, deleteCase, fetchProfile
