@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SkeletonBlock, SkeletonCircle, SkeletonSwap, useListReveal } from "@/components/ui/skeleton-blocks";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   fetchCases, fetchStages, finishCase, updateCase, setCurrentStage, deleteCase, fetchProfile
@@ -41,15 +41,16 @@ import { ScanIcon } from "./icons/ScanIcon";
 import { toast } from "sonner";
 import type { CaseRow } from "@/lib/types";
 
+const monthAbbr = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+function fmtDayMonth(iso: string) {
+  if (!iso) return "";
+  const d = new Date(iso + "T00:00:00");
+  return `${String(d.getDate()).padStart(2, "0")}/${monthAbbr[d.getMonth()]}`;
+}
 function fmtBR(iso: string) {
   if (!iso) return "";
   const d = new Date(iso + "T00:00:00");
   return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
-}
-function fmtBRfull(iso: string) {
-  if (!iso) return "";
-  const d = new Date(iso + "T00:00:00");
-  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
 }
 function isLate(deliveryISO: string) {
   const d = new Date(deliveryISO + "T00:00:00");
@@ -126,6 +127,7 @@ export function CasesTable({
   hideSearch,
   activeFilter = "all",
   onFilterChange,
+  onYearChange,
 }: { 
   externalSearch?: string; 
   hideToolbar?: boolean; 
@@ -133,6 +135,7 @@ export function CasesTable({
   hideSearch?: boolean;
   activeFilter?: string;
   onFilterChange?: (filter: string) => void;
+  onYearChange?: (year: number | null) => void;
 } = {}) {
   const qc = useQueryClient();
   const [internalSearch, setSearch] = useState("");
@@ -282,6 +285,16 @@ export function CasesTable({
     return f;
   }, [cases.data, search, stageFilter, statusFilter, sort]);
 
+  useEffect(() => {
+    if (!onYearChange) return;
+    if (filtered.length === 0) {
+      onYearChange(null);
+      return;
+    }
+    const years = filtered.map((c) => new Date((c.entry_date || c.created_at || "") + "T00:00:00").getFullYear()).filter((y) => !Number.isNaN(y));
+    onYearChange(years.length ? Math.max(...years) : null);
+  }, [filtered, onYearChange]);
+
   const handleOpenFolder = async (c: CaseRow) => {
     if (!c.folder_url) {
       setFolderEdit({ row: c, url: "" });
@@ -377,12 +390,12 @@ export function CasesTable({
 
                 {/* Entrada */}
                 <div className={`text-[15px] font-light tabular-nums ${late ? "text-slate-500" : "text-slate-500"}`}>
-                  {fmtBRfull(c.entry_date)}
+                  {fmtDayMonth(c.entry_date)}
                 </div>
 
                 {/* Entrega */}
                 <div className={`text-[15px] font-light tabular-nums ${late ? "text-rose-500" : "text-slate-500"}`}>
-                  {fmtBRfull(c.delivery_date)}
+                  {fmtDayMonth(c.delivery_date)}
                 </div>
 
                 {/* Etapa */}
@@ -655,7 +668,7 @@ export function CasesTable({
 
               <div className="md:block flex items-center gap-2 text-[13px] font-bold text-slate-500">
                 <span className="md:hidden text-xs text-slate-400 uppercase tracking-[0.08em] mr-2">Entrada</span>
-                {fmtBR(c.entry_date)}
+                {fmtDayMonth(c.entry_date)}
               </div>
 
               <div className="md:block flex items-center gap-2">
@@ -664,7 +677,7 @@ export function CasesTable({
                   late ? "bg-rose-50 text-rose-600 shadow-sm" : "bg-emerald-50 text-emerald-600 shadow-sm"
                 }`}>
                   {late ? <AlertCircle className="h-3.5 w-3.5" /> : <Clock className="h-3.5 w-3.5" />}
-                  {fmtBR(c.delivery_date)}
+                  {fmtDayMonth(c.delivery_date)}
                 </div>
               </div>
 

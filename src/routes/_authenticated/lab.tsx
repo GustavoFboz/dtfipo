@@ -23,6 +23,7 @@ function Index() {
   const [openNewPatient, setOpenNewPatient] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(false);
+  const [caseYear, setCaseYear] = useState<number | null>(null);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
@@ -66,6 +67,9 @@ function Index() {
             <span className="whitespace-nowrap">Controle de</span>
             <span className="text-primary">Casos</span>
             <ChevronRight className="h-6 w-6 md:h-8 md:w-8 xl:h-10 xl:w-10 text-slate-300 dark:text-slate-700 stroke-[1.2px] self-center shrink-0" />
+            {caseYear != null && (
+              <span className="text-primary whitespace-nowrap">{caseYear}</span>
+            )}
           </h1>
 
           <div className="flex items-center gap-4 w-full lg:w-auto lg:min-w-[300px] justify-end">
@@ -111,7 +115,7 @@ function Index() {
             </button>
           ))}
         </div>
-        <CasesTable hideToolbar minimal hideSearch activeFilter={filter} onFilterChange={setFilter} />
+        <CasesTable hideToolbar minimal hideSearch activeFilter={filter} onFilterChange={setFilter} onYearChange={setCaseYear} />
       </section>
 
       <section className="shrink-0 pt-8 pb-10 md:pb-14 border-t border-slate-200/70 dark:border-slate-800/70 mt-6">
