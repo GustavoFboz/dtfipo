@@ -329,7 +329,7 @@ export function AppShell() {
   return (
     <div className="flex h-screen overflow-hidden bg-[#fcfdfe] dark:bg-black font-light transition-colors duration-500">
       {/* ============ DESKTOP TOP HEADER ============ */}
-      <header className={`hidden md:flex fixed top-0 left-0 right-0 z-50 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-6 transition-all duration-300 ease-in-out h-[72px] ${dialogOpen ? "blur-md pointer-events-none grayscale-[0.2]" : ""}`}>
+      <header className={`hidden md:flex fixed top-0 left-0 right-0 z-50 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-6 transition-all duration-300 ease-in-out h-[72px] ${dialogOpen ? "backdrop-blur-md bg-[#F9FAFB]/70 dark:bg-slate-950/70 pointer-events-none grayscale-[0.2]" : ""}`}>
         <div className="flex items-center gap-6 shrink-0 h-full">
           {!pathname.startsWith("/dentes") && (
             <button
@@ -390,9 +390,9 @@ export function AppShell() {
       </header>
 
       <aside
-        className={`flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 z-[60] fixed h-[calc(100vh-72px)] top-[72px] transition-[width,filter] duration-300 ease-in-out select-none ${
+        className={`flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 z-[60] fixed h-[calc(100vh-72px)] top-[72px] transition-all duration-300 ease-in-out select-none ${
           pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"
-        } ${isCollapsed ? "w-[80px]" : "w-64"} ${dialogOpen ? "blur-md pointer-events-none grayscale-[0.2]" : ""}`}
+        } ${isCollapsed ? "w-[80px]" : "w-64"} ${dialogOpen ? "backdrop-blur-md bg-white/70 dark:bg-black/70 pointer-events-none grayscale-[0.2]" : ""}`}
       >
         <TooltipProvider>
         <div className="flex flex-col h-full">
