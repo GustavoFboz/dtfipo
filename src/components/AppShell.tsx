@@ -392,7 +392,7 @@ export function AppShell() {
       <aside
         className={`flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 z-[60] fixed h-[calc(100vh-72px)] top-[72px] transition-all duration-300 ease-in-out select-none ${
           pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"
-        } ${isCollapsed ? "w-[80px]" : "w-64"} ${dialogOpen ? "backdrop-blur-md bg-white/70 dark:bg-black/70 pointer-events-none grayscale-[0.2]" : ""}`}
+        } ${isCollapsed ? "w-[80px]" : "w-64"} ${dialogOpen ? "blur-md pointer-events-none grayscale-[0.2]" : ""}`}
       >
         <TooltipProvider>
         <div className="flex flex-col h-full">
