@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { CaseRow } from "@/lib/types";
 
 type LiteProfile = { id: string; full_name: string | null; avatar_url: string | null; role: string | null };
@@ -99,7 +99,7 @@ function Avatar({ p, size = 34 }: { p: Professional; size?: number }) {
 
 export function CaseProfessionals({ caseRow }: { caseRow: CaseRow }) {
   const people = useProfessionals(caseRow);
-  const [open, setOpen] = useState(false);
+  // Removed local state, Popover manages its own state or can be controlled if needed
 
   if (people.length === 0) {
     return <div className="text-[15px] font-light text-slate-400">—</div>;
@@ -109,62 +109,59 @@ export function CaseProfessionals({ caseRow }: { caseRow: CaseRow }) {
   const extra = people.length - shown.length;
 
   return (
-    <>
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen(true);
-        }}
-        className="flex items-center transition-transform hover:-translate-y-[1px]"
-        aria-label="Ver profissionais do caso"
-      >
-        {shown.map((p, i) => (
-          <span
-            key={p.key}
-            className="rounded-full ring-2 ring-white dark:ring-slate-950"
-            style={{ marginLeft: i === 0 ? 0 : -10, zIndex: shown.length - i }}
-          >
-            <Avatar p={p} />
-          </span>
-        ))}
-        {extra > 0 && (
-          <span
-            className="grid h-[34px] w-[34px] place-items-center rounded-full bg-primary text-[11px] font-medium text-primary-foreground ring-2 ring-white dark:ring-slate-950"
-            style={{ marginLeft: -10 }}
-          >
-            +{extra}
-          </span>
-        )}
-      </button>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
           onClick={(e) => e.stopPropagation()}
-          className="max-w-sm rounded-[2rem] border-0 bg-slate-50 dark:bg-slate-900 p-7 shadow-[12px_12px_28px_rgba(15,23,42,0.10),-12px_-12px_28px_rgba(255,255,255,0.9)] dark:shadow-[12px_12px_28px_rgba(0,0,0,0.55),-12px_-12px_28px_rgba(255,255,255,0.03)]"
+          className="flex items-center transition-transform hover:-translate-y-[1px]"
+          aria-label="Ver profissionais do caso"
         >
-          <DialogHeader className="mb-2">
-            <DialogTitle className="text-[13px] font-medium uppercase tracking-[0.14em] text-slate-400">
-              Profissionais
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2.5">
-            {people.map((p) => (
-              <div
-                key={p.key}
-                className="flex items-center gap-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 px-4 py-3 shadow-[6px_6px_14px_rgba(15,23,42,0.07),-6px_-6px_14px_rgba(255,255,255,0.85)] dark:shadow-[6px_6px_14px_rgba(0,0,0,0.5),-6px_-6px_14px_rgba(255,255,255,0.02)]"
-              >
-                <Avatar p={p} size={40} />
-                <div className="min-w-0">
-                  <div className="truncate text-[15px] font-normal text-slate-800 dark:text-slate-100">{p.name}</div>
-                  <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">{p.role}</div>
-                </div>
+          {shown.map((p, i) => (
+            <span
+              key={p.key}
+              className="rounded-full ring-2 ring-white dark:ring-slate-950"
+              style={{ marginLeft: i === 0 ? 0 : -10, zIndex: shown.length - i }}
+            >
+              <Avatar p={p} />
+            </span>
+          ))}
+          {extra > 0 && (
+            <span
+              className="grid h-[34px] w-[34px] place-items-center rounded-full bg-primary text-[11px] font-medium text-primary-foreground ring-2 ring-white dark:ring-slate-950"
+              style={{ marginLeft: -10 }}
+            >
+              +{extra}
+            </span>
+          )}
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        align="start"
+        sideOffset={8}
+        className="w-[320px] rounded-[2rem] border-0 bg-slate-50 dark:bg-slate-900 p-6 shadow-[12px_12px_28px_rgba(15,23,42,0.10),-12px_-12px_28px_rgba(255,255,255,0.9)] dark:shadow-[12px_12px_28px_rgba(0,0,0,0.55),-12px_-12px_28px_rgba(255,255,255,0.03)]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 text-[13px] font-medium uppercase tracking-[0.14em] text-slate-400">
+          Profissionais
+        </div>
+        <div className="space-y-2.5">
+          {people.map((p) => (
+            <div
+              key={p.key}
+              className="flex items-center gap-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900 px-4 py-3 shadow-[6px_6px_14px_rgba(15,23,42,0.07),-6px_-6px_14px_rgba(255,255,255,0.85)] dark:shadow-[6px_6px_14px_rgba(0,0,0,0.5),-6px_-6px_14px_rgba(255,255,255,0.02)]"
+            >
+              <Avatar p={p} size={40} />
+              <div className="min-w-0">
+                <div className="truncate text-[15px] font-normal text-slate-800 dark:text-slate-100">{p.name}</div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-slate-400">{p.role}</div>
               </div>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
