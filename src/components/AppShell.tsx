@@ -598,7 +598,7 @@ export function AppShell() {
 
       {/* ============ MOBILE APP HEADER (SVG-fiel) ============ */}
       <header
-        className="md:hidden fixed top-0 inset-x-0 z-50 flex items-center gap-3 px-5 bg-white dark:bg-slate-950 pt-[env(safe-area-inset-top)]"
+        className={`md:hidden fixed top-0 inset-x-0 z-50 flex items-center gap-3 px-5 bg-white dark:bg-slate-950 pt-[env(safe-area-inset-top)] transition-all duration-300 ${dialogOpen ? "pointer-events-none blur-md grayscale-[0.05] brightness-[0.98] opacity-[0.98]" : ""}`}
         style={{ height: "calc(4rem + env(safe-area-inset-top))" }}
       >
         {/* Marca: círculo azul com "D" + logotipo DENTALFLOW */}
@@ -666,7 +666,7 @@ export function AppShell() {
         className="md:hidden fixed inset-x-0 z-50 pointer-events-none flex justify-center px-5"
         style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
       >
-        <div className="pointer-events-auto w-full max-w-md rounded-full bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-[0_18px_44px_-12px_rgba(15,23,42,0.22),0_6px_16px_-8px_rgba(15,23,42,0.12)] border border-white/60 dark:border-white/5 grid grid-cols-4 h-[68px] px-3">
+        <div className={`pointer-events-auto w-full max-w-md rounded-full bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-[0_18px_44px_-12px_rgba(15,23,42,0.22),0_6px_16px_-8px_rgba(15,23,42,0.12)] border border-white/60 dark:border-white/5 grid grid-cols-4 h-[68px] px-3 transition-all duration-300 ${dialogOpen ? "pointer-events-none blur-md grayscale-[0.05] brightness-[0.98] opacity-[0.98]" : ""}`}>
           {(() => {
             const items = [
               { to: "/", label: "Início", icon: Home as any },
