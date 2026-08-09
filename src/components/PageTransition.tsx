@@ -48,7 +48,7 @@ export function PageTransition({
   return (
     <div
       key={`${pathname}-${transitionKey}-${phase === "exiting" ? "exit" : "page"}`}
-      className={`relative z-10 ${wrapper} ${motionClass}`}
+      className={`relative z-10 ${wrapper} ${motionClass} ${document.body.hasAttribute("data-scroll-locked") ? "!blur-none" : ""}`}
     >
       {children}
     </div>
