@@ -329,7 +329,7 @@ export function AppShell() {
   return (
     <div className={`flex h-screen overflow-hidden bg-[#fcfdfe] dark:bg-black font-light transition-all duration-500`}>
       {/* ============ DESKTOP TOP HEADER ============ */}
-      <header className={`hidden md:flex fixed top-0 left-0 right-0 z-40 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-6 transition-all duration-300 ease-in-out h-[72px] ${dialogOpen ? "pointer-events-none grayscale-[0.05] brightness-[0.98] opacity-[0.98]" : ""}`}>
+      <header className={`hidden md:flex fixed top-0 left-0 right-0 z-40 bg-[#F9FAFB] dark:bg-slate-950 border-b border-slate-100 dark:border-white/5 items-center justify-between px-6 transition-all duration-300 ease-in-out h-[72px] ${dialogOpen ? "pointer-events-none blur-md grayscale-[0.05] brightness-[0.98] opacity-[0.98]" : ""}`}>
         <div className="flex items-center gap-6 shrink-0 h-full">
           {!pathname.startsWith("/dentes") && (
             <button
@@ -392,7 +392,7 @@ export function AppShell() {
       <aside
         className={`flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 z-40 fixed h-[calc(100vh-72px)] top-[72px] transition-all duration-300 ease-in-out select-none ${
           pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"
-        } ${isCollapsed ? "w-[80px]" : "w-64"} ${dialogOpen ? "pointer-events-none grayscale-[0.05] brightness-[0.98] opacity-[0.98]" : ""}`}
+        } ${isCollapsed ? "w-[80px]" : "w-64"} ${dialogOpen ? "pointer-events-none blur-md grayscale-[0.05] brightness-[0.98] opacity-[0.98]" : ""}`}
       >
         <TooltipProvider>
         <div className="flex flex-col h-full">
@@ -598,7 +598,7 @@ export function AppShell() {
 
       {/* ============ MOBILE APP HEADER (SVG-fiel) ============ */}
       <header
-        className="md:hidden fixed top-0 inset-x-0 z-50 flex items-center gap-3 px-5 bg-white dark:bg-slate-950 pt-[env(safe-area-inset-top)]"
+        className={`md:hidden fixed top-0 inset-x-0 z-50 flex items-center gap-3 px-5 bg-white dark:bg-slate-950 pt-[env(safe-area-inset-top)] transition-all duration-300 ${dialogOpen ? "pointer-events-none blur-md grayscale-[0.05] brightness-[0.98] opacity-[0.98]" : ""}`}
         style={{ height: "calc(4rem + env(safe-area-inset-top))" }}
       >
         {/* Marca: círculo azul com "D" + logotipo DENTALFLOW */}
@@ -653,7 +653,7 @@ export function AppShell() {
         </div>
       </header>
 
-      <main data-scroll-container="app" className={`relative h-screen flex-1 min-w-0 pt-[72px] md:pt-[72px] overflow-y-auto overflow-x-hidden bg-white dark:bg-slate-950 transition-all duration-300 ${dialogOpen ? "pointer-events-none grayscale-[0.05] brightness-[0.98] opacity-[0.98]" : ""}`}>
+      <main data-scroll-container="app" className={`relative h-screen flex-1 min-w-0 pt-[72px] md:pt-[72px] overflow-y-auto overflow-x-hidden bg-white dark:bg-slate-950 transition-all duration-300 ${dialogOpen ? "pointer-events-none blur-md grayscale-[0.05] brightness-[0.98] opacity-[0.98]" : ""}`}>
         <PageTransition pathname={pathname} phase={pageTransitionPhase} transitionKey={pageTransitionKey}>
           <Outlet />
         </PageTransition>
@@ -666,7 +666,7 @@ export function AppShell() {
         className="md:hidden fixed inset-x-0 z-50 pointer-events-none flex justify-center px-5"
         style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
       >
-        <div className="pointer-events-auto w-full max-w-md rounded-full bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-[0_18px_44px_-12px_rgba(15,23,42,0.22),0_6px_16px_-8px_rgba(15,23,42,0.12)] border border-white/60 dark:border-white/5 grid grid-cols-4 h-[68px] px-3">
+        <div className={`pointer-events-auto w-full max-w-md rounded-full bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-[0_18px_44px_-12px_rgba(15,23,42,0.22),0_6px_16px_-8px_rgba(15,23,42,0.12)] border border-white/60 dark:border-white/5 grid grid-cols-4 h-[68px] px-3 transition-all duration-300 ${dialogOpen ? "pointer-events-none blur-md grayscale-[0.05] brightness-[0.98] opacity-[0.98]" : ""}`}>
           {(() => {
             const items = [
               { to: "/", label: "Início", icon: Home as any },
