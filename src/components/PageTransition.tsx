@@ -57,7 +57,7 @@ export function PageTransition({
   return (
     <div
       key={`${pathname}-${transitionKey}-${phase === "exiting" ? "exit" : "page"}`}
-      className={`relative z-10 ${wrapper} ${motionClass} ${isLocked ? "!blur-none" : ""}`}
+      className={`relative z-10 ${wrapper} ${motionClass} ${isLocked ? "!blur-none grayscale-[0.05] brightness-[0.98] opacity-[0.98]" : ""}`}
     >
       {children}
     </div>
