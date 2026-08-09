@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
 /**
  * Route transition presenter.
@@ -18,6 +18,15 @@ export function PageTransition({
   phase?: "idle" | "exiting" | "blank" | "entering";
   transitionKey?: number;
 }) {
+  const [isLocked, setIsLocked] = useState(false);
+
+  useEffect(() => {
+    const update = () => setIsLocked(document.body.hasAttribute("data-scroll-locked"));
+    update();
+    const obs = new MutationObserver(update);
+    obs.observe(document.body, { attributes: true, attributeFilter: ["data-scroll-locked"] });
+    return () => obs.disconnect();
+  }, []);
   // Lab↔Dentes usa animações dedicadas nas próprias rotas. Nessas transições
   // o AppShell mantém o phase em "idle" (não passa pelo handleAnimatedNavigation),
   // então detectamos o par exatamente por essa combinação e ignoramos o wrapper
@@ -48,7 +57,7 @@ export function PageTransition({
   return (
     <div
       key={`${pathname}-${transitionKey}-${phase === "exiting" ? "exit" : "page"}`}
-      className={`relative z-10 ${wrapper} ${motionClass} ${document.body.hasAttribute("data-scroll-locked") ? "!blur-none" : ""}`}
+      className={`relative z-10 ${wrapper} ${motionClass} ${isLocked ? "!blur-none" : ""}`}
     >
       {children}
     </div>
