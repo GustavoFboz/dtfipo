@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, ChevronRight, Filter, X, Trash2 } from "lucide-react";
+import { Plus, Search, ChevronRight, Filter, X, Trash2, CalendarDays } from "lucide-react";
 import { useNow } from "@/hooks/use-now";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { fetchDoctors, fetchCadistas } from "@/lib/api";
