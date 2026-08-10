@@ -824,7 +824,7 @@ export function NewCaseDialog({
             </button>
           </header>
 
-        <div className={`relative grid grid-cols-1 lg:grid-cols-12 gap-0 flex-1 min-h-0 ${isView ? "overflow-y-auto" : "overflow-hidden"}`}>
+        <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-0 flex-1 min-h-0 overflow-hidden">
           <div
             {...(isView ? { inert: "" as unknown as boolean } : {})}
             aria-disabled={isView || undefined}
