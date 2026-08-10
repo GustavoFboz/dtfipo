@@ -1328,9 +1328,6 @@ export function NewCaseDialog({
 
 
 
-              {isEdit && editCase && hasImplant && (editCase.implant_teeth ?? []).length > 0 && (
-                <CaseImplantTeethPanel caseRow={editCase} />
-              )}
 
 
               {/* Gengiva */}
