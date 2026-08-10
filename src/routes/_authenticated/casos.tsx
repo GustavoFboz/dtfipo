@@ -39,6 +39,11 @@ function Index() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    (window as any).DENTALFLOW_TRASH_MODE = isTrashMode;
+    return () => { (window as any).DENTALFLOW_TRASH_MODE = false; };
+  }, [isTrashMode]);
+
+  useEffect(() => {
     try {
       if (sessionStorage.getItem("dentalflow:lab-enter") === "1") {
         sessionStorage.removeItem("dentalflow:lab-enter");
@@ -113,7 +118,18 @@ function Index() {
                   <span className="whitespace-nowrap">Lixeira de</span>
                   <span className="text-rose-500">Casos</span>
                   <ChevronRight className="h-6 w-6 md:h-8 md:w-8 xl:h-10 xl:w-10 text-rose-200 dark:text-rose-900 stroke-[1.2px] self-center shrink-0" />
-                  <span className="text-rose-400 text-2xl xl:text-4xl font-light">Descarte</span>
+                  {(caseYear != null || dateRange != null) && (
+                    <span className="text-rose-400 whitespace-nowrap">
+                      {dateRange ? (
+                        dateRange.start && dateRange.end && dateRange.start.split('-')[0] !== dateRange.end.split('-')[0]
+                          ? `${dateRange.start.split('-')[0]}-${dateRange.end.split('-')[0]}`
+                          : dateRange.start.split('-')[0]
+                      ) : caseYear}
+                    </span>
+                  )}
+                  {caseYear == null && dateRange == null && (
+                    <span className="text-rose-400 whitespace-nowrap">{new Date().getFullYear()}</span>
+                  )}
                 </motion.h1>
               )}
             </AnimatePresence>
@@ -141,9 +157,9 @@ function Index() {
       </header>
 
       <section className="flex-1 min-h-0 flex flex-col">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 min-h-[58px]">
           <AnimatePresence mode="wait">
-            {!isTrashMode && (
+            {true && (
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -202,12 +218,12 @@ function Index() {
               );
             })}
           </motion.div>
-          )}
+            )}
           </AnimatePresence>
 
           <div className="flex items-center gap-3">
             <AnimatePresence mode="wait">
-              {!isTrashMode && (
+              {true && (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
