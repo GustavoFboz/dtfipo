@@ -128,6 +128,7 @@ export function CasesTable({
   activeFilter = "all",
   onFilterChange,
   onYearChange,
+  onCountsUpdate,
 }: { 
   externalSearch?: string; 
   hideToolbar?: boolean; 
