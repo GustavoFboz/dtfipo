@@ -98,7 +98,29 @@ function Index() {
       </header>
 
       <section className="flex-1 min-h-0 flex flex-col">
-        <div className="flex flex-wrap items-center gap-4 mb-8">
+        <div className="relative flex items-center p-1 bg-slate-100/50 dark:bg-white/5 rounded-full w-fit mb-8 overflow-hidden">
+          <motion.div
+            className="absolute h-[calc(100%-8px)] rounded-full bg-[#54A8FB] shadow-lg shadow-blue-400/20 z-0"
+            initial={false}
+            animate={{
+              x: filter === "all" ? 4 : 
+                 filter === "em_andamento" ? 78 : 
+                 filter === "finalizados" ? 212 : 
+                 filter === "arquivados" ? 316 : 
+                 filter === "cancelados" ? 418 : 4,
+              width: filter === "all" ? 70 : 
+                     filter === "em_andamento" ? 130 : 
+                     filter === "finalizados" ? 100 : 
+                     filter === "arquivados" ? 98 : 
+                     filter === "cancelados" ? 105 : 70
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 400,
+              damping: 30,
+              mass: 1
+            }}
+          />
           {[
             { id: "all", label: "Todos" },
             { id: "em_andamento", label: "Em andamento" },
@@ -107,27 +129,30 @@ function Index() {
             { id: "cancelados", label: "Cancelados" },
           ].map((t) => {
             const isActive = filter === t.id;
-            // Get count for this filter from CasesTable or local state if we had it.
-            // For now we'll just implement the visual requested.
             return (
               <button
                 key={t.id}
                 onClick={() => setFilter(t.id)}
-                className={`relative flex items-center gap-2.5 px-6 py-2.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${
+                className={`relative z-10 flex items-center gap-2 px-6 py-2.5 rounded-full text-[13px] font-medium transition-colors duration-200 whitespace-nowrap ${
                   isActive
-                    ? "bg-[#54A8FB] text-white shadow-lg shadow-blue-400/20"
-                    : "bg-white dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 border border-slate-100 dark:border-white/5"
+                    ? "text-white"
+                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 }`}
               >
                 {t.label}
-                <AnimatePresence mode="wait">
+                <AnimatePresence>
                   {isActive && (
                     <motion.span
                       key={t.id}
                       initial={{ scale: 0, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0, opacity: 0 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      transition={{ 
+                        type: "spring", 
+                        stiffness: 500, 
+                        damping: 25,
+                        delay: 0.05
+                      }}
                       className="inline-grid place-items-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-bold bg-white text-[#54A8FB]"
                     >
                       {counts[t.id] ?? 0}
@@ -135,7 +160,6 @@ function Index() {
                   )}
                 </AnimatePresence>
               </button>
-
             );
           })}
         </div>
