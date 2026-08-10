@@ -172,6 +172,7 @@ function Index() {
               { id: "atrasados", label: "Atrasados" },
               { id: "finalizados", label: "Finalizados" },
               { id: "arquivados", label: "Arquivados" },
+              ...(isTrashMode ? [{ id: "cancelado", label: "Cancelados" }] : []),
             ].map((t) => {
               const isActive = filter === t.id;
               return (

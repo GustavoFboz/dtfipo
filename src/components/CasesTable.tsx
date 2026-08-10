@@ -237,6 +237,8 @@ export function CasesTable({
       // Apply the new status-based tag filter
       if (activeFilter === "deleted") {
         if (c.status !== "cancelado") return false;
+      } else if (activeFilter === "cancelado") {
+        if (c.status !== "cancelado") return false;
       } else if (activeFilter === "em_andamento") {
         if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
       } else if (activeFilter === "atrasados") {
@@ -689,8 +691,48 @@ export function CasesTable({
                 isSel 
                   ? "border-primary ring-[8px] ring-primary/5 shadow-xl translate-x-1" 
                   : "border-transparent hover:border-slate-100 hover:shadow-[0_20px_50px_rgba(0,0,0,0.04)] hover:scale-[1.008]"
-              }`}
+              } ${activeFilter === "deleted" || activeFilter === "cancelado" ? "pointer-events-none select-none" : ""}`}
             >
+              {(activeFilter === "deleted" || activeFilter === "cancelado") && (
+                <div 
+                  className="absolute inset-0 z-50 flex items-center justify-end pr-6 gap-2 pointer-events-auto" 
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-10 px-4 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-100 font-bold text-[11px] uppercase tracking-wider gap-2"
+                    onClick={() => setDetail(c)}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Visualizar
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-10 px-4 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-100 font-bold text-[11px] uppercase tracking-wider gap-2"
+                    onClick={async () => {
+                      const { restoreCase } = await import("@/lib/api");
+                      try {
+                        await restoreCase(c.id);
+                        toast.success("Caso recuperado com sucesso");
+                        qc.invalidateQueries({ queryKey: ["cases"] });
+                      } catch (err) {
+                        toast.error("Erro ao recuperar caso");
+                      }
+                    }}
+                  >
+                    <ArrowUp className="h-3.5 w-3.5" /> Recuperar
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-10 px-4 rounded-xl bg-slate-900 text-white hover:bg-slate-800 font-bold text-[11px] uppercase tracking-wider gap-2"
+                    onClick={() => setDeleting(c)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Excluir
+                  </Button>
+                </div>
+              )}
               <div onClick={(e) => e.stopPropagation()} className="flex justify-center items-center">
                 {!isCadista && (
                   <Checkbox checked={isSel} onCheckedChange={() => toggleSelected(c.id)} className="rounded-md h-5 w-5 border-slate-200" />
