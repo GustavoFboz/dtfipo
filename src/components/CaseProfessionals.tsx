@@ -149,20 +149,20 @@ export function CaseProfessionals({ caseRow }: { caseRow: CaseRow }) {
           Profissionais
         </div>
 
-        <div className="space-y-5">
+        <div className="space-y-6">
           {people.map((p) => (
             <div
               key={p.key}
-              className="flex items-center gap-4 rounded-[2.2rem] bg-[#F8F9FB] dark:bg-slate-900 px-6 py-5 shadow-[6px_6px_15px_#d1d9e6,-6px_-6px_15px_#ffffff] dark:shadow-[6px_6px_15px_#0a0f1a,-3px_-3px_10px_#1e293b] transition-all hover:translate-y-[-2px] hover:shadow-[10px_10px_20px_#d1d9e6,-10px_-10px_20px_#ffffff] dark:hover:shadow-[10px_10px_20px_#0a0f1a,-5px_-5px_15px_#1e293b]"
+              className="flex items-center gap-4 px-2"
             >
-              <div className="shrink-0 shadow-[3px_3px_8px_#d1d9e6,-3px_-3px_8px_#ffffff] dark:shadow-none rounded-full p-[2px] bg-[#F8F9FB] dark:bg-slate-900">
-                <Avatar p={p} size={48} />
+              <div className="shrink-0">
+                <Avatar p={p} size={42} />
               </div>
               <div className="min-w-0">
-                <div className="truncate text-[16px] font-semibold text-[#334155] dark:text-slate-200">
+                <div className="truncate text-[15px] font-medium text-slate-700 dark:text-slate-200">
                   {p.name}
                 </div>
-                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#AAB2C0] dark:text-slate-500">
+                <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#AAB2C0] dark:text-slate-500">
                   {p.role}
                 </div>
               </div>
