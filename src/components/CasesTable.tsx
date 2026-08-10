@@ -235,7 +235,9 @@ export function CasesTable({
     const list = cases.data ?? [];
     const f = list.filter((c) => {
       // Apply the new status-based tag filter
-      if (activeFilter === "em_andamento") {
+      if (activeFilter === "deleted") {
+        if (c.status !== "cancelado") return false;
+      } else if (activeFilter === "em_andamento") {
         if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
       } else if (activeFilter === "atrasados") {
         if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
@@ -320,6 +322,7 @@ export function CasesTable({
       atrasados: list.filter(c => !c.finished && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado" && isLate(c.delivery_date)).length,
       finalizados: list.filter(c => c.finished || c.status === "finalizado").length,
       arquivados: list.filter(c => c.status === "arquivado").length,
+      deleted: list.filter(c => c.status === "cancelado").length,
     };
     onCountsUpdate(counts);
   }, [cases.data, onCountsUpdate]);

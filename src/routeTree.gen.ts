@@ -17,7 +17,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
-import { Route as AuthenticatedTrashRouteImport } from './routes/_authenticated/trash'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
 import { Route as AuthenticatedPatientsRouteImport } from './routes/_authenticated/patients'
 import { Route as AuthenticatedMeuFinanceiroRouteImport } from './routes/_authenticated/meu-financeiro'
@@ -94,11 +93,6 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   id: '/api/transcribe',
   path: '/api/transcribe',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedTrashRoute = AuthenticatedTrashRouteImport.update({
-  id: '/trash',
-  path: '/trash',
-  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedTarefasRoute = AuthenticatedTarefasRouteImport.update({
   id: '/tarefas',
@@ -330,7 +324,6 @@ export interface FileRoutesByFullPath {
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/patients': typeof AuthenticatedPatientsRouteWithChildren
   '/tarefas': typeof AuthenticatedTarefasRoute
-  '/trash': typeof AuthenticatedTrashRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/reset': typeof AuthResetRoute
@@ -377,7 +370,6 @@ export interface FileRoutesByTo {
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/patients': typeof AuthenticatedPatientsRouteWithChildren
   '/tarefas': typeof AuthenticatedTarefasRoute
-  '/trash': typeof AuthenticatedTrashRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/reset': typeof AuthResetRoute
@@ -426,7 +418,6 @@ export interface FileRoutesById {
   '/_authenticated/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/_authenticated/patients': typeof AuthenticatedPatientsRouteWithChildren
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
-  '/_authenticated/trash': typeof AuthenticatedTrashRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/reset': typeof AuthResetRoute
@@ -475,7 +466,6 @@ export interface FileRouteTypes {
     | '/meu-financeiro'
     | '/patients'
     | '/tarefas'
-    | '/trash'
     | '/api/transcribe'
     | '/auth/forgot'
     | '/auth/reset'
@@ -522,7 +512,6 @@ export interface FileRouteTypes {
     | '/meu-financeiro'
     | '/patients'
     | '/tarefas'
-    | '/trash'
     | '/api/transcribe'
     | '/auth/forgot'
     | '/auth/reset'
@@ -570,7 +559,6 @@ export interface FileRouteTypes {
     | '/_authenticated/meu-financeiro'
     | '/_authenticated/patients'
     | '/_authenticated/tarefas'
-    | '/_authenticated/trash'
     | '/api/transcribe'
     | '/auth/forgot'
     | '/auth/reset'
@@ -665,13 +653,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/transcribe'
       preLoaderRoute: typeof ApiTranscribeRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/trash': {
-      id: '/_authenticated/trash'
-      path: '/trash'
-      fullPath: '/trash'
-      preLoaderRoute: typeof AuthenticatedTrashRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/tarefas': {
       id: '/_authenticated/tarefas'
@@ -1038,7 +1019,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMeuFinanceiroRoute: typeof AuthenticatedMeuFinanceiroRoute
   AuthenticatedPatientsRoute: typeof AuthenticatedPatientsRouteWithChildren
   AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
-  AuthenticatedTrashRoute: typeof AuthenticatedTrashRoute
   AuthenticatedAdminBackupRoute: typeof AuthenticatedAdminBackupRoute
   AuthenticatedAdminRestauracaoRoute: typeof AuthenticatedAdminRestauracaoRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
@@ -1062,7 +1042,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMeuFinanceiroRoute: AuthenticatedMeuFinanceiroRoute,
   AuthenticatedPatientsRoute: AuthenticatedPatientsRouteWithChildren,
   AuthenticatedTarefasRoute: AuthenticatedTarefasRoute,
-  AuthenticatedTrashRoute: AuthenticatedTrashRoute,
   AuthenticatedAdminBackupRoute: AuthenticatedAdminBackupRoute,
   AuthenticatedAdminRestauracaoRoute: AuthenticatedAdminRestauracaoRoute,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,

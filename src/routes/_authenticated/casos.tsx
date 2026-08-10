@@ -25,6 +25,7 @@ function Index() {
   const now = useNow();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
+  const [isTrashMode, setIsTrashMode] = useState(false);
   const [openNewPatient, setOpenNewPatient] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(false);
@@ -64,32 +65,59 @@ function Index() {
   };
 
   return (
-    <div className={`h-full max-h-full overflow-hidden flex flex-col font-light max-w-[1600px] mx-auto w-full px-6 md:px-16 ${exiting ? "animate-lab-exit" : entering ? "animate-lab-enter" : ""}`}>
+    <div className={`h-full max-h-full overflow-hidden flex flex-col font-light max-w-[1600px] mx-auto w-full px-6 md:px-16 transition-colors duration-500 ${isTrashMode ? "bg-rose-50/30 dark:bg-rose-950/10" : ""} ${exiting ? "animate-lab-exit" : entering ? "animate-lab-enter" : ""}`}>
 
       <header className="pt-10 md:pt-14 pb-8 md:pb-12 space-y-6 shrink-0">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/15 text-[11px] font-medium text-primary/80">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-pulse" />
+          <span className={`h-1.5 w-1.5 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.6)] animate-pulse ${isTrashMode ? "bg-rose-400" : "bg-emerald-400"}`} />
           {dt}
         </div>
 
         <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-8">
-          <h1 className="text-4xl lg:text-5xl xl:text-7xl font-extralight text-slate-900 dark:text-slate-100 tracking-[-0.03em] leading-[1] flex flex-wrap items-baseline gap-2 md:gap-4">
-            <span className="whitespace-nowrap">Controle de</span>
-            <span className="text-primary">Casos</span>
-            <ChevronRight className="h-6 w-6 md:h-8 md:w-8 xl:h-10 xl:w-10 text-slate-300 dark:text-slate-700 stroke-[1.2px] self-center shrink-0" />
-            {(caseYear != null || dateRange != null) && (
-              <span className="text-primary whitespace-nowrap">
-                {dateRange ? (
-                  dateRange.start && dateRange.end && dateRange.start.split('-')[0] !== dateRange.end.split('-')[0]
-                    ? `${dateRange.start.split('-')[0]}-${dateRange.end.split('-')[0]}`
-                    : dateRange.start.split('-')[0]
-                ) : caseYear}
-              </span>
-            )}
-            {caseYear == null && dateRange == null && (
-              <span className="text-primary whitespace-nowrap">{new Date().getFullYear()}</span>
-            )}
-          </h1>
+          <div className="relative h-20 md:h-24 xl:h-28 flex items-center overflow-hidden">
+            <AnimatePresence mode="wait">
+              {!isTrashMode ? (
+                <motion.h1 
+                  key="normal-title"
+                  initial={{ y: 40, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -40, opacity: 0 }}
+                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  className="text-4xl lg:text-5xl xl:text-7xl font-extralight text-slate-900 dark:text-slate-100 tracking-[-0.03em] leading-[1] flex flex-wrap items-baseline gap-2 md:gap-4"
+                >
+                  <span className="whitespace-nowrap">Controle de</span>
+                  <span className="text-primary">Casos</span>
+                  <ChevronRight className="h-6 w-6 md:h-8 md:w-8 xl:h-10 xl:w-10 text-slate-300 dark:text-slate-700 stroke-[1.2px] self-center shrink-0" />
+                  {(caseYear != null || dateRange != null) && (
+                    <span className="text-primary whitespace-nowrap">
+                      {dateRange ? (
+                        dateRange.start && dateRange.end && dateRange.start.split('-')[0] !== dateRange.end.split('-')[0]
+                          ? `${dateRange.start.split('-')[0]}-${dateRange.end.split('-')[0]}`
+                          : dateRange.start.split('-')[0]
+                      ) : caseYear}
+                    </span>
+                  )}
+                  {caseYear == null && dateRange == null && (
+                    <span className="text-primary whitespace-nowrap">{new Date().getFullYear()}</span>
+                  )}
+                </motion.h1>
+              ) : (
+                <motion.h1 
+                  key="trash-title"
+                  initial={{ y: 40, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -40, opacity: 0 }}
+                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  className="text-4xl lg:text-5xl xl:text-7xl font-extralight text-rose-600 dark:text-rose-400 tracking-[-0.03em] leading-[1] flex flex-wrap items-baseline gap-2 md:gap-4"
+                >
+                  <span className="whitespace-nowrap">Lixeira de</span>
+                  <span className="text-rose-500">Casos</span>
+                  <ChevronRight className="h-6 w-6 md:h-8 md:w-8 xl:h-10 xl:w-10 text-rose-200 dark:text-rose-900 stroke-[1.2px] self-center shrink-0" />
+                  <span className="text-rose-400 text-2xl xl:text-4xl font-light">Descarte</span>
+                </motion.h1>
+              )}
+            </AnimatePresence>
+          </div>
 
           <div className="flex items-center gap-4 w-full lg:w-auto lg:min-w-[300px] justify-end">
             <PatientFormDialog
@@ -114,7 +142,14 @@ function Index() {
 
       <section className="flex-1 min-h-0 flex flex-col">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
-          <div className="flex flex-wrap items-center gap-2 p-1 bg-slate-100/50 dark:bg-white/5 rounded-[2rem] w-fit">
+          <AnimatePresence mode="wait">
+            {!isTrashMode && (
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="flex flex-wrap items-center gap-2 p-1 bg-slate-100/50 dark:bg-white/5 rounded-[2rem] w-fit"
+              >
             {[
               { id: "all", label: "Todos" },
               { id: "em_andamento", label: "Em andamento" },
@@ -166,10 +201,19 @@ function Index() {
                 </button>
               );
             })}
-          </div>
+          </motion.div>
+          )}
+          </AnimatePresence>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 p-1 bg-slate-100/50 dark:bg-white/5 rounded-full border border-slate-200/50 dark:border-white/5 transition-all">
+            <AnimatePresence mode="wait">
+              {!isTrashMode && (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="flex items-center gap-2 p-1 bg-slate-100/50 dark:bg-white/5 rounded-full border border-slate-200/50 dark:border-white/5 transition-all"
+                >
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" size="sm" className={`h-10 px-4 rounded-full gap-2 transition-all ${dateRange ? "bg-primary text-white shadow-lg shadow-blue-400/20" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"}`}>
@@ -243,20 +287,27 @@ function Index() {
                   </Button>
                 </>
               )}
-            </div>
+            </motion.div>
+            )}
+            </AnimatePresence>
 
-            <Link 
-              to="/trash" 
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => {
+                setIsTrashMode(!isTrashMode);
+                if (!isTrashMode) setFilter("deleted");
+                else setFilter("all");
+              }}
+              className={`h-11 w-11 rounded-full border border-slate-200/50 dark:border-white/5 transition-all shadow-sm ${
+                isTrashMode 
+                  ? "bg-rose-500 text-white hover:bg-rose-600 border-rose-400 shadow-rose-200/50" 
+                  : "bg-white dark:bg-white/5 text-slate-400 hover:text-rose-500"
+              }`}
+              title={isTrashMode ? "Voltar aos Casos" : "Lixeira e Cancelados"}
             >
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="h-11 w-11 rounded-full border border-slate-200/50 dark:border-white/5 bg-white dark:bg-white/5 text-slate-400 hover:text-destructive transition-all shadow-sm"
-                title="Lixeira e Cancelados"
-              >
-                <Trash2 className="h-4 w-4 stroke-[1.5px]" />
-              </Button>
-            </Link>
+              <Trash2 className={`h-4 w-4 stroke-[1.5px] ${isTrashMode ? "animate-bounce" : ""}`} />
+            </Button>
           </div>
 
         </div>
@@ -265,12 +316,12 @@ function Index() {
           hideToolbar 
           minimal 
           hideSearch 
-          activeFilter={filter} 
+          activeFilter={isTrashMode ? "deleted" : filter} 
           onFilterChange={setFilter} 
           onYearChange={setCaseYear} 
           onCountsUpdate={setCounts}
-          dateRange={dateRange}
-          advancedFilters={advancedFilters}
+          dateRange={isTrashMode ? undefined : dateRange}
+          advancedFilters={isTrashMode ? undefined : advancedFilters}
         />
       </section>
 
