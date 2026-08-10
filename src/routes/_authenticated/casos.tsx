@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
+import { useQuery } from "@tanstack/react-query";
 
 import { CasesTable } from "@/components/CasesTable";
 import { NewCaseDialog } from "@/components/NewCaseDialog";
@@ -11,9 +11,11 @@ import { MobileDashboard } from "@/components/MobileDashboard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Search, ChevronRight, Filter, X } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Search, ChevronRight, Filter, X, Trash2 } from "lucide-react";
 import { useNow } from "@/hooks/use-now";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { fetchDoctors, fetchCadistas } from "@/lib/api";
 
 export const Route = createFileRoute("/_authenticated/casos")({
   component: Index,
@@ -27,8 +29,9 @@ function Index() {
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(false);
   const [caseYear, setCaseYear] = useState<string | null>(null);
-  const [counts, setCounts] = useState<Record<string, number>>({ all: 0, em_andamento: 0, finalizados: 0, arquivados: 0, cancelados: 0 });
+  const [counts, setCounts] = useState<Record<string, number>>({ all: 0, em_andamento: 0, atrasados: 0, finalizados: 0, arquivados: 0 });
   const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
+  const [advancedFilters, setAdvancedFilters] = useState<{ doctorIds: string[]; cadistaIds: string[] }>({ doctorIds: [], cadistaIds: [] });
   const [localStartDate, setLocalStartDate] = useState("");
   const [localEndDate, setLocalEndDate] = useState("");
   const isMobile = useIsMobile();
@@ -101,14 +104,14 @@ function Index() {
       </header>
 
       <section className="flex-1 min-h-0 flex flex-col">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div className="relative flex items-center p-1 bg-slate-100/50 dark:bg-white/5 rounded-full w-fit overflow-visible">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
+          <div className="flex flex-wrap items-center gap-2 p-1 bg-slate-100/50 dark:bg-white/5 rounded-[2rem] w-fit">
             {[
               { id: "all", label: "Todos" },
               { id: "em_andamento", label: "Em andamento" },
+              { id: "atrasados", label: "Atrasados" },
               { id: "finalizados", label: "Finalizados" },
               { id: "arquivados", label: "Arquivados" },
-              { id: "cancelados", label: "Cancelados" },
             ].map((t) => {
               const isActive = filter === t.id;
               return (
@@ -212,6 +215,33 @@ function Index() {
                 </div>
               </PopoverContent>
             </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className={`h-10 px-4 rounded-full border gap-2 transition-all ${(advancedFilters.doctorIds.length > 0 || advancedFilters.cadistaIds.length > 0) ? "bg-primary/10 text-primary border-primary/20" : "bg-white dark:bg-white/5 text-slate-400 hover:text-slate-600 border-slate-100 dark:border-white/5"}`}>
+                  <Plus className="h-4 w-4 stroke-[1.5px]" />
+                  <span className="font-light">Avançado</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-[320px] p-6 rounded-[2rem] border-slate-100 dark:border-[#2B292B] shadow-2xl bg-[#F8F9FB] dark:bg-slate-900">
+                <AdvancedFilterContent filters={advancedFilters} setFilters={setAdvancedFilters} />
+              </PopoverContent>
+            </Popover>
+
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-10 w-10 rounded-full border border-slate-100 dark:border-white/5 bg-white dark:bg-white/5 text-slate-400 hover:text-destructive transition-all"
+              onClick={() => {
+                setDateRange(null);
+                setLocalStartDate("");
+                setLocalEndDate("");
+                setAdvancedFilters({ doctorIds: [], cadistaIds: [] });
+                setFilter("all");
+              }}
+              title="Limpar todos os filtros"
+            >
+              <Trash2 className="h-4 w-4 stroke-[1.5px]" />
+            </Button>
           </div>
         </div>
         
@@ -224,6 +254,7 @@ function Index() {
           onYearChange={setCaseYear} 
           onCountsUpdate={setCounts}
           dateRange={dateRange}
+          advancedFilters={advancedFilters}
         />
       </section>
 
@@ -233,4 +264,81 @@ function Index() {
     </div>
   );
 }
+
+function AdvancedFilterContent({ filters, setFilters }: { 
+  filters: { doctorIds: string[]; cadistaIds: string[] };
+  setFilters: React.Dispatch<React.SetStateAction<{ doctorIds: string[]; cadistaIds: string[] }>>
+}) {
+  const { data: doctors } = useQuery({ queryKey: ["doctors"], queryFn: fetchDoctors });
+  const { data: cadistas } = useQuery({ queryKey: ["cadistas"], queryFn: fetchCadistas });
+
+  const toggleDoctor = (id: string) => {
+    setFilters(prev => ({
+      ...prev,
+      doctorIds: prev.doctorIds.includes(id) 
+        ? prev.doctorIds.filter(x => x !== id) 
+        : [...prev.doctorIds, id]
+    }));
+  };
+
+  const toggleCadista = (id: string) => {
+    setFilters(prev => ({
+      ...prev,
+      cadistaIds: prev.cadistaIds.includes(id) 
+        ? prev.cadistaIds.filter(x => x !== id) 
+        : [...prev.cadistaIds, id]
+    }));
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="text-[10px] uppercase tracking-[0.12em] text-slate-400 font-medium">Filtragem Avançada</div>
+      
+      <div className="space-y-4">
+        <div className="space-y-3">
+          <label className="text-[11px] text-slate-400 font-medium px-1">PROFISSIONAIS (DENTISTAS)</label>
+          <div className="max-h-[140px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+            {doctors?.map(d => (
+              <div key={d.id} className="flex items-center gap-2 px-1">
+                <Checkbox 
+                  id={`doc-${d.id}`} 
+                  checked={filters.doctorIds.includes(d.id)}
+                  onCheckedChange={() => toggleDoctor(d.id)}
+                  className="rounded-md border-slate-200 dark:border-white/10"
+                />
+                <label htmlFor={`doc-${d.id}`} className="text-[13px] font-light text-slate-600 dark:text-slate-300 cursor-pointer truncate">
+                  {d.name}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-3 pt-2">
+          <label className="text-[11px] text-slate-400 font-medium px-1">CADISTAS / DESIGNERS</label>
+          <div className="max-h-[140px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+            {cadistas?.map(c => (
+              <div key={c.id} className="flex items-center gap-2 px-1">
+                <Checkbox 
+                  id={`cad-${c.id}`} 
+                  checked={filters.cadistaIds.includes(c.id)}
+                  onCheckedChange={() => toggleCadista(c.id)}
+                  className="rounded-md border-slate-200 dark:border-white/10"
+                />
+                <label htmlFor={`cad-${c.id}`} className="text-[13px] font-light text-slate-600 dark:text-slate-300 cursor-pointer truncate">
+                  {c.name}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-2 text-[10px] text-slate-400 text-center italic font-light">
+        Os filtros são aplicados automaticamente.
+      </div>
+    </div>
+  );
+}
+
 

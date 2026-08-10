@@ -130,6 +130,7 @@ export function CasesTable({
   onYearChange,
   onCountsUpdate,
   dateRange,
+  advancedFilters,
 }: { 
   externalSearch?: string; 
   hideToolbar?: boolean; 
@@ -140,6 +141,7 @@ export function CasesTable({
   onYearChange?: (year: string | null) => void;
   onCountsUpdate?: (counts: Record<string, number>) => void;
   dateRange?: { start: string; end: string } | null;
+  advancedFilters?: { doctorIds: string[]; cadistaIds: string[] };
 } = {}) {
   const qc = useQueryClient();
   const [internalSearch, setSearch] = useState("");
@@ -235,12 +237,13 @@ export function CasesTable({
       // Apply the new status-based tag filter
       if (activeFilter === "em_andamento") {
         if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
+      } else if (activeFilter === "atrasados") {
+        if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
+        if (!isLate(c.delivery_date)) return false;
       } else if (activeFilter === "finalizados") {
         if (!c.finished && c.status !== "finalizado") return false;
       } else if (activeFilter === "arquivados") {
         if (c.status !== "arquivado") return false;
-      } else if (activeFilter === "cancelados") {
-        if (c.status !== "cancelado") return false;
       }
 
       if (search) {
@@ -271,6 +274,15 @@ export function CasesTable({
         }
       }
       
+      if (advancedFilters) {
+        if (advancedFilters.doctorIds.length > 0) {
+          if (!c.doctor_id || !advancedFilters.doctorIds.includes(c.doctor_id)) return false;
+        }
+        if (advancedFilters.cadistaIds.length > 0) {
+          if (!c.cadista_id || !advancedFilters.cadistaIds.includes(c.cadista_id)) return false;
+        }
+      }
+      
       return true;
     });
     const dir = sort.dir === "asc" ? 1 : -1;
@@ -297,7 +309,7 @@ export function CasesTable({
       return (bt - at) * (sort.key === "entry_date" || sort.key === "created_at" ? dir : 1);
     });
     return f;
-  }, [cases.data, search, stageFilter, statusFilter, sort]);
+  }, [cases.data, search, stageFilter, statusFilter, sort, activeFilter, dateRange, advancedFilters]);
 
   useEffect(() => {
     if (!onCountsUpdate || !cases.data) return;
@@ -305,9 +317,9 @@ export function CasesTable({
     const counts = {
       all: list.length,
       em_andamento: list.filter(c => !c.finished && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado").length,
+      atrasados: list.filter(c => !c.finished && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado" && isLate(c.delivery_date)).length,
       finalizados: list.filter(c => c.finished || c.status === "finalizado").length,
       arquivados: list.filter(c => c.status === "arquivado").length,
-      cancelados: list.filter(c => c.status === "cancelado").length,
     };
     onCountsUpdate(counts);
   }, [cases.data, onCountsUpdate]);
