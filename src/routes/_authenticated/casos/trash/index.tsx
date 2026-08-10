@@ -80,9 +80,9 @@ function TrashPage() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="min-h-screen bg-[#FDFDFF] dark:bg-[#0A0A0B] font-light selection:bg-rose-100 selection:text-rose-900"
+      className="min-h-screen bg-[#FDFDFF] dark:bg-[#0A0A0B] font-light selection:bg-rose-100 selection:text-rose-900 pt-[72px]"
     >
-      <div className="max-w-[1200px] mx-auto w-full px-6 py-12 md:py-20 space-y-12">
+      <div className="max-w-[1200px] mx-auto w-full px-6 py-12 md:py-16 space-y-12">
         {/* Header Section with Neumorphic touches */}
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-10">
           <div className="space-y-6">
