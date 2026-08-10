@@ -149,7 +149,7 @@ function TeethDashboard() {
     setExiting(true);
     try { sessionStorage.setItem("dentalflow:lab-enter", "1"); } catch {}
     window.setTimeout(() => {
-      navigate({ to: "/lab" });
+      navigate({ to: "/casos" });
     }, 320);
   };
 

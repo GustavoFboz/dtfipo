@@ -6,7 +6,7 @@ export const Route = createFileRoute("/")({
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       // @ts-ignore
-      throw redirect({ to: "/lab" });
+      throw redirect({ to: "/casos" });
     }
     // @ts-ignore
     throw redirect({ to: "/lp" });

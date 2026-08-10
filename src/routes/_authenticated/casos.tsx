@@ -8,11 +8,12 @@ import { DashboardStats } from "@/components/DashboardStats";
 import { MobileDashboard } from "@/components/MobileDashboard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, ChevronRight } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus, Search, ChevronRight, Filter } from "lucide-react";
 import { useNow } from "@/hooks/use-now";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-export const Route = createFileRoute("/_authenticated/lab")({
+export const Route = createFileRoute("/_authenticated/casos")({
   component: Index,
 });
 
@@ -23,7 +24,8 @@ function Index() {
   const [openNewPatient, setOpenNewPatient] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(false);
-  const [caseYear, setCaseYear] = useState<number | null>(null);
+  const [caseYear, setCaseYear] = useState<string | null>(null);
+  const [counts, setCounts] = useState<Record<string, number>>({ all: 0, em_andamento: 0, finalizados: 0, arquivados: 0, cancelados: 0 });
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
@@ -94,28 +96,70 @@ function Index() {
       </header>
 
       <section className="flex-1 min-h-0 flex flex-col">
-        <div className="flex flex-wrap items-center gap-2 mb-8">
+        <div className="flex flex-wrap items-center gap-4 mb-8">
           {[
             { id: "all", label: "Todos" },
             { id: "em_andamento", label: "Em andamento" },
             { id: "finalizados", label: "Finalizados" },
             { id: "arquivados", label: "Arquivados" },
             { id: "cancelados", label: "Cancelados" },
-          ].map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setFilter(t.id)}
-              className={`px-6 py-2 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${
-                filter === t.id
-                  ? "bg-[#54A8FB] text-white shadow-md shadow-blue-400/20"
-                  : "bg-white dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 border border-slate-100 dark:border-white/5"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+          ].map((t) => {
+            const isActive = filter === t.id;
+            // Get count for this filter from CasesTable or local state if we had it.
+            // For now we'll just implement the visual requested.
+            return (
+              <button
+                key={t.id}
+                onClick={() => setFilter(t.id)}
+                className={`flex items-center gap-2.5 px-6 py-2.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${
+                  isActive
+                    ? "bg-[#54A8FB] text-white shadow-lg shadow-blue-400/20"
+                    : "bg-white dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 border border-slate-100 dark:border-white/5"
+                }`}
+              >
+                {t.label}
+                <span className={`inline-grid place-items-center h-5 min-w-[20px] px-1 rounded-full text-[10px] font-bold ${
+                  isActive ? "bg-white text-black" : "bg-[#54A8FB] text-white"
+                }`}>
+                  {counts[t.id] ?? 0}
+                </span>
+              </button>
+            );
+          })}
         </div>
-        <CasesTable hideToolbar minimal hideSearch activeFilter={filter} onFilterChange={setFilter} onYearChange={setCaseYear} />
+        
+        <div className="flex justify-end mb-4">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-10 px-4 rounded-full bg-white dark:bg-white/5 text-slate-400 hover:text-slate-600 border border-slate-100 dark:border-white/5 gap-2">
+                <Filter className="h-4 w-4 stroke-[1.5px]" />
+                <span className="font-light">Personalizado</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-[320px] p-6 rounded-[2rem] border-slate-100 dark:border-[#2B292B] shadow-[20px_20px_60px_#d1d9e6,-20px_-20px_60px_#ffffff] dark:shadow-none bg-[#F8F9FB] dark:bg-slate-900">
+              <div className="space-y-6">
+                <div className="text-[10px] uppercase tracking-[0.12em] text-slate-400 font-medium">Filtro de Período</div>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[11px] text-slate-400 font-medium px-1">INÍCIO</label>
+                    <Input type="date" className="h-11 rounded-2xl bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 focus-visible:ring-1 focus-visible:ring-[#54A8FB] font-light" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-[11px] text-slate-400 font-medium px-1">FIM</label>
+                    <Input type="date" className="h-11 rounded-2xl bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 focus-visible:ring-1 focus-visible:ring-[#54A8FB] font-light" />
+                  </div>
+                </div>
+
+                <Button className="w-full h-11 rounded-full bg-[#54A8FB] hover:bg-[#4a97e2] text-white shadow-lg shadow-blue-400/20 font-medium transition-all">
+                  Aplicar Filtro
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+        <CasesTable hideToolbar minimal hideSearch activeFilter={filter} onFilterChange={setFilter} onYearChange={setCaseYear} onCountsUpdate={setCounts} />
       </section>
 
       <section className="shrink-0 pt-8 pb-10 md:pb-14 border-t border-slate-200/70 dark:border-slate-800/70 mt-6">

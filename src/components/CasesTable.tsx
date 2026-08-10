@@ -128,6 +128,7 @@ export function CasesTable({
   activeFilter = "all",
   onFilterChange,
   onYearChange,
+  onCountsUpdate,
 }: { 
   externalSearch?: string; 
   hideToolbar?: boolean; 
@@ -135,7 +136,8 @@ export function CasesTable({
   hideSearch?: boolean;
   activeFilter?: string;
   onFilterChange?: (filter: string) => void;
-  onYearChange?: (year: number | null) => void;
+  onYearChange?: (year: string | null) => void;
+  onCountsUpdate?: (counts: Record<string, number>) => void;
 } = {}) {
   const qc = useQueryClient();
   const [internalSearch, setSearch] = useState("");
@@ -286,13 +288,41 @@ export function CasesTable({
   }, [cases.data, search, stageFilter, statusFilter, sort]);
 
   useEffect(() => {
+    if (!onCountsUpdate || !cases.data) return;
+    const list = cases.data;
+    const counts = {
+      all: list.length,
+      em_andamento: list.filter(c => !c.finished && c.status !== "finalizado").length,
+      finalizados: list.filter(c => c.finished || c.status === "finalizado").length,
+      arquivados: 0, // Placeholder
+      cancelados: 0, // Placeholder
+    };
+    onCountsUpdate(counts);
+  }, [cases.data, onCountsUpdate]);
+
+  useEffect(() => {
     if (!onYearChange) return;
     if (filtered.length === 0) {
       onYearChange(null);
       return;
     }
-    const years = filtered.map((c) => new Date((c.entry_date || c.created_at || "") + "T00:00:00").getFullYear()).filter((y) => !Number.isNaN(y));
-    onYearChange(years.length ? Math.max(...years) : null);
+    const years = filtered
+      .map((c) => new Date((c.entry_date || c.created_at || "").split('T')[0] + "T00:00:00").getFullYear())
+      .filter((y) => !Number.isNaN(y));
+    
+    if (years.length === 0) {
+      onYearChange(null);
+      return;
+    }
+
+    const minYear = Math.min(...years);
+    const maxYear = Math.max(...years);
+    
+    if (minYear === maxYear) {
+      onYearChange(String(minYear));
+    } else {
+      onYearChange(`${minYear}-${maxYear}`);
+    }
   }, [filtered, onYearChange]);
 
   const handleOpenFolder = async (c: CaseRow) => {
