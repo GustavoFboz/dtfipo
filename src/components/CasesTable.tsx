@@ -130,6 +130,7 @@ export function CasesTable({
   onYearChange,
   onCountsUpdate,
   dateRange,
+  advancedFilters,
 }: { 
   externalSearch?: string; 
   hideToolbar?: boolean; 
@@ -140,6 +141,7 @@ export function CasesTable({
   onYearChange?: (year: string | null) => void;
   onCountsUpdate?: (counts: Record<string, number>) => void;
   dateRange?: { start: string; end: string } | null;
+  advancedFilters?: { doctorIds: string[]; cadistaIds: string[] };
 } = {}) {
   const qc = useQueryClient();
   const [internalSearch, setSearch] = useState("");
@@ -307,7 +309,7 @@ export function CasesTable({
       return (bt - at) * (sort.key === "entry_date" || sort.key === "created_at" ? dir : 1);
     });
     return f;
-  }, [cases.data, search, stageFilter, statusFilter, sort]);
+  }, [cases.data, search, stageFilter, statusFilter, sort, activeFilter, dateRange, advancedFilters]);
 
   useEffect(() => {
     if (!onCountsUpdate || !cases.data) return;
