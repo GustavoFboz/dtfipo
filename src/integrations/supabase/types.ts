@@ -1079,16 +1079,19 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -1446,6 +1449,27 @@ export type Database = {
           role?: string | null
           updated_at?: string
           user_code?: string | null
+        }
+        Relationships: []
+      }
+      proteticos: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2133,7 +2157,7 @@ export type Database = {
       seed_default_workflow: { Args: never; Returns: Json }
       update_team_member: {
         Args: {
-          p_category_ids: string[]
+          p_category_ids?: string[]
           p_email: string
           p_full_name: string
           p_phone: string
