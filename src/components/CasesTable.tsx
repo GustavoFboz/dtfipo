@@ -129,6 +129,7 @@ export function CasesTable({
   onFilterChange,
   onYearChange,
   onCountsUpdate,
+  dateRange,
 }: { 
   externalSearch?: string; 
   hideToolbar?: boolean; 
@@ -138,6 +139,7 @@ export function CasesTable({
   onFilterChange?: (filter: string) => void;
   onYearChange?: (year: string | null) => void;
   onCountsUpdate?: (counts: Record<string, number>) => void;
+  dateRange?: { start: string; end: string } | null;
 } = {}) {
   const qc = useQueryClient();
   const [internalSearch, setSearch] = useState("");
