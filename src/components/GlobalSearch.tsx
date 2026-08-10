@@ -60,8 +60,7 @@ export function GlobalSearch() {
       const q = `%${debouncedQuery}%`;
       const promises: any[] = [];
 
-      // We need to keep track of which index in the results array corresponds to what
-      // To simplify, we'll always push 5 promises in a fixed order
+      // Fix order to match destructured array [casesRes, attachmentsRes, patientsRes, doctorsRes, teamRes]
       
       // 1. Cases
       if (activeFilters.includes("cases")) {
@@ -69,7 +68,7 @@ export function GlobalSearch() {
           supabase
             .from("cases")
             .select("*, patient:patients(name), doctor:doctors(name), case_type:case_types(name)")
-            .or(`case_label.ilike.${q},patient_name_denorm.ilike.${q}`)
+            .or(`case_label.ilike.${q}`)
             .limit(5)
         );
       } else {
@@ -285,7 +284,7 @@ export function GlobalSearch() {
                             className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group"
                           >
                             <div className="text-sm font-normal text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
-                              {c.patient?.name || c.patient_name_denorm}
+                              {c.patient?.name || "Paciente sem nome"}
                             </div>
                             <div className="text-[11px] text-slate-400 font-light flex items-center gap-2">
                               <span>{c.case_type?.name}</span>
