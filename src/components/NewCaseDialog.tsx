@@ -802,10 +802,10 @@ export function NewCaseDialog({
           <header className="px-6 lg:px-10 pt-8 pb-6 flex items-start gap-3 border-b border-border/60 bg-white">
             <div className="flex-1 min-w-0">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/15 text-[11px] font-medium text-primary/80 mb-3">
-                {isView ? "Detalhes do caso" : "Nova entrada"}
+                {isView ? "Detalhes do caso" : isEdit ? "Editar caso" : "Nova entrada"}
               </div>
               <h2 className="text-3xl lg:text-4xl font-extralight text-foreground tracking-[-0.03em] leading-[1.05] truncate">
-                {isView ? (viewCase?.patient?.name ?? "Caso") : "Cadastrar novo caso"}
+                {isView ? (viewCase?.patient?.name ?? "Caso") : isEdit ? "Editar caso" : "Cadastrar novo caso"}
               </h2>
               <p className="text-sm text-muted-foreground mt-2 font-light">
                 {isView
@@ -824,9 +824,11 @@ export function NewCaseDialog({
             </button>
           </header>
 
-        <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-0 flex-1 min-h-0 overflow-hidden">
+        <div className={`relative grid grid-cols-1 lg:grid-cols-12 gap-0 flex-1 min-h-0 ${isView ? "overflow-y-auto" : "overflow-hidden"}`}>
           <div
-            className="lg:col-span-7 px-5 py-4 lg:px-6 lg:py-5 min-h-0 flex flex-col overflow-y-auto"
+            {...(isView ? { inert: "" as unknown as boolean } : {})}
+            aria-disabled={isView || undefined}
+            className={`lg:col-span-7 px-5 py-4 lg:px-6 lg:py-5 min-h-0 flex flex-col overflow-y-auto ${isView ? "pointer-events-none select-none opacity-95" : ""}`}
             onKeyDown={(e) => {
               if (!isCreate) return;
               if (e.key !== "Enter" || e.shiftKey) return;
@@ -899,6 +901,7 @@ export function NewCaseDialog({
                 </Select>
               </div>
 
+              {!isCreate && (
               <div className="space-y-2 md:col-span-2">
                 <Label>Tipos de caso</Label>
                 <CaseTypePicker options={caseTypes.data ?? []} onPick={addType} />
@@ -915,6 +918,7 @@ export function NewCaseDialog({
                   </div>
                 )}
               </div>
+              )}
 
               <div className="space-y-2">
                 <Label>Cor do dente</Label>
@@ -1075,51 +1079,16 @@ export function NewCaseDialog({
                 <Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
               </div>
 
+              {!isCreate && (
               <div className="space-y-2 md:col-span-2">
                 <Label>Observações (opcional)</Label>
                 <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Anotações iniciais sobre o caso" />
               </div>
+              )}
 
-              {/* Seções de Escaneamentos e Galeria */}
-              <div className="space-y-4 md:col-span-2 mt-4">
-                <div className="space-y-2">
-                  <Label>Escaneamentos (opcional)</Label>
-                  <div className="flex flex-wrap gap-2">
-                    <AttachButton
-                      icon={<ScanLine className="h-4 w-4" />}
-                      label="Escaneamentos"
-                      count={pendingScanFiles.filter(f => f.kind === "scans").length}
-                      onClick={() => { pendingKindRef.current = "scans"; setPendingAccept(undefined); pendingScanFileInput.current?.click(); }}
-                    />
-                    <AttachButton
-                      icon={<Box className="h-4 w-4" />}
-                      label="Modelos"
-                      count={pendingScanFiles.filter(f => f.kind === "model").length}
-                      onClick={() => { pendingKindRef.current = "model"; setPendingAccept(undefined); pendingScanFileInput.current?.click(); }}
-                    />
-                    <AttachButton
-                      icon={<Monitor className="h-4 w-4" />}
-                      label="Projeto (Exocad)"
-                      count={pendingScanFiles.filter(f => f.kind === "exocad_html").length}
-                      onClick={() => { pendingKindRef.current = "exocad_html"; setPendingAccept(".html"); pendingScanFileInput.current?.click(); }}
-                    />
-                  </div>
-                </div>
+              {/* Seções de Escaneamentos e Galeria removidas do editar caso a pedido do usuário */}
 
-                <div className="space-y-2">
-                  <Label>Galeria do caso (opcional)</Label>
-                  <div className="flex flex-wrap gap-2">
-                    <AttachButton
-                      icon={<Camera className="h-4 w-4" />}
-                      label="Adicionar fotos"
-                      count={pendingGalleryFiles.length}
-                      onClick={() => pendingGalleryInput.current?.click()}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Inputs de arquivo */}
+              {/* Inputs de arquivo — sempre presentes no DOM para os dois modos */}
               <input
                 ref={pendingScanFileInput}
                 type="file"
@@ -1146,13 +1115,17 @@ export function NewCaseDialog({
                 }}
               />
             </div>
+
+            {/* Seção de anexos removida em modo de edição a pedido do usuário */}
           </div>
 
           <aside
-            className="lg:col-span-5 p-6 flex flex-col border-l border-border/60 min-h-0 h-full overflow-y-auto"
+            {...(isView ? { inert: "" as unknown as boolean } : {})}
+            aria-disabled={isView || undefined}
+            className={`lg:col-span-5 p-6 flex flex-col border-l border-border/60 min-h-0 h-full overflow-y-auto ${isView ? "pointer-events-none select-none opacity-95" : ""}`}
           >
-            <div className="flex flex-col flex-1 min-h-0 gap-5">
-              <div className="flex flex-col flex-1 min-h-0 gap-3">
+            <div className={isCreate ? "flex flex-col flex-1 min-h-0 gap-5" : "space-y-5"}>
+              <div className={isCreate ? "flex flex-col flex-1 min-h-0 gap-3" : "space-y-3"}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 min-w-0">
                     <div className="w-[3px] self-stretch rounded-full bg-primary" />
@@ -1187,7 +1160,7 @@ export function NewCaseDialog({
                     />
                   ) : null}
                 </div>
-                <div className="flex-1 min-h-0 flex relative">
+                <div className={isCreate ? "flex-1 min-h-0 flex relative" : "relative"}>
                   <TeethSelector
                     value={teeth}
                     onChange={() => {}}
@@ -1218,7 +1191,7 @@ export function NewCaseDialog({
                       // 1 sistema: toggle simples do dente na lista de implantes.
                       setImplantTeeth((s) => (s.includes(t) ? s.filter((x) => x !== t) : sortTeeth([...s, t])));
                     }}
-                    fitParent={true}
+                    fitParent={isCreate}
                   />
                   {systemPickerTooth !== null && allSystemIds.length >= 2 && (() => {
                     // Popover compacto ancorado EXATAMENTE acima do círculo do implante.
@@ -1324,9 +1297,13 @@ export function NewCaseDialog({
 
 
 
+              {isEdit && editCase && hasImplant && (editCase.implant_teeth ?? []).length > 0 && (
+                <CaseImplantTeethPanel caseRow={editCase} />
+              )}
 
 
-              {/* Gengiva */}
+              {!isCreate && (
+              /* Gengiva */
               <div className="space-y-3 rounded-xl border border-border bg-card p-4">
                 <div>
                   <div className="text-sm font-medium">Gengiva</div>
@@ -1387,6 +1364,7 @@ export function NewCaseDialog({
                   />
                 </div>
               </div>
+              )}
             </div>
           </aside>
           {!isView && (
