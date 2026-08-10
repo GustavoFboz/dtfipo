@@ -113,7 +113,7 @@ export async function sendInternalNotification(targetUserId: string | null, titl
 
 
 
-export async function fetchCases(scope: "active" | "finished" | "all" = "active"): Promise<CaseRow[]> {
+export async function fetchCases(scope: "active" | "finished" | "deleted" | "all" = "active"): Promise<CaseRow[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
@@ -127,6 +127,8 @@ export async function fetchCases(scope: "active" | "finished" | "all" = "active"
     query = query.not("status", "in", '("finalizado","arquivado","cancelado")');
   } else if (scope === "finished") {
     query = query.eq("status", "finalizado");
+  } else if (scope === "deleted") {
+    query = query.eq("status", "cancelado");
   }
   // "all" doesn't add a status filter
 
@@ -141,10 +143,26 @@ export async function fetchCases(scope: "active" | "finished" | "all" = "active"
     }
   }
 
-  const { data, error } = await query.order("delivery_date", { ascending: true });
+  const { data, error } = await query.order("updated_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as unknown as CaseRow[];
 }
+
+export async function restoreCase(id: string) {
+  const { error } = await supabase
+    .from("cases")
+    .update({ status: "em_andamento", finished: false } as any)
+    .eq("id", id);
+  if (error) throw error;
+  try { broadcastEntity("cases", "update", { id, status: "em_andamento", finished: false }); } catch {}
+}
+
+export async function permanentDeleteCase(id: string) {
+  const { error } = await supabase.from("cases").delete().eq("id", id);
+  if (error) throw error;
+  try { markDeleted("cases", id); } catch {}
+}
+
 
 
 export async function fetchPatientCases(patientId: string): Promise<CaseRow[]> {

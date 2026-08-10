@@ -120,6 +120,7 @@ export type ComponentCategory = { id: string; name: string };
 export type CaseRow = {
   id: string;
   created_at?: string | null;
+  updated_at?: string | null;
   patient_id: string;
   doctor_id: string | null;
   cadista_id: string | null;
@@ -131,6 +132,7 @@ export type CaseRow = {
   delivery_date: string;
   finished_at: string | null;
   finished?: boolean;
+
   status: string;
   model_done: boolean;
   scan_done: boolean;
