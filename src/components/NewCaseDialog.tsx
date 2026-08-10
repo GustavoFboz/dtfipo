@@ -885,7 +885,7 @@ export function NewCaseDialog({
                 <Label>Doutor</Label>
                 <Select value={doctorId} onValueChange={setDoctorId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[1001]">
                     {doctors.data?.map((d) => (<SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>))}
                   </SelectContent>
                 </Select>
@@ -895,7 +895,7 @@ export function NewCaseDialog({
                 <Label>Cadista</Label>
                 <Select value={cadistaId} onValueChange={setCadistaId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[1001]">
                     {cadistas.data?.map((d) => (<SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>))}
                   </SelectContent>
                 </Select>
@@ -924,7 +924,7 @@ export function NewCaseDialog({
                 <Label>Cor do dente</Label>
                 <Select value={toothColorId} onValueChange={setToothColorId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent className="max-h-72">
+                  <SelectContent className="max-h-72 z-[1001]">
                     {colors.data?.map((c) => (<SelectItem key={c.id} value={c.id}>{c.code}</SelectItem>))}
                   </SelectContent>
                 </Select>
@@ -1008,7 +1008,7 @@ export function NewCaseDialog({
                         <SelectTrigger className="h-9 w-auto min-w-[220px] rounded-lg text-sm">
                           <SelectValue placeholder={allIds.length === 0 ? "Selecione um sistema…" : "+ Adicionar outro sistema…"} />
                         </SelectTrigger>
-                        <SelectContent className="max-h-72">
+                        <SelectContent className="max-h-72 z-[1001]">
                           {allIds.length === 0 && <SelectItem value="__none">Nenhum</SelectItem>}
                           {(implants.data ?? [])
                             .filter((i) => !allIds.includes(i.id))
@@ -1049,7 +1049,7 @@ export function NewCaseDialog({
                     }}
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent className="max-h-72">
+                    <SelectContent className="max-h-72 z-[1001]">
                       <SelectItem value="__none">Nenhum</SelectItem>
                       {scanJigs.data?.map((j) => (
                         <SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>
