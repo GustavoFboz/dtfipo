@@ -901,7 +901,6 @@ export function NewCaseDialog({
                 </Select>
               </div>
 
-              {!isCreate && (
               <div className="space-y-2 md:col-span-2">
                 <Label>Tipos de caso</Label>
                 <CaseTypePicker options={caseTypes.data ?? []} onPick={addType} />
@@ -918,7 +917,6 @@ export function NewCaseDialog({
                   </div>
                 )}
               </div>
-              )}
 
               <div className="space-y-2">
                 <Label>Cor do dente</Label>
