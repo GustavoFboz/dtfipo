@@ -1155,8 +1155,8 @@ export function NewCaseDialog({
             aria-disabled={isView || undefined}
             className={`lg:col-span-5 p-6 flex flex-col border-l border-border/60 min-h-0 h-full overflow-y-auto ${isView ? "pointer-events-none select-none opacity-95" : ""}`}
           >
-            <div className={isCreate ? "flex flex-col flex-1 min-h-0 gap-5" : "space-y-5"}>
-              <div className={isCreate ? "flex flex-col flex-1 min-h-0 gap-3" : "space-y-3"}>
+            <div className="flex flex-col flex-1 min-h-0 gap-5">
+              <div className="flex flex-col flex-1 min-h-0 gap-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 min-w-0">
                     <div className="w-[3px] self-stretch rounded-full bg-primary" />
@@ -1191,7 +1191,7 @@ export function NewCaseDialog({
                     />
                   ) : null}
                 </div>
-                <div className={isCreate ? "flex-1 min-h-0 flex relative" : "relative"}>
+                <div className="flex-1 min-h-0 flex relative">
                   <TeethSelector
                     value={teeth}
                     onChange={() => {}}
@@ -1222,7 +1222,7 @@ export function NewCaseDialog({
                       // 1 sistema: toggle simples do dente na lista de implantes.
                       setImplantTeeth((s) => (s.includes(t) ? s.filter((x) => x !== t) : sortTeeth([...s, t])));
                     }}
-                    fitParent={isCreate}
+                    fitParent={true}
                   />
                   {systemPickerTooth !== null && allSystemIds.length >= 2 && (() => {
                     // Popover compacto ancorado EXATAMENTE acima do círculo do implante.
