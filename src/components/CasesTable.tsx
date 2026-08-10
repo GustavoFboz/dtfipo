@@ -232,16 +232,13 @@ export function CasesTable({
     const f = list.filter((c) => {
       // Apply the new status-based tag filter
       if (activeFilter === "em_andamento") {
-        if (c.finished || c.status === "finalizado") return false;
+        if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
       } else if (activeFilter === "finalizados") {
         if (!c.finished && c.status !== "finalizado") return false;
       } else if (activeFilter === "arquivados") {
-        // Assuming archived is a property or handled elsewhere, for now just filter out if requested
-        // if (!c.archived) return false;
-        return false; // Placeholder
+        if (c.status !== "arquivado") return false;
       } else if (activeFilter === "cancelados") {
-        // if (!c.cancelled) return false;
-        return false; // Placeholder
+        if (c.status !== "cancelado") return false;
       }
 
       if (search) {
