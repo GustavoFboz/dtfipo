@@ -391,7 +391,7 @@ export function AppShell() {
 
       <aside
         className={`flex-col bg-white dark:bg-black border-r border-slate-100 dark:border-white/5 z-40 fixed h-[calc(100vh-72px)] top-[72px] transition-all duration-300 ease-in-out select-none ${
-          pathname.startsWith("/dentes") ? "hidden" : "hidden md:flex"
+          pathname.startsWith("/dentes") || pathname.startsWith("/casos/trash") ? "hidden" : "hidden md:flex"
         } ${isCollapsed ? "w-[80px]" : "w-64"} ${dialogOpen ? "pointer-events-none blur-md grayscale-[0.05] brightness-[0.98] opacity-[0.98]" : ""}`}
       >
         <TooltipProvider>
