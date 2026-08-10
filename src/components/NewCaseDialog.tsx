@@ -802,10 +802,10 @@ export function NewCaseDialog({
           <header className="px-6 lg:px-10 pt-8 pb-6 flex items-start gap-3 border-b border-border/60 bg-white">
             <div className="flex-1 min-w-0">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/15 text-[11px] font-medium text-primary/80 mb-3">
-                {isView ? "Detalhes do caso" : isEdit ? "Editar caso" : "Nova entrada"}
+                {isView ? "Detalhes do caso" : "Nova entrada"}
               </div>
               <h2 className="text-3xl lg:text-4xl font-extralight text-foreground tracking-[-0.03em] leading-[1.05] truncate">
-                {isView ? (viewCase?.patient?.name ?? "Caso") : isEdit ? "Editar caso" : "Cadastrar novo caso"}
+                {isView ? (viewCase?.patient?.name ?? "Caso") : "Cadastrar novo caso"}
               </h2>
               <p className="text-sm text-muted-foreground mt-2 font-light">
                 {isView
