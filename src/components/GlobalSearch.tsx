@@ -77,7 +77,7 @@ export function GlobalSearch() {
       }
 
       // 2. Attachments
-      if (activeFilters.includes("cases")) {
+      if (activeFilters.includes("cases") || activeFilters.includes("patients")) {
         promises.push(
           supabase
             .from("case_attachments")
