@@ -57,7 +57,6 @@ export function GlobalSearch() {
     queryKey: ["global-search", debouncedQuery, activeFilters],
     enabled: debouncedQuery.length >= 1,
     queryFn: async () => {
-      const q = `${debouncedQuery}%`;
       const qContains = `%${debouncedQuery}%`;
       const promises: any[] = [];
 
