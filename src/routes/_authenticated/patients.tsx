@@ -16,7 +16,7 @@ import { normalizeText } from "@/lib/utils";
 import { SkeletonCardGrid, SkeletonSwap, useListReveal } from "@/components/ui/skeleton-blocks";
 
 
-export const Route = createFileRoute("/_authenticated/patients/")({
+export const Route = createFileRoute("/_authenticated/patients")({
   component: PatientsPage,
 });
 
