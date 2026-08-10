@@ -1077,16 +1077,51 @@ export function NewCaseDialog({
                 <Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
               </div>
 
-              {!isCreate && (
               <div className="space-y-2 md:col-span-2">
                 <Label>Observações (opcional)</Label>
                 <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Anotações iniciais sobre o caso" />
               </div>
-              )}
 
-              {/* Seções de Escaneamentos e Galeria removidas do editar caso a pedido do usuário */}
+              {/* Seções de Escaneamentos e Galeria */}
+              <div className="space-y-4 md:col-span-2 mt-4">
+                <div className="space-y-2">
+                  <Label>Escaneamentos (opcional)</Label>
+                  <div className="flex flex-wrap gap-2">
+                    <AttachButton
+                      icon={<ScanLine className="h-4 w-4" />}
+                      label="Escaneamentos"
+                      count={pendingScanFiles.filter(f => f.kind === "scans").length}
+                      onClick={() => { pendingKindRef.current = "scans"; setPendingAccept(undefined); pendingScanFileInput.current?.click(); }}
+                    />
+                    <AttachButton
+                      icon={<Box className="h-4 w-4" />}
+                      label="Modelos"
+                      count={pendingScanFiles.filter(f => f.kind === "model").length}
+                      onClick={() => { pendingKindRef.current = "model"; setPendingAccept(undefined); pendingScanFileInput.current?.click(); }}
+                    />
+                    <AttachButton
+                      icon={<Monitor className="h-4 w-4" />}
+                      label="Projeto (Exocad)"
+                      count={pendingScanFiles.filter(f => f.kind === "exocad_html").length}
+                      onClick={() => { pendingKindRef.current = "exocad_html"; setPendingAccept(".html"); pendingScanFileInput.current?.click(); }}
+                    />
+                  </div>
+                </div>
 
-              {/* Inputs de arquivo — sempre presentes no DOM para os dois modos */}
+                <div className="space-y-2">
+                  <Label>Galeria do caso (opcional)</Label>
+                  <div className="flex flex-wrap gap-2">
+                    <AttachButton
+                      icon={<Camera className="h-4 w-4" />}
+                      label="Adicionar fotos"
+                      count={pendingGalleryFiles.length}
+                      onClick={() => pendingGalleryInput.current?.click()}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Inputs de arquivo */}
               <input
                 ref={pendingScanFileInput}
                 type="file"
@@ -1113,8 +1148,6 @@ export function NewCaseDialog({
                 }}
               />
             </div>
-
-            {/* Seção de anexos removida em modo de edição a pedido do usuário */}
           </div>
 
           <aside
