@@ -10,7 +10,10 @@ import {
   User, 
   History,
   AlertCircle,
-  ShieldAlert
+  ShieldAlert,
+  Ghost,
+  Clock,
+  ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +33,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { motion, AnimatePresence } from "framer-motion";
+
 
 export const Route = createFileRoute("/_authenticated/casos/trash/")({
   component: TrashPage,
