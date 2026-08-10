@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -77,8 +77,17 @@ function Index() {
             <span className="whitespace-nowrap">Controle de</span>
             <span className="text-primary">Casos</span>
             <ChevronRight className="h-6 w-6 md:h-8 md:w-8 xl:h-10 xl:w-10 text-slate-300 dark:text-slate-700 stroke-[1.2px] self-center shrink-0" />
-            {caseYear != null && (
-              <span className="text-primary whitespace-nowrap">{caseYear}</span>
+            {(caseYear != null || dateRange != null) && (
+              <span className="text-primary whitespace-nowrap">
+                {dateRange ? (
+                  dateRange.start && dateRange.end && dateRange.start.split('-')[0] !== dateRange.end.split('-')[0]
+                    ? `${dateRange.start.split('-')[0]}-${dateRange.end.split('-')[0]}`
+                    : dateRange.start.split('-')[0]
+                ) : caseYear}
+              </span>
+            )}
+            {caseYear == null && dateRange == null && (
+              <span className="text-primary whitespace-nowrap">{new Date().getFullYear()}</span>
             )}
           </h1>
 
@@ -217,9 +226,8 @@ function Index() {
             </Popover>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className={`h-10 px-4 rounded-full border gap-2 transition-all ${(advancedFilters.doctorIds.length > 0 || advancedFilters.cadistaIds.length > 0) ? "bg-primary/10 text-primary border-primary/20" : "bg-white dark:bg-white/5 text-slate-400 hover:text-slate-600 border-slate-100 dark:border-white/5"}`}>
-                  <Plus className="h-4 w-4 stroke-[1.5px]" />
-                  <span className="font-light">Avançado</span>
+                <Button variant="ghost" size="sm" className={`h-10 px-4 rounded-full border gap-2 transition-all ${(advancedFilters.doctorIds.length > 0 || advancedFilters.cadistaIds.length > 0) ? "bg-primary/10 text-primary border-primary/20" : "bg-white dark:bg-white/5 text-slate-400 hover:text-slate-600 border-slate-100 dark:border-white/5"}`} title="Aplicar filtros">
+                  <Filter className="h-4 w-4 stroke-[1.5px]" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-[320px] p-6 rounded-[2rem] border-slate-100 dark:border-[#2B292B] shadow-2xl bg-[#F8F9FB] dark:bg-slate-900">
@@ -227,10 +235,21 @@ function Index() {
               </PopoverContent>
             </Popover>
 
+            <Link to="/casos/trash">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-10 w-10 rounded-full border border-slate-100 dark:border-white/5 bg-white dark:bg-white/5 text-slate-400 hover:text-destructive transition-all"
+                title="Lixeira e Cancelados"
+              >
+                <Trash2 className="h-4 w-4 stroke-[1.5px]" />
+              </Button>
+            </Link>
+            
             <Button 
               variant="ghost" 
               size="icon"
-              className="h-10 w-10 rounded-full border border-slate-100 dark:border-white/5 bg-white dark:bg-white/5 text-slate-400 hover:text-destructive transition-all"
+              className="h-10 w-10 rounded-full border border-slate-100 dark:border-white/5 bg-white dark:bg-white/5 text-slate-400 hover:text-primary transition-all ml-1"
               onClick={() => {
                 setDateRange(null);
                 setLocalStartDate("");
@@ -240,7 +259,7 @@ function Index() {
               }}
               title="Limpar todos os filtros"
             >
-              <Trash2 className="h-4 w-4 stroke-[1.5px]" />
+              <X className="h-4 w-4 stroke-[1.5px]" />
             </Button>
           </div>
         </div>

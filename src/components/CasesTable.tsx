@@ -326,16 +326,27 @@ export function CasesTable({
 
   useEffect(() => {
     if (!onYearChange) return;
+    
+    // Default current year if no list or filters
     if (filtered.length === 0) {
-      onYearChange(null);
+      if (!dateRange?.start && !dateRange?.end) {
+        onYearChange(String(new Date().getFullYear()));
+      } else {
+        onYearChange(null);
+      }
       return;
     }
+
     const years = filtered
-      .map((c) => new Date((c.entry_date || c.created_at || "").split('T')[0] + "T00:00:00").getFullYear())
-      .filter((y) => !Number.isNaN(y));
+      .map((c) => {
+        const dateStr = (c.entry_date || c.created_at || "").split('T')[0];
+        if (!dateStr) return null;
+        return new Date(dateStr + "T00:00:00").getFullYear();
+      })
+      .filter((y): y is number => y !== null && !Number.isNaN(y));
     
     if (years.length === 0) {
-      onYearChange(null);
+      onYearChange(String(new Date().getFullYear()));
       return;
     }
 
@@ -347,7 +358,7 @@ export function CasesTable({
     } else {
       onYearChange(`${minYear}-${maxYear}`);
     }
-  }, [filtered, onYearChange]);
+  }, [filtered, onYearChange, dateRange]);
 
   const handleOpenFolder = async (c: CaseRow) => {
     if (!c.folder_url) {
