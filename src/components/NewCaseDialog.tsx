@@ -1333,8 +1333,7 @@ export function NewCaseDialog({
               )}
 
 
-              {!isCreate && (
-              /* Gengiva */
+              {/* Gengiva */}
               <div className="space-y-3 rounded-xl border border-border bg-card p-4">
                 <div>
                   <div className="text-sm font-medium">Gengiva</div>
@@ -1395,7 +1394,6 @@ export function NewCaseDialog({
                   />
                 </div>
               </div>
-              )}
             </div>
           </aside>
           {!isView && (
