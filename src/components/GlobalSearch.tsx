@@ -32,7 +32,7 @@ const CATEGORIES: { id: SearchCategory; label: string; icon: any }[] = [
 export function GlobalSearch() {
   const { pathname } = useLocation();
   const [query, setQuery] = useState("");
-  const debouncedQuery = useDebounce(query, 150);
+  const debouncedQuery = useDebounce(query, 50);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState<CaseRow | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -69,7 +69,7 @@ export function GlobalSearch() {
           supabase
             .from("cases")
             .select("*, patient:patients(name), doctor:doctors(name), case_type:case_types(name)")
-            .or(`case_label.ilike.${qContains},patient_name_direct.ilike.${qContains}`)
+            .or(`case_label.ilike.${qContains}`)
             .limit(5)
         );
       } else {
