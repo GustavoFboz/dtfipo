@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Search, Loader2, X, Users, LayoutDashboard, FileText, ImageIcon, Settings, SlidersHorizontal, Check, UserCircle, Calendar, Boxes } from "lucide-react";
+import { Search, Loader2, X, Users, LayoutDashboard, FileText, ImageIcon, Settings, SlidersHorizontal, Check, UserCircle, Calendar, Boxes, SearchX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -60,6 +60,9 @@ export function GlobalSearch() {
       const q = `%${debouncedQuery}%`;
       const promises: any[] = [];
 
+      // Fix order to match destructured array [casesRes, attachmentsRes, patientsRes, doctorsRes, teamRes]
+      
+      // 1. Cases
       if (activeFilters.includes("cases")) {
         promises.push(
           supabase
@@ -68,6 +71,12 @@ export function GlobalSearch() {
             .or(`case_label.ilike.${q}`)
             .limit(5)
         );
+      } else {
+        promises.push(Promise.resolve({ data: [] }));
+      }
+
+      // 2. Attachments
+      if (activeFilters.includes("cases")) {
         promises.push(
           supabase
             .from("case_attachments")
@@ -77,9 +86,9 @@ export function GlobalSearch() {
         );
       } else {
         promises.push(Promise.resolve({ data: [] }));
-        promises.push(Promise.resolve({ data: [] }));
       }
 
+      // 3. Patients
       if (activeFilters.includes("patients")) {
         promises.push(
           supabase
@@ -92,6 +101,7 @@ export function GlobalSearch() {
         promises.push(Promise.resolve({ data: [] }));
       }
 
+      // 4. Doctors
       if (activeFilters.includes("doctors")) {
         promises.push(
           supabase
@@ -104,6 +114,7 @@ export function GlobalSearch() {
         promises.push(Promise.resolve({ data: [] }));
       }
 
+      // 5. Team
       if (activeFilters.includes("team")) {
         promises.push(
           supabase
@@ -116,8 +127,8 @@ export function GlobalSearch() {
         promises.push(Promise.resolve({ data: [] }));
       }
 
-      const results = await Promise.all(promises);
-      const [casesRes, attachmentsRes, patientsRes, doctorsRes, teamRes] = results;
+      const rawResults = await Promise.all(promises);
+      const [casesRes, attachmentsRes, patientsRes, doctorsRes, teamRes] = rawResults;
 
       return {
         cases: (casesRes?.data || []) as unknown as CaseRow[],
@@ -246,8 +257,14 @@ export function GlobalSearch() {
                   <span className="text-xs font-light">Pesquisando...</span>
                 </div>
               ) : !hasResults ? (
-                <div className="p-8 text-center text-slate-400">
-                  <span className="text-sm font-light">Nenhum resultado encontrado.</span>
+                <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
+                  <div className="h-12 w-12 rounded-full bg-slate-50 dark:bg-white/5 grid place-items-center text-slate-300">
+                    <SearchX className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">Nenhum resultado</p>
+                    <p className="text-xs text-slate-400 font-light">Não encontramos nada para "{debouncedQuery}"</p>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-4 p-1">
@@ -267,7 +284,7 @@ export function GlobalSearch() {
                             className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group"
                           >
                             <div className="text-sm font-normal text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
-                              {c.patient?.name}
+                              {c.patient?.name || "Paciente sem nome"}
                             </div>
                             <div className="text-[11px] text-slate-400 font-light flex items-center gap-2">
                               <span>{c.case_type?.name}</span>
