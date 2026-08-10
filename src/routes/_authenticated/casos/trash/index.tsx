@@ -36,6 +36,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 export const Route = createFileRoute("/_authenticated/casos/trash/")({
+  ssr: false,
   component: TrashPage,
 });
 
