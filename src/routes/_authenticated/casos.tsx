@@ -24,6 +24,7 @@ function Index() {
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(false);
   const [caseYear, setCaseYear] = useState<number | null>(null);
+  const [counts, setCounts] = useState<Record<string, number>>({ all: 0, em_andamento: 0, finalizados: 0, arquivados: 0, cancelados: 0 });
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
@@ -119,13 +120,13 @@ function Index() {
                 <span className={`inline-grid place-items-center h-5 min-w-[20px] px-1 rounded-full text-[10px] font-bold ${
                   isActive ? "bg-white text-black" : "bg-[#54A8FB] text-white"
                 }`}>
-                  0
+                  {counts[t.id] ?? 0}
                 </span>
               </button>
             );
           })}
         </div>
-        <CasesTable hideToolbar minimal hideSearch activeFilter={filter} onFilterChange={setFilter} onYearChange={setCaseYear} />
+        <CasesTable hideToolbar minimal hideSearch activeFilter={filter} onFilterChange={setFilter} onYearChange={setCaseYear} onCountsUpdate={setCounts} />
       </section>
 
       <section className="shrink-0 pt-8 pb-10 md:pb-14 border-t border-slate-200/70 dark:border-slate-800/70 mt-6">

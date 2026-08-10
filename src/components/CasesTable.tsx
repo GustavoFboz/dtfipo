@@ -287,6 +287,19 @@ export function CasesTable({
   }, [cases.data, search, stageFilter, statusFilter, sort]);
 
   useEffect(() => {
+    if (!onCountsUpdate || !cases.data) return;
+    const list = cases.data;
+    const counts = {
+      all: list.length,
+      em_andamento: list.filter(c => !c.finished && c.status !== "finalizado").length,
+      finalizados: list.filter(c => c.finished || c.status === "finalizado").length,
+      arquivados: 0, // Placeholder
+      cancelados: 0, // Placeholder
+    };
+    onCountsUpdate(counts);
+  }, [cases.data, onCountsUpdate]);
+
+  useEffect(() => {
     if (!onYearChange) return;
     if (filtered.length === 0) {
       onYearChange(null);
