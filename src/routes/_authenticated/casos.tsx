@@ -24,7 +24,7 @@ function Index() {
   const [openNewPatient, setOpenNewPatient] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(false);
-  const [caseYear, setCaseYear] = useState<number | null>(null);
+  const [caseYear, setCaseYear] = useState<string | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({ all: 0, em_andamento: 0, finalizados: 0, arquivados: 0, cancelados: 0 });
   const isMobile = useIsMobile();
   const navigate = useNavigate();

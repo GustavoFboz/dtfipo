@@ -136,7 +136,7 @@ export function CasesTable({
   hideSearch?: boolean;
   activeFilter?: string;
   onFilterChange?: (filter: string) => void;
-  onYearChange?: (year: number | null) => void;
+  onYearChange?: (year: string | null) => void;
   onCountsUpdate?: (counts: Record<string, number>) => void;
 } = {}) {
   const qc = useQueryClient();
@@ -306,8 +306,23 @@ export function CasesTable({
       onYearChange(null);
       return;
     }
-    const years = filtered.map((c) => new Date((c.entry_date || c.created_at || "") + "T00:00:00").getFullYear()).filter((y) => !Number.isNaN(y));
-    onYearChange(years.length ? Math.max(...years) : null);
+    const years = filtered
+      .map((c) => new Date((c.entry_date || c.created_at || "").split('T')[0] + "T00:00:00").getFullYear())
+      .filter((y) => !Number.isNaN(y));
+    
+    if (years.length === 0) {
+      onYearChange(null);
+      return;
+    }
+
+    const minYear = Math.min(...years);
+    const maxYear = Math.max(...years);
+    
+    if (minYear === maxYear) {
+      onYearChange(String(minYear));
+    } else {
+      onYearChange(`${minYear}-${maxYear}`);
+    }
   }, [filtered, onYearChange]);
 
   const handleOpenFolder = async (c: CaseRow) => {
