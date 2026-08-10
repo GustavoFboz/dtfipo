@@ -36,6 +36,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 
 export const Route = createFileRoute("/_authenticated/casos/trash/")({
+  ssr: false,
   component: TrashPage,
 });
 
@@ -80,7 +81,7 @@ function TrashPage() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-      className="min-h-screen bg-[#FDFDFF] dark:bg-[#0A0A0B] font-light selection:bg-rose-100 selection:text-rose-900 pt-[72px]"
+      className="min-h-screen bg-[#FDFDFF] dark:bg-[#0A0A0B] font-light selection:bg-rose-100 selection:text-rose-900 pt-[72px] relative z-50"
     >
       <div className="max-w-[1200px] mx-auto w-full px-6 py-12 md:py-16 space-y-12">
         {/* Header Section - Completely unique design inspired by dentes page */}
@@ -99,13 +100,15 @@ function TrashPage() {
                 <div className="h-16 w-16 rounded-[2rem] bg-rose-500/10 dark:bg-rose-500/5 flex items-center justify-center border border-rose-500/10">
                   <Trash2 className="h-8 w-8 text-rose-500 stroke-[1.5px]" />
                 </div>
-                <div>
-                  <h1 className="text-5xl lg:text-6xl font-extralight tracking-tight text-slate-900 dark:text-slate-100 italic">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-5xl lg:text-7xl font-extralight tracking-tight text-slate-900 dark:text-slate-100 italic">
                     Arquivo de <span className="text-rose-500">Descarte</span>
                   </h1>
                   <p className="text-slate-400 font-light mt-2 text-lg">
                     Gestão de registros cancelados e excluídos.
                   </p>
+                  {/* Test string to confirm active route */}
+                  <span className="sr-only">Versão Unique Design v2</span>
                 </div>
               </div>
             </div>
@@ -117,7 +120,7 @@ function TrashPage() {
                 placeholder="Buscar no descarte..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-14 pl-12 pr-6 rounded-3xl bg-white dark:bg-slate-900/50 border-slate-100 dark:border-white/5 shadow-inner-sm transition-all focus-visible:ring-2 focus-visible:ring-rose-500/10 text-base"
+                className="h-14 pl-12 pr-6 rounded-3xl bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-rose-500/10 text-base"
               />
             </div>
           </div>
