@@ -798,7 +798,8 @@ export function NewCaseDialog({
                    max-md:w-screen max-md:!max-w-none max-md:h-[100dvh] max-md:!max-h-[100dvh] max-md:rounded-none max-md:rounded-t-[28px] max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:!translate-x-0 max-md:!translate-y-0 max-md:data-[state=open]:animate-in max-md:data-[state=open]:slide-in-from-bottom
                    [&>.absolute.right-4]:hidden"
       >
-        <div className="flex flex-col h-full min-h-0 bg-white font-light">
+        <div className="flex flex-col h-full min-h-0 bg-white font-light relative">
+          <div id="radix-select-portal-container" className="absolute inset-0 pointer-events-none z-[1001]" />
           <header className="px-6 lg:px-10 pt-8 pb-6 flex items-start gap-3 border-b border-border/60 bg-white">
             <div className="flex-1 min-w-0">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/15 text-[11px] font-medium text-primary/80 mb-3">
