@@ -156,8 +156,8 @@ export function CasesTable({
   const isCadista = profile?.role === "CADISTA";
 
   const cases = useQuery({
-    queryKey: ["cases", "active"],
-    queryFn: () => fetchCases("active"),
+    queryKey: ["cases", "all"],
+    queryFn: () => fetchCases("all"),
     // Realtime (useCasesRealtime) mantém a lista atualizada — sem polling.
     staleTime: 60_000,
   });
