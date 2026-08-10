@@ -50,7 +50,7 @@ const PAGE_BLANK_DURATION_MS = 55;
 const PAGE_ENTER_DURATION_MS = 300;
 
 const navItems = [
-  { to: "/lab", label: "Casos", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO"] },
+  { to: "/casos", label: "Casos", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO"] },
   { to: "/patients", label: "Pacientes", icon: Users, roles: ["CEO", "DR", "ATENDIMENTO"] },
   { to: "/agenda", label: "Agenda", icon: CalendarDays, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA"] },
   { to: "/equipe", label: "Equipe", icon: Users2, roles: ["CEO"] },
@@ -60,9 +60,9 @@ const navItems = [
 
 function getMobilePageTitle(pathname: string, items: readonly { to: string; label: string }[]): string {
   if (pathname === "/") return "IPO";
-  if (pathname === "/lab") return "Laboratório";
+  if (pathname === "/casos") return "Laboratório";
   // "/financeiro" removido — módulo desativado.
-  const match = items.find((n) => n.to !== "/lab" && pathname.startsWith(n.to));
+  const match = items.find((n) => n.to !== "/casos" && pathname.startsWith(n.to));
   if (match) return match.label;
   if (pathname.startsWith("/patients/")) return "Paciente";
   if (pathname.startsWith("/configuracoes")) return "Configurações";
@@ -190,7 +190,7 @@ export function AppShell() {
     // Só pular a transição global quando o par é exatamente Lab↔Dentes
     // (essas duas rotas usam animações dedicadas entre si). Nos demais casos,
     // Lab entra/sai com a mesma transição das outras páginas do menu.
-    const isLab = (p: string) => p.startsWith("/lab");
+    const isLab = (p: string) => p.startsWith("/casos");
     const isDentes = (p: string) => p.startsWith("/dentes");
     const isLabDentesPair = (isLab(prev) && isDentes(pathname)) || (isDentes(prev) && isLab(pathname));
     if (isLabDentesPair) return;
@@ -230,8 +230,8 @@ export function AppShell() {
     }
 
     const isLabDentesPair =
-      (pathname.startsWith("/lab") && target.startsWith("/dentes")) ||
-      (pathname.startsWith("/dentes") && target.startsWith("/lab"));
+      (pathname.startsWith("/casos") && target.startsWith("/dentes")) ||
+      (pathname.startsWith("/dentes") && target.startsWith("/casos"));
     if (isLabDentesPair) return;
 
     event.preventDefault();
@@ -670,7 +670,7 @@ export function AppShell() {
           {(() => {
             const items = [
               { to: "/", label: "Início", icon: Home as any },
-              ...filteredNavItems.filter((n) => n.to !== "/lab").slice(0, 2),
+              ...filteredNavItems.filter((n) => n.to !== "/casos").slice(0, 2),
             ];
             return items.map((n) => {
               const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
@@ -752,7 +752,7 @@ export function AppShell() {
 
               <div className="flex-1 overflow-y-auto px-4 py-4">
                 <div className="grid grid-cols-4 gap-2">
-                  {filteredNavItems.filter((n) => n.to !== "/lab").slice(2).map((n) => {
+                  {filteredNavItems.filter((n) => n.to !== "/casos").slice(2).map((n) => {
                     const active = pathname.startsWith(n.to);
                     const showBadge =
                       (n.to === "/equipe" && pendingCount > 0) ||
