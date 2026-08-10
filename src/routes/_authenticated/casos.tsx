@@ -98,7 +98,7 @@ function Index() {
       </header>
 
       <section className="flex-1 min-h-0 flex flex-col">
-        <div className="flex flex-wrap items-center gap-4 mb-8">
+        <div className="relative flex items-center p-1 bg-slate-100/50 dark:bg-white/5 rounded-full w-fit mb-8 overflow-visible">
           {[
             { id: "all", label: "Todos" },
             { id: "em_andamento", label: "Em andamento" },
@@ -107,35 +107,47 @@ function Index() {
             { id: "cancelados", label: "Cancelados" },
           ].map((t) => {
             const isActive = filter === t.id;
-            // Get count for this filter from CasesTable or local state if we had it.
-            // For now we'll just implement the visual requested.
             return (
               <button
                 key={t.id}
                 onClick={() => setFilter(t.id)}
-                className={`relative flex items-center gap-2.5 px-6 py-2.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${
+                className={`relative flex items-center gap-2 px-6 py-2.5 rounded-full text-[13px] font-medium transition-colors duration-300 whitespace-nowrap z-10 ${
                   isActive
-                    ? "bg-[#54A8FB] text-white shadow-lg shadow-blue-400/20"
-                    : "bg-white dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 border border-slate-100 dark:border-white/5"
+                    ? "text-white"
+                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                 }`}
               >
+                {isActive && (
+                  <motion.div
+                    layoutId="active-filter"
+                    className="absolute inset-0 bg-[#54A8FB] shadow-lg shadow-blue-400/20 rounded-full -z-10"
+                    transition={{
+                      type: "spring",
+                      stiffness: 400,
+                      damping: 30,
+                    }}
+                  />
+                )}
                 {t.label}
-                <AnimatePresence mode="wait">
+                <AnimatePresence mode="popLayout">
                   {isActive && (
                     <motion.span
-                      key={t.id}
+                      key={`count-${t.id}`}
                       initial={{ scale: 0, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0, opacity: 0 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                      className="inline-grid place-items-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-bold bg-white text-[#54A8FB]"
+                      transition={{ 
+                        type: "spring", 
+                        stiffness: 600, 
+                        damping: 25,
+                      }}
+                      className="inline-grid place-items-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-bold bg-white text-[#54A8FB] ml-2"
                     >
                       {counts[t.id] ?? 0}
                     </motion.span>
                   )}
                 </AnimatePresence>
               </button>
-
             );
           })}
         </div>
