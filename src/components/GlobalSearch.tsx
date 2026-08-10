@@ -108,7 +108,7 @@ export function GlobalSearch() {
           supabase
             .from("doctors")
             .select("*")
-            .ilike("name", qContains)
+            .or(`name.ilike.${qContains},crm_cro.ilike.${qContains}`)
             .limit(5)
         );
       } else {
