@@ -100,7 +100,7 @@ function TrashPage() {
                 <div className="h-16 w-16 rounded-[2rem] bg-rose-500/10 dark:bg-rose-500/5 flex items-center justify-center border border-rose-500/10">
                   <Trash2 className="h-8 w-8 text-rose-500 stroke-[1.5px]" />
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <h1 className="text-5xl lg:text-7xl font-extralight tracking-tight text-slate-900 dark:text-slate-100 italic">
                     Arquivo de <span className="text-rose-500">Descarte</span>
                   </h1>
@@ -118,7 +118,7 @@ function TrashPage() {
                 placeholder="Buscar no descarte..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-14 pl-12 pr-6 rounded-3xl bg-white dark:bg-slate-900/50 border-slate-100 dark:border-white/5 shadow-inner-sm transition-all focus-visible:ring-2 focus-visible:ring-rose-500/10 text-base"
+                className="h-14 pl-12 pr-6 rounded-3xl bg-white dark:bg-slate-900 border-slate-200 dark:border-white/10 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-rose-500/10 text-base"
               />
             </div>
           </div>
