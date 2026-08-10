@@ -55,7 +55,7 @@ function TrashPage() {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("cases")
-        .update({ status: "em_andamento", finished: false })
+        .update({ status: "em_andamento", finished: false } as any)
         .eq("id", id);
       if (error) throw error;
     },
@@ -68,7 +68,7 @@ function TrashPage() {
 
   const filtered = deletedCases?.filter(c => 
     c.patient?.name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.case_number?.toLowerCase().includes(search.toLowerCase())
+    String(c.case_number ?? "").toLowerCase().includes(search.toLowerCase())
   ) ?? [];
 
   return (
