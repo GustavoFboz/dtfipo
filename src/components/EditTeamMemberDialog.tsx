@@ -15,7 +15,14 @@ import {
 import { toast } from "sonner";
 
 type AppRole = "CEO" | "DR" | "PROTETICO" | "ATENDIMENTO" | "CADISTA" | "USER";
-const ROLES: AppRole[] = ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA", "USER"];
+const ROLES: { value: AppRole; label: string }[] = [
+  { value: "CEO", label: "CEO" },
+  { value: "DR", label: "Dentista" },
+  { value: "PROTETICO", label: "Protético" },
+  { value: "CADISTA", label: "Cadista" },
+  { value: "ATENDIMENTO", label: "Atendimento" },
+  { value: "USER", label: "Usuário" },
+];
 const EMPTY_ARR: readonly never[] = [];
 
 interface Props {
@@ -60,7 +67,24 @@ function EditTeamMemberBody({
     phone: profile.phone ?? "",
     role: (profile.role as AppRole) ?? "USER",
   });
+  const [additionalRoles, setAdditionalRoles] = useState<Set<AppRole>>(new Set());
   const [accessIds, setAccessIds] = useState<Set<string> | null>(null);
+
+  // Sync additional roles from DB on mount
+  useQuery({
+    queryKey: ["user_roles_extra", profile.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", profile.id);
+      if (error) throw error;
+      const roles = (data ?? []).map(r => r.role.toUpperCase() as AppRole);
+      setAdditionalRoles(new Set(roles.filter(r => r !== form.role)));
+      return roles;
+    },
+    enabled: !!profile.id
+  });
 
   const { data: categories = EMPTY_ARR } = useQuery({
     queryKey: ["component_categories_all"],
@@ -103,7 +127,8 @@ function EditTeamMemberBody({
         p_phone: form.phone,
         p_role: form.role,
         p_category_ids: [...effectiveAccessIds],
-      } as never);
+        p_additional_roles: [...additionalRoles],
+      } as any);
       if (error) throw error;
       const res = data as { success?: boolean; error?: string } | null;
       if (res && res.success === false) throw new Error(res.error ?? "Falha ao atualizar");
@@ -122,6 +147,15 @@ function EditTeamMemberBody({
     setAccessIds(() => {
       const next = new Set(effectiveAccessIds);
       next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAdditionalRole = (role: AppRole) => {
+    if (role === form.role) return;
+    setAdditionalRoles(prev => {
+      const next = new Set(prev);
+      next.has(role) ? next.delete(role) : next.add(role);
       return next;
     });
   };
@@ -163,13 +197,56 @@ function EditTeamMemberBody({
           />
         </div>
         <div className="space-y-2">
-          <Label className="text-xs font-medium text-slate-600">Nível de acesso</Label>
-          <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v as AppRole })}>
+          <Label className="text-xs font-medium text-slate-600">Função Principal</Label>
+          <Select 
+            value={form.role} 
+            onValueChange={(v) => {
+              const newRole = v as AppRole;
+              setForm({ ...form, role: newRole });
+              // Se a nova função principal estava nas adicionais, remove de lá
+              if (additionalRoles.has(newRole)) {
+                setAdditionalRoles(prev => {
+                  const next = new Set(prev);
+                  next.delete(newRole);
+                  return next;
+                });
+              }
+            }}
+          >
             <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {ROLES.map((r) => <SelectItem key={r} value={r}>{r === "DR" ? "Dentista" : r === "PROTETICO" ? "Protético" : r === "ATENDIMENTO" ? "Atendimento" : r === "CADISTA" ? "Cadista" : r === "USER" ? "Usuário" : r}</SelectItem>)}
+              {ROLES.map((r) => (
+                <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
+          <p className="text-[10px] text-slate-400">Esta é a função que define a visualização primária do usuário.</p>
+        </div>
+
+        <div className="space-y-2 pt-2 border-t border-slate-100">
+          <Label className="text-xs font-medium text-slate-600">Funções Adicionais</Label>
+          <p className="text-[10px] text-slate-400">
+            Selecione outras funções que este membro também desempenha no laboratório.
+          </p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {ROLES.filter(r => r.value !== form.role && r.value !== 'USER').map((r) => (
+              <label 
+                key={r.value} 
+                className={`flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-all ${
+                  additionalRoles.has(r.value) 
+                    ? "bg-blue-50 border-blue-200 text-blue-700" 
+                    : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
+                }`}
+              >
+                <Checkbox
+                  checked={additionalRoles.has(r.value)}
+                  onCheckedChange={() => toggleAdditionalRole(r.value)}
+                  className="rounded-full"
+                />
+                <span className="text-xs font-medium">{r.label}</span>
+              </label>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-2 pt-2 border-t border-slate-100">

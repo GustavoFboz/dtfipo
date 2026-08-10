@@ -2155,17 +2155,30 @@ export type Database = {
         Returns: Json
       }
       seed_default_workflow: { Args: never; Returns: Json }
-      update_team_member: {
-        Args: {
-          p_category_ids?: string[]
-          p_email: string
-          p_full_name: string
-          p_phone: string
-          p_role: string
-          p_user_id: string
-        }
-        Returns: Json
-      }
+      update_team_member:
+        | {
+            Args: {
+              p_category_ids?: string[]
+              p_email: string
+              p_full_name: string
+              p_phone: string
+              p_role: string
+              p_user_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_additional_roles?: string[]
+              p_category_ids?: string[]
+              p_email: string
+              p_full_name: string
+              p_phone: string
+              p_role: string
+              p_user_id: string
+            }
+            Returns: Json
+          }
       user_can_advance: {
         Args: { _phase_id: string; _stage_id: string; _user: string }
         Returns: boolean
