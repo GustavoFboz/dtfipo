@@ -1086,65 +1086,7 @@ export function NewCaseDialog({
               </div>
               )}
 
-              {!isCreate && !isCadista && (
-                <div className="space-y-2 md:col-span-2">
-                  <Label className="flex items-center gap-2"><ScanLine className="h-4 w-4 text-primary" /> Escaneamentos (opcional)</Label>
-                  <div className="rounded-lg border border-dashed border-border p-3 space-y-2">
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="button" variant="outline" size="sm" className="gap-2" onClick={() => pendingScanFileInput.current?.click()}>
-                        <ScanLine className="h-4 w-4" /> Anexar escaneamentos
-                      </Button>
-                    </div>
-                    {pendingScanFiles.length > 0 ? (
-                      <ul className="space-y-1 text-xs">
-                        {pendingScanFiles.map((item, i) => (
-                          <li key={`${item.file.name}-${i}`} className="flex items-center gap-2">
-                            <FileUp className="h-3 w-3 text-muted-foreground" />
-                            <span className="truncate flex-1">{item.file.name}</span>
-                            <button type="button" className="text-muted-foreground hover:text-destructive"
-                              onClick={() => setPendingScanFiles((s) => s.filter((_, idx) => idx !== i))}>
-                              <X className="h-3 w-3" />
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-[11px] text-muted-foreground">Os escaneamentos serão enviados em segundo plano logo após o cadastro do caso.</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {!isCreate && (
-              <div className="space-y-2 md:col-span-2">
-                <Label className="flex items-center gap-2"><Camera className="h-4 w-4 text-primary" /> Galeria do caso (opcional)</Label>
-                <div className="rounded-lg border border-dashed border-border p-3 space-y-2">
-                  <Button type="button" variant="outline" size="sm" className="gap-2"
-                    onClick={() => pendingGalleryInput.current?.click()}>
-                    <Camera className="h-4 w-4" /> Adicionar imagens
-                  </Button>
-                  {pendingGalleryFiles.length > 0 ? (
-                    <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                      {pendingGalleryFiles.map((f, i) => {
-                        const url = URL.createObjectURL(f);
-                        return (
-                          <div key={`${f.name}-${i}`} className="relative aspect-square rounded-md overflow-hidden border bg-muted group">
-                            <img src={url} alt={f.name} className="w-full h-full object-cover" />
-                            <button type="button"
-                              onClick={() => setPendingGalleryFiles((s) => s.filter((_, idx) => idx !== i))}
-                              className="absolute top-1 right-1 h-5 w-5 rounded-md bg-black/60 text-white grid place-items-center opacity-0 group-hover:opacity-100">
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-[11px] text-muted-foreground">As imagens da galeria serão enviadas em segundo plano após o cadastro.</p>
-                  )}
-                </div>
-              </div>
-              )}
+              {/* Seções de Escaneamentos e Galeria removidas do editar caso a pedido do usuário */}
 
               {/* Inputs de arquivo — sempre presentes no DOM para os dois modos */}
               <input
