@@ -28,6 +28,9 @@ function Index() {
   const [entering, setEntering] = useState(false);
   const [caseYear, setCaseYear] = useState<string | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({ all: 0, em_andamento: 0, finalizados: 0, arquivados: 0, cancelados: 0 });
+  const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
+  const [localStartDate, setLocalStartDate] = useState("");
+  const [localEndDate, setLocalEndDate] = useState("");
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
