@@ -800,7 +800,7 @@ export function NewCaseDialog({
       >
         <div className="flex flex-col h-full min-h-0 bg-white font-light relative">
           <div id="radix-select-portal-container" className="absolute inset-0 pointer-events-none z-[1001]" />
-          <header className="px-6 lg:px-10 pt-8 pb-6 flex items-start gap-3 border-b border-border/60 bg-white">
+          <header className="px-6 lg:px-10 pt-8 pb-6 flex items-start gap-3 border-b border-border/60 bg-white relative z-10">
             <div className="flex-1 min-w-0">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/15 text-[11px] font-medium text-primary/80 mb-3">
                 {isView ? "Detalhes do caso" : isEdit ? "Editar caso" : "Nova entrada"}
@@ -825,7 +825,7 @@ export function NewCaseDialog({
             </button>
           </header>
 
-        <div className={`relative grid grid-cols-1 lg:grid-cols-12 gap-0 flex-1 min-h-0 ${isView ? "overflow-y-auto" : "overflow-hidden"}`}>
+        <div className={`relative grid grid-cols-1 lg:grid-cols-12 gap-0 flex-1 min-h-0 z-10 ${isView ? "overflow-y-auto" : "overflow-hidden"}`}>
           <div
             {...(isView ? { inert: "" as unknown as boolean } : {})}
             aria-disabled={isView || undefined}
