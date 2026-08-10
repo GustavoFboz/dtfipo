@@ -15,7 +15,7 @@ import { fetchWorkflowSettings, updateWorkflowSettings } from "@/lib/workflow";
 
 const ALLOWED_EMAIL = "gustavovitorfa@gmail.com";
 
-export const Route = createFileRoute("/_authenticated/configuracoes/")({
+export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: ConfiguracoesPage,
 });
 
