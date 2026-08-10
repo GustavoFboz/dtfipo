@@ -101,7 +101,7 @@ function TrashPage() {
                   <Trash2 className="h-8 w-8 text-rose-500 stroke-[1.5px]" />
                 </div>
                 <div>
-                  <h1 className="text-5xl lg:text-6xl font-extralight tracking-tight text-slate-900 dark:text-slate-100 italic">
+                  <h1 className="text-5xl lg:text-7xl font-extralight tracking-tight text-slate-900 dark:text-slate-100 italic">
                     Arquivo de <span className="text-rose-500">Descarte</span>
                   </h1>
                   <p className="text-slate-400 font-light mt-2 text-lg">
