@@ -289,10 +289,10 @@ export function CasesTable({
     const list = cases.data;
     const counts = {
       all: list.length,
-      em_andamento: list.filter(c => !c.finished && c.status !== "finalizado").length,
+      em_andamento: list.filter(c => !c.finished && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado").length,
       finalizados: list.filter(c => c.finished || c.status === "finalizado").length,
-      arquivados: 0, // Placeholder
-      cancelados: 0, // Placeholder
+      arquivados: list.filter(c => c.status === "arquivado").length,
+      cancelados: list.filter(c => c.status === "cancelado").length,
     };
     onCountsUpdate(counts);
   }, [cases.data, onCountsUpdate]);
