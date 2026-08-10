@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
 
 import { CasesTable } from "@/components/CasesTable";
 import { NewCaseDialog } from "@/components/NewCaseDialog";
