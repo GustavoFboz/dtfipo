@@ -258,6 +258,19 @@ export function CasesTable({
       }
       if (statusFilter === "late" && !isLate(c.delivery_date)) return false;
       if (statusFilter === "ontime" && isLate(c.delivery_date)) return false;
+      
+      if (dateRange?.start || dateRange?.end) {
+        const caseDate = new Date((c.entry_date || c.created_at || "").split('T')[0] + "T00:00:00");
+        if (dateRange.start) {
+          const startDate = new Date(dateRange.start + "T00:00:00");
+          if (caseDate < startDate) return false;
+        }
+        if (dateRange.end) {
+          const endDate = new Date(dateRange.end + "T00:00:00");
+          if (caseDate > endDate) return false;
+        }
+      }
+      
       return true;
     });
     const dir = sort.dir === "asc" ? 1 : -1;
