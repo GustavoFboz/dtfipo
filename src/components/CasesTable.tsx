@@ -235,12 +235,13 @@ export function CasesTable({
       // Apply the new status-based tag filter
       if (activeFilter === "em_andamento") {
         if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
+      } else if (activeFilter === "atrasados") {
+        if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
+        if (!isLate(c.delivery_date)) return false;
       } else if (activeFilter === "finalizados") {
         if (!c.finished && c.status !== "finalizado") return false;
       } else if (activeFilter === "arquivados") {
         if (c.status !== "arquivado") return false;
-      } else if (activeFilter === "cancelados") {
-        if (c.status !== "cancelado") return false;
       }
 
       if (search) {
@@ -268,6 +269,15 @@ export function CasesTable({
         if (dateRange.end) {
           const endDate = new Date(dateRange.end + "T00:00:00");
           if (caseDate > endDate) return false;
+        }
+      }
+      
+      if (advancedFilters) {
+        if (advancedFilters.doctorIds.length > 0) {
+          if (!c.doctor_id || !advancedFilters.doctorIds.includes(c.doctor_id)) return false;
+        }
+        if (advancedFilters.cadistaIds.length > 0) {
+          if (!c.cadista_id || !advancedFilters.cadistaIds.includes(c.cadista_id)) return false;
         }
       }
       
@@ -305,9 +315,9 @@ export function CasesTable({
     const counts = {
       all: list.length,
       em_andamento: list.filter(c => !c.finished && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado").length,
+      atrasados: list.filter(c => !c.finished && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado" && isLate(c.delivery_date)).length,
       finalizados: list.filter(c => c.finished || c.status === "finalizado").length,
       arquivados: list.filter(c => c.status === "arquivado").length,
-      cancelados: list.filter(c => c.status === "cancelado").length,
     };
     onCountsUpdate(counts);
   }, [cases.data, onCountsUpdate]);
