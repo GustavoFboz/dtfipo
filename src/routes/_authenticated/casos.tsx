@@ -1,5 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
 
 import { CasesTable } from "@/components/CasesTable";
 import { NewCaseDialog } from "@/components/NewCaseDialog";
@@ -111,19 +113,29 @@ function Index() {
               <button
                 key={t.id}
                 onClick={() => setFilter(t.id)}
-                className={`flex items-center gap-2.5 px-6 py-2.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${
+                className={`relative flex items-center gap-2.5 px-6 py-2.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${
                   isActive
                     ? "bg-[#54A8FB] text-white shadow-lg shadow-blue-400/20"
                     : "bg-white dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 border border-slate-100 dark:border-white/5"
                 }`}
               >
                 {t.label}
-                <span className={`inline-grid place-items-center h-5 min-w-[20px] px-1 rounded-full text-[10px] font-bold ${
-                  isActive ? "bg-white text-black" : "bg-[#54A8FB] text-white"
-                }`}>
-                  {counts[t.id] ?? 0}
-                </span>
+                <AnimatePresence mode="wait">
+                  {isActive && (
+                    <motion.span
+                      key={t.id}
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      className="inline-grid place-items-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-bold bg-white text-[#54A8FB]"
+                    >
+                      {counts[t.id] ?? 0}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </button>
+
             );
           })}
         </div>
