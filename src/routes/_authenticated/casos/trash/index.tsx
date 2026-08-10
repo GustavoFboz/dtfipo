@@ -107,6 +107,8 @@ function TrashPage() {
                   <p className="text-slate-400 font-light mt-2 text-lg">
                     Gestão de registros cancelados e excluídos.
                   </p>
+                  {/* Test string to confirm active route */}
+                  <span className="sr-only">Versão Unique Design v2</span>
                 </div>
               </div>
             </div>
