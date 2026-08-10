@@ -53,6 +53,7 @@ import { Route as AuthenticatedCadistasCadistaIdRouteImport } from './routes/_au
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin.usuarios'
 import { Route as AuthenticatedAdminRestauracaoRouteImport } from './routes/_authenticated/admin.restauracao'
 import { Route as AuthenticatedAdminBackupRouteImport } from './routes/_authenticated/admin.backup'
+import { Route as AuthenticatedCasosTrashIndexRouteImport } from './routes/_authenticated/casos/trash/index'
 import { Route as ApiPublicHooksCleanupCaseFilesRouteImport } from './routes/api/public/hooks/cleanup-case-files'
 
 const LpRoute = LpRouteImport.update({
@@ -297,6 +298,12 @@ const AuthenticatedAdminBackupRoute =
     path: '/admin/backup',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCasosTrashIndexRoute =
+  AuthenticatedCasosTrashIndexRouteImport.update({
+    id: '/trash/',
+    path: '/trash/',
+    getParentRoute: () => AuthenticatedCasosRoute,
+  } as any)
 const ApiPublicHooksCleanupCaseFilesRoute =
   ApiPublicHooksCleanupCaseFilesRouteImport.update({
     id: '/api/public/hooks/cleanup-case-files',
@@ -312,7 +319,7 @@ export interface FileRoutesByFullPath {
   '/agenda': typeof AuthenticatedAgendaRoute
   '/burrs': typeof AuthenticatedBurrsRoute
   '/cadista': typeof AuthenticatedCadistaRoute
-  '/casos': typeof AuthenticatedCasosRoute
+  '/casos': typeof AuthenticatedCasosRouteWithChildren
   '/configuracoes': typeof AuthenticatedConfiguracoesRouteWithChildren
   '/consumo-automatico': typeof AuthenticatedConsumoAutomaticoRoute
   '/dentes': typeof AuthenticatedDentesRoute
@@ -349,6 +356,7 @@ export interface FileRoutesByFullPath {
   '/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/patients/$id': typeof AuthenticatedPatientsIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
+  '/casos/trash/': typeof AuthenticatedCasosTrashIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -358,7 +366,7 @@ export interface FileRoutesByTo {
   '/agenda': typeof AuthenticatedAgendaRoute
   '/burrs': typeof AuthenticatedBurrsRoute
   '/cadista': typeof AuthenticatedCadistaRoute
-  '/casos': typeof AuthenticatedCasosRoute
+  '/casos': typeof AuthenticatedCasosRouteWithChildren
   '/configuracoes': typeof AuthenticatedConfiguracoesRouteWithChildren
   '/consumo-automatico': typeof AuthenticatedConsumoAutomaticoRoute
   '/dentes': typeof AuthenticatedDentesRoute
@@ -395,6 +403,7 @@ export interface FileRoutesByTo {
   '/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/patients/$id': typeof AuthenticatedPatientsIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
+  '/casos/trash': typeof AuthenticatedCasosTrashIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -406,7 +415,7 @@ export interface FileRoutesById {
   '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
   '/_authenticated/burrs': typeof AuthenticatedBurrsRoute
   '/_authenticated/cadista': typeof AuthenticatedCadistaRoute
-  '/_authenticated/casos': typeof AuthenticatedCasosRoute
+  '/_authenticated/casos': typeof AuthenticatedCasosRouteWithChildren
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRouteWithChildren
   '/_authenticated/consumo-automatico': typeof AuthenticatedConsumoAutomaticoRoute
   '/_authenticated/dentes': typeof AuthenticatedDentesRoute
@@ -443,6 +452,7 @@ export interface FileRoutesById {
   '/_authenticated/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/_authenticated/patients/$id': typeof AuthenticatedPatientsIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
+  '/_authenticated/casos/trash/': typeof AuthenticatedCasosTrashIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -491,6 +501,7 @@ export interface FileRouteTypes {
     | '/financeiro/relatorios'
     | '/patients/$id'
     | '/api/public/hooks/cleanup-case-files'
+    | '/casos/trash/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -537,6 +548,7 @@ export interface FileRouteTypes {
     | '/financeiro/relatorios'
     | '/patients/$id'
     | '/api/public/hooks/cleanup-case-files'
+    | '/casos/trash'
   id:
     | '__root__'
     | '/'
@@ -584,6 +596,7 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro/relatorios'
     | '/_authenticated/patients/$id'
     | '/api/public/hooks/cleanup-case-files'
+    | '/_authenticated/casos/trash/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -906,6 +919,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBackupRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/casos/trash/': {
+      id: '/_authenticated/casos/trash/'
+      path: '/trash'
+      fullPath: '/casos/trash/'
+      preLoaderRoute: typeof AuthenticatedCasosTrashIndexRouteImport
+      parentRoute: typeof AuthenticatedCasosRoute
+    }
     '/api/public/hooks/cleanup-case-files': {
       id: '/api/public/hooks/cleanup-case-files'
       path: '/api/public/hooks/cleanup-case-files'
@@ -915,6 +935,17 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AuthenticatedCasosRouteChildren {
+  AuthenticatedCasosTrashIndexRoute: typeof AuthenticatedCasosTrashIndexRoute
+}
+
+const AuthenticatedCasosRouteChildren: AuthenticatedCasosRouteChildren = {
+  AuthenticatedCasosTrashIndexRoute: AuthenticatedCasosTrashIndexRoute,
+}
+
+const AuthenticatedCasosRouteWithChildren =
+  AuthenticatedCasosRoute._addFileChildren(AuthenticatedCasosRouteChildren)
 
 interface AuthenticatedConfiguracoesRouteChildren {
   AuthenticatedConfiguracoesImplantesRoute: typeof AuthenticatedConfiguracoesImplantesRoute
@@ -1007,7 +1038,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
   AuthenticatedBurrsRoute: typeof AuthenticatedBurrsRoute
   AuthenticatedCadistaRoute: typeof AuthenticatedCadistaRoute
-  AuthenticatedCasosRoute: typeof AuthenticatedCasosRoute
+  AuthenticatedCasosRoute: typeof AuthenticatedCasosRouteWithChildren
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRouteWithChildren
   AuthenticatedConsumoAutomaticoRoute: typeof AuthenticatedConsumoAutomaticoRoute
   AuthenticatedDentesRoute: typeof AuthenticatedDentesRoute
@@ -1030,7 +1061,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
   AuthenticatedBurrsRoute: AuthenticatedBurrsRoute,
   AuthenticatedCadistaRoute: AuthenticatedCadistaRoute,
-  AuthenticatedCasosRoute: AuthenticatedCasosRoute,
+  AuthenticatedCasosRoute: AuthenticatedCasosRouteWithChildren,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRouteWithChildren,
   AuthenticatedConsumoAutomaticoRoute: AuthenticatedConsumoAutomaticoRoute,
   AuthenticatedDentesRoute: AuthenticatedDentesRoute,
