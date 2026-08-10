@@ -11,7 +11,7 @@ import { MobileDashboard } from "@/components/MobileDashboard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Search, ChevronRight, Filter } from "lucide-react";
+import { Plus, Search, ChevronRight, Filter, X } from "lucide-react";
 import { useNow } from "@/hooks/use-now";
 import { useIsMobile } from "@/hooks/use-mobile";
 
