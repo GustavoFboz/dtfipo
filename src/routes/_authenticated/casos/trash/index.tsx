@@ -83,43 +83,43 @@ function TrashPage() {
       className="min-h-screen bg-[#FDFDFF] dark:bg-[#0A0A0B] font-light selection:bg-rose-100 selection:text-rose-900 pt-[72px]"
     >
       <div className="max-w-[1200px] mx-auto w-full px-6 py-12 md:py-16 space-y-12">
-        {/* Header Section with Neumorphic touches */}
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-10">
-          <div className="space-y-6">
-            <button 
-              onClick={() => navigate({ to: "/casos" })}
-              className="group flex items-center gap-2.5 text-slate-400 hover:text-primary transition-all duration-300"
-            >
-              <div className="p-2 rounded-full bg-slate-100/50 dark:bg-white/5 group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+        {/* Header Section - Completely unique design inspired by dentes page */}
+        <header className="flex flex-col gap-12">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+            <div className="space-y-4">
+              <button 
+                onClick={() => navigate({ to: "/casos" })}
+                className="group flex items-center gap-2.5 text-slate-400 hover:text-primary transition-all duration-300"
+              >
                 <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-              </div>
-              <span className="text-sm font-medium tracking-tight">Voltar ao fluxo</span>
-            </button>
-            
-            <div className="space-y-3">
-              <div className="flex items-center gap-4">
-                <div className="p-4 rounded-3xl bg-white dark:bg-slate-900 shadow-xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-white/5">
-                  <Ghost className="h-8 w-8 text-rose-400/80 stroke-[1.5px]" />
+                <span className="text-sm font-medium tracking-tight">Voltar aos Casos</span>
+              </button>
+              
+              <div className="flex items-center gap-6">
+                <div className="h-16 w-16 rounded-[2rem] bg-rose-500/10 dark:bg-rose-500/5 flex items-center justify-center border border-rose-500/10">
+                  <Trash2 className="h-8 w-8 text-rose-500 stroke-[1.5px]" />
                 </div>
-                <h1 className="text-5xl font-extralight tracking-tight text-slate-900 dark:text-slate-100 italic">
-                  Lixeira
-                </h1>
+                <div>
+                  <h1 className="text-5xl lg:text-6xl font-extralight tracking-tight text-slate-900 dark:text-slate-100 italic">
+                    Arquivo de <span className="text-rose-500">Descarte</span>
+                  </h1>
+                  <p className="text-slate-400 font-light mt-2 text-lg">
+                    Gestão de registros cancelados e excluídos.
+                  </p>
+                </div>
               </div>
-              <p className="text-slate-400 font-light max-w-sm text-lg leading-relaxed">
-                Repositório de casos cancelados. <span className="text-rose-400/70 font-normal">Limpamos tudo a cada 30 dias.</span>
-              </p>
             </div>
-          </div>
 
-          <div className="relative group max-w-sm w-full">
-            <div className="absolute inset-0 bg-primary/5 blur-2xl rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity" />
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 transition-colors group-focus-within:text-primary" />
-            <Input 
-              placeholder="Localizar registro..." 
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-14 pl-12 pr-6 rounded-[2rem] bg-white dark:bg-slate-900/50 border-slate-100 dark:border-white/5 shadow-inner-sm transition-all focus-visible:ring-2 focus-visible:ring-primary/10 text-base"
-            />
+            <div className="relative group max-w-sm w-full">
+              <div className="absolute inset-0 bg-rose-500/5 blur-2xl rounded-full opacity-0 group-focus-within:opacity-100 transition-opacity" />
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 transition-colors group-focus-within:text-rose-500" />
+              <Input 
+                placeholder="Buscar no descarte..." 
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-14 pl-12 pr-6 rounded-3xl bg-white dark:bg-slate-900/50 border-slate-100 dark:border-white/5 shadow-inner-sm transition-all focus-visible:ring-2 focus-visible:ring-rose-500/10 text-base"
+              />
+            </div>
           </div>
         </header>
 
@@ -158,13 +158,13 @@ function TrashPage() {
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ delay: idx * 0.05 }}
                       key={c.id} 
-                      className="group relative overflow-hidden bg-white dark:bg-[#111113] rounded-[2.5rem] border border-slate-100 dark:border-white/5 hover:border-primary/20 dark:hover:border-primary/20 transition-all duration-500 hover:shadow-2xl hover:shadow-slate-200/50 dark:hover:shadow-none"
+                      className="group relative overflow-hidden bg-white dark:bg-[#0D0D0E] rounded-[2rem] border border-slate-100 dark:border-white/5 hover:border-rose-500/20 dark:hover:border-rose-500/20 transition-all duration-500 hover:shadow-2xl hover:shadow-rose-200/20 dark:hover:shadow-none"
                     >
                       <div className="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-8">
                         <div className="flex items-center gap-6">
                           <div className="relative shrink-0">
                             <div className="h-16 w-16 rounded-[1.75rem] bg-slate-50 dark:bg-white/5 flex items-center justify-center transition-transform duration-500 group-hover:scale-110">
-                              <User className="h-8 w-8 text-slate-300 group-hover:text-primary/40 transition-colors" />
+                              <User className="h-8 w-8 text-slate-300 group-hover:text-rose-500/40 transition-colors" />
                             </div>
                             <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-rose-500 border-4 border-white dark:border-[#111113] flex items-center justify-center shadow-lg">
                               <Trash2 className="h-2.5 w-2.5 text-white" />
