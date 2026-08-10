@@ -285,6 +285,9 @@ function AdvancedFilterContent({ filters, setFilters }: {
 }) {
   const { data: doctors } = useQuery({ queryKey: ["doctors"], queryFn: fetchDoctors });
   const { data: cadistas } = useQuery({ queryKey: ["cadistas"], queryFn: fetchCadistas });
+  const { data: stages } = useQuery({ queryKey: ["stages"], queryFn: fetchStages });
+  
+  const [selectedStages, setSelectedStages] = useState<string[]>([]);
 
   const toggleDoctor = (id: string) => {
     setFilters(prev => ({
@@ -304,14 +307,39 @@ function AdvancedFilterContent({ filters, setFilters }: {
     }));
   };
 
+  const toggleStage = (id: string) => {
+    // Stage filtering is handled by the main status filter in current UI, 
+    // but we add it here as per request for "advanced search by stage"
+    setSelectedStages(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
       <div className="text-[10px] uppercase tracking-[0.12em] text-slate-400 font-medium">Filtragem Avançada</div>
       
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div className="space-y-3">
-          <label className="text-[11px] text-slate-400 font-medium px-1">PROFISSIONAIS (DENTISTAS)</label>
-          <div className="max-h-[140px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+          <label className="text-[11px] text-slate-400 font-medium px-1 uppercase tracking-wider">Etapa do Fluxo</label>
+          <div className="max-h-[120px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+            {stages?.map(s => (
+              <div key={s.id} className="flex items-center gap-2 px-1">
+                <Checkbox 
+                  id={`stage-${s.id}`} 
+                  checked={selectedStages.includes(s.id)}
+                  onCheckedChange={() => toggleStage(s.id)}
+                  className="rounded-md border-slate-200 dark:border-white/10"
+                />
+                <label htmlFor={`stage-${s.id}`} className="text-[13px] font-light text-slate-600 dark:text-slate-300 cursor-pointer truncate">
+                  {s.name}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <label className="text-[11px] text-slate-400 font-medium px-1 uppercase tracking-wider">Profissionais (Dentistas)</label>
+          <div className="max-h-[120px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
             {doctors?.map(d => (
               <div key={d.id} className="flex items-center gap-2 px-1">
                 <Checkbox 
@@ -328,9 +356,9 @@ function AdvancedFilterContent({ filters, setFilters }: {
           </div>
         </div>
 
-        <div className="space-y-3 pt-2">
-          <label className="text-[11px] text-slate-400 font-medium px-1">CADISTAS / DESIGNERS</label>
-          <div className="max-h-[140px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+        <div className="space-y-3">
+          <label className="text-[11px] text-slate-400 font-medium px-1 uppercase tracking-wider">Cadistas / Designers</label>
+          <div className="max-h-[120px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
             {cadistas?.map(c => (
               <div key={c.id} className="flex items-center gap-2 px-1">
                 <Checkbox 
@@ -354,5 +382,6 @@ function AdvancedFilterContent({ filters, setFilters }: {
     </div>
   );
 }
+
 
 
