@@ -39,6 +39,11 @@ function Index() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    (window as any).DENTALFLOW_TRASH_MODE = isTrashMode;
+    return () => { (window as any).DENTALFLOW_TRASH_MODE = false; };
+  }, [isTrashMode]);
+
+  useEffect(() => {
     try {
       if (sessionStorage.getItem("dentalflow:lab-enter") === "1") {
         sessionStorage.removeItem("dentalflow:lab-enter");
@@ -113,7 +118,18 @@ function Index() {
                   <span className="whitespace-nowrap">Lixeira de</span>
                   <span className="text-rose-500">Casos</span>
                   <ChevronRight className="h-6 w-6 md:h-8 md:w-8 xl:h-10 xl:w-10 text-rose-200 dark:text-rose-900 stroke-[1.2px] self-center shrink-0" />
-                  <span className="text-rose-400 text-2xl xl:text-4xl font-light">Descarte</span>
+                  {(caseYear != null || dateRange != null) && (
+                    <span className="text-rose-400 whitespace-nowrap">
+                      {dateRange ? (
+                        dateRange.start && dateRange.end && dateRange.start.split('-')[0] !== dateRange.end.split('-')[0]
+                          ? `${dateRange.start.split('-')[0]}-${dateRange.end.split('-')[0]}`
+                          : dateRange.start.split('-')[0]
+                      ) : caseYear}
+                    </span>
+                  )}
+                  {caseYear == null && dateRange == null && (
+                    <span className="text-rose-400 whitespace-nowrap">{new Date().getFullYear()}</span>
+                  )}
                 </motion.h1>
               )}
             </AnimatePresence>
@@ -141,14 +157,14 @@ function Index() {
       </header>
 
       <section className="flex-1 min-h-0 flex flex-col">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8 min-h-[58px]">
           <AnimatePresence mode="wait">
-            {!isTrashMode && (
+            {true && (
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="flex flex-wrap items-center gap-2 p-1 bg-slate-100/50 dark:bg-white/5 rounded-[2rem] w-fit"
+                className={`flex flex-wrap items-center gap-2 p-1 rounded-[2rem] w-fit transition-colors duration-500 ${isTrashMode ? "bg-rose-100/50 dark:bg-rose-900/20" : "bg-slate-100/50 dark:bg-white/5"}`}
               >
             {[
               { id: "all", label: "Todos" },
@@ -165,13 +181,15 @@ function Index() {
                   className={`relative flex items-center gap-2 px-6 py-2.5 rounded-full text-[13px] font-medium transition-colors duration-300 whitespace-nowrap z-10 ${
                     isActive
                       ? "text-white"
-                      : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                      : isTrashMode 
+                        ? "text-rose-300 hover:text-rose-500" 
+                        : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                   }`}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="active-filter"
-                      className="absolute inset-0 bg-[#54A8FB] shadow-lg shadow-blue-400/20 rounded-full -z-10"
+                      className={`absolute inset-0 shadow-lg rounded-full -z-10 transition-colors duration-500 ${isTrashMode ? "bg-rose-500 shadow-rose-400/20" : "bg-[#54A8FB] shadow-blue-400/20"}`}
                       transition={{
                         type: "spring",
                         stiffness: 400,
@@ -192,7 +210,7 @@ function Index() {
                           stiffness: 600, 
                           damping: 25,
                         }}
-                        className="inline-grid place-items-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-bold bg-white text-[#54A8FB] ml-2"
+                        className={`inline-grid place-items-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-bold bg-white ml-2 transition-colors duration-500 ${isTrashMode ? "text-rose-500" : "text-[#54A8FB]"}`}
                       >
                         {counts[t.id] ?? 0}
                       </motion.span>
@@ -202,21 +220,21 @@ function Index() {
               );
             })}
           </motion.div>
-          )}
+            )}
           </AnimatePresence>
 
           <div className="flex items-center gap-3">
             <AnimatePresence mode="wait">
-              {!isTrashMode && (
+              {true && (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="flex items-center gap-2 p-1 bg-slate-100/50 dark:bg-white/5 rounded-full border border-slate-200/50 dark:border-white/5 transition-all"
+                  className={`flex items-center gap-2 p-1 rounded-full border transition-all duration-500 ${isTrashMode ? "bg-rose-100/50 dark:bg-rose-900/20 border-rose-200/50" : "bg-slate-100/50 dark:bg-white/5 border-slate-200/50 dark:border-white/5"}`}
                 >
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="sm" className={`h-10 px-4 rounded-full gap-2 transition-all ${dateRange ? "bg-primary text-white shadow-lg shadow-blue-400/20" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"}`}>
+                  <Button variant="ghost" size="sm" className={`h-10 px-4 rounded-full gap-2 transition-all ${dateRange ? (isTrashMode ? "bg-rose-500 text-white shadow-lg shadow-rose-400/20" : "bg-primary text-white shadow-lg shadow-blue-400/20") : (isTrashMode ? "text-rose-400 hover:text-rose-600" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200")}`}>
                     <CalendarDays className="h-4 w-4 stroke-[1.5px]" />
                     <span className="text-[13px] font-medium">
                       {dateRange ? "Filtro Ativo" : "Hoje"}
@@ -260,7 +278,7 @@ function Index() {
 
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className={`h-10 w-10 rounded-full transition-all ${(advancedFilters.doctorIds.length > 0 || advancedFilters.cadistaIds.length > 0) ? "bg-primary text-white shadow-lg shadow-blue-400/20" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"}`}>
+                  <Button variant="ghost" size="icon" className={`h-10 w-10 rounded-full transition-all ${(advancedFilters.doctorIds.length > 0 || advancedFilters.cadistaIds.length > 0) ? (isTrashMode ? "bg-rose-500 text-white shadow-lg shadow-rose-400/20" : "bg-primary text-white shadow-lg shadow-blue-400/20") : (isTrashMode ? "text-rose-400 hover:text-rose-600" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200")}`}>
                     <Filter className="h-4 w-4 stroke-[1.5px]" />
                   </Button>
                 </PopoverTrigger>
@@ -320,8 +338,8 @@ function Index() {
           onFilterChange={setFilter} 
           onYearChange={setCaseYear} 
           onCountsUpdate={setCounts}
-          dateRange={isTrashMode ? undefined : dateRange}
-          advancedFilters={isTrashMode ? undefined : advancedFilters}
+          dateRange={dateRange}
+          advancedFilters={advancedFilters}
         />
       </section>
 
