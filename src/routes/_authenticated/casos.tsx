@@ -12,7 +12,7 @@ import { Plus, Search, ChevronRight } from "lucide-react";
 import { useNow } from "@/hooks/use-now";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-export const Route = createFileRoute("/_authenticated/lab")({
+export const Route = createFileRoute("/_authenticated/casos")({
   component: Index,
 });
 

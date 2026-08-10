@@ -20,13 +20,13 @@ import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
 import { Route as AuthenticatedMeuFinanceiroRouteImport } from './routes/_authenticated/meu-financeiro'
 import { Route as AuthenticatedMaquinasRouteImport } from './routes/_authenticated/maquinas'
-import { Route as AuthenticatedLabRouteImport } from './routes/_authenticated/lab'
 import { Route as AuthenticatedFluxoRouteImport } from './routes/_authenticated/fluxo'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
 import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated/equipe'
 import { Route as AuthenticatedDentesRouteImport } from './routes/_authenticated/dentes'
 import { Route as AuthenticatedConsumoAutomaticoRouteImport } from './routes/_authenticated/consumo-automatico'
+import { Route as AuthenticatedCasosRouteImport } from './routes/_authenticated/casos'
 import { Route as AuthenticatedCadistaRouteImport } from './routes/_authenticated/cadista'
 import { Route as AuthenticatedBurrsRouteImport } from './routes/_authenticated/burrs'
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
@@ -111,11 +111,6 @@ const AuthenticatedMaquinasRoute = AuthenticatedMaquinasRouteImport.update({
   path: '/maquinas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedLabRoute = AuthenticatedLabRouteImport.update({
-  id: '/lab',
-  path: '/lab',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedFluxoRoute = AuthenticatedFluxoRouteImport.update({
   id: '/fluxo',
   path: '/fluxo',
@@ -147,6 +142,11 @@ const AuthenticatedConsumoAutomaticoRoute =
     path: '/consumo-automatico',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCasosRoute = AuthenticatedCasosRouteImport.update({
+  id: '/casos',
+  path: '/casos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCadistaRoute = AuthenticatedCadistaRouteImport.update({
   id: '/cadista',
   path: '/cadista',
@@ -320,13 +320,13 @@ export interface FileRoutesByFullPath {
   '/agenda': typeof AuthenticatedAgendaRoute
   '/burrs': typeof AuthenticatedBurrsRoute
   '/cadista': typeof AuthenticatedCadistaRoute
+  '/casos': typeof AuthenticatedCasosRoute
   '/consumo-automatico': typeof AuthenticatedConsumoAutomaticoRoute
   '/dentes': typeof AuthenticatedDentesRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/estoque': typeof AuthenticatedEstoqueRouteWithChildren
   '/financeiro': typeof AuthenticatedFinanceiroRouteWithChildren
   '/fluxo': typeof AuthenticatedFluxoRoute
-  '/lab': typeof AuthenticatedLabRoute
   '/maquinas': typeof AuthenticatedMaquinasRoute
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
@@ -367,12 +367,12 @@ export interface FileRoutesByTo {
   '/agenda': typeof AuthenticatedAgendaRoute
   '/burrs': typeof AuthenticatedBurrsRoute
   '/cadista': typeof AuthenticatedCadistaRoute
+  '/casos': typeof AuthenticatedCasosRoute
   '/consumo-automatico': typeof AuthenticatedConsumoAutomaticoRoute
   '/dentes': typeof AuthenticatedDentesRoute
   '/equipe': typeof AuthenticatedEquipeRoute
   '/estoque': typeof AuthenticatedEstoqueRouteWithChildren
   '/fluxo': typeof AuthenticatedFluxoRoute
-  '/lab': typeof AuthenticatedLabRoute
   '/maquinas': typeof AuthenticatedMaquinasRoute
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/tarefas': typeof AuthenticatedTarefasRoute
@@ -415,13 +415,13 @@ export interface FileRoutesById {
   '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
   '/_authenticated/burrs': typeof AuthenticatedBurrsRoute
   '/_authenticated/cadista': typeof AuthenticatedCadistaRoute
+  '/_authenticated/casos': typeof AuthenticatedCasosRoute
   '/_authenticated/consumo-automatico': typeof AuthenticatedConsumoAutomaticoRoute
   '/_authenticated/dentes': typeof AuthenticatedDentesRoute
   '/_authenticated/equipe': typeof AuthenticatedEquipeRoute
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRouteWithChildren
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRouteWithChildren
   '/_authenticated/fluxo': typeof AuthenticatedFluxoRoute
-  '/_authenticated/lab': typeof AuthenticatedLabRoute
   '/_authenticated/maquinas': typeof AuthenticatedMaquinasRoute
   '/_authenticated/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
@@ -464,13 +464,13 @@ export interface FileRouteTypes {
     | '/agenda'
     | '/burrs'
     | '/cadista'
+    | '/casos'
     | '/consumo-automatico'
     | '/dentes'
     | '/equipe'
     | '/estoque'
     | '/financeiro'
     | '/fluxo'
-    | '/lab'
     | '/maquinas'
     | '/meu-financeiro'
     | '/tarefas'
@@ -511,12 +511,12 @@ export interface FileRouteTypes {
     | '/agenda'
     | '/burrs'
     | '/cadista'
+    | '/casos'
     | '/consumo-automatico'
     | '/dentes'
     | '/equipe'
     | '/estoque'
     | '/fluxo'
-    | '/lab'
     | '/maquinas'
     | '/meu-financeiro'
     | '/tarefas'
@@ -558,13 +558,13 @@ export interface FileRouteTypes {
     | '/_authenticated/agenda'
     | '/_authenticated/burrs'
     | '/_authenticated/cadista'
+    | '/_authenticated/casos'
     | '/_authenticated/consumo-automatico'
     | '/_authenticated/dentes'
     | '/_authenticated/equipe'
     | '/_authenticated/estoque'
     | '/_authenticated/financeiro'
     | '/_authenticated/fluxo'
-    | '/_authenticated/lab'
     | '/_authenticated/maquinas'
     | '/_authenticated/meu-financeiro'
     | '/_authenticated/tarefas'
@@ -687,13 +687,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMaquinasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/lab': {
-      id: '/_authenticated/lab'
-      path: '/lab'
-      fullPath: '/lab'
-      preLoaderRoute: typeof AuthenticatedLabRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/fluxo': {
       id: '/_authenticated/fluxo'
       path: '/fluxo'
@@ -734,6 +727,13 @@ declare module '@tanstack/react-router' {
       path: '/consumo-automatico'
       fullPath: '/consumo-automatico'
       preLoaderRoute: typeof AuthenticatedConsumoAutomaticoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/casos': {
+      id: '/_authenticated/casos'
+      path: '/casos'
+      fullPath: '/casos'
+      preLoaderRoute: typeof AuthenticatedCasosRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/cadista': {
@@ -998,13 +998,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
   AuthenticatedBurrsRoute: typeof AuthenticatedBurrsRoute
   AuthenticatedCadistaRoute: typeof AuthenticatedCadistaRoute
+  AuthenticatedCasosRoute: typeof AuthenticatedCasosRoute
   AuthenticatedConsumoAutomaticoRoute: typeof AuthenticatedConsumoAutomaticoRoute
   AuthenticatedDentesRoute: typeof AuthenticatedDentesRoute
   AuthenticatedEquipeRoute: typeof AuthenticatedEquipeRoute
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRouteWithChildren
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRouteWithChildren
   AuthenticatedFluxoRoute: typeof AuthenticatedFluxoRoute
-  AuthenticatedLabRoute: typeof AuthenticatedLabRoute
   AuthenticatedMaquinasRoute: typeof AuthenticatedMaquinasRoute
   AuthenticatedMeuFinanceiroRoute: typeof AuthenticatedMeuFinanceiroRoute
   AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
@@ -1024,13 +1024,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
   AuthenticatedBurrsRoute: AuthenticatedBurrsRoute,
   AuthenticatedCadistaRoute: AuthenticatedCadistaRoute,
+  AuthenticatedCasosRoute: AuthenticatedCasosRoute,
   AuthenticatedConsumoAutomaticoRoute: AuthenticatedConsumoAutomaticoRoute,
   AuthenticatedDentesRoute: AuthenticatedDentesRoute,
   AuthenticatedEquipeRoute: AuthenticatedEquipeRoute,
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRouteWithChildren,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRouteWithChildren,
   AuthenticatedFluxoRoute: AuthenticatedFluxoRoute,
-  AuthenticatedLabRoute: AuthenticatedLabRoute,
   AuthenticatedMaquinasRoute: AuthenticatedMaquinasRoute,
   AuthenticatedMeuFinanceiroRoute: AuthenticatedMeuFinanceiroRoute,
   AuthenticatedTarefasRoute: AuthenticatedTarefasRoute,
