@@ -69,7 +69,7 @@ export function GlobalSearch() {
           supabase
             .from("cases")
             .select("*, patient:patients(name), doctor:doctors(name), case_type:case_types(name)")
-            .or(`case_label.ilike.${qContains},patient_name_denorm.ilike.${qContains}`)
+            .or(`case_label.ilike.${qContains},patient_name_denorm.ilike.${qContains},doctor_name_denorm.ilike.${qContains}`)
             .limit(5)
         );
       } else {
