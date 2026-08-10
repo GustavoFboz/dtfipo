@@ -101,117 +101,120 @@ function Index() {
       </header>
 
       <section className="flex-1 min-h-0 flex flex-col">
-        <div className="relative flex items-center p-1 bg-slate-100/50 dark:bg-white/5 rounded-full w-fit mb-8 overflow-visible">
-          {[
-            { id: "all", label: "Todos" },
-            { id: "em_andamento", label: "Em andamento" },
-            { id: "finalizados", label: "Finalizados" },
-            { id: "arquivados", label: "Arquivados" },
-            { id: "cancelados", label: "Cancelados" },
-          ].map((t) => {
-            const isActive = filter === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setFilter(t.id)}
-                className={`relative flex items-center gap-2 px-6 py-2.5 rounded-full text-[13px] font-medium transition-colors duration-300 whitespace-nowrap z-10 ${
-                  isActive
-                    ? "text-white"
-                    : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                }`}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="active-filter"
-                    className="absolute inset-0 bg-[#54A8FB] shadow-lg shadow-blue-400/20 rounded-full -z-10"
-                    transition={{
-                      type: "spring",
-                      stiffness: 400,
-                      damping: 30,
-                    }}
-                  />
-                )}
-                {t.label}
-                <AnimatePresence mode="popLayout">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div className="relative flex items-center p-1 bg-slate-100/50 dark:bg-white/5 rounded-full w-fit overflow-visible">
+            {[
+              { id: "all", label: "Todos" },
+              { id: "em_andamento", label: "Em andamento" },
+              { id: "finalizados", label: "Finalizados" },
+              { id: "arquivados", label: "Arquivados" },
+              { id: "cancelados", label: "Cancelados" },
+            ].map((t) => {
+              const isActive = filter === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setFilter(t.id)}
+                  className={`relative flex items-center gap-2 px-6 py-2.5 rounded-full text-[13px] font-medium transition-colors duration-300 whitespace-nowrap z-10 ${
+                    isActive
+                      ? "text-white"
+                      : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  }`}
+                >
                   {isActive && (
-                    <motion.span
-                      key={`count-${t.id}`}
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      transition={{ 
-                        type: "spring", 
-                        stiffness: 600, 
-                        damping: 25,
+                    <motion.div
+                      layoutId="active-filter"
+                      className="absolute inset-0 bg-[#54A8FB] shadow-lg shadow-blue-400/20 rounded-full -z-10"
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 30,
                       }}
-                      className="inline-grid place-items-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-bold bg-white text-[#54A8FB] ml-2"
-                    >
-                      {counts[t.id] ?? 0}
-                    </motion.span>
+                    />
                   )}
-                </AnimatePresence>
-              </button>
-            );
-          })}
+                  {t.label}
+                  <AnimatePresence mode="popLayout">
+                    {isActive && (
+                      <motion.span
+                        key={`count-${t.id}`}
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        transition={{ 
+                          type: "spring", 
+                          stiffness: 600, 
+                          damping: 25,
+                        }}
+                        className="inline-grid place-items-center h-5 min-w-[20px] px-1.5 rounded-full text-[10px] font-bold bg-white text-[#54A8FB] ml-2"
+                      >
+                        {counts[t.id] ?? 0}
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className={`h-10 px-4 rounded-full border gap-2 transition-all ${dateRange ? "bg-primary/10 text-primary border-primary/20" : "bg-white dark:bg-white/5 text-slate-400 hover:text-slate-600 border-slate-100 dark:border-white/5"}`}>
+                  <Filter className="h-4 w-4 stroke-[1.5px]" />
+                  <span className="font-light">{dateRange ? "Filtro Ativo" : "Personalizado"}</span>
+                  {dateRange && (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDateRange(null);
+                        setLocalStartDate("");
+                        setLocalEndDate("");
+                      }}
+                      className="ml-1 hover:text-primary/70"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-[320px] p-6 rounded-[2rem] border-slate-100 dark:border-[#2B292B] shadow-[20px_20px_60px_#d1d9e6,-20px_-20px_60px_#ffffff] dark:shadow-none bg-[#F8F9FB] dark:bg-slate-900">
+                <div className="space-y-6">
+                  <div className="text-[10px] uppercase tracking-[0.12em] text-slate-400 font-medium">Filtro de Período</div>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[11px] text-slate-400 font-medium px-1">INÍCIO</label>
+                      <Input 
+                        type="date" 
+                        value={localStartDate}
+                        onChange={(e) => setLocalStartDate(e.target.value)}
+                        className="h-11 rounded-2xl bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 focus-visible:ring-1 focus-visible:ring-[#54A8FB] font-light" 
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <label className="text-[11px] text-slate-400 font-medium px-1">FIM</label>
+                      <Input 
+                        type="date" 
+                        value={localEndDate}
+                        onChange={(e) => setLocalEndDate(e.target.value)}
+                        className="h-11 rounded-2xl bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 focus-visible:ring-1 focus-visible:ring-[#54A8FB] font-light" 
+                      />
+                    </div>
+                  </div>
+
+                  <Button 
+                    onClick={() => setDateRange({ start: localStartDate, end: localEndDate })}
+                    className="w-full h-11 rounded-full bg-[#54A8FB] hover:bg-[#4a97e2] text-white shadow-lg shadow-blue-400/20 font-medium transition-all"
+                  >
+                    Aplicar Filtro
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
         
-        <div className="flex justify-end mb-4">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className={`h-10 px-4 rounded-full border gap-2 transition-all ${dateRange ? "bg-primary/10 text-primary border-primary/20" : "bg-white dark:bg-white/5 text-slate-400 hover:text-slate-600 border-slate-100 dark:border-white/5"}`}>
-                <Filter className="h-4 w-4 stroke-[1.5px]" />
-                <span className="font-light">{dateRange ? "Filtro Ativo" : "Personalizado"}</span>
-                {dateRange && (
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setDateRange(null);
-                      setLocalStartDate("");
-                      setLocalEndDate("");
-                    }}
-                    className="ml-1 hover:text-primary/70"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-[320px] p-6 rounded-[2rem] border-slate-100 dark:border-[#2B292B] shadow-[20px_20px_60px_#d1d9e6,-20px_-20px_60px_#ffffff] dark:shadow-none bg-[#F8F9FB] dark:bg-slate-900">
-              <div className="space-y-6">
-                <div className="text-[10px] uppercase tracking-[0.12em] text-slate-400 font-medium">Filtro de Período</div>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-[11px] text-slate-400 font-medium px-1">INÍCIO</label>
-                    <Input 
-                      type="date" 
-                      value={localStartDate}
-                      onChange={(e) => setLocalStartDate(e.target.value)}
-                      className="h-11 rounded-2xl bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 focus-visible:ring-1 focus-visible:ring-[#54A8FB] font-light" 
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <label className="text-[11px] text-slate-400 font-medium px-1">FIM</label>
-                    <Input 
-                      type="date" 
-                      value={localEndDate}
-                      onChange={(e) => setLocalEndDate(e.target.value)}
-                      className="h-11 rounded-2xl bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 focus-visible:ring-1 focus-visible:ring-[#54A8FB] font-light" 
-                    />
-                  </div>
-                </div>
-
-                <Button 
-                  onClick={() => setDateRange({ start: localStartDate, end: localEndDate })}
-                  className="w-full h-11 rounded-full bg-[#54A8FB] hover:bg-[#4a97e2] text-white shadow-lg shadow-blue-400/20 font-medium transition-all"
-                >
-                  Aplicar Filtro
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
         <CasesTable 
           hideToolbar 
           minimal 
