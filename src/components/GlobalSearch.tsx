@@ -32,7 +32,7 @@ const CATEGORIES: { id: SearchCategory; label: string; icon: any }[] = [
 export function GlobalSearch() {
   const { pathname } = useLocation();
   const [query, setQuery] = useState("");
-  const debouncedQuery = useDebounce(query, 300);
+  const debouncedQuery = useDebounce(query, 50);
   const [isOpen, setIsOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState<CaseRow | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -55,9 +55,10 @@ export function GlobalSearch() {
 
   const { data: results, isLoading } = useQuery<SearchResult>({
     queryKey: ["global-search", debouncedQuery, activeFilters],
-    enabled: debouncedQuery.length >= 2,
+    enabled: debouncedQuery.length >= 1,
     queryFn: async () => {
-      const q = `%${debouncedQuery}%`;
+      const q = `${debouncedQuery}%`;
+      const qContains = `%${debouncedQuery}%`;
       const promises: any[] = [];
 
       // Fix order to match destructured array [casesRes, attachmentsRes, patientsRes, doctorsRes, teamRes]
@@ -68,7 +69,7 @@ export function GlobalSearch() {
           supabase
             .from("cases")
             .select("*, patient:patients(name), doctor:doctors(name), case_type:case_types(name)")
-            .or(`case_label.ilike.${q}`)
+            .or(`case_label.ilike.${qContains}`)
             .limit(5)
         );
       } else {
@@ -81,7 +82,7 @@ export function GlobalSearch() {
           supabase
             .from("case_attachments")
             .select("id, file_name, case_id, kind")
-            .ilike("file_name", q)
+            .ilike("file_name", qContains)
             .limit(5)
         );
       } else {
@@ -94,7 +95,7 @@ export function GlobalSearch() {
           supabase
             .from("patients")
             .select("*")
-            .or(`name.ilike.${q},cpf.ilike.${q}`)
+            .or(`name.ilike.${qContains},cpf.ilike.${qContains}`)
             .limit(5)
         );
       } else {
@@ -107,7 +108,7 @@ export function GlobalSearch() {
           supabase
             .from("doctors")
             .select("*")
-            .ilike("name", q)
+            .ilike("name", qContains)
             .limit(5)
         );
       } else {
@@ -120,7 +121,7 @@ export function GlobalSearch() {
           supabase
             .from("profiles")
             .select("id, full_name, role")
-            .ilike("full_name", q)
+            .ilike("full_name", qContains)
             .limit(5)
         );
       } else {
@@ -141,7 +142,7 @@ export function GlobalSearch() {
   });
 
   const staticSettings = useMemo(() => {
-    if (!activeFilters.includes("settings") || query.length < 2) return [];
+    if (!activeFilters.includes("settings") || query.length < 1) return [];
     const settingsItems = [
       { id: "pref", label: "Preferências", icon: Settings, to: "/configuracoes" },
       { id: "fluxo", label: "Gestão de Fluxo", icon: SlidersHorizontal, to: "/fluxo" },
@@ -242,7 +243,7 @@ export function GlobalSearch() {
       </div>
 
       <AnimatePresence>
-        {isOpen && (debouncedQuery.length >= 2 || isLoading) && (
+        {isOpen && (debouncedQuery.length >= 1 || isLoading) && (
           <motion.div
             initial={{ opacity: 0, y: -10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
