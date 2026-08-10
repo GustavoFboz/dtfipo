@@ -338,8 +338,8 @@ function Index() {
           onFilterChange={setFilter} 
           onYearChange={setCaseYear} 
           onCountsUpdate={setCounts}
-          dateRange={isTrashMode ? undefined : dateRange}
-          advancedFilters={isTrashMode ? undefined : advancedFilters}
+          dateRange={dateRange}
+          advancedFilters={advancedFilters}
         />
       </section>
 
