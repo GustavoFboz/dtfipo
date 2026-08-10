@@ -58,7 +58,7 @@ export function GlobalSearch() {
     enabled: debouncedQuery.length >= 2,
     queryFn: async () => {
       const q = `%${debouncedQuery}%`;
-      const promises: Promise<any>[] = [];
+      const promises: any[] = [];
 
       if (activeFilters.includes("cases")) {
         promises.push(
@@ -67,7 +67,6 @@ export function GlobalSearch() {
             .select("*, patient:patients(name), doctor:doctors(name), case_type:case_types(name)")
             .or(`case_label.ilike.${q}`)
             .limit(5)
-            .then(r => r)
         );
         promises.push(
           supabase
@@ -75,7 +74,6 @@ export function GlobalSearch() {
             .select("id, file_name, case_id, kind")
             .ilike("file_name", q)
             .limit(5)
-            .then(r => r)
         );
       } else {
         promises.push(Promise.resolve({ data: [] }));
@@ -89,7 +87,6 @@ export function GlobalSearch() {
             .select("*")
             .or(`name.ilike.${q},cpf.ilike.${q}`)
             .limit(5)
-            .then(r => r)
         );
       } else {
         promises.push(Promise.resolve({ data: [] }));
@@ -102,7 +99,6 @@ export function GlobalSearch() {
             .select("*")
             .ilike("name", q)
             .limit(5)
-            .then(r => r)
         );
       } else {
         promises.push(Promise.resolve({ data: [] }));
@@ -115,13 +111,13 @@ export function GlobalSearch() {
             .select("id, full_name, role")
             .ilike("full_name", q)
             .limit(5)
-            .then(r => r)
         );
       } else {
         promises.push(Promise.resolve({ data: [] }));
       }
 
-      const [casesRes, attachmentsRes, patientsRes, doctorsRes, teamRes] = await Promise.all(promises);
+      const results = await Promise.all(promises);
+      const [casesRes, attachmentsRes, patientsRes, doctorsRes, teamRes] = results;
 
       return {
         cases: (casesRes?.data || []) as unknown as CaseRow[],
