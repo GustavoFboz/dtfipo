@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 
-export const Route = createFileRoute("/_authenticated/casos/trash/")({
+export const Route = createFileRoute("/_authenticated/trash")({
   ssr: false,
   component: TrashPage,
 });

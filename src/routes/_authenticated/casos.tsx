@@ -246,13 +246,7 @@ function Index() {
             </div>
 
             <Link 
-              to="/casos/trash" 
-              onClick={(e) => {
-                e.preventDefault();
-                navigate({ to: "/casos/trash" });
-                // Force a full re-render check by updating state or using window.location if necessary, 
-                // but usually navigate is enough if the route is correct.
-              }}
+              to="/trash" 
             >
               <Button 
                 variant="ghost" 
