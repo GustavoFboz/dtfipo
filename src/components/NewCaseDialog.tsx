@@ -1174,58 +1174,7 @@ export function NewCaseDialog({
               />
             </div>
 
-            {isCreate && (
-              <div className="mt-auto pt-4 grid grid-cols-2 gap-3">
-                {!isCadista ? (
-                  <Popover open={attachMenuOpen} onOpenChange={setAttachMenuOpen}>
-                    <PopoverAnchor asChild>
-                      <div>
-                        <AttachButton
-                          icon={<AttachFilesIcon className="h-5 w-5" />}
-                          label="Anexar arquivos"
-                          count={pendingScanFiles.length}
-                          active={pendingScanFiles.length > 0}
-                          onClick={() => setAttachMenuOpen((o) => !o)}
-                        />
-                      </div>
-                    </PopoverAnchor>
-                    <PopoverContent align="start" className="w-64 p-1">
-                      <div className="px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                        Tipo do arquivo
-                      </div>
-                      {([
-                        { kind: "scans", label: "Escaneamentos", Icon: ScanLine, accept: ".stl,.ply,.dcm,.obj,.3mf,.zip" },
-                        { kind: "model", label: "Modelos", Icon: Box, accept: ".stl,.obj,.3mf,.ply,.dcm,.zip" },
-                        { kind: "fabrication", label: "Elementos", Icon: Wrench, accept: ".stl,.obj,.zip,.3mf,.ply,.dcm" },
-                        { kind: "exocad_html", label: "Exocad (HTML)", Icon: Monitor, accept: ".html,.htm" },
-                      ] as const).map(({ kind, label, Icon, accept }) => (
-                        <button
-                          key={kind}
-                          type="button"
-                          onClick={() => {
-                            pendingKindRef.current = kind;
-                            setPendingAccept(accept);
-                            setAttachMenuOpen(false);
-                            setTimeout(() => pendingScanFileInput.current?.click(), 0);
-                          }}
-                          className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm text-left hover:bg-accent"
-                        >
-                          <Icon className="h-4 w-4 text-primary" />
-                          <span>{label}</span>
-                        </button>
-                      ))}
-                    </PopoverContent>
-                  </Popover>
-                ) : <div />}
-                <AttachButton
-                  icon={<AttachImagesIcon className="h-5 w-5" />}
-                  label="Anexar imagens"
-                  count={pendingGalleryFiles.length}
-                  active={pendingGalleryFiles.length > 0}
-                  onClick={() => pendingGalleryInput.current?.click()}
-                />
-              </div>
-            )}
+            {/* Seção de anexos removida em modo de edição a pedido do usuário */}
           </div>
 
           <aside
