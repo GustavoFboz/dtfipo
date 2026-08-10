@@ -8,7 +8,8 @@ import { DashboardStats } from "@/components/DashboardStats";
 import { MobileDashboard } from "@/components/MobileDashboard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Search, ChevronRight } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus, Search, ChevronRight, Filter } from "lucide-react";
 import { useNow } from "@/hooks/use-now";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -125,6 +126,38 @@ function Index() {
               </button>
             );
           })}
+        </div>
+        
+        <div className="flex justify-end mb-4">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-10 px-4 rounded-full bg-white dark:bg-white/5 text-slate-400 hover:text-slate-600 border border-slate-100 dark:border-white/5 gap-2">
+                <Filter className="h-4 w-4 stroke-[1.5px]" />
+                <span className="font-light">Personalizado</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-[320px] p-6 rounded-[2rem] border-slate-100 dark:border-[#2B292B] shadow-[20px_20px_60px_#d1d9e6,-20px_-20px_60px_#ffffff] dark:shadow-none bg-[#F8F9FB] dark:bg-slate-900">
+              <div className="space-y-6">
+                <div className="text-[10px] uppercase tracking-[0.12em] text-slate-400 font-medium">Filtro de Período</div>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-[11px] text-slate-400 font-medium px-1">INÍCIO</label>
+                    <Input type="date" className="h-11 rounded-2xl bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 focus-visible:ring-1 focus-visible:ring-[#54A8FB] font-light" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-[11px] text-slate-400 font-medium px-1">FIM</label>
+                    <Input type="date" className="h-11 rounded-2xl bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 focus-visible:ring-1 focus-visible:ring-[#54A8FB] font-light" />
+                  </div>
+                </div>
+
+                <Button className="w-full h-11 rounded-full bg-[#54A8FB] hover:bg-[#4a97e2] text-white shadow-lg shadow-blue-400/20 font-medium transition-all">
+                  Aplicar Filtro
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
         <CasesTable hideToolbar minimal hideSearch activeFilter={filter} onFilterChange={setFilter} onYearChange={setCaseYear} onCountsUpdate={setCounts} />
       </section>
