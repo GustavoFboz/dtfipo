@@ -113,7 +113,7 @@ export async function sendInternalNotification(targetUserId: string | null, titl
 
 
 
-export async function fetchCases(status: "active" | "finished" = "active"): Promise<CaseRow[]> {
+export async function fetchCases(scope: "active" | "finished" | "all" = "active"): Promise<CaseRow[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
@@ -121,8 +121,14 @@ export async function fetchCases(status: "active" | "finished" = "active"): Prom
   
   let query = supabase
     .from("cases")
-    .select(CASE_SELECT)
-    .eq("status", status);
+    .select(CASE_SELECT);
+
+  if (scope === "active") {
+    query = query.not("status", "in", '("finalizado","arquivado","cancelado")');
+  } else if (scope === "finished") {
+    query = query.eq("status", "finalizado");
+  }
+  // "all" doesn't add a status filter
 
   // If user is CADISTA, filter by their cadista_id
   if (profile?.role === "CADISTA") {

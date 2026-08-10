@@ -79,6 +79,7 @@ function compareCases(a: CaseRow, b: CaseRow) {
 
 function caseBelongsToList(queryKey: readonly unknown[], row: CaseRow) {
   const statusFilter = queryKey[1];
+  if (statusFilter === "all") return true;
   if (statusFilter === "active" || statusFilter === "finished") return row.status === statusFilter;
   return true;
 }

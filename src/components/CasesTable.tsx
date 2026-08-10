@@ -129,6 +129,7 @@ export function CasesTable({
   onFilterChange,
   onYearChange,
   onCountsUpdate,
+  dateRange,
 }: { 
   externalSearch?: string; 
   hideToolbar?: boolean; 
@@ -138,6 +139,7 @@ export function CasesTable({
   onFilterChange?: (filter: string) => void;
   onYearChange?: (year: string | null) => void;
   onCountsUpdate?: (counts: Record<string, number>) => void;
+  dateRange?: { start: string; end: string } | null;
 } = {}) {
   const qc = useQueryClient();
   const [internalSearch, setSearch] = useState("");
@@ -156,8 +158,8 @@ export function CasesTable({
   const isCadista = profile?.role === "CADISTA";
 
   const cases = useQuery({
-    queryKey: ["cases", "active"],
-    queryFn: () => fetchCases("active"),
+    queryKey: ["cases", "all"],
+    queryFn: () => fetchCases("all"),
     // Realtime (useCasesRealtime) mantém a lista atualizada — sem polling.
     staleTime: 60_000,
   });
@@ -232,16 +234,13 @@ export function CasesTable({
     const f = list.filter((c) => {
       // Apply the new status-based tag filter
       if (activeFilter === "em_andamento") {
-        if (c.finished || c.status === "finalizado") return false;
+        if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
       } else if (activeFilter === "finalizados") {
         if (!c.finished && c.status !== "finalizado") return false;
       } else if (activeFilter === "arquivados") {
-        // Assuming archived is a property or handled elsewhere, for now just filter out if requested
-        // if (!c.archived) return false;
-        return false; // Placeholder
+        if (c.status !== "arquivado") return false;
       } else if (activeFilter === "cancelados") {
-        // if (!c.cancelled) return false;
-        return false; // Placeholder
+        if (c.status !== "cancelado") return false;
       }
 
       if (search) {
@@ -259,6 +258,19 @@ export function CasesTable({
       }
       if (statusFilter === "late" && !isLate(c.delivery_date)) return false;
       if (statusFilter === "ontime" && isLate(c.delivery_date)) return false;
+      
+      if (dateRange?.start || dateRange?.end) {
+        const caseDate = new Date((c.entry_date || c.created_at || "").split('T')[0] + "T00:00:00");
+        if (dateRange.start) {
+          const startDate = new Date(dateRange.start + "T00:00:00");
+          if (caseDate < startDate) return false;
+        }
+        if (dateRange.end) {
+          const endDate = new Date(dateRange.end + "T00:00:00");
+          if (caseDate > endDate) return false;
+        }
+      }
+      
       return true;
     });
     const dir = sort.dir === "asc" ? 1 : -1;
@@ -292,10 +304,10 @@ export function CasesTable({
     const list = cases.data;
     const counts = {
       all: list.length,
-      em_andamento: list.filter(c => !c.finished && c.status !== "finalizado").length,
+      em_andamento: list.filter(c => !c.finished && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado").length,
       finalizados: list.filter(c => c.finished || c.status === "finalizado").length,
-      arquivados: 0, // Placeholder
-      cancelados: 0, // Placeholder
+      arquivados: list.filter(c => c.status === "arquivado").length,
+      cancelados: list.filter(c => c.status === "cancelado").length,
     };
     onCountsUpdate(counts);
   }, [cases.data, onCountsUpdate]);
