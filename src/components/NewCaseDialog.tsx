@@ -826,8 +826,6 @@ export function NewCaseDialog({
 
         <div className="relative grid grid-cols-1 lg:grid-cols-12 gap-0 flex-1 min-h-0 overflow-hidden">
           <div
-            {...(isView ? { inert: "" as unknown as boolean } : {})}
-            aria-disabled={isView || undefined}
             className="lg:col-span-7 px-5 py-4 lg:px-6 lg:py-5 min-h-0 flex flex-col overflow-y-auto"
             onKeyDown={(e) => {
               if (!isCreate) return;
@@ -1151,8 +1149,6 @@ export function NewCaseDialog({
           </div>
 
           <aside
-            {...(isView ? { inert: "" as unknown as boolean } : {})}
-            aria-disabled={isView || undefined}
             className="lg:col-span-5 p-6 flex flex-col border-l border-border/60 min-h-0 h-full overflow-y-auto"
           >
             <div className="flex flex-col flex-1 min-h-0 gap-5">
