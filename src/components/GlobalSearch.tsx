@@ -67,6 +67,7 @@ export function GlobalSearch() {
             .select("*, patient:patients(name), doctor:doctors(name), case_type:case_types(name)")
             .or(`case_label.ilike.${q}`)
             .limit(5)
+            .then(r => r)
         );
         promises.push(
           supabase
@@ -74,6 +75,7 @@ export function GlobalSearch() {
             .select("id, file_name, case_id, kind")
             .ilike("file_name", q)
             .limit(5)
+            .then(r => r)
         );
       } else {
         promises.push(Promise.resolve({ data: [] }));
@@ -87,6 +89,7 @@ export function GlobalSearch() {
             .select("*")
             .or(`name.ilike.${q},cpf.ilike.${q}`)
             .limit(5)
+            .then(r => r)
         );
       } else {
         promises.push(Promise.resolve({ data: [] }));
@@ -99,6 +102,7 @@ export function GlobalSearch() {
             .select("*")
             .ilike("name", q)
             .limit(5)
+            .then(r => r)
         );
       } else {
         promises.push(Promise.resolve({ data: [] }));
@@ -111,6 +115,7 @@ export function GlobalSearch() {
             .select("id, full_name, role")
             .ilike("full_name", q)
             .limit(5)
+            .then(r => r)
         );
       } else {
         promises.push(Promise.resolve({ data: [] }));
