@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger, PopoverArrow } from "@/components/ui/popover";
 import type { CaseRow } from "@/lib/types";
 
 type LiteProfile = { id: string; full_name: string | null; avatar_url: string | null; role: string | null };
