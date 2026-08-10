@@ -84,7 +84,7 @@ function CadistaProfilePage() {
     <div className="min-h-full font-light max-w-[1200px] mx-auto w-full px-6 md:px-16 pb-32">
       <div className="pt-8">
         <Link
-          to="/lab"
+          to="/casos"
           className="inline-flex items-center gap-1.5 text-[12px] text-slate-500 hover:text-slate-900 transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> voltar

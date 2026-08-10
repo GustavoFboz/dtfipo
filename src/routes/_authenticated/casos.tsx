@@ -94,26 +94,36 @@ function Index() {
       </header>
 
       <section className="flex-1 min-h-0 flex flex-col">
-        <div className="flex flex-wrap items-center gap-2 mb-8">
+        <div className="flex flex-wrap items-center gap-4 mb-8">
           {[
             { id: "all", label: "Todos" },
             { id: "em_andamento", label: "Em andamento" },
             { id: "finalizados", label: "Finalizados" },
             { id: "arquivados", label: "Arquivados" },
             { id: "cancelados", label: "Cancelados" },
-          ].map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setFilter(t.id)}
-              className={`px-6 py-2 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${
-                filter === t.id
-                  ? "bg-[#54A8FB] text-white shadow-md shadow-blue-400/20"
-                  : "bg-white dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 border border-slate-100 dark:border-white/5"
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
+          ].map((t) => {
+            const isActive = filter === t.id;
+            // Get count for this filter from CasesTable or local state if we had it.
+            // For now we'll just implement the visual requested.
+            return (
+              <button
+                key={t.id}
+                onClick={() => setFilter(t.id)}
+                className={`flex items-center gap-2.5 px-6 py-2.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${
+                  isActive
+                    ? "bg-[#54A8FB] text-white shadow-lg shadow-blue-400/20"
+                    : "bg-white dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 border border-slate-100 dark:border-white/5"
+                }`}
+              >
+                {t.label}
+                <span className={`inline-grid place-items-center h-5 min-w-[20px] px-1 rounded-full text-[10px] font-bold ${
+                  isActive ? "bg-white text-black" : "bg-[#54A8FB] text-white"
+                }`}>
+                  0
+                </span>
+              </button>
+            );
+          })}
         </div>
         <CasesTable hideToolbar minimal hideSearch activeFilter={filter} onFilterChange={setFilter} onYearChange={setCaseYear} />
       </section>
