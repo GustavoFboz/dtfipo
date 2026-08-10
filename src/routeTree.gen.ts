@@ -17,6 +17,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as AuthenticatedTrashRouteImport } from './routes/_authenticated/trash'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
 import { Route as AuthenticatedPatientsRouteImport } from './routes/_authenticated/patients'
 import { Route as AuthenticatedMeuFinanceiroRouteImport } from './routes/_authenticated/meu-financeiro'
@@ -53,7 +54,6 @@ import { Route as AuthenticatedCadistasCadistaIdRouteImport } from './routes/_au
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin.usuarios'
 import { Route as AuthenticatedAdminRestauracaoRouteImport } from './routes/_authenticated/admin.restauracao'
 import { Route as AuthenticatedAdminBackupRouteImport } from './routes/_authenticated/admin.backup'
-import { Route as AuthenticatedCasosTrashIndexRouteImport } from './routes/_authenticated/casos/trash/index'
 import { Route as ApiPublicHooksCleanupCaseFilesRouteImport } from './routes/api/public/hooks/cleanup-case-files'
 
 const LpRoute = LpRouteImport.update({
@@ -94,6 +94,11 @@ const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   id: '/api/transcribe',
   path: '/api/transcribe',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedTrashRoute = AuthenticatedTrashRouteImport.update({
+  id: '/trash',
+  path: '/trash',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedTarefasRoute = AuthenticatedTarefasRouteImport.update({
   id: '/tarefas',
@@ -298,12 +303,6 @@ const AuthenticatedAdminBackupRoute =
     path: '/admin/backup',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedCasosTrashIndexRoute =
-  AuthenticatedCasosTrashIndexRouteImport.update({
-    id: '/trash/',
-    path: '/trash/',
-    getParentRoute: () => AuthenticatedCasosRoute,
-  } as any)
 const ApiPublicHooksCleanupCaseFilesRoute =
   ApiPublicHooksCleanupCaseFilesRouteImport.update({
     id: '/api/public/hooks/cleanup-case-files',
@@ -319,7 +318,7 @@ export interface FileRoutesByFullPath {
   '/agenda': typeof AuthenticatedAgendaRoute
   '/burrs': typeof AuthenticatedBurrsRoute
   '/cadista': typeof AuthenticatedCadistaRoute
-  '/casos': typeof AuthenticatedCasosRouteWithChildren
+  '/casos': typeof AuthenticatedCasosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRouteWithChildren
   '/consumo-automatico': typeof AuthenticatedConsumoAutomaticoRoute
   '/dentes': typeof AuthenticatedDentesRoute
@@ -331,6 +330,7 @@ export interface FileRoutesByFullPath {
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/patients': typeof AuthenticatedPatientsRouteWithChildren
   '/tarefas': typeof AuthenticatedTarefasRoute
+  '/trash': typeof AuthenticatedTrashRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/reset': typeof AuthResetRoute
@@ -356,7 +356,6 @@ export interface FileRoutesByFullPath {
   '/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/patients/$id': typeof AuthenticatedPatientsIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
-  '/casos/trash/': typeof AuthenticatedCasosTrashIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -366,7 +365,7 @@ export interface FileRoutesByTo {
   '/agenda': typeof AuthenticatedAgendaRoute
   '/burrs': typeof AuthenticatedBurrsRoute
   '/cadista': typeof AuthenticatedCadistaRoute
-  '/casos': typeof AuthenticatedCasosRouteWithChildren
+  '/casos': typeof AuthenticatedCasosRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRouteWithChildren
   '/consumo-automatico': typeof AuthenticatedConsumoAutomaticoRoute
   '/dentes': typeof AuthenticatedDentesRoute
@@ -378,6 +377,7 @@ export interface FileRoutesByTo {
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/patients': typeof AuthenticatedPatientsRouteWithChildren
   '/tarefas': typeof AuthenticatedTarefasRoute
+  '/trash': typeof AuthenticatedTrashRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/reset': typeof AuthResetRoute
@@ -403,7 +403,6 @@ export interface FileRoutesByTo {
   '/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/patients/$id': typeof AuthenticatedPatientsIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
-  '/casos/trash': typeof AuthenticatedCasosTrashIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -415,7 +414,7 @@ export interface FileRoutesById {
   '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
   '/_authenticated/burrs': typeof AuthenticatedBurrsRoute
   '/_authenticated/cadista': typeof AuthenticatedCadistaRoute
-  '/_authenticated/casos': typeof AuthenticatedCasosRouteWithChildren
+  '/_authenticated/casos': typeof AuthenticatedCasosRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRouteWithChildren
   '/_authenticated/consumo-automatico': typeof AuthenticatedConsumoAutomaticoRoute
   '/_authenticated/dentes': typeof AuthenticatedDentesRoute
@@ -427,6 +426,7 @@ export interface FileRoutesById {
   '/_authenticated/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/_authenticated/patients': typeof AuthenticatedPatientsRouteWithChildren
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
+  '/_authenticated/trash': typeof AuthenticatedTrashRoute
   '/api/transcribe': typeof ApiTranscribeRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/reset': typeof AuthResetRoute
@@ -452,7 +452,6 @@ export interface FileRoutesById {
   '/_authenticated/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/_authenticated/patients/$id': typeof AuthenticatedPatientsIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
-  '/_authenticated/casos/trash/': typeof AuthenticatedCasosTrashIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -476,6 +475,7 @@ export interface FileRouteTypes {
     | '/meu-financeiro'
     | '/patients'
     | '/tarefas'
+    | '/trash'
     | '/api/transcribe'
     | '/auth/forgot'
     | '/auth/reset'
@@ -501,7 +501,6 @@ export interface FileRouteTypes {
     | '/financeiro/relatorios'
     | '/patients/$id'
     | '/api/public/hooks/cleanup-case-files'
-    | '/casos/trash/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -523,6 +522,7 @@ export interface FileRouteTypes {
     | '/meu-financeiro'
     | '/patients'
     | '/tarefas'
+    | '/trash'
     | '/api/transcribe'
     | '/auth/forgot'
     | '/auth/reset'
@@ -548,7 +548,6 @@ export interface FileRouteTypes {
     | '/financeiro/relatorios'
     | '/patients/$id'
     | '/api/public/hooks/cleanup-case-files'
-    | '/casos/trash'
   id:
     | '__root__'
     | '/'
@@ -571,6 +570,7 @@ export interface FileRouteTypes {
     | '/_authenticated/meu-financeiro'
     | '/_authenticated/patients'
     | '/_authenticated/tarefas'
+    | '/_authenticated/trash'
     | '/api/transcribe'
     | '/auth/forgot'
     | '/auth/reset'
@@ -596,7 +596,6 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro/relatorios'
     | '/_authenticated/patients/$id'
     | '/api/public/hooks/cleanup-case-files'
-    | '/_authenticated/casos/trash/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -666,6 +665,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/transcribe'
       preLoaderRoute: typeof ApiTranscribeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/trash': {
+      id: '/_authenticated/trash'
+      path: '/trash'
+      fullPath: '/trash'
+      preLoaderRoute: typeof AuthenticatedTrashRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/tarefas': {
       id: '/_authenticated/tarefas'
@@ -919,13 +925,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminBackupRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/casos/trash/': {
-      id: '/_authenticated/casos/trash/'
-      path: '/trash'
-      fullPath: '/casos/trash/'
-      preLoaderRoute: typeof AuthenticatedCasosTrashIndexRouteImport
-      parentRoute: typeof AuthenticatedCasosRoute
-    }
     '/api/public/hooks/cleanup-case-files': {
       id: '/api/public/hooks/cleanup-case-files'
       path: '/api/public/hooks/cleanup-case-files'
@@ -935,17 +934,6 @@ declare module '@tanstack/react-router' {
     }
   }
 }
-
-interface AuthenticatedCasosRouteChildren {
-  AuthenticatedCasosTrashIndexRoute: typeof AuthenticatedCasosTrashIndexRoute
-}
-
-const AuthenticatedCasosRouteChildren: AuthenticatedCasosRouteChildren = {
-  AuthenticatedCasosTrashIndexRoute: AuthenticatedCasosTrashIndexRoute,
-}
-
-const AuthenticatedCasosRouteWithChildren =
-  AuthenticatedCasosRoute._addFileChildren(AuthenticatedCasosRouteChildren)
 
 interface AuthenticatedConfiguracoesRouteChildren {
   AuthenticatedConfiguracoesImplantesRoute: typeof AuthenticatedConfiguracoesImplantesRoute
@@ -1038,7 +1026,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
   AuthenticatedBurrsRoute: typeof AuthenticatedBurrsRoute
   AuthenticatedCadistaRoute: typeof AuthenticatedCadistaRoute
-  AuthenticatedCasosRoute: typeof AuthenticatedCasosRouteWithChildren
+  AuthenticatedCasosRoute: typeof AuthenticatedCasosRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRouteWithChildren
   AuthenticatedConsumoAutomaticoRoute: typeof AuthenticatedConsumoAutomaticoRoute
   AuthenticatedDentesRoute: typeof AuthenticatedDentesRoute
@@ -1050,6 +1038,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMeuFinanceiroRoute: typeof AuthenticatedMeuFinanceiroRoute
   AuthenticatedPatientsRoute: typeof AuthenticatedPatientsRouteWithChildren
   AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
+  AuthenticatedTrashRoute: typeof AuthenticatedTrashRoute
   AuthenticatedAdminBackupRoute: typeof AuthenticatedAdminBackupRoute
   AuthenticatedAdminRestauracaoRoute: typeof AuthenticatedAdminRestauracaoRoute
   AuthenticatedAdminUsuariosRoute: typeof AuthenticatedAdminUsuariosRoute
@@ -1061,7 +1050,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
   AuthenticatedBurrsRoute: AuthenticatedBurrsRoute,
   AuthenticatedCadistaRoute: AuthenticatedCadistaRoute,
-  AuthenticatedCasosRoute: AuthenticatedCasosRouteWithChildren,
+  AuthenticatedCasosRoute: AuthenticatedCasosRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRouteWithChildren,
   AuthenticatedConsumoAutomaticoRoute: AuthenticatedConsumoAutomaticoRoute,
   AuthenticatedDentesRoute: AuthenticatedDentesRoute,
@@ -1073,6 +1062,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMeuFinanceiroRoute: AuthenticatedMeuFinanceiroRoute,
   AuthenticatedPatientsRoute: AuthenticatedPatientsRouteWithChildren,
   AuthenticatedTarefasRoute: AuthenticatedTarefasRoute,
+  AuthenticatedTrashRoute: AuthenticatedTrashRoute,
   AuthenticatedAdminBackupRoute: AuthenticatedAdminBackupRoute,
   AuthenticatedAdminRestauracaoRoute: AuthenticatedAdminRestauracaoRoute,
   AuthenticatedAdminUsuariosRoute: AuthenticatedAdminUsuariosRoute,
@@ -1107,3 +1097,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
