@@ -828,7 +828,7 @@ export function NewCaseDialog({
           <div
             {...(isView ? { inert: "" as unknown as boolean } : {})}
             aria-disabled={isView || undefined}
-            className={`lg:col-span-7 px-5 py-4 lg:px-6 lg:py-5 min-h-0 flex flex-col overflow-y-auto ${isView ? "pointer-events-none select-none opacity-95" : ""}`}
+            className="lg:col-span-7 px-5 py-4 lg:px-6 lg:py-5 min-h-0 flex flex-col overflow-y-auto"
             onKeyDown={(e) => {
               if (!isCreate) return;
               if (e.key !== "Enter" || e.shiftKey) return;
