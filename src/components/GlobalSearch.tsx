@@ -57,7 +57,6 @@ export function GlobalSearch() {
     queryKey: ["global-search", debouncedQuery, activeFilters],
     enabled: debouncedQuery.length >= 1,
     queryFn: async () => {
-      const q = `${debouncedQuery}%`;
       const qContains = `%${debouncedQuery}%`;
       const promises: any[] = [];
 
@@ -129,7 +128,12 @@ export function GlobalSearch() {
       }
 
       const rawResults = await Promise.all(promises);
-      const [casesRes, attachmentsRes, patientsRes, doctorsRes, teamRes] = rawResults;
+      let resIdx = 0;
+      const casesRes = activeFilters.includes("cases") ? rawResults[resIdx++] : { data: [] };
+      const attachmentsRes = (activeFilters.includes("cases") || activeFilters.includes("patients")) ? rawResults[resIdx++] : { data: [] };
+      const patientsRes = activeFilters.includes("patients") ? rawResults[resIdx++] : { data: [] };
+      const doctorsRes = activeFilters.includes("doctors") ? rawResults[resIdx++] : { data: [] };
+      const teamRes = activeFilters.includes("team") ? rawResults[resIdx++] : { data: [] };
 
       return {
         cases: (casesRes?.data || []) as unknown as CaseRow[],
