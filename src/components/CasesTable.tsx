@@ -136,6 +136,7 @@ export function CasesTable({
   activeFilter?: string;
   onFilterChange?: (filter: string) => void;
   onYearChange?: (year: number | null) => void;
+  onCountsUpdate?: (counts: Record<string, number>) => void;
 } = {}) {
   const qc = useQueryClient();
   const [internalSearch, setSearch] = useState("");
