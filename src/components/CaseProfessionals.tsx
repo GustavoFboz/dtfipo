@@ -139,27 +139,30 @@ export function CaseProfessionals({ caseRow }: { caseRow: CaseRow }) {
 
       <PopoverContent
         align="start"
-        sideOffset={8}
-        className="w-[280px] rounded-[2.5rem] border-0 bg-[#F8F9FB] dark:bg-slate-900 p-8 shadow-[20px_20px_60px_#d1d9e6,-20px_-20px_60px_#ffffff] dark:shadow-[20px_20px_60px_#0a0f1a,-5px_-5px_30px_#1e293b]"
+        sideOffset={12}
+        className="w-[300px] rounded-[2.5rem] border-0 bg-[#F8F9FB] dark:bg-slate-900 p-7 shadow-[25px_25px_50px_#d1d9e6,-25px_-25px_50px_#ffffff] dark:shadow-[25px_25px_50px_#0a0f1a,-10px_-10px_40px_#1e293b]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-6 text-[12px] font-bold uppercase tracking-[0.2em] text-[#9EA4AE] dark:text-slate-500">
+        <PopoverArrow className="fill-[#F8F9FB] dark:fill-slate-900" width={20} height={10} />
+        
+        <div className="mb-6 px-4 text-[12px] font-bold uppercase tracking-[0.25em] text-[#9EA4AE] dark:text-slate-500">
           Profissionais
         </div>
-        <div className="space-y-4">
+
+        <div className="space-y-5">
           {people.map((p) => (
             <div
               key={p.key}
-              className="flex items-center gap-4 rounded-[2rem] bg-[#F8F9FB] dark:bg-slate-900 px-5 py-4 shadow-[4px_4px_10px_#d1d9e6,-4px_-4px_10px_#ffffff] dark:shadow-[4px_4px_10px_#0a0f1a,-2px_-2px_8px_#1e293b] transition-all hover:shadow-[inset_2px_2px_5px_#d1d9e6,inset_-2px_-2px_5px_#ffffff] dark:hover:shadow-[inset_2px_2px_5px_#0a0f1a,inset_-1px_-1px_4px_#1e293b]"
+              className="flex items-center gap-4 rounded-[2.2rem] bg-[#F8F9FB] dark:bg-slate-900 px-6 py-5 shadow-[6px_6px_15px_#d1d9e6,-6px_-6px_15px_#ffffff] dark:shadow-[6px_6px_15px_#0a0f1a,-3px_-3px_10px_#1e293b] transition-all hover:translate-y-[-2px] hover:shadow-[10px_10px_20px_#d1d9e6,-10px_-10px_20px_#ffffff] dark:hover:shadow-[10px_10px_20px_#0a0f1a,-5px_-5px_15px_#1e293b]"
             >
-              <div className="shadow-[2px_2px_5px_#d1d9e6,-2px_-2px_5px_#ffffff] dark:shadow-none rounded-full">
-                <Avatar p={p} size={42} />
+              <div className="shrink-0 shadow-[3px_3px_8px_#d1d9e6,-3px_-3px_8px_#ffffff] dark:shadow-none rounded-full p-[2px] bg-[#F8F9FB] dark:bg-slate-900">
+                <Avatar p={p} size={48} />
               </div>
               <div className="min-w-0">
-                <div className="truncate text-[15px] font-medium text-slate-700 dark:text-slate-200">
+                <div className="truncate text-[16px] font-semibold text-[#334155] dark:text-slate-200">
                   {p.name}
                 </div>
-                <div className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#AAB2C0] dark:text-slate-500">
+                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#AAB2C0] dark:text-slate-500">
                   {p.role}
                 </div>
               </div>
