@@ -259,12 +259,14 @@ export function GlobalSearch() {
                 </div>
               ) : !hasResults ? (
                 <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
-                  <div className="h-12 w-12 rounded-full bg-slate-50 dark:bg-white/5 grid place-items-center text-slate-300">
-                    <SearchX className="h-6 w-6" />
+                  <div className="h-16 w-16 rounded-full bg-slate-50 dark:bg-white/5 grid place-items-center text-slate-300">
+                    <SearchX className="h-8 w-8" />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">Nenhum resultado</p>
-                    <p className="text-xs text-slate-400 font-light">Não encontramos nada para "{debouncedQuery}"</p>
+                    <p className="text-base font-medium text-slate-900 dark:text-slate-100">Nenhum resultado</p>
+                    <p className="text-sm text-slate-400 font-light max-w-[200px] mx-auto">
+                      Não encontramos nada para <span className="text-primary font-medium italic">"{debouncedQuery}"</span>
+                    </p>
                   </div>
                 </div>
               ) : (
