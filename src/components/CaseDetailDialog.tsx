@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { Calendar, Clock, X, Download, Printer, ChevronDown, ChevronRight, AlertTriangle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
