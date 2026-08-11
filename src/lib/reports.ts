@@ -226,7 +226,7 @@ export async function generateCasesReport(
         c.doctor?.name || "-",
         entryDateStr,
         deliveryDateStr,
-        c.current_stage?.name || "Pendente",
+        c.current_stage?.name || (c.finished || c.status === 'finalizado' ? "Finalizado" : "Pendente"),
         c.status ? String(c.status).toUpperCase() : "N/A"
       ];
     });
