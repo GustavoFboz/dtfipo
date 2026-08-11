@@ -131,15 +131,23 @@ export async function generateCasesReport(
       profY += 18;
     }
     
-    const avatarBase64 = p.avatar ? await getBase64FromUrl(p.avatar) : null;
+    let avatarBase64: string | null = null;
+    if (p.avatar) {
+      try {
+        avatarBase64 = await getBase64FromUrl(p.avatar);
+      } catch (e) {
+        console.error("Failed to fetch avatar base64", e);
+      }
+    }
     
     if (avatarBase64) {
       try {
         doc.saveGraphicsState();
-        doc.clip();
+        // Fallback if image type is not supported or corrupted
         doc.addImage(avatarBase64, 'JPEG', profX, profY - 5, 10, 10);
         doc.restoreGraphicsState();
       } catch (e) {
+        console.warn("Failed to add image to PDF, using fallback circle", e);
         doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
         doc.circle(profX + 5, profY, 5, "F");
       }
@@ -148,17 +156,17 @@ export async function generateCasesReport(
       doc.circle(profX + 5, profY, 5, "F");
       doc.setFontSize(7);
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(p.name[0].toUpperCase(), profX + 5, profY + 1, { align: "center" });
+      doc.text(p.name ? p.name[0].toUpperCase() : "?", profX + 5, profY + 1, { align: "center" });
     }
     
     doc.setFontSize(8);
     doc.setTextColor(0);
     doc.setFont("helvetica", "bold");
-    doc.text(p.name.split(' ')[0], profX + 12, profY - 1);
+    doc.text(p.name ? p.name.split(' ')[0] : "Profissional", profX + 12, profY - 1);
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(150);
-    doc.text(p.role, profX + 12, profY + 3);
+    doc.text(p.role || "Membro", profX + 12, profY + 3);
     
     profX += 45;
   }
