@@ -5,11 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Extended jsPDF type to include autoTable if used as method
 interface jsPDFWithAutoTable extends jsPDF {
-  autoTable: typeof autoTable;
+  autoTable?: (options: any) => jsPDF;
   lastAutoTable: {
     finalY: number;
   };
 }
+
 
 
 async function getBase64FromUrl(url: string): Promise<string | null> {
@@ -318,6 +319,9 @@ export async function generateCasesReport(
 
   } catch (error: any) {
     console.error("Critical error in generateCasesReport:", error);
+    // Log internal state to help debugging
+    console.log("jsPDF instance:", typeof jsPDF);
+    console.log("autoTable function:", typeof autoTable);
     throw new Error(error?.message || "Erro desconhecido ao gerar o PDF");
   }
 }
