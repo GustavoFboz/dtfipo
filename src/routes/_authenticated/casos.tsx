@@ -82,41 +82,56 @@ function Index() {
       const filtered = allCases.filter((c) => {
         // Status filter
         const currentActiveFilter = isTrashMode ? "deleted" : filter;
-        if (currentActiveFilter === "deleted") {
-          if (c.status !== "cancelado") return false;
-        } else if (currentActiveFilter === "em_andamento") {
-          if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
-        } else if (currentActiveFilter === "atrasados") {
-          const isLate = (d: string | null | undefined) => {
-            if (!d) return false;
-            return new Date(d + "T00:00:00").getTime() < new Date().setHours(0,0,0,0);
-          };
-          if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
-          if (!isLate(c.delivery_date)) return false;
-        } else if (currentActiveFilter === "finalizados") {
-          if (!c.finished && c.status !== "finalizado") return false;
-        } else if (currentActiveFilter === "arquivados") {
-          if (c.status !== "arquivado") return false;
+        
+        // Se o filtro for "all" ou não houver filtro definido, pulamos as verificações de status
+        if (currentActiveFilter !== "all") {
+          if (currentActiveFilter === "deleted") {
+            if (c.status !== "cancelado") return false;
+          } else if (currentActiveFilter === "em_andamento") {
+            if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
+          } else if (currentActiveFilter === "atrasados") {
+            const isLate = (d: string | null | undefined) => {
+              if (!d) return false;
+              try {
+                return new Date(d + "T00:00:00").getTime() < new Date().setHours(0,0,0,0);
+              } catch { return false; }
+            };
+            if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
+            if (!isLate(c.delivery_date)) return false;
+          } else if (currentActiveFilter === "finalizados") {
+            if (!c.finished && c.status !== "finalizado") return false;
+          } else if (currentActiveFilter === "arquivados") {
+            if (c.status !== "arquivado") return false;
+          }
         }
 
-        // Date range filter
-        if (dateRange?.start || dateRange?.end) {
-          const caseDate = new Date((c.entry_date || c.created_at || "").split('T')[0] + "T00:00:00");
-          if (dateRange.start) {
-            const startDate = new Date(dateRange.start + "T00:00:00");
-            if (caseDate < startDate) return false;
-          }
-          if (dateRange.end) {
-            const endDate = new Date(dateRange.end + "T00:00:00");
-            if (caseDate > endDate) return false;
+        // Date range filter - apenas aplica se houver datas válidas
+        if (dateRange && (dateRange.start || dateRange.end)) {
+          const rawDate = c.entry_date || c.created_at;
+          if (!rawDate) return false;
+          
+          try {
+            const caseDate = new Date(rawDate.split('T')[0] + "T00:00:00");
+            if (isNaN(caseDate.getTime())) return false;
+
+            if (dateRange.start) {
+              const startDate = new Date(dateRange.start + "T00:00:00");
+              if (!isNaN(startDate.getTime()) && caseDate < startDate) return false;
+            }
+            if (dateRange.end) {
+              const endDate = new Date(dateRange.end + "T00:00:00");
+              if (!isNaN(endDate.getTime()) && caseDate > endDate) return false;
+            }
+          } catch {
+            return false;
           }
         }
         
         // Advanced filters
-        if (advancedFilters.doctorIds.length > 0) {
+        if (advancedFilters.doctorIds && advancedFilters.doctorIds.length > 0) {
           if (!c.doctor_id || !advancedFilters.doctorIds.includes(c.doctor_id)) return false;
         }
-        if (advancedFilters.cadistaIds.length > 0) {
+        if (advancedFilters.cadistaIds && advancedFilters.cadistaIds.length > 0) {
           if (!c.cadista_id || !advancedFilters.cadistaIds.includes(c.cadista_id)) return false;
         }
 

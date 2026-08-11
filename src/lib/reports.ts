@@ -184,15 +184,27 @@ export async function generateCasesReport(
     }
 
     // 4. Cases Table
-    const tableData = cases.map(c => [
-      c.case_number || "-",
-      c.patient?.name || "N/A",
-      c.doctor?.name || "-",
-      c.entry_date ? c.entry_date.split('T')[0].split('-').reverse().join('/') : "-",
-      c.delivery_date ? c.delivery_date.split('T')[0].split('-').reverse().join('/') : "-",
-      c.current_stage?.name || "Pendente",
-      c.status ? c.status.toUpperCase() : "N/A"
-    ]);
+    const tableData = cases.map(c => {
+      let entryDateStr = "-";
+      try {
+        if (c.entry_date) entryDateStr = c.entry_date.split('T')[0].split('-').reverse().join('/');
+      } catch (e) {}
+
+      let deliveryDateStr = "-";
+      try {
+        if (c.delivery_date) deliveryDateStr = c.delivery_date.split('T')[0].split('-').reverse().join('/');
+      } catch (e) {}
+
+      return [
+        c.case_number || "-",
+        c.patient?.name || "N/A",
+        c.doctor?.name || "-",
+        entryDateStr,
+        deliveryDateStr,
+        c.current_stage?.name || "Pendente",
+        c.status ? String(c.status).toUpperCase() : "N/A"
+      ];
+    });
 
     const autoTableOptions = {
       startY: profY + 15,
