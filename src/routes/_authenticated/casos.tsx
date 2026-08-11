@@ -84,7 +84,10 @@ function Index() {
         } else if (currentActiveFilter === "em_andamento") {
           if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
         } else if (currentActiveFilter === "atrasados") {
-          const isLate = (d: string) => new Date(d + "T00:00:00").getTime() < new Date().setHours(0,0,0,0);
+          const isLate = (d: string | null | undefined) => {
+            if (!d) return false;
+            return new Date(d + "T00:00:00").getTime() < new Date().setHours(0,0,0,0);
+          };
           if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
           if (!isLate(c.delivery_date)) return false;
         } else if (currentActiveFilter === "finalizados") {
