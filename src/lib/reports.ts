@@ -13,16 +13,19 @@ interface jsPDFWithAutoTable extends jsPDF {
 }
 
 async function getBase64FromUrl(url: string): Promise<string | null> {
+  if (!url) return null;
   try {
     const res = await fetch(url);
+    if (!res.ok) return null;
     const blob = await res.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
       reader.readAsDataURL(blob);
     });
   } catch (e) {
-    console.error("Error loading image for PDF:", e);
+    console.warn("Could not load image for PDF (likely CORS):", url);
     return null;
   }
 }
@@ -36,7 +39,12 @@ export async function generateCasesReport(
     cadistaIds: string[];
   }
 ) {
-  const doc = new jsPDF() as jsPDFWithAutoTable;
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+    putOnlyUsedFonts: true
+  }) as jsPDFWithAutoTable;
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
 
@@ -82,13 +90,13 @@ export async function generateCasesReport(
   // 3. Professionals Involved (Summary)
   // Fetch profiles to get avatars
   const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url, role");
-  const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+  const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
 
   const uniqueProfProfiles = new Map<string, { name: string; avatar: string | null; role: string }>();
   cases.forEach(c => {
     if (c.doctor) {
       // Find doctor in profiles by name (denormalized) or ID if we had it
-      const p = profiles?.find(p => p.full_name === c.doctor?.name);
+      const p = (profiles || []).find((p: any) => p.full_name === c.doctor?.name);
       uniqueProfProfiles.set(c.doctor.id, { 
         name: c.doctor.name, 
         avatar: p?.avatar_url || null, 
@@ -96,7 +104,7 @@ export async function generateCasesReport(
       });
     }
     if (c.cadista) {
-      const p = c.cadista.user_id ? profileMap.get(c.cadista.user_id) : profiles?.find(p => p.full_name === c.cadista?.name);
+      const p = c.cadista.user_id ? profileMap.get(c.cadista.user_id) : (profiles || []).find((p: any) => p.full_name === c.cadista?.name);
       uniqueProfProfiles.set(c.cadista.id, { 
         name: c.cadista.name, 
         avatar: p?.avatar_url || null, 
@@ -120,15 +128,23 @@ export async function generateCasesReport(
       profY += 18;
     }
     
-    const avatarBase64 = p.avatar ? await getBase64FromUrl(p.avatar) : null;
+    let avatarBase64: string | null = null;
+    if (p.avatar) {
+      try {
+        avatarBase64 = await getBase64FromUrl(p.avatar);
+      } catch (e) {
+        console.error("Failed to fetch avatar base64", e);
+      }
+    }
     
     if (avatarBase64) {
       try {
         doc.saveGraphicsState();
-        doc.clip();
+        // Fallback if image type is not supported or corrupted
         doc.addImage(avatarBase64, 'JPEG', profX, profY - 5, 10, 10);
         doc.restoreGraphicsState();
       } catch (e) {
+        console.warn("Failed to add image to PDF, using fallback circle", e);
         doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
         doc.circle(profX + 5, profY, 5, "F");
       }
@@ -137,17 +153,17 @@ export async function generateCasesReport(
       doc.circle(profX + 5, profY, 5, "F");
       doc.setFontSize(7);
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.text(p.name[0].toUpperCase(), profX + 5, profY + 1, { align: "center" });
+      doc.text(p.name ? p.name[0].toUpperCase() : "?", profX + 5, profY + 1, { align: "center" });
     }
     
     doc.setFontSize(8);
     doc.setTextColor(0);
     doc.setFont("helvetica", "bold");
-    doc.text(p.name.split(' ')[0], profX + 12, profY - 1);
+    doc.text(p.name ? p.name.split(' ')[0] : "Profissional", profX + 12, profY - 1);
     doc.setFontSize(7);
     doc.setFont("helvetica", "normal");
     doc.setTextColor(150);
-    doc.text(p.role, profX + 12, profY + 3);
+    doc.text(p.role || "Membro", profX + 12, profY + 3);
     
     profX += 45;
   }
