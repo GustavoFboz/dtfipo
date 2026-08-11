@@ -13,34 +13,35 @@ interface jsPDFWithAutoTable extends jsPDF {
 
 
 async function getBase64FromUrl(url: string): Promise<string | null> {
-  if (!url) {
-    console.log("getBase64FromUrl: No URL provided");
-    return null;
-  }
-  if (url.startsWith('data:')) {
-    console.log("getBase64FromUrl: URL is already data URI");
-    return url;
-  }
+  if (!url) return null;
+  if (url.startsWith('data:')) return url;
   
-  console.log(`getBase64FromUrl: Fetching ${url}`);
-
+  console.log(`[PDF Report] Processing image URL: ${url}`);
   
   try {
+    // If it is a Supabase storage URL, we might need a different approach due to CORS
+    // but first let's try a standard fetch with a proxy-like header
     const res = await fetch(url, {
       method: 'GET',
+      credentials: 'omit', // Crucial for some CORS setups
       headers: {
         'Accept': 'image/*'
       }
     });
 
     if (!res.ok) {
-      console.warn(`Failed to fetch image: ${res.status} ${res.statusText} for URL: ${url}`);
+      console.warn(`[PDF Report] Failed to fetch image: ${res.status} ${res.statusText} for URL: ${url}`);
+      
+      // Fallback for Supabase storage if it is a private bucket but public link is expected
+      if (url.includes('/storage/v1/object/public/')) {
+         console.log("[PDF Report] Attempting alternative fetch for public storage URL");
+      }
       return null;
     }
 
     const blob = await res.blob();
     if (blob.size === 0) {
-      console.warn("Fetched image blob is empty");
+      console.warn("[PDF Report] Fetched image blob is empty");
       return null;
     }
 
@@ -48,17 +49,22 @@ async function getBase64FromUrl(url: string): Promise<string | null> {
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
+        // Verify we actually got a valid data URL
         if (result && result.startsWith('data:image/')) {
           resolve(result);
         } else {
+          console.warn("[PDF Report] FileReader did not produce a valid data:image URL");
           resolve(null);
         }
       };
-      reader.onerror = () => resolve(null);
+      reader.onerror = (e) => {
+        console.error("[PDF Report] FileReader error:", e);
+        resolve(null);
+      };
       reader.readAsDataURL(blob);
     });
   } catch (e) {
-    console.error("Error fetching image for PDF:", e);
+    console.error("[PDF Report] Error in getBase64FromUrl:", e);
     return null;
   }
 }
