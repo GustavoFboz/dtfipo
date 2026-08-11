@@ -1,6 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import type { CaseRow, Profile } from "@/lib/types";
+import type { CaseRow } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 
 // Extended jsPDF type to include autoTable
