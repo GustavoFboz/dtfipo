@@ -15,17 +15,9 @@ interface jsPDFWithAutoTable extends jsPDF {
 async function getBase64FromUrl(url: string): Promise<string | null> {
   if (!url) return null;
   try {
-    // Basic URL validation
-    if (!url.startsWith('http') && !url.startsWith('data:')) return null;
-    
-    const res = await fetch(url, { mode: 'no-cors' });
-    // Note: fetch with no-cors will return an opaque response which we can't read as blob if cross-origin
-    // However, if the images are from Lovable CDN or same-origin, regular fetch works.
-    // If it's truly cross-origin and no CORS headers, we can't get it client-side.
-    // Let's try regular fetch first and catch.
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    const blob = await response.blob();
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
@@ -33,7 +25,7 @@ async function getBase64FromUrl(url: string): Promise<string | null> {
       reader.readAsDataURL(blob);
     });
   } catch (e) {
-    console.error("Error loading image for PDF:", e);
+    console.warn("Could not load image for PDF (likely CORS):", url);
     return null;
   }
 }
@@ -47,7 +39,12 @@ export async function generateCasesReport(
     cadistaIds: string[];
   }
 ) {
-  const doc = new jsPDF() as jsPDFWithAutoTable;
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+    putOnlyUsedFonts: true
+  }) as jsPDFWithAutoTable;
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
 
