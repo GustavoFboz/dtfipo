@@ -12,10 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, ChevronRight, Filter, X, Trash2, CalendarDays } from "lucide-react";
+import { Plus, Search, ChevronRight, Filter, X, Trash2, CalendarDays, FileDown } from "lucide-react";
 import { useNow } from "@/hooks/use-now";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { fetchDoctors, fetchCadistas, fetchStages } from "@/lib/api";
+import { fetchDoctors, fetchCadistas, fetchStages, fetchCases } from "@/lib/api";
+import { generateCasesReport } from "@/lib/reports";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/casos")({
   component: Index,
@@ -67,6 +69,69 @@ function Index() {
     window.setTimeout(() => {
       navigate({ to: "/dentes" });
     }, 320);
+  };
+
+  const handleDownloadReport = async () => {
+    try {
+      const allCases = await fetchCases("all");
+      
+      // Manually filter based on the same logic as the UI
+      const filtered = allCases.filter((c) => {
+        // Status filter
+        const currentActiveFilter = isTrashMode ? "deleted" : filter;
+        if (currentActiveFilter === "deleted") {
+          if (c.status !== "cancelado") return false;
+        } else if (currentActiveFilter === "em_andamento") {
+          if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
+        } else if (currentActiveFilter === "atrasados") {
+          const isLate = (d: string) => new Date(d + "T00:00:00").getTime() < new Date().setHours(0,0,0,0);
+          if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
+          if (!isLate(c.delivery_date)) return false;
+        } else if (currentActiveFilter === "finalizados") {
+          if (!c.finished && c.status !== "finalizado") return false;
+        } else if (currentActiveFilter === "arquivados") {
+          if (c.status !== "arquivado") return false;
+        }
+
+        // Date range filter
+        if (dateRange?.start || dateRange?.end) {
+          const caseDate = new Date((c.entry_date || c.created_at || "").split('T')[0] + "T00:00:00");
+          if (dateRange.start) {
+            const startDate = new Date(dateRange.start + "T00:00:00");
+            if (caseDate < startDate) return false;
+          }
+          if (dateRange.end) {
+            const endDate = new Date(dateRange.end + "T00:00:00");
+            if (caseDate > endDate) return false;
+          }
+        }
+        
+        // Advanced filters
+        if (advancedFilters.doctorIds.length > 0) {
+          if (!c.doctor_id || !advancedFilters.doctorIds.includes(c.doctor_id)) return false;
+        }
+        if (advancedFilters.cadistaIds.length > 0) {
+          if (!c.cadista_id || !advancedFilters.cadistaIds.includes(c.cadista_id)) return false;
+        }
+
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        toast.error("Nenhum caso encontrado com os filtros atuais.");
+        return;
+      }
+
+      await generateCasesReport(filtered, {
+        activeFilter: isTrashMode ? "deleted" : filter,
+        dateRange,
+        ...advancedFilters
+      });
+      toast.success("Relatório gerado com sucesso!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao gerar relatório.");
+    }
   };
 
   return (
@@ -225,6 +290,16 @@ function Index() {
           </AnimatePresence>
 
           <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDownloadReport}
+              className="h-11 w-11 rounded-full border border-slate-200/50 dark:border-white/5 bg-white dark:bg-white/5 text-slate-400 hover:text-primary transition-all shadow-sm"
+              title="Gerar Relatório PDF"
+            >
+              <FileDown className="h-4 w-4 stroke-[1.5px]" />
+            </Button>
+
             <AnimatePresence mode="wait">
               {true && (
                 <motion.div 
