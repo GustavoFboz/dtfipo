@@ -13,6 +13,7 @@ interface jsPDFWithAutoTable extends jsPDF {
 }
 
 
+
 async function getBase64FromUrl(url: string): Promise<string | null> {
   if (!url) return null;
   if (url.startsWith('data:')) return url;
