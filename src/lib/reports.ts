@@ -96,7 +96,7 @@ export async function generateCasesReport(
       });
     }
     if (c.cadista) {
-      const p = c.cadista.user_id ? profileMap.get(c.cadista.user_id) : profiles?.find(p => p.full_name === c.cadista?.name);
+      const p = c.cadista.user_id ? profileMap.get(c.cadista.user_id) : (profiles || []).find((p: any) => p.full_name === c.cadista?.name);
       uniqueProfProfiles.set(c.cadista.id, { 
         name: c.cadista.name, 
         avatar: p?.avatar_url || null, 
