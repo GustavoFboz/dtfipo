@@ -88,7 +88,7 @@ export async function generateCasesReport(
   cases.forEach(c => {
     if (c.doctor) {
       // Find doctor in profiles by name (denormalized) or ID if we had it
-      const p = profiles?.find(p => p.full_name === c.doctor?.name);
+      const p = (profiles || []).find((p: any) => p.full_name === c.doctor?.name);
       uniqueProfProfiles.set(c.doctor.id, { 
         name: c.doctor.name, 
         avatar: p?.avatar_url || null, 
