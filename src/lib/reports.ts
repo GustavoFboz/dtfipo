@@ -1,12 +1,10 @@
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
-import type { UserOptions } from "jspdf-autotable";
+import autoTable, { UserOptions } from "jspdf-autotable";
 import type { CaseRow } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 
-// Extended jsPDF type to include autoTable
+// Extended jsPDF type to include autoTable if used as method
 interface jsPDFWithAutoTable extends jsPDF {
-  autoTable: (options: UserOptions) => void;
   lastAutoTable: {
     finalY: number;
   };
