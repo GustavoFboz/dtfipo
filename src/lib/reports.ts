@@ -321,8 +321,9 @@ export async function generateCasesReport(
   } catch (error: any) {
     console.error("Critical error in generateCasesReport:", error);
     // Log internal state to help debugging
-    console.log("jsPDF instance:", typeof jsPDF);
+    console.log("jsPDF constructor:", typeof jsPDF);
     console.log("autoTable function:", typeof autoTable);
+    console.log("jsPDF prototype autoTable:", typeof (jsPDF as any).prototype?.autoTable);
     throw new Error(error?.message || "Erro desconhecido ao gerar o PDF");
   }
 }
