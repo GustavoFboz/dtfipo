@@ -934,7 +934,7 @@ export function CaseDetailDialog({
           <div className="flex-1 min-h-0 flex flex-col md:flex-row w-full">
           {/* Sidebar branca com tabs verticais (referência) */}
           <nav
-            className="shrink-0 min-h-0 flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden overflow-y-hidden md:overflow-visible w-full md:w-[220px] md:min-w-[220px] lg:w-[240px] lg:min-w-[240px] bg-white dark:bg-neutral-950 md:border-r border-slate-100 dark:border-neutral-900 py-2 md:py-4"
+            className="shrink-0 min-h-0 flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden overflow-y-hidden md:overflow-visible w-full md:w-[220px] md:min-w-[220px] lg:w-[240px] lg:min-w-[240px] bg-white dark:bg-neutral-950 md:border-r border-slate-100 dark:border-neutral-900 py-2 md:py-4 relative"
           >
             {TABS.map((t) => {
               const active = tab === t.key;
@@ -945,7 +945,7 @@ export function CaseDetailDialog({
                   key={t.key}
                   type="button"
                   onClick={() => handleTabClick(t.key)}
-                  className="relative shrink-0 md:flex-1 md:min-h-0 md:basis-0 pl-8 pr-6 py-3 text-left leading-none tracking-tight transition flex items-center justify-start whitespace-nowrap text-[17px] md:text-[20px] outline-none focus:outline-none"
+                  className="group relative shrink-0 md:flex-none pl-10 pr-6 py-4 text-left leading-none tracking-tight transition-colors duration-200 flex items-center justify-start whitespace-nowrap text-[17px] md:text-[20px] outline-none focus:outline-none w-full"
                   style={{
                     fontFamily: '"Google Sans Display", system-ui, sans-serif',
                     fontWeight: active ? 600 : 300,
@@ -953,9 +953,19 @@ export function CaseDetailDialog({
                     opacity: locked && !active ? 0.45 : 1,
                   }}
                 >
-                  {t.label}
+                  {/* Background animado para a aba selecionada */}
+                  {active && (
+                    <motion.div
+                      layoutId="active-tab-bg"
+                      className="absolute inset-y-1.5 left-4 right-4 rounded-2xl bg-[#F1F5F9] dark:bg-neutral-900 -z-10"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                    />
+                  )}
+                  
+                  <span className="relative z-10">{t.label}</span>
+                  
                   {showBadge && (
-                    <span className="ml-2 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#ef4444] text-white text-[10px] font-bold px-1">
+                    <span className="relative z-10 ml-2 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#ef4444] text-white text-[10px] font-bold px-1">
                       {commentsCount}
                     </span>
                   )}
