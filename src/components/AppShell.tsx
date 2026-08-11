@@ -28,11 +28,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { NotificationPanel } from "./NotificationPanel";
 import { GlobalSearch } from "./GlobalSearch";
- 
+import { ProfilePopover } from "./ProfilePopover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BackupButton } from "./BackupButton";
 import { fetchCases, fetchPatients, fetchPendingJoinRequests, fetchProfile, fetchStages } from "@/lib/api";
 import { fetchWorkflowSettings, fetchMyTasks, fetchWorkflowStages, fetchAllStageAssignments } from "@/lib/workflow";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Profile } from "@/lib/types";
 import { InstallPWAButton } from "./InstallPWAButton";
@@ -407,33 +408,34 @@ export function AppShell() {
                 Bem-vindo <span className="text-slate-500 dark:text-slate-400 font-light text-[15px]">de volta,</span>
               </h2>
               
-              <Link
-                to="/configuracoes"
-                onClick={(event) => handleAnimatedNavigation(event, "/configuracoes")}
-                className={`flex items-center gap-3 whitespace-nowrap bg-slate-50/50 dark:bg-slate-800/30 rounded-[32px] border border-slate-100/50 dark:border-slate-800/50 group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-[padding,background-color,border-color] duration-300 ease-in-out active:scale-[0.98] ${
-                  isCollapsed ? "p-0 bg-transparent border-transparent" : "p-3.5"
-                }`}
-              >
-                <div className={`shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 transition-all duration-300 ease-in-out ${
-                  isCollapsed ? "h-[28px] w-[28px]" : "h-12 w-12"
-                }`}>
-                  {profile.avatar_url ? (
-                    <img
-                      src={profile.avatar_url}
-                      alt={profile.full_name ?? "Perfil"}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-full w-full grid place-items-center text-primary text-sm font-semibold">
-                      {profile.full_name?.[0]?.toUpperCase() ?? "U"}
-                    </div>
-                  )}
-                </div>
-                <div className={`min-w-0 shrink-0 overflow-hidden whitespace-nowrap transition-[width,opacity] duration-300 ease-in-out ${isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-[128px] opacity-100"}`}>
-                  <div className="text-[15px] font-medium text-slate-900 dark:text-slate-100 truncate tracking-tight">{profile.full_name?.split(' ')[0]}</div>
-                  <div className="text-[11px] text-slate-400 font-light whitespace-nowrap">Ver perfil</div>
-                </div>
-              </Link>
+              <ProfilePopover>
+                <button
+                  className={`flex items-center gap-3 whitespace-nowrap bg-slate-50/50 dark:bg-slate-800/30 rounded-[32px] border border-slate-100/50 dark:border-slate-800/50 group hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-[padding,background-color,border-color] duration-300 ease-in-out active:scale-[0.98] w-full text-left ${
+                    isCollapsed ? "p-0 bg-transparent border-transparent" : "p-3.5"
+                  }`}
+                >
+                  <div className={`shrink-0 rounded-full overflow-hidden bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 transition-all duration-300 ease-in-out ${
+                    isCollapsed ? "h-[28px] w-[28px]" : "h-12 w-12"
+                  }`}>
+                    {profile.avatar_url ? (
+                      <img
+                        src={profile.avatar_url}
+                        alt={profile.full_name ?? "Perfil"}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full grid place-items-center text-primary text-sm font-semibold">
+                        {profile.full_name?.[0]?.toUpperCase() ?? "U"}
+                      </div>
+                    )}
+                  </div>
+                  <div className={`min-w-0 shrink-0 overflow-hidden whitespace-nowrap transition-[width,opacity] duration-300 ease-in-out ${isCollapsed ? "w-0 opacity-0 pointer-events-none" : "w-[128px] opacity-100"}`}>
+                    <div className="text-[15px] font-medium text-slate-900 dark:text-slate-100 truncate tracking-tight">{profile.full_name?.split(' ')[0]}</div>
+                    <div className="text-[11px] text-slate-400 font-light whitespace-nowrap">Ver perfil</div>
+                  </div>
+                </button>
+              </ProfilePopover>
+
             </div>
           )}
 

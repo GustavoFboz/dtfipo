@@ -28,7 +28,20 @@ export async function fetchProfile(): Promise<Profile | null> {
   return data as unknown as Profile;
 }
 
+
+export async function updateProfile(id: string, updates: Partial<Profile>): Promise<Profile> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .update(updates)
+    .eq("id", id)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as unknown as Profile;
+}
+
 export async function fetchNotifications(): Promise<Notification[]> {
+
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
   const { data, error } = await supabase
