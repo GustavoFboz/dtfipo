@@ -229,22 +229,37 @@ export async function generateCasesReport(
     const tableData = cases.map(c => {
       let entryDateStr = "-";
       try {
-        if (c.entry_date) entryDateStr = c.entry_date.split('T')[0].split('-').reverse().join('/');
-      } catch (e) {}
+        if (c.entry_date) {
+          entryDateStr = c.entry_date.split('T')[0].split('-').reverse().join('/');
+        } else if (c.created_at) {
+          entryDateStr = c.created_at.split('T')[0].split('-').reverse().join('/');
+        }
+      } catch (e) {
+        console.warn("[PDF Report] Error parsing entry date:", e);
+      }
 
       let deliveryDateStr = "-";
       try {
-        if (c.delivery_date) deliveryDateStr = c.delivery_date.split('T')[0].split('-').reverse().join('/');
-      } catch (e) {}
+        if (c.delivery_date) {
+          deliveryDateStr = c.delivery_date.split('T')[0].split('-').reverse().join('/');
+        }
+      } catch (e) {
+        console.warn("[PDF Report] Error parsing delivery date:", e);
+      }
+
+      const patientName = c.patient?.name || (typeof c.patient === 'string' ? c.patient : "N/A");
+      const doctorName = c.doctor?.name || (typeof c.doctor === 'string' ? c.doctor : "-");
+      const stageName = c.current_stage?.name || (c.finished || c.status === 'finalizado' ? "Finalizado" : "Pendente");
+      const statusLabel = c.status ? String(c.status).toUpperCase() : "N/A";
 
       return [
         c.case_number || "-",
-        c.patient?.name || "N/A",
-        c.doctor?.name || "-",
+        patientName,
+        doctorName,
         entryDateStr,
         deliveryDateStr,
-        c.current_stage?.name || (c.finished || c.status === 'finalizado' ? "Finalizado" : "Pendente"),
-        c.status ? String(c.status).toUpperCase() : "N/A"
+        stageName,
+        statusLabel
       ];
     });
 
