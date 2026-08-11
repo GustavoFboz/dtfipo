@@ -73,7 +73,9 @@ export async function generateCasesReport(
   }
 ) {
   try {
+    console.log(`Starting PDF generation for ${cases.length} cases`);
     const doc = new jsPDF({
+
       orientation: 'portrait',
       unit: 'mm',
       format: 'a4',
