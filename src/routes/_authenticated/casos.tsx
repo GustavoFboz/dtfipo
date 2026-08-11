@@ -17,6 +17,7 @@ import { useNow } from "@/hooks/use-now";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { fetchDoctors, fetchCadistas, fetchStages, fetchCases } from "@/lib/api";
 import { generateCasesReport } from "@/lib/reports";
+import { GeneratingReportDialog } from "@/components/GeneratingReportDialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/casos")({
@@ -37,6 +38,7 @@ function Index() {
   const [advancedFilters, setAdvancedFilters] = useState<{ doctorIds: string[]; cadistaIds: string[] }>({ doctorIds: [], cadistaIds: [] });
   const [localStartDate, setLocalStartDate] = useState("");
   const [localEndDate, setLocalEndDate] = useState("");
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
@@ -72,6 +74,7 @@ function Index() {
   };
 
   const handleDownloadReport = async () => {
+    setIsGeneratingReport(true);
     try {
       const allCases = await fetchCases("all");
       
@@ -134,11 +137,14 @@ function Index() {
     } catch (error) {
       console.error(error);
       toast.error("Erro ao gerar relatório.");
+    } finally {
+      setIsGeneratingReport(false);
     }
   };
 
   return (
     <div className={`h-full max-h-full overflow-hidden flex flex-col font-light max-w-[1600px] mx-auto w-full px-6 md:px-16 transition-colors duration-500 ${isTrashMode ? "bg-rose-50/30 dark:bg-rose-950/10" : ""} ${exiting ? "animate-lab-exit" : entering ? "animate-lab-enter" : ""}`}>
+      <GeneratingReportDialog open={isGeneratingReport} />
 
       <header className="pt-10 md:pt-14 pb-8 md:pb-12 space-y-6 shrink-0">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/15 text-[11px] font-medium text-primary/80">
