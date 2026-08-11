@@ -1,21 +1,16 @@
 import { jsPDF } from "jspdf";
-import autoTable, { UserOptions } from "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import type { CaseRow } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 
 // Extended jsPDF type to include autoTable if used as method
 interface jsPDFWithAutoTable extends jsPDF {
+  autoTable: typeof autoTable;
   lastAutoTable: {
     finalY: number;
   };
 }
 
-// Add global polyfill for browser environment where autoTable might expect to be on the prototype
-if (typeof window !== 'undefined' && (jsPDF.prototype as any).autoTable === undefined) {
-  (jsPDF.prototype as any).autoTable = function(options: any) {
-    return autoTable(this, options);
-  };
-}
 
 async function getBase64FromUrl(url: string): Promise<string | null> {
   if (!url) return null;
