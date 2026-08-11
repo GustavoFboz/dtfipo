@@ -176,11 +176,16 @@ export async function generateCasesReport(
           const type = typeMatch ? typeMatch[1].toUpperCase() : 'JPEG';
           const validTypes = ['JPEG', 'PNG', 'WEBP'];
           const format = validTypes.includes(type) ? type : 'JPEG';
-          doc.addImage(avatarBase64, format as any, profX, profY - 5, 10, 10);
-          imageAdded = true;
+          
+          // Verify base64 integrity before adding
+          if (avatarBase64.length > 100) {
+            doc.addImage(avatarBase64, format as any, profX, profY - 5, 10, 10);
+            imageAdded = true;
+          }
         } catch (e) {
           console.warn("Failed to add image to PDF", e);
         }
+
       }
       
       if (!imageAdded) {
