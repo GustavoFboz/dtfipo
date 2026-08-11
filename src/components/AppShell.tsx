@@ -488,10 +488,7 @@ export function AppShell() {
                     sideOffset={20} 
                     className={`z-[100] border-none shadow-xl bg-white dark:bg-slate-900 px-4 py-2.5 rounded-2xl transition-all duration-300 ${isCollapsed ? 'opacity-100' : 'opacity-0 invisible pointer-events-none'}`}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                        <n.icon className="h-4 w-4 stroke-[1.5px]" />
-                      </div>
+                    <div className="flex items-center">
                       <span className="text-[14px] font-medium text-slate-900 dark:text-slate-100 tracking-tight">
                         {n.label}
                       </span>
