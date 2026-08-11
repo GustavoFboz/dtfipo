@@ -3,6 +3,15 @@ import autoTable from "jspdf-autotable";
 import type { CaseRow } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 
+// Ensure the plugin is registered correctly if it's being used as a method
+// although we'll use the standalone function for reliability.
+if (!(jsPDF as any).prototype.autoTable) {
+  (jsPDF as any).prototype.autoTable = function(options: any) {
+    autoTable(this, options);
+    return this;
+  };
+}
+
 /**
  * Fetches an image from a URL and converts it to a Base64 string.
  * Optimized for Supabase storage and CORS.
