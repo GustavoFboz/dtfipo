@@ -145,8 +145,9 @@ function Index() {
 
       await generateCasesReport(filtered, {
         activeFilter: isTrashMode ? "deleted" : filter,
-        dateRange,
-        ...advancedFilters
+        dateRange: dateRange,
+        doctorIds: advancedFilters.doctorIds,
+        cadistaIds: advancedFilters.cadistaIds
       });
       toast.success("Relatório gerado com sucesso!");
     } catch (error) {
