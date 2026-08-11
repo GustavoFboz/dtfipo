@@ -14,18 +14,26 @@ interface jsPDFWithAutoTable extends jsPDF {
 
 async function getBase64FromUrl(url: string): Promise<string | null> {
   if (!url) return null;
+  if (url.startsWith('data:')) return url;
+  
   try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
-    const blob = await res.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
+    // Attempt with default fetch (might fail due to CORS)
+    const res = await fetch(url).catch(() => null);
+    if (res && res.ok) {
+      const blob = await res.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    }
+    
+    // Fallback: If it's a Supabase storage URL, try a cleaner approach
+    // But since we are on the client, if CORS isn't set on the bucket, it will fail.
+    // The safest is to return null and let the UI use the initials fallback.
+    return null;
   } catch (e) {
-    console.warn("Could not load image for PDF (likely CORS):", url);
     return null;
   }
 }
@@ -137,12 +145,13 @@ export async function generateCasesReport(
       }
     }
     
-    if (avatarBase64) {
+    if (avatarBase64 && avatarBase64.startsWith('data:image/')) {
       try {
-        doc.saveGraphicsState();
-        // Fallback if image type is not supported or corrupted
-        doc.addImage(avatarBase64, 'JPEG', profX, profY - 5, 10, 10);
-        doc.restoreGraphicsState();
+        const type = avatarBase64.split(';')[0].split(':')[1].split('/')[1].toUpperCase();
+        const validTypes = ['JPEG', 'PNG', 'WEBP'];
+        const format = validTypes.includes(type) ? type : 'JPEG';
+        
+        doc.addImage(avatarBase64, format as any, profX, profY - 5, 10, 10);
       } catch (e) {
         console.warn("Failed to add image to PDF, using fallback circle", e);
         doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -179,7 +188,7 @@ export async function generateCasesReport(
     c.status.toUpperCase()
   ]);
 
-  doc.autoTable({
+  const autoTableOptions = {
     startY: profY + 15,
     head: [['Nº', 'Paciente', 'Doutor', 'Entrada', 'Entrega', 'Etapa Atual', 'Status']],
     body: tableData,
@@ -201,18 +210,25 @@ export async function generateCasesReport(
       valign: 'middle'
     },
     columnStyles: {
-      0: { cellWidth: 12 },
+      0: { cellWidth: 15 },
+      1: { cellWidth: 'auto' },
+      2: { cellWidth: 'auto' },
       5: { fontStyle: 'bold', textColor: [50, 50, 50] },
       6: { halign: 'center', fontSize: 7 }
     },
     alternateRowStyles: {
       fillColor: [252, 253, 255]
     },
-    margin: { left: margin, right: margin },
-    didDrawCell: (data: any) => {
-      // Additional styling or drawings per cell if needed
-    }
-  });
+    margin: { left: margin, right: margin }
+  };
+
+  try {
+    doc.autoTable(autoTableOptions);
+  } catch (e) {
+    console.error("AutoTable failed", e);
+    // Fallback if autotable fails
+    doc.text("Erro ao renderizar tabela de casos.", margin, profY + 25);
+  }
 
   // Footer
   const pageCount = (doc as any).internal.getNumberOfPages();
