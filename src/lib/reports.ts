@@ -1,15 +1,17 @@
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import "jspdf-autotable";
 import type { CaseRow } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 
-// Extended jsPDF type to include autoTable if used as method
+// Extended jsPDF type to include autoTable
 interface jsPDFWithAutoTable extends jsPDF {
-  autoTable?: (options: any) => jsPDF;
-  lastAutoTable: {
+  autoTable: (options: any) => jsPDF;
+  lastAutoTable?: {
     finalY: number;
   };
 }
+
+
 
 
 
@@ -265,7 +267,7 @@ export async function generateCasesReport(
       ];
     });
 
-    autoTable(doc, {
+    doc.autoTable({
       startY: profY + 15,
       head: [['Nº', 'Paciente', 'Doutor', 'Entrada', 'Entrega', 'Etapa Atual', 'Status']],
       body: tableData,
@@ -301,7 +303,7 @@ export async function generateCasesReport(
 
 
     // Footer
-    const pageCount = (doc as any).internal.getNumberOfPages();
+    const pageCount = doc.internal.pages.length - 1;
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(8);
@@ -320,8 +322,8 @@ export async function generateCasesReport(
   } catch (error: any) {
     console.error("Critical error in generateCasesReport:", error);
     // Log internal state to help debugging
-    console.log("jsPDF instance:", typeof jsPDF);
-    console.log("autoTable function:", typeof autoTable);
+    console.log("jsPDF constructor:", typeof jsPDF);
+    console.log("jsPDF prototype autoTable:", typeof (jsPDF as any).prototype?.autoTable);
     throw new Error(error?.message || "Erro desconhecido ao gerar o PDF");
   }
 }
