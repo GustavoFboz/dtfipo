@@ -82,7 +82,7 @@ export async function generateCasesReport(
   // 3. Professionals Involved (Summary)
   // Fetch profiles to get avatars
   const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url, role");
-  const profileMap = new Map(profiles?.map(p => [p.id, p]) || []);
+  const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
 
   const uniqueProfProfiles = new Map<string, { name: string; avatar: string | null; role: string }>();
   cases.forEach(c => {
