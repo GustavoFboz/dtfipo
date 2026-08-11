@@ -10,20 +10,6 @@ interface jsPDFWithAutoTable extends jsPDF {
   };
 }
 
-declare module "jspdf" {
-  interface jsPDF {
-    internal: {
-      getNumberOfPages: () => number;
-      pageSize: {
-        getWidth: () => number;
-        getHeight: () => number;
-      };
-    };
-  }
-}
-
-
-
 async function getBase64FromUrl(url: string): Promise<string | null> {
   if (!url) return null;
   if (url.startsWith('data:')) return url;
