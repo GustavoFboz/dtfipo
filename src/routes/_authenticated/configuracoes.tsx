@@ -115,18 +115,6 @@ function ConfiguracoesPage() {
         </div>
       </div>
 
-      {/* Perfil */}
-      <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
-        <h2 className="text-[11px] font-bold tracking-[0.18em] uppercase text-primary/70">Perfil</h2>
-        <UserAvatarUpload
-          avatarUrl={profile.data?.avatar_url ?? null}
-          fullName={profile.data?.full_name}
-          email={profile.data?.email ?? email ?? undefined}
-        />
-        <div className="text-xs text-muted-foreground">
-          {profile.data?.full_name ?? "—"} · {profile.data?.email ?? email}
-        </div>
-      </div>
 
       {/* Aparência */}
       <div className="bg-card border border-border rounded-2xl p-6">
