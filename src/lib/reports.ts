@@ -290,7 +290,9 @@ export async function generateCasesReport(
       );
     }
 
+    console.log("PDF generated successfully, saving...");
     doc.save(`IPO-Relatorio-Casos-${dateStr.replace(/\//g, '-')}.pdf`);
+
   } catch (error: any) {
     console.error("Critical error in generateCasesReport:", error);
     throw new Error(error?.message || "Erro desconhecido ao gerar o PDF");
