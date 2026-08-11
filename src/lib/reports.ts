@@ -1,16 +1,16 @@
-
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import type { CaseRow, Profile } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 
 // Extended jsPDF type to include autoTable
 interface jsPDFWithAutoTable extends jsPDF {
-  autoTable: (options: any) => jsPDF;
+  autoTable: typeof autoTable;
   lastAutoTable: {
     finalY: number;
   };
 }
+
 
 async function getBase64FromUrl(url: string): Promise<string | null> {
   if (!url) {
@@ -242,7 +242,7 @@ export async function generateCasesReport(
       ];
     });
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: profY + 15,
       head: [['Nº', 'Paciente', 'Doutor', 'Entrada', 'Entrega', 'Etapa Atual', 'Status']],
       body: tableData,
@@ -275,6 +275,7 @@ export async function generateCasesReport(
       },
       margin: { left: margin, right: margin }
     });
+
 
     // Footer
     const pageCount = (doc as any).internal.getNumberOfPages();
