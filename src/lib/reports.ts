@@ -17,12 +17,34 @@ async function getBase64FromUrl(url: string): Promise<string | null> {
   if (url.startsWith('data:')) return url;
   
   try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'image/*'
+      }
+    });
+
+    if (!res.ok) {
+      console.warn(`Failed to fetch image: ${res.status} ${res.statusText} for URL: ${url}`);
+      return null;
+    }
+
     const blob = await res.blob();
+    if (blob.size === 0) {
+      console.warn("Fetched image blob is empty");
+      return null;
+    }
+
     return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        if (result && result.startsWith('data:image/')) {
+          resolve(result);
+        } else {
+          resolve(null);
+        }
+      };
       reader.onerror = () => resolve(null);
       reader.readAsDataURL(blob);
     });
@@ -51,11 +73,9 @@ export async function generateCasesReport(
     
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 15;
+    const primaryColor = [84, 168, 251]; // #54A8FB
 
-    // Primary identity color
-    const primaryColor = [84, 168, 251]; // #54A8FB (System primary blue)
-
-    // 1. Header (Lab Info)
+    // 1. Header
     doc.setFont("helvetica", "bold");
     doc.setFontSize(24);
     doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
@@ -91,20 +111,15 @@ export async function generateCasesReport(
     doc.setDrawColor(240);
     doc.line(margin, 45, pageWidth - margin, 45);
 
-    // 3. Professionals Involved (Summary)
-    // Fetch profiles to get avatars
-    const { data: profiles, error: profilesError } = await supabase.from("profiles").select("id, full_name, avatar_url, role");
-    if (profilesError) {
-      console.error("Error fetching profiles for report:", profilesError);
-    }
+    // 3. Professionals
+    const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url, role");
     const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
 
     const uniqueProfProfiles = new Map<string, { name: string; avatar: string | null; role: string }>();
     cases.forEach(c => {
       if (c.doctor) {
-        const profId = c.doctor.id || c.doctor.name; // Use ID if available, fallback to name
+        const profId = c.doctor.id || c.doctor.name;
         if (!uniqueProfProfiles.has(profId)) {
-          // Check if it's a doctor with a linked user_id
           const doctorRecord = c.doctor as any;
           const p = (profiles || []).find((p: any) => 
             p.full_name === c.doctor?.name || 
@@ -154,20 +169,21 @@ export async function generateCasesReport(
         }
       }
       
+      let imageAdded = false;
       if (avatarBase64 && avatarBase64.startsWith('data:image/')) {
         try {
           const typeMatch = avatarBase64.match(/^data:image\/([a-zA-Z+]+);base64,/);
           const type = typeMatch ? typeMatch[1].toUpperCase() : 'JPEG';
           const validTypes = ['JPEG', 'PNG', 'WEBP'];
           const format = validTypes.includes(type) ? type : 'JPEG';
-          
           doc.addImage(avatarBase64, format as any, profX, profY - 5, 10, 10);
+          imageAdded = true;
         } catch (e) {
-          console.warn("Failed to add image to PDF, using fallback circle", e);
-          doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-          doc.circle(profX + 5, profY, 5, "F");
+          console.warn("Failed to add image to PDF", e);
         }
-      } else {
+      }
+      
+      if (!imageAdded) {
         doc.setFillColor(240, 244, 250);
         doc.circle(profX + 5, profY, 5, "F");
         doc.setFontSize(7);
@@ -210,7 +226,7 @@ export async function generateCasesReport(
       ];
     });
 
-    const autoTableOptions = {
+    doc.autoTable({
       startY: profY + 15,
       head: [['Nº', 'Paciente', 'Doutor', 'Entrada', 'Entrega', 'Etapa Atual', 'Status']],
       body: tableData,
@@ -242,9 +258,7 @@ export async function generateCasesReport(
         fillColor: [252, 253, 255]
       },
       margin: { left: margin, right: margin }
-    };
-
-    doc.autoTable(autoTableOptions);
+    });
 
     // Footer
     const pageCount = (doc as any).internal.getNumberOfPages();
@@ -261,8 +275,8 @@ export async function generateCasesReport(
     }
 
     doc.save(`IPO-Relatorio-Casos-${dateStr.replace(/\//g, '-')}.pdf`);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Critical error in generateCasesReport:", error);
-    throw error;
+    throw new Error(error?.message || "Erro desconhecido ao gerar o PDF");
   }
 }
