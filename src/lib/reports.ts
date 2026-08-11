@@ -13,8 +13,17 @@ interface jsPDFWithAutoTable extends jsPDF {
 }
 
 async function getBase64FromUrl(url: string): Promise<string | null> {
-  if (!url) return null;
-  if (url.startsWith('data:')) return url;
+  if (!url) {
+    console.log("getBase64FromUrl: No URL provided");
+    return null;
+  }
+  if (url.startsWith('data:')) {
+    console.log("getBase64FromUrl: URL is already data URI");
+    return url;
+  }
+  
+  console.log(`getBase64FromUrl: Fetching ${url}`);
+
   
   try {
     const res = await fetch(url, {
@@ -64,7 +73,9 @@ export async function generateCasesReport(
   }
 ) {
   try {
+    console.log(`Starting PDF generation for ${cases.length} cases`);
     const doc = new jsPDF({
+
       orientation: 'portrait',
       unit: 'mm',
       format: 'a4',
@@ -176,11 +187,16 @@ export async function generateCasesReport(
           const type = typeMatch ? typeMatch[1].toUpperCase() : 'JPEG';
           const validTypes = ['JPEG', 'PNG', 'WEBP'];
           const format = validTypes.includes(type) ? type : 'JPEG';
-          doc.addImage(avatarBase64, format as any, profX, profY - 5, 10, 10);
-          imageAdded = true;
+          
+          // Verify base64 integrity before adding
+          if (avatarBase64.length > 100) {
+            doc.addImage(avatarBase64, format as any, profX, profY - 5, 10, 10);
+            imageAdded = true;
+          }
         } catch (e) {
           console.warn("Failed to add image to PDF", e);
         }
+
       }
       
       if (!imageAdded) {
@@ -221,7 +237,7 @@ export async function generateCasesReport(
         c.doctor?.name || "-",
         entryDateStr,
         deliveryDateStr,
-        c.current_stage?.name || "Pendente",
+        c.current_stage?.name || (c.finished || c.status === 'finalizado' ? "Finalizado" : "Pendente"),
         c.status ? String(c.status).toUpperCase() : "N/A"
       ];
     });
@@ -274,7 +290,9 @@ export async function generateCasesReport(
       );
     }
 
+    console.log("PDF generated successfully, saving...");
     doc.save(`IPO-Relatorio-Casos-${dateStr.replace(/\//g, '-')}.pdf`);
+
   } catch (error: any) {
     console.error("Critical error in generateCasesReport:", error);
     throw new Error(error?.message || "Erro desconhecido ao gerar o PDF");

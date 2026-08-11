@@ -150,8 +150,9 @@ function Index() {
       });
       toast.success("Relatório gerado com sucesso!");
     } catch (error) {
-      console.error(error);
-      toast.error("Erro ao gerar relatório.");
+      console.error("Critical error generating report:", error);
+      toast.error(`Erro ao gerar relatório: ${error instanceof Error ? error.message : 'Verifique o console'}`);
+
     } finally {
       setIsGeneratingReport(false);
     }
