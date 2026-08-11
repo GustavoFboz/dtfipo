@@ -17,27 +17,17 @@ async function getBase64FromUrl(url: string): Promise<string | null> {
   if (url.startsWith('data:')) return url;
   
   try {
-    // Attempt with default fetch (might fail due to CORS)
-    const res = await fetch(url, { mode: 'no-cors' }).catch(() => null);
-    
-    // If we have a response, we try to convert it. 
-    // Note: no-cors fetch results in an opaque response, which blob() can handle in some contexts but often fails to read.
-    // The most reliable way for cross-origin images is to let the browser handle it or use a proxy.
-    // For now, we'll try a regular fetch first, then fallback to null.
-    
-    const corsRes = await fetch(url).catch(() => null);
-    if (corsRes && corsRes.ok) {
-      const blob = await corsRes.blob();
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(blob);
-      });
-    }
-    
-    return null;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
   } catch (e) {
+    console.error("Error fetching image for PDF:", e);
     return null;
   }
 }
@@ -103,26 +93,35 @@ export async function generateCasesReport(
 
     // 3. Professionals Involved (Summary)
     // Fetch profiles to get avatars
-    const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url, role");
+    const { data: profiles, error: profilesError } = await supabase.from("profiles").select("id, full_name, avatar_url, role");
+    if (profilesError) {
+      console.error("Error fetching profiles for report:", profilesError);
+    }
     const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
 
     const uniqueProfProfiles = new Map<string, { name: string; avatar: string | null; role: string }>();
     cases.forEach(c => {
       if (c.doctor) {
-        const p = (profiles || []).find((p: any) => p.full_name === c.doctor?.name);
-        uniqueProfProfiles.set(c.doctor.id, { 
-          name: c.doctor.name, 
-          avatar: p?.avatar_url || null, 
-          role: "Dentista" 
-        });
+        const profId = c.doctor.id || c.doctor.name; // Use ID if available, fallback to name
+        if (!uniqueProfProfiles.has(profId)) {
+          const p = (profiles || []).find((p: any) => p.full_name === c.doctor?.name || p.id === c.doctor?.user_id);
+          uniqueProfProfiles.set(profId, { 
+            name: c.doctor.name, 
+            avatar: p?.avatar_url || null, 
+            role: "Dentista" 
+          });
+        }
       }
       if (c.cadista) {
-        const p = c.cadista.user_id ? profileMap.get(c.cadista.user_id) : (profiles || []).find((p: any) => p.full_name === c.cadista?.name);
-        uniqueProfProfiles.set(c.cadista.id, { 
-          name: c.cadista.name, 
-          avatar: p?.avatar_url || null, 
-          role: "Cadista" 
-        });
+        const profId = c.cadista.id || c.cadista.name;
+        if (!uniqueProfProfiles.has(profId)) {
+          const p = c.cadista.user_id ? profileMap.get(c.cadista.user_id) : (profiles || []).find((p: any) => p.full_name === c.cadista?.name);
+          uniqueProfProfiles.set(profId, { 
+            name: c.cadista.name, 
+            avatar: p?.avatar_url || null, 
+            role: "Cadista" 
+          });
+        }
       }
     });
 
