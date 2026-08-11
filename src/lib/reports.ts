@@ -1,10 +1,12 @@
 import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import "jspdf-autotable";
+import type { UserOptions } from "jspdf-autotable";
 import type { CaseRow } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 
 // Extended jsPDF type to include autoTable
 interface jsPDFWithAutoTable extends jsPDF {
+  autoTable: (options: UserOptions) => void;
   lastAutoTable: {
     finalY: number;
   };
@@ -27,6 +29,7 @@ async function getBase64FromUrl(url: string): Promise<string | null> {
         'Accept': 'image/*'
       }
     });
+
 
     if (!res.ok) {
       console.warn(`[PDF Report] Failed to fetch image: ${res.status} ${res.statusText} for URL: ${url}`);
