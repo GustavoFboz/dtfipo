@@ -13,12 +13,23 @@ interface jsPDFWithAutoTable extends jsPDF {
 }
 
 async function getBase64FromUrl(url: string): Promise<string | null> {
+  if (!url) return null;
   try {
-    const res = await fetch(url);
-    const blob = await res.blob();
+    // Basic URL validation
+    if (!url.startsWith('http') && !url.startsWith('data:')) return null;
+    
+    const res = await fetch(url, { mode: 'no-cors' });
+    // Note: fetch with no-cors will return an opaque response which we can't read as blob if cross-origin
+    // However, if the images are from Lovable CDN or same-origin, regular fetch works.
+    // If it's truly cross-origin and no CORS headers, we can't get it client-side.
+    // Let's try regular fetch first and catch.
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const blob = await response.blob();
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
       reader.readAsDataURL(blob);
     });
   } catch (e) {
