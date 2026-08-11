@@ -17,13 +17,42 @@ async function getBase64FromUrl(url: string): Promise<string | null> {
   if (url.startsWith('data:')) return url;
   
   try {
-    const res = await fetch(url);
-    if (!res.ok) return null;
+    // If it's a Supabase storage URL, we should try to fetch it with the auth token if possible
+    // but for jsPDF/browser fetch in reports, standard fetch usually works if RLS/CORS allows.
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'image/*'
+      }
+    });
+
+    if (!res.ok) {
+      console.warn(`Failed to fetch image: ${res.status} ${res.statusText} for URL: ${url}`);
+      return null;
+    }
+
     const blob = await res.blob();
+    if (blob.size === 0) {
+      console.warn("Fetched image blob is empty");
+      return null;
+    }
+
     return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        // Verify we got a valid data URL
+        if (result && result.startsWith('data:image/')) {
+          resolve(result);
+        } else {
+          console.warn("FileReader result is not a valid image data URL");
+          resolve(null);
+        }
+      };
+      reader.onerror = () => {
+        console.error("FileReader error occurred");
+        resolve(null);
+      };
       reader.readAsDataURL(blob);
     });
   } catch (e) {
@@ -161,19 +190,8 @@ export async function generateCasesReport(
           const validTypes = ['JPEG', 'PNG', 'WEBP'];
           const format = validTypes.includes(type) ? type : 'JPEG';
           
-          doc.addImage(avatarBase64, format as any, profX, profY - 5, 10, 10);
-        } catch (e) {
-          console.warn("Failed to add image to PDF, using fallback circle", e);
-          doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-          doc.circle(profX + 5, profY, 5, "F");
-        }
-      } else {
-        doc.setFillColor(240, 244, 250);
-        doc.circle(profX + 5, profY, 5, "F");
-        doc.setFontSize(7);
-        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-        doc.text(p.name ? p.name[0].toUpperCase() : "?", profX + 5, profY + 1, { align: "center" });
-      }
+      // Already handled in if (!imageAdded) above
+
       
       doc.setFontSize(8);
       doc.setTextColor(0);
@@ -261,8 +279,10 @@ export async function generateCasesReport(
     }
 
     doc.save(`IPO-Relatorio-Casos-${dateStr.replace(/\//g, '-')}.pdf`);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Critical error in generateCasesReport:", error);
-    throw error;
+    // Standardize error message for the UI
+    const errorMsg = error?.message || "Erro desconhecido ao gerar o PDF";
+    throw new Error(errorMsg);
   }
 }
