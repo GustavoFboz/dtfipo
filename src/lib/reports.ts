@@ -10,6 +10,13 @@ interface jsPDFWithAutoTable extends jsPDF {
   };
 }
 
+// Add global polyfill for browser environment where autoTable might expect to be on the prototype
+if (typeof window !== 'undefined' && (jsPDF.prototype as any).autoTable === undefined) {
+  (jsPDF.prototype as any).autoTable = function(options: any) {
+    return autoTable(this, options);
+  };
+}
+
 async function getBase64FromUrl(url: string): Promise<string | null> {
   if (!url) return null;
   if (url.startsWith('data:')) return url;
@@ -262,7 +269,7 @@ export async function generateCasesReport(
       ];
     });
 
-    autoTable(doc, {
+    (doc as any).autoTable({
       startY: profY + 15,
       head: [['Nº', 'Paciente', 'Doutor', 'Entrada', 'Entrega', 'Etapa Atual', 'Status']],
       body: tableData,
