@@ -933,7 +933,7 @@ export function CaseDetailDialog({
           <div className="flex-1 min-h-0 flex flex-col md:flex-row w-full">
           {/* Sidebar branca com tabs verticais (referência) */}
           <nav
-            className="shrink-0 min-h-0 flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden overflow-y-hidden md:overflow-visible w-full md:w-[220px] md:min-w-[220px] lg:w-[240px] lg:min-w-[240px] bg-[#f5f5f7] dark:bg-neutral-950 md:border-r border-slate-200 dark:border-neutral-800/70 py-2 md:py-4"
+            className="shrink-0 min-h-0 flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden overflow-y-hidden md:overflow-visible w-full md:w-[220px] md:min-w-[220px] lg:w-[240px] lg:min-w-[240px] bg-white dark:bg-neutral-950 md:border-r border-slate-100 dark:border-neutral-900 py-2 md:py-4"
           >
             {TABS.map((t) => {
               const active = tab === t.key;
