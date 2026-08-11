@@ -14,36 +14,26 @@ interface jsPDFWithAutoTable extends jsPDF {
 
 async function getBase64FromUrl(url: string): Promise<string | null> {
   if (!url) return null;
-  // If it's already a base64 string, return as is
   if (url.startsWith('data:')) return url;
   
   try {
-    const res = await fetch(url, { mode: 'no-cors' }).catch(() => null);
-    if (!res || !res.ok) {
-      // Fallback: Try a different approach for storage URLs
-      if (url.includes('supabase') && url.includes('storage')) {
-         const directRes = await fetch(url).catch(() => null);
-         if (directRes && directRes.ok) {
-            const blob = await directRes.blob();
-            return new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.onerror = () => resolve(null);
-              reader.readAsDataURL(blob);
-            });
-         }
-      }
-      return null;
+    // Attempt with default fetch (might fail due to CORS)
+    const res = await fetch(url).catch(() => null);
+    if (res && res.ok) {
+      const blob = await res.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
     }
-    const blob = await res.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
+    
+    // Fallback: If it's a Supabase storage URL, try a cleaner approach
+    // But since we are on the client, if CORS isn't set on the bucket, it will fail.
+    // The safest is to return null and let the UI use the initials fallback.
+    return null;
   } catch (e) {
-    console.warn("Could not load image for PDF (likely CORS):", url);
     return null;
   }
 }
