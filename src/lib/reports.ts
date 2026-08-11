@@ -302,7 +302,7 @@ export async function generateCasesReport(
 
 
     // Footer
-    const pageCount = (doc as any).internal.getNumberOfPages();
+    const pageCount = doc.internal.pages.length - 1;
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(8);
