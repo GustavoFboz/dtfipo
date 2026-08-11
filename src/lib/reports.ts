@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Extended jsPDF type to include autoTable
 interface jsPDFWithAutoTable extends jsPDF {
-  autoTable: typeof autoTable;
   lastAutoTable: {
     finalY: number;
   };
