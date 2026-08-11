@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Extended jsPDF type to include autoTable
 interface jsPDFWithAutoTable extends jsPDF {
-  autoTable: typeof autoTable;
   lastAutoTable: {
     finalY: number;
   };
@@ -263,7 +262,7 @@ export async function generateCasesReport(
       ];
     });
 
-    (doc as any).autoTable({
+    autoTable(doc, {
       startY: profY + 15,
       head: [['Nº', 'Paciente', 'Doutor', 'Entrada', 'Entrega', 'Etapa Atual', 'Status']],
       body: tableData,
