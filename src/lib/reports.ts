@@ -104,7 +104,12 @@ export async function generateCasesReport(
       if (c.doctor) {
         const profId = c.doctor.id || c.doctor.name; // Use ID if available, fallback to name
         if (!uniqueProfProfiles.has(profId)) {
-          const p = (profiles || []).find((p: any) => p.full_name === c.doctor?.name || p.id === c.doctor?.user_id);
+          // Check if it's a doctor with a linked user_id
+          const doctorRecord = c.doctor as any;
+          const p = (profiles || []).find((p: any) => 
+            p.full_name === c.doctor?.name || 
+            (doctorRecord?.user_id && p.id === doctorRecord.user_id)
+          );
           uniqueProfProfiles.set(profId, { 
             name: c.doctor.name, 
             avatar: p?.avatar_url || null, 
