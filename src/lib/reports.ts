@@ -264,7 +264,7 @@ export async function generateCasesReport(
       ];
     });
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: profY + 15,
       head: [['Nº', 'Paciente', 'Doutor', 'Entrada', 'Entrega', 'Etapa Atual', 'Status']],
       body: tableData,
