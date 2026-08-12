@@ -13,6 +13,9 @@ import { ArrowLeft, RotateCcw, Archive, Activity, Pencil, Plus, Phone, Mail, Map
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { CaseRow } from "@/lib/types";
+import { FloatingLog } from "@/components/FloatingLog";
+import { useEffect } from "react";
+
 
 export const Route = createFileRoute("/_authenticated/patients/$id")({
   component: PatientDetailPage,
@@ -23,6 +26,16 @@ function PatientDetailPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const isMobile = useIsMobile();
+  const [logs, setLogs] = useState<string[]>([]);
+
+  const addLog = (msg: string) => {
+    setLogs(prev => [...prev.slice(-49), `${new Date().toLocaleTimeString()} - ${msg}`]);
+  };
+
+  useEffect(() => {
+    addLog(`Página de detalhes aberta (ID: ${id})`);
+  }, [id]);
+
   
   console.log("PatientDetailPage init for ID:", id);
 
@@ -31,7 +44,12 @@ function PatientDetailPage() {
     queryFn: async () => {
       console.log("Fetching patient data for ID:", id);
       const data = await fetchPatient(id);
-      if (!data) console.warn("No patient found for ID:", id);
+      if (!data) {
+        console.warn("No patient found for ID:", id);
+        addLog("ERRO: Paciente não encontrado no banco de dados");
+      } else {
+        addLog(`Paciente carregado: ${data.name}`);
+      }
       return data;
     },
     retry: 1,
@@ -42,7 +60,9 @@ function PatientDetailPage() {
     queryKey: ["patient_cases", id], 
     queryFn: async () => {
       console.log("Fetching cases for patient:", id);
-      return fetchPatientCases(id);
+      const res = await fetchPatientCases(id);
+      addLog(`${res.length} casos encontrados para este paciente`);
+      return res;
     },
     retry: 1
   });
@@ -287,6 +307,8 @@ function PatientDetailPage() {
       </Section>
 
       <CaseDetailDialog caseRow={selected} open={!!selected} onOpenChange={(o) => !o && setSelected(null)} />
+      
+      <FloatingLog title="Depurador de Perfil" logs={logs} />
     </div>
   );
 }

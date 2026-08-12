@@ -14,6 +14,8 @@ import { PatientFormDialog } from "@/components/PatientFormDialog";
 import type { Patient } from "@/lib/types";
 import { normalizeText } from "@/lib/utils";
 import { SkeletonCardGrid, SkeletonSwap, useListReveal } from "@/components/ui/skeleton-blocks";
+import { FloatingLog } from "@/components/FloatingLog";
+
 
 
 export const Route = createFileRoute("/_authenticated/patients")({
@@ -29,6 +31,12 @@ function PatientsPage() {
   const [editPatient, setEditPatient] = useState<Patient | null>(null);
   const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
   const [q, setQ] = useState("");
+  const [logs, setLogs] = useState<string[]>(["Página de pacientes carregada", "Monitor de eventos pronto"]);
+
+  const addLog = (msg: string) => {
+    setLogs(prev => [...prev.slice(-49), `${new Date().toLocaleTimeString()} - ${msg}`]);
+  };
+
 
   const filtered = useMemo(() => {
     let list = patients.data ?? [];
@@ -97,6 +105,7 @@ function PatientsPage() {
             style={reveal.itemProps(i).style}
             className={`${reveal.itemProps(i).className} cursor-pointer bg-transparent py-8 flex items-center gap-8 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-all duration-300 group no-underline text-inherit border-b border-slate-100 dark:border-white/5 w-full`}
             onClick={(e) => {
+              addLog(`Acessando perfil do paciente: ${p.name}`);
               console.log("Navigating to patient profile:", p.id);
             }}
           >
@@ -172,6 +181,8 @@ function PatientsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <FloatingLog title="Log de Navegação" logs={logs} />
     </div>
   );
 }
