@@ -13,7 +13,11 @@ const tombstones = new Map<string, number>();
 
 export function markDeleted(id: string, ttlMs: number = TOMBSTONE_TTL_MS) {
   if (!id) return;
-  tombstones.set(id, Date.now() + ttlMs);
+  if (ttlMs < 0) {
+    tombstones.delete(id);
+  } else {
+    tombstones.set(id, Date.now() + ttlMs);
+  }
 }
 
 export function isDeleted(id: string): boolean {

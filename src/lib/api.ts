@@ -162,6 +162,7 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
 }
 
 export async function restoreCase(id: string) {
+  try { markDeleted(id, -1); } catch {} // Clear tombstone if exists
   const { error } = await supabase
     .from("cases")
     .update({ status: "em_andamento", finished_at: null } as any)
