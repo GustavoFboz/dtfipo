@@ -29,7 +29,10 @@ function PatientDetailPage() {
   const [logs, setLogs] = useState<string[]>([]);
 
   const addLog = (msg: string) => {
-    setLogs(prev => [...prev.slice(-49), `${new Date().toLocaleTimeString()} - ${msg}`]);
+    setLogs(prev => {
+      const newLogs = [...prev, `${new Date().toLocaleTimeString()} - ${msg}`];
+      return newLogs.slice(-50);
+    });
   };
 
   useEffect(() => {
@@ -38,22 +41,26 @@ function PatientDetailPage() {
 
   
   console.log("PatientDetailPage init for ID:", id);
+  addLog(`Montando componente de detalhes para ID: ${id}`);
 
   const patient = useQuery({ 
     queryKey: ["patient", id], 
     queryFn: async () => {
       console.log("Fetching patient data for ID:", id);
+      addLog(`Buscando dados no Supabase...`);
       const data = await fetchPatient(id);
       if (!data) {
         console.warn("No patient found for ID:", id);
-        addLog("ERRO: Paciente não encontrado no banco de dados");
+        addLog("ERRO: Paciente não retornado pela API");
       } else {
-        addLog(`Paciente carregado: ${data.name}`);
+        addLog(`Dados recebidos para: ${data.name}`);
+        // Também atualizar o título da página para feedback visual imediato
+        document.title = `${data.name} | Perfil do Paciente`;
       }
       return data;
     },
     retry: 1,
-    meta: { errorMessage: "Erro ao carregar dados do paciente" }
+    staleTime: 0, // Garantir que sempre busque dados novos ao entrar
   });
   
   const cases = useQuery({ 
@@ -308,7 +315,7 @@ function PatientDetailPage() {
 
       <CaseDetailDialog caseRow={selected} open={!!selected} onOpenChange={(o) => !o && setSelected(null)} />
       
-      <FloatingLog title="Depurador de Perfil" logs={logs} />
+      <FloatingLog title="Log de Navegação" logs={logs} />
     </div>
   );
 }

@@ -25,7 +25,15 @@ export const Route = createFileRoute("/_authenticated/patients")({
 function PatientsPage() {
   const qc = useQueryClient();
   const navigate = Route.useNavigate();
-  const patients = useQuery({ queryKey: ["patients"], queryFn: fetchPatients });
+  const patients = useQuery({ 
+    queryKey: ["patients"], 
+    queryFn: async () => {
+      addLog("Iniciando busca de pacientes...");
+      const data = await fetchPatients();
+      addLog(`${data?.length || 0} pacientes carregados do banco`);
+      return data;
+    }
+  });
   const reveal = useListReveal("patients-grid", patients.isPending && !patients.data);
   const [openNew, setOpenNew] = useState(false);
   const [editPatient, setEditPatient] = useState<Patient | null>(null);
@@ -34,7 +42,10 @@ function PatientsPage() {
   const [logs, setLogs] = useState<string[]>(["Página de pacientes carregada", "Monitor de eventos pronto"]);
 
   const addLog = (msg: string) => {
-    setLogs(prev => [...prev.slice(-49), `${new Date().toLocaleTimeString()} - ${msg}`]);
+    setLogs(prev => {
+      const newLogs = [...prev, `${new Date().toLocaleTimeString()} - ${msg}`];
+      return newLogs.slice(-50);
+    });
   };
 
 
@@ -105,7 +116,7 @@ function PatientsPage() {
             style={reveal.itemProps(i).style}
             className={`${reveal.itemProps(i).className} cursor-pointer bg-transparent py-8 flex items-center gap-8 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-all duration-300 group no-underline text-inherit border-b border-slate-100 dark:border-white/5 w-full`}
             onClick={(e) => {
-              addLog(`Acessando perfil do paciente: ${p.name}`);
+              addLog(`Acessando perfil do paciente: ${p.name} (ID: ${p.id.substring(0,8)}...)`);
               console.log("Navigating to patient profile:", p.id);
             }}
           >
