@@ -96,7 +96,7 @@ function PatientDetailPage() {
 
   const p = patient.data;
 
-  if (patient.isLoading) {
+  if (patient.isLoading || (!patient.data && patient.isFetching)) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="h-12 w-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
