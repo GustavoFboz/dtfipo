@@ -1677,9 +1677,11 @@ export function NewCaseDialog({
           ) : (
             <>
               <Button variant="ghost" onClick={discardAndClose} className="rounded-full">Cancelar</Button>
-              <Button onClick={() => submit.mutate()} disabled={submit.isPending} className="min-w-[160px] rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-normal">
-                {submit.isPending ? "Salvando..." : isEdit ? "Salvar alterações" : "Cadastrar caso"}
-              </Button>
+              {(isCreate || (isEdit && isSolicitante && !editCase?.cadista_id) || (isEdit && !isSolicitante)) && (
+                <Button onClick={() => submit.mutate()} disabled={submit.isPending} className="min-w-[160px] rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-normal">
+                  {submit.isPending ? "Salvando..." : isEdit ? "Salvar alterações" : "Cadastrar caso"}
+                </Button>
+              )}
             </>
           )}
           </div>
