@@ -373,6 +373,7 @@ export function GlobalSearch() {
       <div className="relative group">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
         <Input
+          ref={inputRef}
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
@@ -380,8 +381,13 @@ export function GlobalSearch() {
           }}
           onFocus={() => setIsOpen(true)}
           placeholder="Pesquisar no DentalFlow..."
-          className="pl-11 pr-12 h-11 w-full rounded-full border-slate-100 dark:border-white/10 bg-white dark:bg-white/5 focus-visible:ring-primary/20 focus-visible:bg-white dark:focus-visible:bg-slate-900 transition-all text-sm font-light shadow-sm"
+          className="pl-11 pr-24 h-11 w-full rounded-full border-slate-100 dark:border-white/10 bg-white dark:bg-white/5 focus-visible:ring-primary/20 focus-visible:bg-white dark:focus-visible:bg-slate-900 transition-all text-sm font-light shadow-sm"
         />
+        
+        <div className="absolute right-12 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 px-2 py-1 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 opacity-60 group-focus-within:opacity-0 transition-opacity pointer-events-none">
+          <Command className="h-2.5 w-2.5 text-slate-500" />
+          <span className="text-[10px] font-medium text-slate-500">K</span>
+        </div>
         
         <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
           {query && (
