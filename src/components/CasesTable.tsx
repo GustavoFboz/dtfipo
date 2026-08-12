@@ -6,6 +6,7 @@ import { Link } from "@tanstack/react-router";
 import {
   fetchCases, fetchStages, finishCase, updateCase, setCurrentStage, deleteCase, fetchProfile, reopenCase
 } from "@/lib/api";
+import { markDeleted } from "@/lib/optimistic";
 import { openFolderLink, copyToClipboard } from "@/lib/folder";
 import { normalizeText } from "@/lib/utils";
 import { StageBadge } from "./StageBadge";
