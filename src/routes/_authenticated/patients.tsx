@@ -98,15 +98,16 @@ function PatientsPage() {
       <div className="flex flex-col w-full">
         <div className="border-t border-slate-100 dark:border-white/5 w-full" />
         {filtered.map((p, i) => (
-          <Link
+          <div
             key={p.id}
-            to="/patients/$id"
-            params={{ id: p.id }}
             style={reveal.itemProps(i).style}
             className={`${reveal.itemProps(i).className} cursor-pointer bg-transparent py-8 flex items-center gap-8 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-all duration-300 group no-underline text-inherit border-b border-slate-100 dark:border-white/5 w-full`}
             onClick={(e) => {
-              addLog(`Acessando perfil do paciente: ${p.name}`);
+              addLog(`Acessando perfil do paciente: ${p.name} (ID: ${p.id.substring(0,8)}...)`);
               console.log("Navigating to patient profile:", p.id);
+              // Use direct window navigation if TanStack Router Link is failing
+              // or navigate programmatically to ensure it works
+              navigate({ to: "/patients/$id", params: { id: p.id } });
             }}
           >
             <div className="h-14 w-14 rounded-full bg-slate-50 dark:bg-slate-800 grid place-items-center text-slate-400 shrink-0 overflow-hidden">
