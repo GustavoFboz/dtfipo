@@ -112,7 +112,7 @@ export function ToothWorkPanel({
   return (
     <div
       className={cn(
-        "absolute inset-y-0 left-0 w-full lg:w-[58.3333%] z-30 flex flex-col",
+        "absolute inset-y-0 left-0 w-full lg:w-[calc(100%/(1+0.8))] z-30 flex flex-col",
         "bg-white/85 backdrop-blur-sm",
         "border border-border rounded-2xl m-2",
         exiting
