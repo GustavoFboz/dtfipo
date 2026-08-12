@@ -161,11 +161,11 @@ export function CasesTable({
   const isCadista = profile?.role === "CADISTA";
 
   const cases = useQuery({
-    queryKey: ["cases", "all"],
-    queryFn: () => fetchCases("all"),
-    staleTime: 60_000, 
-    refetchOnWindowFocus: false,
-    refetchInterval: 300_000,
+    queryKey: ["cases", activeFilter],
+    queryFn: () => fetchCases(activeFilter === "finalizados" ? "finished" : (activeFilter === "deleted" || activeFilter === "cancelado" ? "deleted" : "active")),
+    staleTime: 30_000, 
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
   });
 
   const reveal = useListReveal("cases-table", cases.isLoading);
