@@ -24,10 +24,7 @@ function PatientDetailPage() {
   const qc = useQueryClient();
   const isMobile = useIsMobile();
   
-  if (typeof window !== 'undefined') {
-    console.log("PatientDetailPage init for ID:", id);
-    alert("CARREGANDO PÁGINA DO PACIENTE ID: " + id);
-  }
+  console.log("PatientDetailPage init for ID:", id);
 
   const patient = useQuery({ 
     queryKey: ["patient", id], 
