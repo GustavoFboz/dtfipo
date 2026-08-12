@@ -2094,6 +2094,7 @@ export type Database = {
         Args: { _case_id: string; _stage_id?: string }
         Returns: Json
       }
+      backend_schema_hash: { Args: never; Returns: string }
       can_access_case: { Args: { _case_id: string }; Returns: boolean }
       consume_case_stock: {
         Args: { _case_id: string; _user?: string }
@@ -2104,6 +2105,7 @@ export type Database = {
         Returns: Json
       }
       current_user_is_admin: { Args: never; Returns: boolean }
+      export_backup: { Args: never; Returns: string }
       generate_user_code: { Args: never; Returns: string }
       has_any_role: {
         Args: {
