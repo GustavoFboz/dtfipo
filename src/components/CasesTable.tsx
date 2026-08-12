@@ -892,7 +892,11 @@ export function CasesTable({
                 </div>
                 <div className="min-w-0">
                   <div
-                    className="font-black text-[15px] text-slate-900 truncate block font-outfit"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.location.href = `/patients/${c.patient_id}`;
+                    }}
+                    className="font-black text-[15px] text-slate-900 truncate block font-outfit hover:text-primary transition-colors cursor-pointer"
                   >
                     {c.patient?.name ?? "—"}
                     {c.arch && <span className="ml-2 text-[10px] font-black uppercase text-slate-400 tracking-wider">[{archLabel(c.arch)}]</span>}
