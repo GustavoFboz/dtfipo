@@ -1652,8 +1652,9 @@ export function NewCaseDialog({
             </div>
           )}
         </div>
+      </div>
 
-          <DialogFooter className="px-6 py-4 border-t border-border/60 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md shrink-0 sm:justify-between sm:items-center">
+      <DialogFooter className="px-6 py-4 border-t border-border/60 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md shrink-0 sm:justify-between sm:items-center">
             {isCreate && profile?.full_name ? (
               <div className="text-xs text-muted-foreground font-light">
                 Protético responsável: <span className="text-foreground/80">{profile.full_name}</span>
