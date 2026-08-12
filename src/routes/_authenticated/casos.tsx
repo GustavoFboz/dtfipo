@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Search, ChevronRight, Filter, X, Trash2, CalendarDays, FileDown } from "lucide-react";
 import { useNow } from "@/hooks/use-now";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { fetchDoctors, fetchCadistas, fetchStages, fetchCases } from "@/lib/api";
+import { fetchDoctors, fetchCadistas, fetchStages, fetchCases, fetchProfile } from "@/lib/api";
 import { generateCasesReport } from "@/lib/reports";
 import { GeneratingReportDialog } from "@/components/GeneratingReportDialog";
 import { toast } from "sonner";

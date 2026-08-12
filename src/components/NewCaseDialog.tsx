@@ -122,7 +122,6 @@ export function NewCaseDialog({
   const isSolicitante = profile?.role === "SOLICITANTE";
   // Solicitantes can create cases and see all fields, but only see their own requests
   const isEdit = !!editCase && !isView;
-  const isEdit = !!editCase && !isView;
   const isCreate = !isView && !isEdit;
   const [openState, setOpenState] = useState(false);
   const open = openProp !== undefined ? openProp : openState;
