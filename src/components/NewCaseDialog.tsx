@@ -834,11 +834,11 @@ export function NewCaseDialog({
             </button>
           </header>
 
-        <div className={`relative grid grid-cols-1 lg:grid-cols-12 gap-0 flex-1 min-h-0 z-10 ${isView ? "overflow-y-auto" : "overflow-hidden"}`}>
+        <div className={`relative grid grid-cols-1 lg:grid-cols-2 gap-0 flex-1 min-h-0 z-10 ${isView ? "overflow-y-auto" : "overflow-hidden"}`}>
           <div
             {...(isView ? { inert: "" as unknown as boolean } : {})}
             aria-disabled={isView || undefined}
-            className={`lg:col-span-5 px-5 py-4 lg:px-6 lg:py-5 min-h-0 flex flex-col overflow-y-auto ${isView ? "pointer-events-none select-none opacity-95" : ""}`}
+            className={`px-5 py-4 lg:px-6 lg:py-5 min-h-0 flex flex-col overflow-y-auto border-r border-slate-100/50 ${isView ? "pointer-events-none select-none opacity-95" : ""}`}
             onKeyDown={(e) => {
               if (!isCreate) return;
               if (e.key !== "Enter" || e.shiftKey) return;
