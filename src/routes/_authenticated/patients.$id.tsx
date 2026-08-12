@@ -41,6 +41,7 @@ function PatientDetailPage() {
 
   
   console.log("PatientDetailPage init for ID:", id);
+  addLog(`Montando componente de detalhes para ID: ${id}`);
 
   const patient = useQuery({ 
     queryKey: ["patient", id], 
