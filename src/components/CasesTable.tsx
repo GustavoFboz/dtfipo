@@ -154,7 +154,7 @@ export function CasesTable({
   const [deleting, setDeleting] = useState<CaseRow | null>(null);
   const [folderEdit, setFolderEdit] = useState<{ row: CaseRow; url: string } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkAction, setBulkAction] = useState<null | "finish" | "delete">(null);
+  const [bulkAction, setBulkAction] = useState<null | "finish" | "delete" | "archive" | "reopen">(null);
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
   const isCadista = profile?.role === "CADISTA";
