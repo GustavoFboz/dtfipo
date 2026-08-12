@@ -157,14 +157,15 @@ export function CasesTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<null | "finish" | "delete" | "archive" | "reopen">(null);
 
-  const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
+  const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile, staleTime: 300_000 });
   const isCadista = profile?.role === "CADISTA";
 
   const cases = useQuery({
     queryKey: ["cases", "all"],
     queryFn: () => fetchCases("all"),
-    staleTime: 30_000, // Aumentado para 30s para evitar excesso de requisições
-    refetchOnWindowFocus: false, // Desativado para evitar lentidão ao trocar de aba
+    staleTime: 60_000, // Aumentado para 60s
+    refetchOnWindowFocus: false,
+    refetchInterval: 120_000, // Refetch a cada 2 minutos
   });
 
   const reveal = useListReveal("cases-table", cases.isLoading);
