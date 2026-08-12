@@ -22,6 +22,7 @@ export const Route = createFileRoute("/_authenticated/patients")({
 
 function PatientsPage() {
   const qc = useQueryClient();
+  const navigate = Route.useNavigate();
   const patients = useQuery({ queryKey: ["patients"], queryFn: fetchPatients });
   const reveal = useListReveal("patients-grid", patients.isPending && !patients.data);
   const [openNew, setOpenNew] = useState(false);
