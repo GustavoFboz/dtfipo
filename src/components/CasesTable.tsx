@@ -338,18 +338,24 @@ export function CasesTable({
     const q = search ? normalizeText(search) : "";
     
     const f = list.filter((c) => {
-      // Apply the new status-based tag filter
-      if (activeFilter === "deleted" || activeFilter === "cancelado") {
-        if (c.status !== "cancelado") return false;
-      } else if (activeFilter === "em_andamento") {
+      // If we're already fetching by a specific scope in the API, 
+      // the filter here is mostly redundant but we keep it for safety
+      // and for the "atrasados" logic which is client-side.
+      
+      if (activeFilter === "em_andamento") {
         if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
       } else if (activeFilter === "atrasados") {
         if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
         if (!isLate(c.delivery_date)) return false;
       } else if (activeFilter === "finalizados") {
-        if (!c.finished_at && c.status !== "finalizado") return false;
+        // Special logic for "finalizados" filter: 
+        // Show everything the server returned (which includes last 30 days)
+        // No client-side exclusion here unless explicitly canceled
+        if (c.status === "cancelado") return false;
       } else if (activeFilter === "arquivados") {
         if (c.status !== "arquivado") return false;
+      } else if (activeFilter === "deleted" || activeFilter === "cancelado") {
+        if (c.status !== "cancelado") return false;
       }
 
       if (q) {
