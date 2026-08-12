@@ -1063,4 +1063,5 @@ export function CasesTable({
         </AlertDialog>
       </div>
     );
+  }
 }
