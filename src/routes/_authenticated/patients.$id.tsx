@@ -315,7 +315,7 @@ function PatientDetailPage() {
 
       <CaseDetailDialog caseRow={selected} open={!!selected} onOpenChange={(o) => !o && setSelected(null)} />
       
-      <FloatingLog title="Depurador de Perfil" logs={logs} />
+      <FloatingLog title="Log de Navegação" logs={logs} />
     </div>
   );
 }
