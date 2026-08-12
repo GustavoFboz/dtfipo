@@ -25,7 +25,15 @@ export const Route = createFileRoute("/_authenticated/patients")({
 function PatientsPage() {
   const qc = useQueryClient();
   const navigate = Route.useNavigate();
-  const patients = useQuery({ queryKey: ["patients"], queryFn: fetchPatients });
+  const patients = useQuery({ 
+    queryKey: ["patients"], 
+    queryFn: async () => {
+      addLog("Iniciando busca de pacientes...");
+      const data = await fetchPatients();
+      addLog(`${data?.length || 0} pacientes carregados do banco`);
+      return data;
+    }
+  });
   const reveal = useListReveal("patients-grid", patients.isPending && !patients.data);
   const [openNew, setOpenNew] = useState(false);
   const [editPatient, setEditPatient] = useState<Patient | null>(null);
