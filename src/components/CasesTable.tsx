@@ -353,10 +353,17 @@ export function CasesTable({
 
       if (search) {
         const q = normalizeText(search);
-        const haystack = normalizeText([
-          c.patient?.name, c.doctor?.name, c.cadista?.name, c.case_type?.name,
-          c.tooth_color?.code, c.case_label, c.case_number, c.entry_date, c.delivery_date,
-        ].filter(Boolean).join(" "));
+        const haystack = normalizeText(
+          (c.patient?.name || "") + " " +
+          (c.doctor?.name || "") + " " +
+          (c.cadista?.name || "") + " " +
+          (c.case_type?.name || "") + " " +
+          (c.tooth_color?.code || "") + " " +
+          (c.case_label || "") + " " +
+          (c.case_number || "") + " " +
+          (c.entry_date || "") + " " +
+          (c.delivery_date || "")
+        );
         if (!haystack.includes(q)) return false;
       }
       if (stageFilter !== "all") {
