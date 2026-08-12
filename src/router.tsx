@@ -74,8 +74,8 @@ export const getRouter = () => {
     defaultOptions: {
       queries: {
         // Reduzido para diminuir uso de memória em abas de longa duração
-        staleTime: 30_000,
-        gcTime: 5 * 60_000,
+        staleTime: 60_000,
+        gcTime: 15 * 60_000,
         refetchOnMount: false,
         refetchOnReconnect: "always",
         refetchOnWindowFocus: false,

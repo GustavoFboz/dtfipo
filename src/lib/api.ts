@@ -156,7 +156,7 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
     }
   }
 
-  const { data, error } = await query.order("updated_at", { ascending: false }).limit(200);
+  const { data, error } = await query.order("updated_at", { ascending: false }).limit(50);
   if (error) throw error;
   return (data ?? []) as unknown as CaseRow[];
 }
