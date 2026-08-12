@@ -36,7 +36,11 @@ export const Route = createFileRoute("/lp")({
 
 function LandingPage() {
   const handleAuth = (mode?: "company" | "employee" | "user") => {
-    window.location.href = `/auth${mode ? `?mode=${mode}` : ''}`;
+    if (mode === "company") {
+      window.location.href = "/auth?mode=signup";
+    } else {
+      window.location.href = "/auth";
+    }
   };
 
   return (
