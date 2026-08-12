@@ -257,12 +257,12 @@ export function CasesTable({
       } else if (activeFilter === "cancelado") {
         if (c.status !== "cancelado") return false;
       } else if (activeFilter === "em_andamento") {
-        if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
+        if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
       } else if (activeFilter === "atrasados") {
-        if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
+        if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
         if (!isLate(c.delivery_date)) return false;
       } else if (activeFilter === "finalizados") {
-        if (!c.finished && c.status !== "finalizado") return false;
+        if (!c.finished_at && c.status !== "finalizado") return false;
       } else if (activeFilter === "arquivados") {
         if (c.status !== "arquivado") return false;
       }
@@ -337,9 +337,9 @@ export function CasesTable({
     const list = cases.data;
     const counts = {
       all: list.length,
-      em_andamento: list.filter(c => !c.finished && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado").length,
-      atrasados: list.filter(c => !c.finished && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado" && isLate(c.delivery_date)).length,
-      finalizados: list.filter(c => c.finished || c.status === "finalizado").length,
+      em_andamento: list.filter(c => !c.finished_at && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado").length,
+      atrasados: list.filter(c => !c.finished_at && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado" && isLate(c.delivery_date)).length,
+      finalizados: list.filter(c => c.finished_at || c.status === "finalizado").length,
       arquivados: list.filter(c => c.status === "arquivado").length,
       deleted: list.filter(c => c.status === "cancelado").length,
     };

@@ -2097,7 +2097,7 @@ export type Database = {
       can_access_case: { Args: { _case_id: string }; Returns: boolean }
       consume_case_stock: {
         Args: { _case_id: string; _user?: string }
-        Returns: Json
+        Returns: undefined
       }
       create_implant_system_with_stock: {
         Args: { _components?: Json; _line?: string; _name: string }
@@ -2152,7 +2152,7 @@ export type Database = {
       reverse_all_case_stock: { Args: { _case_id: string }; Returns: Json }
       reverse_case_stock: {
         Args: { _case_id: string; _user?: string }
-        Returns: Json
+        Returns: undefined
       }
       seed_default_workflow: { Args: never; Returns: Json }
       update_team_member:

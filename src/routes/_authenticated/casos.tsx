@@ -77,6 +77,7 @@ function Index() {
     setIsGeneratingReport(true);
     try {
       const allCases = await fetchCases("all");
+      console.log("Found cases for report:", allCases.length);
       
       // Manually filter based on the same logic as the UI
       const filtered = allCases.filter((c) => {
@@ -88,7 +89,7 @@ function Index() {
           if (currentActiveFilter === "deleted") {
             if (c.status !== "cancelado") return false;
           } else if (currentActiveFilter === "em_andamento") {
-            if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
+            if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
           } else if (currentActiveFilter === "atrasados") {
             const isLate = (d: string | null | undefined) => {
               if (!d) return false;
@@ -96,10 +97,10 @@ function Index() {
                 return new Date(d + "T00:00:00").getTime() < new Date().setHours(0,0,0,0);
               } catch { return false; }
             };
-            if (c.finished || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
+            if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
             if (!isLate(c.delivery_date)) return false;
           } else if (currentActiveFilter === "finalizados") {
-            if (!c.finished && c.status !== "finalizado") return false;
+            if (!c.finished_at && c.status !== "finalizado") return false;
           } else if (currentActiveFilter === "arquivados") {
             if (c.status !== "arquivado") return false;
           }

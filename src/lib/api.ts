@@ -164,10 +164,10 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
 export async function restoreCase(id: string) {
   const { error } = await supabase
     .from("cases")
-    .update({ status: "em_andamento", finished: false } as any)
+    .update({ status: "em_andamento", finished_at: null } as any)
     .eq("id", id);
   if (error) throw error;
-  try { broadcastEntity("cases", "update", { id, status: "em_andamento", finished: false }); } catch {}
+  try { broadcastEntity("cases", "update", { id, status: "em_andamento", finished_at: null }); } catch {}
 }
 
 export async function permanentDeleteCase(id: string) {
@@ -524,7 +524,7 @@ export const updateCase = async (id: string, patch: Record<string, unknown>) => 
 };
 
 export const finishCase = async (id: string) => {
-  await updateCase(id, { status: "finalizado", finished: true, finished_at: new Date().toISOString() });
+  await updateCase(id, { status: "finalizado", finished_at: new Date().toISOString() });
   try {
     const { consumeCaseStock } = await import("./stock");
     await consumeCaseStock(id);
