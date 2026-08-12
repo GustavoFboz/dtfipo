@@ -25,6 +25,9 @@ function PatientDetailPage() {
   const isMobile = useIsMobile();
   
   console.log("PatientDetailPage init for ID:", id);
+  if (typeof window !== 'undefined') {
+    window.alert("PatientDetailPage mounting for ID: " + id);
+  }
 
   const patient = useQuery({ 
     queryKey: ["patient", id], 
