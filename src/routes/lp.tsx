@@ -1,5 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   Workflow,
@@ -36,21 +35,9 @@ export const Route = createFileRoute("/lp")({
 });
 
 function LandingPage() {
-  const navigate = useNavigate();
   const handleAuth = (mode?: "company" | "employee" | "user") => {
-    console.log("handleAuth triggered with mode:", mode);
     window.location.href = `/auth${mode ? `?mode=${mode}` : ''}`;
   };
-
-  useEffect(() => {
-    const handleGlobalClick = (e: MouseEvent) => {
-      console.log("Global click at:", e.clientX, e.clientY);
-      const target = e.target as HTMLElement;
-      console.log("Target:", target.tagName, target.className);
-    };
-    window.addEventListener('click', handleGlobalClick);
-    return () => window.removeEventListener('click', handleGlobalClick);
-  }, []);
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
