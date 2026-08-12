@@ -259,8 +259,8 @@ export function TeethSelector({
         try {
           const bb = (svg as any).getBBox?.();
           if (bb && bb.width > 0 && bb.height > 0) {
-            const padX = 0;
-            const padY = 0;
+            const padX = bb.width * 0.01;
+            const padY = bb.height * 0.01;
             svg.setAttribute(
               "viewBox",
               `${bb.x} ${bb.y} ${bb.width} ${bb.height}`,
