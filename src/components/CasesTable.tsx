@@ -338,10 +338,12 @@ export function CasesTable({
     const q = search ? normalizeText(search) : "";
     
     const f = list.filter((c) => {
-      // If we're already fetching by a specific scope in the API, 
-      // the filter here is mostly redundant but we keep it for safety
-      // and for the "atrasados" logic which is client-side.
+      // "Todos" should only show active cases (not finished, archived, or canceled)
+      if (activeFilter === "all") {
+        if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado" || c.status === "finished") return false;
+      }
       
+      // Apply the other status-based tag filters
       if (activeFilter === "em_andamento") {
         if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
       } else if (activeFilter === "atrasados") {
