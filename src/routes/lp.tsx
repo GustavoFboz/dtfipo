@@ -37,6 +37,7 @@ export const Route = createFileRoute("/lp")({
 function LandingPage() {
   const navigate = useNavigate();
   const handleAuth = (mode?: "company" | "employee" | "user") => {
+    console.log("handleAuth called with mode:", mode);
     navigate({ to: "/auth", search: { invite: undefined, mode } });
   };
 
