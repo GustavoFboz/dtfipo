@@ -815,7 +815,7 @@ export function NewCaseDialog({
                 {isView ? "Detalhes do caso" : isEdit ? "Editar caso" : "Nova entrada"}
               </div>
               <h2 className="text-3xl lg:text-4xl font-extralight text-foreground tracking-[-0.03em] leading-[1.05] truncate">
-                {isView ? (viewCase?.patient?.name ?? "Caso") : isEdit ? "Editar caso" : "Cadastrar novo caso"}
+                {isView ? (viewCase?.patient?.name ?? "Caso") : (isEdit || editCase) ? "Editar caso" : "Cadastrar novo caso"}
               </h2>
               <p className="text-sm text-muted-foreground mt-2 font-light">
                 {isView
