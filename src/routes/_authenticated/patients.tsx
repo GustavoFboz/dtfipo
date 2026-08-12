@@ -98,7 +98,7 @@ function PatientsPage() {
             to="/patients/$id"
             params={{ id: p.id }}
             style={reveal.itemProps(i).style}
-            className={`${reveal.itemProps(i).className} bg-card rounded-2xl border border-border/60 p-4 flex items-center gap-3 hover:shadow-[var(--shadow-card)] hover:border-primary/40 transition group no-underline text-inherit`}
+            className={`${reveal.itemProps(i).className} cursor-pointer bg-card rounded-2xl border border-border/60 p-4 flex items-center gap-3 hover:shadow-[var(--shadow-card)] hover:border-primary/40 transition group no-underline text-inherit`}
           >
             <div className="h-12 w-12 rounded-full bg-muted grid place-items-center text-muted-foreground shrink-0 overflow-hidden">
               {p.photo_url ? (

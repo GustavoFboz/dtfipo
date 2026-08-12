@@ -25,8 +25,17 @@ function PatientDetailPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const isMobile = useIsMobile();
-  const patient = useQuery({ queryKey: ["patient", id], queryFn: () => fetchPatient(id) });
-  const cases = useQuery({ queryKey: ["patient_cases", id], queryFn: () => fetchPatientCases(id) });
+  const patient = useQuery({ 
+    queryKey: ["patient", id], 
+    queryFn: () => fetchPatient(id),
+    retry: 1,
+    meta: { errorMessage: "Erro ao carregar dados do paciente" }
+  });
+  const cases = useQuery({ 
+    queryKey: ["patient_cases", id], 
+    queryFn: () => fetchPatientCases(id),
+    retry: 1
+  });
   const [selected, setSelected] = useState<CaseRow | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [newCaseOpen, setNewCaseOpen] = useState(false);
@@ -49,6 +58,31 @@ function PatientDetailPage() {
   }, [cases.data]);
 
   const p = patient.data;
+
+  if (patient.isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="h-12 w-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+        <p className="text-muted-foreground animate-pulse">Carregando dados do paciente...</p>
+      </div>
+    );
+  }
+
+  if (patient.error || (!patient.data && !patient.isFetching)) {
+    return (
+      <div className="p-10 text-center">
+        <h2 className="text-2xl font-light mb-4 text-destructive">Paciente não encontrado</h2>
+        <p className="text-muted-foreground mb-6">
+          Não foi possível localizar os dados deste paciente ou você não tem permissão para acessá-los.
+        </p>
+        <Link to="/patients">
+          <Button variant="outline" className="gap-2">
+            <ArrowLeft className="h-4 w-4" /> Voltar para a lista
+          </Button>
+        </Link>
+      </div>
+    );
+  }
 
   if (isMobile) {
     return (

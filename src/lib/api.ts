@@ -196,13 +196,29 @@ export const fetchPatients = async (): Promise<Patient[]> => {
 };
 
 export const fetchPatient = async (id: string): Promise<Patient | null> => {
+  console.log('Fetching patient:', id);
   const { data, error } = await supabase
     .from("patients")
     .select("*, cases(*)")
     .eq("id", id)
     .maybeSingle();
-  if (error) throw error;
-  return (data ?? null) as unknown as Patient | null;
+  
+  if (error) {
+    console.error('Error fetching patient:', error);
+    throw error;
+  }
+  
+  if (!data) {
+    console.warn('Patient not found:', id);
+    return null;
+  }
+
+  // Fallback for fields that might be missing in some schemas but present in types
+  return {
+    ...data,
+    first_name: data.first_name || data.name?.split(' ')[0] || null,
+    last_name: data.last_name || data.name?.split(' ').slice(1).join(' ') || null,
+  } as unknown as Patient;
 };
 
 export const fetchDoctors = async (): Promise<Doctor[]> => {
