@@ -31,8 +31,8 @@ export function PatientCombobox({ patients, selectedId, newName, onSelectExistin
   const exactMatch = patients.some((p) => normalizeText(p.name) === normalizeText(query));
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={false}>
-      <PopoverAnchor asChild>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
+      <PopoverTrigger asChild>
         <button
           type="button"
           className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm hover:bg-accent/40"
