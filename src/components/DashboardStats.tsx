@@ -22,6 +22,8 @@ export function DashboardStats({ onOpenDentes }: { onOpenDentes?: () => void }) 
     const total = list.length;
     const finishedCount = list.filter((c) => !!c.finished_at).length;
     const activeCount = total - finishedCount;
+    
+    const solicitacoes = (active ?? []).filter(c => !!c.requested_by && !c.cadista_id).length;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -40,8 +42,8 @@ export function DashboardStats({ onOpenDentes }: { onOpenDentes?: () => void }) 
 
     return [
       { value: activeCount, label: "Casos Ativos" },
+      { value: solicitacoes, label: "Solicitações" },
       { value: late, label: "Casos Atrasados" },
-      { value: thisMonth, label: "Casos este Mês" },
       { value: finishedCount, label: "Finalizados" },
     ];
   }, [active, finished]);
