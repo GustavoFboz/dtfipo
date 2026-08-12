@@ -161,11 +161,11 @@ export function CasesTable({
   const isCadista = profile?.role === "CADISTA";
 
   const cases = useQuery({
-    queryKey: ["cases", "all"],
-    queryFn: () => fetchCases("all"),
-    staleTime: 60_000, 
-    refetchOnWindowFocus: false,
-    refetchInterval: 300_000,
+    queryKey: ["cases", activeFilter],
+    queryFn: () => fetchCases(activeFilter === "finalizados" ? "finished" : (activeFilter === "deleted" || activeFilter === "cancelado" ? "deleted" : "active")),
+    staleTime: 30_000, 
+    refetchOnWindowFocus: true,
+    refetchInterval: 60_000,
   });
 
   const reveal = useListReveal("cases-table", cases.isLoading);
@@ -338,18 +338,24 @@ export function CasesTable({
     const q = search ? normalizeText(search) : "";
     
     const f = list.filter((c) => {
-      // Apply the new status-based tag filter
-      if (activeFilter === "deleted" || activeFilter === "cancelado") {
-        if (c.status !== "cancelado") return false;
-      } else if (activeFilter === "em_andamento") {
+      // If we're already fetching by a specific scope in the API, 
+      // the filter here is mostly redundant but we keep it for safety
+      // and for the "atrasados" logic which is client-side.
+      
+      if (activeFilter === "em_andamento") {
         if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
       } else if (activeFilter === "atrasados") {
         if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
         if (!isLate(c.delivery_date)) return false;
       } else if (activeFilter === "finalizados") {
-        if (!c.finished_at && c.status !== "finalizado") return false;
+        // Special logic for "finalizados" filter: 
+        // Show everything the server returned (which includes last 30 days)
+        // No client-side exclusion here unless explicitly canceled
+        if (c.status === "cancelado") return false;
       } else if (activeFilter === "arquivados") {
         if (c.status !== "arquivado") return false;
+      } else if (activeFilter === "deleted" || activeFilter === "cancelado") {
+        if (c.status !== "cancelado") return false;
       }
 
       if (q) {

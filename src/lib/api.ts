@@ -139,7 +139,12 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
   if (scope === "active") {
     query = query.not("status", "in", '("finalizado","arquivado","cancelado","finished")');
   } else if (scope === "finished") {
-    query = query.or('status.eq.finalizado,status.eq.arquivado');
+    // Return all cases from the last 30 days OR explicitly finished/archived
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const isoString = thirtyDaysAgo.toISOString().split('T')[0];
+    
+    query = query.or(`status.eq.finalizado,status.eq.arquivado,status.eq.finished,entry_date.gte.${isoString}`);
   } else if (scope === "deleted") {
     query = query.eq("status", "cancelado");
   }
