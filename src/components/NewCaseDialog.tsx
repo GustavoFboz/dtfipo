@@ -15,6 +15,12 @@ import {
 import {
   Popover, PopoverContent, PopoverTrigger, PopoverAnchor,
 } from "@/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Camera, Plus, Sparkles, X, ChevronsUpDown, Check, Anchor, ScanLine, FileUp, Box, Wrench, Monitor } from "lucide-react";
 import { startFileUpload } from "@/lib/upload-manager";
 import { promptDialog } from "@/lib/confirm";
