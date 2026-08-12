@@ -1636,7 +1636,7 @@ export function NewCaseDialog({
             </div>
           )}
           {isView && viewCase && (
-            <div className="lg:col-span-12 border-t border-border p-6 space-y-6 bg-background">
+            <div className="lg:col-span-2 border-t border-border p-6 space-y-6 bg-background">
               <div data-case-section="attachments">
                 <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
                   <Paperclip className="h-4 w-4 text-primary" /> Arquivos do caso
