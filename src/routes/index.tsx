@@ -22,7 +22,7 @@ export const Route = createFileRoute("/")({
           if (typeof e === 'object' && e !== null && ('status' in e || 'isRedirect' in e || 'statusText' in e)) throw e;
         }
       }
-      throw redirect({ to: "/casos" });
+      return redirect({ to: "/casos" });
     }
     
     throw redirect({ to: "/lp" });
