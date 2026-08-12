@@ -9,10 +9,12 @@ export function DashboardStats({ onOpenDentes }: { onOpenDentes?: () => void }) 
   const { data: active } = useQuery({
     queryKey: ["cases", "active"],
     queryFn: () => fetchCases("active"),
+    staleTime: 60_000,
   });
   const { data: finished } = useQuery({
     queryKey: ["cases", "finished"],
     queryFn: () => fetchCases("finished"),
+    staleTime: 60_000,
   });
 
   const stats = useMemo(() => {
