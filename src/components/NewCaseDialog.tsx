@@ -1204,7 +1204,7 @@ export function NewCaseDialog({
           <aside
             {...(isView ? { inert: "" as unknown as boolean } : {})}
             aria-disabled={isView || undefined}
-            className={`lg:col-span-7 p-6 flex flex-col border-l border-border/60 min-h-0 h-full overflow-y-auto ${isView ? "pointer-events-none select-none opacity-95" : ""}`}
+            className={`p-6 flex flex-col min-h-0 h-full overflow-y-auto bg-slate-50/30 ${isView ? "pointer-events-none select-none opacity-95" : ""}`}
           >
             <div className={isCreate ? "flex flex-col flex-1 min-h-0 gap-5" : "space-y-5"}>
               <div className={isCreate ? "flex flex-col flex-1 min-h-0 gap-3" : "space-y-3"}>
