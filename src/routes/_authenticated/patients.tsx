@@ -60,14 +60,14 @@ function PatientsPage() {
 
 
   return (
-    <div className="max-w-[1600px] mx-auto w-full px-6 md:px-16 py-8 md:py-10">
-      <div className="flex items-center justify-between mb-8">
+    <div className="mx-auto w-full px-4 md:px-8 py-8 md:py-10">
+      <div className="flex items-center justify-between mb-12">
         <div>
           <h1 className="text-3xl font-light text-slate-900 tracking-tight">Pacientes</h1>
-          <p className="text-slate-500 text-sm mt-1">Gerencie seu cadastro de pacientes</p>
+          <p className="text-slate-500 text-sm mt-1 font-light">Gerencie seu cadastro de pacientes</p>
         </div>
         <div className="flex gap-2 items-center">
-          <Button className="h-11 px-6 rounded-xl gap-2 shadow-lg shadow-primary/20" onClick={() => setOpenNew(true)}>
+          <Button className="h-11 px-6 rounded-full gap-2 shadow-lg shadow-primary/20" onClick={() => setOpenNew(true)}>
             <Plus className="h-4 w-4" /> Novo paciente
           </Button>
         </div>
@@ -87,34 +87,34 @@ function PatientsPage() {
         animateContent={false}
         skeleton={<SkeletonCardGrid count={9} />}
       >
-      <div className="flex flex-col gap-2 max-w-4xl mx-auto">
-
+      <div className="flex flex-col w-full">
+        <div className="border-t border-slate-100 dark:border-white/5 w-full" />
         {filtered.map((p, i) => (
           <Link
             key={p.id}
             to="/patients/$id"
             params={{ id: p.id }}
             style={reveal.itemProps(i).style}
-            className={`${reveal.itemProps(i).className} cursor-pointer bg-white dark:bg-slate-900 rounded-none border-b border-slate-100 dark:border-white/5 p-5 flex items-center gap-5 hover:bg-slate-50 dark:hover:bg-white/5 transition-all duration-300 group no-underline text-inherit first:rounded-t-2xl last:rounded-b-2xl last:border-b-0 shadow-sm first:border-t`}
+            className={`${reveal.itemProps(i).className} cursor-pointer bg-transparent py-8 flex items-center gap-8 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-all duration-300 group no-underline text-inherit border-b border-slate-100 dark:border-white/5 w-full`}
           >
-            <div className="h-12 w-12 rounded-full bg-muted grid place-items-center text-muted-foreground shrink-0 overflow-hidden">
+            <div className="h-14 w-14 rounded-full bg-slate-50 dark:bg-slate-800 grid place-items-center text-slate-400 shrink-0 overflow-hidden">
               {p.photo_url ? (
                 <img src={p.photo_url} className="h-full w-full object-cover" alt="" />
               ) : (
-                <User className="h-5 w-5" />
+                <User className="h-6 w-6 font-light" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-slate-800 tracking-tight group-hover:text-primary transition-colors">{p.name}</div>
-              <div className="text-[11px] text-slate-400 mt-0.5 truncate uppercase tracking-wider font-semibold">
-                {[p.age ? `${p.age}a` : null, p.cpf, p.phone].filter(Boolean).join(" · ") || "Sem dados"}
+              <div className="text-xl font-light text-slate-800 dark:text-slate-200 tracking-tight group-hover:text-primary transition-colors">{p.name}</div>
+              <div className="text-[12px] text-slate-400 mt-1 truncate uppercase tracking-widest font-light">
+                {[p.age ? `${p.age} anos` : null, p.cpf, p.phone, p.email].filter(Boolean).join(" · ") || "Sem dados de contato"}
               </div>
             </div>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity pr-4">
               <Button 
                 size="icon" 
                 variant="ghost" 
-                className="h-8 w-8"
+                className="h-10 w-10 rounded-full hover:bg-slate-100 dark:hover:bg-white/10"
                 onClick={(e) => { 
                   e.preventDefault(); 
                   e.stopPropagation();
@@ -122,12 +122,12 @@ function PatientsPage() {
                 }} 
                 aria-label="Editar"
               >
-                <Pencil className="h-4 w-4" />
+                <Pencil className="h-4 w-4 text-slate-400" />
               </Button>
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8 hover:text-destructive"
+                className="h-10 w-10 rounded-full hover:bg-destructive/10 hover:text-destructive"
                 onClick={(e) => { 
                   e.preventDefault(); 
                   e.stopPropagation();
@@ -141,7 +141,7 @@ function PatientsPage() {
           </Link>
         ))}
         {filtered.length === 0 && (
-          <div className="col-span-full bg-card rounded-2xl border border-dashed py-10 text-center text-muted-foreground">
+          <div className="py-20 text-center text-slate-400 font-light border-b border-slate-100 dark:border-white/5">
             Nenhum paciente encontrado.
           </div>
         )}
