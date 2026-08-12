@@ -32,7 +32,7 @@ export function PatientCombobox({ patients, selectedId, newName, onSelectExistin
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal={true}>
-      <PopoverTrigger asChild>
+      <PopoverAnchor asChild>
         <button
           type="button"
           className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm hover:bg-accent/40"
@@ -42,7 +42,7 @@ export function PatientCombobox({ patients, selectedId, newName, onSelectExistin
           </span>
           <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
         </button>
-      </PopoverTrigger>
+      </PopoverAnchor>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[1100]" align="start">
         <div className="p-2 border-b">
           <Input
