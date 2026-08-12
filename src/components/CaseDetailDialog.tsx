@@ -686,7 +686,7 @@ export function CaseDetailDialog({
               {/* Tabs pill scroll */}
               <div className="mt-4 -mx-5 px-5 overflow-x-auto no-scrollbar">
                 <div className="flex gap-1.5 min-w-max pb-1">
-                  {TABS.map((t) => {
+                  {TABS.filter(t => !((t as any).hiddenFor || []).includes(profile?.role)).map((t) => {
                     const active = tab === t.key;
                     const badge = t.key === "comentarios" && commentsCount > 0;
                     const locked = isTabLocked(t.key);
@@ -973,7 +973,7 @@ export function CaseDetailDialog({
           <nav
             className="shrink-0 min-h-0 flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden overflow-y-hidden md:overflow-visible w-full md:w-[220px] md:min-w-[220px] lg:w-[240px] lg:min-w-[240px] bg-white dark:bg-neutral-950 md:border-r border-slate-100 dark:border-neutral-900 py-2 md:py-4 relative"
           >
-            {TABS.map((t) => {
+            {TABS.filter(t => !((t as any).hiddenFor || []).includes(profile?.role)).map((t) => {
               const active = tab === t.key;
               const showBadge = t.key === "comentarios" && commentsCount > 0;
               const locked = isTabLocked(t.key);
