@@ -20,22 +20,30 @@ export const Route = createFileRoute("/_authenticated/patients/$id")({
 
 function PatientDetailPage() {
   const { id } = Route.useParams();
-  console.log("Patient detail page mounting for ID:", id);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const isMobile = useIsMobile();
+  
+  console.log("PatientDetailPage init for ID:", id);
+
   const patient = useQuery({ 
     queryKey: ["patient", id], 
-    queryFn: () => {
+    queryFn: async () => {
       console.log("Fetching patient data for ID:", id);
-      return fetchPatient(id);
+      const data = await fetchPatient(id);
+      if (!data) console.warn("No patient found for ID:", id);
+      return data;
     },
     retry: 1,
     meta: { errorMessage: "Erro ao carregar dados do paciente" }
   });
+  
   const cases = useQuery({ 
     queryKey: ["patient_cases", id], 
-    queryFn: () => fetchPatientCases(id),
+    queryFn: async () => {
+      console.log("Fetching cases for patient:", id);
+      return fetchPatientCases(id);
+    },
     retry: 1
   });
   const [selected, setSelected] = useState<CaseRow | null>(null);
