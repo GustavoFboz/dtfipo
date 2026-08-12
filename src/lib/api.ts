@@ -196,7 +196,11 @@ export const fetchPatients = async (): Promise<Patient[]> => {
 };
 
 export const fetchPatient = async (id: string): Promise<Patient | null> => {
-  const { data, error } = await supabase.from("patients").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await supabase
+    .from("patients")
+    .select("*, cases(*)")
+    .eq("id", id)
+    .maybeSingle();
   if (error) throw error;
   return (data ?? null) as unknown as Patient | null;
 };

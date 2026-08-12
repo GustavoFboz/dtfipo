@@ -320,6 +320,25 @@ function LandingPage() {
         </div>
       </section>
 
+      {/* RECONHECIMENTO ADICIONAL (Para quem pediu redirect ao topo) */}
+      <section className="bg-slate-50/40 border-y border-slate-100/50">
+        <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex items-center gap-6">
+            <div className="h-14 w-14 rounded-2xl bg-white shadow-sm grid place-items-center">
+              <Boxes className="h-6 w-6 text-primary/60" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">IPO - Instituto Praia de Odontologia</h3>
+              <p className="text-[12px] font-light text-slate-500">Empresa verificada e parceira DentalFlow</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[11px] font-medium tracking-[0.1em] uppercase text-emerald-600">Sistema 100% Funcional</span>
+          </div>
+        </div>
+      </section>
+
       {/* FAQ */}
       <section id="faq" className="border-t border-slate-100 bg-slate-50/60">
         <div className="max-w-3xl mx-auto px-6 py-24">

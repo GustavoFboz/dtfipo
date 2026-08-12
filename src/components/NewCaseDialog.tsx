@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PatientFormDialog } from "./PatientFormDialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -48,7 +49,7 @@ import { CaseImplantTeethPanel } from "./CaseImplantTeethPanel";
 import { ToothWorkPanel, type ToothMilling } from "./ToothWorkPanel";
 import { TOOTH_WORK_TYPES, ENCERAMENTO_ID, splitToothTypes, buildToothTypes } from "@/lib/case-types";
 import { CaseComments } from "./CaseComments";
-import { Paperclip, MessageSquare } from "lucide-react";
+import { Paperclip, MessageSquare, PlusCircle } from "lucide-react";
 import { AttachButton, AttachFilesIcon, AttachImagesIcon } from "./AttachButton";
 import { useSessionSnapshot, clearSessionSnapshot } from "@/hooks/use-session-snapshot";
 import {
@@ -864,14 +865,26 @@ export function NewCaseDialog({
 
 
               <div className="space-y-2 md:col-span-2">
-                <Label>Paciente</Label>
-                <PatientCombobox
-                  patients={patients.data ?? []}
-                  selectedId={patientId}
-                  newName={newPatientName}
-                  onSelectExisting={(id) => { setPatientId(id); setNewPatientName(""); setNewPatientPhoto(null); }}
-                  onTypeNew={(name) => { setNewPatientName(name); setPatientId(""); }}
-                />
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground mb-1.5 block">Paciente</Label>
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <PatientCombobox
+                      patients={patients.data ?? []}
+                      selectedId={patientId}
+                      newName={newPatientName}
+                      onSelectExisting={(id) => { setPatientId(id); setNewPatientName(""); setNewPatientPhoto(null); }}
+                      onTypeNew={(name) => { setNewPatientName(name); setPatientId(""); }}
+                    />
+                  </div>
+                  <PatientFormDialog 
+                    onSaved={(id: string) => { setPatientId(id); setNewPatientName(""); setNewPatientPhoto(null); }}
+                    trigger={
+                      <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 bg-slate-100/70 border-0 rounded-lg hover:bg-white hover:shadow-[inset_2px_2px_5px_rgba(15,23,42,0.08)] transition-all" title="Cadastrar paciente completo">
+                        <PlusCircle className="h-4 w-4" />
+                      </Button>
+                    }
+                  />
+                </div>
                 {newPatientName && !patientId && (
                   <div className="flex gap-2 items-center">
                     <div className="text-xs text-muted-foreground flex-1">

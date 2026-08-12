@@ -15,6 +15,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import type { CaseRow } from "@/lib/types";
 
 export const Route = createFileRoute("/_authenticated/patients/$id")({
+  loader: async ({ params }) => {
+    return { id: params.id };
+  },
   component: PatientDetailPage,
 });
 
