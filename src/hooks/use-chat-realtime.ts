@@ -16,8 +16,7 @@ export function useChatRealtime() {
     let disposed = false;
 
     const refreshActivity = () => {
-      // Usamos invalidateQueries com refetchType: 'active' para não pesar o sistema
-      // processando rotas em segundo plano que não estão visíveis.
+      // Invalida apenas se a query estiver ativa (diálogo aberto)
       qc.invalidateQueries({ queryKey: ["case_activity"], refetchType: "active" });
       qc.invalidateQueries({ queryKey: ["case_activity_reads"], refetchType: "active" });
     };
