@@ -4,7 +4,7 @@ import { SkeletonBlock, SkeletonCircle, SkeletonSwap, useListReveal } from "@/co
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import {
-  fetchCases, fetchStages, finishCase, updateCase, setCurrentStage, deleteCase, fetchProfile
+  fetchCases, fetchStages, finishCase, updateCase, setCurrentStage, deleteCase, fetchProfile, reopenCase
 } from "@/lib/api";
 import { openFolderLink, copyToClipboard } from "@/lib/folder";
 import { normalizeText } from "@/lib/utils";
@@ -34,7 +34,7 @@ import {
 import {
   Search, Filter, Check, X, Clock, AlertCircle, MoreHorizontal,
   CheckCircle2, FolderOpen, FolderCog, Pencil, ArrowUp, ArrowDown,
-  Copy, Trash2, Link2,
+  Copy, Trash2, Link2, Archive, RotateCcw,
 } from "lucide-react";
 import { ModelIcon } from "./icons/ModelIcon";
 import { ScanIcon } from "./icons/ScanIcon";
