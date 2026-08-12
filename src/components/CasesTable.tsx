@@ -1028,6 +1028,37 @@ export function CasesTable({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
+        <AlertDialog open={!!bulkAction} onOpenChange={(o) => !o && setBulkAction(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar ação em lote?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Deseja realmente {
+                  bulkAction === "finish" ? "finalizar" : 
+                  bulkAction === "delete" ? "excluir permanentemente" : 
+                  bulkAction === "archive" ? "arquivar" :
+                  bulkAction === "reopen" ? "reabrir" : ""
+                } <b>{selected.size}</b> caso(s)?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  const ids = Array.from(selected);
+                  if (bulkAction === "finish") bulkFinish.mutate(ids);
+                  else if (bulkAction === "delete") bulkDelete.mutate(ids);
+                  else if (bulkAction === "archive") bulkArchive.mutate(ids);
+                  else if (bulkAction === "reopen") bulkReopen.mutate(ids);
+                }}
+                className={bulkAction === "delete" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : "bg-primary"}
+              >
+                Confirmar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  }
 }
