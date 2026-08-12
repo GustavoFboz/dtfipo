@@ -151,7 +151,7 @@ function PatientsPage() {
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
-          </Link>
+          </div>
         ))}
         {filtered.length === 0 && (
           <div className="py-20 text-center text-slate-400 font-light border-b border-slate-100 dark:border-white/5">
