@@ -25,9 +25,7 @@ export function PatientCombobox({ patients, selectedId, newName, onSelectExistin
   const filtered = useMemo(() => {
     const q = normalizeText(query);
     if (!q) return patients.slice(0, 50);
-    const results = patients.filter((p) => normalizeText(p.name).includes(q));
-    console.log(`[PatientCombobox] Query: "${query}" (normalized: "${q}"), Found: ${results.length}`);
-    return results.slice(0, 50);
+    return patients.filter((p) => normalizeText(p.name).includes(q)).slice(0, 50);
   }, [patients, query]);
 
   const exactMatch = patients.some((p) => normalizeText(p.name) === normalizeText(query));
