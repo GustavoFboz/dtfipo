@@ -29,7 +29,10 @@ function PatientDetailPage() {
   const [logs, setLogs] = useState<string[]>([]);
 
   const addLog = (msg: string) => {
-    setLogs(prev => [...prev.slice(-49), `${new Date().toLocaleTimeString()} - ${msg}`]);
+    setLogs(prev => {
+      const newLogs = [...prev, `${new Date().toLocaleTimeString()} - ${msg}`];
+      return newLogs.slice(-50);
+    });
   };
 
   useEffect(() => {
