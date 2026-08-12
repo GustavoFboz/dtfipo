@@ -876,7 +876,7 @@ export function NewCaseDialog({
                     />
                   </div>
                   <PatientFormDialog 
-                    onSaved={(id) => { setPatientId(id); setNewPatientName(""); setNewPatientPhoto(null); }}
+                    onSaved={(id: string) => { setPatientId(id); setNewPatientName(""); setNewPatientPhoto(null); }}
                     trigger={
                       <Button variant="outline" size="icon" className="h-10 w-10 shrink-0 bg-slate-100/70 border-0 rounded-lg hover:bg-white hover:shadow-[inset_2px_2px_5px_rgba(15,23,42,0.08)] transition-all" title="Cadastrar paciente completo">
                         <PlusCircle className="h-4 w-4" />
