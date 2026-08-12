@@ -184,10 +184,10 @@ function Index() {
                   className="text-4xl lg:text-5xl xl:text-7xl font-extralight text-slate-900 dark:text-slate-100 tracking-[-0.03em] leading-[1] flex flex-wrap items-baseline gap-2 md:gap-4"
                 >
                   <span className="whitespace-nowrap">Controle de</span>
-                  <span className="text-primary">Casos</span>
+                  <span className="text-[#54A8FB]">Casos</span>
                   <ChevronRight className="h-6 w-6 md:h-8 md:w-8 xl:h-10 xl:w-10 text-slate-300 dark:text-slate-700 stroke-[1.2px] self-center shrink-0" />
                   {(caseYear != null || dateRange != null) && (
-                    <span className="text-primary whitespace-nowrap">
+                    <span className="text-[#54A8FB] whitespace-nowrap">
                       {dateRange ? (
                         dateRange.start && dateRange.end && dateRange.start.split('-')[0] !== dateRange.end.split('-')[0]
                           ? `${dateRange.start.split('-')[0]}-${dateRange.end.split('-')[0]}`
@@ -196,7 +196,7 @@ function Index() {
                     </span>
                   )}
                   {caseYear == null && dateRange == null && (
-                    <span className="text-primary whitespace-nowrap">{new Date().getFullYear()}</span>
+                    <span className="text-[#54A8FB] whitespace-nowrap">{new Date().getFullYear()}</span>
                   )}
                 </motion.h1>
               ) : (

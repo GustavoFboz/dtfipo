@@ -51,7 +51,7 @@ export function DashboardStats({ onOpenDentes }: { onOpenDentes?: () => void }) 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 flex-1">
       {stats.map((s, i) => (
         <div key={i} className="flex flex-col gap-2">
-          <div className="text-6xl md:text-7xl font-extralight text-primary leading-none tracking-tight tabular-nums">
+          <div className="text-6xl md:text-7xl font-extralight text-[#54A8FB] leading-none tracking-tight tabular-nums">
             <CountUp value={s.value} />
           </div>
           <div className="text-sm text-slate-500 dark:text-slate-400 font-light">
