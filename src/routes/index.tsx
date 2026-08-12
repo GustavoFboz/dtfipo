@@ -5,10 +5,8 @@ export const Route = createFileRoute("/")({
   beforeLoad: async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-      // @ts-ignore
       throw redirect({ to: "/casos" });
     }
-    // @ts-ignore
     throw redirect({ to: "/lp" });
   },
 });
