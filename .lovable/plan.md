@@ -1,39 +1,23 @@
-# Restoration and Optimization Plan
+# Plano de Estabilização e Design da Página de Detalhes do Paciente
 
-## Problem diagnosis
-- **Blank Screens:** Authenticated routes (`/casos`, `/patients`) were rendering empty bodies. This was likely due to a combination of missing route loaders and the `defaultPendingMs` in `src/router.tsx` being set to a very high value, causing the UI to wait indefinitely for data that might have had hydration mismatches.
-- **Patient Detail Errors:** Reports indicated patient details were not loading. The `fetchPatient` API was not fetching related cases in a single call, requiring multiple waterfall fetches.
-- **Patient Selection:** The `PatientCombobox` had z-index and event propagation issues in the `NewCaseDialog`.
-- **Photo Upload:** Storage buckets were initialized but RLS/grants needed verification for the "IPO" company context.
+O objetivo é corrigir a navegação que está falhando (URL muda mas o conteúdo não carrega) e redesenhar a página de detalhes do paciente para seguir a nova identidade visual "clean" e minimalista do sistema, incluindo a visualização completa de casos e anexos.
 
-## Proposed Changes
+## Melhorias Técnicas
+- **Correção da Navegação:** Garantir que o componente `PatientDetailPage` reaja corretamente às mudanças no parâmetro `$id` e que o roteador não entre em loops ou estados de congelamento.
+- **Log de Diagnóstico:** Implementar um log mais técnico no `FloatingLog` para capturar falhas de carregamento e erros de renderização em tempo real.
 
-### 1. Route Reliability & Hydration
-- Add explicit (even if empty) loaders to all content routes to ensure TanStack Start correctly identifies and hydrates them.
-- Adjust `src/router.tsx` to use more sensible `defaultPendingMs` values to avoid "infinite loading" blank screens.
-- **Done:** Restored `src/routes/index.tsx` landing page logic.
-- **Done:** Added loaders to `casos.tsx`, `patients.$id.tsx`, and fixed `_authenticated/route.tsx`.
+## Redesign Visual (Identidade DentalFlow)
+- **Cabeçalho:** Header flutuante ou minimalista com foto do paciente (via `PatientPhotoUpload`) e informações essenciais.
+- **Estrutura de Seções:** Uso de divisores sutis e tipografia leve (SF Pro Display).
+- **Listagem de Casos:** Visual de "cards clean" alinhados à esquerda, mas ocupando toda a largura, diferenciando casos ativos de finalizados/arquivados.
+- **Anexos:** Galeria de anexos integrada com o mesmo estilo visual.
 
-### 2. Patient Module Improvements
-- **Patient Detail:** Optimize `fetchPatient` in `src/lib/api.ts` to include related cases via Supabase's `.select("*, cases(*)")`.
-- **Patient List:** Add a search bar to the patients page header and improve card layout.
-- **Done:** Modified `src/routes/_authenticated/patients.tsx` with new header and search.
+## Detalhes Técnicos (Para Desenvolvedores)
+- **Sincronização de Estado:** Uso de `useQuery` com `staleTime: 0` para garantir dados frescos.
+- **Roteamento:** Uso de `useNavigate` e `Link` do TanStack Router de forma consistente.
+- **Performance:** Evitar re-renders desnecessários e garantir que o carregamento inicial não bloqueie a UI.
 
-### 3. New Case Dialog Enhancements
-- Integrate `PatientFormDialog` directly into the `NewCaseDialog` patient selection area.
-- Add a "Plus" button next to the patient selector to allow creating a full patient profile without leaving the case creation flow.
-- **Done:** Modified `src/components/NewCaseDialog.tsx` to include the shortcut.
-
-### 4. Patient Photo & Attachments
-- Verify that `PatientPhotoUpload` and `PatientAttachments` correctly handle the "IPO" clinic context by ensuring RLS policies allow the designated admin user to manage these files.
-- **Done:** Created buckets in previous turns, verified component logic.
-
-### 5. Final UI Polish
-- Ensure the landing page (`/lp`) has a subtle reference to the "IPO" institute as requested, providing a "verified" feel.
-- **Done:** Added a "Verified Partner" section to the landing page.
-
-## Technical Details
-- **Framework:** TanStack Start v1.
-- **Database:** Supabase with RLS.
-- **State Management:** TanStack Query for caching and optimistic updates.
-- **Realtime:** Supabase Realtime for chat and case status updates.
+## Ações Práticas
+1. Ajustar `src/routes/_authenticated/patients.$id.tsx` com o novo design e lógica de carregamento.
+2. Atualizar `src/routes/_authenticated/patients.tsx` para garantir que o link de navegação use o método mais estável.
+3. Refinar o `FloatingLog` para ser uma ferramenta útil de captura de bugs em vez de apenas texto estático.
