@@ -31,7 +31,7 @@ export function PatientCombobox({ patients, selectedId, newName, onSelectExistin
   const exactMatch = patients.some((p) => normalizeText(p.name) === normalizeText(query));
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverTrigger asChild>
         <button
           type="button"
@@ -43,7 +43,7 @@ export function PatientCombobox({ patients, selectedId, newName, onSelectExistin
           <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[1100]" align="start">
         <div className="p-2 border-b">
           <Input
             autoFocus
