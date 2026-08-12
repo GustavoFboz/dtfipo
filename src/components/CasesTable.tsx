@@ -941,13 +941,14 @@ export function CasesTable({
       <AlertDialog open={!!bulkAction} onOpenChange={(o) => !o && setBulkAction(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {bulkAction === "delete" ? "Excluir casos selecionados?" : "Finalizar casos selecionados?"}
-            </AlertDialogTitle>
+            <AlertDialogTitle>Confirmar ação em lote?</AlertDialogTitle>
             <AlertDialogDescription>
-              {bulkAction === "delete"
-                ? `Esta ação não pode ser desfeita. ${selected.size} caso(s) serão removidos permanentemente.`
-                : `${selected.size} caso(s) serão marcados como finalizados.`}
+              Deseja realmente {
+                bulkAction === "finish" ? "finalizar" : 
+                bulkAction === "delete" ? "excluir permanentemente" : 
+                bulkAction === "archive" ? "arquivar" :
+                bulkAction === "reopen" ? "reabrir" : ""
+              } <b>{selected.size}</b> caso(s)?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -955,12 +956,14 @@ export function CasesTable({
             <AlertDialogAction
               onClick={() => {
                 const ids = Array.from(selected);
-                if (bulkAction === "delete") bulkDelete.mutate(ids);
-                else bulkFinish.mutate(ids);
+                if (bulkAction === "finish") bulkFinish.mutate(ids);
+                else if (bulkAction === "delete") bulkDelete.mutate(ids);
+                else if (bulkAction === "archive") bulkArchive.mutate(ids);
+                else if (bulkAction === "reopen") bulkReopen.mutate(ids);
               }}
-              className={bulkAction === "delete" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+              className={bulkAction === "delete" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : "bg-primary"}
             >
-              {bulkAction === "delete" ? "Excluir definitivamente" : "Finalizar"}
+              Confirmar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
