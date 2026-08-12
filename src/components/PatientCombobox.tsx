@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  Popover, PopoverContent, PopoverTrigger,
+  Popover, PopoverContent, PopoverTrigger, PopoverAnchor,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Check, ChevronsUpDown, UserPlus } from "lucide-react";
