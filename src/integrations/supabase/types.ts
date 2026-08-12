@@ -730,6 +730,7 @@ export type Database = {
           patient_id: string
           reopened_at: string | null
           reopened_count: number
+          requested_by: string | null
           scan_done: boolean
           scan_jig_id: string | null
           sibling_case_id: string | null
@@ -775,6 +776,7 @@ export type Database = {
           patient_id: string
           reopened_at?: string | null
           reopened_count?: number
+          requested_by?: string | null
           scan_done?: boolean
           scan_jig_id?: string | null
           sibling_case_id?: string | null
@@ -820,6 +822,7 @@ export type Database = {
           patient_id?: string
           reopened_at?: string | null
           reopened_count?: number
+          requested_by?: string | null
           scan_done?: boolean
           scan_jig_id?: string | null
           sibling_case_id?: string | null
