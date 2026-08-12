@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { fetchPatient, fetchPatientCases, reopenCase } from "@/lib/api";
@@ -20,6 +20,7 @@ export const Route = createFileRoute("/_authenticated/patients/$id")({
 
 function PatientDetailPage() {
   const { id } = Route.useParams();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const isMobile = useIsMobile();
   const patient = useQuery({ 
