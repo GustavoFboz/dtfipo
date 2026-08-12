@@ -20,12 +20,16 @@ export const Route = createFileRoute("/_authenticated/patients/$id")({
 
 function PatientDetailPage() {
   const { id } = Route.useParams();
+  console.log("Patient detail page mounting for ID:", id);
   const navigate = useNavigate();
   const qc = useQueryClient();
   const isMobile = useIsMobile();
   const patient = useQuery({ 
     queryKey: ["patient", id], 
-    queryFn: () => fetchPatient(id),
+    queryFn: () => {
+      console.log("Fetching patient data for ID:", id);
+      return fetchPatient(id);
+    },
     retry: 1,
     meta: { errorMessage: "Erro ao carregar dados do paciente" }
   });
