@@ -178,7 +178,24 @@ export function CasesTable({
 
   const finish = useMutation({
     mutationFn: (id: string) => finishCase(id),
-    onSuccess: () => { toast.success("Caso finalizado"); qc.invalidateQueries(); },
+    onMutate: async (id: string) => {
+      // Optimistic update to archive the case immediately in the UI
+      const prevCases = qc.getQueryData<CaseRow[]>(["cases", "all"]);
+      qc.setQueryData<CaseRow[]>(["cases", "all"], (old) =>
+        Array.isArray(old) ? old.filter((r) => r.id !== id) : old
+      );
+      return { prevCases };
+    },
+    onError: (err, id, context) => {
+      if (context?.prevCases) {
+        qc.setQueryData(["cases", "all"], context.prevCases);
+      }
+      toast.error("Erro ao finalizar caso");
+    },
+    onSuccess: () => { 
+      toast.success("Caso finalizado e arquivado"); 
+      qc.invalidateQueries({ queryKey: ["cases"] }); 
+    },
   });
 
   const changeStage = useMutation({
