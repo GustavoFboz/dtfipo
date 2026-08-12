@@ -9,16 +9,6 @@ export const Route = createFileRoute("/_authenticated")({
     if (!user) {
       throw redirect({ to: "/auth", search: { invite: undefined, mode: undefined } });
     }
-    
-    // Persist current path for refresh recovery
-    if (typeof window !== "undefined") {
-      try {
-        sessionStorage.setItem("last_path", location.href);
-      } catch (e) {
-        // ignore
-      }
-    }
-
     return { user };
   },
   component: AppShell,
