@@ -7,8 +7,8 @@ import {
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 
-type AppRole = "admin" | "dentista" | "recepcionista" | "auxiliar" | "protetico" | "cadista";
-const ROLES: AppRole[] = ["admin", "dentista", "recepcionista", "auxiliar", "protetico", "cadista"];
+type AppRole = "admin" | "dentista" | "recepcionista" | "auxiliar" | "protetico" | "cadista" | "SOLICITANTE";
+const ROLES: AppRole[] = ["admin", "dentista", "recepcionista", "auxiliar", "protetico", "cadista", "SOLICITANTE"];
 
 export const Route = createFileRoute("/_authenticated/admin/usuarios")({ component: UsuariosPage });
 
