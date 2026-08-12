@@ -163,8 +163,9 @@ export function CasesTable({
   const cases = useQuery({
     queryKey: ["cases", "all"],
     queryFn: () => fetchCases("all"),
-    // Realtime (useCasesRealtime) mantém a lista atualizada — sem polling.
-    staleTime: 60_000,
+    // Aumentamos o staleTime para evitar refetchs desnecessários que podem "ressuscitar" casos 
+    // antes que o tombstone ou o status do banco estejam sincronizados.
+    staleTime: 5 * 60_000, 
   });
 
   const reveal = useListReveal("cases-table", cases.isLoading);

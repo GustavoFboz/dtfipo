@@ -8,7 +8,7 @@ type Row = Record<string, any> & { id: string };
 // pode reinserir a linha por instantes até chegar o DELETE. Guardamos um
 // tombstone curto para ignorar qualquer insert/patch com o mesmo id.
 
-const TOMBSTONE_TTL_MS = 30_000;
+const TOMBSTONE_TTL_MS = 60_000;
 const tombstones = new Map<string, number>();
 
 export function markDeleted(id: string, ttlMs: number = TOMBSTONE_TTL_MS) {

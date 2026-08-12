@@ -168,7 +168,7 @@ export async function restoreCase(id: string) {
     .update({ status: "em_andamento", finished_at: null } as any)
     .eq("id", id);
   if (error) throw error;
-  try { broadcastEntity("cases", "update", { id, status: "em_andamento", finished_at: null }); } catch {}
+  try { broadcastEntity("cases", "update", { id, status: "em_andamento", finished_at: null, finished: false }); } catch {}
 }
 
 export async function permanentDeleteCase(id: string) {
