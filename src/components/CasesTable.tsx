@@ -352,11 +352,13 @@ export function CasesTable({
         // but user says "second option and filter all in selected period".
         // Usually "Todos" means active + historical in the selected period.
         if (c.status === "cancelado") return false;
+        // User stated in a previous turn that finished cases must NOT appear in "Todos"
+        if (c.status === "finalizado" || c.status === "finished" || c.finished_at) return false;
       } else if (activeFilter === "atrasados") {
         if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
         if (!isLate(c.delivery_date)) return false;
       } else if (activeFilter === "finalizados") {
-        if (!c.finished_at && c.status !== "finalizado" && c.status !== "finished") return false;
+        if (c.status !== "finalizado" && c.status !== "finished") return false;
       } else if (activeFilter === "arquivados") {
         if (c.status !== "arquivado") return false;
       } else if (activeFilter === "deleted" || activeFilter === "cancelado") {
