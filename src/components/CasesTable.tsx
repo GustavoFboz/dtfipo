@@ -157,14 +157,15 @@ export function CasesTable({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<null | "finish" | "delete" | "archive" | "reopen">(null);
 
-  const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
+  const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile, staleTime: 300_000 });
   const isCadista = profile?.role === "CADISTA";
 
   const cases = useQuery({
     queryKey: ["cases", "all"],
     queryFn: () => fetchCases("all"),
-    staleTime: 30_000, // Aumentado para 30s para evitar excesso de requisições
-    refetchOnWindowFocus: false, // Desativado para evitar lentidão ao trocar de aba
+    staleTime: 60_000, // Aumentado para 60s
+    refetchOnWindowFocus: false,
+    refetchInterval: 120_000, // Refetch a cada 2 minutos
   });
 
   const reveal = useListReveal("cases-table", cases.isLoading);
@@ -334,11 +335,11 @@ export function CasesTable({
 
   const filtered = useMemo<CaseRow[]>(() => {
     const list = cases.data ?? [];
+    const q = search ? normalizeText(search) : "";
+    
     const f = list.filter((c) => {
       // Apply the new status-based tag filter
-      if (activeFilter === "deleted") {
-        if (c.status !== "cancelado") return false;
-      } else if (activeFilter === "cancelado") {
+      if (activeFilter === "deleted" || activeFilter === "cancelado") {
         if (c.status !== "cancelado") return false;
       } else if (activeFilter === "em_andamento") {
         if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
@@ -351,20 +352,20 @@ export function CasesTable({
         if (c.status !== "arquivado") return false;
       }
 
-      if (search) {
-        const q = normalizeText(search);
-        const haystack = normalizeText(
-          (c.patient?.name || "") + " " +
-          (c.doctor?.name || "") + " " +
-          (c.cadista?.name || "") + " " +
-          (c.case_type?.name || "") + " " +
-          (c.tooth_color?.code || "") + " " +
-          (c.case_label || "") + " " +
-          (c.case_number || "") + " " +
-          (c.entry_date || "") + " " +
-          (c.delivery_date || "")
-        );
-        if (!haystack.includes(q)) return false;
+      if (q) {
+        // Search optimization: check fields directly instead of pre-generating a large haystack string
+        const matches = 
+          normalizeText(c.patient?.name || "").includes(q) ||
+          normalizeText(c.doctor?.name || "").includes(q) ||
+          normalizeText(c.cadista?.name || "").includes(q) ||
+          normalizeText(c.case_type?.name || "").includes(q) ||
+          normalizeText(c.tooth_color?.code || "").includes(q) ||
+          normalizeText(c.case_label || "").includes(q) ||
+          String(c.case_number || "").includes(q) ||
+          (c.entry_date || "").includes(q) ||
+          (c.delivery_date || "").includes(q);
+          
+        if (!matches) return false;
       }
       if (stageFilter !== "all") {
         if (stageFilter === "__none__") {
@@ -375,15 +376,9 @@ export function CasesTable({
       if (statusFilter === "ontime" && isLate(c.delivery_date)) return false;
       
       if (dateRange?.start || dateRange?.end) {
-        const caseDate = new Date((c.entry_date || c.created_at || "").split('T')[0] + "T00:00:00");
-        if (dateRange.start) {
-          const startDate = new Date(dateRange.start + "T00:00:00");
-          if (caseDate < startDate) return false;
-        }
-        if (dateRange.end) {
-          const endDate = new Date(dateRange.end + "T00:00:00");
-          if (caseDate > endDate) return false;
-        }
+        // Cache the date object or use string comparison if dates are ISO
+        if (dateRange.start && c.entry_date && c.entry_date < dateRange.start) return false;
+        if (dateRange.end && c.entry_date && c.entry_date > dateRange.end) return false;
       }
       
       if (advancedFilters) {
