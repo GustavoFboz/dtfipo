@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from "react";
-import { Search, Loader2, X, Users, LayoutDashboard, FileText, ImageIcon, Settings, SlidersHorizontal, Check, UserCircle, Calendar, Boxes, SearchX } from "lucide-react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { Search, Loader2, X, Users, LayoutDashboard, FileText, ImageIcon, Settings, SlidersHorizontal, Check, UserCircle, Calendar, Boxes, SearchX, Command } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -10,6 +10,7 @@ import type { CaseRow, Patient } from "@/lib/types";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useLocation } from "@tanstack/react-router";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 type SearchCategory = "cases" | "patients" | "doctors" | "team" | "settings";
 
@@ -34,8 +35,11 @@ export function GlobalSearch() {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, 50);
   const [isOpen, setIsOpen] = useState(false);
+  const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState<CaseRow | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const commandInputRef = useRef<HTMLInputElement>(null);
 
   // Default filters based on current page
   const initialFilters = useMemo(() => {
@@ -157,6 +161,25 @@ export function GlobalSearch() {
   }, [activeFilters, query]);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setIsCommandOpen(prev => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (isCommandOpen) {
+      setTimeout(() => commandInputRef.current?.focus(), 10);
+    } else {
+      setQuery("");
+    }
+  }, [isCommandOpen]);
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
@@ -180,6 +203,170 @@ export function GlobalSearch() {
     results.team.length > 0 ||
     staticSettings.length > 0
   );
+
+  const renderResults = useCallback(() => (
+    <div className="max-h-[450px] overflow-y-auto p-2 scrollbar-none">
+      {isLoading ? (
+        <div className="p-8 flex flex-col items-center justify-center gap-2 text-slate-400">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span className="text-xs font-light">Pesquisando...</span>
+        </div>
+      ) : !hasResults ? (
+        <div className="p-12 text-center flex flex-col items-center justify-center gap-3">
+          <div className="h-16 w-16 rounded-full bg-slate-50 dark:bg-white/5 grid place-items-center text-slate-300">
+            <SearchX className="h-8 w-8" />
+          </div>
+          <div className="space-y-1">
+            <p className="text-base font-medium text-slate-900 dark:text-slate-100">Nenhum resultado</p>
+            <p className="text-sm text-slate-400 font-light max-w-[200px] mx-auto">
+              Não encontramos nada para <span className="text-primary font-medium italic">"{debouncedQuery}"</span>
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4 p-1">
+          {results.cases.length > 0 && (
+            <div>
+              <h3 className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <LayoutDashboard className="h-3 w-3" /> Casos
+              </h3>
+              <div className="mt-1 space-y-0.5">
+                {results.cases.map((c) => (
+                  <button
+                    key={c.id}
+                    onClick={() => {
+                      setSelectedCase(c);
+                      setIsOpen(false);
+                      setIsCommandOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group"
+                  >
+                    <div className="text-sm font-normal text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
+                      {c.patient?.name || "Paciente sem nome"}
+                    </div>
+                    <div className="text-[11px] text-slate-400 font-light flex items-center gap-2">
+                      <span>{c.case_type?.name}</span>
+                      {c.case_label && <span>• {c.case_label}</span>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {results.patients.length > 0 && (
+            <div>
+              <h3 className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <Users className="h-3 w-3" /> Pacientes
+              </h3>
+              <div className="mt-1 space-y-0.5">
+                {results.patients.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => {
+                      window.location.href = `/patients/${p.id}`;
+                      setIsOpen(false);
+                      setIsCommandOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group flex items-center gap-3"
+                  >
+                    <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-white/5 grid place-items-center text-xs font-medium text-slate-500 overflow-hidden">
+                      {p.photo_url ? <img src={p.photo_url} className="h-full w-full object-cover" /> : p.name?.[0]}
+                    </div>
+                    <div>
+                      <div className="text-sm font-normal text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
+                        {p.name}
+                      </div>
+                      <div className="text-[11px] text-slate-400 font-light">Paciente</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {results.doctors.length > 0 && (
+            <div>
+              <h3 className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <UserCircle className="h-3 w-3" /> Dentistas
+              </h3>
+              <div className="mt-1 space-y-0.5">
+                {results.doctors.map((d) => (
+                  <button
+                    key={d.id}
+                    onClick={() => {
+                      setIsOpen(false);
+                      setIsCommandOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group"
+                  >
+                    <div className="text-sm font-normal text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
+                      {d.name}
+                    </div>
+                    <div className="text-[11px] text-slate-400 font-light">Profissional Solicitante</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {results.team.length > 0 && (
+            <div>
+              <h3 className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <Users className="h-3 w-3" /> Equipe
+              </h3>
+              <div className="mt-1 space-y-0.5">
+                {results.team.map((m) => (
+                  <button
+                    key={m.id}
+                    onClick={() => {
+                      window.location.href = `/equipe`;
+                      setIsOpen(false);
+                      setIsCommandOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group"
+                  >
+                    <div className="text-sm font-normal text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
+                      {m.full_name}
+                    </div>
+                    <div className="text-[11px] text-slate-400 font-light uppercase tracking-tighter">{m.role}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {staticSettings.length > 0 && (
+            <div>
+              <h3 className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                <Settings className="h-3 w-3" /> Configurações
+              </h3>
+              <div className="mt-1 space-y-0.5">
+                {staticSettings.map((s: any) => (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      window.location.href = s.to;
+                      setIsOpen(false);
+                      setIsCommandOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group flex items-center gap-3"
+                  >
+                    <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-white/5 grid place-items-center text-slate-500">
+                      <s.icon className="h-4 w-4" />
+                    </div>
+                    <div className="text-sm font-normal text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
+                      {s.label}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  ), [isLoading, hasResults, results, debouncedQuery, staticSettings]);
 
   return (
     <div ref={containerRef} className="relative w-full max-w-md">
