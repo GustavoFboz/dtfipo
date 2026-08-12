@@ -73,17 +73,12 @@ export const getRouter = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
-        // Dados frescos por 60s — reaproveita cache instantaneamente ao clicar.
-        staleTime: 60_000,
-        gcTime: 10 * 60_000,
-        // Polling global desativado: causava N requisições paralelas a cada
-        // 30s em queries que não precisam disso, travando a UI no reload.
-        // Queries que precisam de "ao vivo" (notificações, casos) devem
-        // definir refetchInterval individualmente.
+        // Reduzido para diminuir uso de memória em abas de longa duração
+        staleTime: 30_000,
+        gcTime: 5 * 60_000,
         refetchOnMount: false,
         refetchOnReconnect: "always",
         refetchOnWindowFocus: false,
-        // Mantém dados anteriores durante refetch (sem flash de loading).
         placeholderData: (prev: unknown) => prev,
         retry: 1,
       },
@@ -94,13 +89,11 @@ export const getRouter = () => {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
-    // Pré-carrega no hover/focus, sem delay — clique é instantâneo.
     defaultPreload: "intent",
-    defaultPreloadDelay: 0,
-    defaultPreloadStaleTime: 60_000,
-    // Nunca mostra pendingComponent na navegação (mantém tela anterior até nova estar pronta).
-    defaultPendingMs: 2_000_000,
-    defaultPendingMinMs: 0,
+    defaultPreloadDelay: 100, // Adicionado pequeno delay para evitar pré-carregamento acidental
+    defaultPreloadStaleTime: 30_000,
+    defaultPendingMs: 1500,
+    defaultPendingMinMs: 300,
     defaultErrorComponent: DefaultErrorComponent,
   });
   return router;
