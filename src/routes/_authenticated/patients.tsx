@@ -90,14 +90,18 @@ function PatientsPage() {
       <div className="flex flex-col w-full">
         <div className="border-t border-slate-100 dark:border-white/5 w-full" />
         {filtered.map((p, i) => (
-          <div
+          <Link
             key={p.id}
+            to="/patients/$id"
+            params={{ id: p.id }}
             style={reveal.itemProps(i).style}
             className={`${reveal.itemProps(i).className} cursor-pointer bg-transparent py-8 flex items-center gap-8 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-all duration-300 group no-underline text-inherit border-b border-slate-100 dark:border-white/5 w-full`}
             onClick={(e) => {
-              // Only navigate if we're not clicking a button
-              if ((e.target as HTMLElement).closest('button')) return;
-              navigate({ to: "/patients/$id", params: { id: p.id } });
+              // Only prevent if we're clicking a button
+              if ((e.target as HTMLElement).closest('button')) {
+                e.preventDefault();
+                e.stopPropagation();
+              }
             }}
           >
             <div className="h-14 w-14 rounded-full bg-slate-50 dark:bg-slate-800 grid place-items-center text-slate-400 shrink-0 overflow-hidden">
@@ -141,7 +145,7 @@ function PatientsPage() {
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
-          </div>
+          </Link>
         ))}
         {filtered.length === 0 && (
           <div className="py-20 text-center text-slate-400 font-light border-b border-slate-100 dark:border-white/5">
