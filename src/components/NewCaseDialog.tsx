@@ -907,7 +907,7 @@ export function NewCaseDialog({
                 <Label>Doutor</Label>
                 <Select value={doctorId} onValueChange={setDoctorId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent className="z-[1001]">
+                  <SelectContent className="z-[1300]">
                     {doctors.data?.map((d) => (<SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>))}
                   </SelectContent>
                 </Select>
@@ -917,7 +917,7 @@ export function NewCaseDialog({
                 <Label>Cadista</Label>
                 <Select value={cadistaId} onValueChange={setCadistaId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent className="z-[1001]">
+                  <SelectContent className="z-[1300]">
                     {cadistas.data?.map((d) => (<SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>))}
                   </SelectContent>
                 </Select>
@@ -944,7 +944,7 @@ export function NewCaseDialog({
                 <Label>Cor do dente</Label>
                 <Select value={toothColorId} onValueChange={setToothColorId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent className="max-h-72 z-[1001]">
+                  <SelectContent className="max-h-72 z-[1300]">
                     {colors.data?.map((c) => (<SelectItem key={c.id} value={c.id}>{c.code}</SelectItem>))}
                   </SelectContent>
                 </Select>
@@ -1028,7 +1028,7 @@ export function NewCaseDialog({
                         <SelectTrigger className="h-9 w-auto min-w-[220px] rounded-lg text-sm">
                           <SelectValue placeholder={allIds.length === 0 ? "Selecione um sistema…" : "+ Adicionar outro sistema…"} />
                         </SelectTrigger>
-                        <SelectContent className="max-h-72 z-[1001]">
+                        <SelectContent className="max-h-72 z-[1300]">
                           {allIds.length === 0 && <SelectItem value="__none">Nenhum</SelectItem>}
                           {(implants.data ?? [])
                             .filter((i) => !allIds.includes(i.id))
@@ -1069,7 +1069,7 @@ export function NewCaseDialog({
                     }}
                   >
                     <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent className="max-h-72 z-[1001]">
+                    <SelectContent className="max-h-72 z-[1300]">
                       <SelectItem value="__none">Nenhum</SelectItem>
                       {scanJigs.data?.map((j) => (
                         <SelectItem key={j.id} value={j.id}>{j.name}</SelectItem>
@@ -1651,39 +1651,38 @@ export function NewCaseDialog({
               </div>
             </div>
           )}
-
         </div>
+      </div>
 
-        <DialogFooter className="px-6 py-4 border-t border-border/60 bg-card/80 backdrop-blur-sm gap-2 sm:justify-between sm:items-center">
-          {isCreate && profile?.full_name ? (
-            <div className="text-xs text-muted-foreground font-light">
-              Protético responsável: <span className="text-foreground/80">{profile.full_name}</span>
+      <DialogFooter className="px-6 py-4 border-t border-border/60 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md shrink-0 sm:justify-between sm:items-center">
+            {isCreate && profile?.full_name ? (
+              <div className="text-xs text-muted-foreground font-light">
+                Protético responsável: <span className="text-foreground/80">{profile.full_name}</span>
+              </div>
+            ) : <div />}
+            <div className="flex items-center gap-2">
+            {isView ? (
+              <>
+                <Button variant="ghost" onClick={() => setOpen(false)}>Fechar</Button>
+                {isCadista && hasImplant && cleanImplantTeeth.length > 0 && (
+                  <Button onClick={() => saveTiBases.mutate()} disabled={saveTiBases.isPending} className="min-w-[160px] rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-normal">
+                    {saveTiBases.isPending ? "Salvando..." : "Salvar Ti-Bases"}
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={discardAndClose} className="rounded-full">Cancelar</Button>
+                {(isCreate || (isEdit && isSolicitante && !editCase?.cadista_id) || (isEdit && !isSolicitante)) && (
+                  <Button onClick={() => submit.mutate()} disabled={submit.isPending} className="min-w-[160px] rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-normal">
+                    {submit.isPending ? "Salvando..." : isEdit ? "Salvar alterações" : "Cadastrar caso"}
+                  </Button>
+                )}
+              </>
+            )}
             </div>
-          ) : <div />}
-          <div className="flex items-center gap-2">
-          {isView ? (
-            <>
-              <Button variant="ghost" onClick={() => setOpen(false)}>Fechar</Button>
-              {isCadista && hasImplant && cleanImplantTeeth.length > 0 && (
-                <Button onClick={() => saveTiBases.mutate()} disabled={saveTiBases.isPending} className="min-w-[160px] rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-normal">
-                  {saveTiBases.isPending ? "Salvando..." : "Salvar Ti-Bases"}
-                </Button>
-              )}
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" onClick={discardAndClose} className="rounded-full">Cancelar</Button>
-              {(isCreate || (isEdit && isSolicitante && !editCase?.cadista_id) || (isEdit && !isSolicitante)) && (
-                <Button onClick={() => submit.mutate()} disabled={submit.isPending} className="min-w-[160px] rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-normal">
-                  {submit.isPending ? "Salvando..." : isEdit ? "Salvar alterações" : "Cadastrar caso"}
-                </Button>
-              )}
-            </>
-          )}
-          </div>
-        </DialogFooter>
-        </div>
-      </DialogContent>
+          </DialogFooter>
+        </DialogContent>
 
     </Dialog>
   );
