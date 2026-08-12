@@ -92,8 +92,8 @@ export const getRouter = () => {
     defaultPreload: "intent",
     defaultPreloadDelay: 100, // Adicionado pequeno delay para evitar pré-carregamento acidental
     defaultPreloadStaleTime: 30_000,
-    defaultPendingMs: 1000, // Reduzido para dar feedback visual se demorar mais que 1s
-    defaultPendingMinMs: 0,
+    defaultPendingMs: 1500,
+    defaultPendingMinMs: 300,
     defaultErrorComponent: DefaultErrorComponent,
   });
   return router;
