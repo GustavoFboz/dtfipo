@@ -163,9 +163,9 @@ export function CasesTable({
   const cases = useQuery({
     queryKey: ["cases", "all"],
     queryFn: () => fetchCases("all"),
-    staleTime: 60_000, // Aumentado para 60s
+    staleTime: 180_000, // 3 minutos
     refetchOnWindowFocus: false,
-    refetchInterval: 120_000, // Refetch a cada 2 minutos
+    refetchInterval: 300_000, // 5 minutos (o Realtime cuida das atualizações)
   });
 
   const reveal = useListReveal("cases-table", cases.isLoading);

@@ -44,8 +44,8 @@ export function NotificationPanel() {
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],
     queryFn: fetchNotifications,
-    staleTime: 60_000,
-    refetchInterval: 120_000,
+    staleTime: 300_000, // 5 minutos
+    refetchInterval: 600_000, // 10 minutos (Realtime cuida das notificações)
   });
 
   const markRead = useMutation({

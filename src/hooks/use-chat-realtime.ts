@@ -16,11 +16,12 @@ export function useChatRealtime() {
     let disposed = false;
 
     const refreshActivity = () => {
-      qc.invalidateQueries({ queryKey: ["case_activity"], refetchType: "all" });
-      qc.invalidateQueries({ queryKey: ["case_activity_reads"], refetchType: "all" });
+      // Invalida apenas se a query estiver ativa (diálogo aberto)
+      qc.invalidateQueries({ queryKey: ["case_activity"], refetchType: "active" });
+      qc.invalidateQueries({ queryKey: ["case_activity_reads"], refetchType: "active" });
     };
     const refreshReads = () => {
-      qc.invalidateQueries({ queryKey: ["case_activity_reads"], refetchType: "all" });
+      qc.invalidateQueries({ queryKey: ["case_activity_reads"], refetchType: "active" });
     };
 
     const connect = () => {
