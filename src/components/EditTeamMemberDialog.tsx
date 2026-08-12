@@ -14,13 +14,14 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
-type AppRole = "CEO" | "DR" | "PROTETICO" | "ATENDIMENTO" | "CADISTA" | "USER";
+type AppRole = "CEO" | "DR" | "PROTETICO" | "ATENDIMENTO" | "CADISTA" | "SOLICITANTE" | "USER";
 const ROLES: { value: AppRole; label: string }[] = [
   { value: "CEO", label: "CEO" },
   { value: "DR", label: "Dentista" },
   { value: "PROTETICO", label: "Protético" },
   { value: "CADISTA", label: "Cadista" },
   { value: "ATENDIMENTO", label: "Atendimento" },
+  { value: "SOLICITANTE", label: "Solicitante" },
   { value: "USER", label: "Usuário" },
 ];
 const EMPTY_ARR: readonly never[] = [];
