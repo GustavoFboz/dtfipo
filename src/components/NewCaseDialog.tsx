@@ -48,7 +48,7 @@ import { CaseImplantTeethPanel } from "./CaseImplantTeethPanel";
 import { ToothWorkPanel, type ToothMilling } from "./ToothWorkPanel";
 import { TOOTH_WORK_TYPES, ENCERAMENTO_ID, splitToothTypes, buildToothTypes } from "@/lib/case-types";
 import { CaseComments } from "./CaseComments";
-import { Paperclip, MessageSquare } from "lucide-react";
+import { Paperclip, MessageSquare, PlusCircle } from "lucide-react";
 import { AttachButton, AttachFilesIcon, AttachImagesIcon } from "./AttachButton";
 import { useSessionSnapshot, clearSessionSnapshot } from "@/hooks/use-session-snapshot";
 import {
