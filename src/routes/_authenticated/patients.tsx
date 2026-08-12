@@ -96,6 +96,11 @@ function PatientsPage() {
             params={{ id: p.id }}
             style={reveal.itemProps(i).style}
             className={`${reveal.itemProps(i).className} cursor-pointer bg-transparent py-8 flex items-center gap-8 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-all duration-300 group no-underline text-inherit border-b border-slate-100 dark:border-white/5 w-full`}
+            onClick={(e) => {
+              // Only navigate if we're not clicking a button
+              if ((e.target as HTMLElement).closest('button')) return;
+              navigate({ to: "/patients/$id", params: { id: p.id } });
+            }}
           >
             <div className="h-14 w-14 rounded-full bg-slate-50 dark:bg-slate-800 grid place-items-center text-slate-400 shrink-0 overflow-hidden">
               {p.photo_url ? (

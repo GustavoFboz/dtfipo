@@ -49,8 +49,8 @@ function PatientDetailPage() {
   const { active, finished } = useMemo(() => {
     const list = cases.data ?? [];
     return {
-      active: list.filter((c) => c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado"),
-      finished: list.filter((c) => c.status === "finalizado" || c.status === "arquivado"),
+      active: list.filter((c) => c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado" && c.status !== "finished"),
+      finished: list.filter((c) => c.status === "finalizado" || c.status === "arquivado" || c.status === "finished"),
     };
   }, [cases.data]);
 
