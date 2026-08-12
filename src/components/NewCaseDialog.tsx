@@ -812,10 +812,10 @@ export function NewCaseDialog({
           <header className="px-6 lg:px-10 pt-8 pb-6 flex items-start gap-3 border-b border-border/60 bg-white relative z-10">
             <div className="flex-1 min-w-0">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-primary/15 text-[11px] font-medium text-primary/80 mb-3">
-                {isView ? "Detalhes do caso" : isEdit ? "Editar caso" : "Nova entrada"}
+                {isView ? "Detalhes do caso" : (isEdit || editCase) ? "Editar caso" : "Nova entrada"}
               </div>
               <h2 className="text-3xl lg:text-4xl font-extralight text-foreground tracking-[-0.03em] leading-[1.05] truncate">
-                {isView ? (viewCase?.patient?.name ?? "Caso") : isEdit ? "Editar caso" : "Cadastrar novo caso"}
+                {isView ? (viewCase?.patient?.name ?? "Caso") : (isEdit || editCase) ? "Editar caso" : "Cadastrar novo caso"}
               </h2>
               <p className="text-sm text-muted-foreground mt-2 font-light">
                 {isView
@@ -834,11 +834,11 @@ export function NewCaseDialog({
             </button>
           </header>
 
-        <div className={`relative grid grid-cols-1 lg:grid-cols-12 gap-0 flex-1 min-h-0 z-10 ${isView ? "overflow-y-auto" : "overflow-hidden"}`}>
+        <div className={`relative grid grid-cols-1 lg:grid-cols-2 gap-0 flex-1 min-h-0 z-10 ${isView ? "overflow-y-auto" : "overflow-hidden"}`}>
           <div
             {...(isView ? { inert: "" as unknown as boolean } : {})}
             aria-disabled={isView || undefined}
-            className={`lg:col-span-5 px-5 py-4 lg:px-6 lg:py-5 min-h-0 flex flex-col overflow-y-auto ${isView ? "pointer-events-none select-none opacity-95" : ""}`}
+            className={`px-5 py-4 lg:px-6 lg:py-5 min-h-0 flex flex-col overflow-y-auto border-r border-slate-100/50 ${isView ? "pointer-events-none select-none opacity-95" : ""}`}
             onKeyDown={(e) => {
               if (!isCreate) return;
               if (e.key !== "Enter" || e.shiftKey) return;
@@ -1204,7 +1204,7 @@ export function NewCaseDialog({
           <aside
             {...(isView ? { inert: "" as unknown as boolean } : {})}
             aria-disabled={isView || undefined}
-            className={`lg:col-span-7 p-6 flex flex-col border-l border-border/60 min-h-0 h-full overflow-y-auto ${isView ? "pointer-events-none select-none opacity-95" : ""}`}
+            className={`p-6 flex flex-col min-h-0 h-full overflow-y-auto bg-slate-50/30 ${isView ? "pointer-events-none select-none opacity-95" : ""}`}
           >
             <div className={isCreate ? "flex flex-col flex-1 min-h-0 gap-5" : "space-y-5"}>
               <div className={isCreate ? "flex flex-col flex-1 min-h-0 gap-3" : "space-y-3"}>
@@ -1636,7 +1636,7 @@ export function NewCaseDialog({
             </div>
           )}
           {isView && viewCase && (
-            <div className="lg:col-span-12 border-t border-border p-6 space-y-6 bg-background">
+            <div className="lg:col-span-2 border-t border-border p-6 space-y-6 bg-background">
               <div data-case-section="attachments">
                 <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
                   <Paperclip className="h-4 w-4 text-primary" /> Arquivos do caso
