@@ -179,21 +179,25 @@ export function CasesTable({
   const finish = useMutation({
     mutationFn: (id: string) => finishCase(id),
     onMutate: async (id: string) => {
+      markDeleted(id);
       const prevCases = qc.getQueriesData<CaseRow[]>({ queryKey: ["cases"] });
-      // Remove localmente apenas se não estivermos no filtro "Todos" ou "Finalizados"
-      if (activeFilter !== "all" && activeFilter !== "finalizados") {
-        qc.setQueriesData<CaseRow[]>({ queryKey: ["cases"] }, (old) =>
-          Array.isArray(old) ? old.filter((r) => r.id !== id) : old,
-        );
-      } else {
-        // Se estiver em "Todos", apenas atualiza o status para evitar que suma
-        qc.setQueriesData<CaseRow[]>({ queryKey: ["cases"] }, (old) =>
-          Array.isArray(old) ? old.map((r) => r.id === id ? { ...r, status: "finalizado", finished_at: new Date().toISOString() } : r) : old,
-        );
-      }
+
+      qc.setQueriesData<CaseRow[]>({ queryKey: ["cases"] }, (old) => {
+        if (!Array.isArray(old)) return old;
+        
+        if (activeFilter === "all" || activeFilter === "finalizados") {
+          return old.map((r) => 
+            r.id === id ? { ...r, status: "finalizado", finished_at: new Date().toISOString() } : r
+          );
+        }
+        
+        return old.filter((r) => r.id !== id);
+      });
+      
       return { prevCases };
     },
     onError: (err, id, context) => {
+      try { markDeleted(id, -1); } catch {}
       if (context?.prevCases) {
         for (const [key, data] of context.prevCases) qc.setQueryData(key, data);
       }
@@ -241,8 +245,28 @@ export function CasesTable({
 
   const bulkFinish = useMutation({
     mutationFn: async (ids: string[]) => { for (const id of ids) await finishCase(id); },
-    onSuccess: () => { toast.success(`${selected.size} caso(s) finalizado(s)`); qc.invalidateQueries(); setSelected(new Set()); setBulkAction(null); },
-    onError: (e: Error) => toast.error(e.message),
+    onMutate: (ids: string[]) => {
+      for (const id of ids) markDeleted(id);
+      const prevCases = qc.getQueriesData<CaseRow[]>({ queryKey: ["cases"] });
+      
+      qc.setQueriesData<CaseRow[]>({ queryKey: ["cases"] }, (old) => {
+        if (!Array.isArray(old)) return old;
+        if (activeFilter === "all" || activeFilter === "finalizados") {
+          return old.map(r => ids.includes(r.id) ? { ...r, status: "finalizado", finished_at: new Date().toISOString() } : r);
+        }
+        return old.filter(r => !ids.includes(r.id));
+      });
+      
+      setBulkAction(null);
+      setSelected(new Set());
+      return { prevCases };
+    },
+    onSuccess: () => { toast.success("Casos finalizados"); },
+    onError: (e: Error, _ids, ctx) => {
+      if (ctx?.prevCases) for (const [key, data] of ctx.prevCases) qc.setQueryData(key, data);
+      toast.error(e.message);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["cases"] }),
   });
   const bulkDelete = useMutation({
     mutationFn: async (ids: string[]) => { for (const id of ids) await deleteCase(id); },
@@ -254,14 +278,54 @@ export function CasesTable({
 
   const bulkArchive = useMutation({
     mutationFn: async (ids: string[]) => { for (const id of ids) await updateCase(id, { status: "arquivado" }); },
-    onSuccess: () => { toast.success(`${selected.size} caso(s) arquivado(s)`); qc.invalidateQueries(); setSelected(new Set()); setBulkAction(null); },
-    onError: (e: Error) => toast.error(e.message),
+    onMutate: (ids: string[]) => {
+      for (const id of ids) markDeleted(id);
+      const prevCases = qc.getQueriesData<CaseRow[]>({ queryKey: ["cases"] });
+      
+      qc.setQueriesData<CaseRow[]>({ queryKey: ["cases"] }, (old) => {
+        if (!Array.isArray(old)) return old;
+        if (activeFilter === "all" || activeFilter === "arquivados") {
+          return old.map(r => ids.includes(r.id) ? { ...r, status: "arquivado" } : r);
+        }
+        return old.filter(r => !ids.includes(r.id));
+      });
+      
+      setBulkAction(null);
+      setSelected(new Set());
+      return { prevCases };
+    },
+    onSuccess: () => { toast.success("Casos arquivados"); },
+    onError: (e: Error, _ids, ctx) => {
+      if (ctx?.prevCases) for (const [key, data] of ctx.prevCases) qc.setQueryData(key, data);
+      toast.error(e.message);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["cases"] }),
   });
 
   const bulkReopen = useMutation({
     mutationFn: async (ids: string[]) => { for (const id of ids) await reopenCase(id); },
-    onSuccess: () => { toast.success(`${selected.size} caso(s) reabertos`); qc.invalidateQueries(); setSelected(new Set()); setBulkAction(null); },
-    onError: (e: Error) => toast.error(e.message),
+    onMutate: (ids: string[]) => {
+      for (const id of ids) try { markDeleted(id, -1); } catch {}
+      const prevCases = qc.getQueriesData<CaseRow[]>({ queryKey: ["cases"] });
+      
+      qc.setQueriesData<CaseRow[]>({ queryKey: ["cases"] }, (old) => {
+        if (!Array.isArray(old)) return old;
+        if (activeFilter === "all" || activeFilter === "em_andamento") {
+          return old.map(r => ids.includes(r.id) ? { ...r, status: "em_andamento", finished_at: null } : r);
+        }
+        return old.filter(r => !ids.includes(r.id));
+      });
+      
+      setBulkAction(null);
+      setSelected(new Set());
+      return { prevCases };
+    },
+    onSuccess: () => { toast.success("Casos reabertos"); },
+    onError: (e: Error, _ids, ctx) => {
+      if (ctx?.prevCases) for (const [key, data] of ctx.prevCases) qc.setQueryData(key, data);
+      toast.error(e.message);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["cases"] }),
   });
 
   const toggleSelected = (id: string) =>
@@ -422,10 +486,24 @@ export function CasesTable({
   };
 
   if (minimal) {
+    const allSelected = filtered.length > 0 && filtered.every((c) => selected.has(c.id));
+
     return (
       <div className="flex flex-col h-full min-h-0">
         {/* Sticky column header */}
-        <div className="grid grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_40px] gap-6 px-2 pb-4 text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400 border-b border-slate-200/70 dark:border-slate-800/70">
+        <div className="grid grid-cols-[48px_minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_40px] gap-6 px-2 pb-4 text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400 border-b border-slate-200/70 dark:border-slate-800/70 items-center">
+          <div className="flex justify-center">
+            {!isCadista && (
+              <Checkbox
+                checked={allSelected}
+                onCheckedChange={(v) => {
+                  if (v) setSelected(new Set(filtered.map((c) => c.id)));
+                  else setSelected(new Set());
+                }}
+                className="rounded-md border-slate-200"
+              />
+            )}
+          </div>
           <SortHeaderMinimal label="Paciente" k="patient" sort={sort} setSort={setSort} />
           <div>Profissionais</div>
           <SortHeaderMinimal label="Entrada" k="entry_date" sort={sort} setSort={setSort} />
@@ -459,6 +537,7 @@ export function CasesTable({
             <div className="text-center py-20 text-slate-400 font-light text-sm">Nenhum caso encontrado.</div>
           ) : filtered.map((c, i) => {
             const late = isLate(c.delivery_date);
+            const isSel = selected.has(c.id);
             return (
               <div
                 key={c.id}
@@ -466,8 +545,20 @@ export function CasesTable({
                 tabIndex={0}
                 onClick={() => setDetail(c)}
                 style={reveal.itemProps(i).style}
-                className={`${reveal.itemProps(i).className} grid grid-cols-[minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_40px] gap-6 items-center px-2 py-5 cursor-pointer transition-colors hover:bg-slate-50/60 dark:hover:bg-slate-900/40`}
+                className={`${reveal.itemProps(i).className} grid grid-cols-[48px_minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_40px] gap-6 items-center px-2 py-5 cursor-pointer transition-colors ${
+                  isSel ? "bg-primary/5 dark:bg-primary/10" : "hover:bg-slate-50/60 dark:hover:bg-slate-900/40"
+                }`}
               >
+                {/* Seleção */}
+                <div onClick={(e) => e.stopPropagation()} className="flex justify-center">
+                  {!isCadista && (
+                    <Checkbox
+                      checked={isSel}
+                      onCheckedChange={() => toggleSelected(c.id)}
+                      className="rounded-md h-5 w-5 border-slate-200"
+                    />
+                  )}
+                </div>
                 {/* Paciente */}
                 <div className="flex items-center gap-4 min-w-0">
                   <div className="h-11 w-11 rounded-full bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-500 text-sm font-light overflow-hidden shrink-0">
