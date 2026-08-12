@@ -580,7 +580,13 @@ export function CasesTable({
                     )}
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[17px] font-normal text-slate-900 dark:text-slate-100 truncate leading-tight">
+                    <div 
+                      className="text-[17px] font-normal text-slate-900 dark:text-slate-100 truncate leading-tight hover:text-primary transition-colors cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.location.href = `/patients/${c.patient_id}`;
+                      }}
+                    >
                       {c.patient?.name ?? "—"}
                     </div>
                     <div className="text-[13px] font-light text-slate-400 truncate mt-0.5">
