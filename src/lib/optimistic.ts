@@ -153,8 +153,12 @@ export function installTombstoneGuard(qc: QueryClient) {
 
     const data = event.query.state.data;
     if (Array.isArray(data)) {
-      const filtered = data.filter((row: any) => !(row && typeof row === "object" && row.id && isDeleted(row.id)));
-      if (filtered.length !== data.length) event.query.setData(filtered as any);
+      // Usamos uma verificação mais eficiente antes de chamar setData
+      const needsFilter = data.some((row: any) => row?.id && isDeleted(row.id));
+      if (needsFilter) {
+        const filtered = data.filter((row: any) => !(row?.id && isDeleted(row.id)));
+        event.query.setData(filtered as any);
+      }
       return;
     }
     if (data && typeof data === "object" && (data as any).id && isDeleted((data as any).id)) {

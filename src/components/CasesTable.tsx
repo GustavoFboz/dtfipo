@@ -163,8 +163,8 @@ export function CasesTable({
   const cases = useQuery({
     queryKey: ["cases", "all"],
     queryFn: () => fetchCases("all"),
-    staleTime: 500, // Reduced staleTime to reflect status changes faster
-    refetchOnWindowFocus: true,
+    staleTime: 30_000, // Aumentado para 30s para evitar excesso de requisições
+    refetchOnWindowFocus: false, // Desativado para evitar lentidão ao trocar de aba
   });
 
   const reveal = useListReveal("cases-table", cases.isLoading);
@@ -353,10 +353,17 @@ export function CasesTable({
 
       if (search) {
         const q = normalizeText(search);
-        const haystack = normalizeText([
-          c.patient?.name, c.doctor?.name, c.cadista?.name, c.case_type?.name,
-          c.tooth_color?.code, c.case_label, c.case_number, c.entry_date, c.delivery_date,
-        ].filter(Boolean).join(" "));
+        const haystack = normalizeText(
+          (c.patient?.name || "") + " " +
+          (c.doctor?.name || "") + " " +
+          (c.cadista?.name || "") + " " +
+          (c.case_type?.name || "") + " " +
+          (c.tooth_color?.code || "") + " " +
+          (c.case_label || "") + " " +
+          (c.case_number || "") + " " +
+          (c.entry_date || "") + " " +
+          (c.delivery_date || "")
+        );
         if (!haystack.includes(q)) return false;
       }
       if (stageFilter !== "all") {

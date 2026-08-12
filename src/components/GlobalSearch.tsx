@@ -33,7 +33,7 @@ const CATEGORIES: { id: SearchCategory; label: string; icon: any }[] = [
 export function GlobalSearch() {
   const { pathname } = useLocation();
   const [query, setQuery] = useState("");
-  const debouncedQuery = useDebounce(query, 50);
+  const debouncedQuery = useDebounce(query, 300); // Aumentado para 300ms para reduzir carga no banco
   const [isOpen, setIsOpen] = useState(false);
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [selectedCase, setSelectedCase] = useState<CaseRow | null>(null);

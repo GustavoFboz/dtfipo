@@ -120,8 +120,8 @@ export function AppShell() {
     queryKey: ["join_requests"],
     queryFn: fetchPendingJoinRequests,
     enabled: isAdmin,
-    refetchInterval: 8000,
-    refetchOnWindowFocus: true,
+    refetchInterval: 60000, // Aumentado para 60s
+    refetchOnWindowFocus: false,
     staleTime: 0,
   });
   const pendingCount = pendingRequests.length;
@@ -142,7 +142,7 @@ export function AppShell() {
     queryKey: ["my_tasks"],
     queryFn: fetchMyTasks,
     enabled: !!profile,
-    refetchInterval: 30000,
+    refetchInterval: 120000, // Aumentado para 120s
   });
   const tasksCount = myTasks.length;
 
