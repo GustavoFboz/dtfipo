@@ -140,7 +140,7 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
     query = query.not("status", "in", '("finalizado","arquivado","cancelado","finished")');
   } else if (scope === "finished") {
     // Show all finished cases (no more 30-day limit by default here, but respect date filters if provided)
-    query = query.or(`status.eq.finalizado,status.eq.finished`);
+    query = query.in("status", ["finalizado", "finished"]);
   } else if (scope === "archived") {
     query = query.eq("status", "arquivado");
   } else if (scope === "deleted") {
