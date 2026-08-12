@@ -77,6 +77,7 @@ export type Patient = {
   allergies: string | null;
   medications: string | null;
   clinical_notes: string | null;
+  cases?: CaseRow[] | null;
 };
 
 export type PatientAttachment = {
