@@ -163,8 +163,8 @@ export function CasesTable({
   const cases = useQuery({
     queryKey: ["cases", "all"],
     queryFn: () => fetchCases("all"),
-    staleTime: 500, // Reduced staleTime to reflect status changes faster
-    refetchOnWindowFocus: true,
+    staleTime: 30_000, // Aumentado para 30s para evitar excesso de requisições
+    refetchOnWindowFocus: false, // Desativado para evitar lentidão ao trocar de aba
   });
 
   const reveal = useListReveal("cases-table", cases.isLoading);
