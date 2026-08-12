@@ -130,11 +130,16 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  const { data: profile } = await supabase.from("profiles").select("id, role").eq("id", user.id).maybeSingle();
   
   let query = supabase
     .from("cases")
     .select(CASE_SELECT);
+
+  // Filter by SOLICITANTE
+  if (profile?.role === "SOLICITANTE") {
+    query = query.eq("requested_by", profile.id);
+  }
 
   if (scope === "active") {
     query = query.not("status", "in", '("finalizado","arquivado","cancelado","finished")');

@@ -120,7 +120,8 @@ export function NewCaseDialog({
   const isCadista = profile?.role === "CADISTA";
   const isView = !!viewCase;
   const isSolicitante = profile?.role === "SOLICITANTE";
-  // n5: solicitantes cannot see chat (it's in the detail dialog, but here for consistency)
+  // Solicitantes can create cases and see all fields, but only see their own requests
+  const isEdit = !!editCase && !isView;
   const isEdit = !!editCase && !isView;
   const isCreate = !isView && !isEdit;
   const [openState, setOpenState] = useState(false);
@@ -923,7 +924,7 @@ export function NewCaseDialog({
                 </Select>
               </div>
 
-              {!isCreate && (
+              {(isCreate || !isSolicitante) && (
               <div className="space-y-2 md:col-span-2">
                 <Label>Tipos de caso</Label>
                 <CaseTypePicker options={caseTypes.data ?? []} onPick={addType} />
