@@ -8,7 +8,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, User, Trash2, Pencil, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PatientFormDialog } from "@/components/PatientFormDialog";
 import type { Patient } from "@/lib/types";
