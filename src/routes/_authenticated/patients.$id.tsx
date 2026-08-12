@@ -54,6 +54,8 @@ function PatientDetailPage() {
         addLog("ERRO: Paciente não retornado pela API");
       } else {
         addLog(`Dados recebidos para: ${data.name}`);
+        // Também atualizar o título da página para feedback visual imediato
+        document.title = `${data.name} | Perfil do Paciente`;
       }
       return data;
     },
