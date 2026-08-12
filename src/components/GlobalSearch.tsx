@@ -385,7 +385,11 @@ export function GlobalSearch() {
         />
         
         <div className="absolute right-12 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 px-2 py-1 rounded bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 opacity-60 group-focus-within:opacity-0 transition-opacity pointer-events-none">
-          <Command className="h-2.5 w-2.5 text-slate-500" />
+          {typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform) ? (
+            <Command className="h-2.5 w-2.5 text-slate-500" />
+          ) : (
+            <span className="text-[10px] font-medium text-slate-500">Ctrl</span>
+          )}
           <span className="text-[10px] font-medium text-slate-500">K</span>
         </div>
         
