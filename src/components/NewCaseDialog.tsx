@@ -803,7 +803,7 @@ export function NewCaseDialog({
         </DialogTrigger>
       )}
       <DialogContent
-        className="max-w-5xl w-[calc(100vw-2rem)] max-h-[92vh] p-0 gap-0 overflow-hidden flex flex-col rounded-3xl border-0 shadow-2xl
+        className="max-w-7xl w-[calc(100vw-2rem)] max-h-[95vh] p-0 gap-0 overflow-hidden flex flex-col rounded-3xl border-0 shadow-2xl
                    max-md:w-screen max-md:!max-w-none max-md:h-[100dvh] max-md:!max-h-[100dvh] max-md:rounded-none max-md:rounded-t-[28px] max-md:top-auto max-md:bottom-0 max-md:left-0 max-md:!translate-x-0 max-md:!translate-y-0 max-md:data-[state=open]:animate-in max-md:data-[state=open]:slide-in-from-bottom
                    [&>.absolute.right-4]:hidden"
       >
@@ -838,7 +838,7 @@ export function NewCaseDialog({
           <div
             {...(isView ? { inert: "" as unknown as boolean } : {})}
             aria-disabled={isView || undefined}
-            className={`lg:col-span-7 px-5 py-4 lg:px-6 lg:py-5 min-h-0 flex flex-col overflow-y-auto ${isView ? "pointer-events-none select-none opacity-95" : ""}`}
+            className={`lg:col-span-5 px-5 py-4 lg:px-6 lg:py-5 min-h-0 flex flex-col overflow-y-auto ${isView ? "pointer-events-none select-none opacity-95" : ""}`}
             onKeyDown={(e) => {
               if (!isCreate) return;
               if (e.key !== "Enter" || e.shiftKey) return;
@@ -923,7 +923,6 @@ export function NewCaseDialog({
                 </Select>
               </div>
 
-              {(isCreate || !isSolicitante) && (
               <div className="space-y-2 md:col-span-2">
                 <Label>Tipos de caso</Label>
                 <CaseTypePicker options={caseTypes.data ?? []} onPick={addType} />
@@ -940,7 +939,6 @@ export function NewCaseDialog({
                   </div>
                 )}
               </div>
-              )}
 
               <div className="space-y-2">
                 <Label>Cor do dente</Label>
@@ -1101,12 +1099,10 @@ export function NewCaseDialog({
                 <Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
               </div>
 
-              {!isCreate && (
               <div className="space-y-2 md:col-span-2">
                 <Label>Observações (opcional)</Label>
                 <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Anotações iniciais sobre o caso" />
               </div>
-              )}
 
               {/* Seções de Escaneamentos e Galeria removidas do editar caso a pedido do usuário */}
 
@@ -1208,7 +1204,7 @@ export function NewCaseDialog({
           <aside
             {...(isView ? { inert: "" as unknown as boolean } : {})}
             aria-disabled={isView || undefined}
-            className={`lg:col-span-5 p-6 flex flex-col border-l border-border/60 min-h-0 h-full overflow-y-auto ${isView ? "pointer-events-none select-none opacity-95" : ""}`}
+            className={`lg:col-span-7 p-6 flex flex-col border-l border-border/60 min-h-0 h-full overflow-y-auto ${isView ? "pointer-events-none select-none opacity-95" : ""}`}
           >
             <div className={isCreate ? "flex flex-col flex-1 min-h-0 gap-5" : "space-y-5"}>
               <div className={isCreate ? "flex flex-col flex-1 min-h-0 gap-3" : "space-y-3"}>
