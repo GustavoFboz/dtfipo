@@ -31,7 +31,7 @@ export function PatientCombobox({ patients, selectedId, newName, onSelectExistin
   const exactMatch = patients.some((p) => normalizeText(p.name) === normalizeText(query));
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={true}>
+    <Popover open={open} onOpenChange={setOpen} modal={false}>
       <PopoverAnchor asChild>
         <button
           type="button"
