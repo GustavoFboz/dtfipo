@@ -34,7 +34,10 @@ function PatientsPage() {
   const [logs, setLogs] = useState<string[]>(["Página de pacientes carregada", "Monitor de eventos pronto"]);
 
   const addLog = (msg: string) => {
-    setLogs(prev => [...prev.slice(-49), `${new Date().toLocaleTimeString()} - ${msg}`]);
+    setLogs(prev => {
+      const newLogs = [...prev, `${new Date().toLocaleTimeString()} - ${msg}`];
+      return newLogs.slice(-50);
+    });
   };
 
 
