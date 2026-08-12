@@ -126,7 +126,7 @@ export async function sendInternalNotification(targetUserId: string | null, titl
 
 
 
-export async function fetchCases(scope: "active" | "finished" | "deleted" | "all" = "active"): Promise<CaseRow[]> {
+export async function fetchCases(scope: "active" | "finished" | "deleted" | "all" | "archived" = "active", filters?: { startDate?: string; endDate?: string }): Promise<CaseRow[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
@@ -139,16 +139,21 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
   if (scope === "active") {
     query = query.not("status", "in", '("finalizado","arquivado","cancelado","finished")');
   } else if (scope === "finished") {
-    // Return all cases from the last 30 days OR explicitly finished/archived
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const isoString = thirtyDaysAgo.toISOString().split('T')[0];
-    
-    query = query.or(`status.eq.finalizado,status.eq.arquivado,status.eq.finished,entry_date.gte.${isoString}`);
+    // Show all finished cases (no more 30-day limit by default here, but respect date filters if provided)
+    query = query.or(`status.eq.finalizado,status.eq.finished`);
+  } else if (scope === "archived") {
+    query = query.eq("status", "arquivado");
   } else if (scope === "deleted") {
     query = query.eq("status", "cancelado");
   }
   // "all" doesn't add a status filter
+
+  if (filters?.startDate) {
+    query = query.gte("entry_date", filters.startDate);
+  }
+  if (filters?.endDate) {
+    query = query.lte("entry_date", filters.endDate);
+  }
 
   // If user is CADISTA, filter by their cadista_id
   if (profile?.role === "CADISTA") {
@@ -156,12 +161,11 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
     if (cadista) {
       query = query.eq("cadista_id", cadista.id);
     } else {
-      // If profile is CADISTA but no record in cadistas table, show nothing (security)
       return [];
     }
   }
 
-  const { data, error } = await query.order("updated_at", { ascending: false }).limit(50);
+  const { data, error } = await query.order("updated_at", { ascending: false }).limit(200); // Increased limit slightly for historical views
   if (error) throw error;
   return (data ?? []) as unknown as CaseRow[];
 }
