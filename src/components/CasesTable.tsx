@@ -245,6 +245,18 @@ export function CasesTable({
   });
 
 
+  const bulkArchive = useMutation({
+    mutationFn: async (ids: string[]) => { for (const id of ids) await updateCase(id, { status: "arquivado" }); },
+    onSuccess: () => { toast.success(`${selected.size} caso(s) arquivado(s)`); qc.invalidateQueries(); setSelected(new Set()); setBulkAction(null); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const bulkReopen = useMutation({
+    mutationFn: async (ids: string[]) => { for (const id of ids) await reopenCase(id); },
+    onSuccess: () => { toast.success(`${selected.size} caso(s) reabertos`); qc.invalidateQueries(); setSelected(new Set()); setBulkAction(null); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const toggleSelected = (id: string) =>
     setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
@@ -634,9 +646,21 @@ export function CasesTable({
             <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())} className="text-white hover:bg-white/10 rounded-xl font-bold text-xs uppercase">
               Limpar
             </Button>
-            <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 rounded-xl font-bold text-xs uppercase gap-2" onClick={() => setBulkAction("finish")}>
-              <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
+            
+            {activeFilter === "finalizados" ? (
+              <Button size="sm" className="bg-amber-500 hover:bg-amber-600 rounded-xl font-bold text-xs uppercase gap-2" onClick={() => setBulkAction("reopen")}>
+                <RotateCcw className="h-3.5 w-3.5" /> Reabrir
+              </Button>
+            ) : (
+              <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 rounded-xl font-bold text-xs uppercase gap-2" onClick={() => setBulkAction("finish")}>
+                <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
+              </Button>
+            )}
+
+            <Button size="sm" className="bg-indigo-500 hover:bg-indigo-600 rounded-xl font-bold text-xs uppercase gap-2" onClick={() => setBulkAction("archive")}>
+              <Archive className="h-3.5 w-3.5" /> Arquivar
             </Button>
+
             <Button variant="destructive" size="sm" className="rounded-xl font-bold text-xs uppercase gap-2" onClick={() => setBulkAction("delete")}>
               <Trash2 className="h-3.5 w-3.5" /> Excluir
             </Button>
