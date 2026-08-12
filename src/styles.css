@@ -652,7 +652,7 @@ html.refresh-boot body > *:not(.tpb-root) {
 .df-shimmer {
   position: relative;
   overflow: hidden;
-  background-color: color-mix(in oklab, var(--muted-foreground) 12%, transparent);
+  background-color: var(--color-muted);
 }
 .df-shimmer::after {
   content: "";
