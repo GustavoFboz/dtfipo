@@ -179,21 +179,28 @@ export function CasesTable({
   const finish = useMutation({
     mutationFn: (id: string) => finishCase(id),
     onMutate: async (id: string) => {
-      // Optimistic update to archive the case immediately in the UI
-      const prevCases = qc.getQueryData<CaseRow[]>(["cases", "all"]);
-      qc.setQueryData<CaseRow[]>(["cases", "all"], (old) =>
-        Array.isArray(old) ? old.filter((r) => r.id !== id) : old
-      );
+      const prevCases = qc.getQueriesData<CaseRow[]>({ queryKey: ["cases"] });
+      // Remove localmente apenas se não estivermos no filtro "Todos" ou "Finalizados"
+      if (activeFilter !== "all" && activeFilter !== "finalizados") {
+        qc.setQueriesData<CaseRow[]>({ queryKey: ["cases"] }, (old) =>
+          Array.isArray(old) ? old.filter((r) => r.id !== id) : old,
+        );
+      } else {
+        // Se estiver em "Todos", apenas atualiza o status para evitar que suma
+        qc.setQueriesData<CaseRow[]>({ queryKey: ["cases"] }, (old) =>
+          Array.isArray(old) ? old.map((r) => r.id === id ? { ...r, status: "finalizado", finished_at: new Date().toISOString() } : r) : old,
+        );
+      }
       return { prevCases };
     },
     onError: (err, id, context) => {
       if (context?.prevCases) {
-        qc.setQueryData(["cases", "all"], context.prevCases);
+        for (const [key, data] of context.prevCases) qc.setQueryData(key, data);
       }
       toast.error("Erro ao finalizar caso");
     },
     onSuccess: () => { 
-      toast.success("Caso finalizado e arquivado"); 
+      toast.success("Caso finalizado"); 
       qc.invalidateQueries({ queryKey: ["cases"] }); 
     },
   });
