@@ -859,17 +859,13 @@ export function NewCaseDialog({
 
               <div className="space-y-2 md:col-span-2">
                 <Label>Paciente</Label>
-                <PopoverAnchor asChild>
-                  <div>
-                    <PatientCombobox
-                      patients={patients.data ?? []}
-                      selectedId={patientId}
-                      newName={newPatientName}
-                      onSelectExisting={(id) => { setPatientId(id); setNewPatientName(""); setNewPatientPhoto(null); }}
-                      onTypeNew={(name) => { setNewPatientName(name); setPatientId(""); }}
-                    />
-                  </div>
-                </PopoverAnchor>
+                <PatientCombobox
+                  patients={patients.data ?? []}
+                  selectedId={patientId}
+                  newName={newPatientName}
+                  onSelectExisting={(id) => { setPatientId(id); setNewPatientName(""); setNewPatientPhoto(null); }}
+                  onTypeNew={(name) => { setNewPatientName(name); setPatientId(""); }}
+                />
                 {newPatientName && !patientId && (
                   <div className="flex gap-2 items-center">
                     <div className="text-xs text-muted-foreground flex-1">
