@@ -1650,40 +1650,38 @@ export function NewCaseDialog({
                 <CaseComments caseId={viewCase.id} />
               </div>
             </div>
-          )}
-
-        </div>
-
-        <DialogFooter className="px-6 py-4 border-t border-border/60 bg-card/80 backdrop-blur-sm gap-2 sm:justify-between sm:items-center">
-          {isCreate && profile?.full_name ? (
-            <div className="text-xs text-muted-foreground font-light">
-              Protético responsável: <span className="text-foreground/80">{profile.full_name}</span>
             </div>
-          ) : <div />}
-          <div className="flex items-center gap-2">
-          {isView ? (
-            <>
-              <Button variant="ghost" onClick={() => setOpen(false)}>Fechar</Button>
-              {isCadista && hasImplant && cleanImplantTeeth.length > 0 && (
-                <Button onClick={() => saveTiBases.mutate()} disabled={saveTiBases.isPending} className="min-w-[160px] rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-normal">
-                  {saveTiBases.isPending ? "Salvando..." : "Salvar Ti-Bases"}
-                </Button>
-              )}
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" onClick={discardAndClose} className="rounded-full">Cancelar</Button>
-              {(isCreate || (isEdit && isSolicitante && !editCase?.cadista_id) || (isEdit && !isSolicitante)) && (
-                <Button onClick={() => submit.mutate()} disabled={submit.isPending} className="min-w-[160px] rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-normal">
-                  {submit.isPending ? "Salvando..." : isEdit ? "Salvar alterações" : "Cadastrar caso"}
-                </Button>
-              )}
-            </>
-          )}
           </div>
-        </DialogFooter>
-        </div>
-      </DialogContent>
+
+          <DialogFooter className="px-6 py-4 border-t border-border/60 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md shrink-0 sm:justify-between sm:items-center">
+            {isCreate && profile?.full_name ? (
+              <div className="text-xs text-muted-foreground font-light">
+                Protético responsável: <span className="text-foreground/80">{profile.full_name}</span>
+              </div>
+            ) : <div />}
+            <div className="flex items-center gap-2">
+            {isView ? (
+              <>
+                <Button variant="ghost" onClick={() => setOpen(false)}>Fechar</Button>
+                {isCadista && hasImplant && cleanImplantTeeth.length > 0 && (
+                  <Button onClick={() => saveTiBases.mutate()} disabled={saveTiBases.isPending} className="min-w-[160px] rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-normal">
+                    {saveTiBases.isPending ? "Salvando..." : "Salvar Ti-Bases"}
+                  </Button>
+                )}
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={discardAndClose} className="rounded-full">Cancelar</Button>
+                {(isCreate || (isEdit && isSolicitante && !editCase?.cadista_id) || (isEdit && !isSolicitante)) && (
+                  <Button onClick={() => submit.mutate()} disabled={submit.isPending} className="min-w-[160px] rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-normal">
+                    {submit.isPending ? "Salvando..." : isEdit ? "Salvar alterações" : "Cadastrar caso"}
+                  </Button>
+                )}
+              </>
+            )}
+            </div>
+          </DialogFooter>
+        </DialogContent>
 
     </Dialog>
   );
