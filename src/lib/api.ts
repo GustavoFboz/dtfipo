@@ -137,9 +137,9 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
     .select(CASE_SELECT);
 
   if (scope === "active") {
-    query = query.not("status", "in", '("finalizado","arquivado","cancelado")');
+    query = query.not("status", "in", '("finalizado","arquivado","cancelado","cancelado")');
   } else if (scope === "finished") {
-    query = query.eq("status", "finalizado");
+    query = query.or('status.eq.finalizado,status.eq.arquivado');
   } else if (scope === "deleted") {
     query = query.eq("status", "cancelado");
   }

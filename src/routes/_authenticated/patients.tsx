@@ -31,7 +31,11 @@ function PatientsPage() {
   const [q, setQ] = useState("");
 
   const filtered = useMemo(() => {
-    const list = patients.data ?? [];
+    let list = patients.data ?? [];
+    
+    // Sort alphabetically by name by default
+    list = [...list].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
     if (!q.trim()) return list;
     const s = normalizeText(q);
     return list.filter((p) =>
@@ -57,18 +61,10 @@ function PatientsPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto w-full px-6 md:px-16 py-8 md:py-10">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-8">
-        <h1 className="text-3xl md:text-4xl font-light text-slate-900 tracking-tight">Pacientes</h1>
-        <div className="flex gap-2 items-center flex-1 max-w-md mx-4">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome, CPF ou contato..."
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              className="pl-9 h-11 bg-slate-100/50 border-0 shadow-none focus-visible:ring-1 focus-visible:ring-primary/20"
-            />
-          </div>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-light text-slate-900 tracking-tight">Pacientes</h1>
+          <p className="text-slate-500 text-sm mt-1">Gerencie seu cadastro de pacientes</p>
         </div>
         <div className="flex gap-2 items-center">
           <Button className="h-11 px-6 rounded-xl gap-2 shadow-lg shadow-primary/20" onClick={() => setOpenNew(true)}>
@@ -99,11 +95,7 @@ function PatientsPage() {
             to="/patients/$id"
             params={{ id: p.id }}
             style={reveal.itemProps(i).style}
-            className={`${reveal.itemProps(i).className} cursor-default bg-card rounded-2xl border border-border/60 p-4 flex items-center gap-3 hover:shadow-[var(--shadow-card)] hover:border-primary/40 transition group no-underline text-inherit`}
-            onClick={(e) => {
-              if ((e.target as HTMLElement).closest('button')) return;
-              navigate({ to: '/patients/$id', params: { id: p.id } });
-            }}
+            className={`${reveal.itemProps(i).className} cursor-pointer bg-card rounded-2xl border border-border/60 p-4 flex items-center gap-4 hover:shadow-[var(--shadow-card)] hover:border-primary/40 transition-all duration-300 group no-underline text-inherit`}
           >
             <div className="h-12 w-12 rounded-full bg-muted grid place-items-center text-muted-foreground shrink-0 overflow-hidden">
               {p.photo_url ? (
@@ -113,9 +105,9 @@ function PatientsPage() {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-semibold truncate group-hover:text-primary transition-colors">{p.name}</div>
-              <div className="text-xs text-muted-foreground truncate">
-                {[p.age ? `${p.age}a` : null, p.cpf, p.phone].filter(Boolean).join(" · ") || "Sem dados adicionais"}
+              <div className="font-medium text-slate-800 tracking-tight group-hover:text-primary transition-colors">{p.name}</div>
+              <div className="text-[11px] text-slate-400 mt-0.5 truncate uppercase tracking-wider font-semibold">
+                {[p.age ? `${p.age}a` : null, p.cpf, p.phone].filter(Boolean).join(" · ") || "Sem dados"}
               </div>
             </div>
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
