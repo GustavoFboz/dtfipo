@@ -254,7 +254,10 @@ export const fetchCaseTypes = async (): Promise<CaseType[]> => {
     .select("*")
     .order("position", { ascending: true })
     .order("name", { ascending: true });
-  if (error) throw error;
+  if (error) {
+    console.warn("fetchCaseTypes error (falling back to empty):", error);
+    return [];
+  }
   return data ?? [];
 };
 
@@ -264,7 +267,10 @@ export const fetchToothColors = async (): Promise<ToothColor[]> => {
     .select("*")
     .order("sort_order", { ascending: true, nullsFirst: false })
     .order("code");
-  if (error) throw error;
+  if (error) {
+    console.warn("fetchToothColors error (falling back to empty):", error);
+    return [];
+  }
   return data ?? [];
 };
 
@@ -274,7 +280,10 @@ export const fetchImplantSystems = async (): Promise<ImplantSystem[]> => {
     .from("implant_systems" as never)
     .select("*")
     .order("sort_order", { ascending: true });
-  if (error) throw error;
+  if (error) {
+    console.warn("fetchImplantSystems error (falling back to empty):", error);
+    return [];
+  }
   return (data ?? []) as unknown as ImplantSystem[];
 };
 
