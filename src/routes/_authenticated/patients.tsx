@@ -22,6 +22,7 @@ export const Route = createFileRoute("/_authenticated/patients")({
 
 function PatientsPage() {
   const qc = useQueryClient();
+  const navigate = Route.useNavigate();
   const patients = useQuery({ queryKey: ["patients"], queryFn: fetchPatients });
   const reveal = useListReveal("patients-grid", patients.isPending && !patients.data);
   const [openNew, setOpenNew] = useState(false);
@@ -98,7 +99,11 @@ function PatientsPage() {
             to="/patients/$id"
             params={{ id: p.id }}
             style={reveal.itemProps(i).style}
-            className={`${reveal.itemProps(i).className} cursor-pointer bg-card rounded-2xl border border-border/60 p-4 flex items-center gap-3 hover:shadow-[var(--shadow-card)] hover:border-primary/40 transition group no-underline text-inherit`}
+            className={`${reveal.itemProps(i).className} cursor-default bg-card rounded-2xl border border-border/60 p-4 flex items-center gap-3 hover:shadow-[var(--shadow-card)] hover:border-primary/40 transition group no-underline text-inherit`}
+            onClick={(e) => {
+              if ((e.target as HTMLElement).closest('button')) return;
+              navigate({ to: '/patients/$id', params: { id: p.id } });
+            }}
           >
             <div className="h-12 w-12 rounded-full bg-muted grid place-items-center text-muted-foreground shrink-0 overflow-hidden">
               {p.photo_url ? (
