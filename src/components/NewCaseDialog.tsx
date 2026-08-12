@@ -119,6 +119,8 @@ export function NewCaseDialog({
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
   const isCadista = profile?.role === "CADISTA";
   const isView = !!viewCase;
+  const isSolicitante = profile?.role === "SOLICITANTE";
+  // n5: solicitantes cannot see chat (it's in the detail dialog, but here for consistency)
   const isEdit = !!editCase && !isView;
   const isCreate = !isView && !isEdit;
   const [openState, setOpenState] = useState(false);
@@ -1675,9 +1677,11 @@ export function NewCaseDialog({
           ) : (
             <>
               <Button variant="ghost" onClick={discardAndClose} className="rounded-full">Cancelar</Button>
-              <Button onClick={() => submit.mutate()} disabled={submit.isPending} className="min-w-[160px] rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-normal">
-                {submit.isPending ? "Salvando..." : isEdit ? "Salvar alterações" : "Cadastrar caso"}
-              </Button>
+              {(isCreate || (isEdit && isSolicitante && !editCase?.cadista_id) || (isEdit && !isSolicitante)) && (
+                <Button onClick={() => submit.mutate()} disabled={submit.isPending} className="min-w-[160px] rounded-full bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 font-normal">
+                  {submit.isPending ? "Salvando..." : isEdit ? "Salvar alterações" : "Cadastrar caso"}
+                </Button>
+              )}
             </>
           )}
           </div>

@@ -126,7 +126,7 @@ export function CasesTable({
   hideToolbar,
   minimal,
   hideSearch,
-  activeFilter = "all",
+  activeFilter = "em_andamento",
   onFilterChange,
   onYearChange,
   onCountsUpdate,
@@ -161,8 +161,14 @@ export function CasesTable({
   const isCadista = profile?.role === "CADISTA";
 
   const cases = useQuery({
-    queryKey: ["cases", activeFilter],
-    queryFn: () => fetchCases(activeFilter === "finalizados" ? "finished" : (activeFilter === "deleted" || activeFilter === "cancelado" ? "deleted" : "active")),
+    queryKey: ["cases", activeFilter, dateRange?.start, dateRange?.end],
+    queryFn: () => fetchCases(
+      activeFilter === "finalizados" ? "finished" : 
+      activeFilter === "arquivados" ? "archived" :
+      (activeFilter === "deleted" || activeFilter === "cancelado" ? "deleted" : 
+      activeFilter === "all" ? "all" : "active"),
+      { startDate: dateRange?.start, endDate: dateRange?.end }
+    ),
     staleTime: 30_000, 
     refetchOnWindowFocus: true,
     refetchInterval: 60_000,
@@ -338,22 +344,19 @@ export function CasesTable({
     const q = search ? normalizeText(search) : "";
     
     const f = list.filter((c) => {
-      // "Todos" should only show active cases (not finished, archived, or canceled)
-      if (activeFilter === "all") {
-        if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado" || c.status === "finished") return false;
-      }
-      
-      // Apply the other status-based tag filters
+      // Filter logic based on the requested rules
       if (activeFilter === "em_andamento") {
-        if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
+        if (c.finished_at || c.status === "finalizado" || c.status === "finished" || c.status === "arquivado" || c.status === "cancelado") return false;
+      } else if (activeFilter === "all") {
+        // "Todos" includes everything except canceled/trash in this context usually, 
+        // but user says "second option and filter all in selected period".
+        // Usually "Todos" means active + historical in the selected period.
+        if (c.status === "cancelado") return false;
       } else if (activeFilter === "atrasados") {
         if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
         if (!isLate(c.delivery_date)) return false;
       } else if (activeFilter === "finalizados") {
-        // Special logic for "finalizados" filter: 
-        // Show everything the server returned (which includes last 30 days)
-        // No client-side exclusion here unless explicitly canceled
-        if (c.status === "cancelado") return false;
+        if (!c.finished_at && c.status !== "finalizado" && c.status !== "finished") return false;
       } else if (activeFilter === "arquivados") {
         if (c.status !== "arquivado") return false;
       } else if (activeFilter === "deleted" || activeFilter === "cancelado") {

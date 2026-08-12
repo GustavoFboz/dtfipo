@@ -28,7 +28,7 @@ export const Route = createFileRoute("/_authenticated/casos")({
 function Index() {
   const now = useNow();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState("em_andamento");
   const [isTrashMode, setIsTrashMode] = useState(false);
   const [openNewPatient, setOpenNewPatient] = useState(false);
   const [exiting, setExiting] = useState(false);
@@ -260,8 +260,8 @@ function Index() {
                 className={`flex flex-wrap items-center gap-2 p-1 rounded-[2rem] w-fit transition-colors duration-500 ${isTrashMode ? "bg-rose-100/50 dark:bg-rose-900/20" : "bg-slate-100/50 dark:bg-white/5"}`}
               >
             {[
-              { id: "all", label: "Todos" },
               { id: "em_andamento", label: "Em andamento" },
+              { id: "all", label: "Todos" },
               { id: "atrasados", label: "Atrasados" },
               { id: "finalizados", label: "Finalizados" },
               { id: "arquivados", label: "Arquivados" },

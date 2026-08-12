@@ -7,7 +7,7 @@ import { CaseDetailDialog } from "./CaseDetailDialog";
 import { useListReveal } from "@/components/ui/skeleton-blocks";
 import type { CaseRow } from "@/lib/types";
 
-type Filter = "all" | "active" | "late" | "month" | "finished";
+type Filter = "all" | "active" | "late" | "month" | "finished" | "solicitacao";
 
 function fmtBR(d: string) {
   const [y, m, day] = d.split("-");
@@ -40,11 +40,18 @@ export function MobileDashboard() {
     enabled: filter === "finished",
   });
 
+  const { data: allCases } = useQuery({
+    queryKey: ["cases", "all"],
+    queryFn: () => fetchCases("all"),
+    enabled: filter === "solicitacao",
+  });
+
   const list = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     let src: CaseRow[] = active.data ?? [];
     if (filter === "finished") src = finished.data ?? [];
+    else if (filter === "solicitacao") src = (allCases ?? []).filter(c => !!c.requested_by && !c.cadista_id);
     else if (filter === "late") src = src.filter((c) => !c.finished_at && new Date(c.delivery_date + "T00:00:00") < today);
     else if (filter === "month") src = src.filter((c) => {
       const d = new Date((c.entry_date ?? "") + "T00:00:00");

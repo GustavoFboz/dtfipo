@@ -18,7 +18,7 @@ import { StageBadge } from "./StageBadge";
 import { CaseAttachments } from "./CaseAttachments";
 import { CaseComments } from "./CaseComments";
 import { fetchCaseActivity } from "@/lib/case-activity";
-import { fetchImplantSystems, fetchCases } from "@/lib/api";
+import { fetchImplantSystems, fetchCases, updateCase, fetchProfile } from "@/lib/api";
 import { downloadCaseZip, downloadCaseSectionZip } from "@/lib/download-case";
 import { printWorkOrder } from "@/lib/work-order";
 import { PrintNoteButton } from "@/components/PrintNoteButton";
@@ -54,16 +54,22 @@ function PatientAvatarView({
 
 type TabKey = "detalhes" | "galeria" | "html" | "scans" | "modelos" | "confeccao" | "comentarios";
 
+type TabDefinition = {
+  key: TabKey;
+  label: string;
+  hiddenFor?: string[];
+};
+
 const OPEN_CASE_KEY = "case_dialog:open";
 
-const TABS: { key: TabKey; label: string }[] = [
+const TABS: TabDefinition[] = [
   { key: "detalhes", label: "Detalhes" },
   { key: "galeria", label: "Galeria" },
   { key: "scans", label: "Escaneamentos" },
   { key: "html", label: "HTML" },
   { key: "modelos", label: "Modelos" },
   { key: "confeccao", label: "Elementos" },
-  { key: "comentarios", label: "Chat" },
+  { key: "comentarios", label: "Chat", hiddenFor: ["SOLICITANTE"] },
 ];
 
 function isTabKey(value: string | null): value is TabKey {
@@ -213,7 +219,30 @@ function CaseHeaderActions({ caseRow, currentTab }: { caseRow: CaseRow; currentT
   };
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {((caseRow as any).requested_by && !caseRow.cadista_id) && (
+        <button
+          type="button"
+          onClick={async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { data: cadista } = await supabase.from("cadistas").select("id").eq("user_id", user.id).maybeSingle();
+            if (!cadista) {
+              toast.error("Apenas protéticos cadastrados podem aceitar solicitações.");
+              return;
+            }
+            try {
+              await updateCase(caseRow.id, { cadista_id: cadista.id });
+              toast.success("Você aceitou esta solicitação!");
+            } catch (e) {
+              toast.error("Erro ao aceitar solicitação.");
+            }
+          }}
+          className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 transition text-xs font-bold"
+        >
+          Aceitar Solicitação
+        </button>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
@@ -288,6 +317,8 @@ export function CaseDetailDialog({
     () => (casesQ.data ?? []).find((c) => c.id === caseId) ?? caseRowProp,
     [casesQ.data, caseId, caseRowProp],
   );
+  const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
+  const isSolicitante = profile?.role === "SOLICITANTE";
   const [tab, setTab] = useState<TabKey>(() => (syncUrlHash ? readHashTab() : null) ?? "detalhes");
   const isMobile = useIsMobile();
   const [showFdiMobile, setShowFdiMobile] = useState(false);
@@ -306,7 +337,13 @@ export function CaseDetailDialog({
       setRestoredCaseId(null);
       return;
     }
-    setTab(syncUrlHash ? restoredTabFor(caseId) : readSavedTab(caseId) ?? "detalhes");
+    const initialTab = syncUrlHash ? restoredTabFor(caseId) : readSavedTab(caseId) ?? "detalhes";
+    // Avoid restoring chat tab for solicitantes
+    if (isSolicitante && initialTab === "comentarios") {
+      setTab("detalhes");
+    } else {
+      setTab(initialTab);
+    }
     setRestoredCaseId(caseId);
   }, [open, caseId, syncUrlHash]);
 
@@ -649,7 +686,7 @@ export function CaseDetailDialog({
               {/* Tabs pill scroll */}
               <div className="mt-4 -mx-5 px-5 overflow-x-auto no-scrollbar">
                 <div className="flex gap-1.5 min-w-max pb-1">
-                  {TABS.map((t) => {
+                  {TABS.filter(t => !((t as any).hiddenFor || []).includes(profile?.role)).map((t) => {
                     const active = tab === t.key;
                     const badge = t.key === "comentarios" && commentsCount > 0;
                     const locked = isTabLocked(t.key);
@@ -936,7 +973,7 @@ export function CaseDetailDialog({
           <nav
             className="shrink-0 min-h-0 flex flex-row md:flex-col overflow-x-auto md:overflow-x-hidden overflow-y-hidden md:overflow-visible w-full md:w-[220px] md:min-w-[220px] lg:w-[240px] lg:min-w-[240px] bg-white dark:bg-neutral-950 md:border-r border-slate-100 dark:border-neutral-900 py-2 md:py-4 relative"
           >
-            {TABS.map((t) => {
+            {TABS.filter(t => !((t as any).hiddenFor || []).includes(profile?.role)).map((t) => {
               const active = tab === t.key;
               const showBadge = t.key === "comentarios" && commentsCount > 0;
               const locked = isTabLocked(t.key);
@@ -990,6 +1027,7 @@ export function CaseDetailDialog({
                   <div className="min-w-0 min-h-0 space-y-4 overflow-y-auto lg:overflow-visible pr-1">
                     <div className="rounded-xl border border-border/70 bg-card p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                       <Field label="Dentista" value={caseRow.doctor?.name ?? "—"} />
+                      <Field label="Dentista Solicitante" value={caseRow.requested_by ? "Sim" : "Não"} />
                       <Field label="Cor do dente" value={caseRow.tooth_color?.code ?? "—"} />
                       <Field label="Cadista" value={caseRow.cadista?.name ?? "—"} />
                       <Field

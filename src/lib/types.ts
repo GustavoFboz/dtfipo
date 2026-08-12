@@ -1,4 +1,4 @@
-export type UserRole = "CEO" | "DR" | "PROTETICO" | "ATENDIMENTO" | "CADISTA" | "USER";
+export type UserRole = "CEO" | "DR" | "PROTETICO" | "ATENDIMENTO" | "CADISTA" | "SOLICITANTE" | "USER";
 
 export type Profile = {
   id: string;
@@ -174,6 +174,7 @@ export type CaseRow = {
   tooth_implant_systems?: Record<string, string> | null;
   implant_system?: ImplantSystem | null;
   scan_jig?: ScanJig | null;
+  requested_by?: string | null;
 };
 
 export type StockCategory = "zirconia" | "dissilicato" | "component" | "hygiene";

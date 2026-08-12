@@ -2194,6 +2194,7 @@ export type Database = {
         | "auxiliar"
         | "protetico"
         | "cadista"
+        | "SOLICITANTE"
       stock_category: "zirconia" | "dissilicato" | "component" | "hygiene"
       stock_movement_type:
         | "in"
@@ -2339,6 +2340,7 @@ export const Constants = {
         "auxiliar",
         "protetico",
         "cadista",
+        "SOLICITANTE",
       ],
       stock_category: ["zirconia", "dissilicato", "component", "hygiene"],
       stock_movement_type: [
