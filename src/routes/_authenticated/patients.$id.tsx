@@ -25,8 +25,17 @@ function PatientDetailPage() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const isMobile = useIsMobile();
-  const patient = useQuery({ queryKey: ["patient", id], queryFn: () => fetchPatient(id) });
-  const cases = useQuery({ queryKey: ["patient_cases", id], queryFn: () => fetchPatientCases(id) });
+  const patient = useQuery({ 
+    queryKey: ["patient", id], 
+    queryFn: () => fetchPatient(id),
+    retry: 1,
+    meta: { errorMessage: "Erro ao carregar dados do paciente" }
+  });
+  const cases = useQuery({ 
+    queryKey: ["patient_cases", id], 
+    queryFn: () => fetchPatientCases(id),
+    retry: 1
+  });
   const [selected, setSelected] = useState<CaseRow | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [newCaseOpen, setNewCaseOpen] = useState(false);
