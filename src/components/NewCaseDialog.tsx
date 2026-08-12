@@ -1128,6 +1128,30 @@ export function NewCaseDialog({
                   if (pendingGalleryInput.current) pendingGalleryInput.current.value = "";
                 }}
               />
+
+              {/* Lista de arquivos pendentes - agora visível acima do formulário ou em local fixo */}
+              {(pendingGalleryFiles.length > 0 || pendingScanFiles.length > 0) && (
+                <div className="md:col-span-2 flex flex-wrap gap-2 p-3 rounded-2xl bg-slate-50 border border-slate-100 dark:bg-neutral-900/50 dark:border-neutral-800 mb-4">
+                  {pendingGalleryFiles.map((f, i) => (
+                    <div key={`g-${i}`} className="flex items-center gap-2 px-2 py-1 rounded-full bg-white dark:bg-neutral-800 text-[10px] text-slate-500 border border-slate-200 dark:border-neutral-700">
+                      <AttachImagesIcon className="h-3 w-3" />
+                      <span className="truncate max-w-[80px]">{f.name}</span>
+                      <button onClick={() => setPendingGalleryFiles(prev => prev.filter((_, idx) => idx !== i))}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                  {pendingScanFiles.map((f, i) => (
+                    <div key={`s-${i}`} className="flex items-center gap-2 px-2 py-1 rounded-full bg-white dark:bg-neutral-800 text-[10px] text-slate-500 border border-slate-200 dark:border-neutral-700">
+                      <AttachFilesIcon className="h-3 w-3" />
+                      <span className="truncate max-w-[80px]">{f.file.name}</span>
+                      <button onClick={() => setPendingScanFiles(prev => prev.filter((_, idx) => idx !== i))}>
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             
           </div>
