@@ -87,7 +87,7 @@ function PatientsPage() {
         animateContent={false}
         skeleton={<SkeletonCardGrid count={9} />}
       >
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      <div className="flex flex-col gap-2 max-w-4xl mx-auto">
 
         {filtered.map((p, i) => (
           <Link
@@ -95,7 +95,7 @@ function PatientsPage() {
             to="/patients/$id"
             params={{ id: p.id }}
             style={reveal.itemProps(i).style}
-            className={`${reveal.itemProps(i).className} cursor-pointer bg-card rounded-2xl border border-border/60 p-4 flex items-center gap-4 hover:shadow-[var(--shadow-card)] hover:border-primary/40 transition-all duration-300 group no-underline text-inherit`}
+            className={`${reveal.itemProps(i).className} cursor-pointer bg-white dark:bg-slate-900 rounded-none border-b border-slate-100 dark:border-white/5 p-5 flex items-center gap-5 hover:bg-slate-50 dark:hover:bg-white/5 transition-all duration-300 group no-underline text-inherit first:rounded-t-2xl last:rounded-b-2xl last:border-b-0 shadow-sm first:border-t`}
           >
             <div className="h-12 w-12 rounded-full bg-muted grid place-items-center text-muted-foreground shrink-0 overflow-hidden">
               {p.photo_url ? (
