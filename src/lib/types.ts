@@ -131,7 +131,7 @@ export type CaseRow = {
   entry_date: string;
   delivery_date: string;
   finished_at: string | null;
-  finished?: boolean;
+  finished?: boolean | null;
 
   status: string;
   model_done: boolean;
