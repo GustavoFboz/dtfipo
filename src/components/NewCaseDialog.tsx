@@ -119,6 +119,8 @@ export function NewCaseDialog({
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
   const isCadista = profile?.role === "CADISTA";
   const isView = !!viewCase;
+  const isSolicitante = profile?.role === "SOLICITANTE";
+  // n5: solicitantes cannot see chat (it's in the detail dialog, but here for consistency)
   const isEdit = !!editCase && !isView;
   const isCreate = !isView && !isEdit;
   const [openState, setOpenState] = useState(false);

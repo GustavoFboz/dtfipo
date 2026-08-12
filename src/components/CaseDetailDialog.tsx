@@ -63,7 +63,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: "html", label: "HTML" },
   { key: "modelos", label: "Modelos" },
   { key: "confeccao", label: "Elementos" },
-  { key: "comentarios", label: "Chat" },
+  { key: "comentarios", label: "Chat", hiddenFor: ["SOLICITANTE"] },
 ];
 
 function isTabKey(value: string | null): value is TabKey {
@@ -213,7 +213,30 @@ function CaseHeaderActions({ caseRow, currentTab }: { caseRow: CaseRow; currentT
   };
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 flex-wrap">
+      {((caseRow as any).requested_by && !caseRow.cadista_id) && (
+        <button
+          type="button"
+          onClick={async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { data: cadista } = await supabase.from("cadistas").select("id").eq("user_id", user.id).maybeSingle();
+            if (!cadista) {
+              toast.error("Apenas protéticos cadastrados podem aceitar solicitações.");
+              return;
+            }
+            try {
+              await updateCase(caseRow.id, { cadista_id: cadista.id });
+              toast.success("Você aceitou esta solicitação!");
+            } catch (e) {
+              toast.error("Erro ao aceitar solicitação.");
+            }
+          }}
+          className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 transition text-xs font-bold"
+        >
+          Aceitar Solicitação
+        </button>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
@@ -288,6 +311,8 @@ export function CaseDetailDialog({
     () => (casesQ.data ?? []).find((c) => c.id === caseId) ?? caseRowProp,
     [casesQ.data, caseId, caseRowProp],
   );
+  const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
+  const isSolicitante = profile?.role === "SOLICITANTE";
   const [tab, setTab] = useState<TabKey>(() => (syncUrlHash ? readHashTab() : null) ?? "detalhes");
   const isMobile = useIsMobile();
   const [showFdiMobile, setShowFdiMobile] = useState(false);
@@ -306,7 +331,13 @@ export function CaseDetailDialog({
       setRestoredCaseId(null);
       return;
     }
-    setTab(syncUrlHash ? restoredTabFor(caseId) : readSavedTab(caseId) ?? "detalhes");
+    const initialTab = syncUrlHash ? restoredTabFor(caseId) : readSavedTab(caseId) ?? "detalhes";
+    // Avoid restoring chat tab for solicitantes
+    if (isSolicitante && initialTab === "comentarios") {
+      setTab("detalhes");
+    } else {
+      setTab(initialTab);
+    }
     setRestoredCaseId(caseId);
   }, [open, caseId, syncUrlHash]);
 

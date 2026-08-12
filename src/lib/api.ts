@@ -405,6 +405,7 @@ export type CreateCaseInput = {
   implant_teeth?: number[];
   tooth_implant_systems?: Record<string, string>;
   scan_jig_id?: string | null;
+  requested_by?: string | null;
 };
 
 async function insertOneCase(input: CreateCaseInput & { also_arch?: string | null }, sibling_case_id: string | null = null) {
@@ -429,6 +430,7 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
       .maybeSingle();
     if (firstStage?.id) rest.current_stage_id = firstStage.id;
   }
+  const { data: { user } } = await supabase.auth.getUser();
   const payload = {
     ...rest,
     sibling_case_id,
@@ -439,6 +441,7 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
     elements_count: teeth_numbers.length,
     elements_zirconia: teeth_zirconia.length,
     elements_dissilicato: teeth_dissilicato.length,
+    requested_by: input.requested_by || user?.id,
   };
   const { data: row, error } = await supabase
     .from("cases")
