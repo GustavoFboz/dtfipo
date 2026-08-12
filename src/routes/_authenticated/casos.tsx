@@ -21,6 +21,7 @@ import { GeneratingReportDialog } from "@/components/GeneratingReportDialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/casos")({
+  loader: () => ({}),
   component: Index,
 });
 
