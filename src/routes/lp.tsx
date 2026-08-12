@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   ArrowRight,
   Workflow,
@@ -35,9 +35,8 @@ export const Route = createFileRoute("/lp")({
 });
 
 function LandingPage() {
-  const navigate = useNavigate();
   const handleAuth = (mode?: "company" | "employee" | "user") => {
-    navigate({ to: "/auth", search: { invite: undefined, mode } });
+    window.location.href = `/auth${mode ? `?mode=${mode}` : ''}`;
   };
 
   return (
