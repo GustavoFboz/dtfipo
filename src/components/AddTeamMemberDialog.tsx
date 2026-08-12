@@ -23,7 +23,7 @@ import {
 import { toast } from "sonner";
 import { UserPlus, Mail, User, Phone } from "lucide-react";
 
-type AppRole = "CEO" | "DR" | "PROTETICO" | "ATENDIMENTO" | "CADISTA" | "USER";
+type AppRole = "CEO" | "DR" | "PROTETICO" | "ATENDIMENTO" | "CADISTA" | "SOLICITANTE" | "USER";
 
 export function AddTeamMemberDialog() {
   const [open, setOpen] = useState(false);
@@ -169,6 +169,7 @@ export function AddTeamMemberDialog() {
                     <SelectItem value="PROTETICO">Protético</SelectItem>
                     <SelectItem value="CADISTA">Cadista</SelectItem>
                     <SelectItem value="ATENDIMENTO">Atendimento</SelectItem>
+                    <SelectItem value="SOLICITANTE">Solicitante</SelectItem>
                     <SelectItem value="USER">Usuário Padrão</SelectItem>
                   </SelectContent>
                 </Select>

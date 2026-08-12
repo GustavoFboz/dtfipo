@@ -1,4 +1,4 @@
-type AppRole = "CEO" | "DR" | "PROTETICO" | "ATENDIMENTO" | "CADISTA" | "USER";
+type AppRole = "CEO" | "DR" | "PROTETICO" | "ATENDIMENTO" | "CADISTA" | "SOLICITANTE" | "USER";
 
 const ENUM_ROLE_BY_APP_ROLE: Record<AppRole, string> = {
   CEO: "admin",
@@ -6,6 +6,7 @@ const ENUM_ROLE_BY_APP_ROLE: Record<AppRole, string> = {
   PROTETICO: "protetico",
   CADISTA: "cadista",
   ATENDIMENTO: "recepcionista",
+  SOLICITANTE: "SOLICITANTE",
   USER: "auxiliar",
 };
 

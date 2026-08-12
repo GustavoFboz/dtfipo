@@ -94,6 +94,7 @@ export function EquipeManagement() {
               <TabsTrigger value="PROTETICO" className="px-5">Protéticos</TabsTrigger>
               <TabsTrigger value="CADISTA" className="px-5">Cadistas</TabsTrigger>
               <TabsTrigger value="ATENDIMENTO" className="px-5">Atendimento</TabsTrigger>
+              <TabsTrigger value="SOLICITANTE" className="px-5">Solicitantes</TabsTrigger>
               <TabsTrigger value="USER" className="px-5">Pendentes</TabsTrigger>
             </TabsList>
           </Tabs>
@@ -125,7 +126,7 @@ export function EquipeManagement() {
                   <h3 className="font-light text-slate-900 dark:text-slate-100 leading-tight text-lg tracking-tight">{p.full_name || "Sem nome"}</h3>
                   <div className="flex items-center gap-2 mt-2">
                     <Badge variant="outline" className={`text-[9px] font-bold uppercase tracking-[0.15em] px-2 py-0.5 rounded-lg border-primary/10 text-primary/80`}>
-                      {p.role === "DR" ? "Dentista" : p.role === "PROTETICO" ? "Protético" : p.role === "ATENDIMENTO" ? "Atendimento" : p.role === "CADISTA" ? "Cadista" : p.role}
+                      {p.role === "DR" ? "Dentista" : p.role === "PROTETICO" ? "Protético" : p.role === "ATENDIMENTO" ? "Atendimento" : p.role === "CADISTA" ? "Cadista" : p.role === "SOLICITANTE" ? "Solicitante" : p.role}
                     </Badge>
                     {p.user_code && (
                       <span className="text-[9px] font-mono text-slate-400 tracking-wider">{p.user_code}</span>
@@ -229,7 +230,7 @@ export function EquipeManagement() {
   );
 }
 
-const ROLE_OPTIONS = ["CEO", "DR", "PROTETICO", "CADISTA", "ATENDIMENTO", "USER"] as const;
+const ROLE_OPTIONS = ["CEO", "DR", "PROTETICO", "CADISTA", "ATENDIMENTO", "SOLICITANTE", "USER"] as const;
 
 function JoinRequestsPanel() {
   const qc = useQueryClient();
@@ -283,7 +284,7 @@ function JoinRequestsPanel() {
                   <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {ROLE_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt}>{opt === "DR" ? "Dentista" : opt === "PROTETICO" ? "Protético" : opt === "ATENDIMENTO" ? "Atendimento" : opt === "CADISTA" ? "Cadista" : opt === "USER" ? "Usuário" : opt}</SelectItem>
+                      <SelectItem key={opt} value={opt}>{opt === "DR" ? "Dentista" : opt === "PROTETICO" ? "Protético" : opt === "ATENDIMENTO" ? "Atendimento" : opt === "CADISTA" ? "Cadista" : opt === "SOLICITANTE" ? "Solicitante" : opt === "USER" ? "Usuário" : opt}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
