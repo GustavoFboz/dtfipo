@@ -834,7 +834,7 @@ export function NewCaseDialog({
             </button>
           </header>
 
-        <div className={`relative grid grid-cols-1 lg:grid-cols-2 gap-0 flex-1 min-h-0 z-10 ${isView ? "overflow-y-auto" : "overflow-hidden"}`}>
+        <div className={`relative grid grid-cols-1 lg:grid-cols-[1fr_minmax(300px,0.8fr)] gap-0 flex-1 min-h-0 z-10 ${isView ? "overflow-y-auto" : "overflow-hidden"}`}>
           <div
             {...(isView ? { inert: "" as unknown as boolean } : {})}
             aria-disabled={isView || undefined}
@@ -1099,10 +1099,6 @@ export function NewCaseDialog({
                 <Input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
               </div>
 
-              <div className="space-y-2 md:col-span-2">
-                <Label>Observações (opcional)</Label>
-                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Anotações iniciais sobre o caso" />
-              </div>
 
               {/* Seções de Escaneamentos e Galeria removidas do editar caso a pedido do usuário */}
 
@@ -1134,71 +1130,6 @@ export function NewCaseDialog({
               />
             </div>
             
-            {isCreate && (
-              <div className="mt-8 space-y-3">
-                <div className="flex flex-col gap-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <AttachButton
-                      label="Anexar imagem"
-                      icon={<AttachImagesIcon className="h-6 w-6" />}
-                      active={pendingGalleryFiles.length > 0}
-                      count={pendingGalleryFiles.length}
-                      onClick={() => pendingGalleryInput.current?.click()}
-                    />
-                    <DropdownMenu open={attachMenuOpen} onOpenChange={setAttachMenuOpen}>
-                      <DropdownMenuTrigger asChild>
-                        <div className="w-full">
-                          <AttachButton
-                            label="Anexar arquivos"
-                            icon={<AttachFilesIcon className="h-6 w-6" />}
-                            active={pendingScanFiles.length > 0}
-                            count={pendingScanFiles.length}
-                          />
-                        </div>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[200px] z-[1001]" align="end">
-                        <DropdownMenuItem onClick={() => { pendingKindRef.current = "scans"; setPendingAccept(".stl,.obj,.ply,.zip,.rar,.7z"); pendingScanFileInput.current?.click(); }}>
-                          <ScanLine className="h-4 w-4 mr-2" /> Escaneamentos
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { pendingKindRef.current = "model"; setPendingAccept(".stl,.obj,.ply,.zip,.rar,.7z"); pendingScanFileInput.current?.click(); }}>
-                          <Box className="h-4 w-4 mr-2" /> Modelo 3D
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { pendingKindRef.current = "fabrication"; setPendingAccept(".stl,.obj,.ply,.zip,.rar,.7z"); pendingScanFileInput.current?.click(); }}>
-                          <Wrench className="h-4 w-4 mr-2" /> Arquivo Confecção
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { pendingKindRef.current = "exocad_html"; setPendingAccept(".html"); pendingScanFileInput.current?.click(); }}>
-                          <Monitor className="h-4 w-4 mr-2" /> HTML Visualizador
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-
-                  {/* List pending files summary if needed or just count as shown in AttachButton */}
-                  {(pendingGalleryFiles.length > 0 || pendingScanFiles.length > 0) && (
-                    <div className="flex flex-wrap gap-2 p-3 rounded-2xl bg-slate-50 border border-slate-100 dark:bg-neutral-900/50 dark:border-neutral-800">
-                      {pendingGalleryFiles.map((f, i) => (
-                        <div key={`g-${i}`} className="flex items-center gap-2 px-2 py-1 rounded-full bg-white dark:bg-neutral-800 text-[10px] text-slate-500 border border-slate-200 dark:border-neutral-700">
-                          <AttachImagesIcon className="h-3 w-3" />
-                          <span className="truncate max-w-[80px]">{f.name}</span>
-                          <button onClick={() => setPendingGalleryFiles(prev => prev.filter((_, idx) => idx !== i))}>
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                      {pendingScanFiles.map((f, i) => (
-                        <div key={`s-${i}`} className="flex items-center gap-2 px-2 py-1 rounded-full bg-white dark:bg-neutral-800 text-[10px] text-slate-500 border border-slate-200 dark:border-neutral-700">
-                          <AttachFilesIcon className="h-3 w-3" />
-                          <span className="truncate max-w-[80px]">{f.file.name}</span>
-                          <button onClick={() => setPendingScanFiles(prev => prev.filter((_, idx) => idx !== i))}>
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
 
           <aside
@@ -1655,11 +1586,52 @@ export function NewCaseDialog({
       </div>
 
       <DialogFooter className="px-6 py-4 border-t border-border/60 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md shrink-0 sm:justify-between sm:items-center">
-            {isCreate && profile?.full_name ? (
-              <div className="text-xs text-muted-foreground font-light">
-                Protético responsável: <span className="text-foreground/80">{profile.full_name}</span>
-              </div>
-            ) : <div />}
+            <div className="flex items-center gap-3">
+              {isCreate && (
+                <>
+                  <AttachButton
+                    label="Anexar imagem"
+                    icon={<AttachImagesIcon className="h-6 w-6" />}
+                    active={pendingGalleryFiles.length > 0}
+                    count={pendingGalleryFiles.length}
+                    onClick={() => pendingGalleryInput.current?.click()}
+                    className="h-11 w-auto px-4 text-xs bg-slate-100/70 border-0 hover:bg-slate-200"
+                  />
+                  <DropdownMenu open={attachMenuOpen} onOpenChange={setAttachMenuOpen}>
+                    <DropdownMenuTrigger asChild>
+                      <div>
+                        <AttachButton
+                          label="Anexar arquivos"
+                          icon={<AttachFilesIcon className="h-6 w-6" />}
+                          active={pendingScanFiles.length > 0}
+                          count={pendingScanFiles.length}
+                          className="h-11 w-auto px-4 text-xs bg-slate-100/70 border-0 hover:bg-slate-200"
+                        />
+                      </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-[200px] z-[2500]" align="start">
+                      <DropdownMenuItem onClick={() => { pendingKindRef.current = "scans"; setPendingAccept(".stl,.obj,.ply,.zip,.rar,.7z"); pendingScanFileInput.current?.click(); }}>
+                        <ScanLine className="h-4 w-4 mr-2" /> Escaneamentos
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { pendingKindRef.current = "model"; setPendingAccept(".stl,.obj,.ply,.zip,.rar,.7z"); pendingScanFileInput.current?.click(); }}>
+                        <Box className="h-4 w-4 mr-2" /> Modelo 3D
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { pendingKindRef.current = "fabrication"; setPendingAccept(".stl,.obj,.ply,.zip,.rar,.7z"); pendingScanFileInput.current?.click(); }}>
+                        <Wrench className="h-4 w-4 mr-2" /> Arquivo Confecção
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => { pendingKindRef.current = "exocad_html"; setPendingAccept(".html"); pendingScanFileInput.current?.click(); }}>
+                        <Monitor className="h-4 w-4 mr-2" /> HTML Visualizador
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </>
+              )}
+              {isCreate && profile?.full_name && (
+                <div className="text-[11px] text-muted-foreground font-light ml-2">
+                  Protético: <span className="text-foreground/80">{profile.full_name}</span>
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-2">
             {isView ? (
               <>

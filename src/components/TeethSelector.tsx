@@ -259,11 +259,11 @@ export function TeethSelector({
         try {
           const bb = (svg as any).getBBox?.();
           if (bb && bb.width > 0 && bb.height > 0) {
-            const padX = bb.width * 0.02;
-            const padY = bb.height * 0.02;
+            const padX = 0;
+            const padY = 0;
             svg.setAttribute(
               "viewBox",
-              `${bb.x - padX} ${bb.y - padY} ${bb.width + padX * 2} ${bb.height + padY * 2}`,
+              `${bb.x} ${bb.y} ${bb.width} ${bb.height}`,
             );
             svg.dataset.viewboxFitted = "1";
           }
