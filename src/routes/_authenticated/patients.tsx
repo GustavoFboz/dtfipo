@@ -58,8 +58,19 @@ function PatientsPage() {
     <div className="max-w-[1600px] mx-auto w-full px-6 md:px-16 py-8 md:py-10">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-8">
         <h1 className="text-3xl md:text-4xl font-light text-slate-900 tracking-tight">Pacientes</h1>
+        <div className="flex gap-2 items-center flex-1 max-w-md mx-4">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome, CPF ou contato..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="pl-9 h-11 bg-slate-100/50 border-0 shadow-none focus-visible:ring-1 focus-visible:ring-primary/20"
+            />
+          </div>
+        </div>
         <div className="flex gap-2 items-center">
-          <Button className="gap-2" onClick={() => setOpenNew(true)}>
+          <Button className="h-11 px-6 rounded-xl gap-2 shadow-lg shadow-primary/20" onClick={() => setOpenNew(true)}>
             <Plus className="h-4 w-4" /> Novo paciente
           </Button>
         </div>
