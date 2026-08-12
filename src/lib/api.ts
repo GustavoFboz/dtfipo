@@ -232,13 +232,19 @@ export const fetchPatient = async (id: string): Promise<Patient | null> => {
 
 export const fetchDoctors = async (): Promise<Doctor[]> => {
   const { data, error } = await supabase.from("doctors").select("*").order("name");
-  if (error) throw error;
+  if (error) {
+    console.warn("fetchDoctors error (falling back to empty):", error);
+    return [];
+  }
   return data ?? [];
 };
 
 export const fetchCadistas = async (): Promise<Cadista[]> => {
   const { data, error } = await supabase.from("cadistas").select("*").order("name");
-  if (error) throw error;
+  if (error) {
+    console.warn("fetchCadistas error (falling back to empty):", error);
+    return [];
+  }
   return data ?? [];
 };
 
