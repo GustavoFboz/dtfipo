@@ -46,17 +46,18 @@ function PatientDetailPage() {
     queryKey: ["patient", id], 
     queryFn: async () => {
       console.log("Fetching patient data for ID:", id);
+      addLog(`Buscando dados no Supabase...`);
       const data = await fetchPatient(id);
       if (!data) {
         console.warn("No patient found for ID:", id);
-        addLog("ERRO: Paciente não encontrado no banco de dados");
+        addLog("ERRO: Paciente não retornado pela API");
       } else {
-        addLog(`Paciente carregado: ${data.name}`);
+        addLog(`Dados recebidos para: ${data.name}`);
       }
       return data;
     },
     retry: 1,
-    meta: { errorMessage: "Erro ao carregar dados do paciente" }
+    staleTime: 0, // Garantir que sempre busque dados novos ao entrar
   });
   
   const cases = useQuery({ 
