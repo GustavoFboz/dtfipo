@@ -4,7 +4,7 @@ import { SkeletonBlock, SkeletonCircle, SkeletonSwap, useListReveal } from "@/co
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import {
-  fetchCases, fetchStages, finishCase, updateCase, setCurrentStage, deleteCase, fetchProfile
+  fetchCases, fetchStages, finishCase, updateCase, setCurrentStage, deleteCase, fetchProfile, reopenCase
 } from "@/lib/api";
 import { openFolderLink, copyToClipboard } from "@/lib/folder";
 import { normalizeText } from "@/lib/utils";
@@ -34,7 +34,7 @@ import {
 import {
   Search, Filter, Check, X, Clock, AlertCircle, MoreHorizontal,
   CheckCircle2, FolderOpen, FolderCog, Pencil, ArrowUp, ArrowDown,
-  Copy, Trash2, Link2,
+  Copy, Trash2, Link2, Archive, RotateCcw,
 } from "lucide-react";
 import { ModelIcon } from "./icons/ModelIcon";
 import { ScanIcon } from "./icons/ScanIcon";
@@ -154,7 +154,7 @@ export function CasesTable({
   const [deleting, setDeleting] = useState<CaseRow | null>(null);
   const [folderEdit, setFolderEdit] = useState<{ row: CaseRow; url: string } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkAction, setBulkAction] = useState<null | "finish" | "delete">(null);
+  const [bulkAction, setBulkAction] = useState<null | "finish" | "delete" | "archive" | "reopen">(null);
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
   const isCadista = profile?.role === "CADISTA";
@@ -244,6 +244,18 @@ export function CasesTable({
     onSettled: () => qc.invalidateQueries({ queryKey: ["cases"] }),
   });
 
+
+  const bulkArchive = useMutation({
+    mutationFn: async (ids: string[]) => { for (const id of ids) await updateCase(id, { status: "arquivado" }); },
+    onSuccess: () => { toast.success(`${selected.size} caso(s) arquivado(s)`); qc.invalidateQueries(); setSelected(new Set()); setBulkAction(null); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const bulkReopen = useMutation({
+    mutationFn: async (ids: string[]) => { for (const id of ids) await reopenCase(id); },
+    onSuccess: () => { toast.success(`${selected.size} caso(s) reabertos`); qc.invalidateQueries(); setSelected(new Set()); setBulkAction(null); },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const toggleSelected = (id: string) =>
     setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -634,9 +646,21 @@ export function CasesTable({
             <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())} className="text-white hover:bg-white/10 rounded-xl font-bold text-xs uppercase">
               Limpar
             </Button>
-            <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 rounded-xl font-bold text-xs uppercase gap-2" onClick={() => setBulkAction("finish")}>
-              <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
+            
+            {activeFilter === "finalizados" ? (
+              <Button size="sm" className="bg-amber-500 hover:bg-amber-600 rounded-xl font-bold text-xs uppercase gap-2" onClick={() => setBulkAction("reopen")}>
+                <RotateCcw className="h-3.5 w-3.5" /> Reabrir
+              </Button>
+            ) : (
+              <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600 rounded-xl font-bold text-xs uppercase gap-2" onClick={() => setBulkAction("finish")}>
+                <CheckCircle2 className="h-3.5 w-3.5" /> Finalizar
+              </Button>
+            )}
+
+            <Button size="sm" className="bg-indigo-500 hover:bg-indigo-600 rounded-xl font-bold text-xs uppercase gap-2" onClick={() => setBulkAction("archive")}>
+              <Archive className="h-3.5 w-3.5" /> Arquivar
             </Button>
+
             <Button variant="destructive" size="sm" className="rounded-xl font-bold text-xs uppercase gap-2" onClick={() => setBulkAction("delete")}>
               <Trash2 className="h-3.5 w-3.5" /> Excluir
             </Button>
@@ -917,13 +941,14 @@ export function CasesTable({
       <AlertDialog open={!!bulkAction} onOpenChange={(o) => !o && setBulkAction(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {bulkAction === "delete" ? "Excluir casos selecionados?" : "Finalizar casos selecionados?"}
-            </AlertDialogTitle>
+            <AlertDialogTitle>Confirmar ação em lote?</AlertDialogTitle>
             <AlertDialogDescription>
-              {bulkAction === "delete"
-                ? `Esta ação não pode ser desfeita. ${selected.size} caso(s) serão removidos permanentemente.`
-                : `${selected.size} caso(s) serão marcados como finalizados.`}
+              Deseja realmente {
+                bulkAction === "finish" ? "finalizar" : 
+                bulkAction === "delete" ? "excluir permanentemente" : 
+                bulkAction === "archive" ? "arquivar" :
+                bulkAction === "reopen" ? "reabrir" : ""
+              } <b>{selected.size}</b> caso(s)?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -931,12 +956,14 @@ export function CasesTable({
             <AlertDialogAction
               onClick={() => {
                 const ids = Array.from(selected);
-                if (bulkAction === "delete") bulkDelete.mutate(ids);
-                else bulkFinish.mutate(ids);
+                if (bulkAction === "finish") bulkFinish.mutate(ids);
+                else if (bulkAction === "delete") bulkDelete.mutate(ids);
+                else if (bulkAction === "archive") bulkArchive.mutate(ids);
+                else if (bulkAction === "reopen") bulkReopen.mutate(ids);
               }}
-              className={bulkAction === "delete" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+              className={bulkAction === "delete" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : "bg-primary"}
             >
-              {bulkAction === "delete" ? "Excluir definitivamente" : "Finalizar"}
+              Confirmar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1004,6 +1031,36 @@ export function CasesTable({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
+        <AlertDialog open={!!bulkAction} onOpenChange={(o) => !o && setBulkAction(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar ação em lote?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Deseja realmente {
+                  bulkAction === "finish" ? "finalizar" : 
+                  bulkAction === "delete" ? "excluir permanentemente" : 
+                  bulkAction === "archive" ? "arquivar" :
+                  bulkAction === "reopen" ? "reabrir" : ""
+                } <b>{selected.size}</b> caso(s)?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  const ids = Array.from(selected);
+                  if (bulkAction === "finish") bulkFinish.mutate(ids);
+                  else if (bulkAction === "delete") bulkDelete.mutate(ids);
+                  else if (bulkAction === "archive") bulkArchive.mutate(ids);
+                  else if (bulkAction === "reopen") bulkReopen.mutate(ids);
+                }}
+                className={bulkAction === "delete" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : "bg-primary"}
+              >
+                Confirmar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
 }
