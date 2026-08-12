@@ -1027,6 +1027,7 @@ export function CaseDetailDialog({
                   <div className="min-w-0 min-h-0 space-y-4 overflow-y-auto lg:overflow-visible pr-1">
                     <div className="rounded-xl border border-border/70 bg-card p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                       <Field label="Dentista" value={caseRow.doctor?.name ?? "—"} />
+                      <Field label="Dentista Solicitante" value={caseRow.requested_by ? "Sim" : "Não"} />
                       <Field label="Cor do dente" value={caseRow.tooth_color?.code ?? "—"} />
                       <Field label="Cadista" value={caseRow.cadista?.name ?? "—"} />
                       <Field
