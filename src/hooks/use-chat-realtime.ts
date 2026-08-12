@@ -16,11 +16,13 @@ export function useChatRealtime() {
     let disposed = false;
 
     const refreshActivity = () => {
-      qc.invalidateQueries({ queryKey: ["case_activity"], refetchType: "all" });
-      qc.invalidateQueries({ queryKey: ["case_activity_reads"], refetchType: "all" });
+      // Usamos invalidateQueries com refetchType: 'active' para não pesar o sistema
+      // processando rotas em segundo plano que não estão visíveis.
+      qc.invalidateQueries({ queryKey: ["case_activity"], refetchType: "active" });
+      qc.invalidateQueries({ queryKey: ["case_activity_reads"], refetchType: "active" });
     };
     const refreshReads = () => {
-      qc.invalidateQueries({ queryKey: ["case_activity_reads"], refetchType: "all" });
+      qc.invalidateQueries({ queryKey: ["case_activity_reads"], refetchType: "active" });
     };
 
     const connect = () => {

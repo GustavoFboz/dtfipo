@@ -173,7 +173,7 @@ function reconnectWorkflowChannel() {
     if (channel) supabase.removeChannel(channel);
     channel = null;
     ensureChannel();
-  }, 700);
+  }, 1500); // Aumentado para 1.5s
 }
 
 function ensureChannel() {

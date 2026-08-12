@@ -57,7 +57,7 @@ export function useEntityRealtime(table: string, queryKey: QueryKey, opts: Optio
       reconnectTimer = setTimeout(() => {
         reconnectTimer = null;
         connect();
-      }, 700);
+      }, 1500); // Aumentado para 1.5s para evitar ciclos rápidos de reconexão
     };
 
     const connect = () => {
