@@ -275,6 +275,7 @@ function LandingPage() {
             highlight={false}
             features={["Até 3 usuários", "Casos ilimitados no mês", "Estoque básico", "Suporte por e-mail"]}
             cta="Criar conta"
+            onAuth={handleAuth}
           />
           <Plan
             name="Profissional"
@@ -289,6 +290,7 @@ function LandingPage() {
               "Impressão térmica",
             ]}
             cta="Assinar plano"
+            onAuth={handleAuth}
           />
           <Plan
             name="Laboratório"
@@ -302,6 +304,7 @@ function LandingPage() {
               "SLA e suporte prioritário",
             ]}
             cta="Falar com vendas"
+            onAuth={handleAuth}
           />
         </div>
       </section>
@@ -453,6 +456,7 @@ function Plan({
   features,
   highlight,
   cta,
+  onAuth,
 }: {
   name: string;
   price: string;
@@ -460,7 +464,9 @@ function Plan({
   features: string[];
   highlight: boolean;
   cta: string;
+  onAuth: (mode?: "company" | "employee" | "user") => void;
 }) {
+
   return (
     <div
       className={`rounded-2xl p-8 flex flex-col ${
@@ -487,13 +493,12 @@ function Plan({
           </li>
         ))}
       </ul>
-      <Link
-        to="/auth"
-        search={{ invite: undefined, mode: "company" }}
-        className={`mt-8 ${highlight ? "btn-brand" : "btn-brand-outline"} justify-center`}
+      <button
+        onClick={() => onAuth("company")}
+        className={`mt-8 ${highlight ? "btn-brand" : "btn-brand-outline"} justify-center cursor-pointer`}
       >
         {cta}
-      </Link>
+      </button>
     </div>
   );
 }
