@@ -62,7 +62,7 @@ function Index() {
 
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
-  const isSolicitante = profile?.role === "SOLICITANTE";
+  const isSolicitante = (profile as any)?.role === "SOLICITANTE";
 
   if (isMobile) return <MobileDashboard />;
   if (isSolicitante) return (
