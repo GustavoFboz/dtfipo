@@ -18,7 +18,7 @@ import { StageBadge } from "./StageBadge";
 import { CaseAttachments } from "./CaseAttachments";
 import { CaseComments } from "./CaseComments";
 import { fetchCaseActivity } from "@/lib/case-activity";
-import { fetchImplantSystems, fetchCases } from "@/lib/api";
+import { fetchImplantSystems, fetchCases, updateCase, fetchProfile } from "@/lib/api";
 import { downloadCaseZip, downloadCaseSectionZip } from "@/lib/download-case";
 import { printWorkOrder } from "@/lib/work-order";
 import { PrintNoteButton } from "@/components/PrintNoteButton";
@@ -54,9 +54,15 @@ function PatientAvatarView({
 
 type TabKey = "detalhes" | "galeria" | "html" | "scans" | "modelos" | "confeccao" | "comentarios";
 
+type TabDefinition = {
+  key: TabKey;
+  label: string;
+  hiddenFor?: string[];
+};
+
 const OPEN_CASE_KEY = "case_dialog:open";
 
-const TABS: { key: TabKey; label: string }[] = [
+const TABS: TabDefinition[] = [
   { key: "detalhes", label: "Detalhes" },
   { key: "galeria", label: "Galeria" },
   { key: "scans", label: "Escaneamentos" },
