@@ -163,7 +163,13 @@ export function SkeletonSwap({
   return (
     <div className={cn("relative", className)}>
       {showSkeleton && (
-        <div className={cn(leaving && "df-skeleton-out", !loading && "absolute inset-0 z-10")}>
+        <div 
+          className={cn(
+            leaving && "df-skeleton-out", 
+            !loading && "absolute inset-0 z-10",
+            !loading && "bg-background/80 backdrop-blur-[2px]"
+          )}
+        >
           {skeleton}
         </div>
       )}
