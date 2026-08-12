@@ -1650,8 +1650,8 @@ export function NewCaseDialog({
                 <CaseComments caseId={viewCase.id} />
               </div>
             </div>
-            </div>
-          </div>
+          )}
+        </div>
 
           <DialogFooter className="px-6 py-4 border-t border-border/60 bg-white/50 dark:bg-neutral-900/50 backdrop-blur-md shrink-0 sm:justify-between sm:items-center">
             {isCreate && profile?.full_name ? (
