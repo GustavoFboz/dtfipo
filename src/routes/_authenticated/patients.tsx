@@ -41,12 +41,12 @@ function PatientsPage() {
   const [q, setQ] = useState("");
   const [logs, setLogs] = useState<string[]>(["Página de pacientes carregada", "Monitor de eventos pronto"]);
 
-  const addLog = (msg: string) => {
+  const addLog = useCallback((msg: string) => {
     setLogs(prev => {
       const newLogs = [...prev, `${new Date().toLocaleTimeString()} - ${msg}`];
       return newLogs.slice(-50);
     });
-  };
+  }, []);
 
 
   const filtered = useMemo(() => {
@@ -115,7 +115,7 @@ function PatientsPage() {
             params={{ id: p.id }}
             style={reveal.itemProps(i).style}
             className={`${reveal.itemProps(i).className} cursor-pointer bg-transparent py-8 flex items-center gap-8 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-all duration-300 group no-underline text-inherit border-b border-slate-100 dark:border-white/5 w-full`}
-            onClick={(e) => {
+            onClick={() => {
               addLog(`Acessando perfil do paciente: ${p.name} (ID: ${p.id.substring(0,8)}...)`);
               console.log("Navigating to patient profile:", p.id);
             }}

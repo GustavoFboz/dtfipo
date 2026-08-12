@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { fetchPatient, fetchPatientCases, reopenCase } from "@/lib/api";
 import { StageBadge } from "@/components/StageBadge";
 import { CaseDetailDialog } from "@/components/CaseDetailDialog";
@@ -28,12 +28,12 @@ function PatientDetailPage() {
   const isMobile = useIsMobile();
   const [logs, setLogs] = useState<string[]>([]);
 
-  const addLog = (msg: string) => {
+  const addLog = useCallback((msg: string) => {
     setLogs(prev => {
       const newLogs = [...prev, `${new Date().toLocaleTimeString()} - ${msg}`];
       return newLogs.slice(-50);
     });
-  };
+  }, []);
 
   useEffect(() => {
     addLog(`Página de detalhes aberta (ID: ${id})`);
