@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowRight,
   Workflow,
@@ -35,6 +35,11 @@ export const Route = createFileRoute("/lp")({
 });
 
 function LandingPage() {
+  const navigate = useNavigate();
+  const handleAuth = (mode?: "company" | "employee" | "user") => {
+    navigate({ to: "/auth", search: { invite: undefined, mode } });
+  };
+
   return (
     <div className="min-h-screen bg-white text-slate-900">
       {/* NAV */}
@@ -48,16 +53,18 @@ function LandingPage() {
             <a href="#faq" className="hover:text-slate-900 transition">FAQ</a>
           </nav>
           <div className="flex items-center gap-3">
-            <Link
-              to="/auth"
-              search={{ invite: undefined, mode: undefined }}
-              className="text-[12px] font-medium tracking-[0.15em] uppercase text-slate-500 hover:text-slate-900"
+            <button
+              onClick={() => handleAuth()}
+              className="text-[12px] font-medium tracking-[0.15em] uppercase text-slate-500 hover:text-slate-900 cursor-pointer"
             >
               Entrar
-            </Link>
-            <Link to="/auth" search={{ invite: undefined, mode: "company" }} className="btn-brand h-10 text-[11px] px-5">
+            </button>
+            <button 
+              onClick={() => handleAuth("company")} 
+              className="btn-brand h-10 text-[11px] px-5 cursor-pointer"
+            >
               Começar
-            </Link>
+            </button>
           </div>
         </div>
       </header>
@@ -85,12 +92,12 @@ function LandingPage() {
               da prótese — para eliminar retrabalho, esquecimento e planilhas.
             </p>
             <div className="mt-10 flex flex-wrap items-center gap-4">
-              <Link to="/auth" search={{ invite: undefined, mode: "company" }} className="btn-brand">
+              <button onClick={() => handleAuth("company")} className="btn-brand cursor-pointer">
                 Criar minha empresa <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link to="/auth" search={{ invite: undefined, mode: undefined }} className="btn-brand-outline">
+              </button>
+              <button onClick={() => handleAuth()} className="btn-brand-outline cursor-pointer">
                 Já tenho conta
-              </Link>
+              </button>
             </div>
             <div className="mt-10 flex items-center gap-8 text-[11px] font-light tracking-[0.14em] uppercase text-slate-400">
               <span className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#2D7FF9]" /> Sem instalar</span>
@@ -268,6 +275,7 @@ function LandingPage() {
             highlight={false}
             features={["Até 3 usuários", "Casos ilimitados no mês", "Estoque básico", "Suporte por e-mail"]}
             cta="Criar conta"
+            onAuth={handleAuth}
           />
           <Plan
             name="Profissional"
@@ -282,6 +290,7 @@ function LandingPage() {
               "Impressão térmica",
             ]}
             cta="Assinar plano"
+            onAuth={handleAuth}
           />
           <Plan
             name="Laboratório"
@@ -295,6 +304,7 @@ function LandingPage() {
               "SLA e suporte prioritário",
             ]}
             cta="Falar com vendas"
+            onAuth={handleAuth}
           />
         </div>
       </section>
@@ -310,12 +320,12 @@ function LandingPage() {
             Crie sua empresa em menos de um minuto. Sem cartão, sem burocracia.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            <Link to="/auth" search={{ invite: undefined, mode: "company" }} className="btn-brand">
+            <button onClick={() => handleAuth("company")} className="btn-brand cursor-pointer">
               Começar agora <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link to="/auth" search={{ invite: undefined, mode: undefined }} className="btn-brand-outline">
+            </button>
+            <button onClick={() => handleAuth()} className="btn-brand-outline cursor-pointer">
               Ver demonstração
-            </Link>
+            </button>
           </div>
         </div>
       </section>
@@ -446,6 +456,7 @@ function Plan({
   features,
   highlight,
   cta,
+  onAuth,
 }: {
   name: string;
   price: string;
@@ -453,7 +464,9 @@ function Plan({
   features: string[];
   highlight: boolean;
   cta: string;
+  onAuth: (mode?: "company" | "employee" | "user") => void;
 }) {
+
   return (
     <div
       className={`rounded-2xl p-8 flex flex-col ${
@@ -480,13 +493,12 @@ function Plan({
           </li>
         ))}
       </ul>
-      <Link
-        to="/auth"
-        search={{ invite: undefined, mode: "company" }}
-        className={`mt-8 ${highlight ? "btn-brand" : "btn-brand-outline"} justify-center`}
+      <button
+        onClick={() => onAuth("company")}
+        className={`mt-8 ${highlight ? "btn-brand" : "btn-brand-outline"} justify-center cursor-pointer`}
       >
         {cta}
-      </Link>
+      </button>
     </div>
   );
 }
