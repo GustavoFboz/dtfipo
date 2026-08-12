@@ -281,7 +281,7 @@ function JoinRequestsPanel() {
               <div className="flex items-center gap-2">
                 <Select value={role} onValueChange={(v) => setSelectedRoles((s) => ({ ...s, [r.id]: v }))}>
                   <SelectTrigger className="w-36 h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[110]">
                     {ROLE_OPTIONS.map((opt) => (
                       <SelectItem key={opt} value={opt}>{opt === "DR" ? "Dentista" : opt === "PROTETICO" ? "Protético" : opt === "ATENDIMENTO" ? "Atendimento" : opt === "CADISTA" ? "Cadista" : opt === "USER" ? "Usuário" : opt}</SelectItem>
                     ))}

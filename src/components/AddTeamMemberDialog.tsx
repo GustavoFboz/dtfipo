@@ -163,7 +163,7 @@ export function AddTeamMemberDialog() {
                   <SelectTrigger className="h-12 rounded-xl border-slate-100 dark:border-white/10 bg-slate-50/50 dark:bg-white/5 focus:bg-white dark:focus:bg-white/10 transition-all font-light">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl border-slate-100 dark:border-white/10">
+                  <SelectContent className="rounded-xl border-slate-100 dark:border-white/10 z-[110]">
                     <SelectItem value="CEO">CEO / Admin</SelectItem>
                     <SelectItem value="DR">Dentista</SelectItem>
                     <SelectItem value="PROTETICO">Protético</SelectItem>

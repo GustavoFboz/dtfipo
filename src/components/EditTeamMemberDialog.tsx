@@ -214,7 +214,7 @@ function EditTeamMemberBody({
             }}
           >
             <SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-[110]">
               {ROLES.map((r) => (
                 <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
               ))}
