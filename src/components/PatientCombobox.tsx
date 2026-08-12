@@ -42,7 +42,7 @@ export function PatientCombobox({ patients, selectedId, newName, onSelectExistin
           </span>
           <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
         </button>
-      </PopoverAnchor>
+      </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[1200]" align="start" portalled={true} onOpenAutoFocus={(e) => e.preventDefault()}>
         <div className="p-2 border-b">
           <Input
