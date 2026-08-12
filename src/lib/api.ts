@@ -524,7 +524,7 @@ export const updateCase = async (id: string, patch: Record<string, unknown>) => 
 };
 
 export const finishCase = async (id: string) => {
-  await updateCase(id, { status: "finished", finished_at: new Date().toISOString() });
+  await updateCase(id, { status: "finalizado", finished: true, finished_at: new Date().toISOString() });
   try {
     const { consumeCaseStock } = await import("./stock");
     await consumeCaseStock(id);
