@@ -7,6 +7,7 @@ import { CasesTable } from "@/components/CasesTable";
 import { NewCaseDialog } from "@/components/NewCaseDialog";
 import { PatientFormDialog } from "@/components/PatientFormDialog";
 import { DashboardStats } from "@/components/DashboardStats";
+import { SolicitanteDashboard } from "@/components/SolicitanteDashboard";
 import { MobileDashboard } from "@/components/MobileDashboard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,7 +61,15 @@ function Index() {
   }, []);
 
 
+  const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
+  const isSolicitante = profile?.role === "SOLICITANTE";
+
   if (isMobile) return <MobileDashboard />;
+  if (isSolicitante) return (
+    <div className="h-full max-h-full overflow-hidden flex flex-col font-light max-w-[1600px] mx-auto w-full px-6 md:px-16 pt-10 pb-8">
+      <SolicitanteDashboard />
+    </div>
+  );
 
   const dt = now
     ? `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()} - ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}:${String(now.getSeconds()).padStart(2, "0")}`
