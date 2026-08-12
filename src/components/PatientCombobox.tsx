@@ -31,7 +31,7 @@ export function PatientCombobox({ patients, selectedId, newName, onSelectExistin
   const exactMatch = patients.some((p) => normalizeText(p.name) === normalizeText(query));
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={false}>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverAnchor asChild>
         <button
           type="button"
@@ -43,13 +43,16 @@ export function PatientCombobox({ patients, selectedId, newName, onSelectExistin
           <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
         </button>
       </PopoverAnchor>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[1100]" align="start" portalled={false}>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-[1100]" align="start">
         <div className="p-2 border-b">
           <Input
             autoFocus
             placeholder="Buscar ou digitar novo nome…"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              onTypeNew(e.target.value);
+            }}
             className="h-8"
           />
         </div>
