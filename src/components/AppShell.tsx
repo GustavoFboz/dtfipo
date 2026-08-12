@@ -65,7 +65,7 @@ function getMobilePageTitle(pathname: string, items: readonly { to: string; labe
   // "/financeiro" removido — módulo desativado.
   const match = items.find((n) => n.to !== "/casos" && pathname.startsWith(n.to));
   if (match) return match.label;
-  if (pathname.startsWith("/patients/")) return "Paciente";
+  if (pathname.startsWith("/patients/")) return "Perfil do Paciente";
   if (pathname.startsWith("/configuracoes")) return "Configurações";
   return "DentalFlow";
 }
