@@ -328,7 +328,7 @@ function LandingPage() {
               <Boxes className="h-6 w-6 text-primary/60" />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">IPO - Instituto Praia de Odontologia</h3>
+              <h3 className="text-sm font-semibold text-slate-900">Instituto Praia de Odontologia - IPO</h3>
               <p className="text-[12px] font-light text-slate-500">Empresa verificada e parceira DentalFlow</p>
             </div>
           </div>
