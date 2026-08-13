@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -28,11 +28,6 @@ const casosSearchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/casos")({
-  validateSearch: (search: Record<string, unknown>) => {
-    return {
-      filter: (search.filter as string) || undefined,
-    }
-  },
   loader: () => ({}),
   component: Index,
 });
@@ -40,8 +35,7 @@ export const Route = createFileRoute("/_authenticated/casos")({
 function Index() {
   const now = useNow();
   const [search, setSearch] = useState("");
-  const searchParams = useSearch({ from: "/_authenticated/casos" });
-  const [filter, setFilter] = useState(() => searchParams.filter || (typeof window !== "undefined" ? sessionStorage.getItem("dentalflow:casos-filter") : null) || "em_andamento");
+  const [filter, setFilter] = useState(() => (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("filter") : null) || sessionStorage.getItem("dentalflow:casos-filter") || "em_andamento");
   const [isTrashMode, setIsTrashMode] = useState(false);
   const [openNewPatient, setOpenNewPatient] = useState(false);
   const [exiting, setExiting] = useState(false);
@@ -68,10 +62,13 @@ function Index() {
 
   useEffect(() => {
     sessionStorage.setItem("dentalflow:casos-filter", filter);
-    if (searchParams.filter !== filter) {
-      navigate({ search: { filter }, replace: true });
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("filter") !== filter) {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set("filter", filter);
+      window.history.replaceState(null, "", newUrl.toString());
     }
-  }, [filter, navigate, searchParams.filter]);
+  }, [filter]);
 
   useEffect(() => {
     (window as any).DENTALFLOW_TRASH_MODE = isTrashMode;
