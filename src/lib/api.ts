@@ -175,6 +175,23 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
   return (data ?? []) as unknown as CaseRow[];
 }
 
+export async function acceptCaseRequest(caseId: string, cadistaId: string) {
+  const { error } = await supabase.rpc("accept_case_request", {
+    p_case_id: caseId,
+    p_cadista_id: cadistaId
+  });
+  if (error) throw error;
+  
+  try {
+    broadcastEntity("cases", "update", { 
+      id: caseId, 
+      cadista_id: cadistaId, 
+      status: "em_andamento" 
+    });
+  } catch {}
+}
+
+
 export async function restoreCase(id: string) {
   try { markDeleted(id, -1); } catch {} // Clear tombstone if exists
   const { error } = await supabase
