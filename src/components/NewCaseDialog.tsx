@@ -1660,9 +1660,9 @@ export function NewCaseDialog({
                   </DropdownMenu>
                 </>
               )}
-              {isCreate && profile?.full_name && (
+              {isCreate && profile?.full_name && !isSolicitante && (
                 <div className="text-[11px] text-muted-foreground font-light ml-2">
-                  Protético: <span className="text-foreground/80">{profile.full_name}</span>
+                  Protético Responsável: <span className="text-foreground/80">{profile.full_name}</span>
                 </div>
               )}
             </div>
