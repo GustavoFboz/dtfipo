@@ -33,7 +33,7 @@ function PatientDetailPage() {
 
   useEffect(() => {
     document.title = "Carregando Paciente...";
-  }, []);
+  }, [id]);
 
   const patient = useQuery({ 
     queryKey: ["patient", id], 
@@ -324,7 +324,12 @@ function PatientDetailPage() {
       {/* Dialogs */}
       <PatientFormDialog patient={p} open={editOpen} onOpenChange={setEditOpen} />
       <NewCaseDialog initialPatientId={id} open={newCaseOpen} onOpenChange={setNewCaseOpen} />
-      <CaseDetailDialog caseRow={selectedCase} open={!!selectedCase} onOpenChange={(o) => !o && setSelectedCase(null)} />
+      <CaseDetailDialog caseRow={selectedCase} open={!!selectedCase} onOpenChange={(o) => {
+        if (!o) {
+          setSelectedCase(null);
+          // CaseDetailDialog now handles URL cleanup itself, but we ensure consistency
+        }
+      }} />
       
       
     </motion.div>
