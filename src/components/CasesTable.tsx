@@ -483,15 +483,17 @@ export function CasesTable({
   useEffect(() => {
     if (!onCountsUpdate || !cases.data) return;
     const list = cases.data;
+    
+    // We calculate counts based on the 'all' data when possible, or from the current list
+    // if it's the specific scope being fetched.
     const counts = {
       all: list.length,
-      em_andamento: list.filter(c => !c.finished_at && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado" && c.status !== "pendente").length,
-      atrasados: list.filter(c => !c.finished_at && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado" && c.status !== "pendente" && isLate(c.delivery_date)).length,
-      finalizados: list.filter(c => c.finished_at || c.status === "finalizado").length,
+      em_andamento: list.filter(c => c.status === "em_andamento").length,
+      atrasados: list.filter(c => c.status === "em_andamento" && isLate(c.delivery_date)).length,
+      finalizados: list.filter(c => c.status === "finalizado" || c.status === "finished").length,
       arquivados: list.filter(c => c.status === "arquivado").length,
       deleted: list.filter(c => c.status === "cancelado").length,
-      solicitacoes: list.filter(c => c.status === "pendente" && !c.cadista_id).length,
-
+      solicitacoes: list.filter(c => c.status === "pendente").length,
     };
     onCountsUpdate(counts);
   }, [cases.data, onCountsUpdate]);
