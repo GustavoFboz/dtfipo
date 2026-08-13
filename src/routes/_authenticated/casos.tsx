@@ -28,7 +28,9 @@ const casosSearchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/casos")({
-  validateSearch: casosSearchSchema,
+  validateSearch: (search: Record<string, unknown>) => ({
+    filter: (search.filter as string) || undefined,
+  }),
   loader: () => ({}),
   component: Index,
 });
@@ -65,7 +67,7 @@ function Index() {
   useEffect(() => {
     sessionStorage.setItem("dentalflow:casos-filter", filter);
     if (searchParams.filter !== filter) {
-      navigate({ search: (prev: any) => ({ ...prev, filter }), replace: true });
+      navigate({ search: (prev) => ({ ...prev, filter }), replace: true });
     }
   }, [filter, navigate, searchParams.filter]);
 
