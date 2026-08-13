@@ -126,7 +126,7 @@ export async function sendInternalNotification(targetUserId: string | null, titl
 
 
 
-export async function fetchCases(scope: "active" | "finished" | "deleted" | "all" | "archived" = "active", filters?: { startDate?: string; endDate?: string }): Promise<CaseRow[]> {
+export async function fetchCases(scope: "active" | "finished" | "deleted" | "all" | "archived" | "solicitacoes" = "active", filters?: { startDate?: string; endDate?: string }): Promise<CaseRow[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
@@ -136,22 +136,24 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
     .from("cases")
     .select(CASE_SELECT);
 
-  // Filter by SOLICITANTE
+  // If user is SOLICITANTE, they only see their own requests
   if (profile?.role === "SOLICITANTE") {
     query = query.eq("requested_by", profile.id);
   }
 
-  if (scope === "active") {
-    query = query.not("status", "in", '("finalizado","arquivado","cancelado","finished")');
+  if (scope === "solicitacoes") {
+    // Protetico/Admin view pending solicitations
+    query = query.is("cadista_id", null).eq("status", "pendente");
+  } else if (scope === "active") {
+    // Normal active cases must have a cadista OR be directly created by staff
+    query = query.not("status", "in", '("finalizado","arquivado","cancelado","finished","pendente")');
   } else if (scope === "finished") {
-    // Show all finished cases (no more 30-day limit by default here, but respect date filters if provided)
     query = query.in("status", ["finalizado", "finished"]);
   } else if (scope === "archived") {
     query = query.eq("status", "arquivado");
   } else if (scope === "deleted") {
     query = query.eq("status", "cancelado");
   }
-  // "all" doesn't add a status filter
 
   if (filters?.startDate) {
     query = query.gte("entry_date", filters.startDate);
@@ -160,19 +162,21 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
     query = query.lte("entry_date", filters.endDate);
   }
 
-  // If user is CADISTA, filter by their cadista_id
-  if (profile?.role === "CADISTA") {
+  // If user is CADISTA and not looking at global requests, filter by their own cases
+  if (profile?.role === "CADISTA" && scope !== "solicitacoes" && scope !== "all") {
     const { data: cadista } = await supabase.from("cadistas").select("id").eq("user_id", user.id).maybeSingle();
     if (cadista) {
       query = query.eq("cadista_id", cadista.id);
     } else {
+      // If profile is CADISTA but no cadista record found, return empty
       return [];
     }
   }
 
-  const { data, error } = await query.order("updated_at", { ascending: false }).limit(200); // Increased limit slightly for historical views
+  const { data, error } = await query.order("updated_at", { ascending: false }).limit(200);
   if (error) throw error;
   return (data ?? []) as unknown as CaseRow[];
+
 }
 
 export async function acceptCaseRequest(caseId: string, cadistaId: string) {
