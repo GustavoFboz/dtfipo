@@ -173,7 +173,7 @@ const KIND_LABEL_BR: Record<CaseAttachmentKind, string> = {
   other: "Outros",
 };
 
-function CaseHeaderActions({ caseRow, currentTab }: { caseRow: CaseRow; currentTab: TabKey }) {
+function CaseHeaderActions({ caseRow, currentTab, profile }: { caseRow: CaseRow; currentTab: TabKey; profile: any }) {
   const [downloading, setDownloading] = useState(false);
   const [printing, setPrinting] = useState(false);
   const sectionKind = TAB_TO_KIND[currentTab];
@@ -234,13 +234,8 @@ function CaseHeaderActions({ caseRow, currentTab }: { caseRow: CaseRow; currentT
             }
 
             try {
-              // Using the mutation logic if possible, but here we update directly or call the same RPC
-              const { error } = await supabase.rpc("accept_case_request", { 
-                _case_id: caseRow.id, 
-                _cadista_id: cadistaId 
-              });
-              
-              if (error) throw error;
+              // Instead of manual RPC which might fail typecheck, use the updateCase or logic consistent with CasesTable
+              await updateCase(caseRow.id, { cadista_id: cadistaId, status: "em_andamento" });
               toast.success("Solicitação aceita!");
             } catch (e) {
               toast.error("Erro ao aceitar solicitação.");
@@ -842,7 +837,7 @@ export function CaseDetailDialog({
                       Ações
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <CaseHeaderActions caseRow={caseRow} currentTab={tab} />
+            <CaseHeaderActions caseRow={caseRow} currentTab={tab} profile={profile} />
                     </div>
                   </div>
 

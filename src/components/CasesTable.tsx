@@ -709,7 +709,7 @@ export function CasesTable({
                         <DropdownMenuItem 
                           onClick={() => {
                             const cadistaId = profile?.role === "CADISTA" ? profile.id : null;
-                            if (cadistaId || profile?.role === "ADMIN") {
+                            if (cadistaId || profile?.role === "ADMIN" || (profile?.role as string) === "ADMIN") {
                               accept.mutate({ caseId: c.id, cadistaId: cadistaId || "auto-assign-logic" });
                             } else {
                               toast.error("Somente protéticos ou administradores podem aceitar casos.");
@@ -720,7 +720,7 @@ export function CasesTable({
                           <CheckCircle2 className="h-4 w-4 mr-2" /> Aceitar Caso
                         </DropdownMenuItem>
                       )}
-                      {(c.status === "pendente" && profile?.role === "ADMIN") && (
+                      {(c.status === "pendente" && (profile?.role === "ADMIN" || (profile?.role as string) === "ADMIN")) && (
                          <DropdownMenuItem 
                           onClick={() => setDeleting(c)}
                           className="text-rose-600 focus:text-rose-600"
