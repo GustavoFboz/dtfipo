@@ -174,7 +174,16 @@ export function CasesTable({
                     activeFilter === "solicitacoes" ? "solicitacoes" :
                     (activeFilter === "deleted" || activeFilter === "cancelado" ? "deleted" : "all");
       
-      return fetchCases(scope, { startDate: dateRange?.start, endDate: dateRange?.end });
+      const data = await fetchCases(scope, { startDate: dateRange?.start, endDate: dateRange?.end });
+
+      // Always fetch global solicitations count if not in solicitacoes scope to ensure badge persists
+      if (activeFilter !== "solicitacoes" && onCountsUpdate) {
+        const globalCases = await fetchCases("solicitacoes");
+        const solicitacoesCount = globalCases.length;
+        onCountsUpdate(prev => ({ ...prev, solicitacoes: solicitacoesCount }));
+      }
+
+      return data;
     },
     staleTime: 30_000, 
     refetchOnWindowFocus: true,
