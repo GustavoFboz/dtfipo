@@ -409,11 +409,13 @@ export function CasesTable({
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const caseId = params.get("case");
-    if (caseId && cases.data && !detail) {
+    if (caseId && cases.data) {
       const found = cases.data.find(c => c.id === caseId);
-      if (found) setDetail(found);
+      if (found && detail?.id !== found.id) setDetail(found);
+    } else if (!caseId && detail) {
+      setDetail(null);
     }
-  }, [cases.data, detail]);
+  }, [cases.data, detail?.id]);
 
   const filtered = useMemo<CaseRow[]>(() => {
     const list = cases.data ?? [];
