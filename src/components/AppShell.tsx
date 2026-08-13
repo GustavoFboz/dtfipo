@@ -114,23 +114,31 @@ export function AppShell() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [email, setEmail] = useState<string | null>(null);
-  const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
+  const { data: profile, isLoading: isProfileLoading } = useQuery({ 
+    queryKey: ["profile"], 
+    queryFn: fetchProfile,
+    staleTime: 1000 * 60 * 5, // 5 minutos de cache
+  });
   const isAdmin = profile?.role === "CEO" || profile?.role === "DR";
   const [isHovered, setIsHovered] = useState(false);
   const { data: pendingRequests = [] } = useQuery({
     queryKey: ["join_requests"],
     queryFn: fetchPendingJoinRequests,
-    enabled: isAdmin,
-    refetchInterval: 60000, // Aumentado para 60s
+    enabled: !!profile && isAdmin,
+    refetchInterval: 60000, 
     refetchOnWindowFocus: false,
     staleTime: 0,
   });
   const pendingCount = pendingRequests.length;
-  const { data: workflowSettings } = useQuery({ queryKey: ["workflow_settings"], queryFn: fetchWorkflowSettings });
+  const { data: workflowSettings } = useQuery({ 
+    queryKey: ["workflow_settings"], 
+    queryFn: fetchWorkflowSettings,
+    enabled: !!profile,
+  });
   useQuery({
     queryKey: ["workflow_stages"],
     queryFn: fetchWorkflowStages,
-    enabled: !!workflowSettings?.phases_enabled,
+    enabled: !!profile && !!workflowSettings?.phases_enabled,
     staleTime: 5 * 60_000,
   });
   useQuery({
