@@ -360,7 +360,7 @@ export function CasesTable({
     const f = list.filter((c) => {
       // Filter logic based on the requested rules
       if (activeFilter === "em_andamento") {
-        if (c.finished_at || c.status === "finalizado" || c.status === "finished" || c.status === "arquivado" || c.status === "cancelado" || c.status === "pendente") return false;
+        if (c.status !== "em_andamento") return false;
       } else if (activeFilter === "all") {
         // "Todos" should show everything except cancelled and pending requests
         if (c.status === "cancelado" || c.status === "pendente") return false;

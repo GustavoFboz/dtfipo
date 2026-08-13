@@ -148,9 +148,9 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
     // Normal active cases must have a cadista OR be directly created by staff
     // Solicitante active cases are those already accepted (have cadista)
     query = query.eq("status", "em_andamento");
-    if (profile?.role === "SOLICITANTE") {
-      query = query.not("cadista_id", "is", null);
-    }
+    // Removed strict cadista_id check that was hiding staff-created cases without cadistas assigned
+    // or cases created by solicitantes that were somehow marked as active but lacked a cadista_id.
+
   } else if (scope === "finished") {
     query = query.in("status", ["finalizado", "finished"]);
   } else if (scope === "archived") {
