@@ -1041,7 +1041,7 @@ export function CasesTable({
                   <div
                     onClick={(e) => {
                       e.stopPropagation();
-                      window.location.href = `/patients/${c.patient_id}`;
+                      navigate({ to: "/patients/$id", params: { id: c.patient_id } });
                     }}
                     className="font-black text-[15px] text-slate-900 truncate block font-outfit hover:text-primary transition-colors cursor-pointer"
                   >
