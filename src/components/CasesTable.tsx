@@ -176,11 +176,11 @@ export function CasesTable({
       
       const data = await fetchCases(scope, { startDate: dateRange?.start, endDate: dateRange?.end });
 
-      // Always fetch global solicitations count if not in solicitacoes scope to ensure badge persists
-      if (activeFilter !== "solicitacoes" && onCountsUpdate) {
+      // Always fetch global solicitations count to ensure badge persists across all views
+      if (onCountsUpdate) {
         fetchCases("solicitacoes").then(globalCases => {
           onCountsUpdate({ solicitacoes: globalCases.length });
-        });
+        }).catch(err => console.error("Error fetching solicitation counts:", err));
       }
 
       return data;
@@ -628,7 +628,13 @@ export function CasesTable({
                 key={c.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => setDetail(c)}
+                onClick={() => {
+                  const params = new URLSearchParams(window.location.search);
+                  params.set("case", c.id);
+                  params.set("tab", "detalhes");
+                  window.history.pushState(null, "", "?" + params.toString());
+                  setDetail(c);
+                }}
                 style={reveal.itemProps(i).style}
                 className={`${reveal.itemProps(i).className} grid grid-cols-[48px_minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_40px] gap-6 items-center px-2 py-5 cursor-pointer transition-colors ${
                   isSel ? "bg-primary/5 dark:bg-primary/10" : "hover:bg-slate-50/60 dark:hover:bg-slate-900/40"
@@ -941,7 +947,13 @@ export function CasesTable({
               key={c.id}
               role="button"
               tabIndex={0}
-              onClick={() => setDetail(c)}
+                onClick={() => {
+                  const params = new URLSearchParams(window.location.search);
+                  params.set("case", c.id);
+                  params.set("tab", "detalhes");
+                  window.history.pushState(null, "", "?" + params.toString());
+                  setDetail(c);
+                }}
               style={reveal.itemProps(i).style}
               className={`${reveal.itemProps(i).className} group md:grid md:grid-cols-[48px_2.5fr_1.5fr_1fr_1fr_1.5fr_1.5fr_0.5fr] md:items-center gap-4 px-6 py-6 bg-white rounded-[2rem] border-2 transition-all duration-700 cursor-pointer ${
                 isSel 
