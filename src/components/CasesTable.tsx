@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SkeletonBlock, SkeletonCircle, SkeletonSwap, useListReveal } from "@/components/ui/skeleton-blocks";
 
 import { useState, useMemo, useEffect } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   fetchCases, fetchStages, finishCase, updateCase, setCurrentStage, deleteCase, fetchProfile, reopenCase,
   acceptCaseRequest
@@ -148,6 +148,7 @@ export function CasesTable({
 } = {}) {
   const qc = useQueryClient();
   const [internalSearch, setSearch] = useState("");
+  const navigate = useNavigate();
   const search = hideSearch ? "" : (externalSearch !== undefined ? externalSearch : internalSearch);
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "late" | "ontime">("all");
@@ -644,7 +645,7 @@ export function CasesTable({
                       className="text-[17px] font-normal text-slate-900 dark:text-slate-100 truncate leading-tight hover:text-primary transition-colors cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.location.href = `/patients/${c.patient_id}`;
+                        navigate({ to: "/patients/$id", params: { id: c.patient_id } });
                       }}
                     >
                       {c.patient?.name ?? "—"}
