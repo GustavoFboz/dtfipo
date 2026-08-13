@@ -176,11 +176,11 @@ export function CasesTable({
       
       const data = await fetchCases(scope, { startDate: dateRange?.start, endDate: dateRange?.end });
 
-      // Always fetch global solicitations count if not in solicitacoes scope to ensure badge persists
-      if (activeFilter !== "solicitacoes" && onCountsUpdate) {
+      // Always fetch global solicitations count to ensure badge persists across all views
+      if (onCountsUpdate) {
         fetchCases("solicitacoes").then(globalCases => {
           onCountsUpdate({ solicitacoes: globalCases.length });
-        });
+        }).catch(err => console.error("Error fetching solicitation counts:", err));
       }
 
       return data;
