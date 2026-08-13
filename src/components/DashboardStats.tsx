@@ -16,28 +16,27 @@ export function DashboardStats({ onOpenDentes }: { onOpenDentes?: () => void }) 
     queryFn: () => fetchCases("finished"),
     staleTime: 60_000,
   });
+  const { data: solicitacoesList } = useQuery({
+    queryKey: ["cases", "solicitacoes"],
+    queryFn: () => fetchCases("solicitacoes"),
+    staleTime: 60_000,
+  });
 
   const stats = useMemo(() => {
     const list = [...(active ?? []), ...(finished ?? [])];
     const total = list.length;
-    const finishedCount = list.filter((c) => !!c.finished_at).length;
-    const activeCount = total - finishedCount;
+    const finishedCount = list.filter((c) => !!c.finished_at || c.status === "finalizado").length;
+    const activeCount = (active ?? []).length;
     
-    const solicitacoes = (active ?? []).filter(c => !!c.requested_by && !c.cadista_id).length;
+    const solicitacoes = (solicitacoesList ?? []).length;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const late = list.filter((c) => {
-      if (c.finished_at) return false;
+      if (c.finished_at || c.status === "finalizado") return false;
       const delivery = new Date(c.delivery_date + "T00:00:00");
       return delivery < today;
-    }).length;
-
-    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const thisMonth = list.filter((c) => {
-      const d = new Date((c.entry_date ?? "") + "T00:00:00");
-      return !isNaN(d.getTime()) && d >= firstOfMonth;
     }).length;
 
     return [
@@ -46,7 +45,7 @@ export function DashboardStats({ onOpenDentes }: { onOpenDentes?: () => void }) 
       { value: late, label: "Casos Atrasados" },
       { value: finishedCount, label: "Finalizados" },
     ];
-  }, [active, finished]);
+  }, [active, finished, solicitacoesList]);
 
   return (
     <div className="flex items-center gap-8 md:gap-12">

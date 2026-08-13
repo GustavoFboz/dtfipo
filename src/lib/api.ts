@@ -143,13 +143,13 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
 
   if (scope === "solicitacoes") {
     // Protetico/Admin view pending solicitations
-    query = query.is("cadista_id", null).eq("status", "pendente");
+    query = query.eq("status", "pendente");
   } else if (scope === "active") {
     // Normal active cases must have a cadista OR be directly created by staff
-    query = query.not("status", "in", '("cancelado","pendente")');
-    // Important: if not cadista/admin, they only see cases with a cadista_id OR cases they requested
+    // Solicitante active cases are those already accepted (have cadista)
+    query = query.eq("status", "em_andamento");
     if (profile?.role === "SOLICITANTE") {
-      query = query.eq("requested_by", profile.id);
+      query = query.not("cadista_id", "is", null);
     }
   } else if (scope === "finished") {
     query = query.in("status", ["finalizado", "finished"]);
@@ -157,6 +157,9 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
     query = query.eq("status", "arquivado");
   } else if (scope === "deleted") {
     query = query.eq("status", "cancelado");
+  } else if (scope === "all") {
+    // Show everything except pending and cancelled
+    query = query.not("status", "in", '("cancelado","pendente")');
   }
 
   if (filters?.startDate) {
