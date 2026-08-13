@@ -342,22 +342,30 @@ export function CaseDetailDialog({
     });
   }, [caseId]);
 
-  // On open: sync case state to URL if needed
+  // Sync state from URL on mount
   useEffect(() => {
     if (!open || !caseId || typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    const urlCaseId = params.get("case");
     const urlTab = params.get("tab");
+    
+    if (isTabKey(urlTab) && urlTab !== tab) {
+      setTab(urlTab);
+    }
+    setRestoredCaseId(caseId);
+  }, [open, caseId]);
 
-    if (urlCaseId !== caseId) {
+  // Sync state to URL when open or tab changes
+  useEffect(() => {
+    if (!open || !caseId || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const currentCase = params.get("case");
+    const currentTab = params.get("tab");
+
+    if (currentCase !== caseId || currentTab !== tab) {
       params.set("case", caseId);
-      if (tab) params.set("tab", tab);
-      window.history.replaceState(null, "", "?" + params.toString());
-    } else if (urlTab !== tab) {
       params.set("tab", tab);
       window.history.replaceState(null, "", "?" + params.toString());
     }
-    setRestoredCaseId(caseId);
   }, [open, caseId, tab]);
 
   // Clean up URL on close
