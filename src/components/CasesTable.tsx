@@ -364,6 +364,7 @@ export function CasesTable({
       } else if (activeFilter === "all") {
         if (c.status === "cancelado" || c.status === "pendente") return false;
         if (c.status === "finalizado" || c.status === "finished" || c.finished_at) return false;
+        if (c.status === "arquivado") return false;
 
       } else if (activeFilter === "atrasados") {
         if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado" || c.status === "pendente") return false;
