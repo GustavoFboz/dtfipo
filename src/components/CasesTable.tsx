@@ -155,7 +155,7 @@ export function CasesTable({
   const [deleting, setDeleting] = useState<CaseRow | null>(null);
   const [folderEdit, setFolderEdit] = useState<{ row: CaseRow; url: string } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkAction, setBulkAction] = useState<null | "finish" | "delete" | "archive" | "reopen">(null);
+  const [bulkAction, setBulkAction] = useState<null | "finish" | "delete" | "archive" | "reopen" | "accept">(null);
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile, staleTime: 300_000 });
   const isCadista = profile?.role === "CADISTA";
@@ -165,10 +165,12 @@ export function CasesTable({
     queryFn: () => fetchCases(
       activeFilter === "finalizados" ? "finished" : 
       activeFilter === "arquivados" ? "archived" :
+      activeFilter === "solicitacoes" ? "solicitacoes" :
       (activeFilter === "deleted" || activeFilter === "cancelado" ? "deleted" : 
       activeFilter === "all" ? "all" : "active"),
       { startDate: dateRange?.start, endDate: dateRange?.end }
     ),
+
     staleTime: 30_000, 
     refetchOnWindowFocus: true,
     refetchInterval: 60_000,
@@ -346,16 +348,12 @@ export function CasesTable({
     const f = list.filter((c) => {
       // Filter logic based on the requested rules
       if (activeFilter === "em_andamento") {
-        if (c.finished_at || c.status === "finalizado" || c.status === "finished" || c.status === "arquivado" || c.status === "cancelado") return false;
+        if (c.finished_at || c.status === "finalizado" || c.status === "finished" || c.status === "arquivado" || c.status === "cancelado" || c.status === "pendente") return false;
       } else if (activeFilter === "all") {
-        // "Todos" includes everything except canceled/trash in this context usually, 
-        // but user says "second option and filter all in selected period".
-        // Usually "Todos" means active + historical in the selected period.
         if (c.status === "cancelado") return false;
-        // User stated in a previous turn that finished cases must NOT appear in "Todos"
         if (c.status === "finalizado" || c.status === "finished" || c.finished_at) return false;
       } else if (activeFilter === "atrasados") {
-        if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
+        if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado" || c.status === "pendente") return false;
         if (!isLate(c.delivery_date)) return false;
       } else if (activeFilter === "finalizados") {
         if (c.status !== "finalizado" && c.status !== "finished") return false;
@@ -363,7 +361,10 @@ export function CasesTable({
         if (c.status !== "arquivado") return false;
       } else if (activeFilter === "deleted" || activeFilter === "cancelado") {
         if (c.status !== "cancelado") return false;
+      } else if (activeFilter === "solicitacoes") {
+        if (c.status !== "pendente" || c.cadista_id) return false;
       }
+
 
       if (q) {
         // Search optimization: check fields directly instead of pre-generating a large haystack string
@@ -436,11 +437,13 @@ export function CasesTable({
     const list = cases.data;
     const counts = {
       all: list.length,
-      em_andamento: list.filter(c => !c.finished_at && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado").length,
-      atrasados: list.filter(c => !c.finished_at && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado" && isLate(c.delivery_date)).length,
+      em_andamento: list.filter(c => !c.finished_at && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado" && c.status !== "pendente").length,
+      atrasados: list.filter(c => !c.finished_at && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado" && c.status !== "pendente" && isLate(c.delivery_date)).length,
       finalizados: list.filter(c => c.finished_at || c.status === "finalizado").length,
       arquivados: list.filter(c => c.status === "arquivado").length,
       deleted: list.filter(c => c.status === "cancelado").length,
+      solicitacoes: list.filter(c => c.status === "pendente" && !c.cadista_id).length,
+
     };
     onCountsUpdate(counts);
   }, [cases.data, onCountsUpdate]);
