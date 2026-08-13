@@ -146,7 +146,7 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
     query = query.is("cadista_id", null).eq("status", "pendente");
   } else if (scope === "active") {
     // Normal active cases must have a cadista OR be directly created by staff
-    query = query.not("status", "in", '("finalizado","arquivado","cancelado","finished","pendente")');
+    query = query.not("status", "in", '("cancelado","pendente")');
     // Important: if not cadista/admin, they only see cases with a cadista_id OR cases they requested
     if (profile?.role === "SOLICITANTE") {
       query = query.eq("requested_by", profile.id);
