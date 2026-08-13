@@ -156,13 +156,17 @@ export function NewCaseDialog({
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       if (o) {
-        if (params.get("newCase") !== "1") {
+        if (isCreate && params.get("newCase") !== "1") {
           params.set("newCase", "1");
+          window.history.replaceState(null, "", "?" + params.toString());
+        } else if (isEdit && editCase && params.get("editCase") !== editCase.id) {
+          params.set("editCase", editCase.id);
           window.history.replaceState(null, "", "?" + params.toString());
         }
       } else {
-        if (params.has("newCase")) {
+        if (params.has("newCase") || params.has("editCase")) {
           params.delete("newCase");
+          params.delete("editCase");
           const newSearch = params.toString();
           window.history.replaceState(null, "", newSearch ? "?" + newSearch : window.location.pathname);
         }
