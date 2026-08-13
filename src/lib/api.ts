@@ -157,6 +157,8 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
     query = query.eq("status", "arquivado");
   } else if (scope === "deleted") {
     query = query.eq("status", "cancelado");
+    // Also include staff-created cases that were "deleted" (status cancelado)
+    // We don't want strict filters here to ensure trash is visible
   } else if (scope === "all") {
     // Show everything except pending and cancelled
     query = query.not("status", "in", '("cancelado","pendente")');
@@ -214,9 +216,10 @@ export async function restoreCase(id: string) {
 }
 
 export async function permanentDeleteCase(id: string) {
+  // Use markDeleted for PERMANENT deletion to prevent flickering
+  try { markDeleted(id); } catch {}
   const { error } = await supabase.from("cases").delete().eq("id", id);
   if (error) throw error;
-  try { markDeleted("cases", id); } catch {}
 }
 
 
