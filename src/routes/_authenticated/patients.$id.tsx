@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { fetchPatient, fetchPatientCases, reopenCase } from "@/lib/api";
 import { StageBadge } from "@/components/StageBadge";
 import { CaseDetailDialog } from "@/components/CaseDetailDialog";
