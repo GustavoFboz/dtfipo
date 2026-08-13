@@ -342,45 +342,43 @@ export function CaseDetailDialog({
     });
   }, [caseId]);
 
-  // Sync state from URL on mount
+  // Restaura a aba a partir da URL quando o diálogo abre.
   useEffect(() => {
     if (!open || !caseId || typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
+    if (params.get("case") !== caseId) return;
     const urlTab = params.get("tab");
-    
-    // Tab update logic - only update if the URL has a different valid tab
-    if (isTabKey(urlTab) && urlTab !== tab) {
-      setTab(urlTab);
-    }
+    if (isTabKey(urlTab) && urlTab !== tab) setTab(urlTab);
   }, [open, caseId]);
 
-  // Sync state to URL when open or tab changes
+  // Escreve ?case/?tab na URL enquanto aberto.
+  const urlOwnedRef = useRef(false);
   useEffect(() => {
     if (!open || !caseId || typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    const currentCase = params.get("case");
-    const currentTab = params.get("tab");
-
-    if (currentCase !== caseId || currentTab !== tab) {
+    if (params.get("case") !== caseId || params.get("tab") !== tab) {
       params.set("case", caseId);
       params.set("tab", tab);
       window.history.replaceState(null, "", "?" + params.toString());
     }
+    urlOwnedRef.current = true;
   }, [open, caseId, tab]);
 
-  // Clean up URL on close - ensures URL is clean when dialog is not visible
+  // Limpa a URL somente se este diálogo realmente esteve aberto.
   useEffect(() => {
-    if (!open && typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      // Avoid unnecessary replaceState if the URL is already clean
-      if (params.has("case") || params.has("tab")) {
-        params.delete("case");
-        params.delete("tab");
-        const newSearch = params.toString();
-        window.history.replaceState(null, "", newSearch ? "?" + newSearch : window.location.pathname);
-      }
+    if (open || typeof window === "undefined") return;
+    if (!urlOwnedRef.current) return;
+    urlOwnedRef.current = false;
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("case") || params.has("tab")) {
+      params.delete("case");
+      params.delete("tab");
+      const newSearch = params.toString();
+      window.history.replaceState(null, "", newSearch ? "?" + newSearch : window.location.pathname);
     }
   }, [open]);
+
+
 
   const activity = useQuery({
     queryKey: ["case_activity", caseRow?.id],

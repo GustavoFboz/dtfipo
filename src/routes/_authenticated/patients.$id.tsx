@@ -339,24 +339,11 @@ function PatientDetailPage() {
       {/* Dialogs */}
       <PatientFormDialog patient={p} open={editOpen} onOpenChange={setEditOpen} />
       <NewCaseDialog initialPatientId={id} open={newCaseOpen} onOpenChange={setNewCaseOpen} />
-      <CaseDetailDialog caseRow={selectedCase} open={!!selectedCase} onOpenChange={(o) => {
-        if (!o) {
-          setSelectedCase(null);
-          const params = new URLSearchParams(window.location.search);
-          if (params.has("case") || params.has("tab")) {
-            params.delete("case");
-            params.delete("tab");
-            const newSearch = params.toString();
-            window.history.replaceState(null, "", newSearch ? "?" + newSearch : window.location.pathname);
-          }
-        } else if (selectedCase) {
-          const params = new URLSearchParams(window.location.search);
-          if (params.get("case") !== selectedCase.id) {
-            params.set("case", selectedCase.id);
-            window.history.replaceState(null, "", "?" + params.toString());
-          }
-        }
-      }} />
+      <CaseDetailDialog
+        caseRow={selectedCase}
+        open={!!selectedCase}
+        onOpenChange={(o) => { if (!o) setSelectedCase(null); }}
+      />
       
       
     </motion.div>
