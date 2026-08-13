@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_authenticated/casos")({
 function Index() {
   const now = useNow();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState("em_andamento");
+  const [filter, setFilter] = useState(() => sessionStorage.getItem("dentalflow:casos-filter") || "em_andamento");
   const [isTrashMode, setIsTrashMode] = useState(false);
   const [openNewPatient, setOpenNewPatient] = useState(false);
   const [exiting, setExiting] = useState(false);
@@ -53,6 +53,10 @@ function Index() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    sessionStorage.setItem("dentalflow:casos-filter", filter);
+  }, [filter]);
 
   useEffect(() => {
     (window as any).DENTALFLOW_TRASH_MODE = isTrashMode;

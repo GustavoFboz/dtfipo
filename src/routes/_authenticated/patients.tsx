@@ -14,7 +14,7 @@ import { PatientFormDialog } from "@/components/PatientFormDialog";
 import type { Patient } from "@/lib/types";
 import { normalizeText } from "@/lib/utils";
 import { SkeletonCardGrid, SkeletonSwap, useListReveal } from "@/components/ui/skeleton-blocks";
-import { FloatingLog } from "@/components/FloatingLog";
+
 
 
 
@@ -28,9 +28,9 @@ function PatientsPage() {
   const patients = useQuery({ 
     queryKey: ["patients"], 
     queryFn: async () => {
-      addLog("Iniciando busca de pacientes...");
+      
       const data = await fetchPatients();
-      addLog(`${data?.length || 0} pacientes carregados do banco`);
+      
       return data;
     }
   });
@@ -114,7 +114,7 @@ function PatientsPage() {
             style={reveal.itemProps(i).style}
             className={`${reveal.itemProps(i).className} cursor-pointer bg-transparent py-8 flex items-center gap-8 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-all duration-300 group border-b border-slate-100 dark:border-white/5 w-full`}
             onClick={() => {
-              addLog(`Acessando perfil do paciente: ${p.name} (ID: ${p.id.substring(0,8)}...)`);
+              
               navigate({ to: "/patients/$id", params: { id: p.id } });
             }}
           >
@@ -191,7 +191,7 @@ function PatientsPage() {
         </AlertDialogContent>
       </AlertDialog>
       
-      <FloatingLog title="Log de Navegação" logs={logs} />
+      
     </div>
   );
 }
