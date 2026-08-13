@@ -1,21 +1,19 @@
 # Plan: Implement Requested Edits and Persistence
 
 ## 1. Visual Text Edits
-Apply the requested text edit to `src/routes/index.tsx`. *Note: The request asks to change "Approve" to "Approve", which seems like a no-op, but I will ensure the file reflects the intended state.*
+Apply the requested text edit to `src/routes/index.tsx`. Although the request asks to change "approve" to "approve" (which is a no-op), I will ensure the file content is correct and the change is acknowledged.
 
 ## 2. Global State Persistence
-Implement robust state recovery across reloads by ensuring critical UI states (dialogs, active filters) are synchronized with the URL or `sessionStorage`.
-- Migrate `NewCaseDialog` and `CaseDetailDialog` visibility to URL search parameters.
-- Ensure the sidebar blur effect correctly handles refresh states.
+Implement robust state recovery across reloads for critical UI components.
+- **Dialogs**: Update `NewCaseDialog` and `CaseDetailDialog` to use URL search parameters (e.g., `?newCase=true` or `?caseId=123&tab=galeria`) so they stay open after a refresh.
+- **Filters**: Ensure the active filter on the `/casos` page is correctly synchronized with the URL or `sessionStorage`.
+- **UI State**: Ensure the sidebar blur effect and other layout states persist correctly.
 
-## 3. Scroll Restoration & UX
-Refine `src/router.tsx` and component-level layouts to guarantee scroll position is preserved exactly.
-- Audit `AppShell` and `_authenticated` route for any layout shifts that break scroll restoration.
-
-## 4. Cleanup & Optimization
-- Remove all remaining `FloatingLog` references and debug logs from production paths.
-- Ensure `sessionStorage` fallback for non-URL state.
+## 3. Scroll Restoration & Performance
+- **Scroll**: Verify `src/router.tsx` settings and ensure that layout transitions don't interfere with `@tanstack/react-router`'s built-in scroll restoration.
+- **Cleanup**: Remove any remaining `FloatingLog` references and debug logs that might affect performance or user experience.
 
 ## Technical Details
-- Use `useSearch` and `useNavigate` from `@tanstack/react-router` for state persistence in dialogs.
-- Clear out residual `console.log` and `addLog` calls from `patients.tsx` and `patients.$id.tsx`.
+- Migrate `sessionStorage` logic in `NewCaseDialog.tsx` to use URL state where appropriate.
+- Update `CaseDetailDialog.tsx` to sync its `open` and `tab` state with the URL hash/search params more reliably.
+- Clean up `src/routes/_authenticated/patients.tsx` and `patients.$id.tsx` to remove residual `addLog` or `console.log` calls.
