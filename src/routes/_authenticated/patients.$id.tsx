@@ -24,6 +24,7 @@ export const Route = createFileRoute("/_authenticated/patients/$id")({
 function PatientDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
+  const searchParams = Route.useSearch() as any;
   const qc = useQueryClient();
   const isMobile = useIsMobile();
   const [selectedCase, setSelectedCase] = useState<CaseRow | null>(null);
@@ -32,20 +33,16 @@ function PatientDetailPage() {
 
   useEffect(() => {
     document.title = "Carregando Paciente...";
-  }, [id]);
+  }, []);
 
   const patient = useQuery({ 
     queryKey: ["patient", id], 
     queryFn: async () => {
-      try {
-        const data = await fetchPatient(id);
-        if (data) {
-          document.title = `${data.name} | DentalFlow`;
-        }
-        return data;
-      } catch (err: any) {
-        throw err;
+      const data = await fetchPatient(id);
+      if (data) {
+        document.title = `${data.name} | DentalFlow`;
       }
+      return data;
     },
     staleTime: 0,
     retry: 1,
@@ -53,14 +50,7 @@ function PatientDetailPage() {
   
   const cases = useQuery({ 
     queryKey: ["patient_cases", id], 
-    queryFn: async () => {
-      try {
-        const res = await fetchPatientCases(id);
-        return res;
-      } catch (err: any) {
-        return [];
-      }
-    },
+    queryFn: () => fetchPatientCases(id),
     retry: 1,
   });
 
