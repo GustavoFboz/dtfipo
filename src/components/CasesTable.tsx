@@ -498,15 +498,19 @@ export function CasesTable({
     
     // We calculate counts based on the 'all' data when possible, or from the current list
     // if it's the specific scope being fetched.
-    const counts = {
-      all: list.length,
-      em_andamento: list.filter(c => c.status === "em_andamento").length,
-      atrasados: list.filter(c => c.status === "em_andamento" && isLate(c.delivery_date)).length,
-      finalizados: list.filter(c => c.status === "finalizado" || c.status === "finished").length,
-      arquivados: list.filter(c => c.status === "arquivado").length,
-      deleted: list.filter(c => c.status === "cancelado").length,
-      solicitacoes: list.filter(c => c.status === "pendente").length,
+    const counts: Partial<Record<string, number>> = {
+      [activeFilter]: list.length,
     };
+
+    // If we're looking at 'all', we can derive multiple counts
+    if (activeFilter === "all") {
+      counts.em_andamento = list.filter(c => c.status === "em_andamento").length;
+      counts.atrasados = list.filter(c => c.status === "em_andamento" && isLate(c.delivery_date)).length;
+      counts.finalizados = list.filter(c => c.status === "finalizado" || c.status === "finished").length;
+      counts.arquivados = list.filter(c => c.status === "arquivado").length;
+      counts.solicitacoes = list.filter(c => c.status === "pendente").length;
+    }
+
     onCountsUpdate(counts);
   }, [cases.data, onCountsUpdate]);
 
