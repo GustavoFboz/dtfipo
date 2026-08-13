@@ -9,7 +9,7 @@ import { PatientFormDialog } from "@/components/PatientFormDialog";
 import { PatientAttachments } from "@/components/PatientAttachments";
 import { NewCaseDialog } from "@/components/NewCaseDialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, RotateCcw, Archive, Activity, Pencil, Plus, Phone, Mail, MapPin, IdCard, Calendar, FileText, ClipboardList } from "lucide-react";
+import { ArrowLeft, RotateCcw, Archive, Activity, Pencil, Plus, Phone, Mail, MapPin, IdCard, Calendar, FileText, ClipboardList, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { CaseRow } from "@/lib/types";
