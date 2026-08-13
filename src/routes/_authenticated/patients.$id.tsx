@@ -35,6 +35,8 @@ function PatientDetailPage() {
     document.title = "Carregando Paciente...";
   }, [id]);
 
+  const [restoredFromUrl, setRestoredFromUrl] = useState(false);
+
   const patient = useQuery({ 
     queryKey: ["patient", id], 
     queryFn: async () => {
@@ -56,13 +58,17 @@ function PatientDetailPage() {
 
   // Restore selected case from URL on mount or param change
   useEffect(() => {
+    if (restoredFromUrl || !cases.data) return;
     const urlParams = new URLSearchParams(window.location.search);
     const caseId = urlParams.get("case");
-    if (caseId && cases.data) {
+    if (caseId) {
       const c = cases.data.find(item => item.id === caseId);
-      if (c) setSelectedCase(c);
+      if (c) {
+        setSelectedCase(c);
+        setRestoredFromUrl(true);
+      }
     }
-  }, [cases.data]);
+  }, [cases.data, restoredFromUrl]);
 
   const reopen = useMutation({
     mutationFn: (cid: string) => reopenCase(cid),
