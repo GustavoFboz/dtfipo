@@ -1,42 +1,25 @@
-# Plan - Case Management and Dashboard Improvements
+# Plano de Correção: Carregamento do Perfil do Paciente
 
-Refine the case management system by adding archiving functionality, improving the "All" tab logic, and ensuring proper flow for pending solicitations.
+O usuário relatou que ao clicar em um paciente na listagem, a página de detalhes não carrega ou fica travada. Meus diagnósticos indicam que o problema pode estar relacionado a permissões de acesso (RLS) ou falhas silenciosas no carregamento de componentes dependentes.
 
-## User Requirements
-- Remove "Abrir pasta" (Open Folder) from case options and replace it with "Arquivar" (Archive).
-- The "Todos" (All) tab should display all cases from the period: Ongoing, Finished, Archived, and All.
-- Fix the solicitation flow: cases requested by Solicitantes should appear as "Solicitações" (Pending) and allow staff members (like Gustavo) to approve/reject them.
+## Alterações Propostas
 
-## Proposed Changes
+### 1. Robustez no Carregamento de Dados (`src/lib/api.ts`)
+- Adicionar logs detalhados em `fetchPatient` e `fetchPatientCases` para capturar erros do Supabase.
+- Garantir que a busca de pacientes não falhe silenciosamente se o usuário for um `SOLICITANTE`.
 
-### Database & API (`src/lib/api.ts`)
-- Update `fetchCases`:
-    - Refine `active` scope to strictly exclude `pendente`, `arquivado`, and `cancelado`.
-    - Refine `all` scope to include everything *except* `cancelado` (or as per period if filters applied).
-    - Ensure `solicitacoes` scope correctly identifies cases with `status = 'pendente'` and no `cadista_id`.
+### 2. Melhorias na Página de Detalhes (`src/routes/_authenticated/patients.$id.tsx`)
+- Implementar tratamento de erro robusto com mensagens amigáveis caso o paciente não seja encontrado ou haja erro de rede.
+- Adicionar logs de depuração no `FloatingLog` para que o usuário possa ver o que está acontecendo em tempo real.
+- Garantir que o componente não trave se partes dos dados (como fotos ou anexos) falharem.
 
-### Case Management (`src/components/CasesTable.tsx`)
-- **Menu Actions**:
-    - Remove "Abrir pasta" from the dropdown menu (it's already accessible via the check-icons anyway).
-    - Add "Arquivar caso" action to the dropdown menu.
-    - Implement a `bulkArchive` and `archiveCase` mutation (already partially there, but needs solid integration).
-- **Filtering Logic**:
-    - Update `filtered` useMemo to match the new "Todos" requirements (showing finished and archived in that view).
-- **UI Adjustments**:
-    - Ensure the "Solicitações" tab is visible and functional for staff.
-    - Update the `CaseDetailDialog` if necessary to show approval actions.
+### 3. Ajustes de Navegação
+- Verificar e corrigir possíveis loops de redirecionamento no `AppShell` que afetem rotas de detalhes.
 
-### Dashboard (`src/components/SolicitanteDashboard.tsx` & `src/routes/_authenticated/casos.tsx`)
-- Ensure "Solicitações" is the priority for staff when there are pending items.
-- Verify counts logic in `casos.tsx` to reflect the new visibility rules.
+## Detalhes Técnicos
+- Refatoração de `useQuery` para incluir estados de erro.
+- Verificação de políticas de RLS para garantir que a clínica correta seja acessada.
+- Adição de `try/catch` em funções críticas da API.
 
-## Technical Details
-- Use TanStack Query mutations for the status transitions.
-- Maintain existing RLS security (Solicitantes only see their own, Staff see all).
-- Use `Archive` icon from `lucide-react`.
-
-## Verification Plan
-- Check if "Arquivar" appears in the menu instead of "Abrir pasta".
-- Verify that clicking "Arquivar" moves the case to the "Arquivados" tab.
-- Verify that the "Todos" tab now includes finished and archived cases.
-- Create a test solicitation and verify it appears in the "Solicitações" tab for a staff user.
+---
+Vou prosseguir com a implementação destas melhorias para garantir que o perfil do paciente carregue perfeitamente.
