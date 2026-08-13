@@ -688,7 +688,7 @@ export function NewCaseDialog({
       const base = {
         patient_id: pid,
         doctor_id: doctorId || null,
-        cadista_id: cadistaId || null,
+        cadista_id: isCreate && !isSolicitante && profile?.id ? profile.id : (cadistaId || null),
         case_type_id: caseTypeIds[0] ?? null,
         case_type_ids: caseTypeIds,
         tooth_color_id: toothColorId || null,
@@ -915,7 +915,11 @@ export function NewCaseDialog({
 
               <div className="space-y-2">
                 <Label>Cadista</Label>
-                <Select value={cadistaId} onValueChange={setCadistaId}>
+                <Select 
+                  value={isCreate && !isSolicitante && profile?.id ? profile.id : cadistaId} 
+                  onValueChange={setCadistaId}
+                  disabled={isCreate && !isSolicitante}
+                >
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent className="z-[3000]">
                     {cadistas.data?.map((d) => (<SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>))}
