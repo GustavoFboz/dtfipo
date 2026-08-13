@@ -164,15 +164,17 @@ export function CasesTable({
 
   const cases = useQuery({
     queryKey: ["cases", activeFilter, dateRange?.start, dateRange?.end],
-    queryFn: () => fetchCases(
-      activeFilter === "finalizados" ? "finished" : 
-      activeFilter === "arquivados" ? "archived" :
-      activeFilter === "solicitacoes" ? "solicitacoes" :
-      (activeFilter === "deleted" || activeFilter === "cancelado" ? "deleted" : 
-      activeFilter === "all" ? "all" : "active"),
-      { startDate: dateRange?.start, endDate: dateRange?.end }
-    ),
-
+    queryFn: async () => {
+      // Fetch 'solicitacoes' scope to ensure we have pending counts, 
+      // or 'all' to have everything for global counting
+      // For now, let's fetch everything if not in a specific scope to ensure badges work
+      const scope = activeFilter === "finalizados" ? "finished" : 
+                    activeFilter === "arquivados" ? "archived" :
+                    activeFilter === "solicitacoes" ? "solicitacoes" :
+                    (activeFilter === "deleted" || activeFilter === "cancelado" ? "deleted" : "all");
+      
+      return fetchCases(scope, { startDate: dateRange?.start, endDate: dateRange?.end });
+    },
     staleTime: 30_000, 
     refetchOnWindowFocus: true,
     refetchInterval: 60_000,
