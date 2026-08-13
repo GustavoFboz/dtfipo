@@ -8,15 +8,12 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Plus, User, Trash2, Pencil, Search } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PatientFormDialog } from "@/components/PatientFormDialog";
 import type { Patient } from "@/lib/types";
 import { normalizeText } from "@/lib/utils";
 import { SkeletonCardGrid, SkeletonSwap, useListReveal } from "@/components/ui/skeleton-blocks";
-import { FloatingLog } from "@/components/FloatingLog";
-
-
 
 export const Route = createFileRoute("/_authenticated/patients")({
   component: PatientsPage,
@@ -28,9 +25,7 @@ function PatientsPage() {
   const patients = useQuery({ 
     queryKey: ["patients"], 
     queryFn: async () => {
-      addLog("Iniciando busca de pacientes...");
       const data = await fetchPatients();
-      addLog(`${data?.length || 0} pacientes carregados do banco`);
       return data;
     }
   });
@@ -39,15 +34,6 @@ function PatientsPage() {
   const [editPatient, setEditPatient] = useState<Patient | null>(null);
   const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
   const [q, setQ] = useState("");
-  const [logs, setLogs] = useState<string[]>(["Página de pacientes carregada", "Monitor de eventos pronto"]);
-
-  const addLog = useCallback((msg: string) => {
-    setLogs(prev => {
-      const newLogs = [...prev, `${new Date().toLocaleTimeString()} - ${msg}`];
-      return newLogs.slice(-50);
-    });
-  }, []);
-
 
   const filtered = useMemo(() => {
     let list = patients.data ?? [];
@@ -76,7 +62,6 @@ function PatientsPage() {
     },
     onSettled: () => qc.invalidateQueries({ queryKey: ["patients"] }),
   });
-
 
   return (
     <div className="mx-auto w-full px-4 md:px-8 py-8 md:py-10">
@@ -114,7 +99,7 @@ function PatientsPage() {
             style={reveal.itemProps(i).style}
             className={`${reveal.itemProps(i).className} cursor-pointer bg-transparent py-8 flex items-center gap-8 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-all duration-300 group border-b border-slate-100 dark:border-white/5 w-full`}
             onClick={() => {
-              addLog(`Acessando perfil do paciente: ${p.name} (ID: ${p.id.substring(0,8)}...)`);
+              
               navigate({ to: "/patients/$id", params: { id: p.id } });
             }}
           >
@@ -169,7 +154,6 @@ function PatientsPage() {
       </div>
       </SkeletonSwap>
 
-
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -191,7 +175,7 @@ function PatientsPage() {
         </AlertDialogContent>
       </AlertDialog>
       
-      <FloatingLog title="Log de Navegação" logs={logs} />
+      
     </div>
   );
 }

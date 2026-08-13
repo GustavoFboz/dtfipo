@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { fetchPatient, fetchPatientCases, reopenCase } from "@/lib/api";
 import { StageBadge } from "@/components/StageBadge";
 import { CaseDetailDialog } from "@/components/CaseDetailDialog";
@@ -13,7 +13,7 @@ import { ArrowLeft, RotateCcw, Archive, Activity, Pencil, Plus, Phone, Mail, Map
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { CaseRow } from "@/lib/types";
-import { FloatingLog } from "@/components/FloatingLog";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -26,38 +26,24 @@ function PatientDetailPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const isMobile = useIsMobile();
-  const [logs, setLogs] = useState<string[]>([]);
   const [selectedCase, setSelectedCase] = useState<CaseRow | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [newCaseOpen, setNewCaseOpen] = useState(false);
 
-  const addLog = useCallback((msg: string) => {
-    setLogs(prev => {
-      const newLogs = [...prev, `${new Date().toLocaleTimeString()} - ${msg}`];
-      return newLogs.slice(-50);
-    });
-  }, []);
-
   useEffect(() => {
-    addLog(`Página de detalhes aberta (ID: ${id})`);
     document.title = "Carregando Paciente...";
-  }, [id, addLog]);
+  }, [id]);
 
   const patient = useQuery({ 
     queryKey: ["patient", id], 
     queryFn: async () => {
       try {
-        addLog(`Buscando dados do paciente...`);
         const data = await fetchPatient(id);
         if (data) {
-          addLog(`Dados de ${data.name} carregados`);
           document.title = `${data.name} | DentalFlow`;
-        } else {
-          addLog(`AVISO: Paciente não encontrado no banco (ID: ${id})`);
         }
         return data;
       } catch (err: any) {
-        addLog(`ERRO ao carregar paciente: ${err.message || 'Erro desconhecido'}`);
         throw err;
       }
     },
@@ -70,10 +56,8 @@ function PatientDetailPage() {
     queryFn: async () => {
       try {
         const res = await fetchPatientCases(id);
-        addLog(`${res.length} casos vinculados encontrados`);
         return res;
       } catch (err: any) {
-        addLog(`ERRO ao carregar casos: ${err.message || 'Erro desconhecido'}`);
         return [];
       }
     },
@@ -108,7 +92,6 @@ function PatientDetailPage() {
           <p className="text-slate-900 dark:text-slate-100 font-light tracking-tight">Carregando perfil</p>
           <p className="text-slate-400 text-[12px] font-light">Sincronizando registros clínicos...</p>
         </div>
-        <FloatingLog title="Depuração de Carregamento" logs={logs} />
       </div>
     );
   }
@@ -131,7 +114,6 @@ function PatientDetailPage() {
             <ArrowLeft className="h-4 w-4 mr-2" /> Voltar à lista
           </Button>
         </div>
-        <FloatingLog title="Logs de Erro" logs={logs} />
       </div>
     );
   }
@@ -149,7 +131,6 @@ function PatientDetailPage() {
         <Button variant="outline" className="rounded-full px-8" onClick={() => navigate({ to: "/patients" })}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Voltar à lista
         </Button>
-        <FloatingLog title="Logs de Sistema" logs={logs} />
       </div>
     );
   }
@@ -355,7 +336,7 @@ function PatientDetailPage() {
       <NewCaseDialog initialPatientId={id} open={newCaseOpen} onOpenChange={setNewCaseOpen} />
       <CaseDetailDialog caseRow={selectedCase} open={!!selectedCase} onOpenChange={(o) => !o && setSelectedCase(null)} />
       
-      <FloatingLog title="Log de Eventos" logs={logs} />
+      
     </motion.div>
   );
 }
