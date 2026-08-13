@@ -35,7 +35,7 @@ function Index() {
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(false);
   const [caseYear, setCaseYear] = useState<string | null>(null);
-  const [counts, setCounts] = useState<Record<string, number>>({ all: 0, em_andamento: 0, atrasados: 0, finalizados: 0, arquivados: 0 });
+  const [counts, setCounts] = useState<Record<string, number>>({ all: 0, em_andamento: 0, atrasados: 0, finalizados: 0, arquivados: 0, solicitacoes: 0 });
   const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
   const [advancedFilters, setAdvancedFilters] = useState<{ doctorIds: string[]; cadistaIds: string[] }>({ doctorIds: [], cadistaIds: [] });
   const [localStartDate, setLocalStartDate] = useState("");
@@ -271,6 +271,7 @@ function Index() {
             {[
               { id: "em_andamento", label: "Em andamento" },
               { id: "all", label: "Todos" },
+              { id: "solicitacoes", label: "Solicitações" },
               { id: "atrasados", label: "Atrasados" },
               { id: "finalizados", label: "Finalizados" },
               { id: "arquivados", label: "Arquivados" },
@@ -302,7 +303,17 @@ function Index() {
                   )}
                   {t.label}
                   <AnimatePresence mode="popLayout">
-                    {isActive && (
+                    {t.id === "solicitacoes" && (counts.solicitacoes ?? 0) > 0 ? (
+                      <motion.div
+                        key="solic-badge"
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        className="absolute -top-1.5 -right-1.5 h-6 min-w-[24px] px-1.5 rounded-full bg-rose-500 text-white text-[11px] font-bold grid place-items-center shadow-lg shadow-rose-500/30 z-20"
+                      >
+                        {counts.solicitacoes}
+                      </motion.div>
+                    ) : isActive && (
                       <motion.span
                         key={`count-${t.id}`}
                         initial={{ scale: 0, opacity: 0 }}
