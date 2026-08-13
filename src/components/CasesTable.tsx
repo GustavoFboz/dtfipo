@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SkeletonBlock, SkeletonCircle, SkeletonSwap, useListReveal } from "@/components/ui/skeleton-blocks";
 
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   fetchCases, fetchStages, finishCase, updateCase, setCurrentStage, deleteCase, fetchProfile, reopenCase,
@@ -142,7 +142,7 @@ export function CasesTable({
   activeFilter?: string;
   onFilterChange?: (filter: string) => void;
   onYearChange?: (year: string | null) => void;
-  onCountsUpdate?: (counts: Partial<Record<string, number>>) => void;
+  onCountsUpdate?: (counts: Record<string, number>) => void;
   dateRange?: { start: string; end: string } | null;
   advancedFilters?: { doctorIds: string[]; cadistaIds: string[] };
 } = {}) {
@@ -153,18 +153,8 @@ export function CasesTable({
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "late" | "ontime">("all");
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "created_at", dir: "desc" });
-  const [editing, setEditing] = useState<CaseRow | null>(() => {
-    if (typeof window === "undefined") return null;
-    const params = new URLSearchParams(window.location.search);
-    const editId = params.get("editCase");
-    return null; // Will be resolved by effect once data is ready
-  });
-  const [detail, setDetail] = useState<CaseRow | null>(() => {
-    if (typeof window === "undefined") return null;
-    const params = new URLSearchParams(window.location.search);
-    const caseId = params.get("case");
-    return null; // Will be resolved by effect once data is ready
-  });
+  const [editing, setEditing] = useState<CaseRow | null>(null);
+  const [detail, setDetail] = useState<CaseRow | null>(null);
   const [deleting, setDeleting] = useState<CaseRow | null>(null);
   const [folderEdit, setFolderEdit] = useState<{ row: CaseRow; url: string } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -184,16 +174,7 @@ export function CasesTable({
                     activeFilter === "solicitacoes" ? "solicitacoes" :
                     (activeFilter === "deleted" || activeFilter === "cancelado" ? "deleted" : "all");
       
-      const data = await fetchCases(scope, { startDate: dateRange?.start, endDate: dateRange?.end });
-
-      // Always fetch global solicitations count to ensure badge persists across all views
-      if (onCountsUpdate) {
-        fetchCases("solicitacoes").then(globalCases => {
-          onCountsUpdate({ solicitacoes: globalCases.length });
-        }).catch(err => console.error("Error fetching solicitation counts:", err));
-      }
-
-      return data;
+      return fetchCases(scope, { startDate: dateRange?.start, endDate: dateRange?.end });
     },
     staleTime: 30_000, 
     refetchOnWindowFocus: true,
@@ -407,26 +388,8 @@ export function CasesTable({
   });
 
   const toggleSelected = (id: string) =>
-    setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  // Restauração única a partir da URL (deep-link / F5).
-  // NÃO fecha diálogos: o fechamento é sempre disparado pela UI.
-  const restoredRef = useRef(false);
-  useEffect(() => {
-    if (restoredRef.current || !cases.data) return;
-    restoredRef.current = true;
-    const params = new URLSearchParams(window.location.search);
-    const caseId = params.get("case");
-    const editId = params.get("editCase");
-    if (caseId) {
-      const found = cases.data.find((c) => c.id === caseId);
-      if (found) setDetail(found);
-    }
-    if (editId) {
-      const found = cases.data.find((c) => c.id === editId);
-      if (found) setEditing(found);
-    }
-  }, [cases.data]);
+    setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const filtered = useMemo<CaseRow[]>(() => {
     const list = cases.data ?? [];
@@ -526,19 +489,15 @@ export function CasesTable({
     
     // We calculate counts based on the 'all' data when possible, or from the current list
     // if it's the specific scope being fetched.
-    const counts: Partial<Record<string, number>> = {
-      [activeFilter]: list.length,
+    const counts = {
+      all: list.length,
+      em_andamento: list.filter(c => c.status === "em_andamento").length,
+      atrasados: list.filter(c => c.status === "em_andamento" && isLate(c.delivery_date)).length,
+      finalizados: list.filter(c => c.status === "finalizado" || c.status === "finished").length,
+      arquivados: list.filter(c => c.status === "arquivado").length,
+      deleted: list.filter(c => c.status === "cancelado").length,
+      solicitacoes: list.filter(c => c.status === "pendente").length,
     };
-
-    // If we're looking at 'all', we can derive multiple counts
-    if (activeFilter === "all") {
-      counts.em_andamento = list.filter(c => c.status === "em_andamento").length;
-      counts.atrasados = list.filter(c => c.status === "em_andamento" && isLate(c.delivery_date)).length;
-      counts.finalizados = list.filter(c => c.status === "finalizado" || c.status === "finished").length;
-      counts.arquivados = list.filter(c => c.status === "arquivado").length;
-      counts.solicitacoes = list.filter(c => c.status === "pendente").length;
-    }
-
     onCountsUpdate(counts);
   }, [cases.data, onCountsUpdate]);
 
@@ -656,9 +615,7 @@ export function CasesTable({
                 key={c.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => {
-                  setDetail(c);
-                }}
+                onClick={() => setDetail(c)}
                 style={reveal.itemProps(i).style}
                 className={`${reveal.itemProps(i).className} grid grid-cols-[48px_minmax(0,2fr)_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_40px] gap-6 items-center px-2 py-5 cursor-pointer transition-colors ${
                   isSel ? "bg-primary/5 dark:bg-primary/10" : "hover:bg-slate-50/60 dark:hover:bg-slate-900/40"
@@ -971,9 +928,7 @@ export function CasesTable({
               key={c.id}
               role="button"
               tabIndex={0}
-                onClick={() => {
-                  setDetail(c);
-                }}
+              onClick={() => setDetail(c)}
               style={reveal.itemProps(i).style}
               className={`${reveal.itemProps(i).className} group md:grid md:grid-cols-[48px_2.5fr_1.5fr_1fr_1fr_1.5fr_1.5fr_0.5fr] md:items-center gap-4 px-6 py-6 bg-white rounded-[2rem] border-2 transition-all duration-700 cursor-pointer ${
                 isSel 
@@ -1041,7 +996,7 @@ export function CasesTable({
                   <div
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate({ to: "/patients/$id", params: { id: c.patient_id } });
+                      window.location.href = `/patients/${c.patient_id}`;
                     }}
                     className="font-black text-[15px] text-slate-900 truncate block font-outfit hover:text-primary transition-colors cursor-pointer"
                   >

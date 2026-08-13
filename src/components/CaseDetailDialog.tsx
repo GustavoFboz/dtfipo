@@ -331,7 +331,24 @@ export function CaseDetailDialog({
   const [restoredCaseId, setRestoredCaseId] = useState<string | null>(null);
   const [pendingPickerTooth, setPendingPickerTooth] = useState<number | null>(null);
   const lastOpenCaseIdRef = useRef<string | null>(null);
-  const tabReady = !!open && !!caseId;
+  const tabReady = !!open && !!caseId && restoredCaseId === caseId;
+
+  // On open: restore tab from URL hash (reload) or per-case localStorage (reopen).
+  // Persistence effects wait for tabReady so the first render never overwrites the restored tab.
+  useEffect(() => {
+    if (!open || !caseId) {
+      setRestoredCaseId(null);
+      return;
+    }
+    const initialTab = syncUrlHash ? restoredTabFor(caseId) : readSavedTab(caseId) ?? "detalhes";
+    // Avoid restoring chat tab for solicitantes
+    if (isSolicitante && initialTab === "comentarios") {
+      setTab("detalhes");
+    } else {
+      setTab(initialTab);
+    }
+    setRestoredCaseId(caseId);
+  }, [open, caseId, syncUrlHash]);
 
   // Miniatura de anexo clicada no chat → abre a aba correspondente.
   useEffect(() => {
@@ -342,43 +359,33 @@ export function CaseDetailDialog({
     });
   }, [caseId]);
 
-  // Restaura a aba a partir da URL quando o diálogo abre.
+  // Persist current tab per case
   useEffect(() => {
-    if (!open || !caseId || typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("case") !== caseId) return;
-    const urlTab = params.get("tab");
-    if (isTabKey(urlTab) && urlTab !== tab) setTab(urlTab);
-  }, [open, caseId]);
-
-  // Escreve ?case/?tab na URL enquanto aberto.
-  const urlOwnedRef = useRef(false);
-  useEffect(() => {
-    if (!open || !caseId || typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("case") !== caseId || params.get("tab") !== tab) {
-      params.set("case", caseId);
-      params.set("tab", tab);
-      window.history.replaceState(null, "", "?" + params.toString());
+    if (!tabReady || !caseId) return;
+    try {
+      localStorage.setItem(`case_tab:${caseId}`, tab);
+    } catch {
+      // localStorage can be unavailable in private/restricted contexts.
     }
-    urlOwnedRef.current = true;
-  }, [open, caseId, tab]);
+  }, [tab, tabReady, caseId]);
 
-  // Limpa a URL somente se este diálogo realmente esteve aberto.
+  // Reload checkpoint without touching the route/hash for ordinary dialogs.
   useEffect(() => {
-    if (open || typeof window === "undefined") return;
-    if (!urlOwnedRef.current) return;
-    urlOwnedRef.current = false;
-    const params = new URLSearchParams(window.location.search);
-    if (params.has("case") || params.has("tab")) {
-      params.delete("case");
-      params.delete("tab");
-      const newSearch = params.toString();
-      window.history.replaceState(null, "", newSearch ? "?" + newSearch : window.location.pathname);
+    if (!tabReady || !caseId || typeof window === "undefined") return;
+    try {
+      sessionStorage.setItem(OPEN_CASE_KEY, JSON.stringify({ caseId, tab }));
+    } catch {
+      // sessionStorage can be unavailable in private/restricted contexts.
     }
-  }, [open]);
-
-
+    return () => {
+      try {
+        const saved = JSON.parse(sessionStorage.getItem(OPEN_CASE_KEY) || "null") as { caseId?: string } | null;
+        if (saved?.caseId === caseId) sessionStorage.removeItem(OPEN_CASE_KEY);
+      } catch {
+        // sessionStorage can be unavailable in private/restricted contexts.
+      }
+    };
+  }, [tab, tabReady, caseId]);
 
   const activity = useQuery({
     queryKey: ["case_activity", caseRow?.id],

@@ -51,7 +51,7 @@ import { TOOTH_WORK_TYPES, ENCERAMENTO_ID, splitToothTypes, buildToothTypes } fr
 import { CaseComments } from "./CaseComments";
 import { Paperclip, MessageSquare, PlusCircle } from "lucide-react";
 import { AttachButton, AttachFilesIcon, AttachImagesIcon } from "./AttachButton";
-import { useSessionSnapshot } from "@/hooks/use-session-snapshot";
+import { useSessionSnapshot, clearSessionSnapshot } from "@/hooks/use-session-snapshot";
 import {
   NEW_CASE_OPEN_KEY,
   NEW_CASE_FORM_KEY,
@@ -142,39 +142,11 @@ export function NewCaseDialog({
         ? NEW_CASE_OPEN_KEY
         : null;
 
-  // Restaura o diálogo de criação a partir da URL (?newCase=1) — apenas a
-  // instância não controlada de criação pode se auto-abrir.
-  const autoOpenedRef = useRef(false);
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (autoOpenedRef.current) return;
-    if (!isCreate || openProp !== undefined) return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("newCase") === "1" && !open) {
-      autoOpenedRef.current = true;
-      setOpenState(true);
-    }
-  }, [isCreate, openProp, open]);
-
   const setOpen = (o: boolean) => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (o) {
-        if (isCreate && params.get("newCase") !== "1") {
-          params.set("newCase", "1");
-          window.history.replaceState(null, "", "?" + params.toString());
-        } else if (isEdit && editCase && params.get("editCase") !== editCase.id) {
-          params.set("editCase", editCase.id);
-          window.history.replaceState(null, "", "?" + params.toString());
-        }
-      } else {
-        if (params.has("newCase") || params.has("editCase")) {
-          params.delete("newCase");
-          params.delete("editCase");
-          const newSearch = params.toString();
-          window.history.replaceState(null, "", newSearch ? "?" + newSearch : window.location.pathname);
-        }
-      }
+    if (!o && persistOpenKey && typeof window !== "undefined") {
+      // Fechar (X, ESC, clique fora): apenas remove a flag de auto-reabrir,
+      // preservando o snapshot do formulário para quando o usuário reabrir.
+      try { sessionStorage.removeItem(persistOpenKey); } catch { /* ignore */ }
     }
     onOpenChange?.(o);
     if (openProp === undefined) setOpenState(o);
@@ -182,13 +154,22 @@ export function NewCaseDialog({
 
   // Descartar tudo: usado pelo botão Cancelar e após salvar com sucesso.
   const discardAndClose = () => {
-    // URL param is already removed by setOpen(false) or manual cleanup
+    clearSessionSnapshot(persistOpenKey, persistFormKey);
     onOpenChange?.(false);
     if (openProp === undefined) setOpenState(false);
   };
 
 
   // Marca no sessionStorage que o dialog está aberto (para restaurar após F5).
+  useEffect(() => {
+    if (!open || !persistOpenKey || typeof window === "undefined") return;
+    try {
+      const payload = isEdit && editCase ? JSON.stringify({ caseId: editCase.id }) : "1";
+      sessionStorage.setItem(persistOpenKey, payload);
+    } catch {
+      // ignora
+    }
+  }, [open, persistOpenKey, isEdit, editCase]);
 
 
   const [patientId, setPatientId] = useState<string>(initialPatientId ?? "");

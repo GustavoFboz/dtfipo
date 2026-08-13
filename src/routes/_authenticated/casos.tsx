@@ -21,8 +21,6 @@ import { generateCasesReport } from "@/lib/reports";
 import { GeneratingReportDialog } from "@/components/GeneratingReportDialog";
 import { toast } from "sonner";
 
-import { z } from "zod";
-
 export const Route = createFileRoute("/_authenticated/casos")({
   loader: () => ({}),
   component: Index,
@@ -31,23 +29,13 @@ export const Route = createFileRoute("/_authenticated/casos")({
 function Index() {
   const now = useNow();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState(() => (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("filter") : null) || sessionStorage.getItem("dentalflow:casos-filter") || "em_andamento");
+  const [filter, setFilter] = useState("em_andamento");
   const [isTrashMode, setIsTrashMode] = useState(false);
   const [openNewPatient, setOpenNewPatient] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [entering, setEntering] = useState(false);
   const [caseYear, setCaseYear] = useState<string | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({ all: 0, em_andamento: 0, atrasados: 0, finalizados: 0, arquivados: 0, solicitacoes: 0 });
-  
-  const updateCounts = (newCounts: Partial<Record<string, number>>) => {
-    setCounts(prev => {
-      const next = { ...prev };
-      Object.entries(newCounts).forEach(([key, val]) => {
-        if (typeof val === 'number') next[key] = val;
-      });
-      return next;
-    });
-  };
   const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
   const [advancedFilters, setAdvancedFilters] = useState<{ doctorIds: string[]; cadistaIds: string[] }>({ doctorIds: [], cadistaIds: [] });
   const [localStartDate, setLocalStartDate] = useState("");
@@ -55,16 +43,6 @@ function Index() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    sessionStorage.setItem("dentalflow:casos-filter", filter);
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("filter") !== filter) {
-      const newUrl = new URL(window.location.href);
-      newUrl.searchParams.set("filter", filter);
-      window.history.replaceState(null, "", newUrl.toString());
-    }
-  }, [filter]);
 
   useEffect(() => {
     (window as any).DENTALFLOW_TRASH_MODE = isTrashMode;
@@ -484,7 +462,7 @@ function Index() {
           activeFilter={isTrashMode ? "deleted" : filter} 
           onFilterChange={setFilter} 
           onYearChange={setCaseYear} 
-          onCountsUpdate={updateCounts}
+          onCountsUpdate={setCounts}
           dateRange={dateRange}
           advancedFilters={advancedFilters}
         />
