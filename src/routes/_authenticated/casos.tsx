@@ -303,7 +303,7 @@ function Index() {
                   )}
                   {t.label}
                   <AnimatePresence mode="popLayout">
-                    {(counts.solicitacoes ?? 0) > 0 && (
+                    {t.id === "solicitacoes" && (counts.solicitacoes ?? 0) > 0 && (
                       <div
                         key="solic-badge"
                         className="absolute -top-1.5 -right-1.5 h-6 min-w-[24px] px-1.5 rounded-full bg-rose-500 text-white text-[11px] font-bold grid place-items-center shadow-lg shadow-rose-500/30 z-20"

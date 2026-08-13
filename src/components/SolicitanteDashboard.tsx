@@ -70,7 +70,7 @@ export function SolicitanteDashboard() {
             >
               <Icon className={cn("h-4 w-4", isActive ? "text-[#54A8FB]" : "text-slate-400")} />
               {tab.label}
-              {tab.count !== undefined && tab.count > 0 && (
+              {tab.id === "solicitacoes" && tab.count !== undefined && tab.count > 0 && (
                 <span className="absolute -top-1.5 -right-1.5 h-5 min-w-[20px] px-1.5 rounded-full bg-rose-500 text-white text-[10px] font-bold grid place-items-center shadow-lg shadow-rose-500/30">
                   {tab.count}
                 </span>
