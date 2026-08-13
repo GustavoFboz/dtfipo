@@ -179,8 +179,7 @@ export function CasesTable({
       // Always fetch global solicitations count if not in solicitacoes scope to ensure badge persists
       if (activeFilter !== "solicitacoes" && onCountsUpdate) {
         fetchCases("solicitacoes").then(globalCases => {
-          const solicitacoesCount = globalCases.length;
-          onCountsUpdate(counts => ({ ...counts, solicitacoes: solicitacoesCount }));
+          onCountsUpdate({ solicitacoes: globalCases.length });
         });
       }
 
