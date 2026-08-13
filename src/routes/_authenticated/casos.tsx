@@ -23,10 +23,6 @@ import { toast } from "sonner";
 
 import { z } from "zod";
 
-const casosSearchSchema = z.object({
-  filter: z.string().optional(),
-});
-
 export const Route = createFileRoute("/_authenticated/casos")({
   loader: () => ({}),
   component: Index,

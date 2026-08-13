@@ -24,7 +24,6 @@ export const Route = createFileRoute("/_authenticated/patients/$id")({
 function PatientDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const searchParams = Route.useSearch() as any;
   const qc = useQueryClient();
   const isMobile = useIsMobile();
   const [selectedCase, setSelectedCase] = useState<CaseRow | null>(null);
