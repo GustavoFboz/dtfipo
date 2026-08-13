@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/patients")({
 
 function PatientsPage() {
   const qc = useQueryClient();
-  const navigate = Route.useNavigate();
+  const navigate = useNavigate();
   const patients = useQuery({ 
     queryKey: ["patients"], 
     queryFn: async () => {
