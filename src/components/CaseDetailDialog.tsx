@@ -342,41 +342,42 @@ export function CaseDetailDialog({
     });
   }, [caseId]);
 
-  // On open: restore tab from URL search params
+  // Sync state from URL on mount
   useEffect(() => {
     if (!open || !caseId || typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    const urlCaseId = params.get("case");
     const urlTab = params.get("tab");
     
-    if (urlCaseId === caseId && isTabKey(urlTab)) {
+    // Tab update logic - only update if the URL has a different valid tab
+    if (isTabKey(urlTab) && urlTab !== tab) {
       setTab(urlTab);
-    } else if (urlCaseId !== caseId) {
-      params.set("case", caseId);
-      if (tab) params.set("tab", tab);
-      window.history.replaceState(null, "", "?" + params.toString());
     }
-    setRestoredCaseId(caseId);
-  }, [open, caseId, tab]);
+  }, [open, caseId]);
 
-  // Sync tab changes to URL
+  // Sync state to URL when open or tab changes
   useEffect(() => {
     if (!open || !caseId || typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
-    if (params.get("tab") !== tab) {
+    const currentCase = params.get("case");
+    const currentTab = params.get("tab");
+
+    if (currentCase !== caseId || currentTab !== tab) {
+      params.set("case", caseId);
       params.set("tab", tab);
       window.history.replaceState(null, "", "?" + params.toString());
     }
-  }, [tab, open, caseId]);
+  }, [open, caseId, tab]);
 
-  // Clean up URL on close
+  // Clean up URL on close - ensures URL is clean when dialog is not visible
   useEffect(() => {
     if (!open && typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
+      // Avoid unnecessary replaceState if the URL is already clean
       if (params.has("case") || params.has("tab")) {
         params.delete("case");
         params.delete("tab");
-        window.history.replaceState(null, "", "?" + params.toString());
+        const newSearch = params.toString();
+        window.history.replaceState(null, "", newSearch ? "?" + newSearch : window.location.pathname);
       }
     }
   }, [open]);

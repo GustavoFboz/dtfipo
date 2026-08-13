@@ -154,7 +154,13 @@ export function CasesTable({
   const [statusFilter, setStatusFilter] = useState<"all" | "late" | "ontime">("all");
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "created_at", dir: "desc" });
   const [editing, setEditing] = useState<CaseRow | null>(null);
-  const [detail, setDetail] = useState<CaseRow | null>(null);
+  const [detail, setDetail] = useState<CaseRow | null>(() => {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    const caseId = params.get("case");
+    if (!caseId) return null;
+    return null; // The useEffect below will handle finding the row once data is loaded
+  });
   const [deleting, setDeleting] = useState<CaseRow | null>(null);
   const [folderEdit, setFolderEdit] = useState<{ row: CaseRow; url: string } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -397,8 +403,19 @@ export function CasesTable({
   });
 
   const toggleSelected = (id: string) =>
-
     setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  // Sync state from URL on mount/cases load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const caseId = params.get("case");
+    if (caseId && cases.data) {
+      const found = cases.data.find(c => c.id === caseId);
+      if (found && detail?.id !== found.id) setDetail(found);
+    } else if (!caseId && detail) {
+      setDetail(null);
+    }
+  }, [cases.data, detail?.id]);
 
   const filtered = useMemo<CaseRow[]>(() => {
     const list = cases.data ?? [];
@@ -629,10 +646,6 @@ export function CasesTable({
                 role="button"
                 tabIndex={0}
                 onClick={() => {
-                  const params = new URLSearchParams(window.location.search);
-                  params.set("case", c.id);
-                  params.set("tab", "detalhes");
-                  window.history.pushState(null, "", "?" + params.toString());
                   setDetail(c);
                 }}
                 style={reveal.itemProps(i).style}
@@ -948,10 +961,6 @@ export function CasesTable({
               role="button"
               tabIndex={0}
                 onClick={() => {
-                  const params = new URLSearchParams(window.location.search);
-                  params.set("case", c.id);
-                  params.set("tab", "detalhes");
-                  window.history.pushState(null, "", "?" + params.toString());
                   setDetail(c);
                 }}
               style={reveal.itemProps(i).style}

@@ -156,11 +156,17 @@ export function NewCaseDialog({
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       if (o) {
-        params.set("newCase", "1");
+        if (params.get("newCase") !== "1") {
+          params.set("newCase", "1");
+          window.history.replaceState(null, "", "?" + params.toString());
+        }
       } else {
-        params.delete("newCase");
+        if (params.has("newCase")) {
+          params.delete("newCase");
+          const newSearch = params.toString();
+          window.history.replaceState(null, "", newSearch ? "?" + newSearch : window.location.pathname);
+        }
       }
-      window.history.replaceState(null, "", "?" + params.toString());
     }
     onOpenChange?.(o);
     if (openProp === undefined) setOpenState(o);
