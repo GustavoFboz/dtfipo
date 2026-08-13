@@ -10,13 +10,13 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 export function SolicitanteDashboard() {
-  const [activeTab, setActiveTab] = useState("em_andamento");
+  const [activeTab, setActiveTab] = useState("solicitacoes");
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
 
   const tabs = [
+    { id: "solicitacoes", label: "Solicitações", icon: AlertCircle },
     { id: "em_andamento", label: "Em andamento", icon: Clock },
     { id: "all", label: "Todos", icon: LayoutGrid },
-    { id: "atrasados", label: "Atrasados", icon: AlertCircle },
     { id: "finalizados", label: "Finalizados", icon: CheckCircle2 },
   ];
 

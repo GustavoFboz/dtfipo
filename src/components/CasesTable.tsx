@@ -362,9 +362,9 @@ export function CasesTable({
       if (activeFilter === "em_andamento") {
         if (c.finished_at || c.status === "finalizado" || c.status === "finished" || c.status === "arquivado" || c.status === "cancelado" || c.status === "pendente") return false;
       } else if (activeFilter === "all") {
-        if (c.status === "cancelado" || c.status === "pendente") return false;
+        // "Todos" should only show active cases (not pending, not finished, not cancelled, not archived)
+        if (c.status === "cancelado" || c.status === "pendente" || c.status === "arquivado") return false;
         if (c.status === "finalizado" || c.status === "finished" || c.finished_at) return false;
-
       } else if (activeFilter === "atrasados") {
         if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado" || c.status === "pendente") return false;
         if (!isLate(c.delivery_date)) return false;
@@ -375,6 +375,7 @@ export function CasesTable({
       } else if (activeFilter === "deleted" || activeFilter === "cancelado") {
         if (c.status !== "cancelado") return false;
       } else if (activeFilter === "solicitacoes") {
+        // "Solicitações" are pending cases from Solicitantes that have NO protético (cadista) yet
         if (c.status !== "pendente" || c.cadista_id) return false;
       }
 
