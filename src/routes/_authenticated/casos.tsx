@@ -303,7 +303,7 @@ function Index() {
                   )}
                   {t.label}
                   <AnimatePresence mode="popLayout">
-                    {(counts.solicitacoes ?? 0) > 0 && (
+                    {t.id === "solicitacoes" && (counts.solicitacoes ?? 0) > 0 && (
                       <motion.div
                         key="solic-badge"
                         initial={{ scale: 0, opacity: 0 }}
