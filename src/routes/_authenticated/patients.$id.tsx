@@ -92,7 +92,6 @@ function PatientDetailPage() {
           <p className="text-slate-900 dark:text-slate-100 font-light tracking-tight">Carregando perfil</p>
           <p className="text-slate-400 text-[12px] font-light">Sincronizando registros clínicos...</p>
         </div>
-        
       </div>
     );
   }
@@ -115,7 +114,6 @@ function PatientDetailPage() {
             <ArrowLeft className="h-4 w-4 mr-2" /> Voltar à lista
           </Button>
         </div>
-        
       </div>
     );
   }
@@ -133,7 +131,6 @@ function PatientDetailPage() {
         <Button variant="outline" className="rounded-full px-8" onClick={() => navigate({ to: "/patients" })}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Voltar à lista
         </Button>
-        
       </div>
     );
   }
