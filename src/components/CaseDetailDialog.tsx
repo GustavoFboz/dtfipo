@@ -342,32 +342,23 @@ export function CaseDetailDialog({
     });
   }, [caseId]);
 
-  // On open: restore tab from URL search params
+  // On open: sync case state to URL if needed
   useEffect(() => {
     if (!open || !caseId || typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
     const urlCaseId = params.get("case");
     const urlTab = params.get("tab");
-    
-    if (urlCaseId === caseId && isTabKey(urlTab)) {
-      setTab(urlTab);
-    } else if (urlCaseId !== caseId) {
+
+    if (urlCaseId !== caseId) {
       params.set("case", caseId);
       if (tab) params.set("tab", tab);
+      window.history.replaceState(null, "", "?" + params.toString());
+    } else if (urlTab !== tab) {
+      params.set("tab", tab);
       window.history.replaceState(null, "", "?" + params.toString());
     }
     setRestoredCaseId(caseId);
   }, [open, caseId, tab]);
-
-  // Sync tab changes to URL
-  useEffect(() => {
-    if (!open || !caseId || typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("tab") !== tab) {
-      params.set("tab", tab);
-      window.history.replaceState(null, "", "?" + params.toString());
-    }
-  }, [tab, open, caseId]);
 
   // Clean up URL on close
   useEffect(() => {

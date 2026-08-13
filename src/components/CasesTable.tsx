@@ -629,10 +629,6 @@ export function CasesTable({
                 role="button"
                 tabIndex={0}
                 onClick={() => {
-                  const params = new URLSearchParams(window.location.search);
-                  params.set("case", c.id);
-                  params.set("tab", "detalhes");
-                  window.history.pushState(null, "", "?" + params.toString());
                   setDetail(c);
                 }}
                 style={reveal.itemProps(i).style}
@@ -948,10 +944,6 @@ export function CasesTable({
               role="button"
               tabIndex={0}
                 onClick={() => {
-                  const params = new URLSearchParams(window.location.search);
-                  params.set("case", c.id);
-                  params.set("tab", "detalhes");
-                  window.history.pushState(null, "", "?" + params.toString());
                   setDetail(c);
                 }}
               style={reveal.itemProps(i).style}
