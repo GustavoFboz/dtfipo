@@ -409,9 +409,9 @@ export function CasesTable({
       } else if (activeFilter === "deleted" || activeFilter === "cancelado") {
         if (c.status !== "cancelado") return false;
       } else if (activeFilter === "solicitacoes") {
-        // "Solicitações" are pending cases from Solicitantes that have NO protético (cadista) yet
-        if (c.status !== "pendente" || c.cadista_id) return false;
+        if (c.status !== "pendente") return false;
       }
+
 
 
       if (q) {
