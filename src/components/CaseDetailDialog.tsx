@@ -348,10 +348,10 @@ export function CaseDetailDialog({
     const params = new URLSearchParams(window.location.search);
     const urlTab = params.get("tab");
     
+    // Tab update logic - only update if the URL has a different valid tab
     if (isTabKey(urlTab) && urlTab !== tab) {
       setTab(urlTab);
     }
-    setRestoredCaseId(caseId);
   }, [open, caseId]);
 
   // Sync state to URL when open or tab changes
@@ -368,14 +368,16 @@ export function CaseDetailDialog({
     }
   }, [open, caseId, tab]);
 
-  // Clean up URL on close
+  // Clean up URL on close - ensures URL is clean when dialog is not visible
   useEffect(() => {
     if (!open && typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
+      // Avoid unnecessary replaceState if the URL is already clean
       if (params.has("case") || params.has("tab")) {
         params.delete("case");
         params.delete("tab");
-        window.history.replaceState(null, "", "?" + params.toString());
+        const newSearch = params.toString();
+        window.history.replaceState(null, "", newSearch ? "?" + newSearch : window.location.pathname);
       }
     }
   }, [open]);
