@@ -362,8 +362,9 @@ export function CasesTable({
       if (activeFilter === "em_andamento") {
         if (c.finished_at || c.status === "finalizado" || c.status === "finished" || c.status === "arquivado" || c.status === "cancelado" || c.status === "pendente") return false;
       } else if (activeFilter === "all") {
-        if (c.status === "cancelado") return false;
+        if (c.status === "cancelado" || c.status === "pendente") return false;
         if (c.status === "finalizado" || c.status === "finished" || c.finished_at) return false;
+
       } else if (activeFilter === "atrasados") {
         if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado" || c.status === "pendente") return false;
         if (!isLate(c.delivery_date)) return false;
