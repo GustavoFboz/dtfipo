@@ -227,13 +227,24 @@ export async function fetchPatientCases(patientId: string): Promise<CaseRow[]> {
     .select(CASE_SELECT)
     .eq("patient_id", patientId)
     .order("entry_date", { ascending: false });
-  if (error) throw error;
+  
+  if (error) {
+    console.error('Error fetching patient cases:', error);
+    throw error;
+  }
   return (data ?? []) as unknown as CaseRow[];
 }
 
 export const fetchPatients = async (): Promise<Patient[]> => {
-  const { data, error } = await supabase.from("patients").select("*").order("name");
-  if (error) throw error;
+  const { data, error } = await supabase
+    .from("patients")
+    .select("*")
+    .order("name");
+  
+  if (error) {
+    console.error('Error fetching patients:', error);
+    throw error;
+  }
   return (data ?? []) as unknown as Patient[];
 };
 
@@ -245,11 +256,14 @@ export const fetchPatient = async (id: string): Promise<Patient | null> => {
     .maybeSingle();
   
   if (error) {
-    console.error('Error fetching patient:', error);
+    console.error(`Error fetching patient ${id}:`, error);
     throw error;
   }
   
-  if (!data) return null;
+  if (!data) {
+    console.warn(`Patient ${id} not found`);
+    return null;
+  }
 
   return {
     ...data,

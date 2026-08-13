@@ -9,7 +9,7 @@ import { PatientFormDialog } from "@/components/PatientFormDialog";
 import { PatientAttachments } from "@/components/PatientAttachments";
 import { NewCaseDialog } from "@/components/NewCaseDialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, RotateCcw, Archive, Activity, Pencil, Plus, Phone, Mail, MapPin, IdCard, Calendar, FileText, ClipboardList } from "lucide-react";
+import { ArrowLeft, RotateCcw, Archive, Activity, Pencil, Plus, Phone, Mail, MapPin, IdCard, Calendar, FileText, ClipboardList, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { CaseRow } from "@/lib/types";
@@ -45,24 +45,38 @@ function PatientDetailPage() {
   const patient = useQuery({ 
     queryKey: ["patient", id], 
     queryFn: async () => {
-      addLog(`Buscando dados do paciente...`);
-      const data = await fetchPatient(id);
-      if (data) {
-        addLog(`Dados de ${data.name} carregados`);
-        document.title = `${data.name} | DentalFlow`;
+      try {
+        addLog(`Buscando dados do paciente...`);
+        const data = await fetchPatient(id);
+        if (data) {
+          addLog(`Dados de ${data.name} carregados`);
+          document.title = `${data.name} | DentalFlow`;
+        } else {
+          addLog(`AVISO: Paciente não encontrado no banco (ID: ${id})`);
+        }
+        return data;
+      } catch (err: any) {
+        addLog(`ERRO ao carregar paciente: ${err.message || 'Erro desconhecido'}`);
+        throw err;
       }
-      return data;
     },
     staleTime: 0,
+    retry: 1,
   });
   
   const cases = useQuery({ 
     queryKey: ["patient_cases", id], 
     queryFn: async () => {
-      const res = await fetchPatientCases(id);
-      addLog(`${res.length} casos vinculados encontrados`);
-      return res;
+      try {
+        const res = await fetchPatientCases(id);
+        addLog(`${res.length} casos vinculados encontrados`);
+        return res;
+      } catch (err: any) {
+        addLog(`ERRO ao carregar casos: ${err.message || 'Erro desconhecido'}`);
+        return [];
+      }
     },
+    retry: 1,
   });
 
   const reopen = useMutation({
@@ -93,6 +107,30 @@ function PatientDetailPage() {
           <p className="text-slate-900 dark:text-slate-100 font-light tracking-tight">Carregando perfil</p>
           <p className="text-slate-400 text-[12px] font-light">Sincronizando registros clínicos...</p>
         </div>
+        <FloatingLog title="Depuração de Carregamento" logs={logs} />
+      </div>
+    );
+  }
+
+  if (patient.isError) {
+    return (
+      <div className="p-12 text-center max-w-md mx-auto animate-in zoom-in-95 duration-300">
+        <div className="w-16 h-16 bg-red-50 dark:bg-red-900/10 rounded-full grid place-items-center mx-auto mb-6">
+          <AlertTriangle className="h-8 w-8 text-red-500" />
+        </div>
+        <h2 className="text-2xl font-light mb-2 text-slate-900 dark:text-slate-100">Falha na conexão</h2>
+        <p className="text-slate-500 text-sm mb-8 font-light">
+          Houve um problema ao sincronizar com o servidor. Verifique sua conexão.
+        </p>
+        <div className="flex flex-col gap-3">
+          <Button variant="outline" className="rounded-full px-8" onClick={() => patient.refetch()}>
+            Tentar novamente
+          </Button>
+          <Button variant="ghost" className="rounded-full px-8" onClick={() => navigate({ to: "/patients" })}>
+            <ArrowLeft className="h-4 w-4 mr-2" /> Voltar à lista
+          </Button>
+        </div>
+        <FloatingLog title="Logs de Erro" logs={logs} />
       </div>
     );
   }
@@ -110,6 +148,7 @@ function PatientDetailPage() {
         <Button variant="outline" className="rounded-full px-8" onClick={() => navigate({ to: "/patients" })}>
           <ArrowLeft className="h-4 w-4 mr-2" /> Voltar à lista
         </Button>
+        <FloatingLog title="Logs de Sistema" logs={logs} />
       </div>
     );
   }
