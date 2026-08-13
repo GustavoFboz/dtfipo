@@ -26,19 +26,9 @@ function PatientDetailPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const isMobile = useIsMobile();
-  const [logs, setLogs] = useState<string[]>([]);
   const [selectedCase, setSelectedCase] = useState<CaseRow | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [newCaseOpen, setNewCaseOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [newCaseOpen, setNewCaseOpen] = useState(false);
-
-  const addLog = useCallback((msg: string) => {
-    setLogs(prev => {
-      const newLogs = [...prev, `${new Date().toLocaleTimeString()} - ${msg}`];
-      return newLogs.slice(-50);
-    });
-  }, []);
 
   useEffect(() => {
     document.title = "Carregando Paciente...";
