@@ -28,7 +28,7 @@ const casosSearchSchema = z.object({
 });
 
 export const Route = createFileRoute("/_authenticated/casos")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: Record<string, unknown>): { filter?: string } => ({
     filter: (search.filter as string) || undefined,
   }),
   loader: () => ({}),
