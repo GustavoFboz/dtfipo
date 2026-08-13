@@ -65,7 +65,7 @@ function Index() {
   useEffect(() => {
     sessionStorage.setItem("dentalflow:casos-filter", filter);
     if (searchParams.filter !== filter) {
-      navigate({ search: { filter }, replace: true });
+      navigate({ search: (prev: any) => ({ ...prev, filter }), replace: true });
     }
   }, [filter, navigate, searchParams.filter]);
 
