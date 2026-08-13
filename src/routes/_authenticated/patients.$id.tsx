@@ -14,7 +14,8 @@ import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { CaseRow } from "@/lib/types";
 import { FloatingLog } from "@/components/FloatingLog";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_authenticated/patients/$id")({
   component: PatientDetailPage,
