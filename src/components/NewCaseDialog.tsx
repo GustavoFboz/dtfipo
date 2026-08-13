@@ -126,6 +126,22 @@ export function NewCaseDialog({
   const [openState, setOpenState] = useState(false);
   const open = openProp !== undefined ? openProp : openState;
 
+  // Chaves de persistência: só criam/editam (não view). Edição usa key por caseId.
+  const persistFormKey = isView
+    ? null
+    : isEdit && editCase
+      ? editCaseFormKey(editCase.id)
+      : isCreate
+        ? NEW_CASE_FORM_KEY
+        : null;
+  const persistOpenKey = isView
+    ? null
+    : isEdit && editCase
+      ? EDIT_CASE_OPEN_KEY
+      : isCreate
+        ? NEW_CASE_OPEN_KEY
+        : null;
+
   // Use URL search params for state persistence
   useEffect(() => {
     if (typeof window === "undefined") return;
