@@ -168,7 +168,7 @@ export function NewCaseDialog({
 
   // Descartar tudo: usado pelo botão Cancelar e após salvar com sucesso.
   const discardAndClose = () => {
-    clearSessionSnapshot(persistOpenKey, persistFormKey);
+    // URL param is already removed by setOpen(false) or manual cleanup
     onOpenChange?.(false);
     if (openProp === undefined) setOpenState(false);
   };
