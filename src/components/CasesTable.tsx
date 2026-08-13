@@ -191,24 +191,28 @@ export function CasesTable({
   const finish = useMutation({
     mutationFn: (id: string) => finishCase(id),
     onMutate: async (id: string) => {
+      // Mark as deleted from current view to prevent flickering
       markDeleted(id);
       const prevCases = qc.getQueriesData<CaseRow[]>({ queryKey: ["cases"] });
 
       qc.setQueriesData<CaseRow[]>({ queryKey: ["cases"] }, (old) => {
         if (!Array.isArray(old)) return old;
         
+        // Se estamos em uma view que deve continuar mostrando (Todos/Finalizados), apenas atualiza
         if (activeFilter === "all" || activeFilter === "finalizados") {
           return old.map((r) => 
             r.id === id ? { ...r, status: "finalizado", finished_at: new Date().toISOString() } : r
           );
         }
         
+        // Caso contrário, remove da lista atual (ex: Em Andamento)
         return old.filter((r) => r.id !== id);
       });
       
       return { prevCases };
     },
     onError: (err, id, context) => {
+      // Restore if failed
       try { markDeleted(id, -1); } catch {}
       if (context?.prevCases) {
         for (const [key, data] of context.prevCases) qc.setQueryData(key, data);
@@ -245,8 +249,23 @@ export function CasesTable({
 
   const remove = useMutation({
     mutationFn: (id: string) => deleteCase(id),
-    onMutate: (id: string) => { setDeleting(null); return optimisticRemoveIds([id]); },
-    onError: (e: Error, _id, ctx) => { rollback(ctx); toast.error(e.message); },
+    onMutate: (id: string) => { 
+      setDeleting(null); 
+      // Do NOT use markDeleted(id) here because we want the case to appear in the "Trash" (deleted filter)
+      const prevCases = qc.getQueriesData<CaseRow[]>({ queryKey: ["cases"] });
+      qc.setQueriesData<CaseRow[]>({ queryKey: ["cases"] }, (old) => {
+        if (!Array.isArray(old)) return old;
+        if (activeFilter === "deleted" || activeFilter === "cancelado") {
+          return old.map(r => r.id === id ? { ...r, status: "cancelado" } : r);
+        }
+        return old.filter(r => r.id !== id);
+      });
+      return { prevCases };
+    },
+    onError: (e: Error, _id, ctx) => { 
+      if (ctx?.prevCases) for (const [key, data] of ctx.prevCases) qc.setQueryData(key, data);
+      toast.error(e.message); 
+    },
     onSettled: () => qc.invalidateQueries({ queryKey: ["cases"] }),
   });
 
@@ -282,8 +301,24 @@ export function CasesTable({
   });
   const bulkDelete = useMutation({
     mutationFn: async (ids: string[]) => { for (const id of ids) await deleteCase(id); },
-    onMutate: (ids: string[]) => { setBulkAction(null); setSelected(new Set()); return optimisticRemoveIds(ids); },
-    onError: (e: Error, _ids, ctx) => { rollback(ctx); toast.error(e.message); },
+    onMutate: (ids: string[]) => { 
+      setBulkAction(null); 
+      setSelected(new Set()); 
+      const prevCases = qc.getQueriesData<CaseRow[]>({ queryKey: ["cases"] });
+      qc.setQueriesData<CaseRow[]>({ queryKey: ["cases"] }, (old) => {
+        if (!Array.isArray(old)) return old;
+        const set = new Set(ids);
+        if (activeFilter === "deleted" || activeFilter === "cancelado") {
+          return old.map(r => set.has(r.id) ? { ...r, status: "cancelado" } : r);
+        }
+        return old.filter(r => !set.has(r.id));
+      });
+      return { prevCases };
+    },
+    onError: (e: Error, _ids, ctx) => { 
+      if (ctx?.prevCases) for (const [key, data] of ctx.prevCases) qc.setQueryData(key, data);
+      toast.error(e.message); 
+    },
     onSettled: () => qc.invalidateQueries({ queryKey: ["cases"] }),
   });
 
