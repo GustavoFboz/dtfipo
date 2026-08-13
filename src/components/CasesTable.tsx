@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { SkeletonBlock, SkeletonCircle, SkeletonSwap, useListReveal } from "@/components/ui/skeleton-blocks";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   fetchCases, fetchStages, finishCase, updateCase, setCurrentStage, deleteCase, fetchProfile, reopenCase,
@@ -409,31 +409,24 @@ export function CasesTable({
   const toggleSelected = (id: string) =>
     setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
-  // Sync state from URL on mount/cases load
+  // Restauração única a partir da URL (deep-link / F5).
+  // NÃO fecha diálogos: o fechamento é sempre disparado pela UI.
+  const restoredRef = useRef(false);
   useEffect(() => {
-    if (!cases.data) return;
+    if (restoredRef.current || !cases.data) return;
+    restoredRef.current = true;
     const params = new URLSearchParams(window.location.search);
     const caseId = params.get("case");
     const editId = params.get("editCase");
-
     if (caseId) {
-      const found = cases.data.find(c => c.id === caseId);
-      if (found && (!detail || detail.id !== found.id)) {
-        setDetail(found);
-      }
-    } else if (detail) {
-      setDetail(null);
+      const found = cases.data.find((c) => c.id === caseId);
+      if (found) setDetail(found);
     }
-
     if (editId) {
-      const found = cases.data.find(c => c.id === editId);
-      if (found && (!editing || editing.id !== found.id)) {
-        setEditing(found);
-      }
-    } else if (editing) {
-      setEditing(null);
+      const found = cases.data.find((c) => c.id === editId);
+      if (found) setEditing(found);
     }
-  }, [cases.data, !!detail, !!editing]);
+  }, [cases.data]);
 
   const filtered = useMemo<CaseRow[]>(() => {
     const list = cases.data ?? [];
