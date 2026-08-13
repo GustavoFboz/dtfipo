@@ -1,19 +1,33 @@
-# Plan: State Persistence and Visual Cleanup
+# Plan - Dialog Persistence & Cleanup
 
-## 1. Global State Persistence
-Ensure that UI components like `NewCaseDialog` and `CaseDetailDialog` correctly recover their state (open/closed and current tab) after a page refresh.
-- Audit `NewCaseDialog.tsx` to ensure `persistOpenKey` and `persistFormKey` are working correctly with `sessionStorage`.
-- Audit `CaseDetailDialog.tsx` to verify `OPEN_CASE_KEY` persistence in `sessionStorage`.
-- Verify `src/router.tsx` has `scrollRestoration: true` (confirmed).
+Implement robust state recovery for main dialogs using URL search parameters and perform final log cleanup.
 
-## 2. Cleanup & Performance
-Remove residual debug logs and `addLog` calls from patient-related pages to improve performance and clean up the UI.
-- Finish cleaning up `src/routes/_authenticated/patients.tsx`.
-- Finish cleaning up `src/routes/_authenticated/patients.$id.tsx`.
+## User Review Required
 
-## 3. Visual Text Edits
-Apply the requested change to `src/routes/index.tsx` (confirmed as a no-op but verified).
+> [!IMPORTANT]
+> The text "Approve" was already localized to "Aprovar" in the source code (e.g., in the financial modules). If you still see "Approve" in English somewhere, please point out the specific page or component.
+
+- **Dialog Persistence**: Does using URL parameters (e.g., `?case=...&tab=...`) for state recovery meet your expectations? This ensures that refreshing the page keeps the exact same dialog and tab open.
+
+## Proposed Changes
+
+### [Dialog State Persistence]
+
+#### [NewCaseDialog]
+- Migrate visibility state to use `?newCase=1` URL search parameter.
+- Update `NewCaseDialog` to sync with this parameter.
+
+#### [CaseDetailDialog]
+- Migrate `open` and `tab` state to use `?case={id}` and `?tab={key}` URL search parameters.
+- Ensure back button/navigation works naturally with these parameters.
+
+### [Cleanup]
+
+#### [Log Removal]
+- Remove any remaining `FloatingLog` references or `console.log` calls in `patients.tsx` and `patients.$id.tsx`.
 
 ## Technical Details
-- Use `sessionStorage` for short-term persistence (reload recovery) as already implemented in some components.
-- Ensure that `useEffect` hooks for persistence wait for the component to be fully hydrated to avoid overwriting saved data with initial state.
+
+- Using TanStack Router's `useSearch` and `useNavigate` for URL parameter management.
+- Parameter keys: `case` (UUID), `tab` (string), `newCase` (boolean).
+- Fallback to `sessionStorage` only for unsaved form data (Drafts).
