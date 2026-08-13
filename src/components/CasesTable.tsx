@@ -362,9 +362,8 @@ export function CasesTable({
       if (activeFilter === "em_andamento") {
         if (c.finished_at || c.status === "finalizado" || c.status === "finished" || c.status === "arquivado" || c.status === "cancelado" || c.status === "pendente") return false;
       } else if (activeFilter === "all") {
-        // "Todos" should only show active cases (not pending, not finished, not cancelled, not archived)
-        if (c.status === "cancelado" || c.status === "pendente" || c.status === "arquivado") return false;
-        if (c.status === "finalizado" || c.status === "finished" || c.finished_at) return false;
+        // "Todos" should show everything except cancelled and pending requests
+        if (c.status === "cancelado" || c.status === "pendente") return false;
       } else if (activeFilter === "atrasados") {
         if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado" || c.status === "pendente") return false;
         if (!isLate(c.delivery_date)) return false;
@@ -689,8 +688,8 @@ export function CasesTable({
                           <DropdownMenuItem onClick={() => setEditing(c)}>
                             <Pencil className="h-4 w-4 mr-2" /> Editar caso
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleOpenFolder(c)}>
-                            <FolderOpen className="h-4 w-4 mr-2" /> Abrir pasta
+                          <DropdownMenuItem onClick={() => bulkArchive.mutate([c.id])}>
+                            <Archive className="h-4 w-4 mr-2" /> Arquivar caso
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {c.status !== "pendente" && (
@@ -1060,8 +1059,8 @@ export function CasesTable({
                         <DropdownMenuItem onClick={() => setEditing(c)}>
                           <Pencil className="h-4 w-4 mr-2" /> Editar caso
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setFolderEdit({ row: c, url: c.folder_url ?? "" })}>
-                          <FolderCog className="h-4 w-4 mr-2" /> Configurar pasta
+                        <DropdownMenuItem onClick={() => bulkArchive.mutate([c.id])}>
+                          <Archive className="h-4 w-4 mr-2" /> Arquivar caso
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem onClick={() => finish.mutate(c.id)}>
