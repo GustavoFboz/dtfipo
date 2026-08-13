@@ -70,7 +70,7 @@ export function SolicitanteDashboard() {
               <Icon className={cn("h-4 w-4", isActive ? "text-[#54A8FB]" : "text-slate-400")} />
               {tab.label}
               {tab.id === "solicitacoes" && (solicitacoes?.length ?? 0) > 0 && (
-                <span className="absolute -top-2 -right-1 h-5 min-w-[20px] px-1.5 rounded-full bg-[#FF3B30] text-white text-[10px] font-bold grid place-items-center shadow-lg shadow-rose-500/20">
+                <span className="absolute -top-2 -right-1 h-5 min-w-[20px] px-1.5 rounded-full bg-[#FF3B30] text-white text-[10px] font-bold grid place-items-center shadow-lg shadow-rose-500/20 z-20">
                   {solicitacoes.length}
                 </span>
               )}
