@@ -38,17 +38,12 @@ function PatientDetailPage() {
     queryKey: ["patient", id], 
     queryFn: async () => {
       try {
-        
         const data = await fetchPatient(id);
         if (data) {
-          
           document.title = `${data.name} | DentalFlow`;
-        } else {
-          
         }
         return data;
       } catch (err: any) {
-        
         throw err;
       }
     },
@@ -61,10 +56,8 @@ function PatientDetailPage() {
     queryFn: async () => {
       try {
         const res = await fetchPatientCases(id);
-        
         return res;
       } catch (err: any) {
-        
         return [];
       }
     },

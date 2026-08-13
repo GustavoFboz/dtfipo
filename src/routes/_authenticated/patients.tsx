@@ -25,9 +25,7 @@ function PatientsPage() {
   const patients = useQuery({ 
     queryKey: ["patients"], 
     queryFn: async () => {
-      
       const data = await fetchPatients();
-      
       return data;
     }
   });
