@@ -910,7 +910,7 @@ export function NewCaseDialog({
               </div>
 
               <div className="space-y-2">
-                <Label>Doutor</Label>
+                <Label>Doutor (Solicitante)</Label>
                 <Select value={doctorId} onValueChange={setDoctorId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent className="z-[3000]">
@@ -920,7 +920,7 @@ export function NewCaseDialog({
               </div>
 
               <div className="space-y-2">
-                <Label>Cadista</Label>
+                <Label>Protético Responsável</Label>
                 <Select 
                   value={cadistaId} 
                   onValueChange={setCadistaId}
