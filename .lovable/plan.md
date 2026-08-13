@@ -1,33 +1,42 @@
-# Plano de Melhoria Visual e Fluxo de Aprovação de Casos
+# Plan - Case Management and Dashboard Improvements
 
-Este plano visa alinhar o Dashboard do Solicitante à identidade visual premium do sistema e implementar o fluxo de aprovação de casos por protéticos.
+Refine the case management system by adding archiving functionality, improving the "All" tab logic, and ensuring proper flow for pending solicitations.
 
-## 1. Melhoria Visual (Dashboard do Solicitante)
-- **SolicitanteDashboard.tsx**: 
-    - Atualizar o layout para usar o mesmo padrão de `AppShell` e `CasesTable` da equipe.
-    - Implementar contadores animados com `DashboardStats`.
-    - Ajustar o container da tabela para `rounded-3xl` e sombra suave.
-- **CasesTable.tsx**:
-    - Refinar a exibição para garantir que, no dashboard do solicitante, as colunas e filtros sigam a estética premium (segunda imagem de referência).
+## User Requirements
+- Remove "Abrir pasta" (Open Folder) from case options and replace it with "Arquivar" (Archive).
+- The "Todos" (All) tab should display all cases from the period: Ongoing, Finished, Archived, and All.
+- Fix the solicitation flow: cases requested by Solicitantes should appear as "Solicitações" (Pending) and allow staff members (like Gustavo) to approve/reject them.
 
-## 2. Fluxo de Aprovação de Casos
-- **Banco de Dados**:
-    - Garantir que casos criados por `SOLICITANTE` iniciem com `status = 'pendente'` e `cadista_id = NULL`.
-    - Corrigir a trigger `notify_proteticos_new_request` para assegurar que protéticos (incluindo o usuário específico citado) recebam notificações em tempo real.
-- **API (lib/api.ts)**:
-    - Adicionar função `acceptCaseRequest(caseId, cadistaId)` para permitir que um protético "assuma" o caso.
-    - Atualizar `fetchCases` para que protéticos vejam uma aba "Solicitações" contendo casos onde `cadista_id` é nulo.
-- **CasesTable.tsx**:
-    - Adicionar o botão "Aceitar Caso" (ou "Aprovar") visível apenas para protéticos/admins em casos pendentes.
-    - Ao aceitar, o caso deve ser atribuído ao protético logado e mudar para o status inicial de produção.
+## Proposed Changes
 
-## 3. Correções de Atribuição e Notificação
-- **Atribuição Indevida**: Corrigir a lógica para que a "Alycia" (ou qualquer solicitante) não seja atribuída automaticamente como protética do caso. O campo `cadista_id` deve permanecer vazio até a aceitação manual.
-- **Notificações**: 
-    - Validar o envio para `gustavovitorfa@gmail.com`.
-    - Garantir que, ao aceitar um caso, ele suma da lista de "Solicitações" para outros protéticos (através de atualizações otimistas e realtime).
+### Database & API (`src/lib/api.ts`)
+- Update `fetchCases`:
+    - Refine `active` scope to strictly exclude `pendente`, `arquivado`, and `cancelado`.
+    - Refine `all` scope to include everything *except* `cancelado` (or as per period if filters applied).
+    - Ensure `solicitacoes` scope correctly identifies cases with `status = 'pendente'` and no `cadista_id`.
 
-## Detalhes Técnicos
-- Uso de `useMutation` para a ação de aceitar caso com feedback instantâneo (`toast`).
-- Filtros no `CasesTable` para separar "Solicitações" de "Casos Ativos".
-- Sincronização via `supabase.channel` para garantir que a lista de pendências seja atualizada globalmente.
+### Case Management (`src/components/CasesTable.tsx`)
+- **Menu Actions**:
+    - Remove "Abrir pasta" from the dropdown menu (it's already accessible via the check-icons anyway).
+    - Add "Arquivar caso" action to the dropdown menu.
+    - Implement a `bulkArchive` and `archiveCase` mutation (already partially there, but needs solid integration).
+- **Filtering Logic**:
+    - Update `filtered` useMemo to match the new "Todos" requirements (showing finished and archived in that view).
+- **UI Adjustments**:
+    - Ensure the "Solicitações" tab is visible and functional for staff.
+    - Update the `CaseDetailDialog` if necessary to show approval actions.
+
+### Dashboard (`src/components/SolicitanteDashboard.tsx` & `src/routes/_authenticated/casos.tsx`)
+- Ensure "Solicitações" is the priority for staff when there are pending items.
+- Verify counts logic in `casos.tsx` to reflect the new visibility rules.
+
+## Technical Details
+- Use TanStack Query mutations for the status transitions.
+- Maintain existing RLS security (Solicitantes only see their own, Staff see all).
+- Use `Archive` icon from `lucide-react`.
+
+## Verification Plan
+- Check if "Arquivar" appears in the menu instead of "Abrir pasta".
+- Verify that clicking "Arquivar" moves the case to the "Arquivados" tab.
+- Verify that the "Todos" tab now includes finished and archived cases.
+- Create a test solicitation and verify it appears in the "Solicitações" tab for a staff user.
