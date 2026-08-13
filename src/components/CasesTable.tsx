@@ -644,7 +644,7 @@ export function CasesTable({
                       className="text-[17px] font-normal text-slate-900 dark:text-slate-100 truncate leading-tight hover:text-primary transition-colors cursor-pointer"
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.location.href = `/patients/${c.patient_id}`;
+                        navigate({ to: "/patients/$id", params: { id: c.patient_id } });
                       }}
                     >
                       {c.patient?.name ?? "—"}
