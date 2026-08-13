@@ -4,8 +4,10 @@ import { SkeletonBlock, SkeletonCircle, SkeletonSwap, useListReveal } from "@/co
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import {
-  fetchCases, fetchStages, finishCase, updateCase, setCurrentStage, deleteCase, fetchProfile, reopenCase
+  fetchCases, fetchStages, finishCase, updateCase, setCurrentStage, deleteCase, fetchProfile, reopenCase,
+  acceptCaseRequest
 } from "@/lib/api";
+
 import { markDeleted } from "@/lib/optimistic";
 import { openFolderLink, copyToClipboard } from "@/lib/folder";
 import { normalizeText } from "@/lib/utils";
@@ -155,7 +157,7 @@ export function CasesTable({
   const [deleting, setDeleting] = useState<CaseRow | null>(null);
   const [folderEdit, setFolderEdit] = useState<{ row: CaseRow; url: string } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkAction, setBulkAction] = useState<null | "finish" | "delete" | "archive" | "reopen">(null);
+  const [bulkAction, setBulkAction] = useState<null | "finish" | "delete" | "archive" | "reopen" | "accept">(null);
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile, staleTime: 300_000 });
   const isCadista = profile?.role === "CADISTA";
@@ -165,10 +167,12 @@ export function CasesTable({
     queryFn: () => fetchCases(
       activeFilter === "finalizados" ? "finished" : 
       activeFilter === "arquivados" ? "archived" :
+      activeFilter === "solicitacoes" ? "solicitacoes" :
       (activeFilter === "deleted" || activeFilter === "cancelado" ? "deleted" : 
       activeFilter === "all" ? "all" : "active"),
       { startDate: dateRange?.start, endDate: dateRange?.end }
     ),
+
     staleTime: 30_000, 
     refetchOnWindowFocus: true,
     refetchInterval: 60_000,
@@ -336,7 +340,17 @@ export function CasesTable({
     onSettled: () => qc.invalidateQueries({ queryKey: ["cases"] }),
   });
 
+  const accept = useMutation({
+    mutationFn: ({ caseId, cadistaId }: { caseId: string; cadistaId: string }) => acceptCaseRequest(caseId, cadistaId),
+    onSuccess: () => {
+      toast.success("Solicitação aceita!");
+      qc.invalidateQueries({ queryKey: ["cases"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const toggleSelected = (id: string) =>
+
     setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const filtered = useMemo<CaseRow[]>(() => {
@@ -346,16 +360,13 @@ export function CasesTable({
     const f = list.filter((c) => {
       // Filter logic based on the requested rules
       if (activeFilter === "em_andamento") {
-        if (c.finished_at || c.status === "finalizado" || c.status === "finished" || c.status === "arquivado" || c.status === "cancelado") return false;
+        if (c.finished_at || c.status === "finalizado" || c.status === "finished" || c.status === "arquivado" || c.status === "cancelado" || c.status === "pendente") return false;
       } else if (activeFilter === "all") {
-        // "Todos" includes everything except canceled/trash in this context usually, 
-        // but user says "second option and filter all in selected period".
-        // Usually "Todos" means active + historical in the selected period.
-        if (c.status === "cancelado") return false;
-        // User stated in a previous turn that finished cases must NOT appear in "Todos"
+        if (c.status === "cancelado" || c.status === "pendente") return false;
         if (c.status === "finalizado" || c.status === "finished" || c.finished_at) return false;
+
       } else if (activeFilter === "atrasados") {
-        if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado") return false;
+        if (c.finished_at || c.status === "finalizado" || c.status === "arquivado" || c.status === "cancelado" || c.status === "pendente") return false;
         if (!isLate(c.delivery_date)) return false;
       } else if (activeFilter === "finalizados") {
         if (c.status !== "finalizado" && c.status !== "finished") return false;
@@ -363,7 +374,10 @@ export function CasesTable({
         if (c.status !== "arquivado") return false;
       } else if (activeFilter === "deleted" || activeFilter === "cancelado") {
         if (c.status !== "cancelado") return false;
+      } else if (activeFilter === "solicitacoes") {
+        if (c.status !== "pendente" || c.cadista_id) return false;
       }
+
 
       if (q) {
         // Search optimization: check fields directly instead of pre-generating a large haystack string
@@ -436,11 +450,13 @@ export function CasesTable({
     const list = cases.data;
     const counts = {
       all: list.length,
-      em_andamento: list.filter(c => !c.finished_at && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado").length,
-      atrasados: list.filter(c => !c.finished_at && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado" && isLate(c.delivery_date)).length,
+      em_andamento: list.filter(c => !c.finished_at && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado" && c.status !== "pendente").length,
+      atrasados: list.filter(c => !c.finished_at && c.status !== "finalizado" && c.status !== "arquivado" && c.status !== "cancelado" && c.status !== "pendente" && isLate(c.delivery_date)).length,
       finalizados: list.filter(c => c.finished_at || c.status === "finalizado").length,
       arquivados: list.filter(c => c.status === "arquivado").length,
       deleted: list.filter(c => c.status === "cancelado").length,
+      solicitacoes: list.filter(c => c.status === "pendente" && !c.cadista_id).length,
+
     };
     onCountsUpdate(counts);
   }, [cases.data, onCountsUpdate]);
@@ -652,6 +668,21 @@ export function CasesTable({
                       <DropdownMenuItem onClick={() => setDetail(c)}>
                         <CheckCircle2 className="h-4 w-4 mr-2" /> Ver detalhes
                       </DropdownMenuItem>
+                      {c.status === "pendente" && !c.cadista_id && (
+                        <DropdownMenuItem 
+                          onClick={() => {
+                            const cadistaId = profile?.role === "CADISTA" ? profile.id : null;
+                            if (cadistaId) {
+                              accept.mutate({ caseId: c.id, cadistaId });
+                            } else {
+                              toast.error("Somente protéticos podem aceitar casos.");
+                            }
+                          }}
+                          className="text-emerald-600 focus:text-emerald-600 font-bold"
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-2" /> Aceitar Caso
+                        </DropdownMenuItem>
+                      )}
                       {!isCadista && (
                         <>
                           <DropdownMenuItem onClick={() => setEditing(c)}>
@@ -661,14 +692,17 @@ export function CasesTable({
                             <FolderOpen className="h-4 w-4 mr-2" /> Abrir pasta
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => finish.mutate(c.id)}>
-                            <CheckCircle2 className="h-4 w-4 mr-2" /> Finalizar caso
-                          </DropdownMenuItem>
+                          {c.status !== "pendente" && (
+                            <DropdownMenuItem onClick={() => finish.mutate(c.id)}>
+                              <CheckCircle2 className="h-4 w-4 mr-2" /> Finalizar caso
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem onClick={() => setDeleting(c)} className="text-destructive focus:text-destructive">
                             <Trash2 className="h-4 w-4 mr-2" /> Excluir caso
                           </DropdownMenuItem>
                         </>
                       )}
+
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
