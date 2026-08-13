@@ -153,13 +153,17 @@ export function CasesTable({
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "late" | "ontime">("all");
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "created_at", dir: "desc" });
-  const [editing, setEditing] = useState<CaseRow | null>(null);
+  const [editing, setEditing] = useState<CaseRow | null>(() => {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    const editId = params.get("editCase");
+    return null; // Will be resolved by effect once data is ready
+  });
   const [detail, setDetail] = useState<CaseRow | null>(() => {
     if (typeof window === "undefined") return null;
     const params = new URLSearchParams(window.location.search);
     const caseId = params.get("case");
-    if (!caseId) return null;
-    return null; // The useEffect below will handle finding the row once data is loaded
+    return null; // Will be resolved by effect once data is ready
   });
   const [deleting, setDeleting] = useState<CaseRow | null>(null);
   const [folderEdit, setFolderEdit] = useState<{ row: CaseRow; url: string } | null>(null);
@@ -407,15 +411,29 @@ export function CasesTable({
 
   // Sync state from URL on mount/cases load
   useEffect(() => {
+    if (!cases.data) return;
     const params = new URLSearchParams(window.location.search);
     const caseId = params.get("case");
-    if (caseId && cases.data) {
+    const editId = params.get("editCase");
+
+    if (caseId) {
       const found = cases.data.find(c => c.id === caseId);
-      if (found && detail?.id !== found.id) setDetail(found);
-    } else if (!caseId && detail) {
+      if (found && (!detail || detail.id !== found.id)) {
+        setDetail(found);
+      }
+    } else if (detail) {
       setDetail(null);
     }
-  }, [cases.data, detail?.id]);
+
+    if (editId) {
+      const found = cases.data.find(c => c.id === editId);
+      if (found && (!editing || editing.id !== found.id)) {
+        setEditing(found);
+      }
+    } else if (editing) {
+      setEditing(null);
+    }
+  }, [cases.data, !!detail, !!editing]);
 
   const filtered = useMemo<CaseRow[]>(() => {
     const list = cases.data ?? [];

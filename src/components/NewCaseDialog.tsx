@@ -161,8 +161,9 @@ export function NewCaseDialog({
           window.history.replaceState(null, "", "?" + params.toString());
         }
       } else {
-        if (params.has("newCase")) {
+        if (params.has("newCase") || params.has("editCase")) {
           params.delete("newCase");
+          params.delete("editCase");
           const newSearch = params.toString();
           window.history.replaceState(null, "", newSearch ? "?" + newSearch : window.location.pathname);
         }
