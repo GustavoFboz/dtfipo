@@ -178,6 +178,12 @@ export function NewCaseDialog({
   const photoInput = useRef<HTMLInputElement>(null);
   const [doctorId, setDoctorId] = useState<string>("");
   const [cadistaId, setCadistaId] = useState<string>("");
+  // Pre-fill cadistaId for non-solicitantes during creation
+  useEffect(() => {
+    if (isCreate && !isSolicitante && profile?.id && !cadistaId) {
+      setCadistaId(profile.id);
+    }
+  }, [isCreate, isSolicitante, profile, cadistaId]);
   const [caseTypeIds, setCaseTypeIds] = useState<string[]>([]);
   const [toothColorId, setToothColorId] = useState<string>("");
   const [caseLabel, setCaseLabel] = useState<string>("");
@@ -688,7 +694,7 @@ export function NewCaseDialog({
       const base = {
         patient_id: pid,
         doctor_id: doctorId || null,
-        cadista_id: cadistaId || null,
+        cadista_id: isCreate && !isSolicitante && profile?.id ? profile.id : (cadistaId || null),
         case_type_id: caseTypeIds[0] ?? null,
         case_type_ids: caseTypeIds,
         tooth_color_id: toothColorId || null,
@@ -904,7 +910,7 @@ export function NewCaseDialog({
               </div>
 
               <div className="space-y-2">
-                <Label>Doutor</Label>
+                <Label>Doutor (Solicitante)</Label>
                 <Select value={doctorId} onValueChange={setDoctorId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent className="z-[3000]">
@@ -914,8 +920,12 @@ export function NewCaseDialog({
               </div>
 
               <div className="space-y-2">
-                <Label>Cadista</Label>
-                <Select value={cadistaId} onValueChange={setCadistaId}>
+                <Label>Protético Responsável</Label>
+                <Select 
+                  value={cadistaId} 
+                  onValueChange={setCadistaId}
+                  disabled={isCreate && !isSolicitante && !!profile?.id}
+                >
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent className="z-[3000]">
                     {cadistas.data?.map((d) => (<SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>))}
@@ -1650,9 +1660,9 @@ export function NewCaseDialog({
                   </DropdownMenu>
                 </>
               )}
-              {isCreate && profile?.full_name && (
+              {isCreate && profile?.full_name && !isSolicitante && (
                 <div className="text-[11px] text-muted-foreground font-light ml-2">
-                  Protético: <span className="text-foreground/80">{profile.full_name}</span>
+                  Protético Responsável: <span className="text-foreground/80">{profile.full_name}</span>
                 </div>
               )}
             </div>
