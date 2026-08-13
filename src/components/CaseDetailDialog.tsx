@@ -921,7 +921,7 @@ export function CaseDetailDialog({
                   <h2 className="text-2xl lg:text-[28px] font-bold tracking-tight text-slate-900 dark:text-slate-100 truncate">
                     {caseRow.patient?.name ?? "Caso"}
                   </h2>
-                  <CaseHeaderActions caseRow={caseRow} currentTab={tab} />
+                  <CaseHeaderActions caseRow={caseRow} currentTab={tab} profile={profile} />
                   <div className="ml-auto">
                     <DialogClose asChild>
                       <button
