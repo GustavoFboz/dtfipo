@@ -1,19 +1,19 @@
-# Plan: Implement Requested Edits and Persistence
+# Plan: State Persistence and Visual Cleanup
 
-## 1. Visual Text Edits
-Apply the requested text edit to `src/routes/index.tsx`. Although the request asks to change "approve" to "approve" (which is a no-op), I will ensure the file content is correct and the change is acknowledged.
+## 1. Global State Persistence
+Ensure that UI components like `NewCaseDialog` and `CaseDetailDialog` correctly recover their state (open/closed and current tab) after a page refresh.
+- Audit `NewCaseDialog.tsx` to ensure `persistOpenKey` and `persistFormKey` are working correctly with `sessionStorage`.
+- Audit `CaseDetailDialog.tsx` to verify `OPEN_CASE_KEY` persistence in `sessionStorage`.
+- Verify `src/router.tsx` has `scrollRestoration: true` (confirmed).
 
-## 2. Global State Persistence
-Implement robust state recovery across reloads for critical UI components.
-- **Dialogs**: Update `NewCaseDialog` and `CaseDetailDialog` to use URL search parameters (e.g., `?newCase=true` or `?caseId=123&tab=galeria`) so they stay open after a refresh.
-- **Filters**: Ensure the active filter on the `/casos` page is correctly synchronized with the URL or `sessionStorage`.
-- **UI State**: Ensure the sidebar blur effect and other layout states persist correctly.
+## 2. Cleanup & Performance
+Remove residual debug logs and `addLog` calls from patient-related pages to improve performance and clean up the UI.
+- Finish cleaning up `src/routes/_authenticated/patients.tsx`.
+- Finish cleaning up `src/routes/_authenticated/patients.$id.tsx`.
 
-## 3. Scroll Restoration & Performance
-- **Scroll**: Verify `src/router.tsx` settings and ensure that layout transitions don't interfere with `@tanstack/react-router`'s built-in scroll restoration.
-- **Cleanup**: Remove any remaining `FloatingLog` references and debug logs that might affect performance or user experience.
+## 3. Visual Text Edits
+Apply the requested change to `src/routes/index.tsx` (confirmed as a no-op but verified).
 
 ## Technical Details
-- Migrate `sessionStorage` logic in `NewCaseDialog.tsx` to use URL state where appropriate.
-- Update `CaseDetailDialog.tsx` to sync its `open` and `tab` state with the URL hash/search params more reliably.
-- Clean up `src/routes/_authenticated/patients.tsx` and `patients.$id.tsx` to remove residual `addLog` or `console.log` calls.
+- Use `sessionStorage` for short-term persistence (reload recovery) as already implemented in some components.
+- Ensure that `useEffect` hooks for persistence wait for the component to be fully hydrated to avoid overwriting saved data with initial state.
