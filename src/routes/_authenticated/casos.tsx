@@ -21,7 +21,14 @@ import { generateCasesReport } from "@/lib/reports";
 import { GeneratingReportDialog } from "@/components/GeneratingReportDialog";
 import { toast } from "sonner";
 
+import { z } from "zod";
+
+const casosSearchSchema = z.object({
+  filter: z.string().optional(),
+});
+
 export const Route = createFileRoute("/_authenticated/casos")({
+  validateSearch: casosSearchSchema,
   loader: () => ({}),
   component: Index,
 });
@@ -29,8 +36,8 @@ export const Route = createFileRoute("/_authenticated/casos")({
 function Index() {
   const now = useNow();
   const [search, setSearch] = useState("");
-  const searchParams = useSearch({ from: "/_authenticated/casos" }) as any;
-  const [filter, setFilter] = useState(() => searchParams.filter || sessionStorage.getItem("dentalflow:casos-filter") || "em_andamento");
+  const searchParams = useSearch({ from: "/_authenticated/casos" });
+  const [filter, setFilter] = useState(() => searchParams.filter || (typeof window !== "undefined" ? sessionStorage.getItem("dentalflow:casos-filter") : null) || "em_andamento");
   const [isTrashMode, setIsTrashMode] = useState(false);
   const [openNewPatient, setOpenNewPatient] = useState(false);
   const [exiting, setExiting] = useState(false);
@@ -58,7 +65,7 @@ function Index() {
   useEffect(() => {
     sessionStorage.setItem("dentalflow:casos-filter", filter);
     if (searchParams.filter !== filter) {
-      navigate({ search: (prev: any) => ({ ...prev, filter }), replace: true });
+      navigate({ search: { filter }, replace: true });
     }
   }, [filter, navigate, searchParams.filter]);
 
