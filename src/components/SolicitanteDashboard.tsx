@@ -13,12 +13,18 @@ export function SolicitanteDashboard() {
   const [activeTab, setActiveTab] = useState("solicitacoes");
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
 
+  const { data: solicitacoes = [] } = useQuery({
+    queryKey: ["cases", "solicitacoes"],
+    queryFn: () => fetchCases("solicitacoes"),
+  });
+
   const tabs = [
-    { id: "solicitacoes", label: "Solicitações", icon: AlertCircle },
+    { id: "solicitacoes", label: "Solicitações", icon: AlertCircle, count: solicitacoes.length },
     { id: "em_andamento", label: "Em andamento", icon: Clock },
     { id: "all", label: "Todos", icon: LayoutGrid },
     { id: "finalizados", label: "Finalizados", icon: CheckCircle2 },
   ];
+
 
   return (
     <div className="flex-1 flex flex-col gap-8 min-h-0">
@@ -56,7 +62,7 @@ export function SolicitanteDashboard() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
+                "relative flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium transition-all duration-300",
                 isActive 
                   ? "bg-white dark:bg-slate-900 text-[#54A8FB] shadow-sm ring-1 ring-black/[0.03]" 
                   : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
@@ -64,7 +70,13 @@ export function SolicitanteDashboard() {
             >
               <Icon className={cn("h-4 w-4", isActive ? "text-[#54A8FB]" : "text-slate-400")} />
               {tab.label}
+              {tab.count !== undefined && tab.count > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 h-5 min-w-[20px] px-1.5 rounded-full bg-rose-500 text-white text-[10px] font-bold grid place-items-center shadow-lg shadow-rose-500/30">
+                  {tab.count}
+                </span>
+              )}
             </button>
+
           );
         })}
       </div>
