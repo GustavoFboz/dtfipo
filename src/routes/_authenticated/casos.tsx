@@ -53,14 +53,12 @@ function Index() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
 
   useEffect(() => {
     sessionStorage.setItem("dentalflow:casos-filter", filter);
     const params = new URLSearchParams(window.location.search);
     if (params.get("filter") !== filter) {
-      params.set("filter", filter);
-      navigate({ search: (prev: any) => ({ ...prev, filter }), replace: true });
+      navigate({ search: { filter }, replace: true });
     }
   }, [filter, navigate]);
 
