@@ -51,7 +51,7 @@ import { TOOTH_WORK_TYPES, ENCERAMENTO_ID, splitToothTypes, buildToothTypes } fr
 import { CaseComments } from "./CaseComments";
 import { Paperclip, MessageSquare, PlusCircle } from "lucide-react";
 import { AttachButton, AttachFilesIcon, AttachImagesIcon } from "./AttachButton";
-import { useSessionSnapshot, clearSessionSnapshot } from "@/hooks/use-session-snapshot";
+import { useSessionSnapshot } from "@/hooks/use-session-snapshot";
 import {
   NEW_CASE_OPEN_KEY,
   NEW_CASE_FORM_KEY,
@@ -175,15 +175,6 @@ export function NewCaseDialog({
 
 
   // Marca no sessionStorage que o dialog está aberto (para restaurar após F5).
-  useEffect(() => {
-    if (!open || !persistOpenKey || typeof window === "undefined") return;
-    try {
-      const payload = isEdit && editCase ? JSON.stringify({ caseId: editCase.id }) : "1";
-      sessionStorage.setItem(persistOpenKey, payload);
-    } catch {
-      // ignora
-    }
-  }, [open, persistOpenKey, isEdit, editCase]);
 
 
   const [patientId, setPatientId] = useState<string>(initialPatientId ?? "");
