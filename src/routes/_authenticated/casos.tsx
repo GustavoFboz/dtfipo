@@ -38,7 +38,13 @@ function Index() {
   const [counts, setCounts] = useState<Record<string, number>>({ all: 0, em_andamento: 0, atrasados: 0, finalizados: 0, arquivados: 0, solicitacoes: 0 });
   
   const updateCounts = (newCounts: Partial<Record<string, number>>) => {
-    setCounts(prev => ({ ...prev, ...newCounts }));
+    setCounts(prev => {
+      const next = { ...prev };
+      Object.entries(newCounts).forEach(([key, val]) => {
+        if (typeof val === 'number') next[key] = val;
+      });
+      return next;
+    });
   };
   const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
   const [advancedFilters, setAdvancedFilters] = useState<{ doctorIds: string[]; cadistaIds: string[] }>({ doctorIds: [], cadistaIds: [] });
@@ -466,7 +472,7 @@ function Index() {
           activeFilter={isTrashMode ? "deleted" : filter} 
           onFilterChange={setFilter} 
           onYearChange={setCaseYear} 
-          onCountsUpdate={setCounts}
+          onCountsUpdate={updateCounts}
           dateRange={dateRange}
           advancedFilters={advancedFilters}
         />

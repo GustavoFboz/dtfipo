@@ -142,7 +142,7 @@ export function CasesTable({
   activeFilter?: string;
   onFilterChange?: (filter: string) => void;
   onYearChange?: (year: string | null) => void;
-  onCountsUpdate?: (counts: Record<string, number>) => void;
+  onCountsUpdate?: (counts: Partial<Record<string, number>>) => void;
   dateRange?: { start: string; end: string } | null;
   advancedFilters?: { doctorIds: string[]; cadistaIds: string[] };
 } = {}) {
