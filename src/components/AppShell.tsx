@@ -45,18 +45,19 @@ import { useChatRealtime } from "@/hooks/use-chat-realtime";
 
 
 
-const ROLE_LABELS: Record<string, string> = { CEO: "CEO", DR: "Dentista", PROTETICO: "Protético", ATENDIMENTO: "Atendimento", CADISTA: "Cadista", USER: "Usuário" };
+const ROLE_LABELS: Record<string, string> = { CEO: "CEO", DR: "Dentista", PROTETICO: "Protético", ATENDIMENTO: "Atendimento", CADISTA: "Cadista", SOLICITANTE: "Solicitante", USER: "Usuário" };
 const PAGE_EXIT_DURATION_MS = 220;
 const PAGE_BLANK_DURATION_MS = 55;
 const PAGE_ENTER_DURATION_MS = 300;
 
 const navItems = [
-  { to: "/casos", label: "Casos", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO"] },
+  { to: "/casos", label: "Casos", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "SOLICITANTE"] },
   { to: "/patients", label: "Pacientes", icon: Users, roles: ["CEO", "DR", "ATENDIMENTO"] },
   { to: "/agenda", label: "Agenda", icon: CalendarDays, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA"] },
   { to: "/equipe", label: "Equipe", icon: Users2, roles: ["CEO"] },
   { to: "/estoque", label: "Estoque", icon: Box, roles: ["CEO", "ATENDIMENTO", "PROTETICO"] },
 ] as const;
+
 
 
 function getMobilePageTitle(pathname: string, items: readonly { to: string; label: string }[]): string {
