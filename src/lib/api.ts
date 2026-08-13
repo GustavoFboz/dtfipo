@@ -142,7 +142,8 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
   }
 
   if (scope === "solicitacoes") {
-    // Protetico/Admin view pending solicitations
+    // Protetico/Admin view pending solicitations. 
+    // If SOLICITANTE, the filter above already restricts to their own.
     query = query.eq("status", "pendente");
   } else if (scope === "active") {
     // Normal active cases must have a cadista OR be directly created by staff
