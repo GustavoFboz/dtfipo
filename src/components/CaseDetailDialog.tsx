@@ -220,20 +220,28 @@ function CaseHeaderActions({ caseRow, currentTab }: { caseRow: CaseRow; currentT
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      {((caseRow as any).requested_by && !caseRow.cadista_id) && (
+      {(caseRow.status === "pendente" || !caseRow.cadista_id) && profile?.role !== "SOLICITANTE" && (
         <button
           type="button"
           onClick={async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
-            const { data: cadista } = await supabase.from("cadistas").select("id").eq("user_id", user.id).maybeSingle();
-            if (!cadista) {
-              toast.error("Apenas protéticos cadastrados podem aceitar solicitações.");
-              return;
+            
+            let cadistaId = null;
+            if (profile?.role === "CADISTA") {
+              const { data: cadista } = await supabase.from("cadistas").select("id").eq("user_id", user.id).maybeSingle();
+              cadistaId = cadista?.id;
             }
+
             try {
-              await updateCase(caseRow.id, { cadista_id: cadista.id });
-              toast.success("Você aceitou esta solicitação!");
+              // Using the mutation logic if possible, but here we update directly or call the same RPC
+              const { error } = await supabase.rpc("accept_case_request", { 
+                _case_id: caseRow.id, 
+                _cadista_id: cadistaId 
+              });
+              
+              if (error) throw error;
+              toast.success("Solicitação aceita!");
             } catch (e) {
               toast.error("Erro ao aceitar solicitação.");
             }
