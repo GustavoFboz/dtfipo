@@ -304,12 +304,15 @@ function Index() {
                   {t.label}
                   <AnimatePresence mode="popLayout">
                     {t.id === "solicitacoes" && (counts.solicitacoes ?? 0) > 0 && (
-                      <div
+                      <motion.div
                         key="solic-badge"
-                        className="absolute -top-1.5 -right-1.5 h-6 min-w-[24px] px-1.5 rounded-full bg-rose-500 text-white text-[11px] font-bold grid place-items-center shadow-lg shadow-rose-500/30 z-20"
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        className="absolute -top-2 -right-1 h-5 min-w-[20px] px-1.5 rounded-full bg-[#FF3B30] text-white text-[10px] font-bold grid place-items-center shadow-lg shadow-rose-500/20 z-20"
                       >
                         {counts.solicitacoes}
-                      </div>
+                      </motion.div>
                     )}
                     {isActive && t.id !== "solicitacoes" && (
                       <motion.span
