@@ -34,18 +34,16 @@ function PatientDetailPage() {
     document.title = "Carregando Paciente...";
   }, [id]);
 
+  const [restoredFromUrl, setRestoredFromUrl] = useState(false);
+
   const patient = useQuery({ 
     queryKey: ["patient", id], 
     queryFn: async () => {
-      try {
-        const data = await fetchPatient(id);
-        if (data) {
-          document.title = `${data.name} | DentalFlow`;
-        }
-        return data;
-      } catch (err: any) {
-        throw err;
+      const data = await fetchPatient(id);
+      if (data) {
+        document.title = `${data.name} | DentalFlow`;
       }
+      return data;
     },
     staleTime: 0,
     retry: 1,
@@ -53,16 +51,23 @@ function PatientDetailPage() {
   
   const cases = useQuery({ 
     queryKey: ["patient_cases", id], 
-    queryFn: async () => {
-      try {
-        const res = await fetchPatientCases(id);
-        return res;
-      } catch (err: any) {
-        return [];
-      }
-    },
+    queryFn: () => fetchPatientCases(id),
     retry: 1,
   });
+
+  // Restore selected case from URL on mount or param change
+  useEffect(() => {
+    if (restoredFromUrl || !cases.data) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const caseId = urlParams.get("case");
+    if (caseId) {
+      const c = cases.data.find(item => item.id === caseId);
+      if (c) {
+        setSelectedCase(c);
+        setRestoredFromUrl(true);
+      }
+    }
+  }, [cases.data, restoredFromUrl]);
 
   const reopen = useMutation({
     mutationFn: (cid: string) => reopenCase(cid),
@@ -334,7 +339,12 @@ function PatientDetailPage() {
       {/* Dialogs */}
       <PatientFormDialog patient={p} open={editOpen} onOpenChange={setEditOpen} />
       <NewCaseDialog initialPatientId={id} open={newCaseOpen} onOpenChange={setNewCaseOpen} />
-      <CaseDetailDialog caseRow={selectedCase} open={!!selectedCase} onOpenChange={(o) => !o && setSelectedCase(null)} />
+      <CaseDetailDialog caseRow={selectedCase} open={!!selectedCase} onOpenChange={(o) => {
+        if (!o) {
+          setSelectedCase(null);
+          // CaseDetailDialog now handles URL cleanup itself, but we ensure consistency
+        }
+      }} />
       
       
     </motion.div>

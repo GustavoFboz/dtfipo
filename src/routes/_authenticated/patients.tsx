@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchPatients, adminDelete } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/patients")({
 
 function PatientsPage() {
   const qc = useQueryClient();
-  const navigate = Route.useNavigate();
+  const navigate = useNavigate();
   const patients = useQuery({ 
     queryKey: ["patients"], 
     queryFn: async () => {
@@ -99,7 +99,6 @@ function PatientsPage() {
             style={reveal.itemProps(i).style}
             className={`${reveal.itemProps(i).className} cursor-pointer bg-transparent py-8 flex items-center gap-8 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-all duration-300 group border-b border-slate-100 dark:border-white/5 w-full`}
             onClick={() => {
-              
               navigate({ to: "/patients/$id", params: { id: p.id } });
             }}
           >

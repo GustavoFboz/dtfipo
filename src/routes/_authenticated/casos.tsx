@@ -21,6 +21,8 @@ import { generateCasesReport } from "@/lib/reports";
 import { GeneratingReportDialog } from "@/components/GeneratingReportDialog";
 import { toast } from "sonner";
 
+import { z } from "zod";
+
 export const Route = createFileRoute("/_authenticated/casos")({
   loader: () => ({}),
   component: Index,
@@ -29,7 +31,7 @@ export const Route = createFileRoute("/_authenticated/casos")({
 function Index() {
   const now = useNow();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState(() => sessionStorage.getItem("dentalflow:casos-filter") || "em_andamento");
+  const [filter, setFilter] = useState(() => (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("filter") : null) || sessionStorage.getItem("dentalflow:casos-filter") || "em_andamento");
   const [isTrashMode, setIsTrashMode] = useState(false);
   const [openNewPatient, setOpenNewPatient] = useState(false);
   const [exiting, setExiting] = useState(false);
@@ -56,6 +58,12 @@ function Index() {
 
   useEffect(() => {
     sessionStorage.setItem("dentalflow:casos-filter", filter);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("filter") !== filter) {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set("filter", filter);
+      window.history.replaceState(null, "", newUrl.toString());
+    }
   }, [filter]);
 
   useEffect(() => {
