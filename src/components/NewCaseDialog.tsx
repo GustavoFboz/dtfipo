@@ -126,27 +126,25 @@ export function NewCaseDialog({
   const [openState, setOpenState] = useState(false);
   const open = openProp !== undefined ? openProp : openState;
 
-  // Chaves de persistência: só criam/editam (não view). Edição usa key por caseId.
-  const persistFormKey = isView
-    ? null
-    : isEdit && editCase
-      ? editCaseFormKey(editCase.id)
-      : isCreate
-        ? NEW_CASE_FORM_KEY
-        : null;
-  const persistOpenKey = isView
-    ? null
-    : isEdit && editCase
-      ? EDIT_CASE_OPEN_KEY
-      : isCreate
-        ? NEW_CASE_OPEN_KEY
-        : null;
+  // Use URL search params for state persistence
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("newCase") === "1" && !open) {
+      if (openProp === undefined) setOpenState(true);
+      onOpenChange?.(true);
+    }
+  }, [open, openProp, onOpenChange]);
 
   const setOpen = (o: boolean) => {
-    if (!o && persistOpenKey && typeof window !== "undefined") {
-      // Fechar (X, ESC, clique fora): apenas remove a flag de auto-reabrir,
-      // preservando o snapshot do formulário para quando o usuário reabrir.
-      try { sessionStorage.removeItem(persistOpenKey); } catch { /* ignore */ }
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (o) {
+        params.set("newCase", "1");
+      } else {
+        params.delete("newCase");
+      }
+      window.history.replaceState(null, "", "?" + params.toString());
     }
     onOpenChange?.(o);
     if (openProp === undefined) setOpenState(o);
