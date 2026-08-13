@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
@@ -29,7 +29,8 @@ export const Route = createFileRoute("/_authenticated/casos")({
 function Index() {
   const now = useNow();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState(() => (typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("filter") : null) || sessionStorage.getItem("dentalflow:casos-filter") || "em_andamento");
+  const searchParams = useSearch({ from: "/_authenticated/casos" }) as any;
+  const [filter, setFilter] = useState(() => searchParams.filter || sessionStorage.getItem("dentalflow:casos-filter") || "em_andamento");
   const [isTrashMode, setIsTrashMode] = useState(false);
   const [openNewPatient, setOpenNewPatient] = useState(false);
   const [exiting, setExiting] = useState(false);
@@ -56,11 +57,10 @@ function Index() {
 
   useEffect(() => {
     sessionStorage.setItem("dentalflow:casos-filter", filter);
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("filter") !== filter) {
-      navigate({ search: { filter }, replace: true });
+    if (searchParams.filter !== filter) {
+      navigate({ search: (prev: any) => ({ ...prev, filter }), replace: true });
     }
-  }, [filter, navigate]);
+  }, [filter, navigate, searchParams.filter]);
 
   useEffect(() => {
     (window as any).DENTALFLOW_TRASH_MODE = isTrashMode;
