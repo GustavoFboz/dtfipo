@@ -142,15 +142,19 @@ export function NewCaseDialog({
         ? NEW_CASE_OPEN_KEY
         : null;
 
-  // Use URL search params for state persistence
+  // Restaura o diálogo de criação a partir da URL (?newCase=1) — apenas a
+  // instância não controlada de criação pode se auto-abrir.
+  const autoOpenedRef = useRef(false);
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (autoOpenedRef.current) return;
+    if (!isCreate || openProp !== undefined) return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("newCase") === "1" && !open) {
-      if (openProp === undefined) setOpenState(true);
-      onOpenChange?.(true);
+      autoOpenedRef.current = true;
+      setOpenState(true);
     }
-  }, [open, openProp, onOpenChange]);
+  }, [isCreate, openProp, open]);
 
   const setOpen = (o: boolean) => {
     if (typeof window !== "undefined") {
