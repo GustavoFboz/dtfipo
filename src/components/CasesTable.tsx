@@ -705,19 +705,27 @@ export function CasesTable({
                       <DropdownMenuItem onClick={() => setDetail(c)}>
                         <CheckCircle2 className="h-4 w-4 mr-2" /> Ver detalhes
                       </DropdownMenuItem>
-                      {c.status === "pendente" && !c.cadista_id && (
+                      {(c.status === "pendente" || !c.cadista_id) && profile?.role !== "SOLICITANTE" && (
                         <DropdownMenuItem 
                           onClick={() => {
                             const cadistaId = profile?.role === "CADISTA" ? profile.id : null;
-                            if (cadistaId) {
-                              accept.mutate({ caseId: c.id, cadistaId });
+                            if (cadistaId || (profile?.role as string) === "ADMIN") {
+                              accept.mutate({ caseId: c.id, cadistaId: cadistaId || "auto-assign-logic" });
                             } else {
-                              toast.error("Somente protéticos podem aceitar casos.");
+                              toast.error("Somente protéticos ou administradores podem aceitar casos.");
                             }
                           }}
                           className="text-emerald-600 focus:text-emerald-600 font-bold"
                         >
                           <CheckCircle2 className="h-4 w-4 mr-2" /> Aceitar Caso
+                        </DropdownMenuItem>
+                      )}
+                      {(c.status === "pendente" && (profile?.role as string) === "ADMIN") && (
+                         <DropdownMenuItem 
+                          onClick={() => setDeleting(c)}
+                          className="text-rose-600 focus:text-rose-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" /> Recusar Solicitação
                         </DropdownMenuItem>
                       )}
                       {!isCadista && (

@@ -173,7 +173,7 @@ const KIND_LABEL_BR: Record<CaseAttachmentKind, string> = {
   other: "Outros",
 };
 
-function CaseHeaderActions({ caseRow, currentTab }: { caseRow: CaseRow; currentTab: TabKey }) {
+function CaseHeaderActions({ caseRow, currentTab, profile }: { caseRow: CaseRow; currentTab: TabKey; profile: any }) {
   const [downloading, setDownloading] = useState(false);
   const [printing, setPrinting] = useState(false);
   const sectionKind = TAB_TO_KIND[currentTab];
@@ -220,20 +220,23 @@ function CaseHeaderActions({ caseRow, currentTab }: { caseRow: CaseRow; currentT
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      {((caseRow as any).requested_by && !caseRow.cadista_id) && (
+      {(caseRow.status === "pendente" || !caseRow.cadista_id) && profile?.role !== "SOLICITANTE" && (
         <button
           type="button"
           onClick={async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
-            const { data: cadista } = await supabase.from("cadistas").select("id").eq("user_id", user.id).maybeSingle();
-            if (!cadista) {
-              toast.error("Apenas protéticos cadastrados podem aceitar solicitações.");
-              return;
+            
+            let cadistaId = null;
+            if (profile?.role === "CADISTA") {
+              const { data: cadista } = await supabase.from("cadistas").select("id").eq("user_id", user.id).maybeSingle();
+              cadistaId = cadista?.id;
             }
+
             try {
-              await updateCase(caseRow.id, { cadista_id: cadista.id });
-              toast.success("Você aceitou esta solicitação!");
+              // Instead of manual RPC which might fail typecheck, use the updateCase or logic consistent with CasesTable
+              await updateCase(caseRow.id, { cadista_id: cadistaId, status: "em_andamento" });
+              toast.success("Solicitação aceita!");
             } catch (e) {
               toast.error("Erro ao aceitar solicitação.");
             }
@@ -834,7 +837,7 @@ export function CaseDetailDialog({
                       Ações
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <CaseHeaderActions caseRow={caseRow} currentTab={tab} />
+            <CaseHeaderActions caseRow={caseRow} currentTab={tab} profile={profile} />
                     </div>
                   </div>
 
@@ -918,7 +921,7 @@ export function CaseDetailDialog({
                   <h2 className="text-2xl lg:text-[28px] font-bold tracking-tight text-slate-900 dark:text-slate-100 truncate">
                     {caseRow.patient?.name ?? "Caso"}
                   </h2>
-                  <CaseHeaderActions caseRow={caseRow} currentTab={tab} />
+                  <CaseHeaderActions caseRow={caseRow} currentTab={tab} profile={profile} />
                   <div className="ml-auto">
                     <DialogClose asChild>
                       <button
