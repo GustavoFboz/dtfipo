@@ -156,8 +156,9 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
     // Also include staff-created cases that were "deleted" (status cancelado)
     // We don't want strict filters here to ensure trash is visible
   } else if (scope === "all") {
-    // Show everything except pending and cancelled
-    query = query.not("status", "in", '("cancelado","pendente")');
+    // Show everything
+    // In some cases we might want to filter pending/cancelled, but for badges to work globally
+    // we should return all statuses and filter in frontend where needed.
   }
 
   if (filters?.startDate) {
