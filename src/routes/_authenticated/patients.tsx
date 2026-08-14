@@ -67,8 +67,8 @@ function PatientsLayout() {
   });
 
   return (
-    <div className="relative min-h-screen w-full bg-slate-50 dark:bg-[#0A0E17]">
-      <div className="mx-auto w-full px-4 md:px-8 py-8 md:py-10 max-w-7xl">
+    <div className="relative min-h-screen w-full bg-white dark:bg-[#0A0E17]">
+      <div className="mx-auto w-full px-6 md:px-12 py-12 max-w-[1400px]">
         <div className="flex items-center justify-between mb-12">
           <div>
             <h1 className="text-4xl font-light text-slate-900 dark:text-white tracking-tight">Pacientes</h1>
@@ -84,8 +84,8 @@ function PatientsLayout() {
                 onChange={(e) => setQ(e.target.value)}
               />
             </div>
-            <Button className="h-11 px-6 rounded-full gap-2 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all active:scale-95" onClick={() => setOpenNew(true)}>
-              <Plus className="h-4 w-4" /> Novo paciente
+            <Button className="h-12 px-8 rounded-full gap-2 shadow-[0_8px_20px_-4px_rgba(59,130,246,0.3)] bg-primary hover:bg-primary/90 transition-all active:scale-95 text-sm font-medium" onClick={() => setOpenNew(true)}>
+              <Plus className="h-5 w-5" /> Novo paciente
             </Button>
           </div>
         </div>
@@ -104,66 +104,64 @@ function PatientsLayout() {
           animateContent={false}
           skeleton={<SkeletonCardGrid count={9} />}
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex flex-col w-full bg-white dark:bg-white/5 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-sm overflow-hidden">
             {filtered.map((p, i) => (
               <motion.div
                 key={p.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03 }}
-                className="group relative bg-white dark:bg-white/5 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/20 transition-all cursor-pointer"
+                className="group relative cursor-pointer py-7 px-10 flex items-center gap-8 hover:bg-slate-50/50 dark:hover:bg-white/[0.02] transition-all border-b border-slate-100 dark:border-white/5 last:border-0"
                 onClick={() => {
                   navigate({ to: "/patients/$id", params: { id: p.id } });
                 }}
               >
-                <div className="flex items-center gap-5">
-                  <div className="h-16 w-16 rounded-2xl bg-slate-50 dark:bg-white/5 grid place-items-center text-slate-300 shrink-0 overflow-hidden group-hover:scale-105 transition-transform border border-slate-100 dark:border-white/5">
-                    {p.photo_url ? (
-                      <img src={p.photo_url} className="h-full w-full object-cover" alt="" />
-                    ) : (
-                      <User className="h-8 w-8 font-light" />
-                    )}
+                <div className="h-16 w-16 rounded-full bg-slate-50 dark:bg-white/5 grid place-items-center text-slate-300 shrink-0 overflow-hidden border border-slate-100 dark:border-white/5">
+                  {p.photo_url ? (
+                    <img src={p.photo_url} className="h-full w-full object-cover" alt="" />
+                  ) : (
+                    <User className="h-8 w-8 font-light" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-2xl font-light text-slate-800 dark:text-slate-100 tracking-tight group-hover:text-primary transition-colors">
+                    {p.name}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-xl font-light text-slate-800 dark:text-slate-100 tracking-tight group-hover:text-primary transition-colors truncate">
-                      {p.name}
-                    </h3>
-                    <p className="text-[13px] text-slate-400 mt-1 uppercase tracking-wider font-medium">
-                      {p.phone || "Sem dados de contato"}
-                    </p>
+                  <div className="text-[12px] text-slate-400 mt-1 uppercase tracking-[0.1em] font-medium">
+                    {p.phone || "SEM DADOS DE CONTATO"}
                   </div>
                 </div>
 
-                <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                <div className="flex items-center gap-6 opacity-0 group-hover:opacity-100 transition-all">
                   <Button 
                     size="icon" 
                     variant="ghost" 
-                    className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-white/10"
+                    className="h-10 w-10 rounded-full hover:bg-slate-100 dark:hover:bg-white/10"
                     onClick={(e) => { 
                       e.preventDefault(); 
                       e.stopPropagation();
                       setEditPatient(p); 
                     }} 
                   >
-                    <Pencil className="h-3.5 w-3.5 text-slate-400" />
+                    <Pencil className="h-4 w-4 text-slate-400" />
                   </Button>
                   <Button
                     size="icon"
                     variant="ghost"
-                    className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive"
+                    className="h-10 w-10 rounded-full hover:bg-destructive/10 hover:text-destructive"
                     onClick={(e) => { 
                       e.preventDefault(); 
                       e.stopPropagation();
                       setToDelete({ id: p.id, name: p.name }); 
                     }}
                   >
-                    <Trash2 className="h-3.5 w-3.5 text-slate-400" />
+                    <Trash2 className="h-4 w-4 text-slate-400" />
                   </Button>
                 </div>
               </motion.div>
             ))}
             {filtered.length === 0 && (
-              <div className="col-span-full py-24 text-center text-slate-400 font-light italic">
+              <div className="py-24 text-center text-slate-400 font-light italic">
                 Nenhum paciente encontrado.
               </div>
             )}
