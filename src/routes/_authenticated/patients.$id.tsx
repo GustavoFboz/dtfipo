@@ -282,7 +282,7 @@ function PatientDetailPanel() {
       </div>
 
       {/* Dialogs */}
-      <PatientFormDialog patient={p} open={editOpen} onOpenChange={setEditOpen} />
+      <PatientFormDialog patient={p || undefined} open={editOpen} onOpenChange={setEditOpen} />
       <NewCaseDialog initialPatientId={id} open={newCaseOpen} onOpenChange={setNewCaseOpen} />
       <CaseDetailDialog caseRow={selectedCase} open={!!selectedCase} onOpenChange={(o) => !o && setSelectedCase(null)} />
       

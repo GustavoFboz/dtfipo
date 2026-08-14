@@ -78,6 +78,7 @@ export type Patient = {
   medications: string | null;
   clinical_notes: string | null;
   cases?: CaseRow[] | null;
+  created_at?: string;
 };
 
 export type PatientAttachment = {
