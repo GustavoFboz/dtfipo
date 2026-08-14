@@ -380,7 +380,7 @@ function UploadFab({
             <Plus className="h-6 w-6" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="end" className="w-56 z-[60]">
+        <DropdownMenuContent side="top" align="end" className="w-56 z-[1000] pointer-events-auto">
           <DropdownMenuItem 
             onSelect={(e) => {
               e.preventDefault();
