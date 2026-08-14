@@ -266,17 +266,17 @@ function PatientDetailPanel() {
           {p && (
             <div className="p-8 bg-slate-50 dark:bg-[#0A0E17] border-t border-slate-100 dark:border-white/5">
               <div className="max-w-5xl mx-auto flex gap-4">
-              <Button className="flex-1 h-12 rounded-2xl gap-2 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all active:scale-95" onClick={() => setNewCaseOpen(true)}>
-                <Plus className="h-4 w-4" /> Novo Caso
-              </Button>
-              <Button variant="outline" className="flex-1 h-12 rounded-2xl gap-2 border-slate-200 dark:border-white/10 dark:bg-white/5 transition-all active:scale-95" onClick={() => setEditOpen(true)}>
-                <Pencil className="h-4 w-4" /> Editar Perfil
-              </Button>
+                <Button className="flex-1 h-12 rounded-2xl gap-2 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all active:scale-95" onClick={() => setNewCaseOpen(true)}>
+                  <Plus className="h-4 w-4" /> Novo Caso
+                </Button>
+                <Button variant="outline" className="flex-1 h-12 rounded-2xl gap-2 border-slate-200 dark:border-white/10 dark:bg-white/5 transition-all active:scale-95" onClick={() => setEditOpen(true)}>
+                  <Pencil className="h-4 w-4" /> Editar Perfil
+                </Button>
+              </div>
             </div>
           )}
         </motion.div>
-              </div>
-            </div>
+      </div>
 
       {/* Dialogs */}
       <PatientFormDialog patient={p || undefined} open={editOpen} onOpenChange={setEditOpen} />
