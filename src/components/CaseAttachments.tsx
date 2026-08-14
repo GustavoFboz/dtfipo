@@ -161,7 +161,7 @@ function UploadButton({
         )}
         <div className="flex items-center gap-2">
           <Button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
             className="flex-1 h-11 gap-2 text-white"
             style={{ backgroundColor: "#1F8AFF" }}
           >
@@ -174,7 +174,7 @@ function UploadButton({
             className="h-11 w-11 shrink-0"
             title="Carregar pasta"
             aria-label="Carregar pasta"
-            onClick={() => folderInputRef.current?.click()}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); folderInputRef.current?.click(); }}
           >
             <FolderUp className="h-4 w-4" />
           </Button>
@@ -200,7 +200,7 @@ function UploadButton({
       <div className="relative">
         <Button
           variant="outline"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
           className="w-full h-28 flex flex-col items-center justify-center gap-2 border-2 border-dashed hover:border-primary hover:bg-primary/5 transition"
         >
           <Icon className="h-8 w-8 text-primary" />
@@ -371,21 +371,38 @@ function UploadFab({
             type="button"
             title="Adicionar arquivos"
             aria-label="Adicionar arquivos"
-            className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full shadow-lg flex items-center justify-center text-white transition hover:scale-105 active:scale-95"
+            onClick={(e) => {
+              // Em dispositivos móveis ou navegadores onde o DropdownMenu possa ter problemas de clique,
+              // garantimos que o clique não seja bloqueado por outros elementos z-index.
+              e.stopPropagation();
+            }}
+            className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer"
             style={{ backgroundColor: "#1F8AFF" }}
           >
             <Plus className="h-6 w-6" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="end" className="w-56">
-          <DropdownMenuItem onSelect={() => fileInputRef.current?.click()} className="gap-2">
+        <DropdownMenuContent side="top" align="end" className="w-56 z-[60]">
+          <DropdownMenuItem 
+            onSelect={(e) => {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }} 
+            className="gap-2 cursor-pointer py-3"
+          >
             <Upload className="h-4 w-4" />
             <div className="flex flex-col">
               <span className="text-sm font-medium">Enviar arquivos</span>
               <span className="text-[11px] text-muted-foreground">Um ou vários arquivos</span>
             </div>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => folderInputRef.current?.click()} className="gap-2">
+          <DropdownMenuItem 
+            onSelect={(e) => {
+              e.preventDefault();
+              folderInputRef.current?.click();
+            }} 
+            className="gap-2 cursor-pointer py-3"
+          >
             <FolderUp className="h-4 w-4" />
             <div className="flex flex-col">
               <span className="text-sm font-medium">Enviar pasta</span>
