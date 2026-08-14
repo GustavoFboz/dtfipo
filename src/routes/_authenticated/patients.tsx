@@ -132,7 +132,7 @@ function PatientsLayout() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                <div className="flex items-center gap-6 opacity-0 group-hover:opacity-100 transition-all">
                   <Button 
                     size="icon" 
                     variant="ghost" 
