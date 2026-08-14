@@ -896,7 +896,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
             <input
               ref={(el) => { replaceInputsRef.current[a.id] = el; }}
               type="file"
-              className="hidden"
+              className="hidden pointer-events-none"
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 e.target.value = "";
