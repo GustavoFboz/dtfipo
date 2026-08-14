@@ -174,7 +174,7 @@ function UploadButton({
             className="h-11 w-11 shrink-0"
             title="Carregar pasta"
             aria-label="Carregar pasta"
-            onClick={() => folderInputRef.current?.click()}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); folderInputRef.current?.click(); }}
           >
             <FolderUp className="h-4 w-4" />
           </Button>
