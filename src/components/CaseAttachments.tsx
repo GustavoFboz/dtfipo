@@ -128,7 +128,7 @@ function UploadButton({
       <input
         ref={fileInputRef}
         type="file"
-        className="hidden"
+        className="hidden pointer-events-none"
         accept={ACCEPT[kind]}
         multiple
         onChange={(e) => handleMulti(e.target.files)}
@@ -136,7 +136,7 @@ function UploadButton({
       <input
         ref={folderInputRef}
         type="file"
-        className="hidden"
+        className="hidden pointer-events-none"
         multiple
         // @ts-expect-error non-standard attributes for directory upload
         webkitdirectory=""
@@ -161,7 +161,12 @@ function UploadButton({
         )}
         <div className="flex items-center gap-2">
           <Button
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
+            onClick={(e) => { 
+              console.log("UploadButton file click");
+              e.preventDefault(); 
+              e.stopPropagation(); 
+              fileInputRef.current?.click(); 
+            }}
             className="flex-1 h-11 gap-2 text-white"
             style={{ backgroundColor: "#1F8AFF" }}
           >
@@ -174,7 +179,12 @@ function UploadButton({
             className="h-11 w-11 shrink-0"
             title="Carregar pasta"
             aria-label="Carregar pasta"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); folderInputRef.current?.click(); }}
+            onClick={(e) => { 
+              console.log("UploadButton folder click");
+              e.preventDefault(); 
+              e.stopPropagation(); 
+              folderInputRef.current?.click(); 
+            }}
           >
             <FolderUp className="h-4 w-4" />
           </Button>
@@ -200,7 +210,12 @@ function UploadButton({
       <div className="relative">
         <Button
           variant="outline"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
+          onClick={(e) => { 
+            console.log("Empty state big button click");
+            e.preventDefault(); 
+            e.stopPropagation(); 
+            fileInputRef.current?.click(); 
+          }}
           className="w-full h-28 flex flex-col items-center justify-center gap-2 border-2 border-dashed hover:border-primary hover:bg-primary/5 transition"
         >
           <Icon className="h-8 w-8 text-primary" />
@@ -221,7 +236,11 @@ function UploadButton({
           type="button"
           aria-label="Carregar pasta"
           title="Carregar pasta"
-          onClick={(e) => { e.stopPropagation(); folderInputRef.current?.click(); }}
+          onClick={(e) => { 
+            console.log("Empty state folder icon click");
+            e.stopPropagation(); 
+            folderInputRef.current?.click(); 
+          }}
           className="absolute top-1.5 left-1.5 h-7 w-7 rounded-md flex items-center justify-center border bg-background text-muted-foreground hover:text-foreground border-border"
         >
           <FolderUp className="h-3.5 w-3.5" />
@@ -350,7 +369,7 @@ function UploadFab({
       <input
         ref={fileInputRef}
         type="file"
-        className="hidden"
+        className="hidden pointer-events-none"
         accept={ACCEPT[kind]}
         multiple
         onChange={(e) => { handleMulti(e.target.files); e.target.value = ""; }}
@@ -358,37 +377,42 @@ function UploadFab({
       <input
         ref={folderInputRef}
         type="file"
-        className="hidden"
+        className="hidden pointer-events-none"
         multiple
         // @ts-expect-error non-standard attributes for directory upload
         webkitdirectory=""
         directory=""
         onChange={(e) => { handleMulti(e.target.files); e.target.value = ""; }}
       />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+      <DropdownMenu modal={false}>
+        <DropdownMenuTrigger asChild className="pointer-events-auto">
           <button
             type="button"
             title="Adicionar arquivos"
             aria-label="Adicionar arquivos"
             onClick={(e) => {
-              // Em dispositivos móveis ou navegadores onde o DropdownMenu possa ter problemas de clique,
-              // garantimos que o clique não seja bloqueado por outros elementos z-index.
+              console.log("FAB button click event");
               e.stopPropagation();
             }}
-            className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer"
+            onPointerDown={(e) => {
+              console.log("FAB pointer down event");
+              e.stopPropagation();
+            }}
+            className="h-14 w-14 rounded-full shadow-lg flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer pointer-events-auto"
             style={{ backgroundColor: "#1F8AFF" }}
           >
             <Plus className="h-6 w-6" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent side="top" align="end" className="w-56 z-[60]">
+        <DropdownMenuContent side="top" align="end" className="w-56 z-[10000] pointer-events-auto">
           <DropdownMenuItem 
             onSelect={(e) => {
               e.preventDefault();
+              e.stopPropagation();
+              console.log("Upload files clicked");
               fileInputRef.current?.click();
             }} 
-            className="gap-2 cursor-pointer py-3"
+            className="gap-2 cursor-pointer py-3 pointer-events-auto"
           >
             <Upload className="h-4 w-4" />
             <div className="flex flex-col">
@@ -399,9 +423,11 @@ function UploadFab({
           <DropdownMenuItem 
             onSelect={(e) => {
               e.preventDefault();
+              e.stopPropagation();
+              console.log("Upload folder clicked");
               folderInputRef.current?.click();
             }} 
-            className="gap-2 cursor-pointer py-3"
+            className="gap-2 cursor-pointer py-3 pointer-events-auto"
           >
             <FolderUp className="h-4 w-4" />
             <div className="flex flex-col">
@@ -870,7 +896,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
             <input
               ref={(el) => { replaceInputsRef.current[a.id] = el; }}
               type="file"
-              className="hidden"
+              className="hidden pointer-events-none"
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 e.target.value = "";
@@ -1248,7 +1274,9 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
       {/* Upload — FAB fixo no canto (abas específicas) ou grid (visão geral) */}
       {canUpload && visibleUploadKinds.length > 0 && (
         onlyKind ? (
-          <UploadFab kind={onlyKind} startUpload={startUploadFromButton} />
+          <div className="fixed bottom-6 right-6 z-[9999] pointer-events-auto" data-fab-container>
+            <UploadFab kind={onlyKind} startUpload={startUploadFromButton} />
+          </div>
         ) : (
           <div className="grid gap-3 grid-cols-2 md:grid-cols-5 pt-2">
             {visibleUploadKinds.map((k) => (
