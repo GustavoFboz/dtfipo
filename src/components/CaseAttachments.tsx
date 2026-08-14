@@ -385,16 +385,20 @@ function UploadFab({
         onChange={(e) => { handleMulti(e.target.files); e.target.value = ""; }}
       />
       <DropdownMenu modal={false}>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger asChild className="pointer-events-auto">
           <button
             type="button"
             title="Adicionar arquivos"
             aria-label="Adicionar arquivos"
             onClick={(e) => {
-              console.log("FAB clicked");
+              console.log("FAB button click event");
               e.stopPropagation();
             }}
-            className="fixed bottom-6 right-6 z-[999] h-14 w-14 rounded-full shadow-lg flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer pointer-events-auto"
+            onPointerDown={(e) => {
+              console.log("FAB pointer down event");
+              e.stopPropagation();
+            }}
+            className="fixed bottom-6 right-6 z-[9999] h-14 w-14 rounded-full shadow-lg flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer pointer-events-auto"
             style={{ backgroundColor: "#1F8AFF" }}
           >
             <Plus className="h-6 w-6" />
