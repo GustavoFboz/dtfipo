@@ -384,9 +384,11 @@ function UploadFab({
           <DropdownMenuItem 
             onSelect={(e) => {
               e.preventDefault();
+              e.stopPropagation();
+              console.log("Upload files clicked");
               fileInputRef.current?.click();
             }} 
-            className="gap-2 cursor-pointer py-3"
+            className="gap-2 cursor-pointer py-3 pointer-events-auto"
           >
             <Upload className="h-4 w-4" />
             <div className="flex flex-col">
@@ -397,9 +399,11 @@ function UploadFab({
           <DropdownMenuItem 
             onSelect={(e) => {
               e.preventDefault();
+              e.stopPropagation();
+              console.log("Upload folder clicked");
               folderInputRef.current?.click();
             }} 
-            className="gap-2 cursor-pointer py-3"
+            className="gap-2 cursor-pointer py-3 pointer-events-auto"
           >
             <FolderUp className="h-4 w-4" />
             <div className="flex flex-col">
