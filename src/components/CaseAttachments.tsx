@@ -371,7 +371,12 @@ function UploadFab({
             type="button"
             title="Adicionar arquivos"
             aria-label="Adicionar arquivos"
-            className="fixed bottom-6 right-6 z-40 h-14 w-14 rounded-full shadow-lg flex items-center justify-center text-white transition hover:scale-105 active:scale-95"
+            onClick={(e) => {
+              // Em dispositivos móveis ou navegadores onde o DropdownMenu possa ter problemas de clique,
+              // garantimos que o clique não seja bloqueado por outros elementos z-index.
+              e.stopPropagation();
+            }}
+            className="fixed bottom-6 right-6 z-50 h-14 w-14 rounded-full shadow-lg flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer"
             style={{ backgroundColor: "#1F8AFF" }}
           >
             <Plus className="h-6 w-6" />
