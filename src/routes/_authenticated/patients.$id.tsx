@@ -77,7 +77,7 @@ function PatientDetailPanel() {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-start justify-start pointer-events-none">
+      <div className="fixed inset-y-0 right-0 left-0 md:left-[var(--sidebar-width,0px)] top-[var(--header-height,72px)] z-50 flex items-start justify-start pointer-events-none">
         {/* Overlay backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -93,14 +93,16 @@ function PatientDetailPanel() {
           animate={{ x: 0 }}
           exit={{ x: "-100%" }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="relative h-full w-full max-w-[600px] bg-white dark:bg-[#0F172A] shadow-2xl pointer-events-auto flex flex-col overflow-hidden"
+          className="relative h-full w-full bg-white dark:bg-[#0F172A] shadow-2xl pointer-events-auto flex flex-col overflow-hidden"
         >
           {/* Header */}
           <div className="p-8 pb-4 flex items-center justify-between border-b border-slate-100 dark:border-white/5">
-            <h2 className="text-sm font-light uppercase tracking-widest text-slate-400">Perfil do Paciente</h2>
+            <div className="max-w-5xl mx-auto w-full flex items-center justify-between">
+              <h2 className="text-sm font-light uppercase tracking-widest text-slate-400">Perfil do Paciente</h2>
             <Button variant="ghost" size="icon" onClick={handleClose} className="rounded-full hover:bg-slate-100 dark:hover:bg-white/10">
               <X className="h-5 w-5 text-slate-400" />
-            </Button>
+              </Button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -111,7 +113,7 @@ function PatientDetailPanel() {
             ) : !p ? (
               <div className="p-12 text-center text-slate-400 font-light">Paciente não encontrado.</div>
             ) : (
-              <div className="p-8 space-y-10">
+              <div className="p-8 md:p-12 max-w-5xl mx-auto w-full space-y-10">
                 {/* Hero section */}
                 <div className="flex items-center gap-8">
                   <div className="relative group shrink-0">
@@ -262,13 +264,15 @@ function PatientDetailPanel() {
 
           {/* Footer Actions */}
           {p && (
-            <div className="p-8 bg-slate-50 dark:bg-[#0A0E17] border-t border-slate-100 dark:border-white/5 flex gap-4">
-              <Button className="flex-1 h-12 rounded-2xl gap-2 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all active:scale-95" onClick={() => setNewCaseOpen(true)}>
-                <Plus className="h-4 w-4" /> Novo Caso
-              </Button>
-              <Button variant="outline" className="flex-1 h-12 rounded-2xl gap-2 border-slate-200 dark:border-white/10 dark:bg-white/5 transition-all active:scale-95" onClick={() => setEditOpen(true)}>
-                <Pencil className="h-4 w-4" /> Editar Perfil
-              </Button>
+            <div className="p-8 bg-slate-50 dark:bg-[#0A0E17] border-t border-slate-100 dark:border-white/5">
+              <div className="max-w-5xl mx-auto flex gap-4">
+                <Button className="flex-1 h-12 rounded-2xl gap-2 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all active:scale-95" onClick={() => setNewCaseOpen(true)}>
+                  <Plus className="h-4 w-4" /> Novo Caso
+                </Button>
+                <Button variant="outline" className="flex-1 h-12 rounded-2xl gap-2 border-slate-200 dark:border-white/10 dark:bg-white/5 transition-all active:scale-95" onClick={() => setEditOpen(true)}>
+                  <Pencil className="h-4 w-4" /> Editar Perfil
+                </Button>
+              </div>
             </div>
           )}
         </motion.div>
