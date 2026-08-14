@@ -337,7 +337,13 @@ export function AppShell() {
   ];
 
   return (
-    <div className={`flex h-screen overflow-hidden bg-[#fcfdfe] dark:bg-black font-light transition-all duration-500 relative`}>
+    <div 
+      className={`flex h-screen overflow-hidden bg-[#fcfdfe] dark:bg-black font-light transition-all duration-500 relative`}
+      style={{
+        '--sidebar-width': isCollapsed ? '80px' : '256px',
+        '--header-height': '72px'
+      } as React.CSSProperties}
+    >
       {/* Background color block for Trash Mode transition */}
       <div 
         className={`fixed inset-0 transition-opacity duration-700 pointer-events-none z-0 ${pathname.startsWith("/casos") && (window as any).DENTALFLOW_TRASH_MODE ? "opacity-100" : "opacity-0"}`}
