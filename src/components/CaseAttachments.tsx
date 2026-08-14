@@ -161,7 +161,7 @@ function UploadButton({
         )}
         <div className="flex items-center gap-2">
           <Button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
             className="flex-1 h-11 gap-2 text-white"
             style={{ backgroundColor: "#1F8AFF" }}
           >
