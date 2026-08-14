@@ -17,7 +17,7 @@ import {
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { CaseRow, Patient } from "@/lib/types";
-import { FloatingLog } from "@/components/FloatingLog";
+// FloatingLog removido
 import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -286,7 +286,7 @@ function PatientDetailPanel() {
       <NewCaseDialog initialPatientId={id} open={newCaseOpen} onOpenChange={setNewCaseOpen} />
       <CaseDetailDialog caseRow={selectedCase} open={!!selectedCase} onOpenChange={(o) => !o && setSelectedCase(null)} />
       
-      <FloatingLog title="Log de Eventos" logs={logs} />
+      {/* O log flutuante foi removido a pedido do usuário */}
     </AnimatePresence>
   );
 }
