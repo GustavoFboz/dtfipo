@@ -236,7 +236,11 @@ function UploadButton({
           type="button"
           aria-label="Carregar pasta"
           title="Carregar pasta"
-          onClick={(e) => { e.stopPropagation(); folderInputRef.current?.click(); }}
+          onClick={(e) => { 
+            console.log("Empty state folder icon click");
+            e.stopPropagation(); 
+            folderInputRef.current?.click(); 
+          }}
           className="absolute top-1.5 left-1.5 h-7 w-7 rounded-md flex items-center justify-center border bg-background text-muted-foreground hover:text-foreground border-border"
         >
           <FolderUp className="h-3.5 w-3.5" />
