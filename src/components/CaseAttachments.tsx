@@ -383,14 +383,26 @@ function UploadFab({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="top" align="end" className="w-56">
-          <DropdownMenuItem onSelect={() => fileInputRef.current?.click()} className="gap-2">
+          <DropdownMenuItem 
+            onSelect={(e) => {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }} 
+            className="gap-2 cursor-pointer py-3"
+          >
             <Upload className="h-4 w-4" />
             <div className="flex flex-col">
               <span className="text-sm font-medium">Enviar arquivos</span>
               <span className="text-[11px] text-muted-foreground">Um ou vários arquivos</span>
             </div>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => folderInputRef.current?.click()} className="gap-2">
+          <DropdownMenuItem 
+            onSelect={(e) => {
+              e.preventDefault();
+              folderInputRef.current?.click();
+            }} 
+            className="gap-2 cursor-pointer py-3"
+          >
             <FolderUp className="h-4 w-4" />
             <div className="flex flex-col">
               <span className="text-sm font-medium">Enviar pasta</span>
