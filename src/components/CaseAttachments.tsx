@@ -1274,7 +1274,9 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
       {/* Upload — FAB fixo no canto (abas específicas) ou grid (visão geral) */}
       {canUpload && visibleUploadKinds.length > 0 && (
         onlyKind ? (
-          <UploadFab kind={onlyKind} startUpload={startUploadFromButton} />
+          <div className="fixed bottom-6 right-6 z-[9999] pointer-events-auto" data-fab-container>
+            <UploadFab kind={onlyKind} startUpload={startUploadFromButton} />
+          </div>
         ) : (
           <div className="grid gap-3 grid-cols-2 md:grid-cols-5 pt-2">
             {visibleUploadKinds.map((k) => (
