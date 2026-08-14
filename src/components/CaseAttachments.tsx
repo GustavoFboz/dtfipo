@@ -369,7 +369,7 @@ function UploadFab({
       <input
         ref={fileInputRef}
         type="file"
-        className="hidden"
+        className="hidden pointer-events-none"
         accept={ACCEPT[kind]}
         multiple
         onChange={(e) => { handleMulti(e.target.files); e.target.value = ""; }}
