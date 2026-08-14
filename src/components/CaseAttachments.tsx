@@ -377,7 +377,7 @@ function UploadFab({
       <input
         ref={folderInputRef}
         type="file"
-        className="hidden"
+        className="hidden pointer-events-none"
         multiple
         // @ts-expect-error non-standard attributes for directory upload
         webkitdirectory=""
