@@ -77,7 +77,7 @@ function PatientDetailPanel() {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-start justify-start pointer-events-none">
+      <div className="fixed inset-0 z-50 flex items-start justify-start pointer-events-none md:pl-0">
         {/* Overlay backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -93,7 +93,7 @@ function PatientDetailPanel() {
           animate={{ x: 0 }}
           exit={{ x: "-100%" }}
           transition={{ type: "spring", damping: 25, stiffness: 200 }}
-          className="relative h-full w-full max-w-[600px] bg-white dark:bg-[#0F172A] shadow-2xl pointer-events-auto flex flex-col overflow-hidden"
+          className="relative h-full w-full bg-white dark:bg-[#0F172A] shadow-2xl pointer-events-auto flex flex-col overflow-hidden"
         >
           {/* Header */}
           <div className="p-8 pb-4 flex items-center justify-between border-b border-slate-100 dark:border-white/5">
