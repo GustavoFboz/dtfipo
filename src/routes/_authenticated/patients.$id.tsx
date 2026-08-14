@@ -17,7 +17,7 @@ import {
 import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { CaseRow, Patient } from "@/lib/types";
-import { FloatingLog } from "@/components/FloatingLog";
+// FloatingLog removido
 import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -31,24 +31,17 @@ function PatientDetailPanel() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const isMobile = useIsMobile();
-  const [logs, setLogs] = useState<string[]>([]);
+  
   const [selectedCase, setSelectedCase] = useState<CaseRow | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [newCaseOpen, setNewCaseOpen] = useState(false);
   const [showAllInfo, setShowAllInfo] = useState(false);
 
-  const addLog = useCallback((msg: string) => {
-    setLogs(prev => {
-      const newLogs = [...prev, `${new Date().toLocaleTimeString()} - ${msg}`];
-      return newLogs.slice(-50);
-    });
-  }, []);
 
   const patient = useQuery({ 
     queryKey: ["patient", id], 
     queryFn: async () => {
       const data = await fetchPatient(id);
-      if (data) addLog(`Dados de ${data.name} carregados`);
       return data;
     },
     staleTime: 5 * 60 * 1000,
@@ -286,7 +279,7 @@ function PatientDetailPanel() {
       <NewCaseDialog initialPatientId={id} open={newCaseOpen} onOpenChange={setNewCaseOpen} />
       <CaseDetailDialog caseRow={selectedCase} open={!!selectedCase} onOpenChange={(o) => !o && setSelectedCase(null)} />
       
-      <FloatingLog title="Log de Eventos" logs={logs} />
+      {/* O log flutuante foi removido a pedido do usuário */}
     </AnimatePresence>
   );
 }

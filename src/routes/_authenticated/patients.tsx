@@ -14,7 +14,7 @@ import { PatientFormDialog } from "@/components/PatientFormDialog";
 import type { Patient } from "@/lib/types";
 import { normalizeText } from "@/lib/utils";
 import { SkeletonCardGrid, SkeletonSwap, useListReveal } from "@/components/ui/skeleton-blocks";
-import { FloatingLog } from "@/components/FloatingLog";
+// FloatingLog removido
 import { motion, AnimatePresence } from "framer-motion";
 
 export const Route = createFileRoute("/_authenticated/patients")({
@@ -30,9 +30,7 @@ function PatientsLayout() {
   const patients = useQuery({ 
     queryKey: ["patients"], 
     queryFn: async () => {
-      addLog("Iniciando busca de pacientes...");
       const data = await fetchPatients();
-      addLog(`${data?.length || 0} pacientes carregados do banco`);
       return data;
     }
   });
@@ -42,14 +40,6 @@ function PatientsLayout() {
   const [editPatient, setEditPatient] = useState<Patient | null>(null);
   const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
   const [q, setQ] = useState("");
-  const [logs, setLogs] = useState<string[]>(["Página de pacientes carregada", "Monitor de eventos pronto"]);
-
-  const addLog = useCallback((msg: string) => {
-    setLogs(prev => {
-      const newLogs = [...prev, `${new Date().toLocaleTimeString()} - ${msg}`];
-      return newLogs.slice(-50);
-    });
-  }, []);
 
   const filtered = useMemo(() => {
     let list = patients.data ?? [];
@@ -114,65 +104,66 @@ function PatientsLayout() {
           animateContent={false}
           skeleton={<SkeletonCardGrid count={9} />}
         >
-          <div className="flex flex-col w-full bg-white dark:bg-white/5 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-sm overflow-hidden">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((p, i) => (
               <motion.div
                 key={p.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.03 }}
-                className="group cursor-pointer py-6 px-8 flex items-center gap-8 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-all border-b border-slate-100 dark:border-white/5 last:border-0"
+                className="group relative bg-white dark:bg-white/5 p-6 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:shadow-primary/5 hover:border-primary/20 transition-all cursor-pointer"
                 onClick={() => {
-                  addLog(`Acessando perfil do paciente: ${p.name}`);
                   navigate({ to: "/patients/$id", params: { id: p.id } });
                 }}
               >
-                <div className="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-white/5 grid place-items-center text-slate-400 shrink-0 overflow-hidden group-hover:scale-105 transition-transform">
-                  {p.photo_url ? (
-                    <img src={p.photo_url} className="h-full w-full object-cover" alt="" />
-                  ) : (
-                    <User className="h-7 w-7 font-light" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xl font-light text-slate-800 dark:text-slate-100 tracking-tight group-hover:text-primary transition-colors">{p.name}</div>
-                  <div className="text-[13px] text-slate-400 mt-1 truncate font-light tracking-wide">
-                    {[p.age ? `${p.age} anos` : null, p.cpf, p.phone, p.email].filter(Boolean).join(" · ") || "Sem dados de contato"}
+                <div className="flex items-center gap-5">
+                  <div className="h-16 w-16 rounded-2xl bg-slate-50 dark:bg-white/5 grid place-items-center text-slate-300 shrink-0 overflow-hidden group-hover:scale-105 transition-transform border border-slate-100 dark:border-white/5">
+                    {p.photo_url ? (
+                      <img src={p.photo_url} className="h-full w-full object-cover" alt="" />
+                    ) : (
+                      <User className="h-8 w-8 font-light" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-xl font-light text-slate-800 dark:text-slate-100 tracking-tight group-hover:text-primary transition-colors truncate">
+                      {p.name}
+                    </h3>
+                    <p className="text-[13px] text-slate-400 mt-1 uppercase tracking-wider font-medium">
+                      {p.phone || "Sem dados de contato"}
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className="h-10 w-10 rounded-full hover:bg-slate-200 dark:hover:bg-white/10"
-                      onClick={(e) => { 
-                        e.preventDefault(); 
-                        e.stopPropagation();
-                        setEditPatient(p); 
-                      }} 
-                    >
-                      <Pencil className="h-4 w-4 text-slate-400" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-10 w-10 rounded-full hover:bg-destructive/10 hover:text-destructive"
-                      onClick={(e) => { 
-                        e.preventDefault(); 
-                        e.stopPropagation();
-                        setToDelete({ id: p.id, name: p.name }); 
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-primary transition-colors" />
+
+                <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="h-8 w-8 rounded-full hover:bg-slate-100 dark:hover:bg-white/10"
+                    onClick={(e) => { 
+                      e.preventDefault(); 
+                      e.stopPropagation();
+                      setEditPatient(p); 
+                    }} 
+                  >
+                    <Pencil className="h-3.5 w-3.5 text-slate-400" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive"
+                    onClick={(e) => { 
+                      e.preventDefault(); 
+                      e.stopPropagation();
+                      setToDelete({ id: p.id, name: p.name }); 
+                    }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-slate-400" />
+                  </Button>
                 </div>
               </motion.div>
             ))}
             {filtered.length === 0 && (
-              <div className="py-24 text-center text-slate-400 font-light italic">
+              <div className="col-span-full py-24 text-center text-slate-400 font-light italic">
                 Nenhum paciente encontrado.
               </div>
             )}
@@ -203,7 +194,7 @@ function PatientsLayout() {
 
       <Outlet />
       
-      <FloatingLog title="Log de Navegação" logs={logs} />
+      {/* O log flutuante foi removido a pedido do usuário */}
     </div>
   );
 }
