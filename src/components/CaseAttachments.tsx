@@ -200,7 +200,7 @@ function UploadButton({
       <div className="relative">
         <Button
           variant="outline"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileInputRef.current?.click(); }}
           className="w-full h-28 flex flex-col items-center justify-center gap-2 border-2 border-dashed hover:border-primary hover:bg-primary/5 transition"
         >
           <Icon className="h-8 w-8 text-primary" />
