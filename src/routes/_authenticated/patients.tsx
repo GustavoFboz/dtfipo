@@ -67,8 +67,8 @@ function PatientsLayout() {
   });
 
   return (
-    <div className="relative min-h-screen w-full bg-slate-50 dark:bg-[#0A0E17]">
-      <div className="mx-auto w-full px-4 md:px-8 py-8 md:py-10 max-w-7xl">
+    <div className="relative min-h-screen w-full bg-white dark:bg-[#0A0E17]">
+      <div className="mx-auto w-full px-6 md:px-12 py-12 max-w-[1400px]">
         <div className="flex items-center justify-between mb-12">
           <div>
             <h1 className="text-4xl font-light text-slate-900 dark:text-white tracking-tight">Pacientes</h1>
