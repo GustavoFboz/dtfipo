@@ -398,7 +398,7 @@ function UploadFab({
               console.log("FAB pointer down event");
               e.stopPropagation();
             }}
-            className="fixed bottom-6 right-6 z-[9999] h-14 w-14 rounded-full shadow-lg flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer pointer-events-auto"
+            className="h-14 w-14 rounded-full shadow-lg flex items-center justify-center text-white transition hover:scale-105 active:scale-95 cursor-pointer pointer-events-auto"
             style={{ backgroundColor: "#1F8AFF" }}
           >
             <Plus className="h-6 w-6" />
