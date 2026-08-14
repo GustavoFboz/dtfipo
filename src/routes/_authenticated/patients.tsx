@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useMatch, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchPatients, adminDelete } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, User, Trash2, Pencil, Search } from "lucide-react";
+import { Plus, User, Trash2, Pencil, Search, ChevronRight } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PatientFormDialog } from "@/components/PatientFormDialog";
@@ -15,16 +15,18 @@ import type { Patient } from "@/lib/types";
 import { normalizeText } from "@/lib/utils";
 import { SkeletonCardGrid, SkeletonSwap, useListReveal } from "@/components/ui/skeleton-blocks";
 import { FloatingLog } from "@/components/FloatingLog";
-
-
+import { motion, AnimatePresence } from "framer-motion";
 
 export const Route = createFileRoute("/_authenticated/patients")({
-  component: PatientsPage,
+  component: PatientsLayout,
 });
 
-function PatientsPage() {
+function PatientsLayout() {
   const qc = useQueryClient();
-  const navigate = Route.useNavigate();
+  const navigate = useNavigate();
+  const match = useMatch({ from: "/_authenticated/patients/$id", shouldThrow: false });
+  const isDetailOpen = !!match;
+
   const patients = useQuery({ 
     queryKey: ["patients"], 
     queryFn: async () => {
@@ -34,6 +36,7 @@ function PatientsPage() {
       return data;
     }
   });
+
   const reveal = useListReveal("patients-grid", patients.isPending && !patients.data);
   const [openNew, setOpenNew] = useState(false);
   const [editPatient, setEditPatient] = useState<Patient | null>(null);
@@ -48,13 +51,9 @@ function PatientsPage() {
     });
   }, []);
 
-
   const filtered = useMemo(() => {
     let list = patients.data ?? [];
-    
-    // Sort alphabetically by name by default
     list = [...list].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-
     if (!q.trim()) return list;
     const s = normalizeText(q);
     return list.filter((p) =>
@@ -77,119 +76,132 @@ function PatientsPage() {
     onSettled: () => qc.invalidateQueries({ queryKey: ["patients"] }),
   });
 
-
   return (
-    <div className="mx-auto w-full px-4 md:px-8 py-8 md:py-10">
-      <div className="flex items-center justify-between mb-12">
-        <div>
-          <h1 className="text-3xl font-light text-slate-900 tracking-tight">Pacientes</h1>
-          <p className="text-slate-500 text-sm mt-1 font-light">Gerencie seu cadastro de pacientes</p>
-        </div>
-        <div className="flex gap-2 items-center">
-          <Button className="h-11 px-6 rounded-full gap-2 shadow-lg shadow-primary/20" onClick={() => setOpenNew(true)}>
-            <Plus className="h-4 w-4" /> Novo paciente
-          </Button>
-        </div>
-      </div>
-
-      <PatientFormDialog open={openNew} onOpenChange={setOpenNew} />
-      {editPatient && (
-        <PatientFormDialog
-          patient={editPatient}
-          open={!!editPatient}
-          onOpenChange={(o) => !o && setEditPatient(null)}
-        />
-      )}
-
-      <SkeletonSwap
-        loading={patients.isPending && !patients.data}
-        animateContent={false}
-        skeleton={<SkeletonCardGrid count={9} />}
-      >
-      <div className="flex flex-col w-full">
-        <div className="border-t border-slate-100 dark:border-white/5 w-full" />
-        {filtered.map((p, i) => (
-          <div
-            key={p.id}
-            style={reveal.itemProps(i).style}
-            className={`${reveal.itemProps(i).className} cursor-pointer bg-transparent py-8 flex items-center gap-8 hover:bg-slate-50/50 dark:hover:bg-white/5 transition-all duration-300 group border-b border-slate-100 dark:border-white/5 w-full`}
-            onClick={() => {
-              addLog(`Acessando perfil do paciente: ${p.name} (ID: ${p.id.substring(0,8)}...)`);
-              navigate({ to: "/patients/$id", params: { id: p.id } });
-            }}
-          >
-            <div className="h-14 w-14 rounded-full bg-slate-50 dark:bg-slate-800 grid place-items-center text-slate-400 shrink-0 overflow-hidden">
-              {p.photo_url ? (
-                <img src={p.photo_url} className="h-full w-full object-cover" alt="" />
-              ) : (
-                <User className="h-6 w-6 font-light" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xl font-light text-slate-800 dark:text-slate-200 tracking-tight group-hover:text-primary transition-colors">{p.name}</div>
-              <div className="text-[12px] text-slate-400 mt-1 truncate uppercase tracking-widest font-light">
-                {[p.age ? `${p.age} anos` : null, p.cpf, p.phone, p.email].filter(Boolean).join(" · ") || "Sem dados de contato"}
-              </div>
-            </div>
-            <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity pr-4">
-              <Button 
-                size="icon" 
-                variant="ghost" 
-                className="h-10 w-10 rounded-full hover:bg-slate-100 dark:hover:bg-white/10"
-                onClick={(e) => { 
-                  e.preventDefault(); 
-                  e.stopPropagation();
-                  setEditPatient(p); 
-                }} 
-                aria-label="Editar"
-              >
-                <Pencil className="h-4 w-4 text-slate-400" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-10 w-10 rounded-full hover:bg-destructive/10 hover:text-destructive"
-                onClick={(e) => { 
-                  e.preventDefault(); 
-                  e.stopPropagation();
-                  setToDelete({ id: p.id, name: p.name }); 
-                }}
-                aria-label="Excluir paciente"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
+    <div className="relative min-h-screen w-full bg-slate-50 dark:bg-[#0A0E17]">
+      <div className="mx-auto w-full px-4 md:px-8 py-8 md:py-10 max-w-7xl">
+        <div className="flex items-center justify-between mb-12">
+          <div>
+            <h1 className="text-4xl font-light text-slate-900 dark:text-white tracking-tight">Pacientes</h1>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-light">Gerencie seu cadastro de pacientes</p>
           </div>
-        ))}
-        {filtered.length === 0 && (
-          <div className="py-20 text-center text-slate-400 font-light border-b border-slate-100 dark:border-white/5">
-            Nenhum paciente encontrado.
+          <div className="flex gap-4 items-center">
+            <div className="relative group hidden sm:block">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
+              <Input 
+                placeholder="Pesquisar..." 
+                className="pl-11 h-11 w-64 rounded-full border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 focus-visible:ring-primary/20 transition-all"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            </div>
+            <Button className="h-11 px-6 rounded-full gap-2 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all active:scale-95" onClick={() => setOpenNew(true)}>
+              <Plus className="h-4 w-4" /> Novo paciente
+            </Button>
           </div>
+        </div>
+
+        <PatientFormDialog open={openNew} onOpenChange={setOpenNew} />
+        {editPatient && (
+          <PatientFormDialog
+            patient={editPatient}
+            open={!!editPatient}
+            onOpenChange={(o) => !o && setEditPatient(null)}
+          />
         )}
-      </div>
-      </SkeletonSwap>
 
+        <SkeletonSwap
+          loading={patients.isPending && !patients.data}
+          animateContent={false}
+          skeleton={<SkeletonCardGrid count={9} />}
+        >
+          <div className="flex flex-col w-full bg-white dark:bg-white/5 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-sm overflow-hidden">
+            {filtered.map((p, i) => (
+              <motion.div
+                key={p.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
+                className="group cursor-pointer py-6 px-8 flex items-center gap-8 hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-all border-b border-slate-100 dark:border-white/5 last:border-0"
+                onClick={() => {
+                  addLog(`Acessando perfil do paciente: ${p.name}`);
+                  navigate({ to: "/patients/$id", params: { id: p.id } });
+                }}
+              >
+                <div className="h-16 w-16 rounded-2xl bg-slate-100 dark:bg-white/5 grid place-items-center text-slate-400 shrink-0 overflow-hidden group-hover:scale-105 transition-transform">
+                  {p.photo_url ? (
+                    <img src={p.photo_url} className="h-full w-full object-cover" alt="" />
+                  ) : (
+                    <User className="h-7 w-7 font-light" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-xl font-light text-slate-800 dark:text-slate-100 tracking-tight group-hover:text-primary transition-colors">{p.name}</div>
+                  <div className="text-[13px] text-slate-400 mt-1 truncate font-light tracking-wide">
+                    {[p.age ? `${p.age} anos` : null, p.cpf, p.phone, p.email].filter(Boolean).join(" · ") || "Sem dados de contato"}
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className="h-10 w-10 rounded-full hover:bg-slate-200 dark:hover:bg-white/10"
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation();
+                        setEditPatient(p); 
+                      }} 
+                    >
+                      <Pencil className="h-4 w-4 text-slate-400" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-10 w-10 rounded-full hover:bg-destructive/10 hover:text-destructive"
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation();
+                        setToDelete({ id: p.id, name: p.name }); 
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-slate-300 dark:text-slate-600 group-hover:text-primary transition-colors" />
+                </div>
+              </motion.div>
+            ))}
+            {filtered.length === 0 && (
+              <div className="py-24 text-center text-slate-400 font-light italic">
+                Nenhum paciente encontrado.
+              </div>
+            )}
+          </div>
+        </SkeletonSwap>
+      </div>
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-[2rem]">
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir paciente?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta ação é definitiva. O paciente <b>{toDelete?.name}</b> será removido permanentemente.
-              Pacientes com casos vinculados não poderão ser excluídos — finalize ou exclua os casos primeiro.
+              Pacientes com casos vinculados não poderão ser excluídos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => toDelete && remove.mutate(toDelete.id)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-full"
             >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Outlet />
       
       <FloatingLog title="Log de Navegação" logs={logs} />
     </div>
