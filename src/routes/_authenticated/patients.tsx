@@ -84,8 +84,8 @@ function PatientsLayout() {
                 onChange={(e) => setQ(e.target.value)}
               />
             </div>
-            <Button className="h-11 px-6 rounded-full gap-2 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all active:scale-95" onClick={() => setOpenNew(true)}>
-              <Plus className="h-4 w-4" /> Novo paciente
+            <Button className="h-12 px-8 rounded-full gap-2 shadow-[0_8px_20px_-4px_rgba(59,130,246,0.3)] bg-primary hover:bg-primary/90 transition-all active:scale-95 text-sm font-medium" onClick={() => setOpenNew(true)}>
+              <Plus className="h-5 w-5" /> Novo paciente
             </Button>
           </div>
         </div>
