@@ -186,7 +186,7 @@ export function NotificationPanel({ profile: externalProfile }: { profile?: Prof
                         "p-4 transition-colors group relative cursor-pointer",
                         !n.read_at ? "bg-primary/[0.02]" : "hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
                       )}
-                      onClick={() => {
+                      onClick={(e) => {
                         if (n.metadata?.action === 'approval_required') {
                           // Abre o dialog de detalhes do caso/solicitação
                           const parts = [`case=${n.metadata.case_id}`, `focus=overview`];
@@ -356,7 +356,12 @@ function NotificationPopup({
       exit={{ opacity: 0, y: 20, scale: 0.9, transition: { duration: 0.2 } }}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
-      className="pointer-events-auto w-full overflow-hidden rounded-xl border border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 p-4 shadow-2xl backdrop-blur-xl cursor-pointer hover:border-primary/30 hover:shadow-primary/10 transition-colors relative"
+      className={cn(
+        "pointer-events-auto w-full overflow-hidden rounded-xl border p-4 shadow-2xl backdrop-blur-xl cursor-pointer transition-colors relative",
+        popup.metadata?.action === 'approval_required'
+          ? "border-rose-200 dark:border-rose-900 bg-white/95 dark:bg-slate-900/95 shadow-rose-500/10"
+          : "border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 hover:border-primary/30 hover:shadow-primary/10"
+      )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 space-y-1">
