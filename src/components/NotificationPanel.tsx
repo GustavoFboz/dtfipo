@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import type { Profile } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X, CheckCircle2, Trash2, CheckCheck, MessageSquare, Image as ImageIcon, FileText } from 'lucide-react';
 import { useNotificationPopups, type PopupNotification } from '@/hooks/use-notification-popups';
+import { toast } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchNotifications, markNotificationAsRead, markAllNotificationsAsRead, adminDelete } from '@/lib/api';
 import { format, formatDistanceToNow } from 'date-fns';
@@ -35,7 +37,9 @@ function initialsOf(name?: string | null) {
   return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?';
 }
 
-export function NotificationPanel() {
+export function NotificationPanel({ profile: externalProfile }: { profile?: Profile }) {
+  const { data: profileData } = useQuery({ queryKey: ["profile"], queryFn: () => import('@/lib/api').then(m => m.fetchProfile()) });
+  const profile = externalProfile ?? profileData;
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState<NotifFilter>('all');
   const { popups, removePopup } = useNotificationPopups();
@@ -167,11 +171,13 @@ export function NotificationPanel() {
                   const senderName = n.metadata?.sender_name ?? sender?.full_name ?? sender?.email ?? null;
                   const avatarUrl = n.metadata?.sender_avatar ?? sender?.avatar_url;
                   
-                  const title = isMessage && senderName
-                    ? (n.type === 'attachment'
-                        ? `${senderName} anexou um arquivo`
-                        : `${senderName} comentou`)
-                    : n.title;
+                  const title = n.metadata?.action === 'approval_required'
+                    ? 'Solicitação de caso recebida'
+                    : isMessage && senderName
+                      ? (n.type === 'attachment'
+                          ? `${senderName} anexou um arquivo`
+                          : `${senderName} comentou`)
+                      : n.title;
 
                   return (
                     <div 
@@ -180,7 +186,17 @@ export function NotificationPanel() {
                         "p-4 transition-colors group relative cursor-pointer",
                         !n.read_at ? "bg-primary/[0.02]" : "hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
                       )}
-                      onClick={() => openFromNotification(n as any)}
+                      onClick={(e) => {
+                        if (n.metadata?.action === 'approval_required') {
+                          // Abre o dialog de detalhes do caso/solicitação
+                          const parts = [`case=${n.metadata.case_id}`, `focus=overview`];
+                          window.location.hash = parts.join('&');
+                          window.dispatchEvent(new Event('hashchange'));
+                          setIsOpen(false);
+                        } else {
+                          openFromNotification(n as any);
+                        }
+                      }}
                     >
                       <div className="flex gap-3">
                         {isMessage ? (
@@ -218,8 +234,52 @@ export function NotificationPanel() {
                           <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-normal line-clamp-2">
                             {n.content}
                           </p>
+                          
+                          {n.metadata?.action === 'approval_required' && !n.read_at && (
+                            <div className="flex items-center gap-2 pt-2">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Chamar acceptCaseRequest
+                                  if (n.metadata?.case_id && profile?.id) {
+                                    import('@/lib/api').then(({ acceptCaseRequest }) => {
+                                      acceptCaseRequest(n.metadata.case_id, profile.id)
+                                        .then(() => {
+                                          toast.success("Solicitação aceita!");
+                                          markRead.mutate(n.id);
+                                        })
+                                        .catch(() => toast.error("Erro ao aceitar solicitação."));
+                                    });
+                                  }
+                                }}
+                                className="px-3 py-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold hover:opacity-90 transition-opacity"
+                              >
+                                Aceitar
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // Chamar reject (permanentDeleteCase ou similar)
+                                  if (n.metadata?.case_id) {
+                                    import('@/lib/api').then(({ permanentDeleteCase }) => {
+                                      permanentDeleteCase(n.metadata.case_id)
+                                        .then(() => {
+                                          toast.success("Solicitação recusada.");
+                                          markRead.mutate(n.id);
+                                        })
+                                        .catch(() => toast.error("Erro ao recusar solicitação."));
+                                    });
+                                  }
+                                }}
+                                className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                              >
+                                Recusar
+                              </button>
+                            </div>
+                          )}
+
                           <div className="flex items-center gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {!n.read_at && (
+                            {!n.read_at && n.metadata?.action !== 'approval_required' && (
                               <button 
                                 onClick={(e) => { e.stopPropagation(); markRead.mutate(n.id); }}
                                 className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
@@ -296,19 +356,73 @@ function NotificationPopup({
       exit={{ opacity: 0, y: 20, scale: 0.9, transition: { duration: 0.2 } }}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
-      className="pointer-events-auto w-full overflow-hidden rounded-xl border border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 p-4 shadow-2xl backdrop-blur-xl cursor-pointer hover:border-primary/30 hover:shadow-primary/10 transition-colors relative"
+      className={cn(
+        "pointer-events-auto w-full overflow-hidden rounded-xl border p-4 shadow-2xl backdrop-blur-xl cursor-pointer transition-colors relative",
+        popup.metadata?.action === 'approval_required'
+          ? "border-rose-200 dark:border-rose-900 bg-white/95 dark:bg-slate-900/95 shadow-rose-500/10"
+          : "border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 hover:border-primary/30 hover:shadow-primary/10"
+      )}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 space-y-1">
-          <h4 className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 leading-none">{popup.title}</h4>
+          <h4 className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 leading-none">
+            {popup.metadata?.action === 'approval_required' ? 'Solicitação de caso recebida' : popup.title}
+          </h4>
           <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-normal">{popup.content}</p>
         </div>
-        <button 
-          onClick={(e) => { e.stopPropagation(); onClose(); }}
-          className="rounded-full p-1 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-300 hover:text-slate-600 transition-colors"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
+        <div className="flex flex-col gap-3 shrink-0">
+          <button 
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
+            className="rounded-full p-1 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-300 hover:text-slate-600 transition-colors ml-auto"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+
+          {popup.metadata?.action === 'approval_required' && (
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  import('@/lib/api').then(({ fetchProfile, acceptCaseRequest, markNotificationAsRead }) => {
+                    fetchProfile().then(profile => {
+                      if (popup.metadata?.case_id && profile?.id) {
+                        acceptCaseRequest(popup.metadata.case_id, profile.id)
+                          .then(() => {
+                            toast.success("Solicitação aceita!");
+                            markNotificationAsRead(popup.id);
+                            onClose();
+                          })
+                          .catch(() => toast.error("Erro ao aceitar solicitação."));
+                      }
+                    });
+                  });
+                }}
+                className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-bold hover:opacity-90 transition-opacity"
+              >
+                Aceitar
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  import('@/lib/api').then(({ permanentDeleteCase, markNotificationAsRead }) => {
+                    if (popup.metadata?.case_id) {
+                      permanentDeleteCase(popup.metadata.case_id)
+                        .then(() => {
+                          toast.success("Solicitação recusada.");
+                          markNotificationAsRead(popup.id);
+                          onClose();
+                        })
+                        .catch(() => toast.error("Erro ao recusar solicitação."));
+                    }
+                  });
+                }}
+                className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                Recusar
+              </button>
+            </div>
+          )}
+        </div>
       </div>
       <motion.div 
         initial={{ width: "100%" }}
