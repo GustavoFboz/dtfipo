@@ -389,7 +389,7 @@ export function AppShell() {
         </div>
 
         <div className="flex items-center gap-2">
-          <NotificationPanel profile={profile} />
+          <NotificationPanel profile={profile ?? undefined} />
           
           <Link
             to="/"
