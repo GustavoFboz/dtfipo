@@ -171,11 +171,13 @@ export function NotificationPanel({ profile: externalProfile }: { profile?: Prof
                   const senderName = n.metadata?.sender_name ?? sender?.full_name ?? sender?.email ?? null;
                   const avatarUrl = n.metadata?.sender_avatar ?? sender?.avatar_url;
                   
-                  const title = isMessage && senderName
-                    ? (n.type === 'attachment'
-                        ? `${senderName} anexou um arquivo`
-                        : `${senderName} comentou`)
-                    : n.title;
+                  const title = n.metadata?.action === 'approval_required'
+                    ? 'Solicitação de caso recebida'
+                    : isMessage && senderName
+                      ? (n.type === 'attachment'
+                          ? `${senderName} anexou um arquivo`
+                          : `${senderName} comentou`)
+                      : n.title;
 
                   return (
                     <div 
