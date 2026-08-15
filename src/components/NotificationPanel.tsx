@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { Profile } from '@/lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X, CheckCircle2, Trash2, CheckCheck, MessageSquare, Image as ImageIcon, FileText } from 'lucide-react';
 import { useNotificationPopups, type PopupNotification } from '@/hooks/use-notification-popups';
