@@ -365,7 +365,9 @@ function NotificationPopup({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 space-y-1">
-          <h4 className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 leading-none">{popup.title}</h4>
+          <h4 className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 leading-none">
+            {popup.metadata?.action === 'approval_required' ? 'Solicitação de caso recebida' : popup.title}
+          </h4>
           <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-normal">{popup.content}</p>
         </div>
         <div className="flex flex-col gap-3 shrink-0">
