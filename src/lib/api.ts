@@ -493,6 +493,11 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
     if (firstStage?.id) rest.current_stage_id = firstStage.id;
   }
   const { data: { user } } = await supabase.auth.getUser();
+  let isSolicitante = false;
+  if (user) {
+    const { data: prof } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    isSolicitante = prof?.role === "SOLICITANTE";
+  }
   const payload = {
     ...rest,
     sibling_case_id,
@@ -503,7 +508,9 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
     elements_count: teeth_numbers.length,
     elements_zirconia: teeth_zirconia.length,
     elements_dissilicato: teeth_dissilicato.length,
-    requested_by: input.requested_by || user?.id,
+    // Somente solicitantes geram solicitações pendentes de aprovação.
+    requested_by: isSolicitante ? (input.requested_by || user?.id) : null,
+    status: isSolicitante ? "pendente" : "em_andamento",
   };
   const { data: row, error } = await supabase
     .from("cases")
