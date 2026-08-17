@@ -383,6 +383,13 @@ export function NewCaseDialog({
   // um novo membro (mesmo com este dialog aberto).
   useEntityRealtime("cadistas", ["cadistas"]);
   useEntityRealtime("doctors", ["doctors"]);
+  // Em criação, sugere o profissional logado como protético responsável (editável).
+  useEffect(() => {
+    if (!open || !isCreate || isSolicitante || cadistaId || !profile?.id) return;
+    const mine = (cadistas.data ?? []).find((c) => c.user_id === profile.id);
+    if (mine) setCadistaId(mine.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isCreate, isSolicitante, profile?.id, cadistas.data]);
   const caseTypes = useQuery({ queryKey: ["case_types"], queryFn: fetchCaseTypes, enabled: open });
   const colors = useQuery({ queryKey: ["tooth_colors"], queryFn: fetchToothColors, enabled: open, staleTime: Infinity });
   const stages = useQuery({ queryKey: ["stages"], queryFn: fetchStages, enabled: open });
@@ -694,7 +701,7 @@ export function NewCaseDialog({
       const base = {
         patient_id: pid,
         doctor_id: doctorId || null,
-        cadista_id: isCreate && !isSolicitante && profile?.id ? profile.id : (cadistaId || null),
+        cadista_id: cadistaId || null,
         case_type_id: caseTypeIds[0] ?? null,
         case_type_ids: caseTypeIds,
         tooth_color_id: toothColorId || null,
@@ -921,11 +928,7 @@ export function NewCaseDialog({
 
               <div className="space-y-2">
                 <Label>Protético Responsável</Label>
-                <Select 
-                  value={cadistaId} 
-                  onValueChange={setCadistaId}
-                  disabled={isCreate && !isSolicitante && !!profile?.id}
-                >
+                <Select value={cadistaId} onValueChange={setCadistaId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent className="z-[3000]">
                     {cadistas.data?.map((d) => (<SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>))}
