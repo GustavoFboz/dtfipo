@@ -185,19 +185,31 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
 
 }
 
-export async function acceptCaseRequest(caseId: string, cadistaId: string) {
-  const { error } = await supabase.rpc("accept_case_request", {
-    p_case_id: caseId,
-    p_cadista_id: cadistaId
-  });
+export async function acceptCaseRequest(caseId: string, cadistaId?: string | null) {
+  let cadista_id = cadistaId ?? null;
+  if (!cadista_id) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: cad } = await supabase.from("cadistas").select("id").eq("user_id", user.id).maybeSingle();
+      cadista_id = cad?.id ?? null;
+    }
+  }
+  const patch: Record<string, unknown> = { status: "em_andamento" };
+  if (cadista_id) patch.cadista_id = cadista_id;
+
+  const { error } = await supabase.from("cases").update(patch as never).eq("id", caseId);
   if (error) throw error;
-  
+
   try {
-    broadcastEntity("cases", "update", { 
-      id: caseId, 
-      cadista_id: cadistaId, 
-      status: "em_andamento" 
-    });
+    broadcastEntity("cases", "update", { id: caseId, ...patch });
+  } catch {}
+}
+
+export async function rejectCaseRequest(caseId: string) {
+  const { error } = await supabase.from("cases").update({ status: "cancelado" } as never).eq("id", caseId);
+  if (error) throw error;
+  try {
+    broadcastEntity("cases", "update", { id: caseId, status: "cancelado" });
   } catch {}
 }
 
