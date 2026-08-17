@@ -185,19 +185,31 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
 
 }
 
-export async function acceptCaseRequest(caseId: string, cadistaId: string) {
-  const { error } = await supabase.rpc("accept_case_request", {
-    p_case_id: caseId,
-    p_cadista_id: cadistaId
-  });
+export async function acceptCaseRequest(caseId: string, cadistaId?: string | null) {
+  let cadista_id = cadistaId ?? null;
+  if (!cadista_id) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: cad } = await supabase.from("cadistas").select("id").eq("user_id", user.id).maybeSingle();
+      cadista_id = cad?.id ?? null;
+    }
+  }
+  const patch: Record<string, unknown> = { status: "em_andamento" };
+  if (cadista_id) patch.cadista_id = cadista_id;
+
+  const { error } = await supabase.from("cases").update(patch as never).eq("id", caseId);
   if (error) throw error;
-  
+
   try {
-    broadcastEntity("cases", "update", { 
-      id: caseId, 
-      cadista_id: cadistaId, 
-      status: "em_andamento" 
-    });
+    broadcastEntity("cases", "update", { id: caseId, ...patch });
+  } catch {}
+}
+
+export async function rejectCaseRequest(caseId: string) {
+  const { error } = await supabase.from("cases").update({ status: "cancelado" } as never).eq("id", caseId);
+  if (error) throw error;
+  try {
+    broadcastEntity("cases", "update", { id: caseId, status: "cancelado" });
   } catch {}
 }
 
@@ -493,6 +505,11 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
     if (firstStage?.id) rest.current_stage_id = firstStage.id;
   }
   const { data: { user } } = await supabase.auth.getUser();
+  let isSolicitante = false;
+  if (user) {
+    const { data: prof } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+    isSolicitante = prof?.role === "SOLICITANTE";
+  }
   const payload = {
     ...rest,
     sibling_case_id,
@@ -503,7 +520,9 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
     elements_count: teeth_numbers.length,
     elements_zirconia: teeth_zirconia.length,
     elements_dissilicato: teeth_dissilicato.length,
-    requested_by: input.requested_by || user?.id,
+    // Somente solicitantes geram solicitações pendentes de aprovação.
+    requested_by: isSolicitante ? (input.requested_by || user?.id) : null,
+    status: isSolicitante ? "pendente" : "em_andamento",
   };
   const { data: row, error } = await supabase
     .from("cases")
