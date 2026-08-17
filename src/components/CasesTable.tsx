@@ -673,7 +673,31 @@ export function CasesTable({
                   {fmtDayMonth(c.delivery_date)}
                 </div>
 
-                {/* Etapa */}
+                {/* Etapa — ou aprovar/recusar quando for solicitação pendente */}
+                {c.status === "pendente" ? (
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    {profile?.role !== "SOLICITANTE" ? (
+                      <>
+                        <button
+                          onClick={() => accept.mutate({ caseId: c.id, cadistaId: null })}
+                          className="h-8 px-3 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-semibold uppercase tracking-[0.06em] transition inline-flex items-center gap-1.5"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Aprovar
+                        </button>
+                        <button
+                          onClick={() => reject.mutate(c.id)}
+                          className="h-8 px-3 rounded-full bg-rose-50 dark:bg-rose-500/10 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-[11px] font-semibold uppercase tracking-[0.06em] transition inline-flex items-center gap-1.5"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> Recusar
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-amber-500">
+                        Aguardando aprovação
+                      </span>
+                    )}
+                  </div>
+                ) : (
                 <div onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
