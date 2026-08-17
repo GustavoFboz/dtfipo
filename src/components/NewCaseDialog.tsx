@@ -921,11 +921,7 @@ export function NewCaseDialog({
 
               <div className="space-y-2">
                 <Label>Protético Responsável</Label>
-                <Select 
-                  value={cadistaId} 
-                  onValueChange={setCadistaId}
-                  disabled={isCreate && !isSolicitante && !!profile?.id}
-                >
+                <Select value={cadistaId} onValueChange={setCadistaId}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent className="z-[3000]">
                     {cadistas.data?.map((d) => (<SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>))}
