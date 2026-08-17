@@ -383,6 +383,13 @@ export function NewCaseDialog({
   // um novo membro (mesmo com este dialog aberto).
   useEntityRealtime("cadistas", ["cadistas"]);
   useEntityRealtime("doctors", ["doctors"]);
+  // Em criação, sugere o profissional logado como protético responsável (editável).
+  useEffect(() => {
+    if (!open || !isCreate || isSolicitante || cadistaId || !profile?.id) return;
+    const mine = (cadistas.data ?? []).find((c) => c.user_id === profile.id);
+    if (mine) setCadistaId(mine.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isCreate, isSolicitante, profile?.id, cadistas.data]);
   const caseTypes = useQuery({ queryKey: ["case_types"], queryFn: fetchCaseTypes, enabled: open });
   const colors = useQuery({ queryKey: ["tooth_colors"], queryFn: fetchToothColors, enabled: open, staleTime: Infinity });
   const stages = useQuery({ queryKey: ["stages"], queryFn: fetchStages, enabled: open });
