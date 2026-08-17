@@ -719,6 +719,8 @@ export function CasesTable({
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
+                )}
+
 
                 {/* Menu */}
                 <div className="justify-self-end" onClick={(e) => e.stopPropagation()}>
