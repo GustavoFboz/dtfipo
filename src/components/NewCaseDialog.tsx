@@ -694,7 +694,7 @@ export function NewCaseDialog({
       const base = {
         patient_id: pid,
         doctor_id: doctorId || null,
-        cadista_id: isCreate && !isSolicitante && profile?.id ? profile.id : (cadistaId || null),
+        cadista_id: cadistaId || null,
         case_type_id: caseTypeIds[0] ?? null,
         case_type_ids: caseTypeIds,
         tooth_color_id: toothColorId || null,
