@@ -5,7 +5,8 @@ import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   fetchCases, fetchStages, finishCase, updateCase, setCurrentStage, deleteCase, fetchProfile, reopenCase,
-  acceptCaseRequest
+  acceptCaseRequest,
+  rejectCaseRequest
 } from "@/lib/api";
 
 import { markDeleted } from "@/lib/optimistic";
