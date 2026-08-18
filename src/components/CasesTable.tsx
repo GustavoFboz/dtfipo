@@ -5,7 +5,8 @@ import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   fetchCases, fetchStages, finishCase, updateCase, setCurrentStage, deleteCase, fetchProfile, reopenCase,
-  acceptCaseRequest
+  acceptCaseRequest,
+  rejectCaseRequest
 } from "@/lib/api";
 
 import { markDeleted } from "@/lib/optimistic";
@@ -379,9 +380,18 @@ export function CasesTable({
   });
 
   const accept = useMutation({
-    mutationFn: ({ caseId, cadistaId }: { caseId: string; cadistaId: string }) => acceptCaseRequest(caseId, cadistaId),
+    mutationFn: ({ caseId, cadistaId }: { caseId: string; cadistaId?: string | null }) => acceptCaseRequest(caseId, cadistaId),
     onSuccess: () => {
-      toast.success("Solicitação aceita!");
+      toast.success("Solicitação aprovada!");
+      qc.invalidateQueries({ queryKey: ["cases"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const reject = useMutation({
+    mutationFn: (caseId: string) => rejectCaseRequest(caseId),
+    onSuccess: () => {
+      toast.success("Solicitação recusada");
       qc.invalidateQueries({ queryKey: ["cases"] });
     },
     onError: (e: Error) => toast.error(e.message),
