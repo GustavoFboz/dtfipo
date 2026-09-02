@@ -130,15 +130,47 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { data: profile } = await supabase.from("profiles").select("id, role").eq("id", user.id).maybeSingle();
-  
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("id, role, account_subtype, is_default_admin")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const role = String(profile?.role || profile?.account_subtype || "").toUpperCase();
+  const hasGlobalCaseAccess =
+    Boolean(profile?.is_default_admin) ||
+    role === "CEO" ||
+    role === "ADMIN" ||
+    role === "PROTETICO";
+
   let query = supabase
     .from("cases")
     .select(CASE_SELECT);
 
-  // If user is SOLICITANTE, they only see their own requests
-  if (profile?.role === "SOLICITANTE") {
-    query = query.eq("requested_by", profile.id);
+  // Defense in depth. RLS is authoritative, but the client also narrows the
+  // query so users never request rows outside their legitimate case scope.
+  if (!hasGlobalCaseAccess) {
+    if (role === "SOLICITANTE") {
+      query = query.eq("requested_by", user.id);
+    } else if (role === "CADISTA") {
+      const { data: cadista } = await supabase
+        .from("cadistas")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!cadista?.id) return [];
+      query = query.eq("cadista_id", cadista.id);
+    } else if (role === "DR" || role === "DENTISTA") {
+      const { data: doctor } = await supabase
+        .from("doctors")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!doctor?.id) return [];
+      query = query.eq("doctor_id", doctor.id);
+    } else {
+      return [];
+    }
   }
 
 
@@ -168,17 +200,6 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
     query = query.lte("entry_date", filters.endDate);
   }
 
-  // If user is CADISTA and not looking at global requests, filter by their own cases
-  if (profile?.role === "CADISTA" && scope !== "solicitacoes" && scope !== "all") {
-    const { data: cadista } = await supabase.from("cadistas").select("id").eq("user_id", user.id).maybeSingle();
-    if (cadista) {
-      query = query.eq("cadista_id", cadista.id);
-    } else {
-      // If profile is CADISTA but no cadista record found, return empty
-      return [];
-    }
-  }
-
   const { data, error } = await query.order("updated_at", { ascending: false }).limit(200);
   if (error) throw error;
   return (data ?? []) as unknown as CaseRow[];
@@ -186,19 +207,21 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
 }
 
 export async function acceptCaseRequest(caseId: string, cadistaId?: string | null) {
-  let cadista_id = cadistaId ?? null;
-  if (!cadista_id) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: cad } = await supabase.from("cadistas").select("id").eq("user_id", user.id).maybeSingle();
-      cadista_id = cad?.id ?? null;
-    }
-  }
   const patch: Record<string, unknown> = { status: "em_andamento" };
-  if (cadista_id) patch.cadista_id = cadista_id;
+  if (cadistaId) patch.cadista_id = cadistaId;
 
-  const { error } = await supabase.from("cases").update(patch as never).eq("id", caseId);
+  const { data, error } = await supabase
+    .from("cases")
+    .update(patch as never)
+    .eq("id", caseId)
+    .eq("status", "pendente")
+    .select("id")
+    .maybeSingle();
+
   if (error) throw error;
+  if (!data) {
+    throw new Error("Solicitação não encontrada, já processada ou sem permissão.");
+  }
 
   try {
     broadcastEntity("cases", "update", { id: caseId, ...patch });
@@ -206,8 +229,19 @@ export async function acceptCaseRequest(caseId: string, cadistaId?: string | nul
 }
 
 export async function rejectCaseRequest(caseId: string) {
-  const { error } = await supabase.from("cases").update({ status: "cancelado" } as never).eq("id", caseId);
+  const { data, error } = await supabase
+    .from("cases")
+    .update({ status: "cancelado" } as never)
+    .eq("id", caseId)
+    .eq("status", "pendente")
+    .select("id")
+    .maybeSingle();
+
   if (error) throw error;
+  if (!data) {
+    throw new Error("Solicitação não encontrada, já processada ou sem permissão.");
+  }
+
   try {
     broadcastEntity("cases", "update", { id: caseId, status: "cancelado" });
   } catch {}
