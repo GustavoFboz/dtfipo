@@ -22,10 +22,14 @@ export const Route = createFileRoute("/auth")({
     mode: (s.mode === "company" || s.mode === "employee" || s.mode === "user" ? s.mode : undefined) as
       | SignupMode
       | undefined,
+    returnTo: typeof s.returnTo === "string" && s.returnTo.startsWith("/") && !s.returnTo.startsWith("//")
+      ? s.returnTo
+      : undefined,
   }),
-  beforeLoad: async () => {
+  beforeLoad: async ({ search }) => {
     const { data } = await supabase.auth.getSession();
     if (data.session?.user) {
+      if (search.returnTo) throw redirect({ href: search.returnTo });
       throw redirect({ to: "/" });
     }
   },
@@ -62,7 +66,10 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/", replace: true });
+      if (data.user) {
+        if (search.returnTo) window.location.replace(search.returnTo);
+        else navigate({ to: "/", replace: true });
+      }
     });
   }, [navigate]);
 
@@ -76,7 +83,8 @@ function AuthPage() {
     setLoadingLogin(false);
     if (error) return toast.error(error.message);
     toast.success("Bem-vindo!");
-    navigate({ to: "/", replace: true });
+    if (search.returnTo) window.location.replace(search.returnTo);
+    else navigate({ to: "/", replace: true });
   }
 
   async function signUpAndSignIn(): Promise<boolean> {
