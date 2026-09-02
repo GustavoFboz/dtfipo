@@ -22,12 +22,16 @@ import { GeneratingReportDialog } from "@/components/GeneratingReportDialog";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/casos")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    case: typeof search.case === "string" ? search.case : undefined,
+  }),
   loader: () => ({}),
   component: Index,
 });
 
 function Index() {
   const now = useNow();
+  const { case: deepLinkCaseId } = Route.useSearch();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("em_andamento");
   const [isTrashMode, setIsTrashMode] = useState(false);
@@ -63,6 +67,23 @@ function Index() {
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
   const isSolicitante = (profile as any)?.role === "SOLICITANTE";
+
+  // QR/deep-link entry: use the same case dialog for every role and device.
+  // RLS + fetchCases determine whether the authenticated user may receive the case.
+  if (deepLinkCaseId) {
+    return (
+      <div className="h-full w-full bg-background p-4">
+        <CasesTable
+          hideToolbar
+          minimal
+          hideSearch
+          activeFilter="all"
+          deepLinkCaseId={deepLinkCaseId}
+          onDeepLinkClose={() => navigate({ to: "/casos", search: {} })}
+        />
+      </div>
+    );
+  }
 
   if (isMobile) return <MobileDashboard />;
   if (isSolicitante) return (

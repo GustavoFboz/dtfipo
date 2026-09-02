@@ -139,8 +139,8 @@ export function PrintNoteSettings() {
                   ))}
                 </SelectContent>
               </Select>
-              {printerSettings.paperId === "custom" && (
-                <div className="grid grid-cols-2 gap-3 mt-3 max-w-sm">
+              {(printerSettings.paperId === "custom" || printerSettings.paperId === "continuous") && (
+                <div className={`grid gap-3 mt-3 max-w-sm ${printerSettings.paperId === "custom" ? "grid-cols-2" : "grid-cols-1"}`}>
                   <Input
                     type="number"
                     min={40}
@@ -149,17 +149,23 @@ export function PrintNoteSettings() {
                     onChange={(e) => patchPrinter({ customWidthMm: Number(e.target.value) })}
                     placeholder="Largura (mm)"
                   />
-                  <Input
-                    type="number"
-                    min={60}
-                    max={500}
-                    value={printerSettings.customHeightMm}
-                    onChange={(e) => patchPrinter({ customHeightMm: Number(e.target.value) })}
-                    placeholder="Altura (mm)"
-                  />
+                  {printerSettings.paperId === "custom" && (
+                    <Input
+                      type="number"
+                      min={60}
+                      max={500}
+                      value={printerSettings.customHeightMm}
+                      onChange={(e) => patchPrinter({ customHeightMm: Number(e.target.value) })}
+                      placeholder="Altura (mm)"
+                    />
+                  )}
                 </div>
               )}
-              <p className="text-xs text-muted-foreground mt-2">Área configurada: {printerPaper.widthMm} × {printerPaper.heightMm} mm.</p>
+              <p className="text-xs text-muted-foreground mt-2">
+                {printerPaper.continuous
+                  ? `Largura configurada: ${printerPaper.widthMm} mm · a altura será calculada pelo conteúdo em cada impressão.`
+                  : `Área configurada: ${printerPaper.widthMm} × ${printerPaper.heightMm} mm.`}
+              </p>
             </div>
 
             {printerSettings.transport === "bluetooth" && (
