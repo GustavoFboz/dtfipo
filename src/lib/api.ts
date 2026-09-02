@@ -136,12 +136,12 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
     .eq("id", user.id)
     .maybeSingle();
 
-  const role = String(profile?.role || profile?.account_subtype || "").toUpperCase();
+  const role = String(profile?.role || "").toUpperCase();
+  const accountSubtype = String(profile?.account_subtype || "").toUpperCase();
+  const hasRole = (...roles: string[]) => roles.includes(role) || roles.includes(accountSubtype);
   const hasGlobalCaseAccess =
     Boolean(profile?.is_default_admin) ||
-    role === "CEO" ||
-    role === "ADMIN" ||
-    role === "PROTETICO";
+    hasRole("CEO", "ADMIN", "PROTETICO");
 
   let query = supabase
     .from("cases")
@@ -150,9 +150,9 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
   // Defense in depth. RLS is authoritative, but the client also narrows the
   // query so users never request rows outside their legitimate case scope.
   if (!hasGlobalCaseAccess) {
-    if (role === "SOLICITANTE") {
+    if (hasRole("SOLICITANTE")) {
       query = query.eq("requested_by", user.id);
-    } else if (role === "CADISTA") {
+    } else if (hasRole("CADISTA")) {
       const { data: cadista } = await supabase
         .from("cadistas")
         .select("id")
@@ -160,7 +160,7 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
         .maybeSingle();
       if (!cadista?.id) return [];
       query = query.eq("cadista_id", cadista.id);
-    } else if (role === "DR" || role === "DENTISTA") {
+    } else if (hasRole("DR", "DENTISTA")) {
       const { data: doctor } = await supabase
         .from("doctors")
         .select("id")
