@@ -135,6 +135,8 @@ export function CasesTable({
   onCountsUpdate,
   dateRange,
   advancedFilters,
+  deepLinkCaseId,
+  onDeepLinkClose,
 }: { 
   externalSearch?: string; 
   hideToolbar?: boolean; 
@@ -146,6 +148,8 @@ export function CasesTable({
   onCountsUpdate?: (counts: Record<string, number>) => void;
   dateRange?: { start: string; end: string } | null;
   advancedFilters?: { doctorIds: string[]; cadistaIds: string[] };
+  deepLinkCaseId?: string;
+  onDeepLinkClose?: () => void;
 } = {}) {
   const qc = useQueryClient();
   const [internalSearch, setSearch] = useState("");
@@ -160,6 +164,7 @@ export function CasesTable({
   const [folderEdit, setFolderEdit] = useState<{ row: CaseRow; url: string } | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<null | "finish" | "delete" | "archive" | "reopen" | "accept">(null);
+  const [deepLinkHandled, setDeepLinkHandled] = useState(false);
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile, staleTime: 300_000 });
   const normalizedRole = String(profile?.role || "").toUpperCase();
@@ -190,6 +195,22 @@ export function CasesTable({
   });
 
   const reveal = useListReveal("cases-table", cases.isLoading);
+
+  useEffect(() => {
+    if (!deepLinkCaseId || cases.isLoading || deepLinkHandled) return;
+    const row = (cases.data ?? []).find((item) => item.id === deepLinkCaseId);
+    setDeepLinkHandled(true);
+    if (row) {
+      setDetail(row);
+      return;
+    }
+    toast.error("Caso não encontrado ou você não possui permissão para acessá-lo.");
+    onDeepLinkClose?.();
+  }, [deepLinkCaseId, cases.isLoading, cases.data, deepLinkHandled, onDeepLinkClose]);
+
+  useEffect(() => {
+    setDeepLinkHandled(false);
+  }, [deepLinkCaseId]);
 
   const stages = useQuery({ queryKey: ["stages"], queryFn: fetchStages });
 
@@ -1184,7 +1205,12 @@ export function CasesTable({
       <CaseDetailDialog
         caseRow={detail}
         open={!!detail}
-        onOpenChange={(o) => !o && setDetail(null)}
+        onOpenChange={(o) => {
+          if (!o) {
+            setDetail(null);
+            if (deepLinkCaseId) onDeepLinkClose?.();
+          }
+        }}
       />
 
       <EditCaseDialog
