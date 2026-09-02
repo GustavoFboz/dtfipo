@@ -224,8 +224,8 @@ export function PrintNoteButton({ caseRow, variant = "pill" }: { caseRow: CaseRo
                 ))}
               </select>
 
-              {settings.paperId === "custom" && (
-                <div className="grid grid-cols-2 gap-3 pt-1">
+              {(settings.paperId === "custom" || settings.paperId === "continuous") && (
+                <div className={`grid gap-3 pt-1 ${settings.paperId === "custom" ? "grid-cols-2" : "grid-cols-1"}`}>
                   <label className="space-y-1 text-xs text-muted-foreground">
                     <span>Largura (mm)</span>
                     <input
@@ -238,23 +238,27 @@ export function PrintNoteButton({ caseRow, variant = "pill" }: { caseRow: CaseRo
                       className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
                     />
                   </label>
-                  <label className="space-y-1 text-xs text-muted-foreground">
-                    <span>Altura (mm)</span>
-                    <input
-                      type="number"
-                      min={60}
-                      max={500}
-                      step={0.1}
-                      value={settings.customHeightMm}
-                      onChange={(e) => setSettings((s) => ({ ...s, customHeightMm: Number(e.target.value) }))}
-                      className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
-                    />
-                  </label>
+                  {settings.paperId === "custom" && (
+                    <label className="space-y-1 text-xs text-muted-foreground">
+                      <span>Altura (mm)</span>
+                      <input
+                        type="number"
+                        min={60}
+                        max={500}
+                        step={0.1}
+                        value={settings.customHeightMm}
+                        onChange={(e) => setSettings((s) => ({ ...s, customHeightMm: Number(e.target.value) }))}
+                        className="h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    </label>
+                  )}
                 </div>
               )}
 
               <div className="text-xs text-muted-foreground">
-                Área da nota: {paper.widthMm} × {paper.heightMm} mm.
+                {paper.continuous
+                  ? `Papel contínuo: ${paper.widthMm} mm de largura · altura automática.`
+                  : `Área da nota: ${paper.widthMm} × ${paper.heightMm} mm.`}
               </div>
             </div>
 
