@@ -59,7 +59,7 @@ export function renderNoteCanvas(c: CaseRow, tpl: PrintNoteTemplate): RenderResu
   const checklistSize = is58 ? 24 : 26;
   const footerSize = is58 ? 18 : 20;
   const checklistBox = checklistSize + 4;
-  const titleLines = wrap(title || "—", W - PAD * 2, titleSize, 800);
+  const titleLines = wrap(title || "—", W - PAD * 2, titleSize, 700);
   const subtitleLines = subtitle ? wrap(subtitle, W - PAD * 2, subtitleSize, 500) : [];
 
   let H = PAD;
@@ -102,7 +102,7 @@ export function renderNoteCanvas(c: CaseRow, tpl: PrintNoteTemplate): RenderResu
   y += 6 + 12;
 
   // Title
-  g.font = `800 ${titleSize}px Inter, system-ui, sans-serif`;
+  g.font = `700 ${titleSize}px Inter, system-ui, sans-serif`;
   for (const ln of titleLines) {
     g.fillText(ln, PAD, y);
     y += titleSize + 6;
