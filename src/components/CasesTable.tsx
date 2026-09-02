@@ -162,13 +162,14 @@ export function CasesTable({
   const [bulkAction, setBulkAction] = useState<null | "finish" | "delete" | "archive" | "reopen" | "accept">(null);
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile, staleTime: 300_000 });
-  const normalizedRole = String(profile?.role || profile?.account_subtype || "").toUpperCase();
-  const isCadista = normalizedRole === "CADISTA";
+  const normalizedRole = String(profile?.role || "").toUpperCase();
+  const normalizedSubtype = String(profile?.account_subtype || "").toUpperCase();
+  const hasProfileRole = (...roles: string[]) =>
+    roles.includes(normalizedRole) || roles.includes(normalizedSubtype);
+  const isCadista = hasProfileRole("CADISTA");
   const canReviewRequests =
     Boolean(profile?.is_default_admin) ||
-    normalizedRole === "CEO" ||
-    normalizedRole === "ADMIN" ||
-    normalizedRole === "PROTETICO";
+    hasProfileRole("CEO", "ADMIN", "PROTETICO");
 
   const cases = useQuery({
     queryKey: ["cases", activeFilter, dateRange?.start, dateRange?.end],
@@ -699,7 +700,7 @@ export function CasesTable({
                           onClick={() => accept.mutate({ caseId: c.id, cadistaId: null })}
                           className="h-8 px-3 rounded-full disabled:opacity-50 disabled:pointer-events-none bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-semibold uppercase tracking-[0.06em] transition inline-flex items-center gap-1.5"
                         >
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Aprovar
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Aceitar
                         </button>
                         <button
                           disabled={accept.isPending || reject.isPending}
