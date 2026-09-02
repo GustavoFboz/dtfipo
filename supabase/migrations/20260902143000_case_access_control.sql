@@ -20,6 +20,7 @@ AS $$
 DECLARE
   v_user uuid := auth.uid();
   v_role text;
+  v_account_subtype text;
   v_is_default_admin boolean := false;
 BEGIN
   IF v_user IS NULL THEN
@@ -27,9 +28,10 @@ BEGIN
   END IF;
 
   SELECT
-    upper(COALESCE(NULLIF(p.role, ''), NULLIF(p.account_subtype, ''), '')),
+    upper(COALESCE(p.role, '')),
+    upper(COALESCE(p.account_subtype, '')),
     COALESCE(p.is_default_admin, false)
-  INTO v_role, v_is_default_admin
+  INTO v_role, v_account_subtype, v_is_default_admin
   FROM public.profiles p
   WHERE p.id = v_user;
 
@@ -37,12 +39,15 @@ BEGIN
   IF v_is_default_admin
      OR public.has_role(v_user, 'admin')
      OR public.has_role(v_user, 'protetico')
-     OR v_role IN ('CEO', 'ADMIN', 'PROTETICO') THEN
+     OR v_role IN ('CEO', 'ADMIN', 'PROTETICO')
+     OR v_account_subtype IN ('CEO', 'ADMIN', 'PROTETICO') THEN
     RETURN true;
   END IF;
 
   -- Requesters are isolated from all other cases.
-  IF public.has_role(v_user, 'solicitante') OR v_role = 'SOLICITANTE' THEN
+  IF public.has_role(v_user, 'solicitante')
+     OR v_role = 'SOLICITANTE'
+     OR v_account_subtype = 'SOLICITANTE' THEN
     RETURN EXISTS (
       SELECT 1
       FROM public.cases c
@@ -73,6 +78,7 @@ AS $$
 DECLARE
   v_user uuid := auth.uid();
   v_role text;
+  v_account_subtype text;
   v_is_default_admin boolean := false;
 BEGIN
   IF v_user IS NULL THEN
@@ -80,21 +86,25 @@ BEGIN
   END IF;
 
   SELECT
-    upper(COALESCE(NULLIF(p.role, ''), NULLIF(p.account_subtype, ''), '')),
+    upper(COALESCE(p.role, '')),
+    upper(COALESCE(p.account_subtype, '')),
     COALESCE(p.is_default_admin, false)
-  INTO v_role, v_is_default_admin
+  INTO v_role, v_account_subtype, v_is_default_admin
   FROM public.profiles p
   WHERE p.id = v_user;
 
   IF v_is_default_admin
      OR public.has_role(v_user, 'admin')
      OR public.has_role(v_user, 'protetico')
-     OR v_role IN ('CEO', 'ADMIN', 'PROTETICO') THEN
+     OR v_role IN ('CEO', 'ADMIN', 'PROTETICO')
+     OR v_account_subtype IN ('CEO', 'ADMIN', 'PROTETICO') THEN
     RETURN true;
   END IF;
 
   -- A requester may only edit/cancel their own request while it is pending.
-  IF public.has_role(v_user, 'solicitante') OR v_role = 'SOLICITANTE' THEN
+  IF public.has_role(v_user, 'solicitante')
+     OR v_role = 'SOLICITANTE'
+     OR v_account_subtype = 'SOLICITANTE' THEN
     RETURN EXISTS (
       SELECT 1
       FROM public.cases c
