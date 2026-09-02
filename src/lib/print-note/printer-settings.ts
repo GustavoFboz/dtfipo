@@ -36,6 +36,7 @@ export const CASE_NOTE_PAPERS: CaseNotePaperPreset[] = [
   { id: "100x200", label: "100 × 200 mm", widthMm: 100, heightMm: 200, description: "Etiqueta longa" },
   { id: "104x170", label: "104 × 170 mm (4\")", widthMm: 104, heightMm: 170, description: "Térmica de 4 polegadas" },
   { id: "104x200", label: "104 × 200 mm (4\")", widthMm: 104, heightMm: 200, description: "Térmica de 4 polegadas longa" },
+  { id: "continuous", label: "Papel contínuo · altura automática", widthMm: 100, heightMm: 0, description: "A altura acompanha automaticamente o conteúdo" },
   { id: "a4", label: "A4 · 210 × 297 mm", widthMm: 210, heightMm: 297, description: "Impressora convencional" },
   { id: "custom", label: "Personalizado", widthMm: 100, heightMm: 170, description: "Definir largura e altura" },
 ];
@@ -167,7 +168,11 @@ export function applyCaseNotePrinterProfile(
   };
 }
 
-export function resolveCaseNotePaper(settings: CaseNotePrinterSettings): { widthMm: number; heightMm: number; label: string } {
+export function resolveCaseNotePaper(settings: CaseNotePrinterSettings): { widthMm: number; heightMm: number; label: string; continuous?: boolean } {
+  if (settings.paperId === "continuous") {
+    const widthMm = clampMm(settings.customWidthMm, 40, 108, 100);
+    return { widthMm, heightMm: 0, label: `${widthMm} mm · contínuo`, continuous: true };
+  }
   if (settings.paperId === "custom") {
     return {
       widthMm: clampMm(settings.customWidthMm, 40, 216, 100),
