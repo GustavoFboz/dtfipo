@@ -3,13 +3,32 @@ import type { PrintNoteTemplate } from "./types";
 import { renderNoteCanvas } from "./render-canvas";
 import { printCanvasBluetooth } from "./bluetooth";
 
+async function ensureInterForPrint() {
+  if (typeof document === "undefined") return;
+  if (!document.querySelector('link[data-dentalflow-inter-print]')) {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "https://rsms.me/inter/inter.css";
+    link.dataset.dentalflowInterPrint = "true";
+    document.head.appendChild(link);
+  }
+  try {
+    await document.fonts.load("400 16px Inter");
+    await document.fonts.load("600 16px Inter");
+    await document.fonts.load("700 16px Inter");
+    await document.fonts.ready;
+  } catch {}
+}
+
 export async function printNoteBluetooth(c: CaseRow, tpl: PrintNoteTemplate) {
+  await ensureInterForPrint();
   const { canvas } = renderNoteCanvas(c, tpl);
   await printCanvasBluetooth(canvas, tpl.density ?? "alta");
 }
 
 /** Imprime via diálogo do navegador (impressora normal / PDF). */
 export async function printNoteWindow(c: CaseRow, tpl: PrintNoteTemplate) {
+  await ensureInterForPrint();
   const { canvas } = renderNoteCanvas(c, tpl);
   const dataUrl = canvas.toDataURL("image/png");
   const iframe = document.createElement("iframe");
