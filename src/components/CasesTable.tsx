@@ -162,7 +162,13 @@ export function CasesTable({
   const [bulkAction, setBulkAction] = useState<null | "finish" | "delete" | "archive" | "reopen" | "accept">(null);
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile, staleTime: 300_000 });
-  const isCadista = profile?.role === "CADISTA";
+  const normalizedRole = String(profile?.role || profile?.account_subtype || "").toUpperCase();
+  const isCadista = normalizedRole === "CADISTA";
+  const canReviewRequests =
+    Boolean(profile?.is_default_admin) ||
+    normalizedRole === "CEO" ||
+    normalizedRole === "ADMIN" ||
+    normalizedRole === "PROTETICO";
 
   const cases = useQuery({
     queryKey: ["cases", activeFilter, dateRange?.start, dateRange?.end],
@@ -686,17 +692,19 @@ export function CasesTable({
                 {/* Etapa — ou aprovar/recusar quando for solicitação pendente */}
                 {c.status === "pendente" ? (
                   <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                    {profile?.role !== "SOLICITANTE" ? (
+                    {canReviewRequests ? (
                       <>
                         <button
+                          disabled={accept.isPending || reject.isPending}
                           onClick={() => accept.mutate({ caseId: c.id, cadistaId: null })}
-                          className="h-8 px-3 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-semibold uppercase tracking-[0.06em] transition inline-flex items-center gap-1.5"
+                          className="h-8 px-3 rounded-full disabled:opacity-50 disabled:pointer-events-none bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-semibold uppercase tracking-[0.06em] transition inline-flex items-center gap-1.5"
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" /> Aprovar
                         </button>
                         <button
+                          disabled={accept.isPending || reject.isPending}
                           onClick={() => reject.mutate(c.id)}
-                          className="h-8 px-3 rounded-full bg-rose-50 dark:bg-rose-500/10 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-[11px] font-semibold uppercase tracking-[0.06em] transition inline-flex items-center gap-1.5"
+                          className="h-8 px-3 rounded-full disabled:opacity-50 disabled:pointer-events-none bg-rose-50 dark:bg-rose-500/10 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-500/20 text-[11px] font-semibold uppercase tracking-[0.06em] transition inline-flex items-center gap-1.5"
                         >
                           <Trash2 className="h-3.5 w-3.5" /> Recusar
                         </button>
@@ -744,29 +752,6 @@ export function CasesTable({
                       <DropdownMenuItem onClick={() => setDetail(c)}>
                         <CheckCircle2 className="h-4 w-4 mr-2" /> Ver detalhes
                       </DropdownMenuItem>
-                      {(c.status === "pendente" || !c.cadista_id) && profile?.role !== "SOLICITANTE" && (
-                        <DropdownMenuItem 
-                          onClick={() => {
-                            const cadistaId = profile?.role === "CADISTA" ? profile.id : null;
-                            if (cadistaId || (profile?.role as string) === "ADMIN") {
-                              accept.mutate({ caseId: c.id, cadistaId: cadistaId || "auto-assign-logic" });
-                            } else {
-                              toast.error("Somente protéticos ou administradores podem aceitar casos.");
-                            }
-                          }}
-                          className="text-emerald-600 focus:text-emerald-600 font-bold"
-                        >
-                          <CheckCircle2 className="h-4 w-4 mr-2" /> Aceitar Caso
-                        </DropdownMenuItem>
-                      )}
-                      {(c.status === "pendente" && (profile?.role as string) === "ADMIN") && (
-                         <DropdownMenuItem 
-                          onClick={() => setDeleting(c)}
-                          className="text-rose-600 focus:text-rose-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" /> Recusar Solicitação
-                        </DropdownMenuItem>
-                      )}
                       {!isCadista && (
                         <>
                           <DropdownMenuItem onClick={() => setEditing(c)}>
@@ -1075,25 +1060,52 @@ export function CasesTable({
               </div>
 
               <div onClick={(e) => e.stopPropagation()} className="flex justify-start md:justify-center">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="hover:scale-105 transition-transform duration-300">
-                      <StageBadge stage={c.current_stage} />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="rounded-2xl border-slate-100 shadow-2xl p-2 min-w-[200px]">
-                    <DropdownMenuLabel className="text-[10px] font-black uppercase text-slate-400 tracking-[0.08em] mb-1">
-                      {isCadista ? "Status do Caso" : "Mover Etapa"}
-                    </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {stages.data?.map((s) => (
-                      <DropdownMenuItem key={s.id} onClick={() => changeStage.mutate({ caseId: c.id, stageId: s.id })} className="rounded-xl font-bold text-xs uppercase py-2.5 mt-1">
-                        <span className="h-2.5 w-2.5 rounded-full mr-3 shadow-md" style={{ background: s.color }} />
-                        {s.name}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                {c.status === "pendente" ? (
+                  canReviewRequests ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={accept.isPending || reject.isPending}
+                        onClick={() => accept.mutate({ caseId: c.id, cadistaId: null })}
+                        className="h-8 px-3 rounded-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:pointer-events-none text-white text-[11px] font-semibold uppercase tracking-[0.06em] transition inline-flex items-center gap-1.5"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Aceitar
+                      </button>
+                      <button
+                        type="button"
+                        disabled={accept.isPending || reject.isPending}
+                        onClick={() => reject.mutate(c.id)}
+                        className="h-8 px-3 rounded-full bg-rose-50 dark:bg-rose-500/10 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-500/20 disabled:opacity-50 disabled:pointer-events-none text-[11px] font-semibold uppercase tracking-[0.06em] transition inline-flex items-center gap-1.5"
+                      >
+                        <X className="h-3.5 w-3.5" /> Recusar
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-amber-500">
+                      Aguardando aprovação
+                    </span>
+                  )
+                ) : (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="hover:scale-105 transition-transform duration-300">
+                        <StageBadge stage={c.current_stage} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="rounded-2xl border-slate-100 shadow-2xl p-2 min-w-[200px]">
+                      <DropdownMenuLabel className="text-[10px] font-black uppercase text-slate-400 tracking-[0.08em] mb-1">
+                        {isCadista ? "Status do Caso" : "Mover Etapa"}
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {stages.data?.map((s) => (
+                        <DropdownMenuItem key={s.id} onClick={() => changeStage.mutate({ caseId: c.id, stageId: s.id })} className="rounded-xl font-bold text-xs uppercase py-2.5 mt-1">
+                          <span className="h-2.5 w-2.5 rounded-full mr-3 shadow-md" style={{ background: s.color }} />
+                          {s.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
 
               <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
