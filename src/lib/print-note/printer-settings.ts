@@ -8,12 +8,24 @@ export type CaseNotePaperPreset = {
   description: string;
 };
 
+export type CaseNotePrinterProfile = {
+  id: string;
+  label: string;
+  match: RegExp;
+  dpi: 203 | 300;
+  maxWidthMm?: number;
+  suggestedPaperId?: string;
+};
+
 export type CaseNotePrinterSettings = {
   transport: CaseNoteTransport;
   paperId: string;
   customWidthMm: number;
   customHeightMm: number;
   dpi: 203 | 300;
+  printerModel?: string | null;
+  printerProfileId?: string | null;
+  configuredAt?: string | null;
 };
 
 export const CASE_NOTE_PAPERS: CaseNotePaperPreset[] = [
@@ -28,7 +40,19 @@ export const CASE_NOTE_PAPERS: CaseNotePaperPreset[] = [
   { id: "custom", label: "Personalizado", widthMm: 100, heightMm: 170, description: "Definir largura e altura" },
 ];
 
-const STORAGE_KEY = "dentalflow.case-note-printer.v2";
+export const CASE_NOTE_PRINTER_PROFILES: CaseNotePrinterProfile[] = [
+  {
+    id: "tomate-mdk-2054n",
+    label: "Tomate MDK-2054N",
+    match: /(?:tomate\s*)?mdk[-\s]?2054n/i,
+    dpi: 203,
+    maxWidthMm: 108,
+    suggestedPaperId: "100x170",
+  },
+];
+
+const LEGACY_STORAGE_KEY = "dentalflow.case-note-printer.v2";
+const STORAGE_PREFIX = "dentalflow.case-note-printer.v3";
 
 export const DEFAULT_CASE_NOTE_PRINTER_SETTINGS: CaseNotePrinterSettings = {
   transport: "system",
@@ -36,29 +60,111 @@ export const DEFAULT_CASE_NOTE_PRINTER_SETTINGS: CaseNotePrinterSettings = {
   customWidthMm: 100,
   customHeightMm: 170,
   dpi: 203,
+  printerModel: null,
+  printerProfileId: null,
+  configuredAt: null,
 };
 
-export function loadCaseNotePrinterSettings(): CaseNotePrinterSettings {
-  if (typeof window === "undefined") return DEFAULT_CASE_NOTE_PRINTER_SETTINGS;
+function storageKeyForAccount(userId: string) {
+  return STORAGE_PREFIX + ":" + userId;
+}
+
+function normalizeSettings(value: Partial<CaseNotePrinterSettings> | null | undefined): CaseNotePrinterSettings {
+  const paperId = CASE_NOTE_PAPERS.some((p) => p.id === value?.paperId)
+    ? value!.paperId!
+    : DEFAULT_CASE_NOTE_PRINTER_SETTINGS.paperId;
+
+  const printerModel = typeof value?.printerModel === "string" && value.printerModel.trim()
+    ? value.printerModel.trim()
+    : null;
+  const matchedProfile = printerModel ? detectCaseNotePrinterProfile(printerModel) : null;
+
+  return {
+    transport: value?.transport === "bluetooth" ? "bluetooth" : "system",
+    paperId,
+    customWidthMm: clampMm(value?.customWidthMm, 40, 216, DEFAULT_CASE_NOTE_PRINTER_SETTINGS.customWidthMm),
+    customHeightMm: clampMm(value?.customHeightMm, 60, 500, DEFAULT_CASE_NOTE_PRINTER_SETTINGS.customHeightMm),
+    dpi: value?.dpi === 300 ? 300 : matchedProfile?.dpi ?? 203,
+    printerModel,
+    printerProfileId: value?.printerProfileId ?? matchedProfile?.id ?? null,
+    configuredAt: typeof value?.configuredAt === "string" ? value.configuredAt : null,
+  };
+}
+
+function readStorage(key: string): CaseNotePrinterSettings | null {
+  if (typeof window === "undefined") return null;
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || "null") as Partial<CaseNotePrinterSettings> | null;
-    if (!parsed) return DEFAULT_CASE_NOTE_PRINTER_SETTINGS;
-    const paperId = CASE_NOTE_PAPERS.some((p) => p.id === parsed.paperId) ? parsed.paperId! : DEFAULT_CASE_NOTE_PRINTER_SETTINGS.paperId;
-    return {
-      transport: parsed.transport === "bluetooth" ? "bluetooth" : "system",
-      paperId,
-      customWidthMm: clampMm(parsed.customWidthMm, 40, 216, DEFAULT_CASE_NOTE_PRINTER_SETTINGS.customWidthMm),
-      customHeightMm: clampMm(parsed.customHeightMm, 60, 500, DEFAULT_CASE_NOTE_PRINTER_SETTINGS.customHeightMm),
-      dpi: parsed.dpi === 300 ? 300 : 203,
-    };
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return null;
+    return normalizeSettings(JSON.parse(raw) as Partial<CaseNotePrinterSettings>);
   } catch {
-    return DEFAULT_CASE_NOTE_PRINTER_SETTINGS;
+    return null;
   }
 }
 
-export function saveCaseNotePrinterSettings(settings: CaseNotePrinterSettings) {
+function writeStorage(key: string, settings: CaseNotePrinterSettings) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  window.localStorage.setItem(
+    key,
+    JSON.stringify({ ...normalizeSettings(settings), configuredAt: settings.configuredAt ?? new Date().toISOString() }),
+  );
+}
+
+export function loadCaseNotePrinterSettings(): CaseNotePrinterSettings {
+  return readStorage(LEGACY_STORAGE_KEY) ?? DEFAULT_CASE_NOTE_PRINTER_SETTINGS;
+}
+
+export function saveCaseNotePrinterSettings(settings: CaseNotePrinterSettings) {
+  writeStorage(LEGACY_STORAGE_KEY, { ...settings, configuredAt: new Date().toISOString() });
+}
+
+export function loadCaseNotePrinterSettingsForAccount(userId: string): CaseNotePrinterSettings | null {
+  if (!userId) return null;
+  const account = readStorage(storageKeyForAccount(userId));
+  if (account) return account;
+
+  const legacy = readStorage(LEGACY_STORAGE_KEY);
+  if (!legacy) return null;
+
+  const migrated = {
+    ...legacy,
+    configuredAt: legacy.configuredAt ?? new Date().toISOString(),
+  };
+  writeStorage(storageKeyForAccount(userId), migrated);
+  return migrated;
+}
+
+export function saveCaseNotePrinterSettingsForAccount(userId: string, settings: CaseNotePrinterSettings) {
+  if (!userId) return;
+  const next = { ...settings, configuredAt: new Date().toISOString() };
+  writeStorage(storageKeyForAccount(userId), next);
+  writeStorage(LEGACY_STORAGE_KEY, next);
+}
+
+export function clearCaseNotePrinterSettingsForAccount(userId: string) {
+  if (typeof window === "undefined" || !userId) return;
+  window.localStorage.removeItem(storageKeyForAccount(userId));
+}
+
+export function detectCaseNotePrinterProfile(modelName: string | null | undefined): CaseNotePrinterProfile | null {
+  if (!modelName) return null;
+  return CASE_NOTE_PRINTER_PROFILES.find((profile) => profile.match.test(modelName)) ?? null;
+}
+
+export function applyCaseNotePrinterProfile(
+  settings: CaseNotePrinterSettings,
+  modelName: string,
+  options: { useSuggestedPaper?: boolean } = {},
+): CaseNotePrinterSettings {
+  const profile = detectCaseNotePrinterProfile(modelName);
+  if (!profile) return { ...settings, printerModel: modelName, printerProfileId: null };
+  return {
+    ...settings,
+    printerModel: modelName,
+    printerProfileId: profile.id,
+    dpi: profile.dpi,
+    paperId: options.useSuggestedPaper && profile.suggestedPaperId ? profile.suggestedPaperId : settings.paperId,
+  };
 }
 
 export function resolveCaseNotePaper(settings: CaseNotePrinterSettings): { widthMm: number; heightMm: number; label: string } {
@@ -66,7 +172,7 @@ export function resolveCaseNotePaper(settings: CaseNotePrinterSettings): { width
     return {
       widthMm: clampMm(settings.customWidthMm, 40, 216, 100),
       heightMm: clampMm(settings.customHeightMm, 60, 500, 170),
-      label: `${settings.customWidthMm} × ${settings.customHeightMm} mm`,
+      label: settings.customWidthMm + " × " + settings.customHeightMm + " mm",
     };
   }
   const preset = CASE_NOTE_PAPERS.find((p) => p.id === settings.paperId) ?? CASE_NOTE_PAPERS.find((p) => p.id === "100x170")!;
