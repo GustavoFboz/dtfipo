@@ -70,7 +70,7 @@ const TABS: TabDefinition[] = [
   { key: "html", label: "HTML" },
   { key: "modelos", label: "Modelos" },
   { key: "confeccao", label: "Elementos" },
-  { key: "comentarios", label: "Chat", hiddenFor: ["SOLICITANTE"] },
+  { key: "comentarios", label: "Chat" },
 ];
 
 function isTabKey(value: string | null): value is TabKey {
@@ -348,12 +348,7 @@ export function CaseDetailDialog({
       return;
     }
     const initialTab = syncUrlHash ? restoredTabFor(caseId) : readSavedTab(caseId) ?? "detalhes";
-    // Avoid restoring chat tab for solicitantes
-    if (isSolicitante && initialTab === "comentarios") {
-      setTab("detalhes");
-    } else {
-      setTab(initialTab);
-    }
+    setTab(initialTab);
     setRestoredCaseId(caseId);
   }, [open, caseId, syncUrlHash]);
 
