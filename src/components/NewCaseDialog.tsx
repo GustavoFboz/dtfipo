@@ -215,6 +215,7 @@ export function NewCaseDialog({
   const [gumNotes, setGumNotes] = useState<string>("");
   // Per-tooth case type mapping: tooth -> case_type_id
   const [toothTypeMap, setToothTypeMap] = useState<Record<number, string>>({});
+  const [prosthesisGroups, setProsthesisGroups] = useState<Array<{ id: string; teeth: number[]; case_type_id?: string | null }>>([]);
   // Dentes com enceramento (trabalho extra cumulativo).
   const [toothEnceramento, setToothEnceramento] = useState<Record<number, boolean>>({});
   // Per-tooth Ti-Base (stock_item id) — only meaningful in view mode for cadista
@@ -244,13 +245,13 @@ export function NewCaseDialog({
       arcadaMode, scanJigId, hasProvisional, hasMockup, notes,
       teeth, zirTeeth, disTeeth,
       gumMode, gumColor, gumNotes,
-      toothTypeMap, toothEnceramento, toothImplantSystemMap,
+      toothTypeMap, prosthesisGroups, toothEnceramento, toothImplantSystemMap,
     }),
     [
       patientId, newPatientName, doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
       entryDate, deliveryDate, stageId, arch, implantSystemId, additionalSystemIds, implantTeeth,
       arcadaMode, scanJigId, hasProvisional, hasMockup, notes, teeth, zirTeeth, disTeeth,
-      gumMode, gumColor, gumNotes, toothTypeMap, toothEnceramento, toothImplantSystemMap,
+      gumMode, gumColor, gumNotes, toothTypeMap, prosthesisGroups, toothEnceramento, toothImplantSystemMap,
     ],
   );
   useSessionSnapshot(persistFormKey, !!persistFormKey && open, formSnapshot, (d) => {
@@ -280,6 +281,7 @@ export function NewCaseDialog({
     if (d.gumColor !== undefined) setGumColor(d.gumColor as string);
     if (d.gumNotes !== undefined) setGumNotes(d.gumNotes as string);
     if (d.toothTypeMap !== undefined) setToothTypeMap(d.toothTypeMap as Record<number, string>);
+    if (d.prosthesisGroups !== undefined) setProsthesisGroups(d.prosthesisGroups as Array<{ id: string; teeth: number[]; case_type_id?: string | null }>);
     if (d.toothEnceramento !== undefined) setToothEnceramento(d.toothEnceramento as Record<number, boolean>);
     if (d.toothImplantSystemMap !== undefined) setToothImplantSystemMap(d.toothImplantSystemMap as Record<number, string>);
   });
@@ -319,6 +321,7 @@ export function NewCaseDialog({
       if (s.hasEnceramento) enc[Number(k)] = true;
     }
     setToothTypeMap(map);
+    setProsthesisGroups(Array.isArray((viewCase as any).prosthesis_groups) ? (viewCase as any).prosthesis_groups : []);
     setToothEnceramento(enc);
     const tib = (viewCase.tooth_ti_bases ?? {}) as Record<string, string>;
     const tibMap: Record<number, string> = {};
@@ -369,6 +372,7 @@ export function NewCaseDialog({
       if (s.hasEnceramento) enc[Number(k)] = true;
     }
     setToothTypeMap(map);
+    setProsthesisGroups(Array.isArray((editCase as any).prosthesis_groups) ? (editCase as any).prosthesis_groups : []);
     setToothEnceramento(enc);
     const tis = (editCase.tooth_implant_systems ?? {}) as Record<string, string>;
     const tisMap: Record<number, string> = {};
@@ -429,7 +433,7 @@ export function NewCaseDialog({
     setDoctorId(""); setCadistaId(""); setCaseTypeIds([]);
     setToothColorId(""); setCaseLabel(""); setEntryDate(today); setDeliveryDate(today);
     setStageId(""); setArch(""); setImplantSystemId(""); setAdditionalSystemIds([]); setImplantTeeth([]); setScanJigId(""); setHasProvisional(false); setHasMockup(false);
-    setNotes(""); setTeeth([]); setZirTeeth([]); setDisTeeth([]); setToothTypeMap({}); setToothEnceramento({});
+    setNotes(""); setTeeth([]); setZirTeeth([]); setDisTeeth([]); setToothTypeMap({}); setProsthesisGroups([]); setToothEnceramento({});
     setToothImplantSystemMap({});
     setGumMode(""); setGumColor(""); setGumNotes("");
     setPendingScanFiles([]);
@@ -728,6 +732,12 @@ export function NewCaseDialog({
         teeth_zirconia: cleanZir,
         teeth_dissilicato: cleanDis,
         tooth_case_types: tct,
+        prosthesis_groups: prosthesisGroups
+          .map((group) => ({
+            ...group,
+            teeth: sortTeeth(group.teeth.filter((tooth) => teethSet.has(tooth))),
+          }))
+          .filter((group) => group.teeth.length > 1),
         gum_info: (gumMode || gumColor || gumNotes)
           ? { mode: gumMode || null, color: gumColor || null, notes: gumNotes || null }
           : null,
@@ -1505,6 +1515,14 @@ export function NewCaseDialog({
                   targets.forEach((t) => { if (id) n[t] = id; else delete n[t]; });
                   return n;
                 });
+                if (targets.length > 1) {
+                  const key = sortTeeth(targets).join(",");
+                  setProsthesisGroups((groups) => groups.map((group) =>
+                    sortTeeth(group.teeth).join(",") === key
+                      ? { ...group, case_type_id: id || null }
+                      : group
+                  ));
+                }
               }}
               hasEnceramento={focusedTooth != null && !!toothEnceramento[focusedTooth]}
               onEnceramentoToggle={() => {
@@ -1585,6 +1603,32 @@ export function NewCaseDialog({
                 }
               }}
 
+              groupedAsSingle={(() => {
+                if (configGroup.length < 2) return false;
+                const key = sortTeeth(configGroup).join(",");
+                return prosthesisGroups.some((group) => sortTeeth(group.teeth).join(",") === key);
+              })()}
+              onGroupedAsSingleChange={(value) => {
+                if (focusedTooth == null) return;
+                const targets = sortTeeth(configGroup.length ? configGroup : [focusedTooth]);
+                if (targets.length < 2) return;
+                const key = targets.join(",");
+                setProsthesisGroups((groups) => {
+                  const withoutExact = groups.filter((group) => sortTeeth(group.teeth).join(",") !== key);
+                  if (!value) return withoutExact;
+                  const id = (typeof crypto !== "undefined" && crypto.randomUUID)
+                    ? crypto.randomUUID()
+                    : `group-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+                  return [
+                    ...withoutExact.filter((group) => !group.teeth.some((tooth) => targets.includes(tooth))),
+                    {
+                      id,
+                      teeth: targets,
+                      case_type_id: toothTypeMap[focusedTooth] || null,
+                    },
+                  ];
+                });
+              }}
               onRemoveTooth={() => {
                 if (focusedTooth == null) return;
                 const targets = configGroup.length ? configGroup : [focusedTooth];
@@ -1598,6 +1642,9 @@ export function NewCaseDialog({
                   targets.forEach((t) => { delete n[t]; });
                   return n;
                 });
+                setProsthesisGroups((groups) => groups
+                  .map((group) => ({ ...group, teeth: group.teeth.filter((tooth) => !tset.has(tooth)) }))
+                  .filter((group) => group.teeth.length > 1));
                 setFocusedTooth(null);
                 setConfigGroup([]);
               }}
