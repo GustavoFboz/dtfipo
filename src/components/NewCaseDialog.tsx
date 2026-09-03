@@ -1800,7 +1800,7 @@ export function NewCaseDialog({
                       <DropdownMenuItem onClick={() => { pendingKindRef.current = "model"; setPendingAccept(".stl,.obj,.ply,.zip,.rar,.7z"); pendingScanFileInput.current?.click(); }}>
                         <Box className="h-4 w-4 mr-2" /> Modelo 3D
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { pendingKindRef.current = "fabrication"; setPendingAccept(".stl,.obj,.ply,.zip,.rar,.7z"); pendingScanFileInput.current?.click(); }}>
+                      <DropdownMenuItem onClick={() => { pendingKindRef.current = "fabrication"; setPendingAccept(".stl,.obj,.ply,.zip,.rar,.7z,.constructioninfo"); pendingScanFileInput.current?.click(); }}>
                         <Wrench className="h-4 w-4 mr-2" /> Arquivo Confecção
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => { pendingKindRef.current = "exocad_html"; setPendingAccept(".html"); pendingScanFileInput.current?.click(); }}>
