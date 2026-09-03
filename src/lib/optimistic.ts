@@ -1,5 +1,4 @@
 import type { QueryClient, QueryKey } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
 type Row = Record<string, any> & { id: string };
 
@@ -168,16 +167,22 @@ export function installTombstoneGuard(qc: QueryClient) {
 }
 
 // ---------- Peer broadcast ----------
+//
+// IMPORTANT SECURITY BOUNDARY
+// ---------------------------
+// Full entity rows can contain patient/case/notification data. They must never
+// travel over a public Supabase Broadcast topic because that channel is not a
+// substitute for PostgreSQL RLS. Cross-device synchronization is handled by
+// postgres_changes (which is evaluated against the authenticated database
+// policies). This peer layer is therefore deliberately LOCAL-DEVICE only,
+// using the browser BroadcastChannel API for instant synchronization between
+// tabs of the same Dental Flow session/origin.
 
 type BroadcastOp = "insert" | "update" | "delete";
 type BroadcastPayload = { op: BroadcastOp; row: any; senderId: string };
-type ChannelState = {
-  channel: ReturnType<typeof supabase.channel> | null;
-  subscribed: boolean;
-  queue: BroadcastPayload[];
+type LocalChannelState = {
+  channel: BroadcastChannel | null;
   listeners: Set<(payload: BroadcastPayload) => void>;
-  reconnectTimer: ReturnType<typeof setTimeout> | null;
-  generation: number;
 };
 
 const SENDER_ID = (() => {
@@ -188,82 +193,50 @@ const SENDER_ID = (() => {
   }
 })();
 
-const channels = new Map<string, ChannelState>();
+const localChannels = new Map<string, LocalChannelState>();
 
-function scheduleReconnect(entity: string, state: ChannelState) {
-  if (state.reconnectTimer) return;
-  state.subscribed = false;
-  state.reconnectTimer = setTimeout(() => {
-    state.reconnectTimer = null;
-    connectEntityChannel(entity, state);
-  }, 700);
-}
-
-function sendQueued(entity: string, state: ChannelState) {
-  if (!state.subscribed || !state.channel || state.queue.length === 0) return;
-  const pending = state.queue.splice(0);
-  for (const payload of pending) {
-    void state.channel
-      .send({ type: "broadcast", event: "change", payload })
-      .then((result) => {
-        if (result !== "ok") {
-          state.queue.unshift(payload);
-          scheduleReconnect(entity, state);
-        }
-      })
-      .catch(() => {
-        state.queue.unshift(payload);
-        scheduleReconnect(entity, state);
-      });
-  }
-}
-
-function connectEntityChannel(entity: string, state: ChannelState) {
-  state.generation += 1;
-  const token = state.generation;
-  if (state.channel) supabase.removeChannel(state.channel);
-  state.subscribed = false;
-
-  const channel = supabase.channel(`entity:${entity}`, { config: { broadcast: { self: false, ack: true } } });
-  state.channel = channel;
-
-  channel.on("broadcast", { event: "change" }, ({ payload }: { payload: BroadcastPayload }) => {
-    if (payload?.senderId === SENDER_ID) return;
-    state.listeners.forEach((listener) => listener(payload));
-  });
-
-  channel.subscribe((status) => {
-    if (token !== state.generation) return;
-    state.subscribed = status === "SUBSCRIBED";
-    if (state.subscribed) sendQueued(entity, state);
-    if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") scheduleReconnect(entity, state);
-  });
-}
-
-function getChannel(entity: string) {
-  let state = channels.get(entity);
+function getLocalChannel(entity: string): LocalChannelState {
+  let state = localChannels.get(entity);
   if (state) return state;
 
-  state = { channel: null, subscribed: false, queue: [], listeners: new Set(), reconnectTimer: null, generation: 0 };
-  channels.set(entity, state);
-  connectEntityChannel(entity, state);
+  state = {
+    channel: null,
+    listeners: new Set(),
+  };
+  localChannels.set(entity, state);
+
+  if (typeof window !== "undefined" && typeof BroadcastChannel !== "undefined") {
+    const channel = new BroadcastChannel(`dentalflow:entity:${entity}`);
+    state.channel = channel;
+    channel.onmessage = (event: MessageEvent<BroadcastPayload>) => {
+      const payload = event.data;
+      if (!payload || payload.senderId === SENDER_ID) return;
+      state!.listeners.forEach((listener) => listener(payload));
+    };
+  }
 
   return state;
 }
 
 export function broadcastEntity(entity: string, op: BroadcastOp, row: any) {
   if (typeof window === "undefined") return;
-  const state = getChannel(entity);
-  const payload = { op, row, senderId: SENDER_ID };
-  state.queue.push(payload);
-  sendQueued(entity, state);
+  const state = getLocalChannel(entity);
+  if (!state.channel) return;
+  const payload: BroadcastPayload = { op, row, senderId: SENDER_ID };
+  try {
+    state.channel.postMessage(payload);
+  } catch (error) {
+    // Local peer sync is an optimization only. The database realtime channel
+    // remains authoritative and will reconcile the UI.
+    console.warn("local entity broadcast failed", error);
+  }
 }
 
 export function subscribeEntity(
   entity: string,
   handler: (payload: BroadcastPayload) => void,
 ) {
-  const state = getChannel(entity);
+  const state = getLocalChannel(entity);
   state.listeners.add(handler);
   return () => {
     state.listeners.delete(handler);
