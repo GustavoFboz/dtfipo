@@ -230,8 +230,8 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   }, [caseId, qc]);
 
   const { data: mentionOptions = [] } = useQuery({
-    queryKey: ["mention_profiles", mentionQuery ?? ""],
-    queryFn: () => fetchMentionableProfiles(mentionQuery ?? ""),
+    queryKey: ["mention_profiles", caseId, mentionQuery ?? ""],
+    queryFn: () => fetchMentionableProfiles(caseId, mentionQuery ?? ""),
     enabled: mentionQuery !== null,
   });
 
