@@ -1157,3 +1157,47 @@ $$;
 
 REVOKE ALL ON FUNCTION public.return_case_workflow(uuid,uuid,text,uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.return_case_workflow(uuid,uuid,text,uuid) TO authenticated, service_role;
+
+
+-- notify_case_reviewers_new_request_v2
+-- Pending requests belong to the requester + users who can actually review them.
+-- Assigned cadistas/dentists are intentionally not notified until acceptance.
+CREATE OR REPLACE FUNCTION public.notify_proteticos_new_request()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  reviewer record;
+BEGIN
+  IF NEW.requested_by IS NULL OR NEW.status <> 'pendente' THEN
+    RETURN NEW;
+  END IF;
+
+  FOR reviewer IN
+    SELECT p.id
+    FROM public.profiles p
+    WHERE p.id <> NEW.requested_by
+      AND (
+        COALESCE(p.is_default_admin,false)
+        OR public.effective_user_type(p.id) IN ('CEO','ADMIN','PROTETICO')
+      )
+  LOOP
+    INSERT INTO public.notifications(
+      id, recipient_id, sender_id, title, content, type, metadata
+    )
+    VALUES (
+      gen_random_uuid(),
+      reviewer.id,
+      NEW.requested_by,
+      'Nova solicitação de caso',
+      'Um novo caso foi solicitado e aguarda aprovação.',
+      'case_request',
+      jsonb_build_object('case_id', NEW.id, 'action', 'approval_required')
+    );
+  END LOOP;
+
+  RETURN NEW;
+END;
+$$;
