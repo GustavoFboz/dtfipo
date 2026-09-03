@@ -588,7 +588,7 @@ export function TeethSelector({
     <div className={`relative select-none w-full ${fitParent ? "h-full min-h-0 flex" : ""}`}>
       <div
         data-odontogram-tooltip
-        className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-full rounded-lg bg-slate-950 px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg opacity-0 transition-opacity"
+        className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-full rounded-lg bg-slate-950 px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg opacity-0 transition-opacity after:absolute after:left-1/2 after:top-full after:-translate-x-1/2 after:border-[5px] after:border-transparent after:border-t-slate-950 after:content-['']"
       />
       <div
         ref={ref}
