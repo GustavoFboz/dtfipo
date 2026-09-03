@@ -50,7 +50,15 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
   const profile = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
 
   const currentStageId = (caseRow as any).current_stage_id as string | null;
-  const list = stages.data ?? [];
+  const list = useMemo(() => {
+    const source = stages.data ?? [];
+    return source.filter((stage: any) => {
+      const condition = stage.condition_key as string | null | undefined;
+      if (condition === "mockup") return !!(caseRow as any).has_mockup;
+      if (condition === "provisional") return !!(caseRow as any).has_provisional;
+      return true;
+    });
+  }, [stages.data, (caseRow as any).has_mockup, (caseRow as any).has_provisional]);
   const currentIdx = useMemo(() => list.findIndex((s) => s.id === currentStageId), [list, currentStageId]);
   const currentStage = currentIdx >= 0 ? list[currentIdx] : null;
 
@@ -60,8 +68,10 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
     enabled: !!currentStageId,
   });
 
-  const role = profile.data?.role;
-  const isAdmin = role === "CEO" || role === "DR";
+  const role = String(profile.data?.role || "").toUpperCase();
+  const subtype = String((profile.data as any)?.account_subtype || "").toUpperCase();
+  const effectiveType = subtype || role;
+  const isAdmin = ["CEO", "ADMIN", "PROTETICO"].includes(effectiveType) || !!(profile.data as any)?.is_default_admin;
   const myUid = profile.data?.id;
   const stageAssignees = assignees.data ?? [];
   const hasAssignees = stageAssignees.length > 0;
@@ -110,7 +120,7 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
     if (!nextStage) return;
     const nextPhaseId = (nextStage as any).phase_id ?? (caseRow as any).current_phase_id ?? null;
     setBusy(true);
-    advanceCaseWorkflow(caseRow.id, null)
+    advanceCaseWorkflow(caseRow.id, nextStage.id)
       .then((res: any) => {
         const stageId = res?.stage_id ?? nextStage.id;
         const phaseId = res?.phase_id ?? nextPhaseId;
