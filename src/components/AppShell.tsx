@@ -19,6 +19,7 @@ import {
   User,
   Home,
   Bell,
+  MessageSquare,
   Search as SearchIcon
 } from "lucide-react";
 import { Settings as SettingsIcon } from "lucide-react";
@@ -51,7 +52,8 @@ const PAGE_BLANK_DURATION_MS = 55;
 const PAGE_ENTER_DURATION_MS = 300;
 
 const navItems = [
-  { to: "/casos", label: "Casos", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "SOLICITANTE"] },
+  { to: "/casos", label: "Casos", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA", "SOLICITANTE"] },
+  { to: "/mensagens", label: "Mensagens", icon: MessageSquare, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA"] },
   { to: "/patients", label: "Pacientes", icon: Users, roles: ["CEO", "DR", "ATENDIMENTO"] },
   { to: "/agenda", label: "Agenda", icon: CalendarDays, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA"] },
   { to: "/equipe", label: "Equipe", icon: Users2, roles: ["CEO"] },
@@ -317,7 +319,9 @@ export function AppShell() {
   // não deixar a sidebar "vazia" (apenas Configurações) durante o carregamento
   // ou em caso de falha silenciosa no fetchProfile.
   const emailIsAdmin = email?.toLowerCase() === "gustavovitorfa@gmail.com";
-  const effectiveRole = profile?.role ?? (emailIsAdmin ? "CEO" : undefined);
+  const profileRole = String(profile?.role || "").toUpperCase();
+  const profileSubtype = String((profile as any)?.account_subtype || "").toUpperCase();
+  const effectiveRole = profileSubtype || profileRole || (emailIsAdmin ? "CEO" : undefined);
 
   const filteredNavItems = [
     ...navItems.filter(n =>
