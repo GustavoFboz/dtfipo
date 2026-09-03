@@ -482,6 +482,8 @@ export function TeethSelector({
     });
   }, [value, highlight, disabled, maxHeight, implantTeeth, implantColor, implantSystemColors, mode, showImplantLayer, focusedImplantTooth, configuredTeeth, assignedTeeth, pendingImplantTeeth]);
 
+  const modifierRef = useRef({ ctrl: false, shift: false });
+
   const handlePointerMove = (event: React.MouseEvent<HTMLDivElement>) => {
     const target = event.target as Element | null;
     const group = target?.closest<SVGGElement>("g[data-tooth-tooltip]");
@@ -542,10 +544,17 @@ export function TeethSelector({
       return;
     }
 
+    const mods = {
+      ctrl: Boolean(event.ctrlKey || event.metaKey || modifierRef.current.ctrl),
+      shift: Boolean(event.shiftKey || modifierRef.current.shift),
+    };
+    modifierRef.current = { ctrl: false, shift: false };
+
     // Work mode: if parent provided an onWorkClick handler, delegate entirely.
     if (onWorkClickRef.current) {
-      onWorkClickRef.current(n, { ctrl: event.ctrlKey || event.metaKey, shift: event.shiftKey });
-      anchorRef.current = n;
+      onWorkClickRef.current(n, mods);
+      // Shift must keep the previous anchor, exactly like a file manager.
+      if (!mods.shift) anchorRef.current = n;
       return;
     }
 
@@ -579,11 +588,20 @@ export function TeethSelector({
     <div className={`relative select-none w-full ${fitParent ? "h-full min-h-0 flex" : ""}`}>
       <div
         data-odontogram-tooltip
-        className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-full rounded-lg bg-slate-950 px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg opacity-0 transition-opacity"
+        className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-full rounded-lg bg-slate-950 px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg opacity-0 transition-opacity after:absolute after:left-1/2 after:top-full after:-translate-x-1/2 after:border-[5px] after:border-transparent after:border-t-slate-950 after:content-['']"
       />
       <div
         ref={ref}
         className={`mx-auto flex w-full max-w-[860px] justify-center p-0 ${fitParent ? "h-full min-h-0 items-center" : ""}`}
+        onPointerDown={(event) => {
+          // Capture modifier keys at pointer-down time. On some browsers/SVG
+          // combinations Ctrl/Cmd can be lost before the synthetic click.
+          const native = event.nativeEvent as PointerEvent & { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean };
+          modifierRef.current = {
+            ctrl: Boolean(native.ctrlKey || native.metaKey),
+            shift: Boolean(native.shiftKey),
+          };
+        }}
         onClick={handleClick}
         onMouseMove={handlePointerMove}
         onMouseLeave={() => {

@@ -177,21 +177,21 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
     if (hasRole("SOLICITANTE")) {
       query = query.eq("requested_by", user.id);
     } else if (hasRole("CADISTA")) {
-      const { data: cadista } = await supabase
+      const { data: cadistas } = await supabase
         .from("cadistas")
         .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (!cadista?.id) return [];
-      query = query.eq("cadista_id", cadista.id);
+        .or(`user_id.eq.${user.id},id.eq.${user.id}`);
+      const ids = (cadistas ?? []).map((item) => item.id).filter(Boolean);
+      if (!ids.length) return [];
+      query = ids.length === 1 ? query.eq("cadista_id", ids[0]) : query.in("cadista_id", ids);
     } else if (hasRole("DR", "DENTISTA")) {
-      const { data: doctor } = await supabase
+      const { data: doctors } = await supabase
         .from("doctors")
         .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (!doctor?.id) return [];
-      query = query.eq("doctor_id", doctor.id);
+        .or(`user_id.eq.${user.id},id.eq.${user.id}`);
+      const ids = (doctors ?? []).map((item) => item.id).filter(Boolean);
+      if (!ids.length) return [];
+      query = ids.length === 1 ? query.eq("doctor_id", ids[0]) : query.in("doctor_id", ids);
     } else {
       return [];
     }
@@ -623,6 +623,11 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
     const effectiveType = String(prof?.account_subtype || prof?.role || "").toUpperCase();
     isSolicitante = effectiveType === "SOLICITANTE";
   }
+  // Feature columns may briefly be unavailable while a database migration is
+  // rolling out. Keep the core case creation path recoverable instead of
+  // blocking the clinic with a PostgREST schema-cache error.
+  const optionalFeatureKeys = ["has_mockup", "prosthesis_groups"] as const;
+
   const payload = {
     ...rest,
     sibling_case_id,
@@ -637,11 +642,34 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
     requested_by: isSolicitante ? (input.requested_by || user?.id) : null,
     status: isSolicitante ? "pendente" : "em_andamento",
   };
-  const { data: row, error } = await supabase
+  let insertPayload: Record<string, unknown> = { ...payload };
+  let insertResult = await supabase
     .from("cases")
-    .insert(payload)
+    .insert(insertPayload as never)
     .select()
     .single();
+
+  // During a rolling migration more than one optional column can be absent.
+  // Retry only for known optional feature columns; every other DB error remains
+  // fatal and visible.
+  for (let attempt = 0; attempt < optionalFeatureKeys.length && insertResult.error; attempt += 1) {
+    const message = String(insertResult.error.message || "");
+    const missingOptionalKey = optionalFeatureKeys.find(
+      (key) =>
+        Object.prototype.hasOwnProperty.call(insertPayload, key) &&
+        message.includes(`'${key}'`) &&
+        message.toLowerCase().includes("schema cache"),
+    );
+    if (!missingOptionalKey) break;
+    delete insertPayload[missingOptionalKey];
+    insertResult = await supabase
+      .from("cases")
+      .insert(insertPayload as never)
+      .select()
+      .single();
+  }
+
+  const { data: row, error } = insertResult;
   if (error) throw error;
   if (component_ids && component_ids.length) {
     const { error: e2 } = await supabase
@@ -754,8 +782,24 @@ export const updateCase = async (id: string, patch: Record<string, unknown>) => 
   // ever broadcast to users who do not already have the row.
   try { broadcastEntity("cases", "update", { id, ...patch, updated_at: new Date().toISOString() }); } catch { /* ignore */ }
 
-  const { error } = await supabase.from("cases").update(patch as never).eq("id", id);
-  if (error) throw error;
+  const optionalFeatureKeys = ["has_mockup", "prosthesis_groups"] as const;
+  let updatePatch: Record<string, unknown> = { ...patch };
+  let updateResult = await supabase.from("cases").update(updatePatch as never).eq("id", id);
+
+  for (let attempt = 0; attempt < optionalFeatureKeys.length && updateResult.error; attempt += 1) {
+    const message = String(updateResult.error.message || "");
+    const missingOptionalKey = optionalFeatureKeys.find(
+      (key) =>
+        Object.prototype.hasOwnProperty.call(updatePatch, key) &&
+        message.includes(`'${key}'`) &&
+        message.toLowerCase().includes("schema cache"),
+    );
+    if (!missingOptionalKey) break;
+    delete updatePatch[missingOptionalKey];
+    updateResult = await supabase.from("cases").update(updatePatch as never).eq("id", id);
+  }
+
+  if (updateResult.error) throw updateResult.error;
 
   if (assignmentChanged) {
     try {
