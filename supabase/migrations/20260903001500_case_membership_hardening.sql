@@ -589,3 +589,225 @@ ALTER TABLE public.cases
 
 COMMENT ON COLUMN public.cases.prosthesis_groups IS
   'Array of {id, teeth:number[], case_type_id?}; groups teeth that belong to one prosthetic unit.';
+
+
+-- stage_return_audit_v2
+-- Repair workflow history when a case revisits a previously completed stage.
+-- The original RPC used ON CONFLICT DO NOTHING, leaving the target stage
+-- completed even while cases.current_stage_id pointed to it.
+
+CREATE OR REPLACE FUNCTION public.advance_case_workflow(_case_id uuid, _stage_id uuid DEFAULT NULL::uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_current_stage uuid;
+  v_current_pos int;
+  v_next_stage uuid;
+  v_next_phase uuid;
+  v_next_pos int;
+  v_blockers text[];
+BEGIN
+  IF NOT public.can_access_case(_case_id) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Sem permissão');
+  END IF;
+
+  SELECT public.case_stage_requirement_blockers(_case_id) INTO v_blockers;
+  IF COALESCE(array_length(v_blockers,1),0) > 0 THEN
+    RETURN jsonb_build_object(
+      'success', false,
+      'error', 'Para avançar, cumpra:' || chr(10) || '• ' ||
+               array_to_string(v_blockers, chr(10) || '• '),
+      'blockers', to_jsonb(v_blockers)
+    );
+  END IF;
+
+  SELECT current_stage_id INTO v_current_stage
+  FROM public.cases
+  WHERE id = _case_id;
+
+  IF v_current_stage IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Caso sem etapa atual');
+  END IF;
+
+  SELECT position INTO v_current_pos
+  FROM public.stages
+  WHERE id = v_current_stage;
+
+  IF _stage_id IS NOT NULL THEN
+    SELECT id, position, phase_id
+      INTO v_next_stage, v_next_pos, v_next_phase
+    FROM public.stages
+    WHERE id = _stage_id;
+
+    IF v_next_stage IS NULL THEN
+      RETURN jsonb_build_object('success', false, 'error', 'Etapa de destino não encontrada');
+    END IF;
+    IF v_next_pos <= COALESCE(v_current_pos, -1) THEN
+      RETURN jsonb_build_object('success', false, 'error', 'A etapa de destino não é posterior à etapa atual');
+    END IF;
+  ELSE
+    SELECT id, position, phase_id
+      INTO v_next_stage, v_next_pos, v_next_phase
+    FROM public.stages
+    WHERE position > COALESCE(v_current_pos, -1)
+    ORDER BY position ASC
+    LIMIT 1;
+
+    IF v_next_stage IS NULL THEN
+      RETURN jsonb_build_object('success', false, 'error', 'Não há próxima etapa');
+    END IF;
+  END IF;
+
+  UPDATE public.case_stages
+  SET completed_at = COALESCE(completed_at, now())
+  WHERE case_id = _case_id
+    AND stage_id = v_current_stage
+    AND completed_at IS NULL;
+
+  INSERT INTO public.case_stages(case_id, stage_id, started_at, completed_at)
+  VALUES (_case_id, v_next_stage, now(), NULL)
+  ON CONFLICT (case_id, stage_id)
+  DO UPDATE SET
+    started_at = EXCLUDED.started_at,
+    completed_at = NULL;
+
+  UPDATE public.cases
+  SET current_stage_id = v_next_stage,
+      current_phase_id = COALESCE(v_next_phase, current_phase_id),
+      updated_at = now()
+  WHERE id = _case_id;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'stage_id', v_next_stage,
+    'phase_id', v_next_phase
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.advance_case_workflow(uuid,uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.advance_case_workflow(uuid,uuid) TO authenticated, service_role;
+
+
+CREATE OR REPLACE FUNCTION public.return_case_workflow(
+  _case_id uuid,
+  _reason_id uuid,
+  _notes text DEFAULT NULL,
+  _to_stage_id uuid DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_current_stage uuid;
+  v_current_pos int;
+  v_current_name text;
+  v_target_stage uuid;
+  v_target_pos int;
+  v_target_phase uuid;
+  v_target_name text;
+  v_reason_label text;
+BEGIN
+  IF NOT public.can_access_case(_case_id) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Sem permissão');
+  END IF;
+
+  SELECT c.current_stage_id, s.position, s.name
+    INTO v_current_stage, v_current_pos, v_current_name
+  FROM public.cases c
+  LEFT JOIN public.stages s ON s.id = c.current_stage_id
+  WHERE c.id = _case_id;
+
+  IF v_current_stage IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Caso sem etapa atual');
+  END IF;
+
+  SELECT label INTO v_reason_label
+  FROM public.stage_return_reasons
+  WHERE id = _reason_id;
+
+  IF _reason_id IS NOT NULL AND v_reason_label IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Justificativa de retorno inválida');
+  END IF;
+
+  IF _to_stage_id IS NOT NULL THEN
+    SELECT id, position, phase_id, name
+      INTO v_target_stage, v_target_pos, v_target_phase, v_target_name
+    FROM public.stages
+    WHERE id = _to_stage_id;
+  ELSE
+    SELECT id, position, phase_id, name
+      INTO v_target_stage, v_target_pos, v_target_phase, v_target_name
+    FROM public.stages
+    WHERE position < COALESCE(v_current_pos, 999999)
+    ORDER BY position DESC
+    LIMIT 1;
+  END IF;
+
+  IF v_target_stage IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Não há etapa anterior');
+  END IF;
+
+  IF v_target_pos >= COALESCE(v_current_pos, v_target_pos + 1) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'A etapa selecionada não é anterior à etapa atual');
+  END IF;
+
+  UPDATE public.case_stages
+  SET completed_at = COALESCE(completed_at, now())
+  WHERE case_id = _case_id
+    AND stage_id = v_current_stage
+    AND completed_at IS NULL;
+
+  INSERT INTO public.case_stages(case_id, stage_id, started_at, completed_at)
+  VALUES (_case_id, v_target_stage, now(), NULL)
+  ON CONFLICT (case_id, stage_id)
+  DO UPDATE SET
+    started_at = EXCLUDED.started_at,
+    completed_at = NULL;
+
+  UPDATE public.cases
+  SET current_stage_id = v_target_stage,
+      current_phase_id = COALESCE(v_target_phase, current_phase_id),
+      updated_at = now()
+  WHERE id = _case_id;
+
+  INSERT INTO public.case_activity(
+    case_id, user_id, kind, content, mentions, metadata
+  )
+  VALUES (
+    _case_id,
+    auth.uid(),
+    'stage_return',
+    'Etapa retornada de "' || COALESCE(v_current_name,'—') ||
+      '" para "' || COALESCE(v_target_name,'—') || '"' ||
+      CASE WHEN v_reason_label IS NOT NULL THEN ' · ' || v_reason_label ELSE '' END ||
+      CASE WHEN NULLIF(trim(COALESCE(_notes,'')),'') IS NOT NULL
+           THEN ' · ' || trim(_notes) ELSE '' END,
+    ARRAY[]::uuid[],
+    jsonb_build_object(
+      'from_stage_id', v_current_stage,
+      'from_stage_name', v_current_name,
+      'to_stage_id', v_target_stage,
+      'to_stage_name', v_target_name,
+      'reason_id', _reason_id,
+      'reason_label', v_reason_label,
+      'notes', _notes
+    )
+  );
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'stage_id', v_target_stage,
+    'phase_id', v_target_phase,
+    'reason', v_reason_label
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.return_case_workflow(uuid,uuid,text,uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.return_case_workflow(uuid,uuid,text,uuid) TO authenticated, service_role;
