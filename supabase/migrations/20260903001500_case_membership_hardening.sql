@@ -581,3 +581,11 @@ ALTER TABLE public.stages
 ALTER TABLE public.stages
   ADD CONSTRAINT stages_condition_key_check
   CHECK (condition_key IS NULL OR condition_key IN ('mockup','provisional'));
+
+
+-- Multi-element prosthesis grouping (e.g. fixed bridge vs individual units).
+ALTER TABLE public.cases
+  ADD COLUMN IF NOT EXISTS prosthesis_groups jsonb NOT NULL DEFAULT '[]'::jsonb;
+
+COMMENT ON COLUMN public.cases.prosthesis_groups IS
+  'Array of {id, teeth:number[], case_type_id?}; groups teeth that belong to one prosthetic unit.';
