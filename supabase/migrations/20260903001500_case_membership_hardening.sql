@@ -528,3 +528,32 @@ USING (
   AND split_part(name, '/', 1) ~* '^[0-9a-f-]{36}$'
   AND public.can_modify_case(split_part(name, '/', 1)::uuid)
 );
+
+
+-- Small, permission-aware projection used by the case dialog.
+CREATE OR REPLACE FUNCTION public.get_case_responsibility(p_case_id uuid)
+RETURNS TABLE (
+  accepted_by uuid,
+  accepted_name text,
+  requester_id uuid,
+  requester_name text
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    c.accepted_by,
+    COALESCE(ap.full_name, ap.email),
+    c.requested_by,
+    COALESCE(rp.full_name, rp.email)
+  FROM public.cases c
+  LEFT JOIN public.profiles ap ON ap.id = c.accepted_by
+  LEFT JOIN public.profiles rp ON rp.id = c.requested_by
+  WHERE c.id = p_case_id
+    AND public.can_access_case(c.id)
+$$;
+
+REVOKE ALL ON FUNCTION public.get_case_responsibility(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_case_responsibility(uuid) TO authenticated, service_role;
