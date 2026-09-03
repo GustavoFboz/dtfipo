@@ -1210,10 +1210,26 @@ export async function getCaseAttachmentUrl(path: string, downloadName?: string):
 }
 
 export async function deleteCaseAttachment(att: CaseAttachment) {
-  markDeleted(att.id);
-  try { await supabase.storage.from("case-files").remove([att.storage_path]); } catch {}
-  const { error } = await supabase.from("case_attachments" as never).delete().eq("id", att.id);
+  // The database row is the source of truth. Delete it first so a successful
+  // operation can never leave the attachment visible but unusable.
+  const { error } = await supabase
+    .from("case_attachments" as never)
+    .delete()
+    .eq("id", att.id);
   if (error) throw error;
+
+  try {
+    const { error: storageError } = await supabase.storage
+      .from("case-files")
+      .remove([att.storage_path]);
+    if (storageError) {
+      console.warn("attachment storage cleanup failed", storageError);
+    }
+  } catch (storageError) {
+    console.warn("attachment storage cleanup failed", storageError);
+  }
+
+  try { markDeleted(att.id); } catch {}
 }
 
 // ===== Ad-hoc component on a case (creates component then links) =====
