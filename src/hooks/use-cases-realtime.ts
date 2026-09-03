@@ -197,29 +197,32 @@ function ensureChannel() {
 
 export function broadcastCaseWorkflowPatch(patch: CasePatch) {
   if (typeof window === "undefined") return;
-  ensureChannel();
-  queue.push({ ...patch, sent_at: Date.now() });
-  flush();
+  // Workflow peer updates stay on this device. Cross-device state comes from
+  // postgres_changes under RLS; never broadcast a full clinical row publicly.
+  broadcastEntity("cases", "update", {
+    id: patch.id,
+    current_stage_id: patch.current_stage_id,
+    current_phase_id: patch.current_phase_id,
+    current_stage: patch.current_stage,
+    status: patch.status,
+    finished_at: patch.finished_at,
+    updated_at: patch.updated_at,
+    assigned_user_ids: patch.assigned_user_ids,
+    workflow_only: true,
+    sent_at: Date.now(),
+  });
 }
 
 export function useCasesRealtime() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    ensureChannel();
-
     const invalidateLists = () => {
       // Apenas queries ativas (montadas): evita refetch em massa ao voltar de aba.
       queryClient.invalidateQueries({ queryKey: ["cases"], refetchType: "active" });
       queryClient.invalidateQueries({ queryKey: ["my_tasks"], refetchType: "active" });
     };
 
-
-    const onBroadcast = (patch: CasePatch) => {
-      if (patch.patient && patch.delivery_date) upsertCaseIntoCache(queryClient, patch as CaseRow);
-      applyCasePatchToCache(queryClient, patch);
-    };
-    listeners.add(onBroadcast);
 
     // Peer broadcast (instantâneo entre abas/dispositivos) para novos casos.
     const unsubPeer = subscribeEntity("cases", (p) => {
@@ -287,7 +290,6 @@ export function useCasesRealtime() {
       .subscribe();
 
     return () => {
-      listeners.delete(onBroadcast);
       unsubPeer();
       unsubPatients();
       supabase.removeChannel(dbChannel);
