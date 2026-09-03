@@ -594,18 +594,32 @@ export function CaseDetailDialog({
       setAccessRevokedNotice(true);
     };
 
+    let channel: ReturnType<typeof supabase.channel> | null = null;
     void supabase.auth.getUser().then(({ data }) => {
       currentUserId = data.user?.id ?? null;
+      if (!currentUserId || cancelled) return;
+      channel = supabase
+        .channel(`case-access-dialog:${caseId}:${currentUserId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `recipient_id=eq.${currentUserId}`,
+          },
+          (msg) => {
+            const row = msg.new as { type?: string | null; metadata?: { case_id?: string } | null };
+            if (
+              row?.type === "case_access_revoked" &&
+              row?.metadata?.case_id === caseId
+            ) {
+              revoke();
+            }
+          },
+        )
+        .subscribe();
     });
-
-    const channel = supabase
-      .channel(`case-access-dialog:${caseId}`)
-      .on("broadcast", { event: "case_access_changed" }, (msg) => {
-        const payload = msg.payload as { case_id?: string; removed_user_ids?: string[] };
-        if (payload.case_id !== caseId || !currentUserId) return;
-        if (payload.removed_user_ids?.includes(currentUserId)) revoke();
-      })
-      .subscribe();
 
     const timer = window.setInterval(() => {
       void fetchCaseById(caseId)
@@ -621,7 +635,7 @@ export function CaseDetailDialog({
     return () => {
       cancelled = true;
       window.clearInterval(timer);
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [open, caseId, qc]);
 
