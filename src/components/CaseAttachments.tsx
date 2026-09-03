@@ -74,7 +74,7 @@ type UploadKind = "scans" | "model" | "fabrication" | "exocad_html" | "gallery";
 const ACCEPT: Record<UploadKind, string | undefined> = {
   scans: ".stl,.ply,.dcm,.obj,.3mf,.zip",
   model: ".stl,.obj,.3mf,.ply,.dcm,.zip",
-  fabrication: ".stl,.obj,.zip,.3mf,.ply,.dcm",
+  fabrication: ".stl,.obj,.zip,.3mf,.ply,.dcm,.constructioninfo",
   exocad_html: ".html,.htm",
   gallery: "image/*",
 };
@@ -622,16 +622,24 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
 
   const download = async (att: CaseAttachment) => {
     if (guardPending(att)) return;
+    const toastId = toast.loading("Preparando download…");
     try {
-      const url = await getCaseAttachmentUrl(att.storage_path);
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Falha ao baixar arquivo");
-      const blob = await res.blob();
-      await triggerBlobDownload(blob, fileNameWithPatient(caseRow, att.file_name));
-      await addCaseActivity(caseId, "download", `Baixou o arquivo "${att.file_name}".`, [], { kind: att.kind ?? "other", file_name: att.file_name }).catch(() => undefined);
-      qc.invalidateQueries({ queryKey: ["case_activity", caseId] });
-      qc.invalidateQueries({ queryKey: ["case_scan_downloads", caseId] });
-    } catch (e) { toast.error((e as Error).message); }
+      const filename = fileNameWithPatient(caseRow, att.file_name);
+      const url = await getCaseAttachmentUrl(att.storage_path, filename);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.rel = "noopener";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success("Download iniciado", { id: toastId });
+      void addCaseActivity(caseId, "download", `Baixou o arquivo "${att.file_name}".`, [], { kind: att.kind ?? "other", file_name: att.file_name }).catch(() => undefined);
+      void qc.invalidateQueries({ queryKey: ["case_activity", caseId] });
+      void qc.invalidateQueries({ queryKey: ["case_scan_downloads", caseId] });
+    } catch (e) {
+      toast.error((e as Error).message, { id: toastId });
+    }
   };
 
   const onUploaded = () => {
