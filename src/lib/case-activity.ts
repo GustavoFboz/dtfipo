@@ -80,7 +80,10 @@ export async function fetchCaseStakeholderIds(caseId: string): Promise<string[]>
 
   (profs ?? []).forEach((p: any) => {
     const effectiveType = String(p.account_subtype || p.role || "").toUpperCase();
-    if (p.is_default_admin || ["CEO", "ADMIN", "PROTETICO"].includes(effectiveType)) {
+    // Global visibility does not mean every prosthetist should receive
+    // every chat/upload notification. The responsible prosthetist is already
+    // included through cases.accepted_by; only CEO/admin oversight is global.
+    if (p.is_default_admin || ["CEO", "ADMIN"].includes(effectiveType)) {
       ids.add(p.id);
     }
   });
