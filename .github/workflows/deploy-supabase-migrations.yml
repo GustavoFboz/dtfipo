@@ -17,33 +17,45 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check Supabase deployment secrets
+      - name: Check Supabase deployment credentials
         shell: bash
         env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
-          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
-            echo "::error::Missing repository secret SUPABASE_ACCESS_TOKEN"
-            exit 1
+          if [ -n "$SUPABASE_DB_URL" ]; then
+            echo "mode=db-url" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
-          if [ -z "$SUPABASE_DB_PASSWORD" ]; then
-            echo "::error::Missing repository secret SUPABASE_DB_PASSWORD"
-            exit 1
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$SUPABASE_DB_PASSWORD" ]; then
+            echo "mode=linked" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          echo "::error::Configure either SUPABASE_DB_URL, or both SUPABASE_ACCESS_TOKEN and SUPABASE_DB_PASSWORD, in GitHub Actions secrets."
+          exit 1
+        id: credentials
 
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
           version: latest
 
+      - name: Apply migrations using database URL
+        if: steps.credentials.outputs.mode == 'db-url'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: supabase db push --include-all --db-url "$SUPABASE_DB_URL"
+
       - name: Link Supabase project
+        if: steps.credentials.outputs.mode == 'linked'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: supabase link --project-ref bbyhpwocwamgwcuqqnck --password "$SUPABASE_DB_PASSWORD"
 
-      - name: Apply migrations
+      - name: Apply migrations using linked project
+        if: steps.credentials.outputs.mode == 'linked'
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
