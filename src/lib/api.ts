@@ -549,6 +549,7 @@ export type CreateCaseInput = {
   implant_system_ids?: string[];
   has_provisional?: boolean;
   has_mockup?: boolean;
+  prosthesis_groups?: Array<{ id: string; teeth: number[]; case_type_id?: string | null }>;
   implant_teeth?: number[];
   tooth_implant_systems?: Record<string, string>;
   scan_jig_id?: string | null;
