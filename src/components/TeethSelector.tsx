@@ -38,6 +38,8 @@ type Props = {
   /** Clique em um dente pendente de apontamento (ativo mesmo com disabled). */
   onPendingImplantClick?: (tooth: number) => void;
   onWorkClick?: (tooth: number, mods: { ctrl: boolean; shift: boolean }) => void;
+  /** Texto contextual mostrado ao apontar para cada dente. */
+  toothTooltip?: (tooth: number) => string | null | undefined;
   disabled?: boolean;
   compact?: boolean;
   /** Faz o SVG preencher a altura do container pai (útil para layouts sem scroll). */
@@ -198,6 +200,7 @@ export function TeethSelector({
   pendingImplantTeeth,
   onPendingImplantClick,
   onWorkClick,
+  toothTooltip,
   disabled,
   compact,
   fitParent,
@@ -212,6 +215,7 @@ export function TeethSelector({
   const implantTeethRef = useRef(implantTeeth);
   const onImplantClickRef = useRef(onImplantToothClick);
   const onWorkClickRef = useRef(onWorkClick);
+  const toothTooltipRef = useRef(toothTooltip);
   const pendingRef = useRef(pendingImplantTeeth);
   const onPendingClickRef = useRef(onPendingImplantClick);
   const anchorRef = useRef<number | null>(null);
@@ -224,6 +228,7 @@ export function TeethSelector({
   implantTeethRef.current = implantTeeth;
   onImplantClickRef.current = onImplantToothClick;
   onWorkClickRef.current = onWorkClick;
+  toothTooltipRef.current = toothTooltip;
   pendingRef.current = pendingImplantTeeth;
   onPendingClickRef.current = onPendingImplantClick;
 
@@ -451,6 +456,14 @@ export function TeethSelector({
       g.style.cursor = cursor;
       g.style.pointerEvents = interactive ? "all" : "none";
       g.setAttribute("data-tooth", String(n));
+      const tooltip = toothTooltipRef.current?.(n);
+      if (tooltip) {
+        g.setAttribute("aria-label", tooltip);
+        g.setAttribute("data-tooth-tooltip", tooltip);
+      } else {
+        g.removeAttribute("aria-label");
+        g.removeAttribute("data-tooth-tooltip");
+      }
 
       // Hover only in work mode for unselected teeth
       g.onmouseenter = null;
@@ -465,6 +478,24 @@ export function TeethSelector({
       }
     });
   }, [value, highlight, disabled, maxHeight, implantTeeth, implantColor, implantSystemColors, mode, showImplantLayer, focusedImplantTooth, configuredTeeth, assignedTeeth, pendingImplantTeeth]);
+
+  const handlePointerMove = (event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target as Element | null;
+    const group = target?.closest<SVGGElement>("g[data-tooth-tooltip]");
+    const host = ref.current?.parentElement?.querySelector<HTMLElement>("[data-odontogram-tooltip]");
+    if (!host || !group) {
+      if (host) host.style.opacity = "0";
+      return;
+    }
+    const label = group.getAttribute("data-tooth-tooltip");
+    if (!label) return;
+    host.textContent = label;
+    const rootRect = ref.current!.getBoundingClientRect();
+    const toothRect = group.getBoundingClientRect();
+    host.style.left = `${toothRect.left - rootRect.left + toothRect.width / 2}px`;
+    host.style.top = `${Math.max(4, toothRect.top - rootRect.top - 8)}px`;
+    host.style.opacity = "1";
+  };
 
   const handleClick = (event: MouseEvent<HTMLDivElement>) => {
     const target = event.target as Element | null;
@@ -515,33 +546,47 @@ export function TeethSelector({
       return;
     }
 
-    // Work mode: original toggle/range logic
-    const s = new Set(valueRef.current);
+    // File-manager semantics:
+    // click = single selection; Ctrl/Cmd = toggle one; Shift = additive range.
+    const current = new Set(valueRef.current);
     const anchor = anchorRef.current;
-    if (event.shiftKey && anchor !== null && Math.floor(anchor / 30) === Math.floor(n / 30)) {
+    if (event.shiftKey && anchor !== null && archOf(anchor) === archOf(n)) {
       const arch = archOf(n);
       const a = arch.indexOf(anchor);
       const b = arch.indexOf(n);
       if (a !== -1 && b !== -1) {
         const [lo, hi] = a < b ? [a, b] : [b, a];
-        for (let i = lo; i <= hi; i += 1) s.add(arch[i]);
-        anchorRef.current = n;
-        onChangeRef.current(Array.from(s));
+        for (let i = lo; i <= hi; i += 1) current.add(arch[i]);
+        onChangeRef.current(Array.from(current));
         return;
       }
     }
-    if (s.has(n)) s.delete(n);
-    else s.add(n);
+    if (event.ctrlKey || event.metaKey) {
+      if (current.has(n)) current.delete(n);
+      else current.add(n);
+      anchorRef.current = n;
+      onChangeRef.current(Array.from(current));
+      return;
+    }
     anchorRef.current = n;
-    onChangeRef.current(Array.from(s));
+    onChangeRef.current([n]);
   };
 
   return (
-    <div className={`select-none w-full ${fitParent ? "h-full min-h-0 flex" : ""}`}>
+    <div className={`relative select-none w-full ${fitParent ? "h-full min-h-0 flex" : ""}`}>
+      <div
+        data-odontogram-tooltip
+        className="pointer-events-none absolute z-30 -translate-x-1/2 -translate-y-full rounded-lg bg-slate-950 px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg opacity-0 transition-opacity"
+      />
       <div
         ref={ref}
         className={`mx-auto flex w-full max-w-[860px] justify-center p-0 ${fitParent ? "h-full min-h-0 items-center" : ""}`}
         onClick={handleClick}
+        onMouseMove={handlePointerMove}
+        onMouseLeave={() => {
+          const host = ref.current?.parentElement?.querySelector<HTMLElement>("[data-odontogram-tooltip]");
+          if (host) host.style.opacity = "0";
+        }}
         dangerouslySetInnerHTML={{ __html: svgRaw }}
       />
     </div>
