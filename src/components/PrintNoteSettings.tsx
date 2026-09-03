@@ -171,7 +171,13 @@ export function PrintNoteSettings() {
                           profile.label,
                           { useSuggestedPaper: true },
                         );
-                        setPrinterSettings({ ...next, printerProfileId: profile.id, dpi: profile.dpi });
+                        setPrinterSettings({
+                          ...next,
+                          printerModel: profile.label,
+                          printerProfileId: profile.id,
+                          dpi: profile.dpi,
+                          paperId: profile.suggestedPaperId ?? next.paperId,
+                        });
                         setPrinterDirty(true);
                       }}
                       className="rounded-full border border-border px-2.5 py-1 text-[10px] text-muted-foreground hover:border-primary/40 hover:text-foreground transition"
