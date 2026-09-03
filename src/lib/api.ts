@@ -97,6 +97,14 @@ export async function markAllNotificationsAsRead() {
 }
 
 export async function fetchCaseById(id: string): Promise<CaseRow | null> {
+  // Prefer the case-authorized bundle so nested patient/professional data
+  // cannot disappear just because a related table has an independent RLS rule.
+  const { data: bundle, error: bundleError } = await supabase.rpc("get_case_bundle" as never, {
+    _case_id: id,
+  } as never);
+  if (!bundleError && bundle) return bundle as unknown as CaseRow;
+
+  // Backward-compatible fallback while a migration is still rolling out.
   const { data, error } = await supabase.from("cases").select(CASE_SELECT).eq("id", id).maybeSingle();
   if (error) throw error;
   return (data ?? null) as unknown as CaseRow | null;
@@ -226,8 +234,30 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
 
   const { data, error } = await query.order("updated_at", { ascending: false }).limit(200);
   if (error) throw error;
-  return (data ?? []) as unknown as CaseRow[];
 
+  const rows = (data ?? []) as unknown as CaseRow[];
+  if (!rows.length) return rows;
+
+  // Cadistas/dentists/requesters are the profiles most likely to hit partial
+  // nested rows because related tables can have stricter policies than cases.
+  // Hydrate every visible row through one authorized batch RPC. The function
+  // re-checks can_access_case for each id before returning anything.
+  if (!hasGlobalCaseAccess) {
+    const ids = rows.map((row) => row.id);
+    const { data: bundles, error: bundleError } = await supabase.rpc("get_case_bundles" as never, {
+      _case_ids: ids,
+    } as never);
+
+    if (!bundleError && Array.isArray(bundles)) {
+      const byId = new Map<string, CaseRow>();
+      for (const item of bundles as unknown as CaseRow[]) {
+        if (item?.id) byId.set(item.id, item);
+      }
+      return rows.map((row) => byId.get(row.id) ?? row);
+    }
+  }
+
+  return rows;
 }
 
 export async function acceptCaseRequest(caseId: string, _cadistaId?: string | null) {
