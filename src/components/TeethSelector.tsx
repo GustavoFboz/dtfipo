@@ -542,10 +542,17 @@ export function TeethSelector({
       return;
     }
 
+    const mods = {
+      ctrl: Boolean(event.ctrlKey || event.metaKey || modifierRef.current.ctrl),
+      shift: Boolean(event.shiftKey || modifierRef.current.shift),
+    };
+    modifierRef.current = { ctrl: false, shift: false };
+
     // Work mode: if parent provided an onWorkClick handler, delegate entirely.
     if (onWorkClickRef.current) {
-      onWorkClickRef.current(n, { ctrl: event.ctrlKey || event.metaKey, shift: event.shiftKey });
-      anchorRef.current = n;
+      onWorkClickRef.current(n, mods);
+      // Shift must keep the previous anchor, exactly like a file manager.
+      if (!mods.shift) anchorRef.current = n;
       return;
     }
 
@@ -584,6 +591,15 @@ export function TeethSelector({
       <div
         ref={ref}
         className={`mx-auto flex w-full max-w-[860px] justify-center p-0 ${fitParent ? "h-full min-h-0 items-center" : ""}`}
+        onPointerDown={(event) => {
+          // Capture modifier keys at pointer-down time. On some browsers/SVG
+          // combinations Ctrl/Cmd can be lost before the synthetic click.
+          const native = event.nativeEvent as PointerEvent & { ctrlKey?: boolean; metaKey?: boolean; shiftKey?: boolean };
+          modifierRef.current = {
+            ctrl: Boolean(native.ctrlKey || native.metaKey),
+            shift: Boolean(native.shiftKey),
+          };
+        }}
         onClick={handleClick}
         onMouseMove={handlePointerMove}
         onMouseLeave={() => {
