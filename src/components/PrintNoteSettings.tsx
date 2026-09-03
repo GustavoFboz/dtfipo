@@ -94,8 +94,26 @@ export function PrintNoteSettings() {
     catch (e) { toast.error((e as Error).message); }
   }
   async function pairPrinter() {
-    try { await pickPrinter(); toast.success("Impressora pareada"); }
-    catch (e) { toast.error((e as Error).message); }
+    try {
+      const { device } = await pickPrinter();
+      const detectedName = typeof device?.name === "string" ? device.name.trim() : "";
+      if (detectedName) {
+        const next = applyCaseNotePrinterProfile(
+          printerSettings,
+          detectedName,
+          { useSuggestedPaper: true },
+        );
+        setPrinterSettings(next);
+        setPrinterDirty(true);
+        toast.success(
+          next.printerProfileId
+            ? `Impressora pareada · perfil ${detectedName} aplicado`
+            : `Impressora pareada · ${detectedName}`,
+        );
+      } else {
+        toast.success("Impressora pareada");
+      }
+    } catch (e) { toast.error((e as Error).message); }
   }
 
   return (
