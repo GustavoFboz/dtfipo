@@ -428,7 +428,7 @@ export function NewCaseDialog({
     setPatientId(initialPatientId ?? ""); setNewPatientName(""); setNewPatientPhoto(null);
     setDoctorId(""); setCadistaId(""); setCaseTypeIds([]);
     setToothColorId(""); setCaseLabel(""); setEntryDate(today); setDeliveryDate(today);
-    setStageId(""); setArch(""); setImplantSystemId(""); setAdditionalSystemIds([]); setImplantTeeth([]); setScanJigId(""); setHasProvisional(false);
+    setStageId(""); setArch(""); setImplantSystemId(""); setAdditionalSystemIds([]); setImplantTeeth([]); setScanJigId(""); setHasProvisional(false); setHasMockup(false);
     setNotes(""); setTeeth([]); setZirTeeth([]); setDisTeeth([]); setToothTypeMap({}); setToothEnceramento({});
     setToothImplantSystemMap({});
     setGumMode(""); setGumColor(""); setGumNotes("");
@@ -748,6 +748,59 @@ export function NewCaseDialog({
         broadcastEntity("cases", "update", optimisticRow);
         await updateCase(editCase.id, patchForUpdate);
         await syncCaseTypes(editCase.id, caseTypeIds);
+
+        // Human-readable edit history. We preserve old/new values instead of
+        // overwriting the story of the case (especially delivery changes).
+        try {
+          const changes: Array<{ field: string; from: unknown; to: unknown; label: string }> = [];
+          const addChange = (field: string, label: string, from: unknown, to: unknown) => {
+            const normalize = (v: unknown) => JSON.stringify(v ?? null);
+            if (normalize(from) !== normalize(to)) changes.push({ field, label, from, to });
+          };
+
+          addChange("delivery_date", "Data de entrega", editCase.delivery_date, deliveryDate);
+          addChange("doctor_id", "Dentista", editCase.doctor_id, doctorId || null);
+          addChange("cadista_id", "Cadista", editCase.cadista_id, cadistaId || null);
+          addChange("has_provisional", "Provisório", !!editCase.has_provisional, hasProvisional);
+          addChange("has_mockup", "Mockup", !!(editCase as any).has_mockup, hasMockup);
+          addChange("teeth_numbers", "Elementos", sortTeeth(editCase.teeth_numbers ?? []), sortTeeth(teeth));
+
+          const oldTypes = (editCase.case_types_link ?? []).map((row) => row.case_type_id).sort();
+          const nextTypes = [...caseTypeIds].sort();
+          addChange("case_type_ids", "Tipos de caso", oldTypes, nextTypes);
+
+          if (changes.length > 0) {
+            const oldTeeth = new Set(editCase.teeth_numbers ?? []);
+            const newTeeth = new Set(teeth);
+            const addedTeeth = sortTeeth([...newTeeth].filter((tooth) => !oldTeeth.has(tooth)));
+            const removedTeeth = sortTeeth([...oldTeeth].filter((tooth) => !newTeeth.has(tooth)));
+
+            const summary: string[] = [];
+            if (editCase.delivery_date !== deliveryDate) {
+              summary.push(`entrega: ${editCase.delivery_date} → ${deliveryDate}`);
+            }
+            if (addedTeeth.length) summary.push(`elemento(s) adicionado(s): ${addedTeeth.join(", ")}`);
+            if (removedTeeth.length) summary.push(`elemento(s) removido(s): ${removedTeeth.join(", ")}`);
+            if (!summary.length) summary.push(`${changes.length} alteração(ões) no cadastro`);
+
+            await addCaseActivity(
+              editCase.id,
+              "case_edit",
+              `Caso editado · ${summary.join(" · ")}.`,
+              [],
+              {
+                changes,
+                previous_delivery_date: editCase.delivery_date,
+                new_delivery_date: deliveryDate,
+                added_teeth: addedTeeth,
+                removed_teeth: removedTeeth,
+              },
+            );
+          }
+        } catch (e) {
+          console.warn("case edit history failed", e);
+        }
+
         createdCase = optimisticRow;
         createdId = editCase.id;
       } else if (derivedArch) {
