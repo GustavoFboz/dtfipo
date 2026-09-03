@@ -202,6 +202,7 @@ export function NewCaseDialog({
   const [configGroup, setConfigGroup] = useState<number[]>([]);
   const [justAddedTeeth, setJustAddedTeeth] = useState<number[]>([]);
   const [lastConfiguredTooth, setLastConfiguredTooth] = useState<number | null>(null);
+  const selectionAnchorRef = useRef<number | null>(null);
   const [scanJigId, setScanJigId] = useState<string>("");
   const [hasProvisional, setHasProvisional] = useState<boolean>(false);
   const [hasMockup, setHasMockup] = useState<boolean>(false);
@@ -577,7 +578,7 @@ export function NewCaseDialog({
 
   const handleWorkToothClick = (tooth: number, mods: { ctrl: boolean; shift: boolean }) => {
     const current = new Set(teeth);
-    const anchor = focusedTooth ?? lastConfiguredTooth;
+    const anchor = selectionAnchorRef.current ?? focusedTooth ?? lastConfiguredTooth;
     const rangeFor = (from: number, to: number) => {
       const arch = from < 30 ? ARCH_UPPER_L : ARCH_LOWER_L;
       if (!arch.includes(from) || !arch.includes(to)) return [to];
@@ -587,11 +588,40 @@ export function NewCaseDialog({
       return arch.slice(lo, hi + 1);
     };
 
-    // Ctrl/Cmd is always a true toggle, including removal. This must happen
-    // before opening/copying configuration so Ctrl never gets swallowed.
+    const clearToothConfig = (target: number) => {
+      setToothTypeMap((map) => {
+        const next = { ...map };
+        delete next[target];
+        return next;
+      });
+      setToothEnceramento((map) => {
+        const next = { ...map };
+        delete next[target];
+        return next;
+      });
+      setZirTeeth((items) => items.filter((item) => item !== target));
+      setDisTeeth((items) => items.filter((item) => item !== target));
+      setImplantTeeth((items) => items.filter((item) => item !== target));
+      setToothImplantSystemMap((map) => {
+        const next = { ...map };
+        delete next[target];
+        return next;
+      });
+      setProsthesisGroups((groups) =>
+        groups
+          .map((group) => ({ ...group, teeth: group.teeth.filter((item) => item !== target) }))
+          .filter((group) => group.teeth.length > 1),
+      );
+    };
+
+    // Ctrl/Cmd behaves like a file manager: toggle exactly one tooth without
+    // disturbing the rest of the selection. Removing a tooth also clears its
+    // clinical configuration to avoid invisible/stale work data.
     if (mods.ctrl && !mods.shift) {
+      selectionAnchorRef.current = tooth;
       if (current.has(tooth)) {
         current.delete(tooth);
+        clearToothConfig(tooth);
         setTeeth(sortTeeth(Array.from(current)));
         setConfigGroup((group) => group.filter((item) => item !== tooth));
         setJustAddedTeeth((items) => items.filter((item) => item !== tooth));
@@ -606,8 +636,8 @@ export function NewCaseDialog({
       return;
     }
 
-    // Shift adds the mechanical FDI interval to the existing selection; it
-    // never destroys an earlier independent selection.
+    // Shift adds the whole FDI interval to the existing selection using the
+    // last non-Shift anchor. Independent earlier selections are preserved.
     if (mods.shift && anchor != null) {
       const range = rangeFor(anchor, tooth);
       range.forEach((item) => current.add(item));
@@ -619,8 +649,9 @@ export function NewCaseDialog({
       return;
     }
 
-    // Plain click focuses the tooth for work configuration. Existing configured
-    // teeth remain part of the case; an unselected tooth is added immediately.
+    // Plain click defines a new range anchor and focuses that tooth for work
+    // configuration. Existing configured teeth remain part of the case.
+    selectionAnchorRef.current = tooth;
     if (!current.has(tooth)) {
       current.add(tooth);
       setTeeth(sortTeeth(Array.from(current)));
