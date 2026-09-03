@@ -557,3 +557,27 @@ $$;
 
 REVOKE ALL ON FUNCTION public.get_case_responsibility(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_case_responsibility(uuid) TO authenticated, service_role;
+
+
+-- Conditional workflow flags (Mockup / Provisório).
+ALTER TABLE public.cases
+  ADD COLUMN IF NOT EXISTS has_mockup boolean NOT NULL DEFAULT false;
+
+ALTER TABLE public.stages
+  ADD COLUMN IF NOT EXISTS condition_key text;
+
+-- Existing named stages become conditional automatically. Custom stages remain
+-- unconditional unless condition_key is assigned later.
+UPDATE public.stages
+SET condition_key = CASE
+  WHEN lower(unaccent(name)) LIKE '%mockup%' THEN 'mockup'
+  WHEN lower(unaccent(name)) LIKE '%provisor%' THEN 'provisional'
+  ELSE condition_key
+END
+WHERE condition_key IS NULL;
+
+ALTER TABLE public.stages
+  DROP CONSTRAINT IF EXISTS stages_condition_key_check;
+ALTER TABLE public.stages
+  ADD CONSTRAINT stages_condition_key_check
+  CHECK (condition_key IS NULL OR condition_key IN ('mockup','provisional'));
