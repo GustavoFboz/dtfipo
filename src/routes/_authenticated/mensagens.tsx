@@ -124,7 +124,9 @@ function MessagesInboxPage() {
     );
   }, [threads, query]);
 
-  const selected = threads.find((thread) => thread.caseId === selectedCaseId) ?? visibleThreads[0] ?? null;
+  const selected = selectedCaseId
+    ? threads.find((thread) => thread.caseId === selectedCaseId) ?? null
+    : null;
   const effectiveCaseId = selected?.caseId ?? null;
 
   return (
