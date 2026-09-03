@@ -169,6 +169,9 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
           assigned_user_ids: assignedUsersForStage(stageId),
           workflow_only: true,
         });
+        void qc.invalidateQueries({ queryKey: ["case_activity", caseRow.id] });
+        void qc.invalidateQueries({ queryKey: ["cases"] });
+        toast.success(`Caso retornado para ${target.name}`);
       })
       .catch((e) => {
         blocked.show("Não é possível retornar", (e as Error).message);
