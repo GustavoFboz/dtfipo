@@ -255,6 +255,42 @@ export async function acceptCaseRequest(caseId: string, _cadistaId?: string | nu
       (assignment as any)?.cadista?.user_id,
       (assignment as any)?.doctor?.user_id,
     ].filter(Boolean);
+
+    // Approval is also the moment assigned professionals receive the case.
+    for (const userId of addedUserIds) {
+      if (userId) {
+        void sendInternalNotification(
+          userId,
+          "Novo caso disponível",
+          "Uma solicitação foi aceita e este caso agora está disponível para você.",
+          "case_assigned",
+        ).catch(() => undefined);
+      }
+    }
+
+    const requesterId = (row as any).requested_by as string | null | undefined;
+    if (requesterId) {
+      let requesterOwnsCurrentStage = false;
+      const currentStageId = (row as any).current_stage_id as string | null | undefined;
+      if (currentStageId) {
+        const { data: stageAssignments } = await supabase
+          .from("stage_assignments" as never)
+          .select("user_id")
+          .eq("stage_id", currentStageId);
+        requesterOwnsCurrentStage = ((stageAssignments ?? []) as any[]).some(
+          (item) => item.user_id === requesterId,
+        );
+      }
+      void sendInternalNotification(
+        requesterId,
+        requesterOwnsCurrentStage ? "Etapa atribuída a você" : "Solicitação aceita",
+        requesterOwnsCurrentStage
+          ? "Seu caso foi aceito e a etapa atual está sob sua responsabilidade."
+          : "Seu caso foi aceito e já está em andamento.",
+        requesterOwnsCurrentStage ? "stage_assigned" : "case_request_accepted",
+      ).catch(() => undefined);
+    }
+
     const channel = supabase.channel("case-access-updates");
     await channel.subscribe();
     await channel.send({
