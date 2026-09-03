@@ -56,7 +56,7 @@ const ATTACH_ACCEPT: Record<AttachKind, string> = {
   scans: ".stl,.ply,.dcm,.obj,.3mf,.zip",
   exocad_html: ".html,.htm",
   model: ".stl,.obj,.3mf,.ply,.dcm,.zip",
-  fabrication: ".stl,.obj,.zip,.3mf,.ply,.dcm",
+  fabrication: ".stl,.obj,.zip,.3mf,.ply,.dcm,.constructioninfo",
 };
 
 function AttachKindIcon({ kind, className }: { kind: AttachKind; className?: string }) {
@@ -1043,6 +1043,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
         {showEmoji && (
           <div className="absolute left-0 bottom-full mb-2 z-30">
             <EmojiStickerPicker
+              inline
               onPickEmoji={(e) => { insertAtCursor(e); setShowEmoji(false); }}
               onPickSticker={(id) => { insertAtCursor(`:sticker/${id}:`); setShowEmoji(false); }}
             />
