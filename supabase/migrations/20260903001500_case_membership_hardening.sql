@@ -498,3 +498,33 @@ GRANT EXECUTE ON FUNCTION public.accept_case_request_secure(uuid) TO service_rol
 
 CREATE INDEX IF NOT EXISTS idx_cadistas_user_id ON public.cadistas(user_id);
 CREATE INDEX IF NOT EXISTS idx_doctors_user_id ON public.doctors(user_id);
+
+
+-- Attachment deletion must follow case membership, not the legacy admin-only rule.
+DO $$
+DECLARE p record;
+BEGIN
+  FOR p IN
+    SELECT policyname
+    FROM pg_policies
+    WHERE schemaname='public' AND tablename='case_attachments' AND cmd='DELETE'
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.case_attachments', p.policyname);
+  END LOOP;
+END $$;
+
+CREATE POLICY case_attachments_delete_by_case_access
+ON public.case_attachments
+FOR DELETE TO authenticated
+USING (public.can_modify_case(case_id));
+
+-- Storage object deletion for case-files. The first path segment is the case UUID.
+DROP POLICY IF EXISTS case_files_delete_by_case_access ON storage.objects;
+CREATE POLICY case_files_delete_by_case_access
+ON storage.objects
+FOR DELETE TO authenticated
+USING (
+  bucket_id = 'case-files'
+  AND split_part(name, '/', 1) ~* '^[0-9a-f-]{36}$'
+  AND public.can_modify_case(split_part(name, '/', 1)::uuid)
+);
