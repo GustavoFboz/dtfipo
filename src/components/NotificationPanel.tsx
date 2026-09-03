@@ -79,11 +79,17 @@ export function NotificationPanel({ profile: externalProfile }: { profile?: Prof
     const focus = n.type === 'comment' ? 'comments' : n.type === 'attachment' ? 'attachments' : 'overview';
     setIsOpen(false);
     if (caseId) {
-      const parts = [`case=${caseId}`, `focus=${focus}`];
-      if (focus === 'comments') parts.push('tab=comentarios');
-      if (activityId) parts.push(`msg=${activityId}`);
-      window.location.hash = parts.join('&');
-      window.dispatchEvent(new Event('hashchange'));
+      const query = new URLSearchParams({ case: caseId });
+      if (activityId) query.set("msg", activityId);
+      const hash = new URLSearchParams({ case: caseId, focus });
+      if (focus === "comments") hash.set("tab", "comentarios");
+      if (activityId) hash.set("msg", activityId);
+
+      // Use the canonical /casos deep link instead of mutating the hash of
+      // whichever case dialog happened to be open. This guarantees that the
+      // selected notification owns the dialog state.
+      const target = `/casos?${query.toString()}#${hash.toString()}`;
+      window.location.assign(target);
     }
   }
 
