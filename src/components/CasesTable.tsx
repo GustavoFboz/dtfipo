@@ -137,6 +137,7 @@ export function CasesTable({
   dateRange,
   advancedFilters,
   deepLinkCaseId,
+  deepLinkFocusActivityId,
   onDeepLinkClose,
 }: { 
   externalSearch?: string; 
@@ -150,6 +151,7 @@ export function CasesTable({
   dateRange?: { start: string; end: string } | null;
   advancedFilters?: { doctorIds: string[]; cadistaIds: string[] };
   deepLinkCaseId?: string;
+  deepLinkFocusActivityId?: string;
   onDeepLinkClose?: () => void;
 } = {}) {
   const qc = useQueryClient();
@@ -1260,6 +1262,8 @@ export function CasesTable({
       <CaseDetailDialog
         caseRow={detail}
         open={!!detail}
+        focusActivityId={deepLinkFocusActivityId ?? null}
+        syncUrlHash={!!deepLinkCaseId}
         onOpenChange={(o) => {
           if (!o) {
             setDetail(null);
