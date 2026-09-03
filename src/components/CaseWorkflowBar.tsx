@@ -11,7 +11,7 @@ import {
   returnCaseWorkflow,
   createReturnReason,
 } from "@/lib/workflow";
-import { fetchProfile } from "@/lib/api";
+import { fetchProfile, sendInternalNotification } from "@/lib/api";
 import type { CaseRow } from "@/lib/types";
 import { broadcastCaseWorkflowPatch } from "@/hooks/use-cases-realtime";
 import {
@@ -133,6 +133,16 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
           assigned_user_ids: assignedUsersForStage(stageId),
           workflow_only: true,
         });
+        const nextAssignees = assignedUsersForStage(stageId) ?? [];
+        const requesterId = (caseRow as any).requested_by as string | null | undefined;
+        if (requesterId && nextAssignees.includes(requesterId)) {
+          void sendInternalNotification(
+            requesterId,
+            "Etapa atribuída a você",
+            `O caso entrou na etapa “${nextStage.name}”, que está sob sua responsabilidade.`,
+            "stage_assigned",
+          ).catch(() => undefined);
+        }
       })
       .catch((e) => {
         blocked.show("Não é possível avançar", (e as Error).message);
