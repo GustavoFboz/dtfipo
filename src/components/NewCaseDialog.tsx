@@ -1696,6 +1696,9 @@ export function NewCaseDialog({
                   targets.forEach((t) => { delete n[t]; });
                   return n;
                 });
+                setProsthesisGroups((groups) => groups
+                  .map((group) => ({ ...group, teeth: group.teeth.filter((tooth) => !tset.has(tooth)) }))
+                  .filter((group) => group.teeth.length > 1));
                 // Sem nenhuma configuração o dente não faz mais parte do caso;
                 // mantê-lo em `teeth` faria a arcada exibi-lo como selecionado
                 // (azul) para quem visualiza o caso.
