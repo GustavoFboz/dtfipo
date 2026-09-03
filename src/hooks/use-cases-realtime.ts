@@ -15,14 +15,6 @@ type CasePatch = Partial<CaseRow> & {
   sent_at?: number;
 };
 
-const CHANNEL_NAME = "case-workflow-live";
-const EVENT_NAME = "case_workflow_patch";
-
-let channel: ReturnType<typeof supabase.channel> | null = null;
-let subscribed = false;
-const queue: CasePatch[] = [];
-const listeners = new Set<(patch: CasePatch) => void>();
-
 function cachedStage(queryClient: QueryClient, stageId?: string | null): Stage | null {
   if (!stageId) return null;
   const workflowStages = queryClient.getQueryData<Stage[]>(["workflow_stages"]) ?? [];
@@ -153,48 +145,6 @@ function removeCaseFromCache(queryClient: QueryClient, caseId: string) {
   });
 }
 
-function flush() {
-  if (!subscribed || !channel || queue.length === 0) return;
-  const items = queue.splice(0);
-  for (const payload of items) {
-    void channel.send({ type: "broadcast", event: EVENT_NAME, payload }).catch(() => queue.unshift(payload));
-  }
-}
-
-let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-let channelGeneration = 0;
-
-function reconnectWorkflowChannel() {
-  subscribed = false;
-  if (reconnectTimer) return;
-  reconnectTimer = setTimeout(() => {
-    reconnectTimer = null;
-    channelGeneration += 1;
-    if (channel) supabase.removeChannel(channel);
-    channel = null;
-    ensureChannel();
-  }, 1500); // Aumentado para 1.5s
-}
-
-function ensureChannel() {
-  if (channel) return channel;
-  channelGeneration += 1;
-  const token = channelGeneration;
-  channel = supabase
-    .channel(CHANNEL_NAME, { config: { broadcast: { self: false, ack: true } } })
-    .on("broadcast", { event: EVENT_NAME }, ({ payload }) => {
-      const patch = payload as CasePatch;
-      listeners.forEach((listener) => listener(patch));
-    })
-    .subscribe((status) => {
-      if (token !== channelGeneration) return;
-      subscribed = status === "SUBSCRIBED";
-      if (subscribed) flush();
-      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") reconnectWorkflowChannel();
-    });
-  return channel;
-}
-
 export function broadcastCaseWorkflowPatch(patch: CasePatch) {
   if (typeof window === "undefined") return;
   // Workflow peer updates stay on this device. Cross-device state comes from
@@ -224,7 +174,7 @@ export function useCasesRealtime() {
     };
 
 
-    // Peer broadcast (instantâneo entre abas/dispositivos) para novos casos.
+    // Local peer broadcast (instantâneo entre abas do mesmo dispositivo).
     const unsubPeer = subscribeEntity("cases", (p) => {
       if (p.op === "insert" && p.row?.id) {
         const hasFullRow = !!p.row.patient || !!p.row.delivery_date;
