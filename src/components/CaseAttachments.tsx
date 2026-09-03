@@ -457,7 +457,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
   const qc = useQueryClient();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
-  const isStaff = currentRole ? ["CEO", "PROTETICO", "ATENDIMENTO", "DR", "CADISTA"].includes(currentRole) : false;
+  const isStaff = currentRole ? ["CEO", "ADMIN", "PROTETICO", "ATENDIMENTO", "DR", "DENTISTA", "CADISTA"].includes(currentRole) : false;
   const canDeleteAtt = (a: CaseAttachment) =>
     !!currentUserId && (isStaff || a.uploaded_by === currentUserId || a.uploaded_by == null);
   const [viewer, setViewer] = useState<{ path: string; name: string } | null>(null);
@@ -504,7 +504,10 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
-    fetchProfile().then((p) => setCurrentRole((p?.role as UserRole) ?? null));
+    fetchProfile().then((p) => {
+      const effective = String((p as any)?.account_subtype || p?.role || "").toUpperCase();
+      setCurrentRole((effective as UserRole) || null);
+    });
   }, []);
 
   const { data } = useQuery({
@@ -1182,7 +1185,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
                     {canDelete && (
                       <button type="button"
                         onClick={async (e) => { e.stopPropagation(); if (await confirm({ title: "Excluir arquivo", description: `Excluir "${g.name}"?`, confirmText: "Excluir", destructive: true })) remove.mutate(g.att); }}
-                        className="absolute top-1 right-1 h-6 w-6 rounded-md bg-black/60 text-white opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                        className="absolute top-1 right-1 h-7 w-7 rounded-md bg-black/60 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition flex items-center justify-center">
                         <Trash2 className="h-3 w-3" />
                       </button>
                     )}
@@ -1255,7 +1258,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
                       <div className="text-xs font-medium truncate" title={a.file_name}>{a.file_name}</div>
                       <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
                         <span>{fmtSize(a.size_bytes)}</span>
-                        <span className="flex items-center gap-0.5">{rowActions(a, currentKind, isGone)}</span>
+                        <span className="flex items-center justify-end gap-0.5 min-w-[148px] min-h-8">{rowActions(a, currentKind, isGone)}</span>
                       </div>
                     </div>
                   </div>
