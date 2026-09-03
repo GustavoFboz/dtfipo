@@ -482,6 +482,8 @@ export function TeethSelector({
     });
   }, [value, highlight, disabled, maxHeight, implantTeeth, implantColor, implantSystemColors, mode, showImplantLayer, focusedImplantTooth, configuredTeeth, assignedTeeth, pendingImplantTeeth]);
 
+  const modifierRef = useRef({ ctrl: false, shift: false });
+
   const handlePointerMove = (event: React.MouseEvent<HTMLDivElement>) => {
     const target = event.target as Element | null;
     const group = target?.closest<SVGGElement>("g[data-tooth-tooltip]");
