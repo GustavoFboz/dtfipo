@@ -788,7 +788,7 @@ export async function createCase(input: CreateCaseInput & { also_arch?: "superio
     console.warn("notify cadista on create failed", e);
   }
 
-  return fullCreated ?? created;
+  return created;
 }
 
 
