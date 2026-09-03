@@ -329,8 +329,11 @@ export function TeethSelector({
       let implantFill = darkDefault ? DARK_IMPLANT : "#FFFFFF";
       let implantAlpha = 0;
 
+      const hasTooltip = Boolean(toothTooltipRef.current?.(n));
       let cursor: "pointer" | "default" = disabled ? "default" : "pointer";
-      let interactive = !disabled;
+      // Read-only odontograms still need pointer events for hover callouts.
+      // Click handling remains disabled later via disabledRef.
+      let interactive = !disabled || hasTooltip;
 
       // Cor específica do sistema deste dente (multi-sistemas), se houver.
       const perToothImplantColor = implantSystemColors?.[n];
