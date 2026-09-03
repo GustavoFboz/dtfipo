@@ -103,6 +103,23 @@ export async function fetchCaseById(id: string): Promise<CaseRow | null> {
 }
 
 
+export type CaseResponsibility = {
+  accepted_by: string | null;
+  accepted_name: string | null;
+  requester_id: string | null;
+  requester_name: string | null;
+};
+
+export async function fetchCaseResponsibility(caseId: string): Promise<CaseResponsibility | null> {
+  const { data, error } = await supabase.rpc("get_case_responsibility" as never, {
+    p_case_id: caseId,
+  } as never);
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return (row ?? null) as unknown as CaseResponsibility | null;
+}
+
+
 export async function sendInternalNotification(targetUserId: string | null, title: string, content: string, type: string = 'system') {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
