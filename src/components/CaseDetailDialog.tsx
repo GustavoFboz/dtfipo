@@ -482,6 +482,14 @@ export function CaseDetailDialog({
   const stageReqs = useStageRequirements(caseRow);
   const tabBlocker = useBlockedActionDialog();
   const handleTabClick = (key: TabKey) => {
+    if (key === tab) return;
+    // Radix overlays opened inside the current tab can otherwise leave focus
+    // guards/backdrops active for one frame and make the whole dialog appear
+    // blurred. Release focus before changing tab content.
+    if (typeof document !== "undefined") {
+      const active = document.activeElement as HTMLElement | null;
+      active?.blur?.();
+    }
     if (stageReqs.isLoading) {
       tabBlocker.show("Validando exigências", "Aguarde a verificação das exigências desta etapa antes de trocar de aba.");
       return;
@@ -492,6 +500,9 @@ export function CaseDetailDialog({
       return;
     }
     setTab(key);
+    if (caseId) {
+      try { localStorage.setItem(`case_tab:${caseId}`, key); } catch { /* ignore */ }
+    }
   };
   const isTabLocked = (key: TabKey) => !!stageReqs.tabBlockedMessage(key);
 
@@ -934,7 +945,19 @@ export function CaseDetailDialog({
                           mode={arcadaMode}
                           showImplantLayer={!!caseRow.implant_system_id}
                           pendingImplantTeeth={pendingImplantTeeth}
-                          onPendingImplantClick={(t) => setPendingPickerTooth(t)}
+                          onPendingImplantClick={(t) => setPendingPickerTooth(t)}                          toothTooltip={(tooth) => {
+                            const ids = tctMap[String(tooth)] ?? [];
+                            const primary = ids.find((id) => id !== ENCERAMENTO_ID);
+                            const work = toothWorkTypeName(primary) ?? "Não definido";
+                            const extras = [
+                              ids.includes(ENCERAMENTO_ID) ? "Enceramento" : null,
+                              implantTeeth.includes(tooth) ? "Implante" : null,
+                              zir.includes(tooth) ? "Zircônia" : null,
+                              dis.includes(tooth) ? "Dissilicato" : null,
+                            ].filter(Boolean);
+                            return `Dente ${tooth} · ${work}${extras.length ? ` · ${extras.join(" · ")}` : ""}`;
+                          }}
+
                           disabled
                           compact
                         />
@@ -1172,44 +1195,6 @@ export function CaseDetailDialog({
                       <CaseImplantTeethPanel caseRow={caseRow} />
                     )}
 
-                    {teeth.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="text-sm font-medium text-foreground">Trabalho por elemento</div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {teeth.map((tooth) => {
-                            const ids = tctMap[String(tooth)] ?? [];
-                            const primary = ids.find((id) => id !== ENCERAMENTO_ID);
-                            const work = toothWorkTypeName(primary) ?? "Não definido";
-                            const extras = [
-                              ids.includes(ENCERAMENTO_ID) ? "Enceramento" : null,
-                              implantTeeth.includes(tooth) ? "Implante" : null,
-                              zir.includes(tooth) ? "Zircônia" : null,
-                              dis.includes(tooth) ? "Dissilicato" : null,
-                            ].filter(Boolean);
-                            const group = ((caseRow as any).prosthesis_groups ?? []).find(
-                              (item: any) => Array.isArray(item?.teeth) && item.teeth.includes(tooth),
-                            );
-                            return (
-                              <div key={tooth} className="rounded-lg border border-border/70 px-3 py-2 bg-background">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-primary">{tooth}</span>
-                                  <span className="text-sm text-foreground">{work}</span>
-                                  {group && (
-                                    <span className="ml-auto rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-medium">
-                                      Prótese única · {sortTeeth(group.teeth).join("–")}
-                                    </span>
-                                  )}
-                                </div>
-                                {extras.length > 0 && (
-                                  <div className="text-[11px] text-muted-foreground mt-1">{extras.join(" · ")}</div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
                     <div className="space-y-2">
                       <div className="text-sm font-medium text-foreground">Tipo(s) de caso(s)</div>
                       {types.length === 0 ? (
@@ -1297,7 +1282,19 @@ export function CaseDetailDialog({
                           mode={arcadaMode}
                           showImplantLayer={!!caseRow.implant_system_id}
                           pendingImplantTeeth={pendingImplantTeeth}
-                          onPendingImplantClick={(t) => setPendingPickerTooth(t)}
+                          onPendingImplantClick={(t) => setPendingPickerTooth(t)}                          toothTooltip={(tooth) => {
+                            const ids = tctMap[String(tooth)] ?? [];
+                            const primary = ids.find((id) => id !== ENCERAMENTO_ID);
+                            const work = toothWorkTypeName(primary) ?? "Não definido";
+                            const extras = [
+                              ids.includes(ENCERAMENTO_ID) ? "Enceramento" : null,
+                              implantTeeth.includes(tooth) ? "Implante" : null,
+                              zir.includes(tooth) ? "Zircônia" : null,
+                              dis.includes(tooth) ? "Dissilicato" : null,
+                            ].filter(Boolean);
+                            return `Dente ${tooth} · ${work}${extras.length ? ` · ${extras.join(" · ")}` : ""}`;
+                          }}
+
                           disabled
                           fitParent
                         />

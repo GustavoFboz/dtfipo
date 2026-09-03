@@ -202,6 +202,7 @@ export function NewCaseDialog({
   const [configGroup, setConfigGroup] = useState<number[]>([]);
   const [justAddedTeeth, setJustAddedTeeth] = useState<number[]>([]);
   const [lastConfiguredTooth, setLastConfiguredTooth] = useState<number | null>(null);
+  const selectionAnchorRef = useRef<number | null>(null);
   const [scanJigId, setScanJigId] = useState<string>("");
   const [hasProvisional, setHasProvisional] = useState<boolean>(false);
   const [hasMockup, setHasMockup] = useState<boolean>(false);
@@ -576,78 +577,90 @@ export function NewCaseDialog({
   };
 
   const handleWorkToothClick = (tooth: number, mods: { ctrl: boolean; shift: boolean }) => {
-    const panelOpen = focusedTooth != null && teeth.includes(focusedTooth);
-    const inCase = teeth.includes(tooth);
+    const current = new Set(teeth);
+    const anchor = selectionAnchorRef.current ?? focusedTooth ?? lastConfiguredTooth;
+    const rangeFor = (from: number, to: number) => {
+      const arch = from < 30 ? ARCH_UPPER_L : ARCH_LOWER_L;
+      if (!arch.includes(from) || !arch.includes(to)) return [to];
+      const a = arch.indexOf(from);
+      const b = arch.indexOf(to);
+      const [lo, hi] = a < b ? [a, b] : [b, a];
+      return arch.slice(lo, hi + 1);
+    };
 
-    // Clicar no mesmo dente já focado (sem modificadores) fecha o painel.
-    if (panelOpen && !mods.ctrl && !mods.shift && tooth === focusedTooth) {
-      closePanel();
-      return;
-    }
+    const clearToothConfig = (target: number) => {
+      setToothTypeMap((map) => {
+        const next = { ...map };
+        delete next[target];
+        return next;
+      });
+      setToothEnceramento((map) => {
+        const next = { ...map };
+        delete next[target];
+        return next;
+      });
+      setZirTeeth((items) => items.filter((item) => item !== target));
+      setDisTeeth((items) => items.filter((item) => item !== target));
+      setImplantTeeth((items) => items.filter((item) => item !== target));
+      setToothImplantSystemMap((map) => {
+        const next = { ...map };
+        delete next[target];
+        return next;
+      });
+      setProsthesisGroups((groups) =>
+        groups
+          .map((group) => ({ ...group, teeth: group.teeth.filter((item) => item !== target) }))
+          .filter((group) => group.teeth.length > 1),
+      );
+    };
 
-    if (!panelOpen) {
-      // Ctrl/Shift + click com painel fechado: copia a configuração do último dente configurado.
-      if ((mods.ctrl || mods.shift) && lastConfiguredTooth != null && toothHasConfig(lastConfiguredTooth)) {
-        const src = lastConfiguredTooth;
-        let toAdd: number[] = [tooth];
-        if (mods.shift) {
-          const archList = src < 30 ? ARCH_UPPER_L : ARCH_LOWER_L;
-          if (archList.includes(tooth) && archList.includes(src)) {
-            const a = archList.indexOf(src);
-            const b = archList.indexOf(tooth);
-            const [lo, hi] = a < b ? [a, b] : [b, a];
-            toAdd = archList.slice(lo, hi + 1);
-          }
-        }
-        setTeeth((s) => sortTeeth(Array.from(new Set([...s, ...toAdd]))));
-        applyConfigToTeeth(toAdd, src);
+    // Ctrl/Cmd behaves like a file manager: toggle exactly one tooth without
+    // disturbing the rest of the selection. Removing a tooth also clears its
+    // clinical configuration to avoid invisible/stale work data.
+    if (mods.ctrl && !mods.shift) {
+      selectionAnchorRef.current = tooth;
+      if (current.has(tooth)) {
+        current.delete(tooth);
+        clearToothConfig(tooth);
+        setTeeth(sortTeeth(Array.from(current)));
+        setConfigGroup((group) => group.filter((item) => item !== tooth));
+        setJustAddedTeeth((items) => items.filter((item) => item !== tooth));
+        if (focusedTooth === tooth) setFocusedTooth(null);
         return;
       }
-      // Clicar em qualquer dente (novo ou já existente) abre o painel focado nele.
-      if (!inCase) {
-        setTeeth(sortTeeth([...teeth, tooth]));
-        setJustAddedTeeth([tooth]);
-      } else {
-        setJustAddedTeeth([]);
-      }
+      current.add(tooth);
+      setTeeth(sortTeeth(Array.from(current)));
       setFocusedTooth(tooth);
       setConfigGroup([tooth]);
+      setJustAddedTeeth([tooth]);
       return;
     }
 
-    if (!mods.ctrl && !mods.shift) {
-      // Trocar o foco para outro dente — remove os "just added" atuais que não foram configurados.
-      pruneUnconfigured(justAddedTeeth.filter((t) => t !== tooth));
-      if (!inCase) {
-        setTeeth((s) => sortTeeth([...s, tooth]));
-        setJustAddedTeeth([tooth]);
-      } else {
-        setJustAddedTeeth([]);
-      }
+    // Shift adds the whole FDI interval to the existing selection using the
+    // last non-Shift anchor. Independent earlier selections are preserved.
+    if (mods.shift && anchor != null) {
+      const range = rangeFor(anchor, tooth);
+      range.forEach((item) => current.add(item));
+      setTeeth(sortTeeth(Array.from(current)));
+      setConfigGroup(range);
       setFocusedTooth(tooth);
-      setConfigGroup([tooth]);
+      const newlyAdded = range.filter((item) => !teeth.includes(item));
+      setJustAddedTeeth(newlyAdded);
       return;
     }
 
-    const focus = focusedTooth!;
-    let toAdd: number[] = [tooth];
-    if (mods.shift) {
-      const arch = focus < 30 ? ARCH_UPPER_L : ARCH_LOWER_L;
-      if (arch.includes(tooth) && arch.includes(focus)) {
-        const a = arch.indexOf(focus);
-        const b = arch.indexOf(tooth);
-        const [lo, hi] = a < b ? [a, b] : [b, a];
-        toAdd = arch.slice(lo, hi + 1);
-      }
+    // Plain click defines a new range anchor and focuses that tooth for work
+    // configuration. Existing configured teeth remain part of the case.
+    selectionAnchorRef.current = tooth;
+    if (!current.has(tooth)) {
+      current.add(tooth);
+      setTeeth(sortTeeth(Array.from(current)));
+      setJustAddedTeeth([tooth]);
+    } else {
+      setJustAddedTeeth([]);
     }
-    const newlyAdded = toAdd.filter((t) => !teeth.includes(t));
-    setTeeth((s) => sortTeeth(Array.from(new Set([...s, ...toAdd]))));
-    applyConfigToTeeth(toAdd, focus);
-    setConfigGroup((g) => Array.from(new Set([...g, ...toAdd])));
-    // Como estamos copiando config do foco, os "toAdd" ganharão config — não precisam ficar em justAdded.
-    if (newlyAdded.length > 0 && !toothHasConfig(focus)) {
-      setJustAddedTeeth((s) => Array.from(new Set([...s, ...newlyAdded])));
-    }
+    setFocusedTooth(tooth);
+    setConfigGroup([tooth]);
   };
 
   const submit = useMutation({

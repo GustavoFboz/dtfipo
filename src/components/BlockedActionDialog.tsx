@@ -59,10 +59,10 @@ export function BlockedActionDialog({
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogPortal>
-        <DialogOverlay className="bg-transparent" />
+        <DialogOverlay className="z-[1300] bg-transparent" />
         <DialogPrimitive.Content
           onCloseAutoFocus={(e) => e.preventDefault()}
-          className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[20px] border border-border bg-card/80 backdrop-blur-xl shadow-[var(--shadow-card)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+          className="fixed left-1/2 top-1/2 z-[1400] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[20px] border border-border bg-card/80 backdrop-blur-xl shadow-[var(--shadow-card)] duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
         >
           <div className="px-6 pt-6 pb-5 flex flex-col items-center text-center gap-3">
             <div className="h-12 w-12 rounded-full bg-amber-500/10 grid place-items-center">
