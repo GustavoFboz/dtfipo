@@ -18,7 +18,7 @@ import { StageBadge } from "./StageBadge";
 import { CaseAttachments } from "./CaseAttachments";
 import { CaseComments } from "./CaseComments";
 import { fetchCaseActivity } from "@/lib/case-activity";
-import { fetchImplantSystems, fetchCases, fetchCaseById, acceptCaseRequest, fetchProfile } from "@/lib/api";
+import { fetchImplantSystems, fetchCases, fetchCaseById, fetchCaseResponsibility, acceptCaseRequest, fetchProfile } from "@/lib/api";
 import { downloadCaseZip, downloadCaseSectionZip } from "@/lib/download-case";
 import { printWorkOrder } from "@/lib/work-order";
 import { PrintNoteButton } from "@/components/PrintNoteButton";
@@ -318,7 +318,16 @@ export function CaseDetailDialog({
     [casesQ.data, caseId, caseRowProp],
   );
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
-  const isSolicitante = profile?.role === "SOLICITANTE";
+  const profileRole = String(profile?.role || "").toUpperCase();
+  const profileSubtype = String(profile?.account_subtype || "").toUpperCase();
+  const effectiveProfileType = profileSubtype || profileRole;
+  const isSolicitante = effectiveProfileType === "SOLICITANTE";
+  const responsibility = useQuery({
+    queryKey: ["case_responsibility", caseId],
+    queryFn: () => fetchCaseResponsibility(caseId!),
+    enabled: open && !!caseId,
+    staleTime: 15_000,
+  });
   const [tab, setTab] = useState<TabKey>(() => (syncUrlHash ? readHashTab() : null) ?? "detalhes");
   const isMobile = useIsMobile();
   const [showFdiMobile, setShowFdiMobile] = useState(false);
@@ -718,7 +727,8 @@ export function CaseDetailDialog({
   const pendingImplantTeeth = requiresImplantComponents
     ? implantTeeth.filter((t) => !assignedImplantTeeth.has(t))
     : [];
-  const responsibleName = caseRow.cadista?.name ?? caseRow.doctor?.name ?? "—";
+  const responsibleName = responsibility.data?.accepted_name ?? "—";
+  const requesterName = responsibility.data?.requester_name ?? "—";
 
 
   if (isMobile) {
@@ -1111,7 +1121,7 @@ export function CaseDetailDialog({
                   <div className="min-w-0 min-h-0 space-y-4 overflow-y-auto lg:overflow-visible pr-1">
                     <div className="rounded-xl border border-border/70 bg-card p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                       <Field label="Dentista" value={caseRow.doctor?.name ?? "—"} />
-                      <Field label="Dentista Solicitante" value={caseRow.requested_by ? "Sim" : "Não"} />
+                      <Field label="Solicitante" value={requesterName} />
                       <Field label="Cor do dente" value={caseRow.tooth_color?.code ?? "—"} />
                       <Field label="Cadista" value={caseRow.cadista?.name ?? "—"} />
                       <Field
@@ -1297,6 +1307,13 @@ export function CaseDetailDialog({
                   <span className="text-[hsl(212_85%_45%)] underline-offset-2 underline font-medium">
                     {responsibleName}
                   </span>
+                  {responsibility.data?.requester_id && (
+                    <>
+                      <span className="mx-2 text-muted-foreground/50">·</span>
+                      Solicitante :{" "}
+                      <span className="text-foreground/80 font-medium">{requesterName}</span>
+                    </>
+                  )}
                 </div>
               </footer>
             )}
