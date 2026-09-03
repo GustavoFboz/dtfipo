@@ -123,6 +123,7 @@ export function startFileUpload(opts: {
   kind: CaseAttachmentKind;
   file: File;
   notes?: string;
+  suppressNotification?: boolean;
   onComplete?: (att?: CaseAttachment) => void;
 }): string {
   const id = `up_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
