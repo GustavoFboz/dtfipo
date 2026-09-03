@@ -623,6 +623,11 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
     const effectiveType = String(prof?.account_subtype || prof?.role || "").toUpperCase();
     isSolicitante = effectiveType === "SOLICITANTE";
   }
+  // Feature columns may briefly be unavailable while a database migration is
+  // rolling out. Keep the core case creation path recoverable instead of
+  // blocking the clinic with a PostgREST schema-cache error.
+  const optionalFeatureKeys = ["has_mockup", "prosthesis_groups"] as const;
+
   const payload = {
     ...rest,
     sibling_case_id,
@@ -637,11 +642,29 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
     requested_by: isSolicitante ? (input.requested_by || user?.id) : null,
     status: isSolicitante ? "pendente" : "em_andamento",
   };
-  const { data: row, error } = await supabase
+  let insertPayload: Record<string, unknown> = { ...payload };
+  let insertResult = await supabase
     .from("cases")
-    .insert(payload)
+    .insert(insertPayload as never)
     .select()
     .single();
+
+  if (insertResult.error) {
+    const message = String(insertResult.error.message || "");
+    const missingOptionalKey = optionalFeatureKeys.find(
+      (key) => message.includes(`'${key}'`) && message.toLowerCase().includes("schema cache"),
+    );
+    if (missingOptionalKey) {
+      delete insertPayload[missingOptionalKey];
+      insertResult = await supabase
+        .from("cases")
+        .insert(insertPayload as never)
+        .select()
+        .single();
+    }
+  }
+
+  const { data: row, error } = insertResult;
   if (error) throw error;
   if (component_ids && component_ids.length) {
     const { error: e2 } = await supabase
