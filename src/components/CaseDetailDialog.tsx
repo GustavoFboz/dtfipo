@@ -18,7 +18,7 @@ import { StageBadge } from "./StageBadge";
 import { CaseAttachments } from "./CaseAttachments";
 import { CaseComments } from "./CaseComments";
 import { fetchCaseActivity } from "@/lib/case-activity";
-import { fetchImplantSystems, fetchCases, updateCase, fetchProfile } from "@/lib/api";
+import { fetchImplantSystems, fetchCases, fetchCaseById, acceptCaseRequest, fetchProfile } from "@/lib/api";
 import { downloadCaseZip, downloadCaseSectionZip } from "@/lib/download-case";
 import { printWorkOrder } from "@/lib/work-order";
 import { PrintNoteButton } from "@/components/PrintNoteButton";
@@ -220,32 +220,29 @@ function CaseHeaderActions({ caseRow, currentTab, profile }: { caseRow: CaseRow;
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      {(caseRow.status === "pendente" || !caseRow.cadista_id) && profile?.role !== "SOLICITANTE" && (
-        <button
-          type="button"
-          onClick={async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-            
-            let cadistaId = null;
-            if (profile?.role === "CADISTA") {
-              const { data: cadista } = await supabase.from("cadistas").select("id").eq("user_id", user.id).maybeSingle();
-              cadistaId = cadista?.id;
-            }
-
-            try {
-              // Instead of manual RPC which might fail typecheck, use the updateCase or logic consistent with CasesTable
-              await updateCase(caseRow.id, { cadista_id: cadistaId, status: "em_andamento" });
-              toast.success("Solicitação aceita!");
-            } catch (e) {
-              toast.error("Erro ao aceitar solicitação.");
-            }
-          }}
-          className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 transition text-xs font-bold"
-        >
-          Aceitar Solicitação
-        </button>
-      )}
+      {caseRow.status === "pendente" && (() => {
+        const role = String(profile?.role || "").toUpperCase();
+        const subtype = String(profile?.account_subtype || "").toUpperCase();
+        const effectiveType = subtype || role;
+        const canAccept = Boolean(profile?.is_default_admin) || ["CEO", "ADMIN", "PROTETICO"].includes(effectiveType);
+        if (!canAccept) return null;
+        return (
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await acceptCaseRequest(caseRow.id);
+                toast.success("Solicitação aceita e movida para Em andamento.");
+              } catch (e) {
+                toast.error((e as Error).message || "Erro ao aceitar solicitação.");
+              }
+            }}
+            className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 transition text-xs font-bold"
+          >
+            Aceitar Solicitação
+          </button>
+        );
+      })()}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
@@ -508,6 +505,7 @@ export function CaseDetailDialog({
   // Listen for case deletions broadcast by other users
   const qc = useQueryClient();
   const [deletedNotice, setDeletedNotice] = useState<{ by: string; patient: string | null } | null>(null);
+  const [accessRevokedNotice, setAccessRevokedNotice] = useState(false);
   const onOpenChangeRef = useRef(onOpenChange);
   const deletedNoticeShownRef = useRef<Set<string>>(new Set());
   useEffect(() => { onOpenChangeRef.current = onOpenChange; }, [onOpenChange]);
@@ -557,6 +555,51 @@ export function CaseDetailDialog({
     };
   }, [open, caseId, qc, caseRowProp?.patient?.name]);
 
+  // Membership can change while this dialog is open. A targeted broadcast closes
+  // the case immediately; a periodic RLS-backed check is the fallback if the
+  // browser missed the realtime message.
+  useEffect(() => {
+    if (!open || !caseId) return;
+    let currentUserId: string | null = null;
+    let cancelled = false;
+
+    const revoke = () => {
+      if (cancelled) return;
+      qc.setQueriesData<any[]>({ queryKey: ["cases"] }, (old) =>
+        Array.isArray(old) ? old.filter((item) => item?.id !== caseId) : old,
+      );
+      qc.removeQueries({ queryKey: ["case", caseId] });
+      setAccessRevokedNotice(true);
+    };
+
+    void supabase.auth.getUser().then(({ data }) => {
+      currentUserId = data.user?.id ?? null;
+    });
+
+    const channel = supabase
+      .channel(`case-access-dialog:${caseId}`)
+      .on("broadcast", { event: "case_access_changed" }, (msg) => {
+        const payload = msg.payload as { case_id?: string; removed_user_ids?: string[] };
+        if (payload.case_id !== caseId || !currentUserId) return;
+        if (payload.removed_user_ids?.includes(currentUserId)) revoke();
+      })
+      .subscribe();
+
+    const timer = window.setInterval(() => {
+      void fetchCaseById(caseId)
+        .then((row) => {
+          if (!row) revoke();
+        })
+        .catch(() => revoke());
+    }, 12_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      supabase.removeChannel(channel);
+    };
+  }, [open, caseId, qc]);
+
 
   const handleNoticeClose = () => {
     setDeletedNotice(null);
@@ -594,7 +637,45 @@ export function CaseDetailDialog({
     </AlertDialogPrimitive.Root>
   );
 
-  if (!caseRow) return deletedAlert;
+  const accessRevokedAlert = (
+    <AlertDialogPrimitive.Root
+      open={accessRevokedNotice}
+      onOpenChange={(next) => {
+        if (!next) {
+          setAccessRevokedNotice(false);
+          onOpenChangeRef.current(false);
+        }
+      }}
+    >
+      <AlertDialogPrimitive.Portal>
+        <AlertDialogPrimitive.Overlay className="fixed inset-0 z-[100] bg-black/10" />
+        <AlertDialogPrimitive.Content className="fixed left-1/2 top-1/2 z-[101] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[20px] border border-border bg-card shadow-[var(--shadow-card)]">
+          <div className="px-6 pt-6 pb-5 flex flex-col items-center text-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-amber-500/10 grid place-items-center">
+              <AlertTriangle className="h-6 w-6 text-amber-500" />
+            </div>
+            <AlertDialogPrimitive.Title className="text-base font-semibold tracking-tight">
+              Acesso ao caso atualizado
+            </AlertDialogPrimitive.Title>
+            <AlertDialogPrimitive.Description className="text-sm text-muted-foreground leading-relaxed">
+              Você não faz mais parte deste caso e, por segurança, ele não pode mais ser visualizado nesta conta.
+            </AlertDialogPrimitive.Description>
+          </div>
+          <AlertDialogPrimitive.Action
+            onClick={() => {
+              setAccessRevokedNotice(false);
+              onOpenChangeRef.current(false);
+            }}
+            className="w-full py-3.5 bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors border-t border-border/50"
+          >
+            Entendi
+          </AlertDialogPrimitive.Action>
+        </AlertDialogPrimitive.Content>
+      </AlertDialogPrimitive.Portal>
+    </AlertDialogPrimitive.Root>
+  );
+
+  if (!caseRow) return <>{deletedAlert}{accessRevokedAlert}</>;
 
 
   const overdue = isOverdue(caseRow.delivery_date, caseRow.finished_at);
@@ -1226,6 +1307,7 @@ export function CaseDetailDialog({
       </DialogContent>
     </Dialog>
     {deletedAlert}
+    {accessRevokedAlert}
     <PendingImplantToothPicker caseRow={caseRow} tooth={pendingPickerTooth} onClose={() => setPendingPickerTooth(null)} />
     {tabBlocker.dialogElement}
     </>
