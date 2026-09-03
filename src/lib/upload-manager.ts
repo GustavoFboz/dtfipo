@@ -155,7 +155,9 @@ export function startFileUpload(opts: {
       } catch { /* ignore */ }
       retryFns.delete(id);
       update(id, { status: "success", progress: 100, finishedAt: Date.now(), message: "Concluído" });
-      void postUploadNotify(opts.caseId, opts.kind, opts.file.name, att.id, opts.notes, false, 1);
+      if (!opts.suppressNotification) {
+        void postUploadNotify(opts.caseId, opts.kind, opts.file.name, att.id, opts.notes, false, 1);
+      }
       opts.onComplete?.(att);
     } catch (e) {
       update(id, { status: "error", message: (e as Error).message || "Falha no upload", finishedAt: Date.now() });
