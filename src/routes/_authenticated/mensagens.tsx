@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageSquare, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchCases } from "@/lib/api";
@@ -24,6 +24,7 @@ type Thread = {
 function MessagesInboxPage() {
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const queryClient = useQueryClient();
 
   const casesQ = useQuery({
     queryKey: ["cases", "messages-inbox"],
@@ -55,6 +56,36 @@ function MessagesInboxPage() {
     },
     staleTime: Infinity,
   });
+
+  // Keep the inbox live without relying only on polling. RLS on case_activity
+  // remains the authorization boundary, so users only receive comments they
+  // are allowed to read.
+  useEffect(() => {
+    const userId = currentUserQ.data;
+    if (!userId) return;
+
+    const channel = supabase
+      .channel(`messages-inbox:${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "case_activity" },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["messages_inbox_activity"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "case_activity_reads" },
+        () => {
+          void queryClient.invalidateQueries({ queryKey: ["messages_inbox_reads"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUserQ.data, queryClient]);
 
   const commentIds = useMemo(
     () => (activityQ.data ?? []).map((a) => a.id).filter((id) => !id.startsWith("optimistic-")),
