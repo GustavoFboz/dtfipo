@@ -217,37 +217,39 @@ export function CasesTable({
 
   const reveal = useListReveal("cases-table", cases.isLoading);
 
-  // Targeted access-change wakeup. No case data is broadcast: each client
-  // refetches through its own RLS, so revoked users lose the row and newly
-  // assigned users receive it only when actually authorized.
+  // Recipient-scoped access-change wakeup. Realtime comes from the
+  // notifications table under RLS, never from a public broadcast payload.
   useEffect(() => {
-    let currentUserId: string | null = null;
     let cancelled = false;
-    supabase.auth.getUser().then(({ data }) => {
-      if (!cancelled) currentUserId = data.user?.id ?? null;
-    });
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    const channel = supabase
-      .channel("case-access-updates:list")
-      .on("broadcast", { event: "case_access_changed" }, (msg) => {
-        const payload = msg.payload as {
-          added_user_ids?: string[];
-          removed_user_ids?: string[];
-        };
-        if (!currentUserId) return;
-        if (
-          payload.added_user_ids?.includes(currentUserId) ||
-          payload.removed_user_ids?.includes(currentUserId)
-        ) {
-          void qc.invalidateQueries({ queryKey: ["cases"] });
-          void qc.invalidateQueries({ queryKey: ["my_tasks"] });
-        }
-      })
-      .subscribe();
+    void supabase.auth.getUser().then(({ data }) => {
+      const userId = data.user?.id;
+      if (!userId || cancelled) return;
+
+      channel = supabase
+        .channel(`case-access-notifications:list:${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `recipient_id=eq.${userId}`,
+          },
+          (msg) => {
+            const row = msg.new as { type?: string | null };
+            if (!["case_access_revoked", "case_assigned", "case_request_accepted"].includes(String(row?.type || ""))) return;
+            void qc.invalidateQueries({ queryKey: ["cases"] });
+            void qc.invalidateQueries({ queryKey: ["my_tasks"] });
+          },
+        )
+        .subscribe();
+    });
 
     return () => {
       cancelled = true;
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, [qc]);
 
