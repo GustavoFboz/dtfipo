@@ -49,6 +49,7 @@ import { CaseImplantTeethPanel } from "./CaseImplantTeethPanel";
 import { ToothWorkPanel, type ToothMilling } from "./ToothWorkPanel";
 import { TOOTH_WORK_TYPES, ENCERAMENTO_ID, splitToothTypes, buildToothTypes } from "@/lib/case-types";
 import { CaseComments } from "./CaseComments";
+import { addCaseActivity } from "@/lib/case-activity";
 import { Paperclip, MessageSquare, PlusCircle } from "lucide-react";
 import { AttachButton, AttachFilesIcon, AttachImagesIcon } from "./AttachButton";
 import { useSessionSnapshot, clearSessionSnapshot } from "@/hooks/use-session-snapshot";
@@ -203,6 +204,7 @@ export function NewCaseDialog({
   const [lastConfiguredTooth, setLastConfiguredTooth] = useState<number | null>(null);
   const [scanJigId, setScanJigId] = useState<string>("");
   const [hasProvisional, setHasProvisional] = useState<boolean>(false);
+  const [hasMockup, setHasMockup] = useState<boolean>(false);
   const [notes, setNotes] = useState("");
   const [teeth, setTeeth] = useState<number[]>([]);
   const [zirTeeth, setZirTeeth] = useState<number[]>([]);
@@ -239,7 +241,7 @@ export function NewCaseDialog({
       doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
       entryDate, deliveryDate, stageId, arch,
       implantSystemId, additionalSystemIds, implantTeeth,
-      arcadaMode, scanJigId, hasProvisional, notes,
+      arcadaMode, scanJigId, hasProvisional, hasMockup, notes,
       teeth, zirTeeth, disTeeth,
       gumMode, gumColor, gumNotes,
       toothTypeMap, toothEnceramento, toothImplantSystemMap,
@@ -247,7 +249,7 @@ export function NewCaseDialog({
     [
       patientId, newPatientName, doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
       entryDate, deliveryDate, stageId, arch, implantSystemId, additionalSystemIds, implantTeeth,
-      arcadaMode, scanJigId, hasProvisional, notes, teeth, zirTeeth, disTeeth,
+      arcadaMode, scanJigId, hasProvisional, hasMockup, notes, teeth, zirTeeth, disTeeth,
       gumMode, gumColor, gumNotes, toothTypeMap, toothEnceramento, toothImplantSystemMap,
     ],
   );
@@ -269,6 +271,7 @@ export function NewCaseDialog({
     if (d.arcadaMode !== undefined) setArcadaMode(d.arcadaMode as ArcadaMode);
     if (d.scanJigId !== undefined) setScanJigId(d.scanJigId as string);
     if (d.hasProvisional !== undefined) setHasProvisional(!!d.hasProvisional);
+    if (d.hasMockup !== undefined) setHasMockup(!!d.hasMockup);
     if (d.notes !== undefined) setNotes(d.notes as string);
     if (d.teeth !== undefined) setTeeth(d.teeth as number[]);
     if (d.zirTeeth !== undefined) setZirTeeth(d.zirTeeth as number[]);
@@ -302,6 +305,7 @@ export function NewCaseDialog({
     setImplantTeeth(viewCase.implant_teeth ?? []);
     setScanJigId(viewCase.scan_jig_id ?? "");
     setHasProvisional(!!viewCase.has_provisional);
+    setHasMockup(!!(viewCase as any).has_mockup);
     setNotes(viewCase.notes ?? "");
     setTeeth(viewCase.teeth_numbers ?? []);
     setZirTeeth(viewCase.teeth_zirconia ?? []);
@@ -351,6 +355,7 @@ export function NewCaseDialog({
     setImplantTeeth(editCase.implant_teeth ?? []);
     setScanJigId(editCase.scan_jig_id ?? "");
     setHasProvisional(!!editCase.has_provisional);
+    setHasMockup(!!(editCase as any).has_mockup);
     setNotes(editCase.notes ?? "");
     setTeeth(editCase.teeth_numbers ?? []);
     setZirTeeth(editCase.teeth_zirconia ?? []);
@@ -717,6 +722,7 @@ export function NewCaseDialog({
         tooth_implant_systems: tis,
         scan_jig_id: implantSystemId ? (scanJigId || null) : null,
         has_provisional: hasProvisional,
+        has_mockup: hasMockup,
         notes: notes || null,
         teeth_numbers: sortTeeth(teeth),
         teeth_zirconia: cleanZir,
@@ -964,11 +970,25 @@ export function NewCaseDialog({
               </div>
 
               <div className="space-y-2">
-                <Label>Provisório</Label>
-                <label className="flex items-center gap-2 h-10 px-3 rounded-lg bg-slate-100/70 text-sm cursor-pointer hover:bg-slate-100 transition-colors">
-                  <Checkbox checked={hasProvisional} onCheckedChange={(v) => setHasProvisional(!!v)} />
-                  <span>Este caso terá provisório</span>
-                </label>
+                <Label>Fluxos opcionais</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <label className="flex items-center gap-2 h-10 px-3 rounded-lg bg-slate-100/70 text-sm cursor-pointer hover:bg-slate-100 transition-colors">
+                    <Checkbox checked={hasProvisional} onCheckedChange={(v) => setHasProvisional(!!v)} />
+                    <span>Provisório</span>
+                  </label>
+                  <label className="flex items-center gap-2 h-10 px-3 rounded-lg bg-slate-100/70 text-sm cursor-pointer hover:bg-slate-100 transition-colors">
+                    <Checkbox checked={hasMockup} onCheckedChange={(v) => setHasMockup(!!v)} />
+                    <span>Mockup</span>
+                  </label>
+                </div>
+                {hasMockup && !(stages.data ?? []).some((st: any) =>
+                  String(st.condition_key || "").toLowerCase() === "mockup" ||
+                  String(st.name || "").toLowerCase().includes("mockup")
+                ) && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    Este fluxo ainda não possui uma etapa de Mockup. O caso será salvo normalmente; é recomendado criar uma etapa opcional “Mockup” e definir o responsável por etapa nas configurações do fluxo.
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2 md:col-span-2">
