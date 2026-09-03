@@ -6,7 +6,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import {
   fetchCases, fetchStages, finishCase, updateCase, setCurrentStage, deleteCase, fetchProfile, reopenCase,
   acceptCaseRequest,
-  rejectCaseRequest
+  rejectCaseRequest,
+  fetchNotifications
 } from "@/lib/api";
 
 import { markDeleted } from "@/lib/optimistic";
@@ -38,7 +39,7 @@ import {
 import {
   Search, Filter, Check, X, Clock, AlertCircle, MoreHorizontal,
   CheckCircle2, FolderOpen, FolderCog, Pencil, ArrowUp, ArrowDown,
-  Copy, Trash2, Link2, Archive, RotateCcw,
+  Copy, Trash2, Link2, Archive, RotateCcw, MessageSquare,
 } from "lucide-react";
 import { ModelIcon } from "./icons/ModelIcon";
 import { ScanIcon } from "./icons/ScanIcon";
@@ -178,6 +179,23 @@ export function CasesTable({
   const canReviewRequests =
     Boolean(profile?.is_default_admin) ||
     hasProfileRole("CEO", "ADMIN", "PROTETICO");
+
+  const notificationsQ = useQuery({
+    queryKey: ["notifications"],
+    queryFn: fetchNotifications,
+    staleTime: 15_000,
+  });
+
+  const unreadMessageCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const notification of notificationsQ.data ?? []) {
+      if (notification.read_at || notification.type !== "comment") continue;
+      const caseId = (notification.metadata as any)?.case_id as string | undefined;
+      if (!caseId) continue;
+      counts.set(caseId, (counts.get(caseId) ?? 0) + 1);
+    }
+    return counts;
+  }, [notificationsQ.data]);
 
   const cases = useQuery({
     queryKey: ["cases", activeFilter, dateRange?.start, dateRange?.end],
@@ -743,7 +761,16 @@ export function CasesTable({
                         navigate({ to: "/patients/$id", params: { id: c.patient_id } });
                       }}
                     >
-                      {c.patient?.name ?? "—"}
+                      <span>{c.patient?.name ?? "—"}</span>
+                      {(unreadMessageCounts.get(c.id) ?? 0) > 0 && (
+                        <span
+                          title={`${unreadMessageCounts.get(c.id)} mensagem(ns) não lida(s)`}
+                          className="ml-2 inline-flex align-middle items-center gap-1 rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold"
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                          {unreadMessageCounts.get(c.id)}
+                        </span>
+                      )}
                     </div>
                     <div className="text-[13px] font-light text-slate-400 truncate mt-0.5">
                       {c.case_type?.name ?? "—"}
