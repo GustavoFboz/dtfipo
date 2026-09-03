@@ -183,10 +183,16 @@ function CaseHeaderActions({ caseRow, currentTab, profile }: { caseRow: CaseRow;
   const onDownloadFull = async () => {
     if (downloading) return;
     setDownloading(true);
-    const tid = toast.loading("Gerando ZIP do caso…");
+    const tid = toast.loading("Preparando download…");
     try {
-      await downloadCaseZip(caseRow);
-      toast.success("Download iniciado", { id: tid });
+      const result = await downloadCaseZip(caseRow, ({ percent, label }) => {
+        toast.loading(`${label} · ${percent}%`, { id: tid });
+      });
+      if (result.failed > 0) {
+        toast.warning(`Download iniciado, mas ${result.failed} arquivo(s) não puderam ser incluídos.`, { id: tid });
+      } else {
+        toast.success("Download iniciado", { id: tid });
+      }
     } catch (e) {
       toast.error((e as Error).message, { id: tid });
     } finally {
@@ -197,10 +203,16 @@ function CaseHeaderActions({ caseRow, currentTab, profile }: { caseRow: CaseRow;
   const onDownloadSection = async (kind: CaseAttachmentKind) => {
     if (downloading) return;
     setDownloading(true);
-    const tid = toast.loading(`Gerando ZIP da seção ${KIND_LABEL_BR[kind]}…`);
+    const tid = toast.loading(`Preparando ${KIND_LABEL_BR[kind]}…`);
     try {
-      await downloadCaseSectionZip(caseRow, kind);
-      toast.success("Download iniciado", { id: tid });
+      const result = await downloadCaseSectionZip(caseRow, kind, ({ percent, label }) => {
+        toast.loading(`${label} · ${percent}%`, { id: tid });
+      });
+      if (result.failed > 0) {
+        toast.warning(`Download iniciado, mas ${result.failed} arquivo(s) não puderam ser incluídos.`, { id: tid });
+      } else {
+        toast.success("Download iniciado", { id: tid });
+      }
     } catch (e) {
       toast.error((e as Error).message, { id: tid });
     } finally {
