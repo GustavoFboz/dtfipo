@@ -177,21 +177,21 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
     if (hasRole("SOLICITANTE")) {
       query = query.eq("requested_by", user.id);
     } else if (hasRole("CADISTA")) {
-      const { data: cadista } = await supabase
+      const { data: cadistas } = await supabase
         .from("cadistas")
         .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (!cadista?.id) return [];
-      query = query.eq("cadista_id", cadista.id);
+        .or(`user_id.eq.${user.id},id.eq.${user.id}`);
+      const ids = (cadistas ?? []).map((item) => item.id).filter(Boolean);
+      if (!ids.length) return [];
+      query = ids.length === 1 ? query.eq("cadista_id", ids[0]) : query.in("cadista_id", ids);
     } else if (hasRole("DR", "DENTISTA")) {
-      const { data: doctor } = await supabase
+      const { data: doctors } = await supabase
         .from("doctors")
         .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (!doctor?.id) return [];
-      query = query.eq("doctor_id", doctor.id);
+        .or(`user_id.eq.${user.id},id.eq.${user.id}`);
+      const ids = (doctors ?? []).map((item) => item.id).filter(Boolean);
+      if (!ids.length) return [];
+      query = ids.length === 1 ? query.eq("doctor_id", ids[0]) : query.in("doctor_id", ids);
     } else {
       return [];
     }
