@@ -608,6 +608,9 @@ DECLARE
   v_next_stage uuid;
   v_next_phase uuid;
   v_next_pos int;
+  v_expected_stage uuid;
+  v_has_mockup boolean := false;
+  v_has_provisional boolean := false;
   v_blockers text[];
 BEGIN
   IF NOT public.can_access_case(_case_id) THEN
@@ -624,7 +627,8 @@ BEGIN
     );
   END IF;
 
-  SELECT current_stage_id INTO v_current_stage
+  SELECT current_stage_id, COALESCE(has_mockup,false), COALESCE(has_provisional,false)
+    INTO v_current_stage, v_has_mockup, v_has_provisional
   FROM public.cases
   WHERE id = _case_id;
 
@@ -636,30 +640,30 @@ BEGIN
   FROM public.stages
   WHERE id = v_current_stage;
 
-  IF _stage_id IS NOT NULL THEN
-    SELECT id, position, phase_id
-      INTO v_next_stage, v_next_pos, v_next_phase
-    FROM public.stages
-    WHERE id = _stage_id;
+  -- The server chooses the first applicable next stage. Explicit _stage_id is
+  -- accepted only when it equals that stage, so clients can skip inactive
+  -- Mockup/Provisório stages but cannot jump over ordinary required stages.
+  SELECT id, position, phase_id
+    INTO v_expected_stage, v_next_pos, v_next_phase
+  FROM public.stages
+  WHERE position > COALESCE(v_current_pos, -1)
+    AND (
+      condition_key IS NULL
+      OR (condition_key = 'mockup' AND v_has_mockup)
+      OR (condition_key = 'provisional' AND v_has_provisional)
+    )
+  ORDER BY position ASC
+  LIMIT 1;
 
-    IF v_next_stage IS NULL THEN
-      RETURN jsonb_build_object('success', false, 'error', 'Etapa de destino não encontrada');
-    END IF;
-    IF v_next_pos <= COALESCE(v_current_pos, -1) THEN
-      RETURN jsonb_build_object('success', false, 'error', 'A etapa de destino não é posterior à etapa atual');
-    END IF;
-  ELSE
-    SELECT id, position, phase_id
-      INTO v_next_stage, v_next_pos, v_next_phase
-    FROM public.stages
-    WHERE position > COALESCE(v_current_pos, -1)
-    ORDER BY position ASC
-    LIMIT 1;
-
-    IF v_next_stage IS NULL THEN
-      RETURN jsonb_build_object('success', false, 'error', 'Não há próxima etapa');
-    END IF;
+  IF v_expected_stage IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Não há próxima etapa');
   END IF;
+
+  IF _stage_id IS NOT NULL AND _stage_id <> v_expected_stage THEN
+    RETURN jsonb_build_object('success', false, 'error', 'A etapa selecionada não é a próxima etapa válida para este caso');
+  END IF;
+
+  v_next_stage := v_expected_stage;
 
   UPDATE public.case_stages
   SET completed_at = COALESCE(completed_at, now())
