@@ -270,6 +270,7 @@ export async function acceptCaseRequest(caseId: string, _cadistaId?: string | nu
           "Novo caso disponível",
           "Uma solicitação foi aceita e este caso agora está disponível para você.",
           "case_assigned",
+          { case_id: caseId },
         ).catch(() => undefined);
       }
     }
@@ -294,6 +295,7 @@ export async function acceptCaseRequest(caseId: string, _cadistaId?: string | nu
           ? "Seu caso foi aceito e a etapa atual está sob sua responsabilidade."
           : "Seu caso foi aceito e já está em andamento.",
         requesterOwnsCurrentStage ? "stage_assigned" : "case_request_accepted",
+        { case_id: caseId },
       ).catch(() => undefined);
     }
 
