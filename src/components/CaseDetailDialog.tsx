@@ -14,6 +14,7 @@ import type { CaseRow } from "@/lib/types";
 import { TeethSelector, IMPLANT_COLOR_SCALE } from "./TeethSelector";
 import { ArcadaModeToggle, type ArcadaMode } from "./ArcadaModeToggle";
 import { sortTeeth } from "@/lib/teeth";
+import { toothWorkTypeName, ENCERAMENTO_ID } from "@/lib/case-types";
 import { StageBadge } from "./StageBadge";
 import { CaseAttachments } from "./CaseAttachments";
 import { CaseComments } from "./CaseComments";
@@ -1137,10 +1138,52 @@ export function CaseDetailDialog({
                         label="Provisório"
                         value={caseRow.has_provisional ? "Sim" : "Não"}
                       />
+                      <Field
+                        label="Mockup"
+                        value={(caseRow as any).has_mockup ? "Sim" : "Não"}
+                      />
                     </div>
 
                     {implantTeeth.length > 0 && (
                       <CaseImplantTeethPanel caseRow={caseRow} />
+                    )}
+
+                    {teeth.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-foreground">Trabalho por elemento</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {teeth.map((tooth) => {
+                            const ids = tctMap[String(tooth)] ?? [];
+                            const primary = ids.find((id) => id !== ENCERAMENTO_ID);
+                            const work = toothWorkTypeName(primary) ?? "Não definido";
+                            const extras = [
+                              ids.includes(ENCERAMENTO_ID) ? "Enceramento" : null,
+                              implantTeeth.includes(tooth) ? "Implante" : null,
+                              zir.includes(tooth) ? "Zircônia" : null,
+                              dis.includes(tooth) ? "Dissilicato" : null,
+                            ].filter(Boolean);
+                            const group = ((caseRow as any).prosthesis_groups ?? []).find(
+                              (item: any) => Array.isArray(item?.teeth) && item.teeth.includes(tooth),
+                            );
+                            return (
+                              <div key={tooth} className="rounded-lg border border-border/70 px-3 py-2 bg-background">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-primary">{tooth}</span>
+                                  <span className="text-sm text-foreground">{work}</span>
+                                  {group && (
+                                    <span className="ml-auto rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-medium">
+                                      Prótese única · {sortTeeth(group.teeth).join("–")}
+                                    </span>
+                                  )}
+                                </div>
+                                {extras.length > 0 && (
+                                  <div className="text-[11px] text-muted-foreground mt-1">{extras.join(" · ")}</div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
 
                     <div className="space-y-2">
