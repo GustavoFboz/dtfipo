@@ -138,7 +138,8 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
 
   const role = String(profile?.role || "").toUpperCase();
   const accountSubtype = String(profile?.account_subtype || "").toUpperCase();
-  const hasRole = (...roles: string[]) => roles.includes(role) || roles.includes(accountSubtype);
+  const effectiveType = accountSubtype || role;
+  const hasRole = (...roles: string[]) => roles.includes(effectiveType);
   const hasGlobalCaseAccess =
     Boolean(profile?.is_default_admin) ||
     hasRole("CEO", "ADMIN", "PROTETICO");
@@ -206,25 +207,45 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
 
 }
 
-export async function acceptCaseRequest(caseId: string, cadistaId?: string | null) {
-  const patch: Record<string, unknown> = { status: "em_andamento" };
-  if (cadistaId) patch.cadista_id = cadistaId;
-
-  const { data, error } = await supabase
-    .from("cases")
-    .update(patch as never)
-    .eq("id", caseId)
-    .eq("status", "pendente")
-    .select("id")
-    .maybeSingle();
+export async function acceptCaseRequest(caseId: string, _cadistaId?: string | null) {
+  const { data, error } = await supabase.rpc("accept_case_request_secure" as never, {
+    p_case_id: caseId,
+  } as never);
 
   if (error) throw error;
-  if (!data) {
-    throw new Error("Solicitação não encontrada, já processada ou sem permissão.");
-  }
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error("Solicitação não encontrada, já processada ou sem permissão.");
 
   try {
-    broadcastEntity("cases", "update", { id: caseId, ...patch });
+    broadcastEntity("cases", "update", {
+      id: caseId,
+      status: "em_andamento",
+      accepted_by: (row as any).accepted_by ?? null,
+      accepted_at: (row as any).accepted_at ?? null,
+      updated_at: (row as any).updated_at ?? new Date().toISOString(),
+    });
+  } catch {}
+
+  // Assigned professionals only gain access after this transition. Wake their
+  // lists without broadcasting case data; their own RLS decides what they can fetch.
+  try {
+    const { data: assignment } = await supabase
+      .from("cases")
+      .select("cadista:cadistas(user_id), doctor:doctors(user_id)")
+      .eq("id", caseId)
+      .maybeSingle();
+    const addedUserIds = [
+      (assignment as any)?.cadista?.user_id,
+      (assignment as any)?.doctor?.user_id,
+    ].filter(Boolean);
+    const channel = supabase.channel("case-access-updates");
+    await channel.subscribe();
+    await channel.send({
+      type: "broadcast",
+      event: "case_access_changed",
+      payload: { case_id: caseId, added_user_ids: addedUserIds, removed_user_ids: [] },
+    });
+    setTimeout(() => { supabase.removeChannel(channel); }, 500);
   } catch {}
 }
 
@@ -541,8 +562,9 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
   const { data: { user } } = await supabase.auth.getUser();
   let isSolicitante = false;
   if (user) {
-    const { data: prof } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-    isSolicitante = prof?.role === "SOLICITANTE";
+    const { data: prof } = await supabase.from("profiles").select("role,account_subtype").eq("id", user.id).maybeSingle();
+    const effectiveType = String(prof?.account_subtype || prof?.role || "").toUpperCase();
+    isSolicitante = effectiveType === "SOLICITANTE";
   }
   const payload = {
     ...rest,
@@ -612,7 +634,7 @@ export async function createCase(input: CreateCaseInput & { also_arch?: "superio
 
   // Notify cadista (if linked to a user) when a case is created and assigned to them
   try {
-    if (input.cadista_id) {
+    if (input.cadista_id && created?.status !== "pendente") {
       const { data: cadista } = await supabase
         .from("cadistas")
         .select("name, user_id")
@@ -658,12 +680,65 @@ export async function createCase(input: CreateCaseInput & { also_arch?: "superio
 
 
 export const updateCase = async (id: string, patch: Record<string, unknown>) => {
-  // Optimistic peer broadcast BEFORE the round-trip: peers com o caso aberto
-  // ou vendo a lista aplicam o patch instantaneamente. Se o UPDATE falhar,
-  // o Realtime/postgres_changes seguinte reverte.
+  const assignmentChanged =
+    Object.prototype.hasOwnProperty.call(patch, "cadista_id") ||
+    Object.prototype.hasOwnProperty.call(patch, "doctor_id");
+
+  let before: any = null;
+  if (assignmentChanged) {
+    const { data } = await supabase
+      .from("cases")
+      .select("cadista_id,doctor_id,cadista:cadistas(user_id),doctor:doctors(user_id)")
+      .eq("id", id)
+      .maybeSingle();
+    before = data;
+  }
+
+  // Existing viewers may update immediately, but no full case/patient data is
+  // ever broadcast to users who do not already have the row.
   try { broadcastEntity("cases", "update", { id, ...patch, updated_at: new Date().toISOString() }); } catch { /* ignore */ }
+
   const { error } = await supabase.from("cases").update(patch as never).eq("id", id);
   if (error) throw error;
+
+  if (assignmentChanged) {
+    try {
+      const { data: after } = await supabase
+        .from("cases")
+        .select("cadista_id,doctor_id,cadista:cadistas(user_id),doctor:doctors(user_id)")
+        .eq("id", id)
+        .maybeSingle();
+
+      const beforeIds = new Set<string>([
+        (before as any)?.cadista?.user_id,
+        (before as any)?.doctor?.user_id,
+      ].filter(Boolean));
+      const afterIds = new Set<string>([
+        (after as any)?.cadista?.user_id,
+        (after as any)?.doctor?.user_id,
+      ].filter(Boolean));
+
+      const removedUserIds = [...beforeIds].filter((userId) => !afterIds.has(userId));
+      const addedUserIds = [...afterIds].filter((userId) => !beforeIds.has(userId));
+
+      if (removedUserIds.length || addedUserIds.length) {
+        const channel = supabase.channel("case-access-updates");
+        await channel.subscribe();
+        await channel.send({
+          type: "broadcast",
+          event: "case_access_changed",
+          payload: {
+            case_id: id,
+            removed_user_ids: removedUserIds,
+            added_user_ids: addedUserIds,
+          },
+        });
+        setTimeout(() => { supabase.removeChannel(channel); }, 500);
+      }
+    } catch (e) {
+      console.warn("case access change broadcast failed", e);
+    }
+  }
 };
 
 export const finishCase = async (id: string) => {
