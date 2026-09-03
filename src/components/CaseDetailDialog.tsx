@@ -483,22 +483,19 @@ export function CaseDetailDialog({
   const tabBlocker = useBlockedActionDialog();
   const handleTabClick = (key: TabKey) => {
     if (key === tab) return;
-    // Radix overlays opened inside the current tab can otherwise leave focus
-    // guards/backdrops active for one frame and make the whole dialog appear
-    // blurred. Release focus before changing tab content.
-    if (typeof document !== "undefined") {
-      const active = document.activeElement as HTMLElement | null;
-      active?.blur?.();
+
+    // Never open a blocking overlay merely because requirements are still
+    // loading. That was perceived as the entire case dialog "blurring" and
+    // made tab changes look unresponsive. We only block when an actual,
+    // resolved stage requirement explicitly denies the destination tab.
+    if (!stageReqs.isLoading) {
+      const msg = stageReqs.tabBlockedMessage(key);
+      if (msg) {
+        tabBlocker.show("Aba bloqueada", msg);
+        return;
+      }
     }
-    if (stageReqs.isLoading) {
-      tabBlocker.show("Validando exigências", "Aguarde a verificação das exigências desta etapa antes de trocar de aba.");
-      return;
-    }
-    const msg = stageReqs.tabBlockedMessage(key);
-    if (msg) {
-      tabBlocker.show("Aba bloqueada", msg);
-      return;
-    }
+
     setTab(key);
     if (caseId) {
       try { localStorage.setItem(`case_tab:${caseId}`, key); } catch { /* ignore */ }
