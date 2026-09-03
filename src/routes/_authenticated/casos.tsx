@@ -24,6 +24,7 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/_authenticated/casos")({
   validateSearch: (search: Record<string, unknown>) => ({
     case: typeof search.case === "string" ? search.case : undefined,
+    msg: typeof search.msg === "string" ? search.msg : undefined,
   }),
   loader: () => ({}),
   component: Index,
@@ -31,7 +32,7 @@ export const Route = createFileRoute("/_authenticated/casos")({
 
 function Index() {
   const now = useNow();
-  const { case: deepLinkCaseId } = Route.useSearch();
+  const { case: deepLinkCaseId, msg: deepLinkMessageId } = Route.useSearch();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("em_andamento");
   const [isTrashMode, setIsTrashMode] = useState(false);
@@ -79,6 +80,7 @@ function Index() {
           hideSearch
           activeFilter="all"
           deepLinkCaseId={deepLinkCaseId}
+          deepLinkFocusActivityId={deepLinkMessageId}
           onDeepLinkClose={() => navigate({ to: "/casos", search: {} })}
         />
       </div>
