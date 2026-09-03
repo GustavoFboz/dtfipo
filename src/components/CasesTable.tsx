@@ -43,6 +43,7 @@ import {
 import { ModelIcon } from "./icons/ModelIcon";
 import { ScanIcon } from "./icons/ScanIcon";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import type { CaseRow } from "@/lib/types";
 
 const monthAbbr = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -169,8 +170,8 @@ export function CasesTable({
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile, staleTime: 300_000 });
   const normalizedRole = String(profile?.role || "").toUpperCase();
   const normalizedSubtype = String(profile?.account_subtype || "").toUpperCase();
-  const hasProfileRole = (...roles: string[]) =>
-    roles.includes(normalizedRole) || roles.includes(normalizedSubtype);
+  const effectiveType = normalizedSubtype || normalizedRole;
+  const hasProfileRole = (...roles: string[]) => roles.includes(effectiveType);
   const isCadista = hasProfileRole("CADISTA");
   const canReviewRequests =
     Boolean(profile?.is_default_admin) ||
@@ -195,6 +196,40 @@ export function CasesTable({
   });
 
   const reveal = useListReveal("cases-table", cases.isLoading);
+
+  // Targeted access-change wakeup. No case data is broadcast: each client
+  // refetches through its own RLS, so revoked users lose the row and newly
+  // assigned users receive it only when actually authorized.
+  useEffect(() => {
+    let currentUserId: string | null = null;
+    let cancelled = false;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!cancelled) currentUserId = data.user?.id ?? null;
+    });
+
+    const channel = supabase
+      .channel("case-access-updates:list")
+      .on("broadcast", { event: "case_access_changed" }, (msg) => {
+        const payload = msg.payload as {
+          added_user_ids?: string[];
+          removed_user_ids?: string[];
+        };
+        if (!currentUserId) return;
+        if (
+          payload.added_user_ids?.includes(currentUserId) ||
+          payload.removed_user_ids?.includes(currentUserId)
+        ) {
+          void qc.invalidateQueries({ queryKey: ["cases"] });
+          void qc.invalidateQueries({ queryKey: ["my_tasks"] });
+        }
+      })
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
 
   useEffect(() => {
     if (!deepLinkCaseId || cases.isLoading || deepLinkHandled) return;
@@ -409,11 +444,31 @@ export function CasesTable({
 
   const accept = useMutation({
     mutationFn: ({ caseId, cadistaId }: { caseId: string; cadistaId?: string | null }) => acceptCaseRequest(caseId, cadistaId),
+    onMutate: async ({ caseId }) => {
+      await qc.cancelQueries({ queryKey: ["cases"] });
+      const previous = qc.getQueriesData<CaseRow[]>({ queryKey: ["cases"] });
+
+      // Pending row disappears instantly from Solicitações and becomes active
+      // everywhere else. The subsequent refetch hydrates the authoritative row.
+      qc.setQueriesData<CaseRow[]>({ queryKey: ["cases"] }, (old) => {
+        if (!Array.isArray(old)) return old;
+        if (activeFilter === "solicitacoes") return old.filter((row) => row.id !== caseId);
+        return old.map((row) => row.id === caseId ? { ...row, status: "em_andamento" } : row);
+      });
+      return { previous };
+    },
     onSuccess: () => {
-      toast.success("Solicitação aprovada!");
+      toast.success("Solicitação aceita e movida para Em andamento.");
+    },
+    onError: (e: Error, _vars, ctx) => {
+      if (ctx?.previous) {
+        for (const [key, data] of ctx.previous) qc.setQueryData(key, data);
+      }
+      toast.error(e.message);
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["cases"] });
     },
-    onError: (e: Error) => toast.error(e.message),
   });
 
   const reject = useMutation({
