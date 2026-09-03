@@ -1142,10 +1142,14 @@ export async function fetchCaseAttachmentText(path: string): Promise<string> {
   return await data.text();
 }
 
-export async function getCaseAttachmentUrl(path: string): Promise<string> {
+export async function getCaseAttachmentUrl(path: string, downloadName?: string): Promise<string> {
   const { data, error } = await supabase.storage
     .from("case-files")
-    .createSignedUrl(path, 60 * 60);
+    .createSignedUrl(
+      path,
+      60 * 60,
+      downloadName ? { download: downloadName } : undefined,
+    );
   if (error) throw error;
   return data.signedUrl;
 }
