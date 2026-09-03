@@ -103,7 +103,30 @@ export async function fetchCaseById(id: string): Promise<CaseRow | null> {
 }
 
 
-export async function sendInternalNotification(targetUserId: string | null, title: string, content: string, type: string = 'system') {
+export type CaseResponsibility = {
+  accepted_by: string | null;
+  accepted_name: string | null;
+  requester_id: string | null;
+  requester_name: string | null;
+};
+
+export async function fetchCaseResponsibility(caseId: string): Promise<CaseResponsibility | null> {
+  const { data, error } = await supabase.rpc("get_case_responsibility" as never, {
+    p_case_id: caseId,
+  } as never);
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return (row ?? null) as unknown as CaseResponsibility | null;
+}
+
+
+export async function sendInternalNotification(
+  targetUserId: string | null,
+  title: string,
+  content: string,
+  type: string = "system",
+  metadata: Record<string, unknown> = {},
+) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
   const id = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2);
@@ -114,7 +137,7 @@ export async function sendInternalNotification(targetUserId: string | null, titl
     title,
     content,
     type,
-    metadata: {},
+    metadata,
     read_at: null,
     created_at: new Date().toISOString(),
   };
@@ -138,7 +161,8 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
 
   const role = String(profile?.role || "").toUpperCase();
   const accountSubtype = String(profile?.account_subtype || "").toUpperCase();
-  const hasRole = (...roles: string[]) => roles.includes(role) || roles.includes(accountSubtype);
+  const effectiveType = accountSubtype || role;
+  const hasRole = (...roles: string[]) => roles.includes(effectiveType);
   const hasGlobalCaseAccess =
     Boolean(profile?.is_default_admin) ||
     hasRole("CEO", "ADMIN", "PROTETICO");
@@ -206,25 +230,77 @@ export async function fetchCases(scope: "active" | "finished" | "deleted" | "all
 
 }
 
-export async function acceptCaseRequest(caseId: string, cadistaId?: string | null) {
-  const patch: Record<string, unknown> = { status: "em_andamento" };
-  if (cadistaId) patch.cadista_id = cadistaId;
-
-  const { data, error } = await supabase
-    .from("cases")
-    .update(patch as never)
-    .eq("id", caseId)
-    .eq("status", "pendente")
-    .select("id")
-    .maybeSingle();
+export async function acceptCaseRequest(caseId: string, _cadistaId?: string | null) {
+  const { data, error } = await supabase.rpc("accept_case_request_secure" as never, {
+    p_case_id: caseId,
+  } as never);
 
   if (error) throw error;
-  if (!data) {
-    throw new Error("Solicitação não encontrada, já processada ou sem permissão.");
-  }
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) throw new Error("Solicitação não encontrada, já processada ou sem permissão.");
 
   try {
-    broadcastEntity("cases", "update", { id: caseId, ...patch });
+    broadcastEntity("cases", "update", {
+      id: caseId,
+      status: "em_andamento",
+      accepted_by: (row as any).accepted_by ?? null,
+      accepted_at: (row as any).accepted_at ?? null,
+      updated_at: (row as any).updated_at ?? new Date().toISOString(),
+    });
+  } catch {}
+
+  // Assigned professionals only gain access after this transition. Wake their
+  // lists without broadcasting case data; their own RLS decides what they can fetch.
+  try {
+    const { data: assignment } = await supabase
+      .from("cases")
+      .select("cadista:cadistas(user_id), doctor:doctors(user_id)")
+      .eq("id", caseId)
+      .maybeSingle();
+    const addedUserIds = [
+      (assignment as any)?.cadista?.user_id,
+      (assignment as any)?.doctor?.user_id,
+    ].filter(Boolean);
+
+    // Approval is also the moment assigned professionals receive the case.
+    for (const userId of addedUserIds) {
+      if (userId) {
+        void sendInternalNotification(
+          userId,
+          "Novo caso disponível",
+          "Uma solicitação foi aceita e este caso agora está disponível para você.",
+          "case_assigned",
+          { case_id: caseId },
+        ).catch(() => undefined);
+      }
+    }
+
+    const requesterId = (row as any).requested_by as string | null | undefined;
+    if (requesterId) {
+      let requesterOwnsCurrentStage = false;
+      const currentStageId = (row as any).current_stage_id as string | null | undefined;
+      if (currentStageId) {
+        const { data: stageAssignments } = await supabase
+          .from("stage_assignments" as never)
+          .select("user_id")
+          .eq("stage_id", currentStageId);
+        requesterOwnsCurrentStage = ((stageAssignments ?? []) as any[]).some(
+          (item) => item.user_id === requesterId,
+        );
+      }
+      void sendInternalNotification(
+        requesterId,
+        requesterOwnsCurrentStage ? "Etapa atribuída a você" : "Solicitação aceita",
+        requesterOwnsCurrentStage
+          ? "Seu caso foi aceito e a etapa atual está sob sua responsabilidade."
+          : "Seu caso foi aceito e já está em andamento.",
+        requesterOwnsCurrentStage ? "stage_assigned" : "case_request_accepted",
+        { case_id: caseId },
+      ).catch(() => undefined);
+    }
+
+    // Cross-device wakeup is delivered through recipient-scoped notifications
+    // and postgres_changes under RLS; no public broadcast carries case metadata.
   } catch {}
 }
 
@@ -510,6 +586,8 @@ export type CreateCaseInput = {
   implant_system_id?: string | null;
   implant_system_ids?: string[];
   has_provisional?: boolean;
+  has_mockup?: boolean;
+  prosthesis_groups?: Array<{ id: string; teeth: number[]; case_type_id?: string | null }>;
   implant_teeth?: number[];
   tooth_implant_systems?: Record<string, string>;
   scan_jig_id?: string | null;
@@ -541,8 +619,9 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
   const { data: { user } } = await supabase.auth.getUser();
   let isSolicitante = false;
   if (user) {
-    const { data: prof } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-    isSolicitante = prof?.role === "SOLICITANTE";
+    const { data: prof } = await supabase.from("profiles").select("role,account_subtype").eq("id", user.id).maybeSingle();
+    const effectiveType = String(prof?.account_subtype || prof?.role || "").toUpperCase();
+    isSolicitante = effectiveType === "SOLICITANTE";
   }
   const payload = {
     ...rest,
@@ -599,20 +678,19 @@ export async function createCase(input: CreateCaseInput & { also_arch?: "superio
     created = await insertOneCase(input);
   }
 
-  // Envia o caso COMPLETO imediatamente para as outras sessões.
-  // Antes era enviado só { id } e o outro computador dependia de refetch,
-  // por isso a lista ficava atrasada (13 casos até a próxima busca).
-  let fullCreated: CaseRow | null = null;
+  // Sincronização instantânea entre abas do MESMO dispositivo. O transporte
+  // cross-device é postgres_changes sob RLS, portanto nunca depende deste peer
+  // local para autorização. Publicamos só o id para forçar cada aba a buscar a
+  // linha que a própria sessão está autorizada a enxergar.
   try {
     if (created?.id) {
-      fullCreated = await fetchCaseById(created.id);
-      broadcastEntity("cases", "insert", fullCreated ?? created);
+      broadcastEntity("cases", "insert", { id: created.id });
     }
-  } catch (e) { console.warn("broadcast case insert failed", e); }
+  } catch (e) { console.warn("local case insert wakeup failed", e); }
 
   // Notify cadista (if linked to a user) when a case is created and assigned to them
   try {
-    if (input.cadista_id) {
+    if (input.cadista_id && created?.status !== "pendente") {
       const { data: cadista } = await supabase
         .from("cadistas")
         .select("name, user_id")
@@ -658,12 +736,73 @@ export async function createCase(input: CreateCaseInput & { also_arch?: "superio
 
 
 export const updateCase = async (id: string, patch: Record<string, unknown>) => {
-  // Optimistic peer broadcast BEFORE the round-trip: peers com o caso aberto
-  // ou vendo a lista aplicam o patch instantaneamente. Se o UPDATE falhar,
-  // o Realtime/postgres_changes seguinte reverte.
+  const assignmentChanged =
+    Object.prototype.hasOwnProperty.call(patch, "cadista_id") ||
+    Object.prototype.hasOwnProperty.call(patch, "doctor_id");
+
+  let before: any = null;
+  if (assignmentChanged) {
+    const { data } = await supabase
+      .from("cases")
+      .select("cadista_id,doctor_id,cadista:cadistas(user_id),doctor:doctors(user_id)")
+      .eq("id", id)
+      .maybeSingle();
+    before = data;
+  }
+
+  // Existing viewers may update immediately, but no full case/patient data is
+  // ever broadcast to users who do not already have the row.
   try { broadcastEntity("cases", "update", { id, ...patch, updated_at: new Date().toISOString() }); } catch { /* ignore */ }
+
   const { error } = await supabase.from("cases").update(patch as never).eq("id", id);
   if (error) throw error;
+
+  if (assignmentChanged) {
+    try {
+      const { data: after } = await supabase
+        .from("cases")
+        .select("cadista_id,doctor_id,cadista:cadistas(user_id),doctor:doctors(user_id)")
+        .eq("id", id)
+        .maybeSingle();
+
+      const beforeIds = new Set<string>([
+        (before as any)?.cadista?.user_id,
+        (before as any)?.doctor?.user_id,
+      ].filter(Boolean));
+      const afterIds = new Set<string>([
+        (after as any)?.cadista?.user_id,
+        (after as any)?.doctor?.user_id,
+      ].filter(Boolean));
+
+      const removedUserIds = [...beforeIds].filter((userId) => !afterIds.has(userId));
+      const addedUserIds = [...afterIds].filter((userId) => !beforeIds.has(userId));
+
+      if (removedUserIds.length || addedUserIds.length) {
+        await Promise.all([
+          ...removedUserIds.map((userId) =>
+            sendInternalNotification(
+              userId,
+              "Acesso ao caso atualizado",
+              "Você não faz mais parte deste caso e o acesso foi encerrado.",
+              "case_access_revoked",
+              { case_id: id },
+            ).catch(() => undefined),
+          ),
+          ...addedUserIds.map((userId) =>
+            sendInternalNotification(
+              userId,
+              "Novo caso atribuído a você",
+              "Você foi adicionado(a) a um caso. Ele já está disponível na sua lista quando a etapa de aprovação permitir.",
+              "case_assigned",
+              { case_id: id },
+            ).catch(() => undefined),
+          ),
+        ]);
+      }
+    } catch (e) {
+      console.warn("case access change broadcast failed", e);
+    }
+  }
 };
 
 export const finishCase = async (id: string) => {
@@ -757,14 +896,9 @@ export const deleteCase = async (id: string) => {
       deleted_notice: true,
     });
 
-    const ch = supabase.channel("case-deletions");
-    await ch.subscribe();
-    await ch.send({
-      type: "broadcast",
-      event: "case_deleted",
-      payload: { case_id: id, deleter_name: deleterName, patient_name: patientName },
-    });
-    setTimeout(() => { supabase.removeChannel(ch); }, 500);
+    // Cross-device deletion is reconciled through postgres_changes under RLS.
+    // The local-device broadcast above is enough for sibling tabs and does not
+    // expose patient data on a public realtime topic.
   } catch { /* ignore */ }
 
 
@@ -1067,19 +1201,39 @@ export async function fetchCaseAttachmentText(path: string): Promise<string> {
   return await data.text();
 }
 
-export async function getCaseAttachmentUrl(path: string): Promise<string> {
+export async function getCaseAttachmentUrl(path: string, downloadName?: string): Promise<string> {
   const { data, error } = await supabase.storage
     .from("case-files")
-    .createSignedUrl(path, 60 * 60);
+    .createSignedUrl(
+      path,
+      60 * 60,
+      downloadName ? { download: downloadName } : undefined,
+    );
   if (error) throw error;
   return data.signedUrl;
 }
 
 export async function deleteCaseAttachment(att: CaseAttachment) {
-  markDeleted(att.id);
-  try { await supabase.storage.from("case-files").remove([att.storage_path]); } catch {}
-  const { error } = await supabase.from("case_attachments" as never).delete().eq("id", att.id);
+  // The database row is the source of truth. Delete it first so a successful
+  // operation can never leave the attachment visible but unusable.
+  const { error } = await supabase
+    .from("case_attachments" as never)
+    .delete()
+    .eq("id", att.id);
   if (error) throw error;
+
+  try {
+    const { error: storageError } = await supabase.storage
+      .from("case-files")
+      .remove([att.storage_path]);
+    if (storageError) {
+      console.warn("attachment storage cleanup failed", storageError);
+    }
+  } catch (storageError) {
+    console.warn("attachment storage cleanup failed", storageError);
+  }
+
+  try { markDeleted(att.id); } catch {}
 }
 
 // ===== Ad-hoc component on a case (creates component then links) =====

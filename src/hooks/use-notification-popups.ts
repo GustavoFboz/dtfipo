@@ -300,11 +300,12 @@ export function useNotificationPopups() {
           const meta = (n.metadata || {}) as { case_id?: string; activity_id?: string | null };
           if (meta.case_id) {
             const focus = n.type === "comment" ? "comments" : n.type === "attachment" ? "attachments" : "overview";
-            const parts = [`case=${meta.case_id}`, `focus=${focus}`];
-            if (focus === "comments") parts.push("tab=comentarios");
-            if (meta.activity_id) parts.push(`msg=${meta.activity_id}`);
-            window.location.hash = parts.join("&");
-            window.dispatchEvent(new Event("hashchange"));
+            const query = new URLSearchParams({ case: meta.case_id });
+            if (meta.activity_id) query.set("msg", meta.activity_id);
+            const hash = new URLSearchParams({ case: meta.case_id, focus });
+            if (focus === "comments") hash.set("tab", "comentarios");
+            if (meta.activity_id) hash.set("msg", meta.activity_id);
+            window.location.assign(`/casos?${query.toString()}#${hash.toString()}`);
           }
           notif.close();
         };

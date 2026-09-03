@@ -6,7 +6,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import {
   fetchCases, fetchStages, finishCase, updateCase, setCurrentStage, deleteCase, fetchProfile, reopenCase,
   acceptCaseRequest,
-  rejectCaseRequest
+  rejectCaseRequest,
+  fetchNotifications
 } from "@/lib/api";
 
 import { markDeleted } from "@/lib/optimistic";
@@ -38,11 +39,12 @@ import {
 import {
   Search, Filter, Check, X, Clock, AlertCircle, MoreHorizontal,
   CheckCircle2, FolderOpen, FolderCog, Pencil, ArrowUp, ArrowDown,
-  Copy, Trash2, Link2, Archive, RotateCcw,
+  Copy, Trash2, Link2, Archive, RotateCcw, MessageSquare,
 } from "lucide-react";
 import { ModelIcon } from "./icons/ModelIcon";
 import { ScanIcon } from "./icons/ScanIcon";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import type { CaseRow } from "@/lib/types";
 
 const monthAbbr = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -136,6 +138,7 @@ export function CasesTable({
   dateRange,
   advancedFilters,
   deepLinkCaseId,
+  deepLinkFocusActivityId,
   onDeepLinkClose,
 }: { 
   externalSearch?: string; 
@@ -149,6 +152,7 @@ export function CasesTable({
   dateRange?: { start: string; end: string } | null;
   advancedFilters?: { doctorIds: string[]; cadistaIds: string[] };
   deepLinkCaseId?: string;
+  deepLinkFocusActivityId?: string;
   onDeepLinkClose?: () => void;
 } = {}) {
   const qc = useQueryClient();
@@ -169,12 +173,29 @@ export function CasesTable({
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile, staleTime: 300_000 });
   const normalizedRole = String(profile?.role || "").toUpperCase();
   const normalizedSubtype = String(profile?.account_subtype || "").toUpperCase();
-  const hasProfileRole = (...roles: string[]) =>
-    roles.includes(normalizedRole) || roles.includes(normalizedSubtype);
+  const effectiveType = normalizedSubtype || normalizedRole;
+  const hasProfileRole = (...roles: string[]) => roles.includes(effectiveType);
   const isCadista = hasProfileRole("CADISTA");
   const canReviewRequests =
     Boolean(profile?.is_default_admin) ||
     hasProfileRole("CEO", "ADMIN", "PROTETICO");
+
+  const notificationsQ = useQuery({
+    queryKey: ["notifications"],
+    queryFn: fetchNotifications,
+    staleTime: 15_000,
+  });
+
+  const unreadMessageCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const notification of notificationsQ.data ?? []) {
+      if (notification.read_at || notification.type !== "comment") continue;
+      const caseId = (notification.metadata as any)?.case_id as string | undefined;
+      if (!caseId) continue;
+      counts.set(caseId, (counts.get(caseId) ?? 0) + 1);
+    }
+    return counts;
+  }, [notificationsQ.data]);
 
   const cases = useQuery({
     queryKey: ["cases", activeFilter, dateRange?.start, dateRange?.end],
@@ -195,6 +216,42 @@ export function CasesTable({
   });
 
   const reveal = useListReveal("cases-table", cases.isLoading);
+
+  // Recipient-scoped access-change wakeup. Realtime comes from the
+  // notifications table under RLS, never from a public broadcast payload.
+  useEffect(() => {
+    let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    void supabase.auth.getUser().then(({ data }) => {
+      const userId = data.user?.id;
+      if (!userId || cancelled) return;
+
+      channel = supabase
+        .channel(`case-access-notifications:list:${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `recipient_id=eq.${userId}`,
+          },
+          (msg) => {
+            const row = msg.new as { type?: string | null };
+            if (!["case_access_revoked", "case_assigned", "case_request_accepted"].includes(String(row?.type || ""))) return;
+            void qc.invalidateQueries({ queryKey: ["cases"] });
+            void qc.invalidateQueries({ queryKey: ["my_tasks"] });
+          },
+        )
+        .subscribe();
+    });
+
+    return () => {
+      cancelled = true;
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [qc]);
 
   useEffect(() => {
     if (!deepLinkCaseId || cases.isLoading || deepLinkHandled) return;
@@ -409,11 +466,31 @@ export function CasesTable({
 
   const accept = useMutation({
     mutationFn: ({ caseId, cadistaId }: { caseId: string; cadistaId?: string | null }) => acceptCaseRequest(caseId, cadistaId),
+    onMutate: async ({ caseId }) => {
+      await qc.cancelQueries({ queryKey: ["cases"] });
+      const previous = qc.getQueriesData<CaseRow[]>({ queryKey: ["cases"] });
+
+      // Pending row disappears instantly from Solicitações and becomes active
+      // everywhere else. The subsequent refetch hydrates the authoritative row.
+      qc.setQueriesData<CaseRow[]>({ queryKey: ["cases"] }, (old) => {
+        if (!Array.isArray(old)) return old;
+        if (activeFilter === "solicitacoes") return old.filter((row) => row.id !== caseId);
+        return old.map((row) => row.id === caseId ? { ...row, status: "em_andamento" } : row);
+      });
+      return { previous };
+    },
     onSuccess: () => {
-      toast.success("Solicitação aprovada!");
+      toast.success("Solicitação aceita e movida para Em andamento.");
+    },
+    onError: (e: Error, _vars, ctx) => {
+      if (ctx?.previous) {
+        for (const [key, data] of ctx.previous) qc.setQueryData(key, data);
+      }
+      toast.error(e.message);
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["cases"] });
     },
-    onError: (e: Error) => toast.error(e.message),
   });
 
   const reject = useMutation({
@@ -686,7 +763,16 @@ export function CasesTable({
                         navigate({ to: "/patients/$id", params: { id: c.patient_id } });
                       }}
                     >
-                      {c.patient?.name ?? "—"}
+                      <span>{c.patient?.name ?? "—"}</span>
+                      {(unreadMessageCounts.get(c.id) ?? 0) > 0 && (
+                        <span
+                          title={`${unreadMessageCounts.get(c.id)} mensagem(ns) não lida(s)`}
+                          className="ml-2 inline-flex align-middle items-center gap-1 rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold"
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                          {unreadMessageCounts.get(c.id)}
+                        </span>
+                      )}
                     </div>
                     <div className="text-[13px] font-light text-slate-400 truncate mt-0.5">
                       {c.case_type?.name ?? "—"}
@@ -1205,6 +1291,8 @@ export function CasesTable({
       <CaseDetailDialog
         caseRow={detail}
         open={!!detail}
+        focusActivityId={deepLinkFocusActivityId ?? null}
+        syncUrlHash={!!deepLinkCaseId}
         onOpenChange={(o) => {
           if (!o) {
             setDetail(null);

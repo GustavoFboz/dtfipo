@@ -49,6 +49,7 @@ import { CaseImplantTeethPanel } from "./CaseImplantTeethPanel";
 import { ToothWorkPanel, type ToothMilling } from "./ToothWorkPanel";
 import { TOOTH_WORK_TYPES, ENCERAMENTO_ID, splitToothTypes, buildToothTypes } from "@/lib/case-types";
 import { CaseComments } from "./CaseComments";
+import { addCaseActivity, notifyCaseStakeholders } from "@/lib/case-activity";
 import { Paperclip, MessageSquare, PlusCircle } from "lucide-react";
 import { AttachButton, AttachFilesIcon, AttachImagesIcon } from "./AttachButton";
 import { useSessionSnapshot, clearSessionSnapshot } from "@/hooks/use-session-snapshot";
@@ -203,6 +204,7 @@ export function NewCaseDialog({
   const [lastConfiguredTooth, setLastConfiguredTooth] = useState<number | null>(null);
   const [scanJigId, setScanJigId] = useState<string>("");
   const [hasProvisional, setHasProvisional] = useState<boolean>(false);
+  const [hasMockup, setHasMockup] = useState<boolean>(false);
   const [notes, setNotes] = useState("");
   const [teeth, setTeeth] = useState<number[]>([]);
   const [zirTeeth, setZirTeeth] = useState<number[]>([]);
@@ -213,6 +215,7 @@ export function NewCaseDialog({
   const [gumNotes, setGumNotes] = useState<string>("");
   // Per-tooth case type mapping: tooth -> case_type_id
   const [toothTypeMap, setToothTypeMap] = useState<Record<number, string>>({});
+  const [prosthesisGroups, setProsthesisGroups] = useState<Array<{ id: string; teeth: number[]; case_type_id?: string | null }>>([]);
   // Dentes com enceramento (trabalho extra cumulativo).
   const [toothEnceramento, setToothEnceramento] = useState<Record<number, boolean>>({});
   // Per-tooth Ti-Base (stock_item id) — only meaningful in view mode for cadista
@@ -239,16 +242,16 @@ export function NewCaseDialog({
       doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
       entryDate, deliveryDate, stageId, arch,
       implantSystemId, additionalSystemIds, implantTeeth,
-      arcadaMode, scanJigId, hasProvisional, notes,
+      arcadaMode, scanJigId, hasProvisional, hasMockup, notes,
       teeth, zirTeeth, disTeeth,
       gumMode, gumColor, gumNotes,
-      toothTypeMap, toothEnceramento, toothImplantSystemMap,
+      toothTypeMap, prosthesisGroups, toothEnceramento, toothImplantSystemMap,
     }),
     [
       patientId, newPatientName, doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
       entryDate, deliveryDate, stageId, arch, implantSystemId, additionalSystemIds, implantTeeth,
-      arcadaMode, scanJigId, hasProvisional, notes, teeth, zirTeeth, disTeeth,
-      gumMode, gumColor, gumNotes, toothTypeMap, toothEnceramento, toothImplantSystemMap,
+      arcadaMode, scanJigId, hasProvisional, hasMockup, notes, teeth, zirTeeth, disTeeth,
+      gumMode, gumColor, gumNotes, toothTypeMap, prosthesisGroups, toothEnceramento, toothImplantSystemMap,
     ],
   );
   useSessionSnapshot(persistFormKey, !!persistFormKey && open, formSnapshot, (d) => {
@@ -269,6 +272,7 @@ export function NewCaseDialog({
     if (d.arcadaMode !== undefined) setArcadaMode(d.arcadaMode as ArcadaMode);
     if (d.scanJigId !== undefined) setScanJigId(d.scanJigId as string);
     if (d.hasProvisional !== undefined) setHasProvisional(!!d.hasProvisional);
+    if (d.hasMockup !== undefined) setHasMockup(!!d.hasMockup);
     if (d.notes !== undefined) setNotes(d.notes as string);
     if (d.teeth !== undefined) setTeeth(d.teeth as number[]);
     if (d.zirTeeth !== undefined) setZirTeeth(d.zirTeeth as number[]);
@@ -277,6 +281,7 @@ export function NewCaseDialog({
     if (d.gumColor !== undefined) setGumColor(d.gumColor as string);
     if (d.gumNotes !== undefined) setGumNotes(d.gumNotes as string);
     if (d.toothTypeMap !== undefined) setToothTypeMap(d.toothTypeMap as Record<number, string>);
+    if (d.prosthesisGroups !== undefined) setProsthesisGroups(d.prosthesisGroups as Array<{ id: string; teeth: number[]; case_type_id?: string | null }>);
     if (d.toothEnceramento !== undefined) setToothEnceramento(d.toothEnceramento as Record<number, boolean>);
     if (d.toothImplantSystemMap !== undefined) setToothImplantSystemMap(d.toothImplantSystemMap as Record<number, string>);
   });
@@ -302,6 +307,7 @@ export function NewCaseDialog({
     setImplantTeeth(viewCase.implant_teeth ?? []);
     setScanJigId(viewCase.scan_jig_id ?? "");
     setHasProvisional(!!viewCase.has_provisional);
+    setHasMockup(!!(viewCase as any).has_mockup);
     setNotes(viewCase.notes ?? "");
     setTeeth(viewCase.teeth_numbers ?? []);
     setZirTeeth(viewCase.teeth_zirconia ?? []);
@@ -315,6 +321,7 @@ export function NewCaseDialog({
       if (s.hasEnceramento) enc[Number(k)] = true;
     }
     setToothTypeMap(map);
+    setProsthesisGroups(Array.isArray((viewCase as any).prosthesis_groups) ? (viewCase as any).prosthesis_groups : []);
     setToothEnceramento(enc);
     const tib = (viewCase.tooth_ti_bases ?? {}) as Record<string, string>;
     const tibMap: Record<number, string> = {};
@@ -351,6 +358,7 @@ export function NewCaseDialog({
     setImplantTeeth(editCase.implant_teeth ?? []);
     setScanJigId(editCase.scan_jig_id ?? "");
     setHasProvisional(!!editCase.has_provisional);
+    setHasMockup(!!(editCase as any).has_mockup);
     setNotes(editCase.notes ?? "");
     setTeeth(editCase.teeth_numbers ?? []);
     setZirTeeth(editCase.teeth_zirconia ?? []);
@@ -364,6 +372,7 @@ export function NewCaseDialog({
       if (s.hasEnceramento) enc[Number(k)] = true;
     }
     setToothTypeMap(map);
+    setProsthesisGroups(Array.isArray((editCase as any).prosthesis_groups) ? (editCase as any).prosthesis_groups : []);
     setToothEnceramento(enc);
     const tis = (editCase.tooth_implant_systems ?? {}) as Record<string, string>;
     const tisMap: Record<number, string> = {};
@@ -423,8 +432,8 @@ export function NewCaseDialog({
     setPatientId(initialPatientId ?? ""); setNewPatientName(""); setNewPatientPhoto(null);
     setDoctorId(""); setCadistaId(""); setCaseTypeIds([]);
     setToothColorId(""); setCaseLabel(""); setEntryDate(today); setDeliveryDate(today);
-    setStageId(""); setArch(""); setImplantSystemId(""); setAdditionalSystemIds([]); setImplantTeeth([]); setScanJigId(""); setHasProvisional(false);
-    setNotes(""); setTeeth([]); setZirTeeth([]); setDisTeeth([]); setToothTypeMap({}); setToothEnceramento({});
+    setStageId(""); setArch(""); setImplantSystemId(""); setAdditionalSystemIds([]); setImplantTeeth([]); setScanJigId(""); setHasProvisional(false); setHasMockup(false);
+    setNotes(""); setTeeth([]); setZirTeeth([]); setDisTeeth([]); setToothTypeMap({}); setProsthesisGroups([]); setToothEnceramento({});
     setToothImplantSystemMap({});
     setGumMode(""); setGumColor(""); setGumNotes("");
     setPendingScanFiles([]);
@@ -717,11 +726,18 @@ export function NewCaseDialog({
         tooth_implant_systems: tis,
         scan_jig_id: implantSystemId ? (scanJigId || null) : null,
         has_provisional: hasProvisional,
+        has_mockup: hasMockup,
         notes: notes || null,
         teeth_numbers: sortTeeth(teeth),
         teeth_zirconia: cleanZir,
         teeth_dissilicato: cleanDis,
         tooth_case_types: tct,
+        prosthesis_groups: prosthesisGroups
+          .map((group) => ({
+            ...group,
+            teeth: sortTeeth(group.teeth.filter((tooth) => teethSet.has(tooth))),
+          }))
+          .filter((group) => group.teeth.length > 1),
         gum_info: (gumMode || gumColor || gumNotes)
           ? { mode: gumMode || null, color: gumColor || null, notes: gumNotes || null }
           : null,
@@ -742,6 +758,59 @@ export function NewCaseDialog({
         broadcastEntity("cases", "update", optimisticRow);
         await updateCase(editCase.id, patchForUpdate);
         await syncCaseTypes(editCase.id, caseTypeIds);
+
+        // Human-readable edit history. We preserve old/new values instead of
+        // overwriting the story of the case (especially delivery changes).
+        try {
+          const changes: Array<{ field: string; from: unknown; to: unknown; label: string }> = [];
+          const addChange = (field: string, label: string, from: unknown, to: unknown) => {
+            const normalize = (v: unknown) => JSON.stringify(v ?? null);
+            if (normalize(from) !== normalize(to)) changes.push({ field, label, from, to });
+          };
+
+          addChange("delivery_date", "Data de entrega", editCase.delivery_date, deliveryDate);
+          addChange("doctor_id", "Dentista", editCase.doctor_id, doctorId || null);
+          addChange("cadista_id", "Cadista", editCase.cadista_id, cadistaId || null);
+          addChange("has_provisional", "Provisório", !!editCase.has_provisional, hasProvisional);
+          addChange("has_mockup", "Mockup", !!(editCase as any).has_mockup, hasMockup);
+          addChange("teeth_numbers", "Elementos", sortTeeth(editCase.teeth_numbers ?? []), sortTeeth(teeth));
+
+          const oldTypes = (editCase.case_types_link ?? []).map((row) => row.case_type_id).sort();
+          const nextTypes = [...caseTypeIds].sort();
+          addChange("case_type_ids", "Tipos de caso", oldTypes, nextTypes);
+
+          if (changes.length > 0) {
+            const oldTeeth = new Set(editCase.teeth_numbers ?? []);
+            const newTeeth = new Set(teeth);
+            const addedTeeth = sortTeeth([...newTeeth].filter((tooth) => !oldTeeth.has(tooth)));
+            const removedTeeth = sortTeeth([...oldTeeth].filter((tooth) => !newTeeth.has(tooth)));
+
+            const summary: string[] = [];
+            if (editCase.delivery_date !== deliveryDate) {
+              summary.push(`entrega: ${editCase.delivery_date} → ${deliveryDate}`);
+            }
+            if (addedTeeth.length) summary.push(`elemento(s) adicionado(s): ${addedTeeth.join(", ")}`);
+            if (removedTeeth.length) summary.push(`elemento(s) removido(s): ${removedTeeth.join(", ")}`);
+            if (!summary.length) summary.push(`${changes.length} alteração(ões) no cadastro`);
+
+            await addCaseActivity(
+              editCase.id,
+              "case_edit",
+              `Caso editado · ${summary.join(" · ")}.`,
+              [],
+              {
+                changes,
+                previous_delivery_date: editCase.delivery_date,
+                new_delivery_date: deliveryDate,
+                added_teeth: addedTeeth,
+                removed_teeth: removedTeeth,
+              },
+            );
+          }
+        } catch (e) {
+          console.warn("case edit history failed", e);
+        }
+
         createdCase = optimisticRow;
         createdId = editCase.id;
       } else if (derivedArch) {
@@ -759,13 +828,37 @@ export function NewCaseDialog({
       // Disparar uploads pendentes em background (com o tipo escolhido por arquivo)
       if (createdId && !isCadista) {
         for (const item of pendingScanFiles) {
-          startFileUpload({ caseId: createdId, kind: item.kind, file: item.file });
+          startFileUpload({ caseId: createdId, kind: item.kind, file: item.file, suppressNotification: true });
         }
       }
       // Galeria pendente
       if (createdId) {
         for (const f of pendingGalleryFiles) {
-          startFileUpload({ caseId: createdId, kind: "gallery", file: f });
+          startFileUpload({ caseId: createdId, kind: "gallery", file: f, suppressNotification: true });
+        }
+      }
+
+      const initialAttachmentCount = pendingScanFiles.length + pendingGalleryFiles.length;
+      if (createdId && initialAttachmentCount > 0) {
+        const content = isEdit
+          ? `${initialAttachmentCount} arquivo(s) foram adicionados ao caso em uma única atualização.`
+          : `Novo caso criado com ${initialAttachmentCount} arquivo(s) anexado(s).`;
+        try {
+          await addCaseActivity(
+            createdId,
+            isEdit ? "upload_batch" : "create_with_attachments",
+            content,
+            [],
+            { file_count: initialAttachmentCount },
+          );
+          await notifyCaseStakeholders({
+            caseId: createdId,
+            title: isEdit ? "Arquivos adicionados ao caso" : "Novo caso com anexos",
+            content,
+            type: isEdit ? "attachment" : "case",
+          });
+        } catch (e) {
+          console.warn("aggregate initial attachment notification failed", e);
         }
       }
       return createdCase;
@@ -964,11 +1057,25 @@ export function NewCaseDialog({
               </div>
 
               <div className="space-y-2">
-                <Label>Provisório</Label>
-                <label className="flex items-center gap-2 h-10 px-3 rounded-lg bg-slate-100/70 text-sm cursor-pointer hover:bg-slate-100 transition-colors">
-                  <Checkbox checked={hasProvisional} onCheckedChange={(v) => setHasProvisional(!!v)} />
-                  <span>Este caso terá provisório</span>
-                </label>
+                <Label>Fluxos opcionais</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <label className="flex items-center gap-2 h-10 px-3 rounded-lg bg-slate-100/70 text-sm cursor-pointer hover:bg-slate-100 transition-colors">
+                    <Checkbox checked={hasProvisional} onCheckedChange={(v) => setHasProvisional(!!v)} />
+                    <span>Provisório</span>
+                  </label>
+                  <label className="flex items-center gap-2 h-10 px-3 rounded-lg bg-slate-100/70 text-sm cursor-pointer hover:bg-slate-100 transition-colors">
+                    <Checkbox checked={hasMockup} onCheckedChange={(v) => setHasMockup(!!v)} />
+                    <span>Mockup</span>
+                  </label>
+                </div>
+                {hasMockup && !(stages.data ?? []).some((st: any) =>
+                  String(st.condition_key || "").toLowerCase() === "mockup" ||
+                  String(st.name || "").toLowerCase().includes("mockup")
+                ) && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    Este fluxo ainda não possui uma etapa de Mockup. O caso será salvo normalmente; é recomendado criar uma etapa opcional “Mockup” e definir o responsável por etapa nas configurações do fluxo.
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2 md:col-span-2">
@@ -1432,6 +1539,14 @@ export function NewCaseDialog({
                   targets.forEach((t) => { if (id) n[t] = id; else delete n[t]; });
                   return n;
                 });
+                if (targets.length > 1) {
+                  const key = sortTeeth(targets).join(",");
+                  setProsthesisGroups((groups) => groups.map((group) =>
+                    sortTeeth(group.teeth).join(",") === key
+                      ? { ...group, case_type_id: id || null }
+                      : group
+                  ));
+                }
               }}
               hasEnceramento={focusedTooth != null && !!toothEnceramento[focusedTooth]}
               onEnceramentoToggle={() => {
@@ -1512,6 +1627,32 @@ export function NewCaseDialog({
                 }
               }}
 
+              groupedAsSingle={(() => {
+                if (configGroup.length < 2) return false;
+                const key = sortTeeth(configGroup).join(",");
+                return prosthesisGroups.some((group) => sortTeeth(group.teeth).join(",") === key);
+              })()}
+              onGroupedAsSingleChange={(value) => {
+                if (focusedTooth == null) return;
+                const targets = sortTeeth(configGroup.length ? configGroup : [focusedTooth]);
+                if (targets.length < 2) return;
+                const key = targets.join(",");
+                setProsthesisGroups((groups) => {
+                  const withoutExact = groups.filter((group) => sortTeeth(group.teeth).join(",") !== key);
+                  if (!value) return withoutExact;
+                  const id = (typeof crypto !== "undefined" && crypto.randomUUID)
+                    ? crypto.randomUUID()
+                    : `group-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+                  return [
+                    ...withoutExact.filter((group) => !group.teeth.some((tooth) => targets.includes(tooth))),
+                    {
+                      id,
+                      teeth: targets,
+                      case_type_id: toothTypeMap[focusedTooth] || null,
+                    },
+                  ];
+                });
+              }}
               onRemoveTooth={() => {
                 if (focusedTooth == null) return;
                 const targets = configGroup.length ? configGroup : [focusedTooth];
@@ -1525,6 +1666,9 @@ export function NewCaseDialog({
                   targets.forEach((t) => { delete n[t]; });
                   return n;
                 });
+                setProsthesisGroups((groups) => groups
+                  .map((group) => ({ ...group, teeth: group.teeth.filter((tooth) => !tset.has(tooth)) }))
+                  .filter((group) => group.teeth.length > 1));
                 setFocusedTooth(null);
                 setConfigGroup([]);
               }}
@@ -1552,6 +1696,9 @@ export function NewCaseDialog({
                   targets.forEach((t) => { delete n[t]; });
                   return n;
                 });
+                setProsthesisGroups((groups) => groups
+                  .map((group) => ({ ...group, teeth: group.teeth.filter((tooth) => !tset.has(tooth)) }))
+                  .filter((group) => group.teeth.length > 1));
                 // Sem nenhuma configuração o dente não faz mais parte do caso;
                 // mantê-lo em `teeth` faria a arcada exibi-lo como selecionado
                 // (azul) para quem visualiza o caso.
@@ -1653,7 +1800,7 @@ export function NewCaseDialog({
                       <DropdownMenuItem onClick={() => { pendingKindRef.current = "model"; setPendingAccept(".stl,.obj,.ply,.zip,.rar,.7z"); pendingScanFileInput.current?.click(); }}>
                         <Box className="h-4 w-4 mr-2" /> Modelo 3D
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { pendingKindRef.current = "fabrication"; setPendingAccept(".stl,.obj,.ply,.zip,.rar,.7z"); pendingScanFileInput.current?.click(); }}>
+                      <DropdownMenuItem onClick={() => { pendingKindRef.current = "fabrication"; setPendingAccept(".stl,.obj,.ply,.zip,.rar,.7z,.constructioninfo"); pendingScanFileInput.current?.click(); }}>
                         <Wrench className="h-4 w-4 mr-2" /> Arquivo Confecção
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => { pendingKindRef.current = "exocad_html"; setPendingAccept(".html"); pendingScanFileInput.current?.click(); }}>

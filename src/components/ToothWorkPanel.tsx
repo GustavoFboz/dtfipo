@@ -36,6 +36,8 @@ type Props = {
   implantSystemOptions?: { id: string; name: string }[];
   onImplantSystemPick?: (id: string) => void;
   onRemoveTooth: () => void;
+  groupedAsSingle?: boolean;
+  onGroupedAsSingleChange?: (value: boolean) => void;
 
   onConfirm: () => void;
   onClose: () => void;
@@ -50,7 +52,8 @@ export function ToothWorkPanel({
   milling, onMillingChange, activeImplantSystemId, hasImplant, onImplantToggle,
   hasEnceramento = false, onEnceramentoToggle,
   implantSystemOptions, onImplantSystemPick,
-  onRemoveTooth, onConfirm, onClose, onClear,
+  onRemoveTooth, groupedAsSingle = false, onGroupedAsSingleChange,
+  onConfirm, onClose, onClear,
 }: Props) {
 
   // Mantém o painel montado durante a animação de saída.
@@ -142,6 +145,41 @@ export function ToothWorkPanel({
       </header>
 
       <div className="flex-1 overflow-y-auto px-8 pb-4 space-y-6">
+        {view.configuredTeeth.length > 1 && onGroupedAsSingleChange && (
+          <section className="space-y-3">
+            <div className="text-base font-normal text-foreground">Relação entre elementos</div>
+            <div className="grid grid-cols-2 gap-2 max-w-md">
+              <button
+                type="button"
+                onClick={() => onGroupedAsSingleChange(false)}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-sm border transition text-left",
+                  !groupedAsSingle
+                    ? "bg-primary/5 border-primary/40 text-foreground"
+                    : "border-border text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Unidades individuais
+              </button>
+              <button
+                type="button"
+                onClick={() => onGroupedAsSingleChange(true)}
+                className={cn(
+                  "px-4 py-2 rounded-xl text-sm border transition text-left",
+                  groupedAsSingle
+                    ? "bg-primary/5 border-primary/40 text-foreground"
+                    : "border-border text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Uma única prótese
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Use “Uma única prótese” para fixa/ponte ou outro trabalho que reúna os dentes selecionados na mesma peça.
+            </p>
+          </section>
+        )}
+
         {/* Trabalho */}
         <section className="space-y-3">
           <div className="text-base font-normal text-foreground">Trabalho</div>

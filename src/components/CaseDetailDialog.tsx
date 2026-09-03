@@ -14,11 +14,12 @@ import type { CaseRow } from "@/lib/types";
 import { TeethSelector, IMPLANT_COLOR_SCALE } from "./TeethSelector";
 import { ArcadaModeToggle, type ArcadaMode } from "./ArcadaModeToggle";
 import { sortTeeth } from "@/lib/teeth";
+import { toothWorkTypeName, ENCERAMENTO_ID } from "@/lib/case-types";
 import { StageBadge } from "./StageBadge";
 import { CaseAttachments } from "./CaseAttachments";
 import { CaseComments } from "./CaseComments";
 import { fetchCaseActivity } from "@/lib/case-activity";
-import { fetchImplantSystems, fetchCases, updateCase, fetchProfile } from "@/lib/api";
+import { fetchImplantSystems, fetchCases, fetchCaseById, fetchCaseResponsibility, acceptCaseRequest, fetchProfile } from "@/lib/api";
 import { downloadCaseZip, downloadCaseSectionZip } from "@/lib/download-case";
 import { printWorkOrder } from "@/lib/work-order";
 import { PrintNoteButton } from "@/components/PrintNoteButton";
@@ -69,7 +70,7 @@ const TABS: TabDefinition[] = [
   { key: "html", label: "HTML" },
   { key: "modelos", label: "Modelos" },
   { key: "confeccao", label: "Elementos" },
-  { key: "comentarios", label: "Chat", hiddenFor: ["SOLICITANTE"] },
+  { key: "comentarios", label: "Chat" },
 ];
 
 function isTabKey(value: string | null): value is TabKey {
@@ -174,6 +175,7 @@ const KIND_LABEL_BR: Record<CaseAttachmentKind, string> = {
 };
 
 function CaseHeaderActions({ caseRow, currentTab, profile }: { caseRow: CaseRow; currentTab: TabKey; profile: any }) {
+  const qc = useQueryClient();
   const [downloading, setDownloading] = useState(false);
   const [printing, setPrinting] = useState(false);
   const sectionKind = TAB_TO_KIND[currentTab];
@@ -181,10 +183,16 @@ function CaseHeaderActions({ caseRow, currentTab, profile }: { caseRow: CaseRow;
   const onDownloadFull = async () => {
     if (downloading) return;
     setDownloading(true);
-    const tid = toast.loading("Gerando ZIP do caso…");
+    const tid = toast.loading("Preparando download…");
     try {
-      await downloadCaseZip(caseRow);
-      toast.success("Download iniciado", { id: tid });
+      const result = await downloadCaseZip(caseRow, ({ percent, label }) => {
+        toast.loading(`${label} · ${percent}%`, { id: tid });
+      });
+      if (result.failed > 0) {
+        toast.warning(`Download iniciado, mas ${result.failed} arquivo(s) não puderam ser incluídos.`, { id: tid });
+      } else {
+        toast.success("Download iniciado", { id: tid });
+      }
     } catch (e) {
       toast.error((e as Error).message, { id: tid });
     } finally {
@@ -195,10 +203,16 @@ function CaseHeaderActions({ caseRow, currentTab, profile }: { caseRow: CaseRow;
   const onDownloadSection = async (kind: CaseAttachmentKind) => {
     if (downloading) return;
     setDownloading(true);
-    const tid = toast.loading(`Gerando ZIP da seção ${KIND_LABEL_BR[kind]}…`);
+    const tid = toast.loading(`Preparando ${KIND_LABEL_BR[kind]}…`);
     try {
-      await downloadCaseSectionZip(caseRow, kind);
-      toast.success("Download iniciado", { id: tid });
+      const result = await downloadCaseSectionZip(caseRow, kind, ({ percent, label }) => {
+        toast.loading(`${label} · ${percent}%`, { id: tid });
+      });
+      if (result.failed > 0) {
+        toast.warning(`Download iniciado, mas ${result.failed} arquivo(s) não puderam ser incluídos.`, { id: tid });
+      } else {
+        toast.success("Download iniciado", { id: tid });
+      }
     } catch (e) {
       toast.error((e as Error).message, { id: tid });
     } finally {
@@ -220,32 +234,33 @@ function CaseHeaderActions({ caseRow, currentTab, profile }: { caseRow: CaseRow;
 
   return (
     <div className="flex items-center gap-1.5 flex-wrap">
-      {(caseRow.status === "pendente" || !caseRow.cadista_id) && profile?.role !== "SOLICITANTE" && (
-        <button
-          type="button"
-          onClick={async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-            
-            let cadistaId = null;
-            if (profile?.role === "CADISTA") {
-              const { data: cadista } = await supabase.from("cadistas").select("id").eq("user_id", user.id).maybeSingle();
-              cadistaId = cadista?.id;
-            }
-
-            try {
-              // Instead of manual RPC which might fail typecheck, use the updateCase or logic consistent with CasesTable
-              await updateCase(caseRow.id, { cadista_id: cadistaId, status: "em_andamento" });
-              toast.success("Solicitação aceita!");
-            } catch (e) {
-              toast.error("Erro ao aceitar solicitação.");
-            }
-          }}
-          className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 transition text-xs font-bold"
-        >
-          Aceitar Solicitação
-        </button>
-      )}
+      {caseRow.status === "pendente" && (() => {
+        const role = String(profile?.role || "").toUpperCase();
+        const subtype = String(profile?.account_subtype || "").toUpperCase();
+        const effectiveType = subtype || role;
+        const canAccept = Boolean(profile?.is_default_admin) || ["CEO", "ADMIN", "PROTETICO"].includes(effectiveType);
+        if (!canAccept) return null;
+        return (
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                await acceptCaseRequest(caseRow.id);
+                await Promise.all([
+                  qc.invalidateQueries({ queryKey: ["cases"] }),
+                  qc.invalidateQueries({ queryKey: ["case_responsibility", caseRow.id] }),
+                ]);
+                toast.success("Solicitação aceita e movida para Em andamento.");
+              } catch (e) {
+                toast.error((e as Error).message || "Erro ao aceitar solicitação.");
+              }
+            }}
+            className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 transition text-xs font-bold"
+          >
+            Aceitar Solicitação
+          </button>
+        );
+      })()}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
@@ -321,7 +336,16 @@ export function CaseDetailDialog({
     [casesQ.data, caseId, caseRowProp],
   );
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
-  const isSolicitante = profile?.role === "SOLICITANTE";
+  const profileRole = String(profile?.role || "").toUpperCase();
+  const profileSubtype = String(profile?.account_subtype || "").toUpperCase();
+  const effectiveProfileType = profileSubtype || profileRole;
+  const isSolicitante = effectiveProfileType === "SOLICITANTE";
+  const responsibility = useQuery({
+    queryKey: ["case_responsibility", caseId],
+    queryFn: () => fetchCaseResponsibility(caseId!),
+    enabled: open && !!caseId,
+    staleTime: 15_000,
+  });
   const [tab, setTab] = useState<TabKey>(() => (syncUrlHash ? readHashTab() : null) ?? "detalhes");
   const isMobile = useIsMobile();
   const [showFdiMobile, setShowFdiMobile] = useState(false);
@@ -341,12 +365,7 @@ export function CaseDetailDialog({
       return;
     }
     const initialTab = syncUrlHash ? restoredTabFor(caseId) : readSavedTab(caseId) ?? "detalhes";
-    // Avoid restoring chat tab for solicitantes
-    if (isSolicitante && initialTab === "comentarios") {
-      setTab("detalhes");
-    } else {
-      setTab(initialTab);
-    }
+    setTab(initialTab);
     setRestoredCaseId(caseId);
   }, [open, caseId, syncUrlHash]);
 
@@ -508,6 +527,7 @@ export function CaseDetailDialog({
   // Listen for case deletions broadcast by other users
   const qc = useQueryClient();
   const [deletedNotice, setDeletedNotice] = useState<{ by: string; patient: string | null } | null>(null);
+  const [accessRevokedNotice, setAccessRevokedNotice] = useState(false);
   const onOpenChangeRef = useRef(onOpenChange);
   const deletedNoticeShownRef = useRef<Set<string>>(new Set());
   useEffect(() => { onOpenChangeRef.current = onOpenChange; }, [onOpenChange]);
@@ -541,12 +561,7 @@ export function CaseDetailDialog({
     });
 
     const channel = supabase
-      .channel(`case-deletions:${caseId}`)
-      .on("broadcast", { event: "case_deleted" }, (msg) => {
-        const p = msg.payload as { case_id?: string; deleter_name?: string; patient_name?: string | null };
-        if (p?.case_id !== caseId) return;
-        showDeletedNotice({ deleter_name: p.deleter_name, patient_name: p.patient_name });
-      })
+      .channel(`case-deletions-db:${caseId}`)
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "cases", filter: `id=eq.${caseId}` }, () => {
         showDeletedNotice();
       })
@@ -556,6 +571,68 @@ export function CaseDetailDialog({
       supabase.removeChannel(channel);
     };
   }, [open, caseId, qc, caseRowProp?.patient?.name]);
+
+  // Membership can change while this dialog is open. A targeted broadcast closes
+  // the case immediately; a periodic RLS-backed check is the fallback if the
+  // browser missed the realtime message.
+  useEffect(() => {
+    if (!open || !caseId) return;
+    let currentUserId: string | null = null;
+    let cancelled = false;
+
+    const revoke = () => {
+      if (cancelled) return;
+      qc.setQueriesData<any[]>({ queryKey: ["cases"] }, (old) =>
+        Array.isArray(old) ? old.filter((item) => item?.id !== caseId) : old,
+      );
+      qc.removeQueries({ queryKey: ["case", caseId] });
+      setAccessRevokedNotice(true);
+    };
+
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    void supabase.auth.getUser().then(({ data }) => {
+      currentUserId = data.user?.id ?? null;
+      if (!currentUserId || cancelled) return;
+      channel = supabase
+        .channel(`case-access-dialog:${caseId}:${currentUserId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `recipient_id=eq.${currentUserId}`,
+          },
+          (msg) => {
+            const row = msg.new as { type?: string | null; metadata?: { case_id?: string } | null };
+            if (
+              row?.type === "case_access_revoked" &&
+              row?.metadata?.case_id === caseId
+            ) {
+              revoke();
+            }
+          },
+        )
+        .subscribe();
+    });
+
+    const timer = window.setInterval(() => {
+      void fetchCaseById(caseId)
+        .then((row) => {
+          if (!row) revoke();
+        })
+        .catch((error) => {
+          // A transient network failure is not proof that membership was revoked.
+          console.warn("case access recheck failed", error);
+        });
+    }, 12_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [open, caseId, qc]);
 
 
   const handleNoticeClose = () => {
@@ -594,7 +671,45 @@ export function CaseDetailDialog({
     </AlertDialogPrimitive.Root>
   );
 
-  if (!caseRow) return deletedAlert;
+  const accessRevokedAlert = (
+    <AlertDialogPrimitive.Root
+      open={accessRevokedNotice}
+      onOpenChange={(next) => {
+        if (!next) {
+          setAccessRevokedNotice(false);
+          onOpenChangeRef.current(false);
+        }
+      }}
+    >
+      <AlertDialogPrimitive.Portal>
+        <AlertDialogPrimitive.Overlay className="fixed inset-0 z-[100] bg-black/10" />
+        <AlertDialogPrimitive.Content className="fixed left-1/2 top-1/2 z-[101] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[20px] border border-border bg-card shadow-[var(--shadow-card)]">
+          <div className="px-6 pt-6 pb-5 flex flex-col items-center text-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-amber-500/10 grid place-items-center">
+              <AlertTriangle className="h-6 w-6 text-amber-500" />
+            </div>
+            <AlertDialogPrimitive.Title className="text-base font-semibold tracking-tight">
+              Acesso ao caso atualizado
+            </AlertDialogPrimitive.Title>
+            <AlertDialogPrimitive.Description className="text-sm text-muted-foreground leading-relaxed">
+              Você não faz mais parte deste caso e, por segurança, ele não pode mais ser visualizado nesta conta.
+            </AlertDialogPrimitive.Description>
+          </div>
+          <AlertDialogPrimitive.Action
+            onClick={() => {
+              setAccessRevokedNotice(false);
+              onOpenChangeRef.current(false);
+            }}
+            className="w-full py-3.5 bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-colors border-t border-border/50"
+          >
+            Entendi
+          </AlertDialogPrimitive.Action>
+        </AlertDialogPrimitive.Content>
+      </AlertDialogPrimitive.Portal>
+    </AlertDialogPrimitive.Root>
+  );
+
+  if (!caseRow) return <>{deletedAlert}{accessRevokedAlert}</>;
 
 
   const overdue = isOverdue(caseRow.delivery_date, caseRow.finished_at);
@@ -637,7 +752,8 @@ export function CaseDetailDialog({
   const pendingImplantTeeth = requiresImplantComponents
     ? implantTeeth.filter((t) => !assignedImplantTeeth.has(t))
     : [];
-  const responsibleName = caseRow.cadista?.name ?? caseRow.doctor?.name ?? "—";
+  const responsibleName = responsibility.data?.accepted_name ?? "—";
+  const requesterName = responsibility.data?.requester_name ?? "—";
 
 
   if (isMobile) {
@@ -1030,7 +1146,7 @@ export function CaseDetailDialog({
                   <div className="min-w-0 min-h-0 space-y-4 overflow-y-auto lg:overflow-visible pr-1">
                     <div className="rounded-xl border border-border/70 bg-card p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                       <Field label="Dentista" value={caseRow.doctor?.name ?? "—"} />
-                      <Field label="Dentista Solicitante" value={caseRow.requested_by ? "Sim" : "Não"} />
+                      <Field label="Solicitante" value={requesterName} />
                       <Field label="Cor do dente" value={caseRow.tooth_color?.code ?? "—"} />
                       <Field label="Cadista" value={caseRow.cadista?.name ?? "—"} />
                       <Field
@@ -1046,10 +1162,52 @@ export function CaseDetailDialog({
                         label="Provisório"
                         value={caseRow.has_provisional ? "Sim" : "Não"}
                       />
+                      <Field
+                        label="Mockup"
+                        value={(caseRow as any).has_mockup ? "Sim" : "Não"}
+                      />
                     </div>
 
                     {implantTeeth.length > 0 && (
                       <CaseImplantTeethPanel caseRow={caseRow} />
+                    )}
+
+                    {teeth.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-foreground">Trabalho por elemento</div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {teeth.map((tooth) => {
+                            const ids = tctMap[String(tooth)] ?? [];
+                            const primary = ids.find((id) => id !== ENCERAMENTO_ID);
+                            const work = toothWorkTypeName(primary) ?? "Não definido";
+                            const extras = [
+                              ids.includes(ENCERAMENTO_ID) ? "Enceramento" : null,
+                              implantTeeth.includes(tooth) ? "Implante" : null,
+                              zir.includes(tooth) ? "Zircônia" : null,
+                              dis.includes(tooth) ? "Dissilicato" : null,
+                            ].filter(Boolean);
+                            const group = ((caseRow as any).prosthesis_groups ?? []).find(
+                              (item: any) => Array.isArray(item?.teeth) && item.teeth.includes(tooth),
+                            );
+                            return (
+                              <div key={tooth} className="rounded-lg border border-border/70 px-3 py-2 bg-background">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-primary">{tooth}</span>
+                                  <span className="text-sm text-foreground">{work}</span>
+                                  {group && (
+                                    <span className="ml-auto rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-medium">
+                                      Prótese única · {sortTeeth(group.teeth).join("–")}
+                                    </span>
+                                  )}
+                                </div>
+                                {extras.length > 0 && (
+                                  <div className="text-[11px] text-muted-foreground mt-1">{extras.join(" · ")}</div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
                     )}
 
                     <div className="space-y-2">
@@ -1216,6 +1374,13 @@ export function CaseDetailDialog({
                   <span className="text-[hsl(212_85%_45%)] underline-offset-2 underline font-medium">
                     {responsibleName}
                   </span>
+                  {responsibility.data?.requester_id && (
+                    <>
+                      <span className="mx-2 text-muted-foreground/50">·</span>
+                      Solicitante :{" "}
+                      <span className="text-foreground/80 font-medium">{requesterName}</span>
+                    </>
+                  )}
                 </div>
               </footer>
             )}
@@ -1226,6 +1391,7 @@ export function CaseDetailDialog({
       </DialogContent>
     </Dialog>
     {deletedAlert}
+    {accessRevokedAlert}
     <PendingImplantToothPicker caseRow={caseRow} tooth={pendingPickerTooth} onClose={() => setPendingPickerTooth(null)} />
     {tabBlocker.dialogElement}
     </>

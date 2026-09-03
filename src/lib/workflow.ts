@@ -17,6 +17,7 @@ export type WorkflowStage = {
   phase_id: string | null;
   requires_implant_components?: boolean;
   requirements?: unknown;
+  condition_key?: "mockup" | "provisional" | null;
 };
 
 export type ReturnReason = {
@@ -54,10 +55,17 @@ export async function updateWorkflowSettings(patch: Partial<WorkflowSettings>) {
 export async function fetchWorkflowStages(): Promise<WorkflowStage[]> {
   const { data, error } = await supabase
     .from("stages" as any)
-    .select("id,name,color,position,phase_id,requires_implant_components,requirements")
+    .select("id,name,color,position,phase_id,requires_implant_components,requirements,condition_key")
     .order("position");
   if (error) throw error;
   return (data ?? []) as unknown as WorkflowStage[];
+}
+
+function inferStageCondition(name: string): "mockup" | "provisional" | null {
+  const normalized = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (normalized.includes("mockup")) return "mockup";
+  if (normalized.includes("provisor")) return "provisional";
+  return null;
 }
 
 export async function createStageSimple(input: { name: string; color?: string; position?: number }) {
@@ -78,12 +86,17 @@ export async function createStageSimple(input: { name: string; color?: string; p
     color: input.color ?? "#94a3b8",
     position: input.position ?? 1000,
     phase_id: phaseId,
+    condition_key: inferStageCondition(input.name),
   } as any);
   if (error) throw error;
 }
 
 export async function updateStage(id: string, patch: Partial<WorkflowStage>) {
-  const { error } = await supabase.from("stages" as any).update(patch as any).eq("id", id);
+  const next = { ...patch };
+  if (typeof patch.name === "string" && patch.condition_key === undefined) {
+    next.condition_key = inferStageCondition(patch.name);
+  }
+  const { error } = await supabase.from("stages" as any).update(next as any).eq("id", id);
   if (error) throw error;
 }
 

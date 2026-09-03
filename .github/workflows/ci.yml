@@ -1,0 +1,32 @@
+name: Dental Flow CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - "stabilization/**"
+      - "feature/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # The repository has substantial pre-existing formatting/lint debt.
+      # A repo-wide lint gate currently reports thousands of legacy findings,
+      # so enabling it here would make unrelated historical debt block this
+      # stabilization PR. Track cleanup separately in docs/ROADMAP.md.
+      - name: Production build
+        run: bun run build

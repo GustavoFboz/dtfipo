@@ -19,6 +19,7 @@ import {
   User,
   Home,
   Bell,
+  MessageSquare,
   Search as SearchIcon
 } from "lucide-react";
 import { Settings as SettingsIcon } from "lucide-react";
@@ -51,7 +52,8 @@ const PAGE_BLANK_DURATION_MS = 55;
 const PAGE_ENTER_DURATION_MS = 300;
 
 const navItems = [
-  { to: "/casos", label: "Casos", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "SOLICITANTE"] },
+  { to: "/casos", label: "Casos", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA", "SOLICITANTE"] },
+  { to: "/mensagens", label: "Mensagens", icon: MessageSquare, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA", "SOLICITANTE"] },
   { to: "/patients", label: "Pacientes", icon: Users, roles: ["CEO", "DR", "ATENDIMENTO"] },
   { to: "/agenda", label: "Agenda", icon: CalendarDays, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA"] },
   { to: "/equipe", label: "Equipe", icon: Users2, roles: ["CEO"] },
@@ -119,7 +121,10 @@ export function AppShell() {
     queryFn: fetchProfile,
     staleTime: 1000 * 60 * 5, // 5 minutos de cache
   });
-  const isAdmin = profile?.role === "CEO" || profile?.role === "DR";
+  const shellProfileRole = String(profile?.role || "").toUpperCase();
+  const shellProfileSubtype = String((profile as any)?.account_subtype || "").toUpperCase();
+  const shellEffectiveRole = shellProfileSubtype || shellProfileRole;
+  const isAdmin = shellEffectiveRole === "CEO" || shellEffectiveRole === "DR";
   const [isHovered, setIsHovered] = useState(false);
   const { data: pendingRequests = [] } = useQuery({
     queryKey: ["join_requests"],
@@ -155,7 +160,7 @@ export function AppShell() {
   });
   const tasksCount = myTasks.length;
 
-  const isCadista = profile?.role === "CADISTA";
+  const isCadista = shellEffectiveRole === "CADISTA";
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     return window.innerWidth < 1280;
@@ -284,14 +289,14 @@ export function AppShell() {
   }, [router]);
 
   useEffect(() => {
-    if (!profile?.role) return;
+    if (!shellEffectiveRole) return;
     // Pré-aquece o cache das rotas principais sem forçar refetch se já houver dados frescos.
     queryClient.prefetchQuery({ queryKey: ["cases", "active"], queryFn: () => fetchCases("active") });
     queryClient.prefetchQuery({ queryKey: ["stages"], queryFn: fetchStages });
-    if (["CEO", "DR", "ATENDIMENTO"].includes(profile.role)) {
+    if (["CEO", "DR", "ATENDIMENTO"].includes(shellEffectiveRole)) {
       queryClient.prefetchQuery({ queryKey: ["patients"], queryFn: fetchPatients });
     }
-  }, [profile?.role, queryClient]);
+  }, [shellEffectiveRole, queryClient]);
 
 
   useEffect(() => {
@@ -317,7 +322,7 @@ export function AppShell() {
   // não deixar a sidebar "vazia" (apenas Configurações) durante o carregamento
   // ou em caso de falha silenciosa no fetchProfile.
   const emailIsAdmin = email?.toLowerCase() === "gustavovitorfa@gmail.com";
-  const effectiveRole = profile?.role ?? (emailIsAdmin ? "CEO" : undefined);
+  const effectiveRole = shellEffectiveRole || (emailIsAdmin ? "CEO" : undefined);
 
   const filteredNavItems = [
     ...navItems.filter(n =>

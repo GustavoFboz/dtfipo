@@ -74,7 +74,7 @@ type UploadKind = "scans" | "model" | "fabrication" | "exocad_html" | "gallery";
 const ACCEPT: Record<UploadKind, string | undefined> = {
   scans: ".stl,.ply,.dcm,.obj,.3mf,.zip",
   model: ".stl,.obj,.3mf,.ply,.dcm,.zip",
-  fabrication: ".stl,.obj,.zip,.3mf,.ply,.dcm",
+  fabrication: ".stl,.obj,.zip,.3mf,.ply,.dcm,.constructioninfo",
   exocad_html: ".html,.htm",
   gallery: "image/*",
 };
@@ -457,7 +457,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
   const qc = useQueryClient();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
-  const isStaff = currentRole ? ["CEO", "PROTETICO", "ATENDIMENTO", "DR", "CADISTA"].includes(currentRole) : false;
+  const isStaff = currentRole ? ["CEO", "ADMIN", "PROTETICO", "ATENDIMENTO", "DR", "DENTISTA", "CADISTA"].includes(currentRole) : false;
   const canDeleteAtt = (a: CaseAttachment) =>
     !!currentUserId && (isStaff || a.uploaded_by === currentUserId || a.uploaded_by == null);
   const [viewer, setViewer] = useState<{ path: string; name: string } | null>(null);
@@ -504,7 +504,10 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
-    fetchProfile().then((p) => setCurrentRole((p?.role as UserRole) ?? null));
+    fetchProfile().then((p) => {
+      const effective = String((p as any)?.account_subtype || p?.role || "").toUpperCase();
+      setCurrentRole((effective as UserRole) || null);
+    });
   }, []);
 
   const { data } = useQuery({
@@ -622,16 +625,24 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
 
   const download = async (att: CaseAttachment) => {
     if (guardPending(att)) return;
+    const toastId = toast.loading("Preparando download…");
     try {
-      const url = await getCaseAttachmentUrl(att.storage_path);
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Falha ao baixar arquivo");
-      const blob = await res.blob();
-      await triggerBlobDownload(blob, fileNameWithPatient(caseRow, att.file_name));
-      await addCaseActivity(caseId, "download", `Baixou o arquivo "${att.file_name}".`, [], { kind: att.kind ?? "other", file_name: att.file_name }).catch(() => undefined);
-      qc.invalidateQueries({ queryKey: ["case_activity", caseId] });
-      qc.invalidateQueries({ queryKey: ["case_scan_downloads", caseId] });
-    } catch (e) { toast.error((e as Error).message); }
+      const filename = fileNameWithPatient(caseRow, att.file_name);
+      const url = await getCaseAttachmentUrl(att.storage_path, filename);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.rel = "noopener";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.success("Download iniciado", { id: toastId });
+      void addCaseActivity(caseId, "download", `Baixou o arquivo "${att.file_name}".`, [], { kind: att.kind ?? "other", file_name: att.file_name }).catch(() => undefined);
+      void qc.invalidateQueries({ queryKey: ["case_activity", caseId] });
+      void qc.invalidateQueries({ queryKey: ["case_scan_downloads", caseId] });
+    } catch (e) {
+      toast.error((e as Error).message, { id: toastId });
+    }
   };
 
   const onUploaded = () => {
@@ -1174,7 +1185,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
                     {canDelete && (
                       <button type="button"
                         onClick={async (e) => { e.stopPropagation(); if (await confirm({ title: "Excluir arquivo", description: `Excluir "${g.name}"?`, confirmText: "Excluir", destructive: true })) remove.mutate(g.att); }}
-                        className="absolute top-1 right-1 h-6 w-6 rounded-md bg-black/60 text-white opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                        className="absolute top-1 right-1 h-7 w-7 rounded-md bg-black/60 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition flex items-center justify-center">
                         <Trash2 className="h-3 w-3" />
                       </button>
                     )}
@@ -1247,7 +1258,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
                       <div className="text-xs font-medium truncate" title={a.file_name}>{a.file_name}</div>
                       <div className="text-[10px] text-muted-foreground flex items-center justify-between gap-1">
                         <span>{fmtSize(a.size_bytes)}</span>
-                        <span className="flex items-center gap-0.5">{rowActions(a, currentKind, isGone)}</span>
+                        <span className="flex items-center justify-end gap-0.5 min-w-[148px] min-h-8">{rowActions(a, currentKind, isGone)}</span>
                       </div>
                     </div>
                   </div>

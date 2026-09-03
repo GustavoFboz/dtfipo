@@ -20,6 +20,8 @@ import { bluetoothSupported, pickPrinter } from "@/lib/print-note/bluetooth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   CASE_NOTE_PAPERS,
+  CASE_NOTE_PRINTER_PROFILES,
+  applyCaseNotePrinterProfile,
   loadCaseNotePrinterSettings,
   loadCaseNotePrinterSettingsForAccount,
   resolveCaseNotePaper,
@@ -92,8 +94,26 @@ export function PrintNoteSettings() {
     catch (e) { toast.error((e as Error).message); }
   }
   async function pairPrinter() {
-    try { await pickPrinter(); toast.success("Impressora pareada"); }
-    catch (e) { toast.error((e as Error).message); }
+    try {
+      const { device } = await pickPrinter();
+      const detectedName = typeof device?.name === "string" ? device.name.trim() : "";
+      if (detectedName) {
+        const next = applyCaseNotePrinterProfile(
+          printerSettings,
+          detectedName,
+          { useSuggestedPaper: true },
+        );
+        setPrinterSettings(next);
+        setPrinterDirty(true);
+        toast.success(
+          next.printerProfileId
+            ? `Impressora pareada · perfil ${detectedName} aplicado`
+            : `Impressora pareada · ${detectedName}`,
+        );
+      } else {
+        toast.success("Impressora pareada");
+      }
+    } catch (e) { toast.error((e as Error).message); }
   }
 
   return (
@@ -128,6 +148,67 @@ export function PrintNoteSettings() {
                 </button>
               </div>
             </div>
+
+            {printerSettings.transport === "system" && (
+              <div>
+                <div className="text-xs font-medium text-foreground mb-2">Modelo da impressora USB / sistema</div>
+                <div className="flex flex-col sm:flex-row gap-2 max-w-xl">
+                  <Input
+                    value={printerSettings.printerModel ?? ""}
+                    onChange={(e) => patchPrinter({ printerModel: e.target.value })}
+                    placeholder="Ex.: Tomate MDK-2054N, Zebra ZD220, Elgin L42..."
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      const model = (printerSettings.printerModel ?? "").trim();
+                      if (!model) {
+                        toast.info("Informe o modelo da impressora.");
+                        return;
+                      }
+                      const next = applyCaseNotePrinterProfile(printerSettings, model, { useSuggestedPaper: true });
+                      setPrinterSettings(next);
+                      setPrinterDirty(true);
+                      if (next.printerProfileId) toast.success("Perfil da impressora aplicado");
+                      else toast.info("Modelo salvo com configuração genérica do sistema.");
+                    }}
+                  >
+                    Aplicar perfil
+                  </Button>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {CASE_NOTE_PRINTER_PROFILES.map((profile) => (
+                    <button
+                      key={profile.id}
+                      type="button"
+                      onClick={() => {
+                        const next = applyCaseNotePrinterProfile(
+                          printerSettings,
+                          profile.label,
+                          { useSuggestedPaper: true },
+                        );
+                        setPrinterSettings({
+                          ...next,
+                          printerModel: profile.label,
+                          printerProfileId: profile.id,
+                          dpi: profile.dpi,
+                          paperId: profile.suggestedPaperId ?? next.paperId,
+                        });
+                        setPrinterDirty(true);
+                      }}
+                      className="rounded-full border border-border px-2.5 py-1 text-[10px] text-muted-foreground hover:border-primary/40 hover:text-foreground transition"
+                    >
+                      {profile.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  No modo Sistema/USB, a compatibilidade é fornecida pelo driver instalado no computador. O perfil ajusta automaticamente DPI e papel quando o modelo é conhecido.
+                </p>
+              </div>
+            )}
 
             <div>
               <div className="text-xs font-medium text-foreground mb-2">Tamanho do papel</div>
