@@ -649,19 +649,24 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
     .select()
     .single();
 
-  if (insertResult.error) {
+  // During a rolling migration more than one optional column can be absent.
+  // Retry only for known optional feature columns; every other DB error remains
+  // fatal and visible.
+  for (let attempt = 0; attempt < optionalFeatureKeys.length && insertResult.error; attempt += 1) {
     const message = String(insertResult.error.message || "");
     const missingOptionalKey = optionalFeatureKeys.find(
-      (key) => message.includes(`'${key}'`) && message.toLowerCase().includes("schema cache"),
+      (key) =>
+        Object.prototype.hasOwnProperty.call(insertPayload, key) &&
+        message.includes(`'${key}'`) &&
+        message.toLowerCase().includes("schema cache"),
     );
-    if (missingOptionalKey) {
-      delete insertPayload[missingOptionalKey];
-      insertResult = await supabase
-        .from("cases")
-        .insert(insertPayload as never)
-        .select()
-        .single();
-    }
+    if (!missingOptionalKey) break;
+    delete insertPayload[missingOptionalKey];
+    insertResult = await supabase
+      .from("cases")
+      .insert(insertPayload as never)
+      .select()
+      .single();
   }
 
   const { data: row, error } = insertResult;
@@ -777,8 +782,24 @@ export const updateCase = async (id: string, patch: Record<string, unknown>) => 
   // ever broadcast to users who do not already have the row.
   try { broadcastEntity("cases", "update", { id, ...patch, updated_at: new Date().toISOString() }); } catch { /* ignore */ }
 
-  const { error } = await supabase.from("cases").update(patch as never).eq("id", id);
-  if (error) throw error;
+  const optionalFeatureKeys = ["has_mockup", "prosthesis_groups"] as const;
+  let updatePatch: Record<string, unknown> = { ...patch };
+  let updateResult = await supabase.from("cases").update(updatePatch as never).eq("id", id);
+
+  for (let attempt = 0; attempt < optionalFeatureKeys.length && updateResult.error; attempt += 1) {
+    const message = String(updateResult.error.message || "");
+    const missingOptionalKey = optionalFeatureKeys.find(
+      (key) =>
+        Object.prototype.hasOwnProperty.call(updatePatch, key) &&
+        message.includes(`'${key}'`) &&
+        message.toLowerCase().includes("schema cache"),
+    );
+    if (!missingOptionalKey) break;
+    delete updatePatch[missingOptionalKey];
+    updateResult = await supabase.from("cases").update(updatePatch as never).eq("id", id);
+  }
+
+  if (updateResult.error) throw updateResult.error;
 
   if (assignmentChanged) {
     try {
