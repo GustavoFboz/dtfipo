@@ -251,14 +251,21 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
 
   function insertAtCursor(snippet: string) {
     const ta = taRef.current;
-    const pos = ta?.selectionStart ?? text.length;
-    const next = text.slice(0, pos) + snippet + text.slice(pos);
-    setText(next);
-    setTimeout(() => {
-      ta?.focus();
-      const newPos = pos + snippet.length;
-      ta?.setSelectionRange(newPos, newPos);
-    }, 10);
+    const start = ta?.selectionStart ?? text.length;
+    const end = ta?.selectionEnd ?? start;
+    const next = text.slice(0, start) + snippet + text.slice(end);
+
+    // Reuse the same change path as typed text so mentions and composer state
+    // stay consistent. React's controlled textarea is then focused at the
+    // exact UTF-16 position after the emoji (important for surrogate pairs).
+    onChange(next);
+    requestAnimationFrame(() => {
+      const input = taRef.current;
+      if (!input) return;
+      input.focus();
+      const newPos = start + snippet.length;
+      input.setSelectionRange(newPos, newPos);
+    });
   }
 
   function pickMention(opt: MentionItem) {
