@@ -895,14 +895,9 @@ export const deleteCase = async (id: string) => {
       deleted_notice: true,
     });
 
-    const ch = supabase.channel("case-deletions");
-    await ch.subscribe();
-    await ch.send({
-      type: "broadcast",
-      event: "case_deleted",
-      payload: { case_id: id, deleter_name: deleterName, patient_name: patientName },
-    });
-    setTimeout(() => { supabase.removeChannel(ch); }, 500);
+    // Cross-device deletion is reconciled through postgres_changes under RLS.
+    // The local-device broadcast above is enough for sibling tabs and does not
+    // expose patient data on a public realtime topic.
   } catch { /* ignore */ }
 
 
