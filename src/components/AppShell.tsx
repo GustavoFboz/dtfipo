@@ -53,7 +53,7 @@ const PAGE_ENTER_DURATION_MS = 300;
 
 const navItems = [
   { to: "/casos", label: "Casos", icon: LayoutDashboard, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA", "SOLICITANTE"] },
-  { to: "/mensagens", label: "Mensagens", icon: MessageSquare, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA"] },
+  { to: "/mensagens", label: "Mensagens", icon: MessageSquare, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA", "SOLICITANTE"] },
   { to: "/patients", label: "Pacientes", icon: Users, roles: ["CEO", "DR", "ATENDIMENTO"] },
   { to: "/agenda", label: "Agenda", icon: CalendarDays, roles: ["CEO", "DR", "PROTETICO", "ATENDIMENTO", "CADISTA"] },
   { to: "/equipe", label: "Equipe", icon: Users2, roles: ["CEO"] },
