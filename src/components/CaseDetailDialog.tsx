@@ -612,7 +612,10 @@ export function CaseDetailDialog({
         .then((row) => {
           if (!row) revoke();
         })
-        .catch(() => revoke());
+        .catch((error) => {
+          // A transient network failure is not proof that membership was revoked.
+          console.warn("case access recheck failed", error);
+        });
     }, 12_000);
 
     return () => {
