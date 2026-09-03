@@ -1044,13 +1044,17 @@ DECLARE
   v_target_phase uuid;
   v_target_name text;
   v_reason_label text;
+  v_has_mockup boolean := false;
+  v_has_provisional boolean := false;
 BEGIN
   IF NOT public.can_access_case(_case_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'Sem permissão');
   END IF;
 
-  SELECT c.current_stage_id, s.position, s.name
-    INTO v_current_stage, v_current_pos, v_current_name
+  SELECT c.current_stage_id, s.position, s.name,
+         COALESCE(c.has_mockup,false), COALESCE(c.has_provisional,false)
+    INTO v_current_stage, v_current_pos, v_current_name,
+         v_has_mockup, v_has_provisional
   FROM public.cases c
   LEFT JOIN public.stages s ON s.id = c.current_stage_id
   WHERE c.id = _case_id;
@@ -1071,12 +1075,22 @@ BEGIN
     SELECT id, position, phase_id, name
       INTO v_target_stage, v_target_pos, v_target_phase, v_target_name
     FROM public.stages
-    WHERE id = _to_stage_id;
+    WHERE id = _to_stage_id
+      AND (
+        condition_key IS NULL
+        OR (condition_key = 'mockup' AND v_has_mockup)
+        OR (condition_key = 'provisional' AND v_has_provisional)
+      );
   ELSE
     SELECT id, position, phase_id, name
       INTO v_target_stage, v_target_pos, v_target_phase, v_target_name
     FROM public.stages
     WHERE position < COALESCE(v_current_pos, 999999)
+      AND (
+        condition_key IS NULL
+        OR (condition_key = 'mockup' AND v_has_mockup)
+        OR (condition_key = 'provisional' AND v_has_provisional)
+      )
     ORDER BY position DESC
     LIMIT 1;
   END IF;
