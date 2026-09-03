@@ -34,3 +34,17 @@ Observação: Web Bluetooth pode continuar existindo como alternativa para dispo
 - Adicionar testes de retorno de etapa e reabertura do histórico.
 - Adicionar teste de download ZIP com falha parcial de anexos.
 - Adicionar teste de criação de caso com vários anexos verificando que apenas uma notificação agregada é criada.
+
+
+## Dívida de lint/format
+
+**Status:** dívida técnica pré-existente / tratar em pacote separado.
+
+Ao testar `bun run lint` como gate global no CI em 2026-09-03, o repositório reportou milhares de achados históricos, majoritariamente de Prettier, espalhados por arquivos fora do pacote N1–N17. Aplicar `--fix` global durante a estabilização produziria um diff massivo e aumentaria o risco de regressão.
+
+Plano:
+- criar uma branch exclusiva de higiene de código;
+- separar formatação automática de erros semânticos do ESLint;
+- formatar em lotes revisáveis;
+- corrigir os erros semânticos restantes;
+- somente depois tornar `bun run lint` um gate obrigatório do CI.
