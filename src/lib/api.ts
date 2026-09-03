@@ -120,7 +120,13 @@ export async function fetchCaseResponsibility(caseId: string): Promise<CaseRespo
 }
 
 
-export async function sendInternalNotification(targetUserId: string | null, title: string, content: string, type: string = 'system') {
+export async function sendInternalNotification(
+  targetUserId: string | null,
+  title: string,
+  content: string,
+  type: string = "system",
+  metadata: Record<string, unknown> = {},
+) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
   const id = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2);
@@ -131,7 +137,7 @@ export async function sendInternalNotification(targetUserId: string | null, titl
     title,
     content,
     type,
-    metadata: {},
+    metadata,
     read_at: null,
     created_at: new Date().toISOString(),
   };
@@ -291,14 +297,8 @@ export async function acceptCaseRequest(caseId: string, _cadistaId?: string | nu
       ).catch(() => undefined);
     }
 
-    const channel = supabase.channel("case-access-updates");
-    await channel.subscribe();
-    await channel.send({
-      type: "broadcast",
-      event: "case_access_changed",
-      payload: { case_id: caseId, added_user_ids: addedUserIds, removed_user_ids: [] },
-    });
-    setTimeout(() => { supabase.removeChannel(channel); }, 500);
+    // Cross-device wakeup is delivered through recipient-scoped notifications
+    // and postgres_changes under RLS; no public broadcast carries case metadata.
   } catch {}
 }
 
@@ -777,18 +777,26 @@ export const updateCase = async (id: string, patch: Record<string, unknown>) => 
       const addedUserIds = [...afterIds].filter((userId) => !beforeIds.has(userId));
 
       if (removedUserIds.length || addedUserIds.length) {
-        const channel = supabase.channel("case-access-updates");
-        await channel.subscribe();
-        await channel.send({
-          type: "broadcast",
-          event: "case_access_changed",
-          payload: {
-            case_id: id,
-            removed_user_ids: removedUserIds,
-            added_user_ids: addedUserIds,
-          },
-        });
-        setTimeout(() => { supabase.removeChannel(channel); }, 500);
+        await Promise.all([
+          ...removedUserIds.map((userId) =>
+            sendInternalNotification(
+              userId,
+              "Acesso ao caso atualizado",
+              "Você não faz mais parte deste caso e o acesso foi encerrado.",
+              "case_access_revoked",
+              { case_id: id },
+            ).catch(() => undefined),
+          ),
+          ...addedUserIds.map((userId) =>
+            sendInternalNotification(
+              userId,
+              "Novo caso atribuído a você",
+              "Você foi adicionado(a) a um caso. Ele já está disponível na sua lista quando a etapa de aprovação permitir.",
+              "case_assigned",
+              { case_id: id },
+            ).catch(() => undefined),
+          ),
+        ]);
       }
     } catch (e) {
       console.warn("case access change broadcast failed", e);
