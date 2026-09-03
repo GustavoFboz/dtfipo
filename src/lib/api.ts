@@ -678,16 +678,15 @@ export async function createCase(input: CreateCaseInput & { also_arch?: "superio
     created = await insertOneCase(input);
   }
 
-  // Envia o caso COMPLETO imediatamente para as outras sessões.
-  // Antes era enviado só { id } e o outro computador dependia de refetch,
-  // por isso a lista ficava atrasada (13 casos até a próxima busca).
-  let fullCreated: CaseRow | null = null;
+  // Sincronização instantânea entre abas do MESMO dispositivo. O transporte
+  // cross-device é postgres_changes sob RLS, portanto nunca depende deste peer
+  // local para autorização. Publicamos só o id para forçar cada aba a buscar a
+  // linha que a própria sessão está autorizada a enxergar.
   try {
     if (created?.id) {
-      fullCreated = await fetchCaseById(created.id);
-      broadcastEntity("cases", "insert", fullCreated ?? created);
+      broadcastEntity("cases", "insert", { id: created.id });
     }
-  } catch (e) { console.warn("broadcast case insert failed", e); }
+  } catch (e) { console.warn("local case insert wakeup failed", e); }
 
   // Notify cadista (if linked to a user) when a case is created and assigned to them
   try {
