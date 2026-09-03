@@ -482,6 +482,14 @@ export function CaseDetailDialog({
   const stageReqs = useStageRequirements(caseRow);
   const tabBlocker = useBlockedActionDialog();
   const handleTabClick = (key: TabKey) => {
+    if (key === tab) return;
+    // Radix overlays opened inside the current tab can otherwise leave focus
+    // guards/backdrops active for one frame and make the whole dialog appear
+    // blurred. Release focus before changing tab content.
+    if (typeof document !== "undefined") {
+      const active = document.activeElement as HTMLElement | null;
+      active?.blur?.();
+    }
     if (stageReqs.isLoading) {
       tabBlocker.show("Validando exigências", "Aguarde a verificação das exigências desta etapa antes de trocar de aba.");
       return;
@@ -492,6 +500,9 @@ export function CaseDetailDialog({
       return;
     }
     setTab(key);
+    if (caseId) {
+      try { localStorage.setItem(`case_tab:${caseId}`, key); } catch { /* ignore */ }
+    }
   };
   const isTabLocked = (key: TabKey) => !!stageReqs.tabBlockedMessage(key);
 
