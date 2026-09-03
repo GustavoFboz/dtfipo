@@ -141,6 +141,7 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
             "Etapa atribuída a você",
             `O caso entrou na etapa “${nextStage.name}”, que está sob sua responsabilidade.`,
             "stage_assigned",
+            { case_id: caseRow.id },
           ).catch(() => undefined);
         }
       })
