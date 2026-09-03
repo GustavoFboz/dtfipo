@@ -175,6 +175,7 @@ const KIND_LABEL_BR: Record<CaseAttachmentKind, string> = {
 };
 
 function CaseHeaderActions({ caseRow, currentTab, profile }: { caseRow: CaseRow; currentTab: TabKey; profile: any }) {
+  const qc = useQueryClient();
   const [downloading, setDownloading] = useState(false);
   const [printing, setPrinting] = useState(false);
   const sectionKind = TAB_TO_KIND[currentTab];
@@ -233,6 +234,10 @@ function CaseHeaderActions({ caseRow, currentTab, profile }: { caseRow: CaseRow;
             onClick={async () => {
               try {
                 await acceptCaseRequest(caseRow.id);
+                await Promise.all([
+                  qc.invalidateQueries({ queryKey: ["cases"] }),
+                  qc.invalidateQueries({ queryKey: ["case_responsibility", caseRow.id] }),
+                ]);
                 toast.success("Solicitação aceita e movida para Em andamento.");
               } catch (e) {
                 toast.error((e as Error).message || "Erro ao aceitar solicitação.");
