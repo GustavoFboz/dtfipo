@@ -606,8 +606,8 @@ ALTER TABLE public.stages
 -- unconditional unless condition_key is assigned later.
 UPDATE public.stages
 SET condition_key = CASE
-  WHEN lower(unaccent(name)) LIKE '%mockup%' THEN 'mockup'
-  WHEN lower(unaccent(name)) LIKE '%provisor%' THEN 'provisional'
+  WHEN lower(name) LIKE '%mockup%' THEN 'mockup'
+  WHEN lower(name) LIKE '%provis%' THEN 'provisional'
   ELSE condition_key
 END
 WHERE condition_key IS NULL;
