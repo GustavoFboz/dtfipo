@@ -561,12 +561,7 @@ export function CaseDetailDialog({
     });
 
     const channel = supabase
-      .channel(`case-deletions:${caseId}`)
-      .on("broadcast", { event: "case_deleted" }, (msg) => {
-        const p = msg.payload as { case_id?: string; deleter_name?: string; patient_name?: string | null };
-        if (p?.case_id !== caseId) return;
-        showDeletedNotice({ deleter_name: p.deleter_name, patient_name: p.patient_name });
-      })
+      .channel(`case-deletions-db:${caseId}`)
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "cases", filter: `id=eq.${caseId}` }, () => {
         showDeletedNotice();
       })
