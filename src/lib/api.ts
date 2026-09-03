@@ -548,6 +548,7 @@ export type CreateCaseInput = {
   implant_system_id?: string | null;
   implant_system_ids?: string[];
   has_provisional?: boolean;
+  has_mockup?: boolean;
   implant_teeth?: number[];
   tooth_implant_systems?: Record<string, string>;
   scan_jig_id?: string | null;
