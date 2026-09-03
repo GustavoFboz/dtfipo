@@ -49,7 +49,7 @@ import { CaseImplantTeethPanel } from "./CaseImplantTeethPanel";
 import { ToothWorkPanel, type ToothMilling } from "./ToothWorkPanel";
 import { TOOTH_WORK_TYPES, ENCERAMENTO_ID, splitToothTypes, buildToothTypes } from "@/lib/case-types";
 import { CaseComments } from "./CaseComments";
-import { addCaseActivity } from "@/lib/case-activity";
+import { addCaseActivity, notifyCaseStakeholders } from "@/lib/case-activity";
 import { Paperclip, MessageSquare, PlusCircle } from "lucide-react";
 import { AttachButton, AttachFilesIcon, AttachImagesIcon } from "./AttachButton";
 import { useSessionSnapshot, clearSessionSnapshot } from "@/hooks/use-session-snapshot";
@@ -828,13 +828,37 @@ export function NewCaseDialog({
       // Disparar uploads pendentes em background (com o tipo escolhido por arquivo)
       if (createdId && !isCadista) {
         for (const item of pendingScanFiles) {
-          startFileUpload({ caseId: createdId, kind: item.kind, file: item.file });
+          startFileUpload({ caseId: createdId, kind: item.kind, file: item.file, suppressNotification: true });
         }
       }
       // Galeria pendente
       if (createdId) {
         for (const f of pendingGalleryFiles) {
-          startFileUpload({ caseId: createdId, kind: "gallery", file: f });
+          startFileUpload({ caseId: createdId, kind: "gallery", file: f, suppressNotification: true });
+        }
+      }
+
+      const initialAttachmentCount = pendingScanFiles.length + pendingGalleryFiles.length;
+      if (createdId && initialAttachmentCount > 0) {
+        const content = isEdit
+          ? `${initialAttachmentCount} arquivo(s) foram adicionados ao caso em uma única atualização.`
+          : `Novo caso criado com ${initialAttachmentCount} arquivo(s) anexado(s).`;
+        try {
+          await addCaseActivity(
+            createdId,
+            isEdit ? "upload_batch" : "create_with_attachments",
+            content,
+            [],
+            { file_count: initialAttachmentCount },
+          );
+          await notifyCaseStakeholders({
+            caseId: createdId,
+            title: isEdit ? "Arquivos adicionados ao caso" : "Novo caso com anexos",
+            content,
+            type: isEdit ? "attachment" : "case",
+          });
+        } catch (e) {
+          console.warn("aggregate initial attachment notification failed", e);
         }
       }
       return createdCase;
