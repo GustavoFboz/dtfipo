@@ -57,23 +57,34 @@ export async function deleteCaseActivity(id: string) {
 // Fetch users involved in a case (cadista user + CEO + DR + PROTETICO)
 export async function fetchCaseStakeholderIds(caseId: string): Promise<string[]> {
   const ids = new Set<string>();
+
+  // Case-specific participants only.
   const { data: caseData } = await supabase
     .from("cases")
-    .select("cadista:cadistas(user_id)")
+    .select("requested_by,accepted_by,cadista:cadistas(user_id),doctor:doctors(user_id)")
     .eq("id", caseId)
     .maybeSingle();
-  const cadistaUserId = (caseData as any)?.cadista?.user_id;
-  if (cadistaUserId) ids.add(cadistaUserId);
 
+  const row = caseData as any;
+  [
+    row?.requested_by,
+    row?.accepted_by,
+    row?.cadista?.user_id,
+    row?.doctor?.user_id,
+  ].filter(Boolean).forEach((id) => ids.add(id));
+
+  // Only the explicitly global roles may receive every case notification.
   const { data: profs } = await supabase
     .from("profiles")
-    .select("id, role, notification_preferences");
+    .select("id,role,account_subtype,is_default_admin,notification_preferences");
+
   (profs ?? []).forEach((p: any) => {
-    const role = (p.role || "").toUpperCase();
-    const prefs = p.notification_preferences || {};
-    if (role === "CEO" || role === "PROTETICO" || role === "ATENDIMENTO") ids.add(p.id);
-    if (role === "DR" && prefs.prosthesis_updates !== false) ids.add(p.id);
+    const effectiveType = String(p.account_subtype || p.role || "").toUpperCase();
+    if (p.is_default_admin || ["CEO", "ADMIN", "PROTETICO"].includes(effectiveType)) {
+      ids.add(p.id);
+    }
   });
+
   return Array.from(ids);
 }
 
@@ -88,7 +99,12 @@ export async function notifyCaseStakeholders(opts: {
 }) {
   const { data: { user } } = await supabase.auth.getUser();
   const baseIds = await fetchCaseStakeholderIds(opts.caseId);
-  const all = new Set<string>([...baseIds, ...(opts.extraRecipientIds ?? [])]);
+  // Mentions cannot expand visibility beyond legitimate case stakeholders.
+  const allowed = new Set(baseIds);
+  const all = new Set<string>(baseIds);
+  for (const id of opts.extraRecipientIds ?? []) {
+    if (allowed.has(id)) all.add(id);
+  }
   if (opts.excludeSelf !== false && user?.id) all.delete(user.id);
   if (all.size === 0) return;
 
@@ -135,9 +151,15 @@ export async function notifyCaseStakeholders(opts: {
   if (error) console.error("notifyCaseStakeholders error:", error);
 }
 
-export async function fetchMentionableProfiles(query: string) {
+export async function fetchMentionableProfiles(caseId: string, query: string) {
+  const ids = await fetchCaseStakeholderIds(caseId);
+  if (ids.length === 0) return [];
   const q = query.trim();
-  let req = supabase.from("profiles").select("id, full_name, email, role").limit(8);
+  let req = supabase
+    .from("profiles")
+    .select("id, full_name, email, role")
+    .in("id", ids)
+    .limit(8);
   if (q) req = req.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
   const { data, error } = await req;
   if (error) throw error;
