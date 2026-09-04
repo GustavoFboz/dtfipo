@@ -1,0 +1,152 @@
+name: Apply workflow v2 integration
+
+on:
+  push:
+    branches: [feature/workflow-templates-v2]
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/workflow-templates-v2
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Patch workflow integration
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, count=1):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f"Expected text not found in {path}: {old[:120]!r}")
+              text = text.replace(old, new, count)
+              p.write_text(text)
+
+          # Route: switch /fluxo to the versioned manager while leaving the old
+          # implementation available in history for a safe, minimal patch.
+          replace(
+              'src/routes/_authenticated/fluxo.tsx',
+              'import { createFileRoute } from "@tanstack/react-router";\n',
+              'import { createFileRoute } from "@tanstack/react-router";\nimport { WorkflowManagerV2 } from "@/components/WorkflowManagerV2";\n',
+          )
+          replace(
+              'src/routes/_authenticated/fluxo.tsx',
+              '  component: FluxoPage,\n',
+              '  component: WorkflowManagerV2,\n',
+          )
+
+          # Case workflow bar: use the case-specific flow/version and make
+          # sintering conditional on actual fabrication material.
+          replace(
+              'src/components/CaseWorkflowBar.tsx',
+              'import { fetchProfile, sendInternalNotification } from "@/lib/api";\n',
+              'import { fetchProfile, sendInternalNotification } from "@/lib/api";\nimport { deriveWorkflowKey, fetchCaseRequiresSintering, fetchWorkflowStagesV2 } from "@/lib/workflow-v2";\n',
+          )
+          replace(
+              'src/components/CaseWorkflowBar.tsx',
+              '    queryFn: fetchWorkflowStages,\n',
+              '    queryFn: fetchWorkflowStagesV2,\n',
+          )
+          old_list = '''  const currentStageId = (caseRow as any).current_stage_id as string | null;\n  const list = useMemo(() => {\n    const source = stages.data ?? [];\n    return source.filter((stage: any) => {\n      const condition = stage.condition_key as string | null | undefined;\n      if (condition === "mockup") return !!(caseRow as any).has_mockup;\n      if (condition === "provisional") return !!(caseRow as any).has_provisional;\n      return true;\n    });\n  }, [stages.data, (caseRow as any).has_mockup, (caseRow as any).has_provisional]);\n'''
+          new_list = '''  const currentStageId = (caseRow as any).current_stage_id as string | null;\n  const flowKey = ((caseRow as any).workflow_key || deriveWorkflowKey(caseRow as any)) as string;\n  const workflowVersion = Number((caseRow as any).workflow_version || 0);\n  const sintering = useQuery({\n    queryKey: ["case_requires_sintering", caseRow.id, (caseRow as any).teeth_zirconia, (caseRow as any).zirconia_stock_item_id, (caseRow as any).dissilicato_stock_item_id],\n    queryFn: () => fetchCaseRequiresSintering(caseRow.id),\n    enabled: !!settings.data?.phases_enabled && !!caseRow.id,\n  });\n  const requiresSintering = Boolean(\n    ((caseRow as any).teeth_zirconia ?? []).length > 0 || sintering.data,\n  );\n  const list = useMemo(() => {\n    const source = stages.data ?? [];\n    let candidates = source.filter((stage: any) => stage.flow_key === flowKey);\n    // Compatibility while the database migration/schema cache is rolling out.\n    if (!candidates.length) candidates = source;\n    const resolvedVersion = workflowVersion || Math.max(1, ...candidates.map((stage: any) => Number(stage.workflow_version || 1)));\n    return candidates\n      .filter((stage: any) => Number(stage.workflow_version || 1) === resolvedVersion)\n      .filter((stage: any) => {\n        if (stage.id === currentStageId) return true;\n        if (stage.condition_key === "requires_sintering") return requiresSintering;\n        return true;\n      })\n      .sort((a: any, b: any) => a.position - b.position);\n  }, [stages.data, flowKey, workflowVersion, requiresSintering, currentStageId]);\n'''
+          replace('src/components/CaseWorkflowBar.tsx', old_list, new_list)
+
+          # Stock v2 data model / writes.
+          replace(
+              'src/lib/stock-v2.ts',
+              '  updated_at: string;\n  implant_system_component_id?: string | null;\n',
+              '  updated_at: string;\n  requires_sintering: boolean;\n  implant_system_component_id?: string | null;\n',
+          )
+          replace(
+              'src/lib/stock-v2.ts',
+              '  notes?: string | null;\n  custom_fields?: { key: string; value: string }[];\n',
+              '  notes?: string | null;\n  requires_sintering?: boolean;\n  custom_fields?: { key: string; value: string }[];\n',
+          )
+          replace(
+              'src/lib/stock-v2.ts',
+              '      notes: input.notes ?? null,\n',
+              '      notes: input.notes ?? null,\n      requires_sintering: input.requires_sintering ?? false,\n',
+          )
+
+          # Stock editor: explicitly ask whether the fabrication material needs
+          # sintering and persist the answer.
+          replace(
+              'src/routes/_authenticated/estoque.tsx',
+              '  const [minQty, setMinQty] = useState<string>(draft?.minQty ?? String(item?.min_qty ?? 0));\n',
+              '''  const [minQty, setMinQty] = useState<string>(draft?.minQty ?? String(item?.min_qty ?? 0));\n  const initialCategoryName = categories.find((c) => c.id === (draft?.categoryId ?? item?.category_id ?? defaultCategoryId))?.name ?? "";\n  const [requiresSintering, setRequiresSintering] = useState<boolean>(\n    draft?.requiresSintering ?? item?.requires_sintering ?? /zirc/i.test(initialCategoryName),\n  );\n''',
+          )
+          replace(
+              'src/routes/_authenticated/estoque.tsx',
+              '        categoryId, name, brand, type, unit, qty, minQty, fields, implantSystemId,\n',
+              '        categoryId, name, brand, type, unit, qty, minQty, requiresSintering, fields, implantSystemId,\n',
+          )
+          replace(
+              'src/routes/_authenticated/estoque.tsx',
+              '  }, [draftKey, categoryId, name, brand, type, unit, qty, minQty, fields, implantSystemId]);\n',
+              '  }, [draftKey, categoryId, name, brand, type, unit, qty, minQty, requiresSintering, fields, implantSystemId]);\n',
+          )
+          replace(
+              'src/routes/_authenticated/estoque.tsx',
+              '          min_qty: Number(minQty) || 0,\n        }, fields);\n',
+              '          min_qty: Number(minQty) || 0,\n          requires_sintering: requiresSintering,\n        }, fields);\n',
+          )
+          replace(
+              'src/routes/_authenticated/estoque.tsx',
+              '          min_qty: Number(minQty) || 0,\n          custom_fields: fields,\n',
+              '          min_qty: Number(minQty) || 0,\n          requires_sintering: requiresSintering,\n          custom_fields: fields,\n',
+          )
+          marker = '''          <div className="grid grid-cols-3 gap-3">\n            <Field label="Medida (unidade)"><Input value={unit} onChange={setUnit} placeholder="un, mm, g…" /></Field>\n'''
+          replacement = '''          <label className="flex items-start gap-3 rounded-xl border border-border bg-muted/20 p-3 cursor-pointer">\n            <input\n              type="checkbox"\n              checked={requiresSintering}\n              onChange={(e) => setRequiresSintering(e.target.checked)}\n              className="mt-0.5 h-4 w-4 rounded border-border"\n            />\n            <span>\n              <span className="block text-sm font-medium">Este material requer sinterização</span>\n              <span className="block text-[11px] text-muted-foreground mt-0.5">Quando este material for usado em pelo menos um elemento, a etapa “Sinterização” entra automaticamente no fluxo do caso.</span>\n            </span>\n          </label>\n\n          <div className="grid grid-cols-3 gap-3">\n            <Field label="Medida (unidade)"><Input value={unit} onChange={setUnit} placeholder="un, mm, g…" /></Field>\n'''
+          replace('src/routes/_authenticated/estoque.tsx', marker, replacement)
+          replace(
+              'src/routes/_authenticated/estoque.tsx',
+              '<div className="font-medium">{i.name}</div>\n',
+              '<div className="font-medium flex items-center gap-2">{i.name}{i.requires_sintering && <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-medium text-amber-800">Sinterização</span>}</div>\n',
+          )
+
+          # Public app types used by the workflow and stock UI.
+          replace(
+              'src/lib/types.ts',
+              '  has_provisional?: boolean | null;\n',
+              '  has_provisional?: boolean | null;\n  has_mockup?: boolean | null;\n  workflow_key?: "common" | "provisional" | "mockup" | "mockup_provisional" | null;\n  workflow_version?: number | null;\n',
+          )
+          replace(
+              'src/lib/types.ts',
+              '  updated_at: string;\n};\n\nexport type StockMovement',
+              '  updated_at: string;\n  requires_sintering?: boolean;\n};\n\nexport type StockMovement',
+          )
+
+          # Fix the migration's legacy remap using correlated scalar queries;
+          # this avoids an invalid UPDATE-target reference inside LATERAL.
+          migration = Path('supabase/migrations/20260904203000_workflow_templates_v2.sql')
+          sql = migration.read_text()
+          old = '''UPDATE public.cases c\n   SET current_stage_id = mapped.id,\n       current_phase_id = mapped.phase_id\n  FROM public.stages old_stage\n  JOIN LATERAL (\n    SELECT ns.id, ns.phase_id\n      FROM public.stages ns\n     WHERE ns.flow_key = public.case_flow_key(c.has_mockup, c.has_provisional)\n       AND ns.workflow_version = 1\n       AND ns.stage_key = public.workflow_stage_semantic_key(old_stage.name, old_stage.position)\n     LIMIT 1\n  ) mapped ON true\n WHERE c.current_stage_id = old_stage.id\n   AND old_stage.flow_key IS NULL;'''
+          new = '''UPDATE public.cases c\n   SET current_stage_id = (\n         SELECT ns.id\n           FROM public.stages old_stage\n           JOIN public.stages ns\n             ON ns.flow_key = public.case_flow_key(c.has_mockup, c.has_provisional)\n            AND ns.workflow_version = 1\n            AND ns.stage_key = public.workflow_stage_semantic_key(old_stage.name, old_stage.position)\n          WHERE old_stage.id = c.current_stage_id\n          LIMIT 1\n       ),\n       current_phase_id = COALESCE((\n         SELECT ns.phase_id\n           FROM public.stages old_stage\n           JOIN public.stages ns\n             ON ns.flow_key = public.case_flow_key(c.has_mockup, c.has_provisional)\n            AND ns.workflow_version = 1\n            AND ns.stage_key = public.workflow_stage_semantic_key(old_stage.name, old_stage.position)\n          WHERE old_stage.id = c.current_stage_id\n          LIMIT 1\n       ), c.current_phase_id)\n WHERE EXISTS (\n   SELECT 1 FROM public.stages old_stage\n    WHERE old_stage.id = c.current_stage_id AND old_stage.flow_key IS NULL\n );'''
+          if old not in sql:
+              raise SystemExit('legacy remap block not found in migration')
+          migration.write_text(sql.replace(old, new, 1))
+          PY
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Production build
+        run: bun run build
+      - name: Commit integration and remove temporary workflow
+        shell: bash
+        run: |
+          rm .github/workflows/apply-workflow-v2-integration.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src supabase/migrations .github/workflows/apply-workflow-v2-integration.yml
+          git commit -m "feat: integrate versioned case workflows" || exit 0
+          git push origin HEAD:feature/workflow-templates-v2
