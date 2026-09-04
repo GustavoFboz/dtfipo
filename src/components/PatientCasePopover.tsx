@@ -13,7 +13,7 @@ function formatDate(value: string | null | undefined) {
   return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
 }
 
-export function calculatePatientAge(birthDate: string | null | undefined, today = new Date()) {
+function calculatePatientAge(birthDate: string | null | undefined, today = new Date()) {
   if (!birthDate) return null;
   const iso = birthDate.slice(0, 10);
   const [year, month, day] = iso.split("-").map(Number);
@@ -39,7 +39,7 @@ function patientInitial(name: string | null | undefined) {
   return (name?.trim()?.[0] || "?").toUpperCase();
 }
 
-export function canSchedulePatient(profile: Profile | null | undefined) {
+function canSchedulePatient(profile: Profile | null | undefined) {
   if (!profile) return false;
   if (profile.is_default_admin) return true;
   const role = String(profile.role || "").toUpperCase();
