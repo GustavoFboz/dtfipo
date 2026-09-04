@@ -1320,7 +1320,7 @@ export function NewCaseDialog({
                     onChange={() => {}}
                     onWorkClick={handleWorkToothClick}
                     configuredTeeth={configGroup}
-                    assignedTeeth={assignedTeeth}
+                    assignedTeeth={isView ? assignedTeeth : teeth}
                     highlight={{ zirconia: cleanZir, dissilicato: cleanDis, enceramentoOnly: encOnlyTeeth }}
                     implantTeeth={cleanImplantTeeth}
                     implantColor={
