@@ -196,7 +196,7 @@ export function PatientCasePopover({
             sideOffset={12}
             collisionPadding={20}
             onClick={(event) => event.stopPropagation()}
-            className="w-[360px] overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/95 p-0 shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95"
+            className="w-[360px] overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/95 p-0 shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 font-outfit"
           >
             <div className="p-5 pb-4">
               <div className="flex items-start gap-3">
