@@ -40,6 +40,7 @@ import type { Profile } from "@/lib/types";
 import { InstallPWAButton } from "./InstallPWAButton";
 import { CaseDeepLink } from "./CaseDeepLink";
 import { DialogAutoReopen } from "./DialogAutoReopen";
+import { StorageSidebarCard } from "./StorageSidebarCard";
 import { useCasesRealtime } from "@/hooks/use-cases-realtime";
 import { useEntityRealtime } from "@/hooks/use-entity-realtime";
 import { useChatRealtime } from "@/hooks/use-chat-realtime";
@@ -70,6 +71,7 @@ function getMobilePageTitle(pathname: string, items: readonly { to: string; labe
   if (match) return match.label;
   if (pathname.startsWith("/patients/")) return "Perfil do Paciente";
   if (pathname.startsWith("/configuracoes")) return "Configurações";
+  if (pathname.startsWith("/armazenamento")) return "Armazenamento";
   return "DentalFlow";
 }
 
@@ -125,6 +127,7 @@ export function AppShell() {
   const shellProfileSubtype = String((profile as any)?.account_subtype || "").toUpperCase();
   const shellEffectiveRole = shellProfileSubtype || shellProfileRole;
   const isAdmin = shellEffectiveRole === "CEO" || shellEffectiveRole === "DR";
+  const canManageStorage = !!profile?.is_default_admin || shellEffectiveRole === "CEO" || shellEffectiveRole === "ADMIN";
   const [isHovered, setIsHovered] = useState(false);
   const { data: pendingRequests = [] } = useQuery({
     queryKey: ["join_requests"],
@@ -520,6 +523,8 @@ export function AppShell() {
               );
             })}
           </nav>
+
+          {canManageStorage && <StorageSidebarCard collapsed={isCollapsed} />}
 
           <div className="mt-auto border-t border-slate-100 dark:border-white/5 bg-white dark:bg-black overflow-hidden flex flex-col">
             <Tooltip delayDuration={0}>

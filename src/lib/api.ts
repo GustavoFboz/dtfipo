@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { CaseRow, Doctor, Cadista, Patient, CaseType, ToothColor, Stage, Phase, Component, Profile, Notification, ComponentCategory } from "./types";
 import { autoRecordCaseMilling } from "./burrs";
 import { broadcastEntity, markDeleted } from "./optimistic";
+import { applyOptimisticStorageDelta, cancelStorageUpload, completeStorageUpload, reserveStorageUpload } from "./storage";
 
 
 async function hydrateVisibleCaseFallback(rows: CaseRow[]): Promise<CaseRow[]> {
@@ -1234,15 +1235,12 @@ export const updateCaseStagePending = async (id: string, pending_count: number) 
 // Upload de foto do paciente
 export async function uploadPatientPhoto(patientId: string, file: Blob): Promise<string> {
   const path = `${patientId}/${Date.now()}.jpg`;
-  const { error } = await supabase.storage
-    .from("patient-photos")
-    .upload(path, file, { contentType: "image/jpeg", upsert: true });
-  if (error) throw error;
-  // Bucket is private; return a long-lived signed URL (10 years).
-  const { data, error: signErr } = await supabase.storage
-    .from("patient-photos")
-    .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-  if (signErr) throw signErr;
+  const reservation = await reserveStorageUpload({ sizeBytes: file.size, bucket: "patient-photos", objectPath: path, sourceType: "patient_photo", patientId, originalName: "Foto do paciente.jpg", mimeType: "image/jpeg" });
+  const { error } = await supabase.storage.from("patient-photos").upload(path, file, { contentType: "image/jpeg", upsert: true });
+  if (error) { await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
+  const { data, error: signErr } = await supabase.storage.from("patient-photos").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+  if (signErr) { await supabase.storage.from("patient-photos").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw signErr; }
+  await completeStorageUpload(reservation.reservationId, patientId);
   return data.signedUrl;
 }
 
@@ -1250,17 +1248,15 @@ export async function uploadUserAvatar(file: Blob): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Não autenticado");
   const path = `${user.id}/${Date.now()}.jpg`;
-  const { error } = await supabase.storage
-    .from("avatars")
-    .upload(path, file, { contentType: "image/jpeg", upsert: true });
-  if (error) throw error;
-  const { data, error: signErr } = await supabase.storage
-    .from("avatars")
-    .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-  if (signErr) throw signErr;
+  const reservation = await reserveStorageUpload({ sizeBytes: file.size, bucket: "avatars", objectPath: path, sourceType: "user_avatar", originalName: "Avatar.jpg", mimeType: "image/jpeg" });
+  const { error } = await supabase.storage.from("avatars").upload(path, file, { contentType: "image/jpeg", upsert: true });
+  if (error) { await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
+  const { data, error: signErr } = await supabase.storage.from("avatars").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+  if (signErr) { await supabase.storage.from("avatars").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw signErr; }
   const url = data.signedUrl;
   const { error: updErr } = await supabase.from("profiles").update({ avatar_url: url } as never).eq("id", user.id);
-  if (updErr) throw updErr;
+  if (updErr) { await supabase.storage.from("avatars").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw updErr; }
+  await completeStorageUpload(reservation.reservationId, user.id);
   return url;
 }
 
@@ -1299,39 +1295,25 @@ export async function uploadPatientAttachment(
 ): Promise<PatientAttachment> {
   const ext = file.name.split(".").pop() ?? "bin";
   const path = `${patientId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const { error: upErr } = await supabase.storage
-    .from("patient-files")
-    .upload(path, file, { contentType: file.type || undefined, upsert: false });
-  if (upErr) throw upErr;
-  const { data: signed } = await supabase.storage
-    .from("patient-files")
-    .createSignedUrl(path, 60 * 60 * 24 * 365);
+  const reservation = await reserveStorageUpload({ sizeBytes: file.size, bucket: "patient-files", objectPath: path, sourceType: "patient_attachment", patientId, originalName: file.name || meta.title || "arquivo", mimeType: file.type || null });
+  const { error: upErr } = await supabase.storage.from("patient-files").upload(path, file, { contentType: file.type || undefined, upsert: false });
+  if (upErr) { await cancelStorageUpload(reservation.reservationId, file.size); throw upErr; }
+  const { data: signed } = await supabase.storage.from("patient-files").createSignedUrl(path, 60 * 60 * 24 * 365);
   const file_url = signed?.signedUrl ?? "";
   const isImage = (file.type || "").startsWith("image/");
-  const { data, error } = await supabase
-    .from("patient_attachments" as never)
-    .insert({
-      patient_id: patientId,
-      title: meta.title,
-      description: meta.description ?? null,
-      kind: meta.kind ?? "other",
-      file_url,
-      file_path: path,
-      thumbnail_url: isImage ? file_url : null,
-      mime_type: file.type || null,
-      size_bytes: file.size,
-    } as never)
-    .select()
-    .single();
-  if (error) throw error;
+  const { data, error } = await supabase.from("patient_attachments" as never).insert({ patient_id: patientId, title: meta.title, description: meta.description ?? null, kind: meta.kind ?? "other", file_url, file_path: path, thumbnail_url: isImage ? file_url : null, mime_type: file.type || null, size_bytes: file.size } as never).select().single();
+  if (error) { await supabase.storage.from("patient-files").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
+  await completeStorageUpload(reservation.reservationId, (data as any).id);
   return data as unknown as PatientAttachment;
 }
 
 export async function deletePatientAttachment(att: PatientAttachment) {
   markDeleted(att.id);
-  await supabase.storage.from("patient-files").remove([att.file_path]);
+  applyOptimisticStorageDelta(-Math.max(0, Number(att.size_bytes || 0)));
+  const { error: storageError } = await supabase.storage.from("patient-files").remove([att.file_path]);
+  if (storageError) console.warn("patient attachment storage cleanup failed", storageError);
   const { error } = await supabase.from("patient_attachments" as never).delete().eq("id", att.id);
-  if (error) throw error;
+  if (error) { applyOptimisticStorageDelta(Math.max(0, Number(att.size_bytes || 0))); throw error; }
 }
 
 export async function refreshAttachmentSignedUrl(path: string): Promise<string> {
@@ -1352,7 +1334,7 @@ export type CaseAttachment = {
   mime_type: string | null;
   uploaded_by: string | null;
   uploaded_at: string;
-  expires_at: string;
+  expires_at: string | null;
   expired_at: string | null;
   notes: string | null;
   kind?: "fabrication" | "model" | "exocad_html" | "scans" | "gallery" | "comment_image" | "other" | null;
@@ -1378,26 +1360,13 @@ export async function uploadCaseAttachment(
 ): Promise<CaseAttachment> {
   const ext = file.name.split(".").pop() ?? "bin";
   const path = `${caseId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const { error: upErr } = await supabase.storage
-    .from("case-files")
-    .upload(path, file, { contentType: file.type || undefined, upsert: false });
-  if (upErr) throw upErr;
+  const reservation = await reserveStorageUpload({ sizeBytes: file.size, bucket: "case-files", objectPath: path, sourceType: "case_attachment", caseId, originalName: file.name, mimeType: file.type || null });
+  const { error: upErr } = await supabase.storage.from("case-files").upload(path, file, { contentType: file.type || undefined, upsert: false });
+  if (upErr) { await cancelStorageUpload(reservation.reservationId, file.size); throw upErr; }
   const { data: userRes } = await supabase.auth.getUser();
-  const { data, error } = await supabase
-    .from("case_attachments" as never)
-    .insert({
-      case_id: caseId,
-      file_name: file.name,
-      storage_path: path,
-      size_bytes: file.size,
-      mime_type: file.type || null,
-      uploaded_by: userRes.user?.id ?? null,
-      notes: notes ?? null,
-      kind,
-    } as never)
-    .select()
-    .single();
-  if (error) throw error;
+  const { data, error } = await supabase.from("case_attachments" as never).insert({ case_id: caseId, file_name: file.name, storage_path: path, size_bytes: file.size, mime_type: file.type || null, uploaded_by: userRes.user?.id ?? null, notes: notes ?? null, kind } as never).select().single();
+  if (error) { await supabase.storage.from("case-files").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
+  await completeStorageUpload(reservation.reservationId, (data as any).id);
   return data as unknown as CaseAttachment;
 }
 
@@ -1420,25 +1389,18 @@ export async function getCaseAttachmentUrl(path: string, downloadName?: string):
 }
 
 export async function deleteCaseAttachment(att: CaseAttachment) {
-  // The database row is the source of truth. Delete it first so a successful
-  // operation can never leave the attachment visible but unusable.
-  const { error } = await supabase
-    .from("case_attachments" as never)
-    .delete()
-    .eq("id", att.id);
-  if (error) throw error;
-
-  try {
-    const { error: storageError } = await supabase.storage
-      .from("case-files")
-      .remove([att.storage_path]);
-    if (storageError) {
-      console.warn("attachment storage cleanup failed", storageError);
-    }
-  } catch (storageError) {
-    console.warn("attachment storage cleanup failed", storageError);
+  const managed = await supabase.rpc("delete_case_attachment_managed" as never, { _attachment_id: att.id } as never);
+  const missingRpc = managed.error && (managed.error.code === "PGRST202" || managed.error.code === "42883" || String(managed.error.message || "").toLowerCase().includes("schema cache"));
+  if (managed.error && !missingRpc) throw managed.error;
+  if (missingRpc) {
+    const { error } = await supabase.from("case_attachments" as never).delete().eq("id", att.id);
+    if (error) throw error;
   }
-
+  applyOptimisticStorageDelta(-Math.max(0, Number(att.size_bytes || 0)));
+  try {
+    const { error: storageError } = await supabase.storage.from("case-files").remove([att.storage_path]);
+    if (storageError) console.warn("attachment storage cleanup failed", storageError);
+  } catch (storageError) { console.warn("attachment storage cleanup failed", storageError); }
   try { markDeleted(att.id); } catch {}
 }
 

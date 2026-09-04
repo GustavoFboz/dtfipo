@@ -32,6 +32,7 @@ import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authen
 import { Route as AuthenticatedCasosRouteImport } from './routes/_authenticated/casos'
 import { Route as AuthenticatedCadistaRouteImport } from './routes/_authenticated/cadista'
 import { Route as AuthenticatedBurrsRouteImport } from './routes/_authenticated/burrs'
+import { Route as AuthenticatedArmazenamentoRouteImport } from './routes/_authenticated/armazenamento'
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
 import { Route as AuthenticatedPatientsIdRouteImport } from './routes/_authenticated/patients.$id'
 import { Route as AuthenticatedFinanceiroRelatoriosRouteImport } from './routes/_authenticated/financeiro.relatorios'
@@ -173,6 +174,12 @@ const AuthenticatedBurrsRoute = AuthenticatedBurrsRouteImport.update({
   path: '/burrs',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedArmazenamentoRoute =
+  AuthenticatedArmazenamentoRouteImport.update({
+    id: '/armazenamento',
+    path: '/armazenamento',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAgendaRoute = AuthenticatedAgendaRouteImport.update({
   id: '/agenda',
   path: '/agenda',
@@ -316,6 +323,7 @@ export interface FileRoutesByFullPath {
   '/join-clinic': typeof JoinClinicRoute
   '/lp': typeof LpRoute
   '/agenda': typeof AuthenticatedAgendaRoute
+  '/armazenamento': typeof AuthenticatedArmazenamentoRoute
   '/burrs': typeof AuthenticatedBurrsRoute
   '/cadista': typeof AuthenticatedCadistaRoute
   '/casos': typeof AuthenticatedCasosRoute
@@ -363,6 +371,7 @@ export interface FileRoutesByTo {
   '/join-clinic': typeof JoinClinicRoute
   '/lp': typeof LpRoute
   '/agenda': typeof AuthenticatedAgendaRoute
+  '/armazenamento': typeof AuthenticatedArmazenamentoRoute
   '/burrs': typeof AuthenticatedBurrsRoute
   '/cadista': typeof AuthenticatedCadistaRoute
   '/casos': typeof AuthenticatedCasosRoute
@@ -412,6 +421,7 @@ export interface FileRoutesById {
   '/join-clinic': typeof JoinClinicRoute
   '/lp': typeof LpRoute
   '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
+  '/_authenticated/armazenamento': typeof AuthenticatedArmazenamentoRoute
   '/_authenticated/burrs': typeof AuthenticatedBurrsRoute
   '/_authenticated/cadista': typeof AuthenticatedCadistaRoute
   '/_authenticated/casos': typeof AuthenticatedCasosRoute
@@ -461,6 +471,7 @@ export interface FileRouteTypes {
     | '/join-clinic'
     | '/lp'
     | '/agenda'
+    | '/armazenamento'
     | '/burrs'
     | '/cadista'
     | '/casos'
@@ -508,6 +519,7 @@ export interface FileRouteTypes {
     | '/join-clinic'
     | '/lp'
     | '/agenda'
+    | '/armazenamento'
     | '/burrs'
     | '/cadista'
     | '/casos'
@@ -556,6 +568,7 @@ export interface FileRouteTypes {
     | '/join-clinic'
     | '/lp'
     | '/_authenticated/agenda'
+    | '/_authenticated/armazenamento'
     | '/_authenticated/burrs'
     | '/_authenticated/cadista'
     | '/_authenticated/casos'
@@ -769,6 +782,13 @@ declare module '@tanstack/react-router' {
       path: '/burrs'
       fullPath: '/burrs'
       preLoaderRoute: typeof AuthenticatedBurrsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/armazenamento': {
+      id: '/_authenticated/armazenamento'
+      path: '/armazenamento'
+      fullPath: '/armazenamento'
+      preLoaderRoute: typeof AuthenticatedArmazenamentoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/agenda': {
@@ -1024,6 +1044,7 @@ const AuthenticatedPatientsRouteWithChildren =
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
+  AuthenticatedArmazenamentoRoute: typeof AuthenticatedArmazenamentoRoute
   AuthenticatedBurrsRoute: typeof AuthenticatedBurrsRoute
   AuthenticatedCadistaRoute: typeof AuthenticatedCadistaRoute
   AuthenticatedCasosRoute: typeof AuthenticatedCasosRoute
@@ -1048,6 +1069,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
+  AuthenticatedArmazenamentoRoute: AuthenticatedArmazenamentoRoute,
   AuthenticatedBurrsRoute: AuthenticatedBurrsRoute,
   AuthenticatedCadistaRoute: AuthenticatedCadistaRoute,
   AuthenticatedCasosRoute: AuthenticatedCasosRoute,
