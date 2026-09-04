@@ -633,16 +633,15 @@ export function NewCaseDialog({
       return;
     }
 
-    // Plain click defines a new range anchor and focuses that tooth for work
-    // configuration. Existing configured teeth remain part of the case.
+    // Plain click keeps one temporary selection. Configured teeth stay in the
+    // case; Ctrl/Cmd and Shift are the explicit advanced multi-selection modes.
     selectionAnchorRef.current = tooth;
-    if (!current.has(tooth)) {
-      current.add(tooth);
-      setTeeth(sortTeeth(Array.from(current)));
-      setJustAddedTeeth([tooth]);
-    } else {
-      setJustAddedTeeth([]);
-    }
+    const staleTemporary = justAddedTeeth.filter((item) => item !== tooth && !toothHasConfig(item));
+    const staleSet = new Set(staleTemporary);
+    const next = teeth.filter((item) => !staleSet.has(item));
+    if (!next.includes(tooth)) next.push(tooth);
+    setTeeth(sortTeeth(next));
+    setJustAddedTeeth(toothHasConfig(tooth) ? [] : [tooth]);
     setFocusedTooth(tooth);
     setConfigGroup([tooth]);
   };

@@ -664,7 +664,6 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
     const tempPath = `__local__/${tempId}`;
     localPreviews.set(tempPath, file);
     const nowIso = new Date().toISOString();
-    const expiresIso = new Date(Date.now() + 7 * 24 * 3_600_000).toISOString();
     const optimistic: CaseAttachment = {
       id: tempId,
       case_id: caseId,
@@ -674,7 +673,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
       mime_type: file.type || null,
       uploaded_by: currentUserId,
       uploaded_at: nowIso,
-      expires_at: expiresIso,
+      expires_at: null,
       expired_at: null,
       notes: notes ?? null,
       kind,
@@ -921,9 +920,9 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
           </>
         )}
         {canDelete && (
-          <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive"
+          <Button type="button" size="sm" variant="ghost" className="text-destructive hover:text-destructive"
             disabled={remove.isPending}
-            onClick={async () => { if (await confirm({ title: "Excluir arquivo", description: `Excluir "${a.file_name}"?`, confirmText: "Excluir", destructive: true })) remove.mutate(a); }}>
+            onClick={async (event) => { event.preventDefault(); event.stopPropagation(); if (await confirm({ title: "Excluir arquivo", description: `Excluir "${a.file_name}"?`, confirmText: "Excluir", destructive: true })) await remove.mutateAsync(a); }}>
             <Trash2 className="h-4 w-4" />
           </Button>
         )}
@@ -936,8 +935,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
     return (
       <ul className="space-y-1.5">
         {items.map((a) => {
-          const tl = timeLeft(a.expires_at);
-          const isGone = !!a.expired_at || tl.expired;
+          const isGone = !!a.expired_at;
           const isSel = select.selected.has(a.id);
           return (
             <li
@@ -953,10 +951,10 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
                   <span>{fmtSize(a.size_bytes)}</span><span>·</span>
                   <span>{new Date(a.uploaded_at).toLocaleString("pt-BR")}</span>
                   {isGone ? (
-                    <span className="inline-flex items-center gap-1 text-destructive"><AlertCircle className="h-3 w-3" /> expirado</span>
+                    <span className="inline-flex items-center gap-1 text-destructive"><AlertCircle className="h-3 w-3" /> indisponível</span>
                   ) : (
-                    <span className={`inline-flex items-center gap-1 ${tl.warn ? "text-amber-500" : "text-muted-foreground"}`}>
-                      <Clock className="h-3 w-3" /> expira em {tl.label}
+                    <span className="inline-flex items-center gap-1 text-muted-foreground">
+                      <Clock className="h-3 w-3" /> armazenamento permanente
                     </span>
                   )}
                 </div>
