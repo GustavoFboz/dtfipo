@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { MouseEvent } from "react";
 import svgRawSource from "@/assets/arcada.svg?raw";
+import { applyToothModifierSelection } from "@/lib/tooth-selection";
 
 // Strip the black outline from the raw source (safety; new SVG has none).
 const svgRaw = svgRawSource;
@@ -178,11 +179,6 @@ function nativeSignalElements(toothGroup: SVGGElement): SVGElement[] {
   return Array.from(elements);
 }
 
-const ARCH_UPPER = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
-const ARCH_LOWER = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
-function archOf(n: number): number[] {
-  return n < 30 ? ARCH_UPPER : ARCH_LOWER;
-}
 
 export function TeethSelector({
   value,
@@ -558,28 +554,21 @@ export function TeethSelector({
       return;
     }
 
-    // File-manager semantics:
-    // click = single selection; Ctrl/Cmd = toggle one; Shift = additive range.
-    const current = new Set(valueRef.current);
-    const anchor = anchorRef.current;
-    if (event.shiftKey && anchor !== null && archOf(anchor) === archOf(n)) {
-      const arch = archOf(n);
-      const a = arch.indexOf(anchor);
-      const b = arch.indexOf(n);
-      if (a !== -1 && b !== -1) {
-        const [lo, hi] = a < b ? [a, b] : [b, a];
-        for (let i = lo; i <= hi; i += 1) current.add(arch[i]);
-        onChangeRef.current(Array.from(current));
-        return;
-      }
-    }
-    if (event.ctrlKey || event.metaKey) {
-      if (current.has(n)) current.delete(n);
-      else current.add(n);
-      anchorRef.current = n;
-      onChangeRef.current(Array.from(current));
+    // File-manager semantics. Ctrl/Cmd toggles one tooth and resets the
+    // range anchor. Shift toggles the contiguous interval from that anchor:
+    // add when any tooth is missing, remove when the whole interval is selected.
+    const modifierSelection = applyToothModifierSelection(
+      valueRef.current,
+      n,
+      anchorRef.current,
+      mods,
+    );
+    if (modifierSelection) {
+      anchorRef.current = modifierSelection.anchor;
+      onChangeRef.current(modifierSelection.next);
       return;
     }
+
     anchorRef.current = n;
     onChangeRef.current([n]);
   };

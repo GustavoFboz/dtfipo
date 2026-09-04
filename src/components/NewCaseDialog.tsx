@@ -40,6 +40,7 @@ import { TeethSelector, IMPLANT_COLOR_SCALE } from "./TeethSelector";
 import { ArcadaModeToggle, type ArcadaMode } from "./ArcadaModeToggle";
 import { PatientCombobox } from "./PatientCombobox";
 import { sortTeeth } from "@/lib/teeth";
+import { applyToothModifierSelection } from "@/lib/tooth-selection";
 import type { CaseRow } from "@/lib/types";
 import { applyCasePatchToCache } from "@/hooks/use-cases-realtime";
 import { broadcastEntity } from "@/lib/optimistic";
@@ -515,9 +516,6 @@ export function NewCaseDialog({
     });
   };
 
-  const ARCH_UPPER_L = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28];
-  const ARCH_LOWER_L = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38];
-
   const applyConfigToTeeth = (targets: number[], src: number) => {
     const srcType = toothTypeMap[src] ?? "";
     const srcMilling: ToothMilling = zirTeeth.includes(src)
@@ -579,14 +577,6 @@ export function NewCaseDialog({
   const handleWorkToothClick = (tooth: number, mods: { ctrl: boolean; shift: boolean }) => {
     const current = new Set(teeth);
     const anchor = selectionAnchorRef.current ?? focusedTooth ?? lastConfiguredTooth;
-    const rangeFor = (from: number, to: number) => {
-      const arch = from < 30 ? ARCH_UPPER_L : ARCH_LOWER_L;
-      if (!arch.includes(from) || !arch.includes(to)) return [to];
-      const a = arch.indexOf(from);
-      const b = arch.indexOf(to);
-      const [lo, hi] = a < b ? [a, b] : [b, a];
-      return arch.slice(lo, hi + 1);
-    };
 
     const clearToothConfig = (target: number) => {
       setToothTypeMap((map) => {
@@ -614,38 +604,32 @@ export function NewCaseDialog({
       );
     };
 
-    // Ctrl/Cmd behaves like a file manager: toggle exactly one tooth without
-    // disturbing the rest of the selection. Removing a tooth also clears its
-    // clinical configuration to avoid invisible/stale work data.
-    if (mods.ctrl && !mods.shift) {
-      selectionAnchorRef.current = tooth;
-      if (current.has(tooth)) {
-        current.delete(tooth);
-        clearToothConfig(tooth);
-        setTeeth(sortTeeth(Array.from(current)));
+    const modifierSelection = applyToothModifierSelection(teeth, tooth, anchor, mods);
+    if (modifierSelection) {
+      // Ctrl/Cmd always makes the clicked tooth the next Shift anchor, even
+      // after an earlier range selection. Shift deliberately keeps that anchor.
+      selectionAnchorRef.current = modifierSelection.anchor;
+      modifierSelection.removed.forEach(clearToothConfig);
+      setTeeth(sortTeeth(modifierSelection.next));
+
+      if (modifierSelection.kind === "toggle-add") {
+        setFocusedTooth(tooth);
+        setConfigGroup([tooth]);
+        setJustAddedTeeth([tooth]);
+      } else if (modifierSelection.kind === "toggle-remove") {
         setConfigGroup((group) => group.filter((item) => item !== tooth));
         setJustAddedTeeth((items) => items.filter((item) => item !== tooth));
         if (focusedTooth === tooth) setFocusedTooth(null);
-        return;
+      } else if (modifierSelection.kind === "range-add") {
+        setConfigGroup(modifierSelection.affected);
+        setFocusedTooth(tooth);
+        setJustAddedTeeth(modifierSelection.added);
+      } else {
+        const removed = new Set(modifierSelection.removed);
+        setConfigGroup((group) => group.filter((item) => !removed.has(item)));
+        setJustAddedTeeth((items) => items.filter((item) => !removed.has(item)));
+        if (focusedTooth != null && removed.has(focusedTooth)) setFocusedTooth(null);
       }
-      current.add(tooth);
-      setTeeth(sortTeeth(Array.from(current)));
-      setFocusedTooth(tooth);
-      setConfigGroup([tooth]);
-      setJustAddedTeeth([tooth]);
-      return;
-    }
-
-    // Shift adds the whole FDI interval to the existing selection using the
-    // last non-Shift anchor. Independent earlier selections are preserved.
-    if (mods.shift && anchor != null) {
-      const range = rangeFor(anchor, tooth);
-      range.forEach((item) => current.add(item));
-      setTeeth(sortTeeth(Array.from(current)));
-      setConfigGroup(range);
-      setFocusedTooth(tooth);
-      const newlyAdded = range.filter((item) => !teeth.includes(item));
-      setJustAddedTeeth(newlyAdded);
       return;
     }
 
