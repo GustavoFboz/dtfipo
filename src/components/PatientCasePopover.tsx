@@ -72,7 +72,13 @@ export function PatientPhotoLightbox({
     };
   }, [open]);
 
-  if (!patient?.photo_url) return <>{trigger}</>;
+  if (!patient?.photo_url) {
+    return (
+      <span onClick={(event) => event.stopPropagation()} className="contents">
+        {trigger}
+      </span>
+    );
+  }
 
   return (
     <>
