@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { CalendarDays, ExternalLink, X } from "lucide-react";
 
@@ -57,6 +57,21 @@ export function PatientPhotoLightbox({
   trigger: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
+
   if (!patient?.photo_url) return <>{trigger}</>;
 
   return (
@@ -75,7 +90,7 @@ export function PatientPhotoLightbox({
 
       {open && (
         <div
-          className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-950/45 p-6 backdrop-blur-xl"
+          className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/50 p-6 backdrop-blur-xl"
           onClick={(event) => {
             event.stopPropagation();
             setOpen(false);
@@ -114,6 +129,8 @@ export function PatientCasePopover({
   lastVisit,
   activeCasesCount,
   unreadBadge,
+  avatarBadge,
+  subtitle,
 }: {
   patient: Patient | null;
   profile: Profile | null | undefined;
@@ -121,6 +138,8 @@ export function PatientCasePopover({
   lastVisit?: string | null;
   activeCasesCount?: number;
   unreadBadge?: ReactNode;
+  avatarBadge?: ReactNode;
+  subtitle?: ReactNode;
 }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -138,20 +157,23 @@ export function PatientCasePopover({
 
   return (
     <div className="flex items-center gap-4 min-w-0">
-      <PatientPhotoLightbox
-        patient={patient}
-        trigger={
-          <div className="h-11 w-11 rounded-full bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-500 text-sm font-light overflow-hidden shrink-0 ring-0 transition hover:ring-4 hover:ring-primary/10 cursor-zoom-in">
-            {patient.photo_url ? (
-              <img src={patient.photo_url} alt="" className="h-full w-full object-cover" />
-            ) : (
-              patientInitial(patient.name)
-            )}
-          </div>
-        }
-      />
+      <div className="relative shrink-0">
+        <PatientPhotoLightbox
+          patient={patient}
+          trigger={
+            <div className="h-11 w-11 rounded-full bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-500 text-sm font-light overflow-hidden ring-0 transition hover:ring-4 hover:ring-primary/10 cursor-zoom-in">
+              {patient.photo_url ? (
+                <img src={patient.photo_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                patientInitial(patient.name)
+              )}
+            </div>
+          }
+        />
+        {avatarBadge}
+      </div>
 
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <button
@@ -167,6 +189,7 @@ export function PatientCasePopover({
             side="top"
             align="start"
             sideOffset={12}
+            collisionPadding={20}
             onClick={(event) => event.stopPropagation()}
             className="w-[360px] overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/95 p-0 shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95"
           >
@@ -248,6 +271,7 @@ export function PatientCasePopover({
             </div>
           </PopoverContent>
         </Popover>
+        {subtitle && <div className="mt-0.5 min-w-0">{subtitle}</div>}
       </div>
     </div>
   );
