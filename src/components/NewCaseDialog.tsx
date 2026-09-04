@@ -1319,8 +1319,15 @@ export function NewCaseDialog({
                     value={teeth}
                     onChange={() => {}}
                     onWorkClick={handleWorkToothClick}
-                    configuredTeeth={configGroup}
-                    assignedTeeth={isView ? assignedTeeth : teeth}
+                    configuredTeeth={
+                      isView
+                        ? configGroup
+                        : Array.from(new Set([
+                            ...configGroup,
+                            ...teeth.filter((tooth) => !assignedTeeth.includes(tooth)),
+                          ]))
+                    }
+                    assignedTeeth={assignedTeeth}
                     highlight={{ zirconia: cleanZir, dissilicato: cleanDis, enceramentoOnly: encOnlyTeeth }}
                     implantTeeth={cleanImplantTeeth}
                     implantColor={
