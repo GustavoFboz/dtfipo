@@ -13,13 +13,12 @@ function formatDate(value: string | null | undefined) {
   return `${String(day).padStart(2, "0")}/${String(month).padStart(2, "0")}/${year}`;
 }
 
-function calculateAge(birthDate: string | null | undefined) {
+export function calculatePatientAge(birthDate: string | null | undefined, today = new Date()) {
   if (!birthDate) return null;
   const iso = birthDate.slice(0, 10);
   const [year, month, day] = iso.split("-").map(Number);
   if (!year || !month || !day) return null;
 
-  const today = new Date();
   let age = today.getFullYear() - year;
   const beforeBirthday =
     today.getMonth() + 1 < month ||
@@ -40,7 +39,7 @@ function patientInitial(name: string | null | undefined) {
   return (name?.trim()?.[0] || "?").toUpperCase();
 }
 
-function canSchedulePatient(profile: Profile | null | undefined) {
+export function canSchedulePatient(profile: Profile | null | undefined) {
   if (!profile) return false;
   if (profile.is_default_admin) return true;
   const role = String(profile.role || "").toUpperCase();
@@ -149,7 +148,7 @@ export function PatientCasePopover({
 }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const age = useMemo(() => calculateAge(patient?.birth_date), [patient?.birth_date]);
+  const age = useMemo(() => calculatePatientAge(patient?.birth_date), [patient?.birth_date]);
   const maySchedule = canSchedulePatient(profile);
 
   if (!patient) {
