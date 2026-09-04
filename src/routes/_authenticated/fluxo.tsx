@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { WorkflowManagerV2 } from "@/components/WorkflowManagerV2";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { confirm } from "@/lib/confirm";
@@ -38,7 +39,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/_authenticated/fluxo")({
-  component: FluxoPage,
+  component: WorkflowManagerV2,
 });
 
 function FluxoPage() {

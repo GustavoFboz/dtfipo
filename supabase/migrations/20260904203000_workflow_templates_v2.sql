@@ -224,19 +224,30 @@ UPDATE public.cases c
        workflow_version = 1;
 
 UPDATE public.cases c
-   SET current_stage_id = mapped.id,
-       current_phase_id = mapped.phase_id
-  FROM public.stages old_stage
-  JOIN LATERAL (
-    SELECT ns.id, ns.phase_id
-      FROM public.stages ns
-     WHERE ns.flow_key = public.case_flow_key(c.has_mockup, c.has_provisional)
-       AND ns.workflow_version = 1
-       AND ns.stage_key = public.workflow_stage_semantic_key(old_stage.name, old_stage.position)
-     LIMIT 1
-  ) mapped ON true
- WHERE c.current_stage_id = old_stage.id
-   AND old_stage.flow_key IS NULL;
+   SET current_stage_id = (
+         SELECT ns.id
+           FROM public.stages old_stage
+           JOIN public.stages ns
+             ON ns.flow_key = public.case_flow_key(c.has_mockup, c.has_provisional)
+            AND ns.workflow_version = 1
+            AND ns.stage_key = public.workflow_stage_semantic_key(old_stage.name, old_stage.position)
+          WHERE old_stage.id = c.current_stage_id
+          LIMIT 1
+       ),
+       current_phase_id = COALESCE((
+         SELECT ns.phase_id
+           FROM public.stages old_stage
+           JOIN public.stages ns
+             ON ns.flow_key = public.case_flow_key(c.has_mockup, c.has_provisional)
+            AND ns.workflow_version = 1
+            AND ns.stage_key = public.workflow_stage_semantic_key(old_stage.name, old_stage.position)
+          WHERE old_stage.id = c.current_stage_id
+          LIMIT 1
+       ), c.current_phase_id)
+ WHERE EXISTS (
+   SELECT 1 FROM public.stages old_stage
+    WHERE old_stage.id = c.current_stage_id AND old_stage.flow_key IS NULL
+ );
 
 -- Cases without a current stage start at Entrada of their assigned workflow.
 UPDATE public.cases c
