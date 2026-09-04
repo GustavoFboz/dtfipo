@@ -389,7 +389,7 @@ BEGIN
        WHERE flow_key = _flow_key AND workflow_version = v_new_version
          AND stage_key = v_current_key
        ORDER BY position LIMIT 1;
-      IF v_target IS NULL THEN
+      IF NOT FOUND THEN
         SELECT id, phase_id INTO v_target
           FROM public.stages
          WHERE flow_key = _flow_key AND workflow_version = v_new_version
@@ -536,6 +536,14 @@ BEGIN
   END LOOP;
   RETURN jsonb_build_object('success',true,'phase_id',target.phase_id,'stage_id',target.id);
 END $$;
+
+-- Workflow v2 is the default operating model after this migration.
+UPDATE public.workflow_settings
+   SET phases_enabled = true,
+       stages_enabled = true,
+       progress_bar_enabled = true,
+       updated_at = now()
+ WHERE id = true;
 
 -- Keep generated schema cache responsive after the migration.
 NOTIFY pgrst, 'reload schema';
