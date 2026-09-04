@@ -26,38 +26,24 @@ jobs:
           from pathlib import Path
           p = Path('supabase/migrations/20260904203000_workflow_templates_v2.sql')
           s = p.read_text()
-          old = """      SELECT id, phase_id INTO v_target
-            FROM public.stages
-           WHERE flow_key = _flow_key AND workflow_version = v_new_version
-             AND stage_key = v_current_key
-           ORDER BY position LIMIT 1;
-          IF v_target IS NULL THEN
-            SELECT id, phase_id INTO v_target
-              FROM public.stages
-             WHERE flow_key = _flow_key AND workflow_version = v_new_version
-             ORDER BY abs(position - COALESCE(v_current_pos,10)), position
-             LIMIT 1;
-          END IF;"""
-          new = old.replace('IF v_target IS NULL THEN', 'IF NOT FOUND THEN')
-          if old not in s:
-              raise SystemExit('save template mapping block not found')
-          s = s.replace(old, new, 1)
+          if 'IF v_target IS NULL THEN' not in s:
+              raise SystemExit('target record check not found')
+          s = s.replace('IF v_target IS NULL THEN', 'IF NOT FOUND THEN', 1)
           needle = "-- Keep generated schema cache responsive after the migration.\nNOTIFY pgrst, 'reload schema';"
-          lines = [
-              '-- Workflow v2 is the default operating model after this migration.',
-              'UPDATE public.workflow_settings',
-              '   SET phases_enabled = true,',
-              '       stages_enabled = true,',
-              '       progress_bar_enabled = true,',
-              '       updated_at = now()',
-              ' WHERE id = true;',
-              '',
-              "-- Keep generated schema cache responsive after the migration.",
-              "NOTIFY pgrst, 'reload schema';",
-          ]
           if needle not in s:
               raise SystemExit('schema reload marker not found')
-          p.write_text(s.replace(needle, '\n'.join(lines), 1))
+          extra = (
+              '-- Workflow v2 is the default operating model after this migration.\n'
+              'UPDATE public.workflow_settings\n'
+              '   SET phases_enabled = true,\n'
+              '       stages_enabled = true,\n'
+              '       progress_bar_enabled = true,\n'
+              '       updated_at = now()\n'
+              ' WHERE id = true;\n\n'
+              "-- Keep generated schema cache responsive after the migration.\n"
+              "NOTIFY pgrst, 'reload schema';"
+          )
+          p.write_text(s.replace(needle, extra, 1))
           PY
       - name: Install dependencies
         run: bun install --frozen-lockfile
