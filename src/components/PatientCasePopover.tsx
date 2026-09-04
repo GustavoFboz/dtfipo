@@ -248,7 +248,7 @@ export function PatientCasePopover({
             </div>
 
             <div className="space-y-2 p-4 pt-3">
-              {maySchedule && (
+              {maySchedule ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -260,7 +260,7 @@ export function PatientCasePopover({
                   <CalendarDays className="h-4 w-4" />
                   Agendar paciente
                 </button>
-              )}
+              ) : null}
 
               <button
                 type="button"
