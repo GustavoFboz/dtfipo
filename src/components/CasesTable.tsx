@@ -15,6 +15,7 @@ import { openFolderLink, copyToClipboard } from "@/lib/folder";
 import { normalizeText } from "@/lib/utils";
 import { StageBadge } from "./StageBadge";
 import { CaseProfessionals } from "./CaseProfessionals";
+import { PatientCasePopover } from "./PatientCasePopover";
 
 import { EditCaseDialog } from "./EditCaseDialog";
 import { CaseDetailDialog } from "./CaseDetailDialog";
@@ -747,39 +748,31 @@ export function CasesTable({
                   )}
                 </div>
                 {/* Paciente */}
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="h-11 w-11 rounded-full bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-500 text-sm font-light overflow-hidden shrink-0">
-                    {c.patient?.photo_url ? (
-                      <img src={c.patient.photo_url} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      (c.patient?.name?.[0] ?? "?").toUpperCase()
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <div 
-                      className="text-[17px] font-normal text-slate-900 dark:text-slate-100 truncate leading-tight hover:text-primary transition-colors cursor-pointer"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate({ to: "/patients/$id", params: { id: c.patient_id } });
-                      }}
-                    >
-                      <span>{c.patient?.name ?? "—"}</span>
-                      {(unreadMessageCounts.get(c.id) ?? 0) > 0 && (
-                        <span
-                          title={`${unreadMessageCounts.get(c.id)} mensagem(ns) não lida(s)`}
-                          className="ml-2 inline-flex align-middle items-center gap-1 rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold"
-                        >
-                          <MessageSquare className="h-3 w-3" />
-                          {unreadMessageCounts.get(c.id)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[13px] font-light text-slate-400 truncate mt-0.5">
-                      {c.case_type?.name ?? "—"}
-                      {c.arch ? ` · ${archLabel(c.arch)}` : ""}
-                    </div>
-                  </div>
-                </div>
+      <PatientCasePopover
+        patient={c.patient}
+        profile={profile}
+        entryDate={c.entry_date}
+        lastVisit={(c.patient as any)?.last_visit ?? (c.patient as any)?.last_visit_at ?? null}
+        activeCasesCount={(cases.data ?? []).filter((row) =>
+          row.patient_id === c.patient_id &&
+          !["finalizado", "finished", "arquivado", "cancelado"].includes(row.status)
+        ).length}
+        unreadBadge={(unreadMessageCounts.get(c.id) ?? 0) > 0 ? (
+          <span
+            title={`${unreadMessageCounts.get(c.id)} mensagem(ns) não lida(s)`}
+            className="ml-2 inline-flex align-middle items-center gap-1 rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold"
+          >
+            <MessageSquare className="h-3 w-3" />
+            {unreadMessageCounts.get(c.id)}
+          </span>
+        ) : null}
+        subtitle={(
+          <div className="text-[13px] font-light text-slate-400 truncate">
+            {c.case_type?.name ?? "—"}
+            {c.arch ? ` · ${archLabel(c.arch)}` : ""}
+          </div>
+        )}
+      />
 
                 {/* Profissionais */}
                 <div className="min-w-0">
@@ -1110,34 +1103,35 @@ export function CasesTable({
                   <Checkbox checked={isSel} onCheckedChange={() => toggleSelected(c.id)} className="rounded-md h-5 w-5 border-slate-200" />
                 )}
               </div>
-              <div className="flex items-center gap-4 min-w-0">
-                <div className="relative group/avatar">
-                  <div className={`h-12 w-12 rounded-2xl bg-slate-100 border-2 border-white shadow-sm grid place-items-center text-slate-400 text-sm font-black overflow-hidden shrink-0 transition-all duration-500 group-hover/avatar:scale-110 group-hover/avatar:rotate-3 ${isSel ? "border-primary/20" : ""}`}>
-                    {c.patient?.photo_url ? (
-                      <img src={c.patient.photo_url} alt="" className="h-full w-full object-cover" />
-                    ) : (
-                      (c.patient?.name?.[0] ?? "?").toUpperCase()
-                    )}
-                  </div>
-                  {late && <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-rose-500 border-2 border-white rounded-full animate-pulse" />}
-                </div>
-                <div className="min-w-0">
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.location.href = `/patients/${c.patient_id}`;
-                    }}
-                    className="font-black text-[15px] text-slate-900 truncate block font-outfit hover:text-primary transition-colors cursor-pointer"
-                  >
-                    {c.patient?.name ?? "—"}
-                    {c.arch && <span className="ml-2 text-[10px] font-black uppercase text-slate-400 tracking-wider">[{archLabel(c.arch)}]</span>}
-                  </div>
-                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
-                    {c.doctor?.name ?? "—"}
-                    {c.sibling_case_id && <Link2 className="h-3 w-3 text-primary/60" />}
-                  </div>
-                </div>
-              </div>
+              <PatientCasePopover
+      patient={c.patient}
+      profile={profile}
+      entryDate={c.entry_date}
+      lastVisit={(c.patient as any)?.last_visit ?? (c.patient as any)?.last_visit_at ?? null}
+      activeCasesCount={(cases.data ?? []).filter((row) =>
+        row.patient_id === c.patient_id &&
+        !["finalizado", "finished", "arquivado", "cancelado"].includes(row.status)
+      ).length}
+      unreadBadge={(unreadMessageCounts.get(c.id) ?? 0) > 0 ? (
+        <span
+          title={`${unreadMessageCounts.get(c.id)} mensagem(ns) não lida(s)`}
+          className="ml-2 inline-flex align-middle items-center gap-1 rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold"
+        >
+          <MessageSquare className="h-3 w-3" />
+          {unreadMessageCounts.get(c.id)}
+        </span>
+      ) : null}
+      avatarBadge={late ? (
+        <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-rose-500 border-2 border-white rounded-full animate-pulse" />
+      ) : null}
+      subtitle={(
+        <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+          {c.doctor?.name ?? "—"}
+          {c.arch && <span>[{archLabel(c.arch)}]</span>}
+          {c.sibling_case_id && <Link2 className="h-3 w-3 text-primary/60" />}
+        </div>
+      )}
+    />
 
               <div className="text-sm md:py-0 py-2">
                 <div className="font-bold text-slate-700">
