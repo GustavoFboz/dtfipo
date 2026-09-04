@@ -216,7 +216,7 @@ function EstoquePage() {
                   return (
                     <tr key={i.id} className="border-t border-border hover:bg-accent/40">
                       <td className="px-4 py-2.5">
-                        <div className="font-medium">{i.name}</div>
+                        <div className="font-medium flex items-center gap-2">{i.name}{i.requires_sintering && <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-medium text-amber-800">Sinterização</span>}</div>
                         {i.custom_fields && i.custom_fields.length > 0 && (
                           <div className="text-[10px] text-muted-foreground mt-0.5 flex flex-wrap gap-1">
                             {i.custom_fields.map((f) => (
@@ -373,6 +373,10 @@ function ItemDialog({ item, categories, defaultCategoryId, onClose, onSaved }: {
   const [unit, setUnit] = useState<string>(draft?.unit ?? item?.unit ?? "un");
   const [qty, setQty] = useState<string>(draft?.qty ?? String(item?.qty_on_hand ?? 0));
   const [minQty, setMinQty] = useState<string>(draft?.minQty ?? String(item?.min_qty ?? 0));
+  const initialCategoryName = categories.find((c) => c.id === (draft?.categoryId ?? item?.category_id ?? defaultCategoryId))?.name ?? "";
+  const [requiresSintering, setRequiresSintering] = useState<boolean>(
+    draft?.requiresSintering ?? item?.requires_sintering ?? /zirc/i.test(initialCategoryName),
+  );
   const [fields, setFields] = useState<{ key: string; value: string }[]>(
     draft?.fields ?? item?.custom_fields?.map((f) => ({ key: f.key, value: f.value ?? "" })) ?? []
   );
@@ -382,10 +386,10 @@ function ItemDialog({ item, categories, defaultCategoryId, onClose, onSaved }: {
   useEffect(() => {
     try {
       window.localStorage.setItem(draftKey, JSON.stringify({
-        categoryId, name, brand, type, unit, qty, minQty, fields, implantSystemId,
+        categoryId, name, brand, type, unit, qty, minQty, requiresSintering, fields, implantSystemId,
       }));
     } catch { /* ignore quota */ }
-  }, [draftKey, categoryId, name, brand, type, unit, qty, minQty, fields, implantSystemId]);
+  }, [draftKey, categoryId, name, brand, type, unit, qty, minQty, requiresSintering, fields, implantSystemId]);
 
   function clearDraft() { try { window.localStorage.removeItem(draftKey); } catch { /* ignore */ } }
   function handleCancel() { clearDraft(); onClose(); }
@@ -423,6 +427,7 @@ function ItemDialog({ item, categories, defaultCategoryId, onClose, onSaved }: {
           unit: unit.trim() || "un",
           qty_on_hand: Number(qty) || 0,
           min_qty: Number(minQty) || 0,
+          requires_sintering: requiresSintering,
         }, fields);
       } else {
         targetId = await createStockItemV2({
@@ -434,6 +439,7 @@ function ItemDialog({ item, categories, defaultCategoryId, onClose, onSaved }: {
           unit: unit.trim() || "un",
           qty_on_hand: Number(qty) || 0,
           min_qty: Number(minQty) || 0,
+          requires_sintering: requiresSintering,
           custom_fields: fields,
         });
       }
@@ -482,6 +488,19 @@ function ItemDialog({ item, categories, defaultCategoryId, onClose, onSaved }: {
               Ao selecionar, o item aparece como componente do sistema (útil para Ti Base, análogos etc.).
             </p>
           </Field>
+
+          <label className="flex items-start gap-3 rounded-xl border border-border bg-muted/20 p-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={requiresSintering}
+              onChange={(e) => setRequiresSintering(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border"
+            />
+            <span>
+              <span className="block text-sm font-medium">Este material requer sinterização</span>
+              <span className="block text-[11px] text-muted-foreground mt-0.5">Quando este material for usado em pelo menos um elemento, a etapa “Sinterização” entra automaticamente no fluxo do caso.</span>
+            </span>
+          </label>
 
           <div className="grid grid-cols-3 gap-3">
             <Field label="Medida (unidade)"><Input value={unit} onChange={setUnit} placeholder="un, mm, g…" /></Field>

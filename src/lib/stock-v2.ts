@@ -22,6 +22,7 @@ export type StockItemV2 = {
   last_restocked_at: string | null;
   created_at: string;
   updated_at: string;
+  requires_sintering: boolean;
   implant_system_component_id?: string | null;
   custom_fields?: StockCustomField[];
 };
@@ -90,6 +91,7 @@ export async function createStockItemV2(input: {
   qty_on_hand?: number;
   min_qty?: number;
   notes?: string | null;
+  requires_sintering?: boolean;
   custom_fields?: { key: string; value: string }[];
 }): Promise<string> {
   const { data, error } = await supabase
@@ -104,6 +106,7 @@ export async function createStockItemV2(input: {
       qty_on_hand: input.qty_on_hand ?? 0,
       min_qty: input.min_qty ?? 0,
       notes: input.notes ?? null,
+      requires_sintering: input.requires_sintering ?? false,
     } as any)
     .select("id")
     .single();

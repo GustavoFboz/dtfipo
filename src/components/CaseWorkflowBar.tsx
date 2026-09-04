@@ -12,6 +12,7 @@ import {
   createReturnReason,
 } from "@/lib/workflow";
 import { fetchProfile, sendInternalNotification } from "@/lib/api";
+import { deriveWorkflowKey, fetchCaseRequiresSintering, fetchWorkflowStagesV2 } from "@/lib/workflow-v2";
 import type { CaseRow } from "@/lib/types";
 import { broadcastCaseWorkflowPatch } from "@/hooks/use-cases-realtime";
 import {
@@ -39,7 +40,7 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
   const settings = useQuery({ queryKey: ["workflow_settings"], queryFn: fetchWorkflowSettings });
   const stages = useQuery({
     queryKey: ["workflow_stages"],
-    queryFn: fetchWorkflowStages,
+    queryFn: fetchWorkflowStagesV2,
     enabled: !!settings.data?.phases_enabled,
   });
   const reasons = useQuery({
@@ -50,15 +51,31 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
   const profile = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
 
   const currentStageId = (caseRow as any).current_stage_id as string | null;
+  const flowKey = ((caseRow as any).workflow_key || deriveWorkflowKey(caseRow as any)) as string;
+  const workflowVersion = Number((caseRow as any).workflow_version || 0);
+  const sintering = useQuery({
+    queryKey: ["case_requires_sintering", caseRow.id, (caseRow as any).teeth_zirconia, (caseRow as any).zirconia_stock_item_id, (caseRow as any).dissilicato_stock_item_id],
+    queryFn: () => fetchCaseRequiresSintering(caseRow.id),
+    enabled: !!settings.data?.phases_enabled && !!caseRow.id,
+  });
+  const requiresSintering = Boolean(
+    ((caseRow as any).teeth_zirconia ?? []).length > 0 || sintering.data,
+  );
   const list = useMemo(() => {
     const source = stages.data ?? [];
-    return source.filter((stage: any) => {
-      const condition = stage.condition_key as string | null | undefined;
-      if (condition === "mockup") return !!(caseRow as any).has_mockup;
-      if (condition === "provisional") return !!(caseRow as any).has_provisional;
-      return true;
-    });
-  }, [stages.data, (caseRow as any).has_mockup, (caseRow as any).has_provisional]);
+    let candidates = source.filter((stage: any) => stage.flow_key === flowKey);
+    // Compatibility while the database migration/schema cache is rolling out.
+    if (!candidates.length) candidates = source;
+    const resolvedVersion = workflowVersion || Math.max(1, ...candidates.map((stage: any) => Number(stage.workflow_version || 1)));
+    return candidates
+      .filter((stage: any) => Number(stage.workflow_version || 1) === resolvedVersion)
+      .filter((stage: any) => {
+        if (stage.id === currentStageId) return true;
+        if (stage.condition_key === "requires_sintering") return requiresSintering;
+        return true;
+      })
+      .sort((a: any, b: any) => a.position - b.position);
+  }, [stages.data, flowKey, workflowVersion, requiresSintering, currentStageId]);
   const currentIdx = useMemo(() => list.findIndex((s) => s.id === currentStageId), [list, currentStageId]);
   const currentStage = currentIdx >= 0 ? list[currentIdx] : null;
 

@@ -170,6 +170,9 @@ export type CaseRow = {
   implant_teeth?: number[] | null;
   scan_jig_id?: string | null;
   has_provisional?: boolean | null;
+  has_mockup?: boolean | null;
+  workflow_key?: "common" | "provisional" | "mockup" | "mockup_provisional" | null;
+  workflow_version?: number | null;
   tooth_case_types?: Record<string, string[]> | null;
   tooth_ti_bases?: Record<string, string> | null;
   tooth_implant_systems?: Record<string, string> | null;
@@ -195,6 +198,7 @@ export type StockItem = {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  requires_sintering?: boolean;
 };
 
 export type StockMovement = {

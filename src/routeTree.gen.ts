@@ -20,6 +20,7 @@ import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
 import { Route as AuthenticatedPatientsRouteImport } from './routes/_authenticated/patients'
 import { Route as AuthenticatedMeuFinanceiroRouteImport } from './routes/_authenticated/meu-financeiro'
+import { Route as AuthenticatedMensagensRouteImport } from './routes/_authenticated/mensagens'
 import { Route as AuthenticatedMaquinasRouteImport } from './routes/_authenticated/maquinas'
 import { Route as AuthenticatedFluxoRouteImport } from './routes/_authenticated/fluxo'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
@@ -110,6 +111,11 @@ const AuthenticatedMeuFinanceiroRoute =
     path: '/meu-financeiro',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMensagensRoute = AuthenticatedMensagensRouteImport.update({
+  id: '/mensagens',
+  path: '/mensagens',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMaquinasRoute = AuthenticatedMaquinasRouteImport.update({
   id: '/maquinas',
   path: '/maquinas',
@@ -321,6 +327,7 @@ export interface FileRoutesByFullPath {
   '/financeiro': typeof AuthenticatedFinanceiroRouteWithChildren
   '/fluxo': typeof AuthenticatedFluxoRoute
   '/maquinas': typeof AuthenticatedMaquinasRoute
+  '/mensagens': typeof AuthenticatedMensagensRoute
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/patients': typeof AuthenticatedPatientsRouteWithChildren
   '/tarefas': typeof AuthenticatedTarefasRoute
@@ -367,6 +374,7 @@ export interface FileRoutesByTo {
   '/financeiro': typeof AuthenticatedFinanceiroRouteWithChildren
   '/fluxo': typeof AuthenticatedFluxoRoute
   '/maquinas': typeof AuthenticatedMaquinasRoute
+  '/mensagens': typeof AuthenticatedMensagensRoute
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/patients': typeof AuthenticatedPatientsRouteWithChildren
   '/tarefas': typeof AuthenticatedTarefasRoute
@@ -415,6 +423,7 @@ export interface FileRoutesById {
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRouteWithChildren
   '/_authenticated/fluxo': typeof AuthenticatedFluxoRoute
   '/_authenticated/maquinas': typeof AuthenticatedMaquinasRoute
+  '/_authenticated/mensagens': typeof AuthenticatedMensagensRoute
   '/_authenticated/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
   '/_authenticated/patients': typeof AuthenticatedPatientsRouteWithChildren
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
@@ -463,6 +472,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/fluxo'
     | '/maquinas'
+    | '/mensagens'
     | '/meu-financeiro'
     | '/patients'
     | '/tarefas'
@@ -509,6 +519,7 @@ export interface FileRouteTypes {
     | '/financeiro'
     | '/fluxo'
     | '/maquinas'
+    | '/mensagens'
     | '/meu-financeiro'
     | '/patients'
     | '/tarefas'
@@ -556,6 +567,7 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro'
     | '/_authenticated/fluxo'
     | '/_authenticated/maquinas'
+    | '/_authenticated/mensagens'
     | '/_authenticated/meu-financeiro'
     | '/_authenticated/patients'
     | '/_authenticated/tarefas'
@@ -673,6 +685,13 @@ declare module '@tanstack/react-router' {
       path: '/meu-financeiro'
       fullPath: '/meu-financeiro'
       preLoaderRoute: typeof AuthenticatedMeuFinanceiroRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/mensagens': {
+      id: '/_authenticated/mensagens'
+      path: '/mensagens'
+      fullPath: '/mensagens'
+      preLoaderRoute: typeof AuthenticatedMensagensRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/maquinas': {
@@ -1016,6 +1035,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRouteWithChildren
   AuthenticatedFluxoRoute: typeof AuthenticatedFluxoRoute
   AuthenticatedMaquinasRoute: typeof AuthenticatedMaquinasRoute
+  AuthenticatedMensagensRoute: typeof AuthenticatedMensagensRoute
   AuthenticatedMeuFinanceiroRoute: typeof AuthenticatedMeuFinanceiroRoute
   AuthenticatedPatientsRoute: typeof AuthenticatedPatientsRouteWithChildren
   AuthenticatedTarefasRoute: typeof AuthenticatedTarefasRoute
@@ -1039,6 +1059,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRouteWithChildren,
   AuthenticatedFluxoRoute: AuthenticatedFluxoRoute,
   AuthenticatedMaquinasRoute: AuthenticatedMaquinasRoute,
+  AuthenticatedMensagensRoute: AuthenticatedMensagensRoute,
   AuthenticatedMeuFinanceiroRoute: AuthenticatedMeuFinanceiroRoute,
   AuthenticatedPatientsRoute: AuthenticatedPatientsRouteWithChildren,
   AuthenticatedTarefasRoute: AuthenticatedTarefasRoute,
