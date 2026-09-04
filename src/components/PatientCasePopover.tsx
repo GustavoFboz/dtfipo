@@ -48,13 +48,7 @@ function canSchedulePatient(profile: Profile | null | undefined) {
   return ["CEO", "ADMIN", "DR", "DENTISTA"].includes(effectiveType);
 }
 
-export function PatientPhotoLightbox({
-  patient,
-  trigger,
-}: {
-  patient: Patient | null;
-  trigger: ReactNode;
-}) {
+export function PatientPhotoLightbox({ patient, trigger }: { patient: Patient | null; trigger: ReactNode }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -208,9 +202,7 @@ export function PatientCasePopover({
                   )}
                 </div>
                 <div className="min-w-0 flex-1 pt-0.5">
-                  <div className="truncate text-[21px] font-medium leading-tight text-slate-950 dark:text-white">
-                    {patient.name}
-                  </div>
+                  <div className="truncate text-[21px] font-medium leading-tight text-slate-950 dark:text-white">{patient.name}</div>
                   <div className="mt-1 text-[12px] font-light text-slate-400">
                     {activeCasesCount ?? 0} {(activeCasesCount ?? 0) === 1 ? "caso em andamento" : "casos em andamento"}
                   </div>
@@ -276,7 +268,7 @@ export function PatientCasePopover({
             </div>
           </PopoverContent>
         </Popover>
-        {subtitle && <div className="mt-0.5 min-w-0">{subtitle}</div>}
+        {subtitle ? <div className="mt-0.5 min-w-0">{subtitle}</div> : null}
       </div>
     </div>
   );
