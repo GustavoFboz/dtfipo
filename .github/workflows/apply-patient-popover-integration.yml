@@ -1,0 +1,121 @@
+name: Apply patient popover integration
+
+on:
+  push:
+    branches:
+      - feature/patient-case-popover
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/patient-case-popover
+          fetch-depth: 0
+
+      - name: Integrate patient popover in cases table
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path('src/components/CasesTable.tsx')
+          text = path.read_text()
+
+          import_line = 'import { CaseProfessionals } from "./CaseProfessionals";\n'
+          popover_import = 'import { PatientCasePopover } from "./PatientCasePopover";\n'
+          if popover_import not in text:
+              if import_line not in text:
+                  raise SystemExit('CaseProfessionals import anchor not found')
+              text = text.replace(import_line, import_line + popover_import, 1)
+
+          minimal_start = '                {/* Paciente */}\n'
+          minimal_end = '\n\n                {/* Profissionais */}'
+          start = text.find(minimal_start)
+          end = text.find(minimal_end, start)
+          if start < 0 or end < 0:
+              raise SystemExit('Minimal patient cell anchors not found')
+
+          minimal = '''                {/* Paciente */}
+                <PatientCasePopover
+                  patient={c.patient}
+                  profile={profile}
+                  entryDate={c.entry_date}
+                  lastVisit={(c.patient as any)?.last_visit ?? (c.patient as any)?.last_visit_at ?? null}
+                  activeCasesCount={(cases.data ?? []).filter((row) =>
+                    row.patient_id === c.patient_id &&
+                    !["finalizado", "finished", "arquivado", "cancelado"].includes(row.status)
+                  ).length}
+                  unreadBadge={(unreadMessageCounts.get(c.id) ?? 0) > 0 ? (
+                    <span
+                      title={`${unreadMessageCounts.get(c.id)} mensagem(ns) não lida(s)`}
+                      className="ml-2 inline-flex align-middle items-center gap-1 rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold"
+                    >
+                      <MessageSquare className="h-3 w-3" />
+                      {unreadMessageCounts.get(c.id)}
+                    </span>
+                  ) : null}
+                  subtitle={(
+                    <div className="text-[13px] font-light text-slate-400 truncate">
+                      {c.case_type?.name ?? "—"}
+                      {c.arch ? ` · ${archLabel(c.arch)}` : ""}
+                    </div>
+                  )}
+                />'''
+          text = text[:start] + minimal + text[end:]
+
+          desktop_start = '              <div className="flex items-center gap-4 min-w-0">\n                <div className="relative group/avatar">'
+          desktop_end = '\n\n              <div className="text-sm md:py-0 py-2">'
+          start = text.find(desktop_start)
+          end = text.find(desktop_end, start)
+          if start < 0 or end < 0:
+              raise SystemExit('Desktop patient cell anchors not found')
+
+          desktop = '''              <PatientCasePopover
+                patient={c.patient}
+                profile={profile}
+                entryDate={c.entry_date}
+                lastVisit={(c.patient as any)?.last_visit ?? (c.patient as any)?.last_visit_at ?? null}
+                activeCasesCount={(cases.data ?? []).filter((row) =>
+                  row.patient_id === c.patient_id &&
+                  !["finalizado", "finished", "arquivado", "cancelado"].includes(row.status)
+                ).length}
+                unreadBadge={(unreadMessageCounts.get(c.id) ?? 0) > 0 ? (
+                  <span
+                    title={`${unreadMessageCounts.get(c.id)} mensagem(ns) não lida(s)`}
+                    className="ml-2 inline-flex align-middle items-center gap-1 rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px] font-semibold"
+                  >
+                    <MessageSquare className="h-3 w-3" />
+                    {unreadMessageCounts.get(c.id)}
+                  </span>
+                ) : null}
+                avatarBadge={late ? (
+                  <div className="absolute -top-1 -right-1 h-3.5 w-3.5 bg-rose-500 border-2 border-white rounded-full animate-pulse" />
+                ) : null}
+                subtitle={(
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    {c.doctor?.name ?? "—"}
+                    {c.arch && <span>[{archLabel(c.arch)}]</span>}
+                    {c.sibling_case_id && <Link2 className="h-3 w-3 text-primary/60" />}
+                  </div>
+                )}
+              />'''
+          text = text[:start] + desktop + text[end:]
+
+          path.write_text(text)
+          PY
+
+      - name: Remove temporary workflow and commit
+        shell: bash
+        run: |
+          git rm .github/workflows/apply-patient-popover-integration.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/CasesTable.tsx
+          git commit -m "feat: integrate patient popover in cases table"
+          git push origin HEAD:feature/patient-case-popover
