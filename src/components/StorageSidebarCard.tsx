@@ -1,6 +1,7 @@
 import { useEffect, useSyncExternalStore } from "react";
 import { HardDrive, AlertTriangle, ChevronRight } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
 import {
   formatStorageBytes,
   getStorageUsageSnapshot,
@@ -14,8 +15,25 @@ export function StorageSidebarCard({ collapsed = false }: { collapsed?: boolean 
 
   useEffect(() => {
     void refreshStorageUsage().catch(() => undefined);
+
+    // Same-tab uploads/removals update the store optimistically. Realtime keeps
+    // the card equally fresh when another tab or another admin changes storage.
+    const channel = supabase
+      .channel("clinic-storage-usage")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "storage_files" },
+        () => void refreshStorageUsage().catch(() => undefined),
+      )
+      .subscribe();
+
+    // Polling is a low-frequency safety net for deployments where Realtime is
+    // not enabled for this table yet.
     const id = window.setInterval(() => void refreshStorageUsage().catch(() => undefined), 60_000);
-    return () => window.clearInterval(id);
+    return () => {
+      window.clearInterval(id);
+      void supabase.removeChannel(channel);
+    };
   }, []);
 
   if (collapsed) {
