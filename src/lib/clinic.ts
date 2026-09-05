@@ -85,7 +85,7 @@ export async function fetchClinicContext(): Promise<ClinicContext> {
 export async function fetchClinicAppointments(start?: string, end?: string) {
   let q = (supabase as any)
     .from("clinic_appointments")
-    .select("*, patient:patients(id,name,photo_url), doctor:doctors(id,name)")
+    .select("*, patient:patients(id,name,photo_url,phone,email,cpf,birth_date,gender,created_at), doctor:doctors(id,name)")
     .order("starts_at", { ascending: true });
   if (start) q = q.gte("starts_at", start);
   if (end) q = q.lt("starts_at", end);
