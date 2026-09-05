@@ -38,12 +38,70 @@ export const FLOW_LABELS: Record<WorkflowKey, { title: string; description: stri
 };
 
 export const FLOW_KEYS = Object.keys(FLOW_LABELS) as WorkflowKey[];
+const WORKFLOW_KEY_SET = new Set<WorkflowKey>(FLOW_KEYS);
 
 export function deriveWorkflowKey(row: { has_mockup?: boolean | null; has_provisional?: boolean | null }): WorkflowKey {
   if (row.has_mockup && row.has_provisional) return "mockup_provisional";
   if (row.has_mockup) return "mockup";
   if (row.has_provisional) return "provisional";
   return "common";
+}
+
+/**
+ * Returns only stages that belong to the workflow/version of a specific case.
+ *
+ * The stages table intentionally keeps historical versions and every workflow.
+ * A case stage picker must never render that raw table, otherwise users see
+ * duplicated labels and can move a case into an unrelated flow. This helper is
+ * shared by list-level controls so the same isolation rule used by the case
+ * workflow is preserved everywhere.
+ */
+export function getCaseWorkflowStages(
+  allStages: WorkflowStageV2[],
+  row: {
+    current_stage_id?: string | null;
+    workflow_key?: WorkflowKey | string | null;
+    workflow_version?: number | null;
+    has_mockup?: boolean | null;
+    has_provisional?: boolean | null;
+  },
+  options: { requiresSintering?: boolean } = {},
+): WorkflowStageV2[] {
+  const currentStageId = row.current_stage_id ?? null;
+  const currentRecord = allStages.find((stage) => stage.id === currentStageId);
+  const currentFlow = currentRecord?.flow_key;
+  const requestedFlow = String(row.workflow_key || deriveWorkflowKey(row)) as WorkflowKey;
+  const effectiveFlow = currentFlow && WORKFLOW_KEY_SET.has(currentFlow)
+    ? currentFlow
+    : WORKFLOW_KEY_SET.has(requestedFlow)
+      ? requestedFlow
+      : deriveWorkflowKey(row);
+
+  const candidates = allStages.filter(
+    (stage) => stage.flow_key === effectiveFlow && Boolean(stage.stage_key),
+  );
+  if (!candidates.length) return [];
+
+  const requestedVersion = Number(row.workflow_version || 0);
+  const currentVersion = Number(currentRecord?.workflow_version || 0);
+  const latestVersion = Math.max(0, ...candidates.map((stage) => Number(stage.workflow_version || 0)));
+  const resolvedVersion = requestedVersion || currentVersion || latestVersion || 1;
+
+  const seen = new Set<string>();
+  return candidates
+    .filter((stage) => Number(stage.workflow_version || 1) === resolvedVersion)
+    .filter((stage) => {
+      if (stage.id === currentStageId) return true;
+      if (stage.condition_key === "requires_sintering") return Boolean(options.requiresSintering);
+      return true;
+    })
+    .sort((a, b) => a.position - b.position)
+    .filter((stage) => {
+      const semanticKey = String(stage.stage_key || stage.id);
+      if (seen.has(semanticKey)) return false;
+      seen.add(semanticKey);
+      return true;
+    });
 }
 
 export async function fetchWorkflowTemplates(): Promise<WorkflowTemplate[]> {
