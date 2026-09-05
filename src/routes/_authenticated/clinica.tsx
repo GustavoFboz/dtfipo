@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, CalendarDays, CheckCircle2, Clock3, HardDrive, Users, WalletCards } from "lucide-react";
 
@@ -6,7 +6,19 @@ import { ClinicPageGuard } from "@/components/ClinicPageGuard";
 import { fetchClinicAppointments, fetchClinicFinancialEntries } from "@/lib/clinic";
 import { fetchPatients } from "@/lib/api";
 
-export const Route = createFileRoute("/_authenticated/clinica")({ component: ClinicHome });
+export const Route = createFileRoute("/_authenticated/clinica")({ component: ClinicRoute });
+
+function ClinicRoute() {
+  const { pathname } = useLocation();
+  const normalizedPath = pathname.replace(/\/+$/, "") || "/";
+
+  // `clinica.tsx` is the parent route for every `clinica.*.tsx` file.
+  // The parent dashboard must yield to the nested route, otherwise the URL,
+  // header and sidebar change while the dashboard remains rendered underneath.
+  if (normalizedPath !== "/clinica") return <Outlet />;
+
+  return <ClinicHome />;
+}
 
 function money(cents: number) { return (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }); }
 
