@@ -264,7 +264,7 @@ export type Database = {
           case_id: string
           created_at: string
           expired_at: string | null
-          expires_at: string
+          expires_at: string | null
           file_name: string
           id: string
           kind: string
@@ -279,7 +279,7 @@ export type Database = {
           case_id: string
           created_at?: string
           expired_at?: string | null
-          expires_at?: string
+          expires_at?: string | null
           file_name: string
           id?: string
           kind?: string
@@ -294,7 +294,7 @@ export type Database = {
           case_id?: string
           created_at?: string
           expired_at?: string | null
-          expires_at?: string
+          expires_at?: string | null
           file_name?: string
           id?: string
           kind?: string
@@ -720,6 +720,7 @@ export type Database = {
           folder_done: boolean
           folder_url: string | null
           gum_info: Json | null
+          has_mockup: boolean
           has_provisional: boolean
           id: string
           implant_system_id: string | null
@@ -744,6 +745,8 @@ export type Database = {
           tooth_implant_systems: Json
           tooth_ti_bases: Json
           updated_at: string
+          workflow_key: string | null
+          workflow_version: number | null
           zirconia_stock_item_id: string | null
         }
         Insert: {
@@ -766,6 +769,7 @@ export type Database = {
           folder_done?: boolean
           folder_url?: string | null
           gum_info?: Json | null
+          has_mockup?: boolean
           has_provisional?: boolean
           id?: string
           implant_system_id?: string | null
@@ -790,6 +794,8 @@ export type Database = {
           tooth_implant_systems?: Json
           tooth_ti_bases?: Json
           updated_at?: string
+          workflow_key?: string | null
+          workflow_version?: number | null
           zirconia_stock_item_id?: string | null
         }
         Update: {
@@ -812,6 +818,7 @@ export type Database = {
           folder_done?: boolean
           folder_url?: string | null
           gum_info?: Json | null
+          has_mockup?: boolean
           has_provisional?: boolean
           id?: string
           implant_system_id?: string | null
@@ -836,6 +843,8 @@ export type Database = {
           tooth_implant_systems?: Json
           tooth_ti_bases?: Json
           updated_at?: string
+          workflow_key?: string | null
+          workflow_version?: number | null
           zirconia_stock_item_id?: string | null
         }
         Relationships: [
@@ -993,6 +1002,75 @@ export type Database = {
           },
         ]
       }
+      clinic_storage_entitlements: {
+        Row: {
+          billing_provider: string | null
+          bytes: number
+          clinic_id: string
+          created_at: string
+          created_by: string | null
+          ends_at: string | null
+          entitlement_key: string
+          entitlement_type: string
+          external_reference: string | null
+          id: string
+          notes: string | null
+          product_code: string | null
+          starts_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          billing_provider?: string | null
+          bytes: number
+          clinic_id: string
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          entitlement_key: string
+          entitlement_type: string
+          external_reference?: string | null
+          id?: string
+          notes?: string | null
+          product_code?: string | null
+          starts_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          billing_provider?: string | null
+          bytes?: number
+          clinic_id?: string
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          entitlement_key?: string
+          entitlement_type?: string
+          external_reference?: string | null
+          id?: string
+          notes?: string | null
+          product_code?: string | null
+          starts_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinic_storage_entitlements_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinic_storage_entitlements_product_code_fkey"
+            columns: ["product_code"]
+            isOneToOne: false
+            referencedRelation: "storage_products"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       clinics: {
         Row: {
           company_type: string
@@ -1003,6 +1081,7 @@ export type Database = {
           modules_enabled: string[]
           name: string
           owner_id: string | null
+          storage_limit_bytes: number
           updated_at: string
         }
         Insert: {
@@ -1014,6 +1093,7 @@ export type Database = {
           modules_enabled?: string[]
           name: string
           owner_id?: string | null
+          storage_limit_bytes?: number
           updated_at?: string
         }
         Update: {
@@ -1025,6 +1105,7 @@ export type Database = {
           modules_enabled?: string[]
           name?: string
           owner_id?: string | null
+          storage_limit_bytes?: number
           updated_at?: string
         }
         Relationships: []
@@ -1309,6 +1390,69 @@ export type Database = {
             columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_attachments: {
+        Row: {
+          clinic_id: string | null
+          created_at: string
+          description: string | null
+          file_path: string
+          file_url: string
+          id: string
+          kind: string
+          mime_type: string | null
+          patient_id: string
+          size_bytes: number
+          thumbnail_url: string | null
+          title: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          clinic_id?: string | null
+          created_at?: string
+          description?: string | null
+          file_path: string
+          file_url?: string
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          patient_id: string
+          size_bytes?: number
+          thumbnail_url?: string | null
+          title: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          clinic_id?: string | null
+          created_at?: string
+          description?: string | null
+          file_path?: string
+          file_url?: string
+          id?: string
+          kind?: string
+          mime_type?: string | null
+          patient_id?: string
+          size_bytes?: number
+          thumbnail_url?: string | null
+          title?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_attachments_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_attachments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
             referencedColumns: ["id"]
           },
         ]
@@ -1667,7 +1811,9 @@ export type Database = {
       stages: {
         Row: {
           color: string
+          condition_key: string | null
           created_at: string
+          flow_key: string | null
           id: string
           name: string
           notify_cadista: boolean
@@ -1677,12 +1823,16 @@ export type Database = {
           position: number
           requirements: Json
           requires_implant_components: boolean
+          stage_key: string | null
           target_phase_id: string | null
           target_stage_id: string | null
+          workflow_version: number | null
         }
         Insert: {
           color?: string
+          condition_key?: string | null
           created_at?: string
+          flow_key?: string | null
           id?: string
           name: string
           notify_cadista?: boolean
@@ -1692,12 +1842,16 @@ export type Database = {
           position?: number
           requirements?: Json
           requires_implant_components?: boolean
+          stage_key?: string | null
           target_phase_id?: string | null
           target_stage_id?: string | null
+          workflow_version?: number | null
         }
         Update: {
           color?: string
+          condition_key?: string | null
           created_at?: string
+          flow_key?: string | null
           id?: string
           name?: string
           notify_cadista?: boolean
@@ -1707,8 +1861,10 @@ export type Database = {
           position?: number
           requirements?: Json
           requires_implant_components?: boolean
+          stage_key?: string | null
           target_phase_id?: string | null
           target_stage_id?: string | null
+          workflow_version?: number | null
         }
         Relationships: [
           {
@@ -1855,6 +2011,7 @@ export type Database = {
           name: string
           notes: string | null
           qty_on_hand: number
+          requires_sintering: boolean
           type: string | null
           unit: string
           updated_at: string
@@ -1874,6 +2031,7 @@ export type Database = {
           name: string
           notes?: string | null
           qty_on_hand?: number
+          requires_sintering?: boolean
           type?: string | null
           unit?: string
           updated_at?: string
@@ -1893,6 +2051,7 @@ export type Database = {
           name?: string
           notes?: string | null
           qty_on_hand?: number
+          requires_sintering?: boolean
           type?: string | null
           unit?: string
           updated_at?: string
@@ -1974,6 +2133,115 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      storage_files: {
+        Row: {
+          bucket: string
+          case_id: string | null
+          clinic_id: string
+          created_at: string
+          id: string
+          mime_type: string | null
+          object_path: string
+          original_name: string
+          patient_id: string | null
+          size_bytes: number
+          source_id: string | null
+          source_type: string
+          status: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          bucket: string
+          case_id?: string | null
+          clinic_id: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          object_path: string
+          original_name: string
+          patient_id?: string | null
+          size_bytes?: number
+          source_id?: string | null
+          source_type?: string
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          bucket?: string
+          case_id?: string | null
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          mime_type?: string | null
+          object_path?: string
+          original_name?: string
+          patient_id?: string | null
+          size_bytes?: number
+          source_id?: string | null
+          source_type?: string
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "storage_files_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storage_files_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "storage_files_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      storage_products: {
+        Row: {
+          active: boolean
+          bytes: number
+          code: string
+          created_at: string
+          name: string
+          product_type: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          bytes: number
+          code: string
+          created_at?: string
+          name: string
+          product_type: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          bytes?: number
+          code?: string
+          created_at?: string
+          name?: string
+          product_type?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       tooth_colors: {
         Row: {
@@ -2076,6 +2344,30 @@ export type Database = {
         }
         Relationships: []
       }
+      workflow_templates: {
+        Row: {
+          active_version: number
+          flow_key: string
+          name: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          active_version?: number
+          flow_key: string
+          name: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          active_version?: number
+          flow_key?: string
+          name?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -2099,6 +2391,21 @@ export type Database = {
       }
       backend_schema_hash: { Args: never; Returns: string }
       can_access_case: { Args: { _case_id: string }; Returns: boolean }
+      can_access_patient: { Args: { _patient_id: string }; Returns: boolean }
+      can_manage_clinic_storage: {
+        Args: { _clinic_id: string }
+        Returns: boolean
+      }
+      cancel_storage_upload: { Args: { _file_id: string }; Returns: undefined }
+      case_flow_key: {
+        Args: { _has_mockup: boolean; _has_provisional: boolean }
+        Returns: string
+      }
+      case_requires_sintering: { Args: { _case_id: string }; Returns: boolean }
+      complete_storage_upload: {
+        Args: { _file_id: string; _source_id?: string }
+        Returns: undefined
+      }
       consume_case_stock: {
         Args: { _case_id: string; _user?: string }
         Returns: undefined
@@ -2107,9 +2414,29 @@ export type Database = {
         Args: { _components?: Json; _line?: string; _name: string }
         Returns: Json
       }
+      current_user_can_manage_workflow: { Args: never; Returns: boolean }
       current_user_is_admin: { Args: never; Returns: boolean }
+      delete_case_attachment_managed: {
+        Args: { _attachment_id: string }
+        Returns: Json
+      }
+      delete_managed_storage_file: { Args: { _file_id: string }; Returns: Json }
       export_backup: { Args: never; Returns: string }
       generate_user_code: { Args: never; Returns: string }
+      get_storage_usage: {
+        Args: never
+        Returns: {
+          almost_full: boolean
+          available_bytes: number
+          clinic_id: string
+          clinic_name: string
+          file_count: number
+          full: boolean
+          limit_bytes: number
+          usage_ratio: number
+          used_bytes: number
+        }[]
+      }
       has_any_role: {
         Args: {
           _roles: Database["public"]["Enums"]["app_role"][]
@@ -2130,6 +2457,11 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      patient_id_from_storage_path: { Args: { _name: string }; Returns: string }
+      recalculate_clinic_storage_limit: {
+        Args: { _clinic_id: string }
+        Returns: number
+      }
       register_case_implant_tooth: {
         Args: { _case_id: string; _stock_item_id: string; _tooth_fdi: number }
         Returns: Json
@@ -2145,6 +2477,32 @@ export type Database = {
       }
       remove_case_implant_tooth: { Args: { _id: string }; Returns: Json }
       remove_tooth_stock_usage: { Args: { _usage_id: string }; Returns: Json }
+      reserve_storage_upload: {
+        Args: {
+          _bucket: string
+          _case_id?: string
+          _mime_type?: string
+          _object_path: string
+          _original_name?: string
+          _patient_id?: string
+          _size_bytes: number
+          _source_type: string
+        }
+        Returns: {
+          file_id: string
+          limit_bytes: number
+          used_bytes: number
+        }[]
+      }
+      reset_default_workflows: {
+        Args: { _apply_open?: boolean }
+        Returns: Json
+      }
+      resolve_case_clinic_id: { Args: { _case_id: string }; Returns: string }
+      resolve_patient_clinic_id: {
+        Args: { _patient_id: string }
+        Returns: string
+      }
       return_case_workflow: {
         Args: {
           _case_id: string
@@ -2159,7 +2517,26 @@ export type Database = {
         Args: { _case_id: string; _user?: string }
         Returns: undefined
       }
+      save_workflow_template: {
+        Args: { _apply_open?: boolean; _flow_key: string; _stages: Json }
+        Returns: Json
+      }
       seed_default_workflow: { Args: never; Returns: Json }
+      set_clinic_storage_entitlement: {
+        Args: {
+          _active?: boolean
+          _billing_provider?: string
+          _bytes: number
+          _clinic_id: string
+          _entitlement_key: string
+          _entitlement_type: string
+          _external_reference?: string
+          _notes?: string
+          _product_code?: string
+        }
+        Returns: number
+      }
+      storage_current_clinic_id: { Args: never; Returns: string }
       update_team_member:
         | {
             Args: {
@@ -2187,6 +2564,11 @@ export type Database = {
       user_can_advance: {
         Args: { _phase_id: string; _stage_id: string; _user: string }
         Returns: boolean
+      }
+      workflow_default_stages: { Args: { _flow_key: string }; Returns: Json }
+      workflow_stage_semantic_key: {
+        Args: { _name: string; _position: number }
+        Returns: string
       }
     }
     Enums: {
@@ -2224,12 +2606,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2253,11 +2635,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2278,11 +2660,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2303,11 +2685,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2320,11 +2702,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
