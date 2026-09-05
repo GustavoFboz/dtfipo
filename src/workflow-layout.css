@@ -1,0 +1,50 @@
+[data-case-workflow-bar="true"] {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  contain: inline-size;
+}
+
+[data-case-workflow-row="true"] {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+[data-case-workflow-scroll="true"] {
+  min-width: 0 !important;
+  max-width: 100%;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+}
+[data-case-workflow-scroll="true"]::-webkit-scrollbar { display: none; }
+
+@media (max-width: 640px) {
+  [data-case-workflow-scroll="true"] {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  [data-case-workflow-track="true"] {
+    min-width: 0 !important;
+    width: 100%;
+  }
+  [data-case-workflow-stage="true"][data-current="false"] {
+    display: none !important;
+  }
+  [data-case-workflow-stage="true"][data-current="true"] {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  [data-case-workflow-stage="true"][data-current="true"] [aria-current="step"] {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
