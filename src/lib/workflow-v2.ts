@@ -56,8 +56,11 @@ export async function fetchWorkflowTemplates(): Promise<WorkflowTemplate[]> {
 }
 
 /**
- * Reads the versioned stage schema. During a rolling migration, it falls back
- * to the legacy columns so the UI does not crash on a stale PostgREST cache.
+ * Reads the versioned stage schema. Never re-label legacy stages as a current
+ * workflow: doing that mixes historical stages from every old flow in the case
+ * header. When condition_key alone is unavailable we can still use the versioned
+ * identity columns safely; when the versioned columns are unavailable, return an
+ * empty list and let the UI hide the progress bar until the schema cache catches up.
  */
 export async function fetchWorkflowStagesV2(): Promise<WorkflowStageV2[]> {
   const full = await supabase
@@ -70,18 +73,25 @@ export async function fetchWorkflowStagesV2(): Promise<WorkflowStageV2[]> {
   const msg = String(full.error.message ?? "").toLowerCase();
   if (!msg.includes("schema cache") && !msg.includes("column")) throw full.error;
 
-  const legacy = await supabase
+  const versionedCore = await supabase
     .from("stages" as any)
-    .select("id,name,color,position,phase_id,requires_implant_components,requirements")
+    .select("id,name,color,position,phase_id,requires_implant_components,requirements,flow_key,workflow_version,stage_key")
     .order("position");
-  if (legacy.error) throw legacy.error;
-  return ((legacy.data ?? []) as any[]).map((stage) => ({
-    ...stage,
-    flow_key: "common" as WorkflowKey,
-    workflow_version: 1,
-    stage_key: null,
-    condition_key: null,
-  }));
+
+  if (!versionedCore.error) {
+    return ((versionedCore.data ?? []) as any[]).map((stage) => ({
+      ...stage,
+      condition_key: null,
+    })) as WorkflowStageV2[];
+  }
+
+  const coreMsg = String(versionedCore.error.message ?? "").toLowerCase();
+  if (!coreMsg.includes("schema cache") && !coreMsg.includes("column")) throw versionedCore.error;
+
+  // A pure legacy response cannot be assigned to "common" safely because it
+  // may contain stages from multiple historical flows. Hiding the bar is safer
+  // than showing or advancing through the wrong workflow.
+  return [];
 }
 
 export async function fetchCaseRequiresSintering(caseId: string): Promise<boolean> {
@@ -137,7 +147,7 @@ export function getActiveStages(
   flowKey: WorkflowKey,
 ): WorkflowStageV2[] {
   const activeVersion = templates.find((template) => template.flow_key === flowKey)?.active_version;
-  const candidates = allStages.filter((stage) => stage.flow_key === flowKey);
+  const candidates = allStages.filter((stage) => stage.flow_key === flowKey && stage.stage_key);
   const version = activeVersion ?? Math.max(0, ...candidates.map((stage) => Number(stage.workflow_version ?? 0)));
   return candidates
     .filter((stage) => Number(stage.workflow_version ?? 1) === (version || 1))

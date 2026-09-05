@@ -721,14 +721,30 @@ export function CaseDetailDialog({
 
 
   const overdue = isOverdue(caseRow.delivery_date, caseRow.finished_at);
-  const types = (caseRow.case_types_link ?? [])
-    .map((l) => l.case_type?.name)
-    .filter(Boolean) as string[];
-  const teeth = sortTeeth(caseRow.teeth_numbers ?? []);
+  const tctMap = (caseRow.tooth_case_types ?? {}) as Record<string, string[]>;
   const zir = caseRow.teeth_zirconia ?? [];
   const dis = caseRow.teeth_dissilicato ?? [];
   const implantTeeth = caseRow.implant_teeth ?? [];
-  const tctMap = (caseRow.tooth_case_types ?? {}) as Record<string, string[]>;
+  const teethFromWorkMap = Object.keys(tctMap)
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const teeth = sortTeeth(Array.from(new Set<number>([
+    ...(caseRow.teeth_numbers ?? []),
+    ...teethFromWorkMap,
+    ...implantTeeth,
+    ...zir,
+    ...dis,
+  ])));
+  const linkedTypes = (caseRow.case_types_link ?? [])
+    .map((l) => l.case_type?.name)
+    .filter(Boolean) as string[];
+  const legacyTypes = caseRow.case_type?.name ? [caseRow.case_type.name] : [];
+  const perToothTypes = Object.values(tctMap)
+    .flat()
+    .filter((id) => id && id !== ENCERAMENTO_ID)
+    .map((id) => toothWorkTypeName(id))
+    .filter((name): name is string => Boolean(name));
+  const types = Array.from(new Set([...linkedTypes, ...legacyTypes, ...perToothTypes]));
   const encOnlyTeeth = teeth.filter((t) => {
     const arr = tctMap[String(t)] ?? [];
     const hasEnc = arr.includes("enceramento");
@@ -1088,19 +1104,9 @@ export function CaseDetailDialog({
                   </span>
                 </div>
 
-                {/* Barra de progresso do caso + chips opcionais (FORNO / PROVISORIO) */}
-                <div className="mt-3 flex items-center gap-3 flex-wrap">
-                  {caseRow.has_provisional && (
-                    <div className="flex items-center gap-2 flex-wrap text-[11px] uppercase tracking-[0.08em]">
-                      <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-700 px-2.5 py-0.5 text-[11px] font-bold tracking-wide">
-                        ● FORNO
-                      </span>
-                      <span className="text-slate-400 dark:text-slate-500 font-semibold">PROVISORIO</span>
-                    </div>
-                  )}
-                  <div className="min-w-0 max-w-full flex-1">
-                    <CaseWorkflowBar caseRow={caseRow} />
-                  </div>
+                {/* Fluxo exclusivo deste caso. A barra resolve tipo, versão e condições. */}
+                <div className="mt-3 min-w-0 w-full">
+                  <CaseWorkflowBar caseRow={caseRow} />
                 </div>
               </div>
             </div>
@@ -1155,15 +1161,15 @@ export function CaseDetailDialog({
           {/* Conteúdo */}
           <div className="flex-1 min-w-0 min-h-0 flex flex-col bg-white dark:bg-neutral-950 overflow-hidden">
             {/* Corpo */}
-            <div className={`flex-1 min-h-0 px-4 sm:px-6 lg:px-8 pb-6 flex flex-col ${tab === "detalhes" ? "overflow-hidden" : "overflow-y-auto"}`}>
+            <div className={`flex-1 min-h-0 px-4 sm:px-6 lg:px-8 pb-6 flex flex-col ${tab === "detalhes" ? "overflow-y-auto md:overflow-hidden" : "overflow-y-auto"}`}>
 
               {tab === "detalhes" && (
                 <div className="flex-1 min-h-0 flex flex-col gap-4">
                   <CaseToothStockUsagePanel caseRow={caseRow} />
                   {/* Painel superior removido: a interação agora acontece direto na arcada via pontinho vermelho. */}
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 xl:gap-8 flex-1 min-h-0">
-                  <div className="min-w-0 min-h-0 space-y-4 overflow-y-auto lg:overflow-visible pr-1">
+                <div className="grid grid-cols-1 md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] gap-6 xl:gap-8 flex-1 min-h-0">
+                  <div className="min-w-0 min-h-0 space-y-4 pr-1 md:overflow-y-auto">
                     <div className="rounded-xl border border-border/70 bg-card p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                       <Field label="Dentista" value={caseRow.doctor?.name ?? "—"} />
                       <Field label="Solicitante" value={requesterName} />
@@ -1226,7 +1232,7 @@ export function CaseDetailDialog({
                     </div>
                   </div>
 
-                  <div className="min-w-0 min-h-0 flex flex-col">
+                  <div className="min-w-0 min-h-[420px] md:min-h-0 flex flex-col">
 
                     <div className="flex items-start justify-between gap-4 mb-2 shrink-0">
                       <div className="text-sm font-medium text-foreground">
