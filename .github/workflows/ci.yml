@@ -7,6 +7,7 @@ on:
     branches:
       - "stabilization/**"
       - "feature/**"
+      - "fix/**"
 
 jobs:
   build:
@@ -23,6 +24,9 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Verify Clinic route outlets
+        run: bun scripts/check-clinic-route-outlets.mjs
 
       # The repository has substantial pre-existing formatting/lint debt.
       # A repo-wide lint gate currently reports thousands of legacy findings,

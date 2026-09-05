@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Plus, Search, UserRound, Users } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -9,7 +9,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { fetchPatients } from "@/lib/api";
 
-export const Route = createFileRoute("/_authenticated/clinica/pacientes")({ component: ClinicPatientsPage });
+export const Route = createFileRoute("/_authenticated/clinica/pacientes")({ component: ClinicPatientsRoute });
+
+function ClinicPatientsRoute() {
+  const { pathname } = useLocation();
+  const normalizedPath = pathname.replace(/\/+$/, "") || "/";
+
+  // Patient detail is a child of this route. Render the child outlet when a
+  // specific patient is open instead of leaving the patient list on screen.
+  if (normalizedPath !== "/clinica/pacientes") return <Outlet />;
+
+  return <ClinicPatientsPage />;
+}
 
 function ClinicPatientsPage() {
   return <ClinicPageGuard permission="clinical.patients"><Patients /></ClinicPageGuard>;
