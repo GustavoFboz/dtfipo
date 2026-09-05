@@ -1,9 +1,10 @@
 import { useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
+import { startEnvironmentTransition } from "@/components/EnvironmentTransition";
 
-// Compatibility bridge for the legacy sidebar footer. The visual sidebar is old code;
-// this turns the existing CLÍNICA row into a real navigable control without coupling
-// the new Clinic module to the laboratory menu implementation.
+// Compatibility bridge for the legacy laboratory sidebar footer. The visual
+// sidebar is legacy code; this turns the existing CLÍNICA row into a real
+// environment switch without coupling the Clinic module to the lab menu.
 export function ModuleEntryBridge() {
   const navigate = useNavigate();
 
@@ -18,9 +19,13 @@ export function ModuleEntryBridge() {
         row.style.cursor = "pointer";
         row.setAttribute("role", "link");
         row.setAttribute("tabindex", "0");
-        row.setAttribute("aria-label", "Abrir gestão da Clínica");
+        row.setAttribute("aria-label", "Trocar para o ambiente Clínica");
       }
       return row;
+    };
+
+    const openClinic = () => {
+      startEnvironmentTransition("Clínica", () => navigate({ to: "/clinica" as any }));
     };
 
     const activate = (event: Event) => {
@@ -30,14 +35,14 @@ export function ModuleEntryBridge() {
       if (target && row.contains(target)) {
         event.preventDefault();
         event.stopPropagation();
-        navigate({ to: "/clinica" as any });
+        openClinic();
       }
     };
     const keyboard = (event: KeyboardEvent) => {
       const row = findClinicEntry();
       if (!row || document.activeElement !== row || !["Enter", " "].includes(event.key)) return;
       event.preventDefault();
-      navigate({ to: "/clinica" as any });
+      openClinic();
     };
 
     findClinicEntry();
