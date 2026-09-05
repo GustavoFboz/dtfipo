@@ -113,7 +113,7 @@ AS $$
   LEFT JOIN public.clinic_members cm
     ON cm.user_id = p.id
    AND cm.clinic_id = _clinic_id
-   AND cm.status = 'approved'
+   AND cm.status = 'active'
   WHERE p.id = auth.uid()
     AND p.clinic_id = _clinic_id
   LIMIT 1;
