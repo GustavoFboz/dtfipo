@@ -1,6 +1,8 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, useLocation } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
+import { ClinicShell } from "@/components/ClinicShell";
+import { HubShell } from "@/components/HubShell";
 import { ModuleEntryBridge } from "@/components/ModuleEntryBridge";
 import { CaseDialogSanitizer } from "@/components/CaseDialogSanitizer";
 import { WorkflowLayoutStabilizer } from "@/components/WorkflowLayoutStabilizer";
@@ -22,5 +24,24 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedShell() {
-  return <><ModuleEntryBridge /><CaseDialogSanitizer /><WorkflowLayoutStabilizer /><AppShell /></>;
+  const { pathname } = useLocation();
+
+  if (pathname === "/hub") {
+    return <HubShell />;
+  }
+
+  if (pathname.startsWith("/clinica")) {
+    return <ClinicShell />;
+  }
+
+  // O laboratório mantém seu próprio shell e seus próprios efeitos globais.
+  // Clínica e Hub não montam nada do domínio laboratorial.
+  return (
+    <>
+      <ModuleEntryBridge />
+      <CaseDialogSanitizer />
+      <WorkflowLayoutStabilizer />
+      <AppShell />
+    </>
+  );
 }
