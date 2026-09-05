@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { ModuleEntryBridge } from "@/components/ModuleEntryBridge";
+import { CaseDialogSanitizer } from "@/components/CaseDialogSanitizer";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
@@ -19,5 +20,5 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthenticatedShell() {
-  return <><ModuleEntryBridge /><AppShell /></>;
+  return <><ModuleEntryBridge /><CaseDialogSanitizer /><AppShell /></>;
 }
