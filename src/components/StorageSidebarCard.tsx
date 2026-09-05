@@ -1,4 +1,4 @@
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useId, useSyncExternalStore } from "react";
 import { HardDrive, AlertTriangle, ChevronRight } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,14 +12,16 @@ import {
 export function StorageSidebarCard({ collapsed = false }: { collapsed?: boolean }) {
   const storage = useSyncExternalStore(subscribeStorageUsage, getStorageUsageSnapshot, getStorageUsageSnapshot);
   const usage = storage.data;
+  const realtimeInstanceId = useId().replace(/:/g, "");
 
   useEffect(() => {
     void refreshStorageUsage().catch(() => undefined);
 
-    // Same-tab uploads/removals update the store optimistically. Realtime keeps
-    // the card equally fresh when another tab or another admin changes storage.
+    // AppShell and ClinicSidebar can be mounted at the same time. Supabase
+    // reuses channels with the same topic, so each mounted card needs its own
+    // topic before registering postgres_changes callbacks and subscribing.
     const channel = supabase
-      .channel("clinic-storage-usage")
+      .channel(`clinic-storage-usage-${realtimeInstanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "storage_files" },
@@ -34,7 +36,7 @@ export function StorageSidebarCard({ collapsed = false }: { collapsed?: boolean 
       window.clearInterval(id);
       void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [realtimeInstanceId]);
 
   if (collapsed) {
     const pct = usage ? Math.min(100, Math.max(0, usage.usage_ratio * 100)) : 0;
