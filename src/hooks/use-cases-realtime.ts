@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { subscribeEntity, isDeleted, markDeleted } from "@/lib/optimistic";
+import { broadcastEntity, subscribeEntity, isDeleted, markDeleted } from "@/lib/optimistic";
 import { fetchCaseById } from "@/lib/api";
 import type { CaseRow, Stage } from "@/lib/types";
 
