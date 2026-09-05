@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Grid2X2, LogOut } from "lucide-react";
+import { Building2, Home, LogOut } from "lucide-react";
 
 import { ClinicSidebar } from "@/components/ClinicSidebar";
 import { fetchProfile } from "@/lib/api";
@@ -8,8 +8,10 @@ import { fetchClinicContext } from "@/lib/clinic";
 import { supabase } from "@/integrations/supabase/client";
 
 const PAGE_TITLES: Array<[string, string]> = [
+  ["/clinica/armazenamento", "Armazenamento"],
   ["/clinica/configuracoes", "Configurações"],
   ["/clinica/financeiro", "Financeiro"],
+  ["/clinica/pacientes/", "Paciente"],
   ["/clinica/pacientes", "Pacientes"],
   ["/clinica/equipe", "Equipe"],
   ["/clinica/agenda", "Agenda"],
@@ -45,8 +47,8 @@ export function ClinicShell() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f9fc] text-slate-900 dark:bg-[#070a0e] dark:text-white">
-      <header className="fixed inset-x-0 top-0 z-50 h-[72px] border-b border-slate-200/70 bg-white/92 backdrop-blur-xl dark:border-white/[0.07] dark:bg-[#090c11]/92">
+    <div className="min-h-screen bg-[#f7fafc] text-slate-900 dark:bg-[#070a0e] dark:text-white">
+      <header className="fixed inset-x-0 top-0 z-50 h-[72px] border-b border-slate-200/70 bg-white/94 backdrop-blur-xl dark:border-white/[0.07] dark:bg-[#090c11]/94">
         <div className="flex h-full items-center justify-between px-4 md:px-6">
           <div className="flex min-w-0 items-center gap-4">
             <Link to="/clinica" className="flex min-w-0 items-center gap-3 rounded-xl transition hover:opacity-85">
@@ -68,9 +70,13 @@ export function ClinicShell() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link to="/hub" className="flex h-10 items-center gap-2 rounded-xl px-3 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-white/5 dark:hover:text-white" title="Trocar de módulo">
-              <Grid2X2 className="h-4.5 w-4.5 stroke-[1.5]" />
-              <span className="hidden sm:inline">Módulos</span>
+            <Link
+              to="/hub"
+              className="grid h-10 w-10 place-items-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-[#1e8f87] dark:hover:bg-white/5"
+              title="Início"
+              aria-label="Voltar ao início"
+            >
+              <Home className="h-[20px] w-[20px] stroke-[1.5]" />
             </Link>
             <div className="hidden items-center gap-2 rounded-xl border border-slate-200/70 bg-white px-2.5 py-1.5 lg:flex dark:border-white/10 dark:bg-white/[0.03]">
               <div className="grid h-7 w-7 place-items-center overflow-hidden rounded-lg bg-[#1e8f87]/10 text-[10px] font-semibold text-[#1e8f87]">
