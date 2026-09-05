@@ -47,6 +47,7 @@ import { ScanIcon } from "./icons/ScanIcon";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { CaseRow } from "@/lib/types";
+import { fetchWorkflowStagesV2, getCaseWorkflowStages } from "@/lib/workflow-v2";
 
 const monthAbbr = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 function fmtDayMonth(iso: string) {
@@ -271,6 +272,20 @@ export function CasesTable({
   }, [deepLinkCaseId]);
 
   const stages = useQuery({ queryKey: ["stages"], queryFn: fetchStages });
+  const workflowStages = useQuery({
+    queryKey: ["workflow_stages_v2"],
+    queryFn: fetchWorkflowStagesV2,
+    staleTime: 15_000,
+  });
+
+  const stagesForCase = (caseRow: CaseRow) =>
+    getCaseWorkflowStages(workflowStages.data ?? [], caseRow as any, {
+      requiresSintering: Boolean(
+        ((caseRow as any).teeth_zirconia ?? []).length ||
+        (caseRow as any).zirconia_stock_item_id ||
+        (caseRow as any).dissilicato_stock_item_id,
+      ),
+    });
 
   const toggle = useMutation({
     mutationFn: ({ id, field, value }: { id: string; field: "model_done" | "scan_done" | "folder_done"; value: boolean }) =>
@@ -829,7 +844,7 @@ export function CasesTable({
                         {isCadista ? "Status do Caso" : "Mover Etapa"}
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      {stages.data?.map((s) => (
+                      {stagesForCase(c).map((s) => (
                         <DropdownMenuItem key={s.id} onClick={() => changeStage.mutate({ caseId: c.id, stageId: s.id })} className="rounded-xl font-medium text-xs uppercase py-2.5 mt-1">
                           <span className="h-2.5 w-2.5 rounded-full mr-3" style={{ background: s.color }} />
                           {s.name}
@@ -1199,7 +1214,7 @@ export function CasesTable({
                         {isCadista ? "Status do Caso" : "Mover Etapa"}
                       </DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      {stages.data?.map((s) => (
+                      {stagesForCase(c).map((s) => (
                         <DropdownMenuItem key={s.id} onClick={() => changeStage.mutate({ caseId: c.id, stageId: s.id })} className="rounded-xl font-bold text-xs uppercase py-2.5 mt-1">
                           <span className="h-2.5 w-2.5 rounded-full mr-3 shadow-md" style={{ background: s.color }} />
                           {s.name}
