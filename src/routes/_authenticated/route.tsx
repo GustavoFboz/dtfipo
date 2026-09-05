@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
+import { ModuleEntryBridge } from "@/components/ModuleEntryBridge";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
@@ -14,5 +15,9 @@ export const Route = createFileRoute("/_authenticated")({
     }
     return { user };
   },
-  component: AppShell,
+  component: AuthenticatedShell,
 });
+
+function AuthenticatedShell() {
+  return <><ModuleEntryBridge /><AppShell /></>;
+}
