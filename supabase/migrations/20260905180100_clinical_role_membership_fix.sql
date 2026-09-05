@@ -1,4 +1,5 @@
--- Ajusta a leitura do papel da clínica ao status real de clinic_members ('active').
+-- Compatibilidade idempotente para instalações que tenham aplicado a primeira
+-- versão da migration clínica antes do ajuste de status de membership.
 CREATE OR REPLACE FUNCTION public.current_clinic_role(_clinic_id uuid)
 RETURNS text
 LANGUAGE sql
