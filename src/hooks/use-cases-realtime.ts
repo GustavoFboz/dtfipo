@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { subscribeEntity, isDeleted, markDeleted } from "@/lib/optimistic";
+import { broadcastEntity, subscribeEntity, isDeleted, markDeleted } from "@/lib/optimistic";
 import { fetchCaseById } from "@/lib/api";
 import type { CaseRow, Stage } from "@/lib/types";
 
@@ -147,20 +147,26 @@ function removeCaseFromCache(queryClient: QueryClient, caseId: string) {
 
 export function broadcastCaseWorkflowPatch(patch: CasePatch) {
   if (typeof window === "undefined") return;
-  // Workflow peer updates stay on this device. Cross-device state comes from
-  // postgres_changes under RLS; never broadcast a full clinical row publicly.
-  broadcastEntity("cases", "update", {
-    id: patch.id,
-    current_stage_id: patch.current_stage_id,
-    current_phase_id: patch.current_phase_id,
-    current_stage: patch.current_stage,
-    status: patch.status,
-    finished_at: patch.finished_at,
-    updated_at: patch.updated_at,
-    assigned_user_ids: patch.assigned_user_ids,
-    workflow_only: true,
-    sent_at: Date.now(),
-  });
+  // Peer sync is best-effort only. The workflow transition is already committed
+  // on the server before this runs, and postgres_changes will reconcile state.
+  // A local BroadcastChannel/localStorage issue must never make a successful
+  // transition look like a failed one to the user.
+  try {
+    broadcastEntity("cases", "update", {
+      id: patch.id,
+      current_stage_id: patch.current_stage_id,
+      current_phase_id: patch.current_phase_id,
+      current_stage: patch.current_stage,
+      status: patch.status,
+      finished_at: patch.finished_at,
+      updated_at: patch.updated_at,
+      assigned_user_ids: patch.assigned_user_ids,
+      workflow_only: true,
+      sent_at: Date.now(),
+    });
+  } catch {
+    // Intentionally ignored: database realtime is the authoritative fallback.
+  }
 }
 
 export function useCasesRealtime() {
