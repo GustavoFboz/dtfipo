@@ -1,0 +1,46 @@
+name: Apply storage entitlement UI patch
+
+on:
+  push:
+    branches: [feature/storage-entitlements-ipo-10gb]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/storage-entitlements-ipo-10gb
+      - name: Patch quota summary
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('src/routes/_authenticated/armazenamento.tsx')
+          text = path.read_text()
+          old = '''            <div className="flex items-end justify-between"><span className="text-sm text-slate-500">Plano atual</span><strong className="text-lg font-medium text-slate-900 dark:text-white">1 GB</strong></div>\n            <p className="text-[11px] leading-relaxed text-slate-400">O limite pertence à clínica, não a cada usuário. O consumo é compartilhado entre todos os membros.</p>'''
+          new = '''            <div className="flex items-end justify-between"><span className="text-sm text-slate-500">Cota atual</span><strong className="text-lg font-medium text-slate-900 dark:text-white">{usage ? formatStorageBytes(usage.limit_bytes) : "—"}</strong></div>\n            <p className="text-[11px] leading-relaxed text-slate-400">A cota pertence à clínica e já considera o espaço incluído, adicionais comprados e cortesias ativas. O consumo é compartilhado entre todos os membros.</p>'''
+          if old not in text:
+              raise SystemExit('Expected storage summary snippet not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Validate production build
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          export PATH="$HOME/.bun/bin:$PATH"
+          bun install --frozen-lockfile
+          bun run build
+      - name: Commit patched UI
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/routes/_authenticated/armazenamento.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "feat: show effective storage quota per clinic"
+          git push origin HEAD:feature/storage-entitlements-ipo-10gb
