@@ -24,3 +24,5 @@ cd <repository-name>
 npm i
 npm run dev
 ```
+
+<!-- Lovable sync refresh: 2026-09-05 -->
