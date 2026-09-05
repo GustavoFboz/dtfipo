@@ -4,7 +4,6 @@ import { ArrowLeft, ArrowRight, ChevronRight, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   fetchWorkflowSettings,
-  fetchWorkflowStages,
   fetchReturnReasons,
   fetchStageAssignees,
   advanceCaseWorkflow,
@@ -12,7 +11,13 @@ import {
   createReturnReason,
 } from "@/lib/workflow";
 import { fetchProfile, sendInternalNotification } from "@/lib/api";
-import { deriveWorkflowKey, fetchCaseRequiresSintering, fetchWorkflowStagesV2 } from "@/lib/workflow-v2";
+import {
+  deriveWorkflowKey,
+  fetchCaseRequiresSintering,
+  fetchWorkflowStagesV2,
+  FLOW_LABELS,
+  type WorkflowKey,
+} from "@/lib/workflow-v2";
 import type { CaseRow } from "@/lib/types";
 import { broadcastCaseWorkflowPatch } from "@/hooks/use-cases-realtime";
 import {
@@ -31,6 +36,25 @@ import { useBlockedActionDialog } from "@/components/BlockedActionDialog";
 import { promptDialog } from "@/lib/confirm";
 import { useStageRequirements } from "@/lib/stage-requirements";
 
+const WORKFLOW_KEYS = new Set<WorkflowKey>(["common", "provisional", "mockup", "mockup_provisional"]);
+
+function inferLegacyStageKey(name: string | null | undefined): string | null {
+  const normalized = String(name || "").trim().toLowerCase();
+  if (!normalized) return null;
+  if (normalized.includes("mockup") && normalized.includes("entreg")) return "mockup_delivered";
+  if (normalized.includes("mockup")) return "mockup_make";
+  if ((normalized.includes("provis") || normalized.includes("provisor")) && normalized.includes("entreg")) return "provisional_delivered";
+  if (normalized.includes("provis") || normalized.includes("provisor")) return "provisional_make";
+  if (normalized.includes("entrada") || normalized.includes("novo caso")) return "entry";
+  if (normalized.includes("aprova") || normalized.includes("prova")) return "cad_approval";
+  if (normalized === "cad" || normalized.includes("desenho")) return "cad";
+  if (normalized.includes("sinter") || normalized.includes("forno") || normalized.includes("fresag")) return "sintering";
+  if (normalized.includes("acab") || normalized.includes("maqui")) return "finish";
+  if (normalized.includes("entreg")) return "delivered";
+  if (normalized.includes("confe") || normalized.includes("definit")) return "definitive_make";
+  return null;
+}
+
 export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
@@ -39,9 +63,10 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
 
   const settings = useQuery({ queryKey: ["workflow_settings"], queryFn: fetchWorkflowSettings });
   const stages = useQuery({
-    queryKey: ["workflow_stages"],
+    queryKey: ["workflow_stages_v2"],
     queryFn: fetchWorkflowStagesV2,
     enabled: !!settings.data?.phases_enabled,
+    staleTime: 15_000,
   });
   const reasons = useQuery({
     queryKey: ["return_reasons"],
@@ -51,7 +76,7 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
   const profile = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
 
   const currentStageId = (caseRow as any).current_stage_id as string | null;
-  const flowKey = ((caseRow as any).workflow_key || deriveWorkflowKey(caseRow as any)) as string;
+  const requestedFlowKey = ((caseRow as any).workflow_key || deriveWorkflowKey(caseRow as any)) as WorkflowKey;
   const workflowVersion = Number((caseRow as any).workflow_version || 0);
   const sintering = useQuery({
     queryKey: ["case_requires_sintering", caseRow.id, (caseRow as any).teeth_zirconia, (caseRow as any).zirconia_stock_item_id, (caseRow as any).dissilicato_stock_item_id],
@@ -61,22 +86,54 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
   const requiresSintering = Boolean(
     ((caseRow as any).teeth_zirconia ?? []).length > 0 || sintering.data,
   );
-  const list = useMemo(() => {
+
+  const { list, displayFlowKey, currentIdx } = useMemo(() => {
     const source = stages.data ?? [];
-    let candidates = source.filter((stage: any) => stage.flow_key === flowKey);
-    // Compatibility while the database migration/schema cache is rolling out.
-    if (!candidates.length) candidates = source;
-    const resolvedVersion = workflowVersion || Math.max(1, ...candidates.map((stage: any) => Number(stage.workflow_version || 1)));
-    return candidates
+    const currentRecord = source.find((stage: any) => stage.id === currentStageId) as any | undefined;
+    const currentRecordFlow = currentRecord?.flow_key as WorkflowKey | null | undefined;
+    const effectiveFlowKey = currentRecordFlow && WORKFLOW_KEYS.has(currentRecordFlow)
+      ? currentRecordFlow
+      : requestedFlowKey;
+
+    // Only versioned stages with a semantic stage_key belong to a v2 workflow.
+    // Legacy rows intentionally remain in the database for history and must never
+    // be mixed into the visible sequence of a current case.
+    const candidates = source.filter((stage: any) =>
+      stage.flow_key === effectiveFlowKey && Boolean(stage.stage_key),
+    );
+
+    const currentRecordVersion = Number(currentRecord?.workflow_version || 0);
+    const inferredLatestVersion = Math.max(0, ...candidates.map((stage: any) => Number(stage.workflow_version || 0)));
+    const resolvedVersion = workflowVersion || currentRecordVersion || inferredLatestVersion || 1;
+
+    const seen = new Set<string>();
+    const ordered = candidates
       .filter((stage: any) => Number(stage.workflow_version || 1) === resolvedVersion)
       .filter((stage: any) => {
         if (stage.id === currentStageId) return true;
         if (stage.condition_key === "requires_sintering") return requiresSintering;
         return true;
       })
-      .sort((a: any, b: any) => a.position - b.position);
-  }, [stages.data, flowKey, workflowVersion, requiresSintering, currentStageId]);
-  const currentIdx = useMemo(() => list.findIndex((s) => s.id === currentStageId), [list, currentStageId]);
+      .sort((a: any, b: any) => a.position - b.position)
+      .filter((stage: any) => {
+        const key = String(stage.stage_key || stage.id);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+    const currentSemanticKey = currentRecord?.stage_key || inferLegacyStageKey(currentRecord?.name);
+    const resolvedCurrentIdx = ordered.findIndex((stage: any) =>
+      stage.id === currentStageId || (currentSemanticKey && stage.stage_key === currentSemanticKey),
+    );
+
+    return {
+      list: ordered,
+      displayFlowKey: effectiveFlowKey,
+      currentIdx: resolvedCurrentIdx,
+    };
+  }, [stages.data, currentStageId, requestedFlowKey, workflowVersion, requiresSintering]);
+
   const currentStage = currentIdx >= 0 ? list[currentIdx] : null;
 
   const assignees = useQuery({
@@ -108,17 +165,17 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
 
   function patchCase(nextStageId: string | null, nextPhaseId: string | null) {
     const nextStage = nextStageId ? list.find((stage) => stage.id === nextStageId) : null;
-    const currentStage = nextStage ? { ...nextStage, color: nextStage.color ?? "#94a3b8" } : null;
+    const currentStagePatch = nextStage ? { ...nextStage, color: nextStage.color ?? "#94a3b8" } : null;
     qc.setQueriesData<any[]>({ queryKey: ["cases"] }, (old) => {
       if (!Array.isArray(old)) return old;
       return old.map((c) =>
         c?.id === caseRow.id
-          ? { ...c, current_stage_id: nextStageId, current_phase_id: nextPhaseId ?? c.current_phase_id, current_stage: currentStage }
+          ? { ...c, current_stage_id: nextStageId, current_phase_id: nextPhaseId ?? c.current_phase_id, current_stage: currentStagePatch }
           : c,
       );
     });
     qc.setQueryData(["case", caseRow.id], (old: any) =>
-      old ? { ...old, current_stage_id: nextStageId, current_phase_id: nextPhaseId ?? old.current_phase_id, current_stage: currentStage } : old,
+      old ? { ...old, current_stage_id: nextStageId, current_phase_id: nextPhaseId ?? old.current_phase_id, current_stage: currentStagePatch } : old,
     );
   }
 
@@ -197,7 +254,6 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
       .finally(() => setBusy(false));
   }
 
-
   async function handleNewReason(toStageId: string) {
     const label = (await promptDialog({ title: "Nova justificativa de retorno", placeholder: "Descreva a justificativa", required: true }))?.trim();
     if (!label) return;
@@ -214,116 +270,126 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
   const progress = list.length > 0 && currentIdx >= 0 ? ((currentIdx + 1) / list.length) * 100 : 0;
   const reasonList = reasons.data ?? [];
   const priorStages = currentIdx > 0 ? list.slice(0, currentIdx) : [];
+  const flowLabel = FLOW_LABELS[displayFlowKey as WorkflowKey]?.title ?? "Fluxo do caso";
 
   return (
-    <div className="flex items-center gap-2 py-1.5 px-1 text-xs">
-      <div className="flex-1 min-w-0 flex items-center gap-1 overflow-x-auto scrollbar-none">
-        {list.map((s, i) => {
-          const isCurrent = i === currentIdx;
-          const distance = currentIdx < 0 ? 99 : Math.abs(i - currentIdx);
-          const opacity = isCurrent ? 1 : distance === 1 ? 0.55 : distance === 2 ? 0.3 : 0.18;
-          return (
-            <div key={s.id} className="flex items-center shrink-0">
-              {isCurrent ? (
-                <span
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-white font-semibold text-[11px] tracking-tight whitespace-nowrap shadow-sm"
-                  style={{ backgroundColor: color }}
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
-                  {s.name}
-                </span>
-              ) : (
-                <span
-                  className="text-[11px] font-medium text-foreground/70 whitespace-nowrap transition-opacity"
-                  style={{ opacity }}
-                >
-                  {s.name}
-                </span>
-              )}
-              {i < list.length - 1 && (
-                <ChevronRight
-                  className="h-3 w-3 mx-0.5 text-muted-foreground/40 shrink-0"
-                  style={{ opacity: distance <= 1 ? 0.7 : 0.25 }}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
+    <div className="w-full min-w-0 py-1 text-xs">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="hidden lg:inline-flex shrink-0 items-center rounded-full border border-slate-200/80 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-900 px-2.5 py-1 text-[10px] font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
+          {flowLabel}
+        </span>
 
-      <div className="hidden sm:block w-20 h-1 rounded-full bg-border/60 overflow-hidden shrink-0">
-        <div className="h-full transition-all" style={{ width: `${progress}%`, backgroundColor: color }} />
-      </div>
-
-      {canReturn && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              disabled={busy}
-              className="shrink-0 inline-flex items-center gap-1 pl-1.5 pr-2 py-1 rounded-full text-[11px] font-medium bg-background border border-border hover:bg-accent transition disabled:opacity-40"
-              title="Voltar para etapa anterior"
-            >
-              <ArrowLeft className="h-3 w-3" />
-              Voltar para etapa
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              Selecione a etapa
-            </DropdownMenuLabel>
-            {priorStages.length === 0 ? (
-              <div className="px-2 py-1.5 text-xs text-muted-foreground">Sem etapas anteriores</div>
-            ) : (
-              priorStages.map((st) => (
-                <DropdownMenuSub key={st.id}>
-                  <DropdownMenuSubTrigger className="text-sm">{st.name}</DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent className="w-52">
-                      <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                        Justificativa
-                      </DropdownMenuLabel>
-                      {reasonList.length === 0 ? (
-                        <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma</div>
-                      ) : (
-                        reasonList.map((r) => (
-                          <DropdownMenuItem
-                            key={r.id}
-                            onSelect={() => handleReturn(r.id, st.id)}
-                            className="text-sm"
-                          >
-                            {r.label}
-                          </DropdownMenuItem>
-                        ))
-                      )}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onSelect={() => handleNewReason(st.id)}
-                        className="text-sm gap-2 text-muted-foreground"
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="overflow-x-auto scrollbar-none">
+            <div className="flex items-center gap-0.5 min-w-max pr-3">
+              {list.map((s, i) => {
+                const isCurrent = i === currentIdx;
+                const isPast = currentIdx >= 0 && i < currentIdx;
+                return (
+                  <div key={s.id} className="flex items-center shrink-0">
+                    {isCurrent ? (
+                      <span
+                        aria-current="step"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-white font-semibold text-[11px] tracking-tight whitespace-nowrap shadow-sm"
+                        style={{ backgroundColor: color }}
                       >
-                        <Plus className="h-3.5 w-3.5" />
-                        Nova justificativa…
-                      </DropdownMenuItem>
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-              ))
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+                        <span className="h-1.5 w-1.5 rounded-full bg-white/90" />
+                        {s.name}
+                      </span>
+                    ) : (
+                      <span className={`text-[11px] whitespace-nowrap ${isPast ? "font-medium text-slate-500 dark:text-slate-400" : "font-normal text-slate-400 dark:text-slate-500"}`}>
+                        {s.name}
+                      </span>
+                    )}
+                    {i < list.length - 1 && (
+                      <ChevronRight className="h-3 w-3 mx-0.5 text-slate-300 dark:text-slate-700 shrink-0" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
 
-      {canAdvance && (
-        <button
-          type="button"
-          onClick={handleAdvance}
-          disabled={busy || stageReqs.isLoading}
-          className="shrink-0 inline-flex items-center gap-1 pl-2.5 pr-2 py-1 rounded-full text-[11px] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50"
-        >
-          {busy || stageReqs.isLoading ? "…" : "Próxima etapa"}
-          <ArrowRight className="h-3 w-3" />
-        </button>
-      )}
+        {canReturn && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                disabled={busy}
+                className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-medium bg-background border border-border hover:bg-accent transition disabled:opacity-40"
+                title="Voltar para etapa anterior"
+              >
+                <ArrowLeft className="h-3 w-3" />
+                <span className="hidden xl:inline">Voltar</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Selecione a etapa
+              </DropdownMenuLabel>
+              {priorStages.length === 0 ? (
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">Sem etapas anteriores</div>
+              ) : (
+                priorStages.map((st) => (
+                  <DropdownMenuSub key={st.id}>
+                    <DropdownMenuSubTrigger className="text-sm">{st.name}</DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent className="w-52">
+                        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                          Justificativa
+                        </DropdownMenuLabel>
+                        {reasonList.length === 0 ? (
+                          <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma</div>
+                        ) : (
+                          reasonList.map((r) => (
+                            <DropdownMenuItem
+                              key={r.id}
+                              onSelect={() => handleReturn(r.id, st.id)}
+                              className="text-sm"
+                            >
+                              {r.label}
+                            </DropdownMenuItem>
+                          ))
+                        )}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onSelect={() => handleNewReason(st.id)}
+                          className="text-sm gap-2 text-muted-foreground"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          Nova justificativa…
+                        </DropdownMenuItem>
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        {canAdvance && (
+          <button
+            type="button"
+            onClick={handleAdvance}
+            disabled={busy || stageReqs.isLoading}
+            className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition disabled:opacity-50"
+          >
+            <span className="hidden sm:inline">{busy || stageReqs.isLoading ? "…" : "Próxima etapa"}</span>
+            <ArrowRight className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+
+      <div className="mt-1.5 flex items-center gap-2 min-w-0">
+        <span className="shrink-0 text-[10px] font-medium text-slate-400 dark:text-slate-500">
+          {currentIdx >= 0 ? `Etapa ${currentIdx + 1} de ${list.length}` : `${list.length} etapas`}
+        </span>
+        <div className="h-1 flex-1 max-w-40 rounded-full bg-slate-100 dark:bg-neutral-900 overflow-hidden">
+          <div className="h-full transition-all duration-300" style={{ width: `${progress}%`, backgroundColor: color }} />
+        </div>
+      </div>
       {blocked.dialogElement}
     </div>
   );
