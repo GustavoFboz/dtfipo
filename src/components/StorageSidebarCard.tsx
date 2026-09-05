@@ -9,17 +9,22 @@ import {
   subscribeStorageUsage,
 } from "@/lib/storage";
 
-export function StorageSidebarCard({ collapsed = false }: { collapsed?: boolean }) {
+type Props = {
+  collapsed?: boolean;
+  to?: string;
+  variant?: "default" | "clinic";
+};
+
+export function StorageSidebarCard({ collapsed = false, to = "/armazenamento", variant = "default" }: Props) {
   const storage = useSyncExternalStore(subscribeStorageUsage, getStorageUsageSnapshot, getStorageUsageSnapshot);
   const usage = storage.data;
   const realtimeInstanceId = useId().replace(/:/g, "");
+  const clinic = variant === "clinic";
+  const accentText = clinic ? "text-[#1e8f87]" : "text-primary";
+  const accentBg = clinic ? "bg-[#1e8f87]" : "bg-primary";
 
   useEffect(() => {
     void refreshStorageUsage().catch(() => undefined);
-
-    // AppShell and ClinicSidebar can be mounted at the same time. Supabase
-    // reuses channels with the same topic, so each mounted card needs its own
-    // topic before registering postgres_changes callbacks and subscribing.
     const channel = supabase
       .channel(`clinic-storage-usage-${realtimeInstanceId}`)
       .on(
@@ -29,8 +34,6 @@ export function StorageSidebarCard({ collapsed = false }: { collapsed?: boolean 
       )
       .subscribe();
 
-    // Polling is a low-frequency safety net for deployments where Realtime is
-    // not enabled for this table yet.
     const id = window.setInterval(() => void refreshStorageUsage().catch(() => undefined), 60_000);
     return () => {
       window.clearInterval(id);
@@ -42,13 +45,13 @@ export function StorageSidebarCard({ collapsed = false }: { collapsed?: boolean 
     const pct = usage ? Math.min(100, Math.max(0, usage.usage_ratio * 100)) : 0;
     return (
       <Link
-        to="/armazenamento"
+        to={to as any}
         title="Armazenamento"
-        className="mx-auto mb-3 h-10 w-10 rounded-xl border border-slate-100 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] grid place-items-center relative text-slate-500 hover:text-primary hover:border-primary/20 transition"
+        className={`mx-auto mb-3 h-10 w-10 rounded-xl border border-slate-100 dark:border-white/10 bg-slate-50/70 dark:bg-white/[0.03] grid place-items-center relative text-slate-500 transition ${clinic ? "hover:text-[#1e8f87] hover:border-[#1e8f87]/20" : "hover:text-primary hover:border-primary/20"}`}
       >
         <HardDrive className="h-[19px] w-[19px] stroke-[1.5px]" />
         <span className="absolute -bottom-1 left-1 right-1 h-1 rounded-full bg-slate-200 dark:bg-white/10 overflow-hidden">
-          <span className="block h-full bg-primary transition-all duration-300" style={{ width: `${pct}%` }} />
+          <span className={`block h-full transition-all duration-300 ${accentBg}`} style={{ width: `${pct}%` }} />
         </span>
       </Link>
     );
@@ -62,7 +65,7 @@ export function StorageSidebarCard({ collapsed = false }: { collapsed?: boolean 
   const full = !!usage?.full;
 
   return (
-    <div className="mx-3 mb-3 rounded-[22px] border border-slate-100/90 dark:border-white/[0.07] bg-gradient-to-b from-white to-slate-50/60 dark:from-slate-950 dark:to-slate-900/50 p-4 shadow-[0_10px_28px_-24px_rgba(15,23,42,0.45)]">
+    <div className={`mx-3 mb-3 rounded-[22px] border p-4 shadow-[0_10px_28px_-24px_rgba(15,23,42,0.45)] ${clinic ? "border-[#1e8f87]/10 bg-[linear-gradient(180deg,rgba(30,143,135,0.035),rgba(255,255,255,0.9))] dark:border-[#1e8f87]/15 dark:bg-[#1e8f87]/[0.035]" : "border-slate-100/90 bg-gradient-to-b from-white to-slate-50/60 dark:border-white/[0.07] dark:from-slate-950 dark:to-slate-900/50"}`}>
       <div className="flex items-center gap-3">
         <div className="relative h-10 w-10 shrink-0">
           <svg viewBox="0 0 40 40" className="h-10 w-10 -rotate-90" aria-hidden="true">
@@ -71,7 +74,7 @@ export function StorageSidebarCard({ collapsed = false }: { collapsed?: boolean 
               cx="20" cy="20" r="16" fill="none" stroke="currentColor" strokeWidth="4"
               strokeLinecap="round" strokeDasharray={`${2 * Math.PI * 16}`}
               strokeDashoffset={`${2 * Math.PI * 16 * (1 - percent / 100)}`}
-              className={full ? "text-rose-500" : warning ? "text-amber-500" : "text-primary"}
+              className={full ? "text-rose-500" : warning ? "text-amber-500" : accentText}
             />
           </svg>
           <HardDrive className="absolute inset-0 m-auto h-4 w-4 text-slate-500 dark:text-slate-300 stroke-[1.5px]" />
@@ -83,20 +86,15 @@ export function StorageSidebarCard({ collapsed = false }: { collapsed?: boolean 
           </div>
           <div className="mt-0.5 flex items-baseline gap-1.5 min-w-0">
             <span className="text-[18px] font-light tracking-tight text-slate-900 dark:text-slate-50 truncate">{available}</span>
-            <span className="text-[10px] font-medium text-primary whitespace-nowrap">disponível</span>
+            <span className={`text-[10px] font-medium whitespace-nowrap ${accentText}`}>disponível</span>
           </div>
         </div>
       </div>
 
       <div className="mt-3 h-1.5 rounded-full bg-slate-100 dark:bg-white/10 overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-[width] duration-300 ${full ? "bg-rose-500" : warning ? "bg-amber-500" : "bg-primary"}`}
-          style={{ width: `${percent}%` }}
-        />
+        <div className={`h-full rounded-full transition-[width] duration-300 ${full ? "bg-rose-500" : warning ? "bg-amber-500" : accentBg}`} style={{ width: `${percent}%` }} />
       </div>
-      <div className="mt-1.5 text-[10.5px] text-slate-400 dark:text-slate-500">
-        {used} de {limit} usados
-      </div>
+      <div className="mt-1.5 text-[10.5px] text-slate-400 dark:text-slate-500">{used} de {limit} usados</div>
 
       {warning && (
         <p className={`mt-2 text-[10.5px] leading-snug ${full ? "text-rose-500" : "text-amber-600 dark:text-amber-400"}`}>
@@ -105,16 +103,14 @@ export function StorageSidebarCard({ collapsed = false }: { collapsed?: boolean 
       )}
 
       <Link
-        to="/armazenamento"
-        className="mt-3 h-9 w-full rounded-xl bg-primary text-white text-[11px] font-medium flex items-center justify-center gap-1.5 hover:bg-primary/90 active:scale-[0.99] transition"
+        to={to as any}
+        className={`mt-3 h-9 w-full rounded-xl text-white text-[11px] font-medium flex items-center justify-center gap-1.5 active:scale-[0.99] transition ${clinic ? "bg-[#1e8f87] hover:bg-[#177a73]" : "bg-primary hover:bg-primary/90"}`}
       >
         Gerenciar armazenamento <ChevronRight className="h-3.5 w-3.5" />
       </Link>
 
       {usage && !usage.quota_enforced && (
-        <p className="mt-2 text-[9.5px] text-slate-400 leading-tight">
-          A medição será ativada após a atualização do banco de dados.
-        </p>
+        <p className="mt-2 text-[9.5px] text-slate-400 leading-tight">A medição será ativada após a atualização do banco de dados.</p>
       )}
     </div>
   );

@@ -7,10 +7,11 @@ import {
   WalletCards,
   Settings,
   FlaskConical,
-  Grid2X2,
   Building2,
+  Radio,
 } from "lucide-react";
 
+import { StorageSidebarCard } from "@/components/StorageSidebarCard";
 import type { ClinicContext, ClinicPermission } from "@/lib/clinic";
 
 const primaryItems: Array<{ to: string; label: string; icon: any; permission: ClinicPermission }> = [
@@ -43,6 +44,23 @@ function NavItem({ item, active }: { item: (typeof primaryItems)[number]; active
   );
 }
 
+function ModuleRow({ label, icon: Icon, to, disabled = false }: { label: string; icon: any; to?: string; disabled?: boolean }) {
+  const body = (
+    <div
+      className={`group relative flex w-full items-center overflow-hidden py-5 pl-9 text-[12px] font-medium uppercase tracking-[0.11em] transition-all ${
+        disabled ? "cursor-default text-slate-300 dark:text-slate-700" : "text-slate-500 hover:bg-[#1e8f87]/[0.025] hover:text-[#1e8f87]"
+      }`}
+    >
+      <div className="absolute inset-x-0 bottom-0 h-px bg-slate-100 dark:bg-white/5" />
+      {!disabled && <div className="absolute left-8 h-16 w-20 rounded-full bg-[#1e8f87] opacity-0 blur-[28px] transition-opacity group-hover:opacity-10" />}
+      <Icon className="mr-4 h-[18px] w-[18px] shrink-0 stroke-[1.45]" />
+      <span>{label}</span>
+      {disabled && <span className="ml-auto mr-6 text-[8px] font-semibold tracking-[0.12em]">EM BREVE</span>}
+    </div>
+  );
+  return to && !disabled ? <Link to={to as any}>{body}</Link> : body;
+}
+
 export function ClinicSidebar({ context }: { context: ClinicContext }) {
   const { pathname } = useLocation();
   const activeFor = (to: string) => (to === "/clinica" ? pathname === "/clinica" : pathname.startsWith(to));
@@ -70,34 +88,24 @@ export function ClinicSidebar({ context }: { context: ClinicContext }) {
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 pb-4 pt-1">
+        <nav className="flex-1 overflow-y-auto px-3 pb-3 pt-1">
           <div className="px-3 pb-2 pt-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300 dark:text-slate-600">Atendimento</div>
-          <div className="space-y-1">
-            {primary.map((item) => <NavItem key={item.to} item={item} active={activeFor(item.to)} />)}
-          </div>
+          <div className="space-y-1">{primary.map((item) => <NavItem key={item.to} item={item} active={activeFor(item.to)} />)}</div>
 
           {management.length > 0 && (
             <>
               <div className="mx-3 my-4 h-px bg-slate-100 dark:bg-white/5" />
               <div className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300 dark:text-slate-600">Gestão</div>
-              <div className="space-y-1">
-                {management.map((item) => <NavItem key={item.to} item={item} active={activeFor(item.to)} />)}
-              </div>
+              <div className="space-y-1">{management.map((item) => <NavItem key={item.to} item={item} active={activeFor(item.to)} />)}</div>
             </>
           )}
         </nav>
 
-        <div className="border-t border-slate-100 p-3 dark:border-white/5">
-          {labEnabled && (
-            <Link to="/casos" className="flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-light text-slate-400 transition hover:bg-slate-50 hover:text-slate-700 dark:hover:bg-white/5 dark:hover:text-slate-200">
-              <FlaskConical className="h-4.5 w-4.5 stroke-[1.5]" />
-              <span>Ir para Laboratório</span>
-            </Link>
-          )}
-          <Link to="/hub" className="mt-1 flex h-10 items-center gap-3 rounded-xl px-3 text-xs font-medium text-[#1e8f87] transition hover:bg-[#1e8f87]/6">
-            <Grid2X2 className="h-4.5 w-4.5 stroke-[1.5]" />
-            <span>Trocar de módulo</span>
-          </Link>
+        {context.isAdvanced && <StorageSidebarCard to="/clinica/armazenamento" variant="clinic" />}
+
+        <div className="mt-auto border-t border-slate-100 bg-white dark:border-white/5 dark:bg-[#090c11]">
+          {labEnabled && <ModuleRow label="Laboratório" icon={FlaskConical} to="/casos" />}
+          <ModuleRow label="Radiologia" icon={Radio} disabled />
         </div>
       </aside>
 
@@ -118,9 +126,9 @@ export function ClinicSidebar({ context }: { context: ClinicContext }) {
             <span>Financeiro</span>
           </Link>
         ) : <span />}
-        <Link to="/hub" className="flex flex-col items-center justify-center gap-1 rounded-2xl text-[9px] font-medium text-slate-400 transition hover:text-[#1e8f87]">
-          <Grid2X2 className="h-5 w-5 stroke-[1.5]" />
-          <span>Módulos</span>
+        <Link to="/clinica/configuracoes" className={`flex flex-col items-center justify-center gap-1 rounded-2xl text-[9px] font-medium transition ${activeFor("/clinica/configuracoes") ? "bg-[#1e8f87]/10 text-[#1e8f87]" : "text-slate-400"}`}>
+          <Settings className="h-5 w-5 stroke-[1.5]" />
+          <span>Ajustes</span>
         </Link>
       </nav>
     </>
