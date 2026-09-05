@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
 import { CalendarDays, ExternalLink, X } from "lucide-react";
 
@@ -73,6 +74,38 @@ export function PatientPhotoLightbox({ patient, trigger }: { patient: Patient | 
     );
   }
 
+  const overlay = open && typeof document !== "undefined" ? createPortal(
+    <div
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-white/72 p-6 backdrop-blur-xl dark:bg-slate-950/72"
+      onClick={(event) => {
+        event.stopPropagation();
+        setOpen(false);
+      }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Foto de ${patient.name}`}
+    >
+      <button
+        type="button"
+        className="absolute right-6 top-6 grid h-11 w-11 place-items-center rounded-full border border-slate-200/80 bg-white/75 text-slate-600 shadow-sm backdrop-blur transition hover:bg-white dark:border-white/15 dark:bg-black/25 dark:text-white dark:hover:bg-black/40"
+        onClick={(event) => {
+          event.stopPropagation();
+          setOpen(false);
+        }}
+        aria-label="Fechar foto"
+      >
+        <X className="h-5 w-5" />
+      </button>
+      <img
+        src={patient.photo_url}
+        alt={patient.name || "Foto do paciente"}
+        className="max-h-[88vh] max-w-[92vw] rounded-[28px] object-contain shadow-[0_28px_80px_rgba(15,23,42,0.18)] dark:shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      />
+    </div>,
+    document.body,
+  ) : null;
+
   return (
     <>
       <button
@@ -86,37 +119,7 @@ export function PatientPhotoLightbox({ patient, trigger }: { patient: Patient | 
       >
         {trigger}
       </button>
-
-      {open && (
-        <div
-          className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-950/50 p-6 backdrop-blur-xl"
-          onClick={(event) => {
-            event.stopPropagation();
-            setOpen(false);
-          }}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`Foto de ${patient.name}`}
-        >
-          <button
-            type="button"
-            className="absolute right-6 top-6 grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-black/20 text-white transition hover:bg-black/35"
-            onClick={(event) => {
-              event.stopPropagation();
-              setOpen(false);
-            }}
-            aria-label="Fechar foto"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          <img
-            src={patient.photo_url}
-            alt={patient.name || "Foto do paciente"}
-            className="max-h-[88vh] max-w-[92vw] rounded-[28px] object-contain shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          />
-        </div>
-      )}
+      {overlay}
     </>
   );
 }
@@ -245,7 +248,7 @@ export function PatientCasePopover({
                   type="button"
                   onClick={() => {
                     setOpen(false);
-                    navigate({ to: "/agenda" });
+                    navigate({ to: "/clinica/agenda" as any });
                   }}
                   className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#5B9DF4] text-[13px] font-medium text-white shadow-sm transition hover:bg-[#4E8FE5]"
                 >
