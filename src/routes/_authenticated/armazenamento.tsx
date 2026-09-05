@@ -187,8 +187,8 @@ function StoragePage() {
           <div className="mt-5 space-y-4">
             <div className="flex items-end justify-between"><span className="text-sm text-slate-500">Arquivos</span><strong className="text-2xl font-light text-slate-900 dark:text-white">{usage?.file_count ?? files.data?.length ?? 0}</strong></div>
             <div className="h-px bg-slate-100 dark:bg-white/10" />
-            <div className="flex items-end justify-between"><span className="text-sm text-slate-500">Plano atual</span><strong className="text-lg font-medium text-slate-900 dark:text-white">1 GB</strong></div>
-            <p className="text-[11px] leading-relaxed text-slate-400">O limite pertence à clínica, não a cada usuário. O consumo é compartilhado entre todos os membros.</p>
+            <div className="flex items-end justify-between"><span className="text-sm text-slate-500">Cota atual</span><strong className="text-lg font-medium text-slate-900 dark:text-white">{usage ? formatStorageBytes(usage.limit_bytes) : "—"}</strong></div>
+            <p className="text-[11px] leading-relaxed text-slate-400">A cota pertence à clínica e já considera o espaço incluído, adicionais comprados e cortesias ativas. O consumo é compartilhado entre todos os membros.</p>
           </div>
         </div>
       </section>
