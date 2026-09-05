@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRight,
@@ -9,6 +9,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
+import { startEnvironmentTransition, type EnvironmentName } from "@/components/EnvironmentTransition";
 import { fetchProfile } from "@/lib/api";
 import { fetchClinicContext } from "@/lib/clinic";
 
@@ -20,6 +21,7 @@ type ModuleCardProps = {
   icon: React.ReactNode;
   enabled: boolean;
   to?: string;
+  environment?: EnvironmentName;
   eyebrow: string;
   badge?: string;
   accent: "lab" | "clinic" | "radiology";
@@ -43,8 +45,9 @@ const accents = {
   },
 };
 
-function ModuleCard({ title, description, icon, enabled, to, eyebrow, badge, accent }: ModuleCardProps) {
+function ModuleCard({ title, description, icon, enabled, to, environment, eyebrow, badge, accent }: ModuleCardProps) {
   const style = accents[accent];
+  const navigate = useNavigate();
   const content = (
     <article className={`group relative min-h-[330px] overflow-hidden rounded-[30px] border border-slate-200/75 bg-white p-7 transition-all duration-300 dark:border-white/[0.08] dark:bg-[#0b0e13] ${enabled ? `${style.hover} hover:-translate-y-1 hover:shadow-[0_24px_70px_-28px_rgba(15,23,42,0.3)]` : "opacity-70"}`}>
       <div className={`pointer-events-none absolute inset-x-0 top-0 h-44 bg-gradient-to-b ${style.glow} to-transparent opacity-70`} />
@@ -71,7 +74,21 @@ function ModuleCard({ title, description, icon, enabled, to, eyebrow, badge, acc
     </article>
   );
 
-  return enabled && to ? <Link to={to as any} className="block">{content}</Link> : content;
+  if (!enabled || !to) return content;
+
+  return (
+    <Link
+      to={to as any}
+      className="block"
+      onClick={(event) => {
+        if (!environment) return;
+        event.preventDefault();
+        startEnvironmentTransition(environment, () => navigate({ to: to as any }));
+      }}
+    >
+      {content}
+    </Link>
+  );
 }
 
 function HubPage() {
@@ -114,6 +131,7 @@ function HubPage() {
             icon={<FlaskConical className="h-6 w-6 stroke-[1.5]" />}
             enabled={labEnabled}
             to="/casos"
+            environment="Laboratório"
             accent="lab"
           />
           <ModuleCard
@@ -123,6 +141,7 @@ function HubPage() {
             icon={<Building2 className="h-6 w-6 stroke-[1.5]" />}
             enabled={clinicalEnabled}
             to="/clinica"
+            environment="Clínica"
             badge={clinicalEnabled ? undefined : "Plano não habilitado"}
             accent="clinic"
           />
@@ -132,6 +151,7 @@ function HubPage() {
             description="Exames, imagens e laudos em uma aplicação dedicada. A arquitetura já está preparada para receber este módulo."
             icon={<Radio className="h-6 w-6 stroke-[1.5]" />}
             enabled={false}
+            environment="Radiologia"
             badge="Em preparação"
             accent="radiology"
           />
