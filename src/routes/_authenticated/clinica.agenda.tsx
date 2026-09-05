@@ -2,11 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  CalendarDays,
   CalendarRange,
   ChevronLeft,
   ChevronRight,
-  Clock3,
   Columns3,
   ExternalLink,
   List,
@@ -14,6 +12,7 @@ import {
   Pencil,
   Phone,
   Plus,
+  RefreshCw,
   Search,
   UserRound,
   X,
@@ -22,11 +21,17 @@ import { toast } from "sonner";
 
 import { ClinicPageGuard } from "@/components/ClinicPageGuard";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { fetchDoctors, fetchPatients } from "@/lib/api";
 import { cancelClinicAppointment, fetchClinicAppointments, fetchClinicContext, saveClinicAppointment } from "@/lib/clinic";
 
@@ -96,7 +101,7 @@ function Agenda() {
   const [doctorFilter, setDoctorFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("active");
   const [editing, setEditing] = useState<any | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const anchorDate = fromDateKey(anchor);
   const range = useMemo(() => {
@@ -143,24 +148,32 @@ function Agenda() {
     onSuccess: () => {
       toast.success("Agendamento cancelado");
       qc.invalidateQueries({ queryKey: ["clinic_appointments"] });
-      setSheetOpen(false);
+      setDialogOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   function newAppointment() {
     setEditing(null);
-    setSheetOpen(true);
+    setDialogOpen(true);
   }
 
   function editAppointment(appointment: any) {
     setEditing(appointment);
-    setSheetOpen(true);
+    setDialogOpen(true);
   }
 
   function shiftPeriod(direction: number) {
     const delta = view === "week" ? 7 : view === "list" ? 30 : 1;
     setAnchor(localDateKey(addDays(anchorDate, direction * delta)));
+  }
+
+  async function handleAppointmentSaved(saved: any) {
+    if (saved?.starts_at) {
+      setAnchor(localDateKey(new Date(saved.starts_at)));
+      setStatusFilter("active");
+    }
+    await qc.invalidateQueries({ queryKey: ["clinic_appointments"] });
   }
 
   const heading = view === "week"
@@ -218,6 +231,14 @@ function Agenda() {
       <div className="mt-5">
         {appointments.isLoading ? (
           <div className="rounded-[28px] border border-slate-200/60 bg-white py-20 text-center text-sm font-light text-slate-400 dark:border-white/10 dark:bg-slate-950">Carregando agenda…</div>
+        ) : appointments.isError ? (
+          <div className="rounded-[28px] border border-rose-100 bg-white px-6 py-16 text-center dark:border-rose-900/30 dark:bg-slate-950">
+            <div className="mx-auto max-w-md text-sm font-medium text-slate-700 dark:text-slate-200">Não foi possível carregar os agendamentos.</div>
+            <div className="mx-auto mt-2 max-w-lg text-xs font-light leading-5 text-slate-400">A agenda preservou seus dados. Tente carregar novamente.</div>
+            <Button variant="outline" onClick={() => appointments.refetch()} className="mt-5 rounded-xl">
+              <RefreshCw className="mr-2 h-4 w-4" /> Tentar novamente
+            </Button>
+          </div>
         ) : view === "day" ? (
           <DayView appointments={visible} onEdit={editAppointment} />
         ) : view === "week" ? (
@@ -227,16 +248,16 @@ function Agenda() {
         )}
       </div>
 
-      <AppointmentSheet
-        key={`${editing?.id ?? "new"}:${sheetOpen ? "open" : "closed"}:${anchor}`}
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
+      <AppointmentDialog
+        key={`${editing?.id ?? "new"}:${dialogOpen ? "open" : "closed"}:${anchor}`}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
         appointment={editing}
         defaultDay={anchor}
         clinicId={context.data?.clinicId ?? null}
         patients={patients.data ?? []}
         doctors={doctors.data ?? []}
-        onSaved={() => qc.invalidateQueries({ queryKey: ["clinic_appointments"] })}
+        onSaved={handleAppointmentSaved}
         onCancel={(id: string) => cancel.mutate(id)}
         cancelling={cancel.isPending}
       />
@@ -418,7 +439,7 @@ function ListView({ appointments, onEdit }: { appointments: any[]; onEdit: (a: a
   return <div className="space-y-5">{groups.map(([key, rows]) => <section key={key}><div className="mb-2 px-1 text-xs font-medium capitalize text-slate-400">{fromDateKey(key).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</div><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{rows.map((a) => <AppointmentCard key={a.id} appointment={a} onEdit={onEdit} />)}</div></section>)}</div>;
 }
 
-function AppointmentSheet({ open, onOpenChange, appointment, defaultDay, clinicId, patients, doctors, onSaved, onCancel, cancelling }: any) {
+function AppointmentDialog({ open, onOpenChange, appointment, defaultDay, clinicId, patients, doctors, onSaved, onCancel, cancelling }: any) {
   const baseStart = appointment ? new Date(appointment.starts_at) : new Date(`${defaultDay}T09:00:00`);
   const baseEnd = appointment ? new Date(appointment.ends_at) : new Date(baseStart.getTime() + 30 * 60_000);
   const [patientId, setPatientId] = useState(appointment?.patient_id ?? "");
@@ -433,40 +454,57 @@ function AppointmentSheet({ open, onOpenChange, appointment, defaultDay, clinicI
       if (!clinicId || !patientId) throw new Error("Selecione um paciente.");
       if (!startsAt || !endsAt) throw new Error("Informe início e fim.");
       if (new Date(endsAt).getTime() <= new Date(startsAt).getTime()) throw new Error("O término deve ser depois do início.");
-      return saveClinicAppointment({ id: appointment?.id, clinic_id: clinicId, patient_id: patientId, doctor_id: doctorId === "none" ? null : doctorId, title: title.trim() || null, starts_at: new Date(startsAt).toISOString(), ends_at: new Date(endsAt).toISOString(), status });
+      return saveClinicAppointment({
+        id: appointment?.id,
+        clinic_id: clinicId,
+        patient_id: patientId,
+        doctor_id: doctorId === "none" ? null : doctorId,
+        title: title.trim() || null,
+        starts_at: new Date(startsAt).toISOString(),
+        ends_at: new Date(endsAt).toISOString(),
+        status,
+      });
     },
-    onSuccess: () => {
+    onSuccess: (saved) => {
       toast.success(appointment ? "Agendamento atualizado" : "Agendamento criado");
-      onSaved();
+      onSaved(saved);
       onOpenChange(false);
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto border-l border-slate-100 bg-white p-0 sm:max-w-[520px] dark:border-white/10 dark:bg-[#0b0e13]">
-        <div className="border-b border-slate-100 px-6 py-6 dark:border-white/5">
-          <SheetHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90dvh] w-[calc(100vw-24px)] gap-0 overflow-hidden rounded-[28px] border-slate-200/80 bg-white p-0 shadow-[0_28px_90px_rgba(15,23,42,0.20)] sm:max-w-[640px] dark:border-white/10 dark:bg-[#0b0e13]">
+        <div className="border-b border-slate-100 px-6 py-6 pr-14 dark:border-white/5 sm:px-7">
+          <DialogHeader>
             <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#1e8f87]">Agenda clínica</div>
-            <SheetTitle className="text-2xl font-light tracking-tight">{appointment ? "Detalhes do agendamento" : "Novo agendamento"}</SheetTitle>
-            <SheetDescription className="font-light">Preencha apenas o necessário. Você pode complementar depois.</SheetDescription>
-          </SheetHeader>
+            <DialogTitle className="mt-1 text-[28px] font-light tracking-[-0.035em] text-slate-950 dark:text-white">{appointment ? "Editar agendamento" : "Novo agendamento"}</DialogTitle>
+            <DialogDescription className="font-light leading-5">Defina paciente, profissional, horário e status em uma única tela.</DialogDescription>
+          </DialogHeader>
         </div>
 
-        <div className="space-y-5 px-6 py-6">
-          <div className="space-y-1.5"><Label>Paciente</Label><Select value={patientId} onValueChange={setPatientId}><SelectTrigger className="h-11 rounded-xl"><SelectValue placeholder="Selecione o paciente" /></SelectTrigger><SelectContent>{patients.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div>
-          <div className="space-y-1.5"><Label>Profissional</Label><Select value={doctorId} onValueChange={setDoctorId}><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">Sem profissional definido</SelectItem>{doctors.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select></div>
-          <div className="space-y-1.5"><Label>Atendimento</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Avaliação, retorno, profilaxia…" className="h-11 rounded-xl" /></div>
-          <div className="grid gap-3 sm:grid-cols-2"><div className="space-y-1.5"><Label>Início</Label><Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className="h-11 rounded-xl" /></div><div className="space-y-1.5"><Label>Fim</Label><Input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} className="h-11 rounded-xl" /></div></div>
-          <div className="space-y-1.5"><Label>Status</Label><Select value={status} onValueChange={setStatus}><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(STATUS_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
+        <div className="max-h-[calc(90dvh-205px)] overflow-y-auto px-6 py-6 sm:px-7">
+          <div className="space-y-5">
+            <div className="grid gap-5 sm:grid-cols-2">
+              <div className="space-y-1.5 sm:col-span-2"><Label>Paciente</Label><Select value={patientId} onValueChange={setPatientId}><SelectTrigger className="h-11 rounded-xl"><SelectValue placeholder="Selecione o paciente" /></SelectTrigger><SelectContent>{patients.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-1.5"><Label>Profissional</Label><Select value={doctorId} onValueChange={setDoctorId}><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">Sem profissional definido</SelectItem>{doctors.map((d: any) => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-1.5"><Label>Status</Label><Select value={status} onValueChange={setStatus}><SelectTrigger className="h-11 rounded-xl"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(STATUS_LABEL).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></div>
+              <div className="space-y-1.5 sm:col-span-2"><Label>Atendimento</Label><Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Avaliação, retorno, profilaxia…" className="h-11 rounded-xl" /></div>
+              <div className="space-y-1.5"><Label>Início</Label><Input type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} className="h-11 rounded-xl" /></div>
+              <div className="space-y-1.5"><Label>Fim</Label><Input type="datetime-local" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} className="h-11 rounded-xl" /></div>
+            </div>
+          </div>
         </div>
 
-        <div className="sticky bottom-0 mt-4 flex items-center justify-between gap-3 border-t border-slate-100 bg-white/95 px-6 py-5 backdrop-blur dark:border-white/5 dark:bg-[#0b0e13]/95">
+        <div className="flex flex-col-reverse gap-3 border-t border-slate-100 bg-white/96 px-6 py-5 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-7 dark:border-white/5 dark:bg-[#0b0e13]/96">
           <div>{appointment && appointment.status !== "cancelled" && <Button variant="ghost" disabled={cancelling} onClick={() => onCancel(appointment.id)} className="rounded-xl text-rose-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/20">Cancelar agendamento</Button>}</div>
-          <div className="flex gap-2"><Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl"><X className="mr-1 h-4 w-4" /> Fechar</Button><Button onClick={() => save.mutate()} disabled={save.isPending} className="rounded-xl bg-[#1e8f87] text-white hover:bg-[#177a73]">{save.isPending ? "Salvando…" : "Salvar"}</Button></div>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-xl">Fechar</Button>
+            <Button onClick={() => save.mutate()} disabled={save.isPending} className="min-w-[132px] rounded-xl bg-[#1e8f87] text-white hover:bg-[#177a73]">{save.isPending ? "Salvando…" : appointment ? "Salvar alterações" : "Agendar"}</Button>
+          </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
