@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -8,9 +8,14 @@ import {
   ChevronRight,
   Clock3,
   Columns3,
+  ExternalLink,
   List,
+  Mail,
+  Pencil,
+  Phone,
   Plus,
   Search,
+  UserRound,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -19,6 +24,7 @@ import { ClinicPageGuard } from "@/components/ClinicPageGuard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { fetchDoctors, fetchPatients } from "@/lib/api";
@@ -62,6 +68,20 @@ function addDays(date: Date, amount: number) {
   const d = new Date(date);
   d.setDate(d.getDate() + amount);
   return d;
+}
+
+function patientInitial(name: string | null | undefined) {
+  return (name?.trim()?.[0] || "?").toUpperCase();
+}
+
+function patientAge(birthDate: string | null | undefined) {
+  if (!birthDate) return null;
+  const [year, month, day] = birthDate.slice(0, 10).split("-").map(Number);
+  if (!year || !month || !day) return null;
+  const today = new Date();
+  let age = today.getFullYear() - year;
+  if (today.getMonth() + 1 < month || (today.getMonth() + 1 === month && today.getDate() < day)) age -= 1;
+  return age >= 0 && age < 130 ? age : null;
 }
 
 function ClinicAgendaPage() {
@@ -199,11 +219,11 @@ function Agenda() {
         {appointments.isLoading ? (
           <div className="rounded-[28px] border border-slate-200/60 bg-white py-20 text-center text-sm font-light text-slate-400 dark:border-white/10 dark:bg-slate-950">Carregando agenda…</div>
         ) : view === "day" ? (
-          <DayView appointments={visible} onOpen={editAppointment} />
+          <DayView appointments={visible} onEdit={editAppointment} />
         ) : view === "week" ? (
-          <WeekView start={range.start} appointments={visible} onOpen={editAppointment} />
+          <WeekView start={range.start} appointments={visible} onEdit={editAppointment} />
         ) : (
-          <ListView appointments={visible} onOpen={editAppointment} />
+          <ListView appointments={visible} onEdit={editAppointment} />
         )}
       </div>
 
@@ -228,29 +248,120 @@ function ViewButton({ active, onClick, icon: Icon, label }: { active: boolean; o
   return <button onClick={onClick} className={`inline-flex h-9 items-center gap-2 rounded-xl px-3 text-xs font-medium transition ${active ? "bg-[#1e8f87]/10 text-[#1e8f87]" : "text-slate-400 hover:bg-slate-50 hover:text-slate-600 dark:hover:bg-white/5"}`}><Icon className="h-4 w-4 stroke-[1.5]" />{label}</button>;
 }
 
-function AppointmentCard({ appointment, compact = false, onOpen }: { appointment: any; compact?: boolean; onOpen: (a: any) => void }) {
+function AppointmentCard({ appointment, compact = false, onEdit }: { appointment: any; compact?: boolean; onEdit: (a: any) => void }) {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
   const cancelled = appointment.status === "cancelled";
-  const time = new Date(appointment.starts_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const start = new Date(appointment.starts_at);
+  const end = new Date(appointment.ends_at);
+  const time = start.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const endTime = end.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const patient = appointment.patient;
+  const age = patientAge(patient?.birth_date);
+
   return (
-    <button onClick={() => onOpen(appointment)} className={`w-full rounded-2xl border text-left transition hover:-translate-y-px hover:shadow-sm ${compact ? "p-3" : "p-4"} ${cancelled ? "border-slate-100 bg-slate-50/50 opacity-55 dark:border-white/5 dark:bg-white/[0.02]" : "border-slate-200/70 bg-white hover:border-[#1e8f87]/25 dark:border-white/10 dark:bg-slate-950"}`}>
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 min-w-[44px] text-xs font-semibold tabular-nums text-[#1e8f87]">{time}</div>
-        <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium text-slate-900 dark:text-white">{appointment.patient?.name || "Paciente"}</div>
-          <div className="mt-1 truncate text-[11px] font-light text-slate-400">{appointment.title || "Atendimento"}{appointment.doctor?.name ? ` · ${appointment.doctor.name}` : ""}</div>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`w-full rounded-2xl border text-left transition hover:-translate-y-px hover:shadow-sm ${compact ? "min-h-[104px] p-3" : "p-4"} ${cancelled ? "border-slate-100 bg-slate-50/50 opacity-55 dark:border-white/5 dark:bg-white/[0.02]" : "border-slate-200/70 bg-white hover:border-[#1e8f87]/25 dark:border-white/10 dark:bg-slate-950"}`}
+          aria-label={`Abrir resumo do agendamento de ${patient?.name || "paciente"}`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-[11px] font-semibold tabular-nums text-[#1e8f87]">{time}</div>
+            <StatusBadge status={appointment.status} compact={compact} />
+          </div>
+          <div className={`${compact ? "mt-2 line-clamp-2 min-h-[2.25rem] text-[13px] leading-[1.15rem]" : "mt-1.5 truncate text-sm"} font-semibold text-slate-900 dark:text-white`}>
+            {patient?.name || "Paciente"}
+          </div>
+          <div className={`${compact ? "mt-1.5 line-clamp-2 text-[10px] leading-4" : "mt-1 truncate text-[11px]"} font-light text-slate-400`}>
+            {appointment.title || "Atendimento"}{appointment.doctor?.name ? ` · ${appointment.doctor.name}` : ""}
+          </div>
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        side="top"
+        align="start"
+        sideOffset={10}
+        collisionPadding={18}
+        className="w-[360px] max-w-[calc(100vw-32px)] overflow-hidden rounded-[24px] border border-slate-200/70 bg-white/95 p-0 shadow-[0_24px_70px_rgba(15,23,42,0.18)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95"
+      >
+        <div className="p-5 pb-4">
+          <div className="flex items-start gap-3">
+            <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-[#1e8f87]/8 text-sm font-medium text-[#1e8f87]">
+              {patient?.photo_url ? <img src={patient.photo_url} alt="" className="h-full w-full object-cover" /> : <span>{patientInitial(patient?.name)}</span>}
+            </div>
+            <div className="min-w-0 flex-1 pt-0.5">
+              <div className="truncate text-[20px] font-medium leading-tight text-slate-950 dark:text-white">{patient?.name || "Paciente"}</div>
+              <div className="mt-1 flex items-center gap-2 text-[11px] font-light text-slate-400">
+                <span>{start.toLocaleDateString("pt-BR", { day: "2-digit", month: "long" })}</span>
+                <span className="h-1 w-1 rounded-full bg-slate-200" />
+                <span>{time}–{endTime}</span>
+              </div>
+            </div>
+            <button type="button" onClick={() => setOpen(false)} className="grid h-8 w-8 place-items-center rounded-full text-slate-300 transition hover:bg-slate-100 hover:text-slate-500 dark:hover:bg-slate-800" aria-label="Fechar resumo"><X className="h-4 w-4" /></button>
+          </div>
         </div>
-        <StatusBadge status={appointment.status} />
-      </div>
-    </button>
+
+        <div className="mx-4 rounded-2xl bg-slate-50/90 p-1 dark:bg-slate-900/80">
+          <div className="grid grid-cols-2 gap-1">
+            <InfoCell label="Atendimento" value={appointment.title || "Atendimento"} />
+            <InfoCell label="Profissional" value={appointment.doctor?.name || "Não definido"} />
+            <InfoCell label="Idade" value={age == null ? "Não informada" : `${age} anos`} />
+            <InfoCell label="Status" value={STATUS_LABEL[appointment.status] ?? appointment.status} />
+          </div>
+        </div>
+
+        {(patient?.phone || patient?.email) && (
+          <div className="space-y-2 px-5 pt-4 text-[12px] text-slate-500">
+            {patient?.phone && <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-[#1e8f87]" /><span className="truncate">{patient.phone}</span></div>}
+            {patient?.email && <div className="flex items-center gap-2"><Mail className="h-3.5 w-3.5 text-[#1e8f87]" /><span className="truncate">{patient.email}</span></div>}
+          </div>
+        )}
+
+        <div className="space-y-2 p-4 pt-4">
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              onEdit(appointment);
+            }}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#1e8f87] text-[13px] font-medium text-white shadow-sm transition hover:bg-[#177a73]"
+          >
+            <Pencil className="h-4 w-4" />
+            Editar agendamento
+          </button>
+          {patient?.id && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                navigate({ to: "/clinica/pacientes/$patientId" as any, params: { patientId: patient.id } as any });
+              }}
+              className="mx-auto flex items-center gap-1.5 px-2 py-1 text-[11px] font-normal text-slate-400 transition hover:text-[#1e8f87]"
+            >
+              <UserRound className="h-3.5 w-3.5" />
+              Ver perfil clínico
+              <ExternalLink className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const cls = status === "confirmed" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-300" : status === "completed" ? "bg-sky-50 text-sky-700 dark:bg-sky-950/20 dark:text-sky-300" : status === "cancelled" ? "bg-slate-100 text-slate-400 dark:bg-white/5" : status === "no_show" ? "bg-rose-50 text-rose-600 dark:bg-rose-950/20" : "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-300";
-  return <span className={`shrink-0 rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.08em] ${cls}`}>{STATUS_LABEL[status] ?? status}</span>;
+function InfoCell({ label, value }: { label: string; value: string }) {
+  return <div className="min-w-0 rounded-xl p-3"><div className="text-[10px] font-medium uppercase tracking-[0.08em] text-slate-400">{label}</div><div className="mt-1 truncate text-[13px] font-normal text-slate-800 dark:text-slate-100">{value}</div></div>;
 }
 
-function DayView({ appointments, onOpen }: { appointments: any[]; onOpen: (a: any) => void }) {
+function StatusBadge({ status, compact = false }: { status: string; compact?: boolean }) {
+  const cls = status === "confirmed" ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/20 dark:text-emerald-300" : status === "completed" ? "bg-sky-50 text-sky-700 dark:bg-sky-950/20 dark:text-sky-300" : status === "cancelled" ? "bg-slate-100 text-slate-400 dark:bg-white/5" : status === "no_show" ? "bg-rose-50 text-rose-600 dark:bg-rose-950/20" : "bg-amber-50 text-amber-700 dark:bg-amber-950/20 dark:text-amber-300";
+  return <span className={`shrink-0 rounded-full font-semibold uppercase tracking-[0.06em] ${compact ? "px-2 py-0.5 text-[8px]" : "px-2.5 py-1 text-[9px]"} ${cls}`}>{STATUS_LABEL[status] ?? status}</span>;
+}
+
+function DayView({ appointments, onEdit }: { appointments: any[]; onEdit: (a: any) => void }) {
   const hours = Array.from({ length: 14 }, (_, i) => i + 7);
   return (
     <div className="overflow-hidden rounded-[28px] border border-slate-200/70 bg-white dark:border-white/10 dark:bg-slate-950">
@@ -259,8 +370,8 @@ function DayView({ appointments, onOpen }: { appointments: any[]; onOpen: (a: an
         return (
           <div key={hour} className="grid min-h-[72px] grid-cols-[66px_1fr] border-b border-slate-100 last:border-0 dark:border-white/5">
             <div className="border-r border-slate-100 px-3 pt-4 text-right text-[11px] tabular-nums text-slate-300 dark:border-white/5">{String(hour).padStart(2, "0")}:00</div>
-            <div className="space-y-2 p-2.5">
-              {rows.map((a: any) => <AppointmentCard key={a.id} appointment={a} onOpen={onOpen} compact />)}
+            <div className="grid gap-2.5 p-2.5 sm:grid-cols-2 xl:grid-cols-3">
+              {rows.map((a: any) => <AppointmentCard key={a.id} appointment={a} onEdit={onEdit} />)}
             </div>
           </div>
         );
@@ -270,11 +381,11 @@ function DayView({ appointments, onOpen }: { appointments: any[]; onOpen: (a: an
   );
 }
 
-function WeekView({ start, appointments, onOpen }: { start: Date; appointments: any[]; onOpen: (a: any) => void }) {
+function WeekView({ start, appointments, onEdit }: { start: Date; appointments: any[]; onEdit: (a: any) => void }) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
   return (
     <div className="overflow-x-auto rounded-[28px] border border-slate-200/70 bg-white dark:border-white/10 dark:bg-slate-950">
-      <div className="grid min-w-[980px] grid-cols-7 divide-x divide-slate-100 dark:divide-white/5">
+      <div className="grid min-w-[1120px] grid-cols-7 divide-x divide-slate-100 dark:divide-white/5">
         {days.map((day) => {
           const key = localDateKey(day);
           const rows = appointments.filter((a: any) => localDateKey(new Date(a.starts_at)) === key);
@@ -285,7 +396,7 @@ function WeekView({ start, appointments, onOpen }: { start: Date; appointments: 
                 <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-slate-400">{day.toLocaleDateString("pt-BR", { weekday: "short" })}</div>
                 <div className={`mt-1 text-xl font-light ${today ? "text-[#1e8f87]" : "text-slate-800 dark:text-white"}`}>{day.getDate()}</div>
               </div>
-              <div className="space-y-2">{rows.map((a: any) => <AppointmentCard key={a.id} appointment={a} onOpen={onOpen} compact />)}</div>
+              <div className="space-y-2">{rows.map((a: any) => <AppointmentCard key={a.id} appointment={a} onEdit={onEdit} compact />)}</div>
             </div>
           );
         })}
@@ -294,7 +405,7 @@ function WeekView({ start, appointments, onOpen }: { start: Date; appointments: 
   );
 }
 
-function ListView({ appointments, onOpen }: { appointments: any[]; onOpen: (a: any) => void }) {
+function ListView({ appointments, onEdit }: { appointments: any[]; onEdit: (a: any) => void }) {
   const groups = useMemo(() => {
     const map = new Map<string, any[]>();
     for (const appointment of appointments) {
@@ -304,7 +415,7 @@ function ListView({ appointments, onOpen }: { appointments: any[]; onOpen: (a: a
     return Array.from(map.entries());
   }, [appointments]);
   if (groups.length === 0) return <div className="rounded-[28px] border border-dashed border-slate-200 py-20 text-center text-sm font-light text-slate-400 dark:border-white/10">Nenhum agendamento encontrado.</div>;
-  return <div className="space-y-5">{groups.map(([key, rows]) => <section key={key}><div className="mb-2 px-1 text-xs font-medium capitalize text-slate-400">{fromDateKey(key).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</div><div className="space-y-2">{rows.map((a) => <AppointmentCard key={a.id} appointment={a} onOpen={onOpen} />)}</div></section>)}</div>;
+  return <div className="space-y-5">{groups.map(([key, rows]) => <section key={key}><div className="mb-2 px-1 text-xs font-medium capitalize text-slate-400">{fromDateKey(key).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}</div><div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{rows.map((a) => <AppointmentCard key={a.id} appointment={a} onEdit={onEdit} />)}</div></section>)}</div>;
 }
 
 function AppointmentSheet({ open, onOpenChange, appointment, defaultDay, clinicId, patients, doctors, onSaved, onCancel, cancelling }: any) {
