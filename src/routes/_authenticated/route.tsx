@@ -6,6 +6,7 @@ import { HubShell } from "@/components/HubShell";
 import { ModuleEntryBridge } from "@/components/ModuleEntryBridge";
 import { CaseDialogSanitizer } from "@/components/CaseDialogSanitizer";
 import { WorkflowLayoutStabilizer } from "@/components/WorkflowLayoutStabilizer";
+import { EnvironmentTransition } from "@/components/EnvironmentTransition";
 import "@/workflow-layout.css";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -26,22 +27,29 @@ export const Route = createFileRoute("/_authenticated")({
 function AuthenticatedShell() {
   const { pathname } = useLocation();
 
+  let shell: React.ReactNode;
+
   if (pathname === "/hub") {
-    return <HubShell />;
+    shell = <HubShell />;
+  } else if (pathname.startsWith("/clinica")) {
+    shell = <ClinicShell />;
+  } else {
+    // O laboratório mantém seu próprio shell e seus próprios efeitos globais.
+    // Clínica e Hub não montam nada do domínio laboratorial.
+    shell = (
+      <>
+        <ModuleEntryBridge />
+        <CaseDialogSanitizer />
+        <WorkflowLayoutStabilizer />
+        <AppShell />
+      </>
+    );
   }
 
-  if (pathname.startsWith("/clinica")) {
-    return <ClinicShell />;
-  }
-
-  // O laboratório mantém seu próprio shell e seus próprios efeitos globais.
-  // Clínica e Hub não montam nada do domínio laboratorial.
   return (
     <>
-      <ModuleEntryBridge />
-      <CaseDialogSanitizer />
-      <WorkflowLayoutStabilizer />
-      <AppShell />
+      <EnvironmentTransition />
+      {shell}
     </>
   );
 }
