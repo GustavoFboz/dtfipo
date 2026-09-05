@@ -1,4 +1,4 @@
-import { Link, useLocation } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   CalendarDays,
   LayoutDashboard,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { StorageSidebarCard } from "@/components/StorageSidebarCard";
+import { startEnvironmentTransition, type EnvironmentName } from "@/components/EnvironmentTransition";
 import type { ClinicContext, ClinicPermission } from "@/lib/clinic";
 
 const primaryItems: Array<{ to: string; label: string; icon: any; permission: ClinicPermission }> = [
@@ -44,7 +45,20 @@ function NavItem({ item, active }: { item: (typeof primaryItems)[number]; active
   );
 }
 
-function ModuleRow({ label, icon: Icon, to, disabled = false }: { label: string; icon: any; to?: string; disabled?: boolean }) {
+function ModuleRow({
+  label,
+  icon: Icon,
+  to,
+  environment,
+  disabled = false,
+}: {
+  label: string;
+  icon: any;
+  to?: string;
+  environment?: EnvironmentName;
+  disabled?: boolean;
+}) {
+  const navigate = useNavigate();
   const body = (
     <div
       className={`group relative flex w-full items-center overflow-hidden py-5 pl-9 text-[12px] font-medium uppercase tracking-[0.11em] transition-all ${
@@ -58,7 +72,24 @@ function ModuleRow({ label, icon: Icon, to, disabled = false }: { label: string;
       {disabled && <span className="ml-auto mr-6 text-[8px] font-semibold tracking-[0.12em]">EM BREVE</span>}
     </div>
   );
-  return to && !disabled ? <Link to={to as any}>{body}</Link> : body;
+
+  if (!to || disabled) return body;
+
+  return (
+    <button
+      type="button"
+      className="block w-full text-left"
+      onClick={() => {
+        if (environment) {
+          startEnvironmentTransition(environment, () => navigate({ to: to as any }));
+          return;
+        }
+        navigate({ to: to as any });
+      }}
+    >
+      {body}
+    </button>
+  );
 }
 
 export function ClinicSidebar({ context }: { context: ClinicContext }) {
@@ -104,8 +135,8 @@ export function ClinicSidebar({ context }: { context: ClinicContext }) {
         {context.isAdvanced && <StorageSidebarCard to="/clinica/armazenamento" variant="clinic" />}
 
         <div className="mt-auto border-t border-slate-100 bg-white dark:border-white/5 dark:bg-[#090c11]">
-          {labEnabled && <ModuleRow label="Laboratório" icon={FlaskConical} to="/casos" />}
-          <ModuleRow label="Radiologia" icon={Radio} disabled />
+          {labEnabled && <ModuleRow label="Laboratório" icon={FlaskConical} to="/casos" environment="Laboratório" />}
+          <ModuleRow label="Radiologia" icon={Radio} environment="Radiologia" disabled />
         </div>
       </aside>
 

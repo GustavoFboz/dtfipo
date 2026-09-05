@@ -15,7 +15,43 @@ const agenda = requireContains(
 if (!agenda.includes("line-clamp-2") || !agenda.includes("Editar agendamento") || !agenda.includes("Ver perfil clínico")) {
   throw new Error("Agenda card readability/popover actions regression");
 }
-console.log("OK: agenda cards preserve readable patient names and contextual actions");
+if (!agenda.includes("<AppointmentDialog") || !agenda.includes("<Dialog open={open} onOpenChange={onOpenChange}>") || agenda.includes("<AppointmentSheet")) {
+  throw new Error("Clinic appointment editor must remain a centered dialog");
+}
+if (!agenda.includes("handleAppointmentSaved") || !agenda.includes("setAnchor(localDateKey(new Date(saved.starts_at)))")) {
+  throw new Error("Saved appointments must move the agenda to the saved date");
+}
+console.log("OK: agenda cards preserve readable patient names and appointment editing stays centered");
+
+const clinicApi = requireContains(
+  "src/lib/clinic.ts",
+  '.select("*, patient:patients(id,name,photo_url), doctor:doctors(id,name)")',
+  "appointment reads use columns that exist in the patient schema",
+);
+if (/patient:patients\([^)]*(birth_date|phone|email|cpf|gender)/.test(clinicApi)) {
+  throw new Error("Appointment query references patient columns that are not present in the production schema");
+}
+console.log("OK: appointment fetch cannot regress to invalid nested patient columns");
+
+const transition = requireContains(
+  "src/components/EnvironmentTransition.tsx",
+  "Trocando de ambiente",
+  "environment switches use a full-screen transition overlay",
+);
+if (!transition.includes("backdrop-blur-[18px]") || !transition.includes("animate-spin")) {
+  throw new Error("Environment transition blur/spinner regression");
+}
+const authenticatedRoute = requireContains(
+  "src/routes/_authenticated/route.tsx",
+  "<EnvironmentTransition />",
+  "environment overlay persists across authenticated shell changes",
+);
+const bridge = requireContains(
+  "src/components/ModuleEntryBridge.tsx",
+  'startEnvironmentTransition("Clínica"',
+  "laboratory-to-clinic switch triggers the environment transition",
+);
+if (!authenticatedRoute || !bridge) throw new Error("Environment transition wiring regression");
 
 const auth = requireContains(
   "src/routes/auth.tsx",
