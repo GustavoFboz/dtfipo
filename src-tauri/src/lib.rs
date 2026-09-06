@@ -1,5 +1,6 @@
 mod device_identity;
 mod local_db;
+mod window_controls;
 
 use device_identity::{device_identity_clear, device_identity_get, device_identity_set};
 use local_db::{
@@ -8,6 +9,7 @@ use local_db::{
     outbox_pending,
 };
 use tauri::Manager;
+use window_controls::{desktop_window_action, desktop_window_state};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -19,6 +21,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             desktop_runtime_info,
+            desktop_window_state,
+            desktop_window_action,
             device_identity_get,
             device_identity_set,
             device_identity_clear,
