@@ -4,13 +4,15 @@ import { getProvisionedDesktopIdentity, isDentalFlowDesktop } from "@/lib/deskto
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
+    let session: any = null;
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) throw redirect({ to: "/hub" as any });
-    } catch (error) {
-      // Preserve TanStack redirects; only network/auth lookup failures fall through.
-      if ((error as any)?.isRedirect || (error as any)?.statusCode === 307) throw error;
+      const result = await supabase.auth.getSession();
+      session = result.data.session;
+    } catch {
+      // A real offline boot may not be able to refresh the cloud session.
     }
+
+    if (session) throw redirect({ to: "/hub" as any });
 
     if (isDentalFlowDesktop() && typeof navigator !== "undefined" && navigator.onLine === false) {
       const identity = await getProvisionedDesktopIdentity();
