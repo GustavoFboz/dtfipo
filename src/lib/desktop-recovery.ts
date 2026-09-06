@@ -1,4 +1,5 @@
 import {
+  getPendingOutbox,
   isDentalFlowDesktop,
   localCacheGet,
   localCacheList,
@@ -27,6 +28,15 @@ const CRITICAL_LISTS = [
 ] as const;
 
 const ENTITY_MIRRORS = ["patients:v1", "cases:v1"] as const;
+const ENTITY_NAMESPACE: Record<string, string> = {
+  patients: "patients:v1",
+  cases: "cases:v1",
+  clinic_appointments: "clinic-appointments:v1",
+  clinic_financial_entries: "clinic-financial:v1",
+  clinic_patient_evolutions: "clinic-evolutions:v1",
+  stock_items: "stock-items:v1",
+  notifications: "notifications:v1",
+};
 
 type RecoveryItem = {
   namespace: string;
@@ -40,6 +50,7 @@ export type DesktopRecoverySnapshot = {
   ownerId: string;
   capturedAt: number;
   items: RecoveryItem[];
+  intentionalDestructiveNamespaces: string[];
 };
 
 export type DesktopRecoveryResult = {
@@ -49,6 +60,10 @@ export type DesktopRecoveryResult = {
 
 function isNonEmptyArray(value: unknown): value is unknown[] {
   return Array.isArray(value) && value.length > 0;
+}
+
+function isDestructiveOperation(operation: string) {
+  return operation === "delete" || operation === "permanent_delete" || operation === "remove";
 }
 
 /**
@@ -106,10 +121,19 @@ export async function captureDesktopRecoverySnapshot(): Promise<DesktopRecoveryS
     });
   }
 
+  const pending = await getPendingOutbox(ownerId, 5000).catch(() => []);
+  const intentionalDestructiveNamespaces = Array.from(new Set(
+    pending
+      .filter((entry) => isDestructiveOperation(String(entry.operation)))
+      .map((entry) => ENTITY_NAMESPACE[String(entry.entity_type)] ?? "")
+      .filter(Boolean),
+  ));
+
   const snapshot: DesktopRecoverySnapshot = {
     ownerId,
     capturedAt: Date.now(),
     items,
+    intentionalDestructiveNamespaces,
   };
 
   const previousLatest = await localCacheGet<DesktopRecoverySnapshot>(ownerId, RECOVERY_NS, RECOVERY_LATEST_KEY);
@@ -123,16 +147,19 @@ export async function captureDesktopRecoverySnapshot(): Promise<DesktopRecoveryS
 /**
  * A full list going from N>0 to zero/missing during background sync is treated
  * as a potential destructive regression. Keep the previous local data visible
- * instead of silently replacing real offline data with an empty response.
+ * instead of silently replacing real offline data with an empty response. A
+ * namespace with an explicit queued delete is excluded so legitimate removal of
+ * the final item is never mistaken for data loss.
  */
 export async function protectCriticalCachesFromEmptyRegression(
   snapshot: DesktopRecoverySnapshot | null,
 ): Promise<string[]> {
   if (!snapshot) return [];
   const protectedNamespaces: string[] = [];
+  const intentional = new Set(snapshot.intentionalDestructiveNamespaces ?? []);
 
   for (const item of snapshot.items) {
-    if (!isNonEmptyArray(item.payload)) continue;
+    if (!isNonEmptyArray(item.payload) || intentional.has(item.namespace)) continue;
     const current = await localCacheGet<unknown>(snapshot.ownerId, item.namespace, item.key);
     const becameEmptyOrMissing = current == null || (Array.isArray(current.payload) && current.payload.length === 0);
     if (becameEmptyOrMissing) {
