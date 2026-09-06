@@ -2,6 +2,7 @@ import { isDentalFlowDesktop } from "@/lib/desktop-local";
 import { syncPendingPatientChanges, warmPatientLocalCache } from "@/lib/patients-local-first";
 import { syncPendingClinicChanges, warmClinicLocalCache } from "@/lib/clinic-local-first";
 import { syncPendingClinicRecordChanges, warmClinicRecordsLocalCache } from "@/lib/clinic-records-local-first";
+import { syncPendingStockChanges, warmStockLocalCache } from "@/lib/stock-local-first";
 import { warmReferenceLocalCache } from "@/lib/reference-local-first";
 import { warmCaseLocalCache } from "@/lib/cases-local-first";
 
@@ -14,6 +15,8 @@ export type DesktopSyncSummary = {
   casesCached: number;
   financialCached: number;
   evolutionsCached: number;
+  stockItemsCached: number;
+  stockMovementsCached: number;
   clinicDashboardDatasetsCached: number;
   clinicContextCached: boolean;
   referenceDatasetsCached: number;
@@ -32,6 +35,8 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
       casesCached: 0,
       financialCached: 0,
       evolutionsCached: 0,
+      stockItemsCached: 0,
+      stockMovementsCached: 0,
       clinicDashboardDatasetsCached: 0,
       clinicContextCached: false,
       referenceDatasetsCached: 0,
@@ -41,11 +46,14 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
   const patientSync = await syncPendingPatientChanges();
   const clinicSync = await syncPendingClinicChanges();
   const recordsSync = await syncPendingClinicRecordChanges();
+  const stockSync = await syncPendingStockChanges();
   let patientsCached = 0;
   let appointmentsCached = clinicSync.appointmentsCached;
   let casesCached = 0;
   let financialCached = recordsSync.financialCached;
   let evolutionsCached = recordsSync.evolutionsCached;
+  let stockItemsCached = stockSync.itemsCached;
+  let stockMovementsCached = stockSync.movementsCached;
   let clinicDashboardDatasetsCached = recordsSync.dashboardDatasetsCached;
   let clinicContextCached = clinicSync.contextCached;
   let referenceDatasetsCached = 0;
@@ -89,17 +97,29 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
         console.warn("[DentalFlow Desktop] Não foi possível aquecer os registros clínicos", error);
       }
     }
+
+    if (!stockItemsCached || !stockMovementsCached) {
+      try {
+        const warmed = await warmStockLocalCache();
+        stockItemsCached = Math.max(stockItemsCached, warmed.itemsCached);
+        stockMovementsCached = Math.max(stockMovementsCached, warmed.movementsCached);
+      } catch (error) {
+        console.warn("[DentalFlow Desktop] Não foi possível aquecer o estoque local", error);
+      }
+    }
   }
 
   return {
-    processed: patientSync.processed + clinicSync.processed + recordsSync.processed,
-    failed: patientSync.failed + clinicSync.failed + recordsSync.failed,
-    conflicts: patientSync.conflicts + clinicSync.conflicts + recordsSync.conflicts,
+    processed: patientSync.processed + clinicSync.processed + recordsSync.processed + stockSync.processed,
+    failed: patientSync.failed + clinicSync.failed + recordsSync.failed + stockSync.failed,
+    conflicts: patientSync.conflicts + clinicSync.conflicts + recordsSync.conflicts + stockSync.conflicts,
     patientsCached,
     appointmentsCached,
     casesCached,
     financialCached,
     evolutionsCached,
+    stockItemsCached,
+    stockMovementsCached,
     clinicDashboardDatasetsCached,
     clinicContextCached,
     referenceDatasetsCached,
