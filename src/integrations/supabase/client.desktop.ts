@@ -1,11 +1,14 @@
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase as cloudSupabase } from "./client";
-import { getProvisionedDesktopIdentity } from "@/lib/desktop-local";
+import {
+  clearProvisionedDesktopIdentity,
+  getProvisionedDesktopIdentity,
+} from "@/lib/desktop-local";
 
 const OFFLINE_MARKER = "dentalflow_offline_device";
 
 function makeOfflineUser(identity: Awaited<ReturnType<typeof getProvisionedDesktopIdentity>>): User | null {
-  if (!identity) return null;
+  if (!identity || identity.valid_until <= Date.now()) return null;
   const createdAt = new Date(identity.validated_at).toISOString();
   return {
     id: identity.user_id,
@@ -30,6 +33,7 @@ function makeOfflineSession(identity: Awaited<ReturnType<typeof getProvisionedDe
   const user = makeOfflineUser(identity);
   if (!identity || !user) return null;
   const expiresIn = Math.max(0, Math.floor((identity.valid_until - Date.now()) / 1000));
+  if (expiresIn <= 0) return null;
   return {
     access_token: "dentalflow-local-device-session",
     refresh_token: "",
@@ -47,6 +51,21 @@ async function localCloudLoginFallback() {
     user: makeOfflineUser(identity),
     session: makeOfflineSession(identity),
   };
+}
+
+async function forceLocalCloudLoginSignOut(target: typeof cloudSupabase.auth) {
+  try {
+    // `scope: local` removes the persisted Cloud Login session from this
+    // installation without depending on a network request.
+    await target.signOut({ scope: "local" });
+  } catch {
+    // The device authorization below is the authoritative offline gate.
+  }
+  try {
+    await clearProvisionedDesktopIdentity();
+  } catch (error) {
+    console.warn("[DentalFlow Desktop] Não foi possível revogar a autorização offline local", error);
+  }
 }
 
 const auth = new Proxy(cloudSupabase.auth, {
@@ -88,6 +107,25 @@ const auth = new Proxy(cloudSupabase.auth, {
       };
     }
 
+    if (prop === "signOut") {
+      return async (...args: unknown[]) => {
+        const definitelyOffline = typeof navigator !== "undefined" && navigator.onLine === false;
+        if (!definitelyOffline) {
+          try {
+            const result = await (target.signOut as any)(...args);
+            await clearProvisionedDesktopIdentity().catch(() => undefined);
+            return result;
+          } catch {
+            // Even if the server cannot be reached, a manual logout must revoke
+            // this computer's ability to reopen the account offline.
+          }
+        }
+
+        await forceLocalCloudLoginSignOut(target);
+        return { error: null };
+      };
+    }
+
     return Reflect.get(target, prop, receiver);
   },
 });
@@ -101,7 +139,8 @@ const auth = new Proxy(cloudSupabase.auth, {
  * configuration. It only gives the installed Windows client a finite-lived local
  * device session for getSession()/getUser() after a previous successful online
  * login, allowing the already-synchronized SQLite data to remain accessible when
- * there is no internet connection.
+ * there is no internet connection. Manual logout revokes that local authorization
+ * immediately, including when the computer is already offline.
  */
 export const supabase = new Proxy(cloudSupabase, {
   get(target, prop, receiver) {
