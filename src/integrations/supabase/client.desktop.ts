@@ -6,6 +6,7 @@ import {
 } from "@/lib/desktop-local";
 
 const OFFLINE_MARKER = "dentalflow_offline_device";
+let usingOfflineDeviceSession = false;
 
 function makeOfflineUser(identity: Awaited<ReturnType<typeof getProvisionedDesktopIdentity>>): User | null {
   if (!identity || identity.valid_until <= Date.now()) return null;
@@ -46,17 +47,14 @@ function makeOfflineSession(identity: Awaited<ReturnType<typeof getProvisionedDe
 
 async function localCloudLoginFallback() {
   const identity = await getProvisionedDesktopIdentity();
-  return {
-    identity,
-    user: makeOfflineUser(identity),
-    session: makeOfflineSession(identity),
-  };
+  const user = makeOfflineUser(identity);
+  const session = makeOfflineSession(identity);
+  usingOfflineDeviceSession = Boolean(session && user);
+  return { identity, user, session };
 }
 
 async function forceLocalCloudLoginSignOut(target: typeof cloudSupabase.auth) {
   try {
-    // `scope: local` removes the persisted Cloud Login session from this
-    // installation without depending on a network request.
     await target.signOut({ scope: "local" });
   } catch {
     // The device authorization below is the authoritative offline gate.
@@ -66,6 +64,7 @@ async function forceLocalCloudLoginSignOut(target: typeof cloudSupabase.auth) {
   } catch (error) {
     console.warn("[DentalFlow Desktop] Não foi possível revogar a autorização offline local", error);
   }
+  usingOfflineDeviceSession = false;
 }
 
 const auth = new Proxy(cloudSupabase.auth, {
@@ -76,7 +75,10 @@ const auth = new Proxy(cloudSupabase.auth, {
         if (!definitelyOffline) {
           try {
             const result = await target.getSession();
-            if (result.data.session) return result;
+            if (result.data.session) {
+              usingOfflineDeviceSession = false;
+              return result;
+            }
           } catch {
             // Cloud Login can be temporarily unreachable; use the validated device session below.
           }
@@ -89,14 +91,16 @@ const auth = new Proxy(cloudSupabase.auth, {
 
     if (prop === "getUser") {
       return async (...args: unknown[]) => {
-        // Explicit access-token validation must remain a real Cloud Login operation.
         if (args.length > 0) return (target.getUser as any)(...args);
 
         const definitelyOffline = typeof navigator !== "undefined" && navigator.onLine === false;
         if (!definitelyOffline) {
           try {
             const result = await target.getUser();
-            if (result.data.user) return result;
+            if (result.data.user) {
+              usingOfflineDeviceSession = false;
+              return result;
+            }
           } catch {
             // When Cloud Login is unavailable, keep the installed Windows app usable.
           }
@@ -114,10 +118,10 @@ const auth = new Proxy(cloudSupabase.auth, {
           try {
             const result = await (target.signOut as any)(...args);
             await clearProvisionedDesktopIdentity().catch(() => undefined);
+            usingOfflineDeviceSession = false;
             return result;
           } catch {
-            // Even if the server cannot be reached, a manual logout must revoke
-            // this computer's ability to reopen the account offline.
+            // Even if the server cannot be reached, manual logout revokes this device locally.
           }
         }
 
@@ -130,21 +134,37 @@ const auth = new Proxy(cloudSupabase.auth, {
   },
 });
 
+function requireRealCloudSession(operation: string) {
+  if (!usingOfflineDeviceSession) return;
+  // Use a network-shaped message so every local-first adapter takes its SQLite
+  // fallback instead of interpreting unauthenticated RLS zero rows as truth.
+  throw new TypeError(`Failed to fetch: Cloud Login is offline (${operation})`);
+}
+
 /**
  * Desktop-only authentication facade for Lovable Cloud Login.
  *
- * The normal online login continues to be validated by Lovable Cloud Login. The
- * current application reaches that service through the generated Supabase auth
- * SDK, but this file does not change database tables, RLS, users or Cloud Login
- * configuration. It only gives the installed Windows client a finite-lived local
- * device session for getSession()/getUser() after a previous successful online
- * login, allowing the already-synchronized SQLite data to remain accessible when
- * there is no internet connection. Manual logout revokes that local authorization
- * immediately, including when the computer is already offline.
+ * A finite-lived local device session unlocks SQLite after a previously valid
+ * online login. Crucially, that synthetic session is never allowed to issue
+ * database/RPC reads as though it were a real Cloud Login token. This prevents
+ * protected queries from returning deceptive empty arrays and erasing good local
+ * snapshots while Windows is offline or Cloud Login is temporarily unavailable.
  */
 export const supabase = new Proxy(cloudSupabase, {
   get(target, prop, receiver) {
     if (prop === "auth") return auth;
+    if (prop === "from") {
+      return (...args: unknown[]) => {
+        requireRealCloudSession("database");
+        return (target.from as any)(...args);
+      };
+    }
+    if (prop === "rpc") {
+      return (...args: unknown[]) => {
+        requireRealCloudSession("rpc");
+        return (target.rpc as any)(...args);
+      };
+    }
     return Reflect.get(target, prop, receiver);
   },
 });
