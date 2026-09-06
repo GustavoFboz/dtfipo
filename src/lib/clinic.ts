@@ -42,6 +42,29 @@ export type ClinicActiveTreatment = {
   case_type: { id: string; name: string } | null;
 };
 
+export type ClinicPatientTreatment = ClinicActiveTreatment & {
+  case_number: number | null;
+  entry_date: string | null;
+  delivery_date: string | null;
+  teeth_numbers: number[] | null;
+  notes: string | null;
+  current_stage: { id: string; name: string; color: string | null } | null;
+};
+
+export type ClinicPatientEvolution = {
+  id: string;
+  clinic_id: string;
+  patient_id: string;
+  author_id: string | null;
+  case_id: string | null;
+  appointment_id: string | null;
+  teeth_numbers: number[];
+  procedure: string | null;
+  description: string;
+  created_at: string;
+  updated_at: string;
+};
+
 const blankPermissions = () => Object.fromEntries(CLINIC_PERMISSIONS.map((p) => [p, false])) as Record<ClinicPermission, boolean>;
 
 export async function fetchClinicContext(): Promise<ClinicContext> {
@@ -106,8 +129,6 @@ export async function fetchClinicContext(): Promise<ClinicContext> {
 export async function fetchClinicAppointments(start?: string, end?: string) {
   let q = (supabase as any)
     .from("clinic_appointments")
-    // Keep this projection aligned with the actual patient columns. PostgREST
-    // rejects the complete appointment read when a nested column does not exist.
     .select("*, patient:patients(id,name,photo_url), doctor:doctors(id,name)")
     .order("starts_at", { ascending: true });
   if (start) q = q.gte("starts_at", start);
@@ -163,6 +184,17 @@ export async function fetchClinicFinancialEntries(month?: string) {
   return data ?? [];
 }
 
+export async function fetchClinicPatientFinancialEntries(patientId: string) {
+  const { data, error } = await (supabase as any)
+    .from("clinic_financial_entries")
+    .select("*")
+    .eq("patient_id", patientId)
+    .order("due_date", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function fetchClinicLowStockItems(limit = 6): Promise<ClinicLowStockItem[]> {
   const { data, error } = await (supabase as any)
     .from("stock_items")
@@ -193,6 +225,57 @@ export async function fetchClinicActiveTreatments(): Promise<ClinicActiveTreatme
     .order("updated_at", { ascending: false });
   if (error) throw error;
   return (data ?? []) as ClinicActiveTreatment[];
+}
+
+export async function fetchClinicPatientTreatments(patientId: string): Promise<ClinicPatientTreatment[]> {
+  const { data, error } = await (supabase as any)
+    .from("cases")
+    .select("id,patient_id,status,updated_at,entry_date,delivery_date,teeth_numbers,implant_teeth,notes,case_number,patient:patients(id,name),case_type:case_types(id,name),current_stage:stages!cases_current_stage_id_fkey(id,name,color)")
+    .eq("patient_id", patientId)
+    .order("updated_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as ClinicPatientTreatment[];
+}
+
+export async function fetchClinicPatientEvolutions(patientId: string): Promise<ClinicPatientEvolution[]> {
+  const { data, error } = await (supabase as any)
+    .from("clinic_patient_evolutions")
+    .select("*")
+    .eq("patient_id", patientId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as ClinicPatientEvolution[];
+}
+
+export async function saveClinicPatientEvolution(input: {
+  clinic_id: string;
+  patient_id: string;
+  case_id?: string | null;
+  appointment_id?: string | null;
+  teeth_numbers?: number[];
+  procedure?: string | null;
+  description: string;
+}) {
+  const { data: auth } = await supabase.auth.getUser();
+  const description = input.description.trim();
+  if (!description) throw new Error("Descreva a evolução clínica.");
+  const { data, error } = await (supabase as any)
+    .from("clinic_patient_evolutions")
+    .insert({
+      ...input,
+      description,
+      teeth_numbers: input.teeth_numbers ?? [],
+      author_id: auth.user?.id ?? null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as ClinicPatientEvolution;
+}
+
+export async function deleteClinicPatientEvolution(id: string) {
+  const { error } = await (supabase as any).from("clinic_patient_evolutions").delete().eq("id", id);
+  if (error) throw error;
 }
 
 export async function saveClinicFinancialEntry(input: {
