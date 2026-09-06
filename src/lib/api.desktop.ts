@@ -12,9 +12,15 @@ export {
   fetchPatientsLocalFirst as fetchPatients,
 } from "./patients-local-first";
 export {
+  createCaseLocalFirst as createCase,
+  deleteCaseLocalFirst as deleteCase,
   fetchCaseByIdLocalFirst as fetchCaseById,
   fetchCasesLocalFirst as fetchCases,
   fetchPatientCasesLocalFirst as fetchPatientCases,
+  finishCaseLocalFirst as finishCase,
+  reopenCaseLocalFirst as reopenCase,
+  updateCaseLocalFirst as updateCase,
+  updateCaseTiBasesLocalFirst as updateCaseTiBases,
 } from "./cases-local-first";
 export {
   fetchCadistasLocalFirst as fetchCadistas,
