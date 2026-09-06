@@ -136,9 +136,9 @@ fn now_ms() -> i64 {
         .unwrap_or_default()
 }
 
-fn lock_connection(
-    state: &State<'_, LocalDb>,
-) -> Result<std::sync::MutexGuard<'_, Connection>, String> {
+fn lock_connection<'a>(
+    state: &'a State<'_, LocalDb>,
+) -> Result<std::sync::MutexGuard<'a, Connection>, String> {
     state
         .connection
         .lock()
@@ -232,7 +232,7 @@ pub fn local_cache_get(
     validate_text(&key, "key", 320)?;
 
     let connection = lock_connection(&state)?;
-    let row = connection
+    let row: Option<(String, i64)> = connection
         .query_row(
             r#"
             SELECT payload_json, updated_at
