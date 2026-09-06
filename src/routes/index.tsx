@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { getProvisionedDesktopIdentity, isDentalFlowDesktop } from "@/lib/desktop-local";
+import { resolveOfflineAuthUser } from "@/lib/desktop-identity";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
@@ -14,12 +14,8 @@ export const Route = createFileRoute("/")({
 
     if (session) throw redirect({ to: "/hub" as any });
 
-    if (isDentalFlowDesktop() && typeof navigator !== "undefined" && navigator.onLine === false) {
-      const identity = await getProvisionedDesktopIdentity();
-      if (identity && identity.valid_until > Date.now()) {
-        throw redirect({ to: "/hub" as any });
-      }
-    }
+    const offlineUser = await resolveOfflineAuthUser();
+    if (offlineUser) throw redirect({ to: "/hub" as any });
 
     throw redirect({ to: "/lp" });
   },
