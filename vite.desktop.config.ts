@@ -22,6 +22,12 @@ export default defineConfig({
     resolve: {
       alias: [
         {
+          // Desktop gets a Supabase facade that can resolve the previously
+          // validated local device identity while Windows is fully offline.
+          find: /^@\/integrations\/supabase\/client$/,
+          replacement: fileURLToPath(new URL("./src/integrations/supabase/client.desktop.ts", import.meta.url)),
+        },
+        {
           find: /^@\/lib\/api$/,
           replacement: fileURLToPath(new URL("./src/lib/api.desktop.ts", import.meta.url)),
         },
