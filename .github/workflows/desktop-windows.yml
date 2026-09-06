@@ -49,8 +49,8 @@ jobs:
       - name: Verify embedded frontend
         shell: pwsh
         run: |
-          if (!(Test-Path ".output/public/index.html")) {
-            throw "Desktop SPA shell was not generated at .output/public/index.html"
+          if (!(Test-Path "dist/client/index.html")) {
+            throw "Desktop SPA shell was not generated at dist/client/index.html"
           }
 
       - name: Verify Windows executable
