@@ -40,32 +40,68 @@ function makeOfflineSession(identity: Awaited<ReturnType<typeof getProvisionedDe
   } as Session;
 }
 
+async function localCloudLoginFallback() {
+  const identity = await getProvisionedDesktopIdentity();
+  return {
+    identity,
+    user: makeOfflineUser(identity),
+    session: makeOfflineSession(identity),
+  };
+}
+
 const auth = new Proxy(cloudSupabase.auth, {
   get(target, prop, receiver) {
     if (prop === "getSession") {
       return async () => {
-        try {
-          const result = await target.getSession();
-          if (result.data.session) return result;
-        } catch {
-          // A disconnected Windows device can fail before auth storage resolves.
+        const definitelyOffline = typeof navigator !== "undefined" && navigator.onLine === false;
+        if (!definitelyOffline) {
+          try {
+            const result = await target.getSession();
+            if (result.data.session) return result;
+          } catch {
+            // Cloud Login can be temporarily unreachable; use the validated device session below.
+          }
         }
 
-        const identity = await getProvisionedDesktopIdentity();
-        const session = makeOfflineSession(identity);
+        const { session } = await localCloudLoginFallback();
         return { data: { session }, error: null };
       };
     }
+
+    if (prop === "getUser") {
+      return async (...args: unknown[]) => {
+        // Explicit access-token validation must remain a real Cloud Login operation.
+        if (args.length > 0) return (target.getUser as any)(...args);
+
+        const definitelyOffline = typeof navigator !== "undefined" && navigator.onLine === false;
+        if (!definitelyOffline) {
+          try {
+            const result = await target.getUser();
+            if (result.data.user) return result;
+          } catch {
+            // When Cloud Login is unavailable, keep the installed Windows app usable.
+          }
+        }
+
+        const { user } = await localCloudLoginFallback();
+        return { data: { user }, error: null };
+      };
+    }
+
     return Reflect.get(target, prop, receiver);
   },
 });
 
 /**
- * Desktop-only Supabase facade.
+ * Desktop-only authentication facade for Lovable Cloud Login.
  *
- * Network operations still go to the real Supabase client. Only getSession()
- * gains a finite-lived device fallback so local-first repositories can resolve
- * the same owner id after Windows restarts without internet.
+ * The normal online login continues to be validated by Lovable Cloud Login. The
+ * current application reaches that service through the generated Supabase auth
+ * SDK, but this file does not change database tables, RLS, users or Cloud Login
+ * configuration. It only gives the installed Windows client a finite-lived local
+ * device session for getSession()/getUser() after a previous successful online
+ * login, allowing the already-synchronized SQLite data to remain accessible when
+ * there is no internet connection.
  */
 export const supabase = new Proxy(cloudSupabase, {
   get(target, prop, receiver) {
