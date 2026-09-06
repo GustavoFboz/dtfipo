@@ -636,7 +636,7 @@ export function NewCaseDialog({
     // Plain click keeps one temporary selection. Configured teeth stay in the
     // case; Ctrl/Cmd and Shift are the explicit advanced multi-selection modes.
     selectionAnchorRef.current = tooth;
-    const staleTemporary = justAddedTeeth.filter((item) => item !== tooth && !toothHasConfig(item));
+    const staleTemporary = teeth.filter((item) => item !== tooth && !toothHasConfig(item));
     const staleSet = new Set(staleTemporary);
     const next = teeth.filter((item) => !staleSet.has(item));
     if (!next.includes(tooth)) next.push(tooth);
