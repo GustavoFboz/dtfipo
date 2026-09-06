@@ -7,8 +7,14 @@ import {
 } from "@/lib/desktop-local";
 
 export function DesktopNativeFrame({ children }: { children: ReactNode }) {
-  const desktop = isDentalFlowDesktop();
+  const [desktop, setDesktop] = useState(false);
   const [maximized, setMaximized] = useState(false);
+
+  // Keep the server/prerendered markup identical to the first client render.
+  // The Tauri global only exists after the desktop WebView has started.
+  useEffect(() => {
+    setDesktop(isDentalFlowDesktop());
+  }, []);
 
   useEffect(() => {
     if (!desktop) return;
