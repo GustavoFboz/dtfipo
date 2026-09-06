@@ -78,6 +78,11 @@ pub fn device_identity_set(app: AppHandle, input: DeviceIdentityInput) -> Result
     let temp = path.with_extension("json.tmp");
     let encoded = serde_json::to_vec(&identity).map_err(|error| error.to_string())?;
     fs::write(&temp, encoded).map_err(|error| error.to_string())?;
+    // Windows does not reliably replace an existing destination with rename().
+    // Remove the previous provision only after the new temp file is durable.
+    if path.exists() {
+        fs::remove_file(&path).map_err(|error| error.to_string())?;
+    }
     fs::rename(&temp, &path).map_err(|error| error.to_string())?;
     Ok(identity)
 }
