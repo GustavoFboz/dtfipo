@@ -18,6 +18,11 @@ export type DesktopRuntimeInfo = {
   schema_version: number;
 };
 
+export type DesktopWindowState = {
+  maximized: boolean;
+  fullscreen: boolean;
+};
+
 export type DeviceIdentity = {
   user_id: string;
   email: string | null;
@@ -72,6 +77,15 @@ async function invokeDesktop<T>(command: string, args?: Record<string, unknown>)
 
 export function getDesktopRuntimeInfo() {
   return invokeDesktop<DesktopRuntimeInfo>("desktop_runtime_info");
+}
+
+export function getDesktopWindowState() {
+  if (!isDentalFlowDesktop()) return Promise.resolve<DesktopWindowState>({ maximized: false, fullscreen: false });
+  return invokeDesktop<DesktopWindowState>("desktop_window_state");
+}
+
+export function performDesktopWindowAction(action: "minimize" | "toggle_maximize" | "drag" | "close") {
+  return invokeDesktop<DesktopWindowState>("desktop_window_action", { action });
 }
 
 export function getProvisionedDesktopIdentity() {
