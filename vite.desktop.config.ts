@@ -22,7 +22,7 @@ export default defineConfig({
     resolve: {
       alias: [
         {
-          // Desktop gets a Supabase facade that can resolve the previously
+          // Desktop gets a Cloud Login facade that can resolve the previously
           // validated local device identity while Windows is fully offline.
           find: /^@\/integrations\/supabase\/client$/,
           replacement: fileURLToPath(new URL("./src/integrations/supabase/client.desktop.ts", import.meta.url)),
@@ -34,6 +34,10 @@ export default defineConfig({
         {
           find: /^@\/lib\/clinic$/,
           replacement: fileURLToPath(new URL("./src/lib/clinic.desktop.ts", import.meta.url)),
+        },
+        {
+          find: /^@\/lib\/workflow$/,
+          replacement: fileURLToPath(new URL("./src/lib/workflow-local-first.ts", import.meta.url)),
         },
         {
           find: /^@\/lib\/stock$/,
