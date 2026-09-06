@@ -9,6 +9,11 @@ export {
   fetchPatientsLocalFirst as fetchPatients,
 } from "./patients-local-first";
 export {
+  fetchCaseByIdLocalFirst as fetchCaseById,
+  fetchCasesLocalFirst as fetchCases,
+  fetchPatientCasesLocalFirst as fetchPatientCases,
+} from "./cases-local-first";
+export {
   fetchCadistasLocalFirst as fetchCadistas,
   fetchCaseTypesLocalFirst as fetchCaseTypes,
   fetchComponentsLocalFirst as fetchComponents,
