@@ -6,6 +6,7 @@ const client = read("src/integrations/supabase/client.desktop.ts");
 const identity = read("src/lib/desktop-identity.ts");
 const patients = read("src/lib/patients-local-first.ts");
 const apiDesktop = read("src/lib/api.desktop.ts");
+const clinicDesktop = read("src/lib/clinic.desktop.ts");
 const bootstrap = read("src/components/DesktopOfflineBootstrap.tsx");
 
 function expect(condition, message) {
@@ -29,6 +30,8 @@ expect(patients.includes("resolveDesktopOwnerId"), "Patient cache ownership must
 expect(patients.includes("Resposta vazia de pacientes ignorada"), "Patient snapshots must be protected from ambiguous empty cloud responses.");
 expect(apiDesktop.includes("recoverCaseMirror"), "Cases must recover their aggregate list from SQLite entity mirrors.");
 expect(apiDesktop.includes('localCachePut(ownerId, "cases:v1", "all", recovered)'), "Recovered cases must repair the aggregate SQLite list.");
+expect(clinicDesktop.includes('localCacheGet<ClinicContext>(ownerId, "clinic-context:v1", "current")'), "Clinic availability must fall back to the last verified local entitlement.");
+expect(clinicDesktop.includes("resolveDesktopOwnerId"), "Clinic entitlement fallback must use the stable device owner.");
 expect(bootstrap.includes("queryClient.invalidateQueries"), "UI queries must refresh after cache recovery.");
 
 console.log("Desktop offline/native-shell regression checks passed.");
