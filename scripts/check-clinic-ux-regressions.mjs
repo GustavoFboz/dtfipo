@@ -26,15 +26,50 @@ console.log("OK: agenda cards preserve readable patient names and appointment ed
 const clinicApi = requireContains(
   "src/lib/clinic.ts",
   '.select("*, patient:patients(id,name,photo_url), doctor:doctors(id,name)")',
-  "appointment reads use columns that exist in the patient schema",
+  "appointment reads keep a narrow patient projection",
 );
 if (/patient:patients\([^)]*(birth_date|phone|email|cpf|gender)/.test(clinicApi)) {
-  throw new Error("Appointment query references patient columns that are not present in the production schema");
+  throw new Error("Appointment query should not couple calendar reads to the extended patient record");
 }
 if (!clinicApi.includes("fetchClinicLowStockItems") || !clinicApi.includes("fetchClinicActiveTreatments")) {
   throw new Error("Clinic dashboard operational signals are missing from the clinic API");
 }
-console.log("OK: appointment fetch and clinic dashboard signals remain production-schema safe");
+for (const needle of ["fetchClinicPatientTreatments", "fetchClinicPatientEvolutions", "saveClinicPatientEvolution", "fetchClinicPatientFinancialEntries"]) {
+  if (!clinicApi.includes(needle)) throw new Error(`Clinical patient record API missing: ${needle}`);
+}
+console.log("OK: appointment fetch stays resilient and patient-record APIs are available");
+
+const patientRecord = requireContains(
+  "src/routes/_authenticated/clinica.pacientes.$patientId.tsx",
+  "Registrar evolução",
+  "patient detail exposes the clinical record workflow",
+);
+for (const needle of ["Visão geral", "Anamnese", "Tratamentos", "Evolução", "Agenda", "Documentos", "Imagens", "Financeiro", "Alertas clínicos", "Resumo clínico", "Evolução clínica"]) {
+  if (!patientRecord.includes(needle)) throw new Error(`Patient clinical record lost section: ${needle}`);
+}
+if (!patientRecord.includes("calculateAge") || !patientRecord.includes("PatientAttachments patientId={patientId} kinds={[\"scan\", \"xray\", \"photo\"]}")) {
+  throw new Error("Patient identity/image record behavior regression");
+}
+console.log("OK: patient detail remains a complete clinical record hub");
+
+const patientAttachments = requireContains(
+  "src/components/PatientAttachments.tsx",
+  "kinds?: string[]",
+  "patient attachments can be split between documents and clinical images",
+);
+if (!patientAttachments.includes("allowedKindEntries") || !patientAttachments.includes("defaultKind")) {
+  throw new Error("Patient attachment section filtering regression");
+}
+
+const patientMigration = requireContains(
+  "supabase/migrations/20260906033000_clinic_patient_record_v2.sql",
+  "create table if not exists public.clinic_patient_evolutions",
+  "patient clinical evolution storage is versioned in migrations",
+);
+for (const column of ["birth_date", "phone", "email", "medical_history", "allergies", "medications", "clinical_notes"]) {
+  if (!patientMigration.includes(`add column if not exists ${column}`)) throw new Error(`Extended patient field missing from migration: ${column}`);
+}
+console.log("OK: patient medical/contact schema is versioned with RLS-protected evolutions");
 
 const clinicShell = requireContains(
   "src/components/ClinicShell.tsx",
