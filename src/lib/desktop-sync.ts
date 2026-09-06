@@ -5,7 +5,7 @@ import { syncPendingClinicRecordChanges, warmClinicRecordsLocalCache } from "@/l
 import { syncPendingStockChanges, warmStockLocalCache } from "@/lib/stock-local-first";
 import { syncPendingStockV2Changes, warmStockV2LocalCache } from "@/lib/stock-v2-local-first";
 import { warmReferenceLocalCache } from "@/lib/reference-local-first";
-import { warmCaseLocalCache } from "@/lib/cases-local-first";
+import { syncPendingCaseChanges, warmCaseLocalCache } from "@/lib/cases-local-first";
 import { syncPendingNotificationChanges, warmNotificationLocalCache } from "@/lib/notifications-local-first";
 import { syncPendingWorkflowChanges, warmWorkflowLocalCache } from "@/lib/workflow-local-first";
 
@@ -54,9 +54,12 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
     };
   }
 
+  // Parent/domain ordering matters. Patients are replayed before cases; case
+  // mutations are replayed before workflow transitions that can target them.
   const patientSync = await syncPendingPatientChanges();
   const clinicSync = await syncPendingClinicChanges();
   const recordsSync = await syncPendingClinicRecordChanges();
+  const caseSync = await syncPendingCaseChanges();
   const stockSync = await syncPendingStockChanges();
   const stockV2Sync = await syncPendingStockV2Changes();
   const notificationSync = await syncPendingNotificationChanges();
@@ -64,7 +67,7 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
 
   let patientsCached = 0;
   let appointmentsCached = clinicSync.appointmentsCached;
-  let casesCached = 0;
+  let casesCached = caseSync.cached;
   let financialCached = recordsSync.financialCached;
   let evolutionsCached = recordsSync.evolutionsCached;
   let stockItemsCached = stockSync.itemsCached;
@@ -84,10 +87,12 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
       console.warn("[DentalFlow Desktop] Não foi possível aquecer o cache local de pacientes", error);
     }
 
-    try {
-      casesCached = await warmCaseLocalCache();
-    } catch (error) {
-      console.warn("[DentalFlow Desktop] Não foi possível aquecer o cache local de casos", error);
+    if (!casesCached) {
+      try {
+        casesCached = await warmCaseLocalCache();
+      } catch (error) {
+        console.warn("[DentalFlow Desktop] Não foi possível aquecer o cache local de casos", error);
+      }
     }
 
     try {
@@ -159,6 +164,7 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
       patientSync.processed +
       clinicSync.processed +
       recordsSync.processed +
+      caseSync.processed +
       stockSync.processed +
       stockV2Sync.processed +
       notificationSync.processed +
@@ -167,6 +173,7 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
       patientSync.failed +
       clinicSync.failed +
       recordsSync.failed +
+      caseSync.failed +
       stockSync.failed +
       stockV2Sync.failed +
       notificationSync.failed +
@@ -175,6 +182,7 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
       patientSync.conflicts +
       clinicSync.conflicts +
       recordsSync.conflicts +
+      caseSync.conflicts +
       stockSync.conflicts +
       stockV2Sync.conflicts +
       notificationSync.conflicts +
