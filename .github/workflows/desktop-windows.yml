@@ -22,6 +22,10 @@ on:
       - "vite.desktop.config.ts"
       - ".github/workflows/desktop-windows.yml"
 
+concurrency:
+  group: dentalflow-desktop-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   windows:
     name: Build Windows installer

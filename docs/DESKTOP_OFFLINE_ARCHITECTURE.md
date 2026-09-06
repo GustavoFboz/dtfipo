@@ -16,14 +16,14 @@ Data / Platform Layer
     |----------------------|
     v                      v
 Cloud adapter          Local adapter
-Supabase               SQLite (futuro)
+Supabase               SQLite
     |                      |
     |------ Sync Engine ---|
 ```
 
 Isso permite manter a mesma experiência de Clínica, Laboratório e Radiologia em diferentes plataformas sem duplicar o frontend.
 
-## Fase 1 — Fundação Desktop (atual)
+## Fase 1 — Fundação Desktop
 
 - Tauri v2 dentro deste repositório (`src-tauri/`).
 - Build SPA separado (`vite.desktop.config.ts`) sem alterar o build web de produção.
@@ -33,20 +33,23 @@ Isso permite manter a mesma experiência de Clínica, Laboratório e Radiologia 
 - Indicador universal Online / Offline / Atualizando.
 - Quando a conexão retorna, o app atualiza queries ativas e apresenta uma transição visual curta.
 
-> Nesta fase, `Offline` significa que o aplicativo detectou ausência de rede. Ainda não significa que todas as telas possuem dados locais persistidos.
+O primeiro build Windows validado foi gerado no workflow `DentalFlow Windows Desktop` e contém o executável portátil e o instalador NSIS.
 
-## Fase 2 — Banco local
+## Fase 2 — Banco local (fundação iniciada)
 
-Adicionar SQLite ao Tauri e uma camada local com escopo por conta/usuário. Inicialmente, persistir somente dados necessários para consulta offline, por exemplo:
+O Tauri agora inicializa um SQLite real em `app_data_dir/dentalflow.sqlite3`, com `WAL`, `foreign_keys` e schema versionado. Essa camada ainda não substitui o Supabase: ela passa a ser a fundação local para consulta offline e sincronização incremental.
 
-- perfil e configurações essenciais;
-- pacientes permitidos ao usuário;
-- agenda recente/próxima;
-- casos e etapas relevantes;
-- estoque necessário à operação;
-- prontuário e anexos com política explícita de cache.
+Estruturas já disponíveis:
 
-Dados clínicos locais devem ser tratados como dados sensíveis: menor escopo possível, proteção por sessão e estratégia de criptografia/limpeza do dispositivo.
+- `local_cache`: armazenamento JSON por usuário, namespace e chave;
+- `outbox`: fila local de escritas pendentes com entidade, operação, payload, versão-base, tentativas e estado;
+- `local_meta`: metadados do schema local;
+- comandos Tauri tipados para leitura/gravação do cache e gerenciamento da outbox;
+- bridge TypeScript `src/lib/desktop-local.ts`, invisível no Web e ativa somente dentro do Tauri.
+
+O cache é deliberadamente escopado por `owner_id` para impedir que uma sessão hidrate dados pertencentes a outra identidade. O próximo passo é integrar repositórios específicos — começando por perfil, pacientes, agenda e casos — em vez de persistir indiscriminadamente todo o React Query.
+
+Dados clínicos locais são dados sensíveis. Antes de considerar o modo offline final, ainda são obrigatórios: política explícita de retenção, limpeza do dispositivo, proteção por sessão e criptografia adequada do conteúdo persistido.
 
 ## Fase 3 — Sync Engine
 
@@ -86,11 +89,11 @@ A camada Tauri será usada para capacidades que o navegador não entrega de form
 
 Depois que a camada de dados estiver desacoplada do Supabase direto, a mesma base do frontend pode ganhar um shell Capacitor para Android/iOS. Tauri e Capacitor são shells diferentes; a UI e a camada de negócio permanecem compartilhadas sempre que possível.
 
-## Limitação conhecida da primeira amostra
+## Limitação conhecida
 
 Algumas funções administrativas atuais usam `createServerFn` do TanStack Start e dependem do backend web do DentalFlow. Elas precisam ser migradas para endpoints remotos explícitos ou adaptadores próprios antes de serem consideradas totalmente compatíveis com um frontend 100% embarcado/offline.
 
-Isso não bloqueia a fundação do executável, mas é uma tarefa obrigatória antes da versão Desktop final.
+O SQLite local também não significa, sozinho, que o aplicativo já pode autenticar e operar indefinidamente sem internet. A sessão offline, a hidratação dos repositórios permitidos e a execução da outbox ainda serão implementadas progressivamente.
 
 ## Builds
 

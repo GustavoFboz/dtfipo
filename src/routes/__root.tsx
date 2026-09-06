@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
 import { TopProgressBar } from "@/components/TopProgressBar";
 import { UploadProgressDock } from "@/components/UploadProgressDock";
+import { DesktopLocalRuntimeBridge } from "@/components/DesktopLocalRuntimeBridge";
 import { ConfirmHost } from "@/lib/confirm";
 import { tryAutoConnectPrinter } from "@/lib/print-note/bluetooth";
 import { usePWANavGuard } from "@/hooks/use-pwa-nav-guard";
@@ -88,10 +89,6 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
   useEffect(() => {
-    // Guarda o user id atual para ignorar eventos "SIGNED_IN" que o Supabase
-    // dispara toda vez que a aba volta ao foco (re-hidratação de sessão).
-    // Sem isso, cada troca de aba invalidava TODAS as queries e o router,
-    // gerando um refetch massivo que deixava a tela em branco por segundos.
     let currentUserId: string | null | undefined;
     supabase.auth.getSession().then(({ data }) => {
       currentUserId = data.session?.user?.id ?? null;
@@ -99,21 +96,12 @@ function RootComponent() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       const nextUserId = session?.user?.id ?? null;
-      // Só age quando o usuário realmente mudou (login/logout/troca de conta).
       if (nextUserId === currentUserId) return;
       currentUserId = nextUserId;
-      // CRÍTICO: cancela requisições em voo e LIMPA todo o cache do React Query
-      // ao trocar de identidade. Sem isso, dados do usuário anterior aparecem
-      // por um instante na tela do novo usuário (ou na tela de login) antes
-      // do refetch chegar. `removeQueries()` é síncrono e apaga qualquer
-      // resultado cacheado, evitando o flash de dados de outra conta.
       queryClient.cancelQueries();
       queryClient.removeQueries();
       router.invalidate();
-      // Só dispara refetch quando existe sessão. Em SIGNED_OUT não há token —
-      // refazer queries protegidas geraria uma tempestade de 401.
       if (event !== "SIGNED_OUT" && nextUserId) queryClient.invalidateQueries();
-      // Auditoria: registra troca de identidade em admin_logs (best-effort).
       if (event === "SIGNED_IN" && nextUserId) void logAuditEvent("auth.login", { via: "session" });
       if (event === "SIGNED_OUT") void logAuditEvent("auth.logout", { via: "session" });
     });
@@ -121,12 +109,12 @@ function RootComponent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
-    // Reconecta a impressora Bluetooth pareada em background (sem popup).
     tryAutoConnectPrinter().catch(() => {});
   }, []);
   usePWANavGuard();
   return (
     <QueryClientProvider client={queryClient}>
+      <DesktopLocalRuntimeBridge />
       <SessionLifecycleBridge />
       <TopProgressBar />
       <Outlet />
