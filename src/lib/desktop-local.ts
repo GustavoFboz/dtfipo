@@ -18,6 +18,15 @@ export type DesktopRuntimeInfo = {
   schema_version: number;
 };
 
+export type DeviceIdentity = {
+  user_id: string;
+  email: string | null;
+  full_name: string | null;
+  clinic_id: string | null;
+  validated_at: number;
+  valid_until: number;
+};
+
 export type LocalCacheEntry<T = unknown> = {
   owner_id: string;
   namespace: string;
@@ -63,6 +72,32 @@ async function invokeDesktop<T>(command: string, args?: Record<string, unknown>)
 
 export function getDesktopRuntimeInfo() {
   return invokeDesktop<DesktopRuntimeInfo>("desktop_runtime_info");
+}
+
+export function getProvisionedDesktopIdentity() {
+  if (!isDentalFlowDesktop()) return Promise.resolve<DeviceIdentity | null>(null);
+  return invokeDesktop<DeviceIdentity | null>("device_identity_get");
+}
+
+export function provisionDesktopIdentity(input: {
+  userId: string;
+  email?: string | null;
+  fullName?: string | null;
+  clinicId?: string | null;
+}) {
+  return invokeDesktop<DeviceIdentity>("device_identity_set", {
+    input: {
+      user_id: input.userId,
+      email: input.email ?? null,
+      full_name: input.fullName ?? null,
+      clinic_id: input.clinicId ?? null,
+    },
+  });
+}
+
+export function clearProvisionedDesktopIdentity() {
+  if (!isDentalFlowDesktop()) return Promise.resolve();
+  return invokeDesktop<void>("device_identity_clear");
 }
 
 export function localCachePut<T>(ownerId: string, namespace: string, key: string, payload: T) {
