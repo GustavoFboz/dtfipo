@@ -10,3 +10,16 @@ export {
   fetchClinicContextLocalFirst as fetchClinicContext,
   saveClinicAppointmentLocalFirst as saveClinicAppointment,
 } from "./clinic-local-first";
+export {
+  deleteClinicPatientEvolutionLocalFirst as deleteClinicPatientEvolution,
+  fetchClinicActiveTreatmentsLocalFirst as fetchClinicActiveTreatments,
+  fetchClinicFinancialEntriesLocalFirst as fetchClinicFinancialEntries,
+  fetchClinicLowStockItemsLocalFirst as fetchClinicLowStockItems,
+  fetchClinicPatientEvolutionsLocalFirst as fetchClinicPatientEvolutions,
+  fetchClinicPatientFinancialEntriesLocalFirst as fetchClinicPatientFinancialEntries,
+  fetchClinicPatientTreatmentsLocalFirst as fetchClinicPatientTreatments,
+  fetchClinicRolePermissionsLocalFirst as fetchClinicRolePermissions,
+  saveClinicFinancialEntryLocalFirst as saveClinicFinancialEntry,
+  saveClinicPatientEvolutionLocalFirst as saveClinicPatientEvolution,
+  setClinicRolePermissionLocalFirst as setClinicRolePermission,
+} from "./clinic-records-local-first";
