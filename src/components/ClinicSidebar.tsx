@@ -6,14 +6,12 @@ import {
   Users2,
   WalletCards,
   Settings,
-  FlaskConical,
-  Building2,
-  Radio,
 } from "lucide-react";
 
 import { StorageSidebarCard } from "@/components/StorageSidebarCard";
 import { startEnvironmentTransition, type EnvironmentName } from "@/components/EnvironmentTransition";
 import type { ClinicContext, ClinicPermission } from "@/lib/clinic";
+import type { Profile } from "@/lib/types";
 
 const primaryItems: Array<{ to: string; label: string; icon: any; permission: ClinicPermission }> = [
   { to: "/clinica", label: "Visão geral", icon: LayoutDashboard, permission: "clinical.dashboard" },
@@ -27,72 +25,132 @@ const managementItems: Array<{ to: string; label: string; icon: any; permission:
   { to: "/clinica/configuracoes", label: "Configurações", icon: Settings, permission: "clinical.settings" },
 ];
 
-function NavItem({ item, active }: { item: (typeof primaryItems)[number]; active: boolean }) {
+function NavItem({ item, active, collapsed }: { item: (typeof primaryItems)[number]; active: boolean; collapsed: boolean }) {
   const Icon = item.icon;
   return (
     <Link
       to={item.to as any}
-      className={`group relative flex h-11 items-center gap-3 rounded-xl px-3.5 text-sm transition-all ${
+      title={collapsed ? item.label : undefined}
+      aria-label={collapsed ? item.label : undefined}
+      className={`group relative flex h-11 items-center overflow-hidden rounded-xl text-sm transition-all ${
         active
           ? "bg-[#1e8f87]/9 font-medium text-[#16756f] dark:bg-[#1e8f87]/15 dark:text-[#63c7c0]"
           : "font-light text-slate-500 hover:bg-slate-50 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-slate-100"
-      }`}
+      } ${collapsed ? "mx-auto w-11 justify-center px-0" : "gap-3 px-3.5"}`}
     >
-      {active && <span className="absolute left-0 h-6 w-0.5 rounded-r-full bg-[#1e8f87]" />}
-      <Icon className="h-[19px] w-[19px] shrink-0 stroke-[1.55]" />
-      <span className="truncate">{item.label}</span>
+      {active && !collapsed && <span className="absolute left-0 h-6 w-0.5 rounded-r-full bg-[#1e8f87]" />}
+      <Icon className="h-[19px] w-[19px] shrink-0 stroke-[1.5]" />
+      {!collapsed && <span className="truncate">{item.label}</span>}
+      {active && collapsed && <span className="absolute bottom-1 h-0.5 w-4 rounded-full bg-[#1e8f87]" />}
     </Link>
   );
 }
 
-function ModuleRow({
+function EnvironmentModuleButton({
   label,
-  icon: Icon,
+  shortLabel,
   to,
   environment,
+  collapsed,
   disabled = false,
 }: {
   label: string;
-  icon: any;
+  shortLabel: string;
   to?: string;
-  environment?: EnvironmentName;
+  environment: EnvironmentName;
+  collapsed: boolean;
   disabled?: boolean;
 }) {
   const navigate = useNavigate();
-  const body = (
-    <div
-      className={`group relative flex w-full items-center overflow-hidden py-5 pl-9 text-[12px] font-medium uppercase tracking-[0.11em] transition-all ${
-        disabled ? "cursor-default text-slate-300 dark:text-slate-700" : "text-slate-500 hover:bg-[#1e8f87]/[0.025] hover:text-[#1e8f87]"
-      }`}
-    >
-      <div className="absolute inset-x-0 bottom-0 h-px bg-slate-100 dark:bg-white/5" />
-      {!disabled && <div className="absolute left-8 h-16 w-20 rounded-full bg-[#1e8f87] opacity-0 blur-[28px] transition-opacity group-hover:opacity-10" />}
-      <Icon className="mr-4 h-[18px] w-[18px] shrink-0 stroke-[1.45]" />
-      <span>{label}</span>
-      {disabled && <span className="ml-auto mr-6 text-[8px] font-semibold tracking-[0.12em]">EM BREVE</span>}
-    </div>
-  );
-
-  if (!to || disabled) return body;
 
   return (
     <button
       type="button"
-      className="block w-full text-left"
-      onClick={() => {
-        if (environment) {
-          startEnvironmentTransition(environment, () => navigate({ to: to as any }));
-          return;
-        }
-        navigate({ to: to as any });
+      disabled={disabled}
+      title={collapsed ? label : undefined}
+      aria-label={label}
+      onMouseMove={(event) => {
+        const rect = event.currentTarget.getBoundingClientRect();
+        event.currentTarget.style.setProperty("--mouse-x", `${event.clientX - rect.left}px`);
+        event.currentTarget.style.setProperty("--mouse-y", `${event.clientY - rect.top}px`);
       }}
+      onClick={() => {
+        if (!to || disabled) return;
+        startEnvironmentTransition(environment, () => navigate({ to: to as any }));
+      }}
+      className={`group relative flex w-full items-center overflow-hidden py-6 text-[13px] font-medium uppercase tracking-[0.1em] text-slate-500 transition-all hover:bg-[#54A8FB]/[0.03] active:bg-[#54A8FB]/[0.05] disabled:cursor-default disabled:opacity-45 ${
+        collapsed ? "justify-center px-1" : "pl-12"
+      }`}
     >
-      {body}
+      <div className="absolute inset-x-0 bottom-0 h-px bg-slate-100 dark:bg-white/5" />
+      <div
+        className="pointer-events-none absolute h-24 w-24 rounded-full bg-[#54A8FB] opacity-0 blur-[30px] transition-opacity duration-300 group-hover:opacity-20 group-disabled:opacity-0"
+        style={{
+          left: "var(--mouse-x, 50%)",
+          top: "var(--mouse-y, 50%)",
+          transform: "translate(-50%, -50%)",
+        }}
+      />
+      <span className={`relative whitespace-nowrap transition-colors duration-300 group-hover:text-primary ${collapsed ? "text-[9px] tracking-[0.08em]" : ""}`}>
+        {collapsed ? shortLabel : label}
+      </span>
     </button>
   );
 }
 
-export function ClinicSidebar({ context }: { context: ClinicContext }) {
+function ProfileArea({ profile, collapsed }: { profile?: Profile; collapsed: boolean }) {
+  if (!profile) return null;
+  const firstName = profile.full_name?.trim().split(/\s+/)[0] || "Usuário";
+  const settingsLink = (
+    <Link
+      to="/clinica/configuracoes"
+      title={collapsed ? `Conta ativa · ${profile.full_name || firstName}` : undefined}
+      className={`group flex w-full items-center transition-all duration-300 ${
+        collapsed
+          ? "justify-center"
+          : "gap-3 rounded-[24px] border border-slate-100/70 bg-slate-50/55 p-3.5 hover:bg-slate-50 dark:border-white/[0.06] dark:bg-white/[0.025] dark:hover:bg-white/[0.04]"
+      }`}
+    >
+      <div className={`relative shrink-0 overflow-hidden rounded-full border border-slate-100 bg-white shadow-sm dark:border-white/10 dark:bg-slate-800 ${collapsed ? "h-9 w-9" : "h-12 w-12"}`}>
+        {profile.avatar_url ? (
+          <img src={profile.avatar_url} alt={profile.full_name ?? "Perfil"} className="h-full w-full object-cover" />
+        ) : (
+          <div className="grid h-full w-full place-items-center text-sm font-semibold text-[#1e8f87]">{firstName[0]?.toUpperCase()}</div>
+        )}
+        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500 dark:border-slate-900" />
+      </div>
+      {!collapsed && (
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[14px] font-medium tracking-tight text-slate-900 dark:text-slate-100">{profile.full_name || firstName}</div>
+          <div className="mt-0.5 flex items-center gap-1.5 text-[10px] font-light text-slate-400">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Conta ativa
+          </div>
+        </div>
+      )}
+    </Link>
+  );
+
+  return (
+    <div className={collapsed ? "px-4 pb-4 pt-6" : "px-4 pb-3 pt-7"}>
+      {!collapsed && (
+        <div className="mb-4 px-2 text-[16px] font-medium tracking-tight text-[#1e8f87]">
+          Bem-vindo <span className="font-light text-slate-400">de volta,</span> {firstName}
+        </div>
+      )}
+      {settingsLink}
+    </div>
+  );
+}
+
+export function ClinicSidebar({
+  context,
+  profile,
+  collapsed = false,
+}: {
+  context: ClinicContext;
+  profile?: Profile;
+  collapsed?: boolean;
+}) {
   const { pathname } = useLocation();
   const activeFor = (to: string) => (to === "/clinica" ? pathname === "/clinica" : pathname.startsWith(to));
   const primary = primaryItems.filter((item) => context.permissions[item.permission]);
@@ -101,42 +159,60 @@ export function ClinicSidebar({ context }: { context: ClinicContext }) {
 
   return (
     <>
-      <aside className="fixed bottom-0 left-0 top-[72px] z-40 hidden w-[272px] flex-col border-r border-slate-200/70 bg-white md:flex dark:border-white/[0.07] dark:bg-[#090c11]">
-        <div className="px-4 pb-3 pt-5">
-          <div className="rounded-[22px] border border-[#1e8f87]/10 bg-[linear-gradient(135deg,rgba(30,143,135,0.09),rgba(30,143,135,0.025))] p-4 dark:border-[#1e8f87]/20 dark:bg-[#1e8f87]/10">
-            <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-2xl bg-[#1e8f87] text-white shadow-[0_8px_22px_-12px_rgba(30,143,135,0.9)]">
-                <Building2 className="h-5 w-5 stroke-[1.6]" />
+      <aside
+        className={`fixed bottom-0 left-0 top-[72px] z-40 hidden flex-col border-r border-slate-200/70 bg-white transition-[width] duration-300 md:flex dark:border-white/[0.07] dark:bg-[#090c11] ${
+          collapsed ? "w-[80px]" : "w-[272px]"
+        }`}
+      >
+        <ProfileArea profile={profile} collapsed={collapsed} />
+
+        {!collapsed && (
+          <div className="px-4 pb-4">
+            <div
+              data-clinic-institute-card
+              className="rounded-[20px] border border-[#1e8f87]/10 bg-[linear-gradient(135deg,rgba(30,143,135,0.075),rgba(30,143,135,0.02))] px-4 py-4 dark:border-[#1e8f87]/20 dark:bg-[#1e8f87]/10"
+            >
+              <div className="text-[14px] font-medium leading-5 text-slate-800 dark:text-slate-100">
+                {context.clinicName || "Minha clínica"}
               </div>
-              <div className="min-w-0">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[#1e8f87]">Ambiente clínico</div>
-                <div className="mt-0.5 truncate text-sm font-medium text-slate-800 dark:text-slate-100">{context.clinicName || "Minha clínica"}</div>
-              </div>
-            </div>
-            <div className="mt-3 rounded-xl bg-white/70 px-3 py-2 text-[10px] font-light leading-relaxed text-slate-500 dark:bg-black/15 dark:text-slate-400">
-              Agenda, pacientes e gestão do consultório em um ambiente independente do laboratório.
             </div>
           </div>
-        </div>
+        )}
 
-        <nav className="flex-1 overflow-y-auto px-3 pb-3 pt-1">
-          <div className="px-3 pb-2 pt-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300 dark:text-slate-600">Atendimento</div>
-          <div className="space-y-1">{primary.map((item) => <NavItem key={item.to} item={item} active={activeFor(item.to)} />)}</div>
+        <div className={`mx-auto h-px bg-slate-100 dark:bg-white/5 ${collapsed ? "w-9" : "w-[calc(100%-32px)]"}`} />
+
+        <nav className={`flex-1 overflow-y-auto pb-3 pt-3 ${collapsed ? "px-2" : "px-3"}`}>
+          {!collapsed && <div className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300 dark:text-slate-600">Atendimento</div>}
+          <div className="space-y-1">{primary.map((item) => <NavItem key={item.to} item={item} active={activeFor(item.to)} collapsed={collapsed} />)}</div>
 
           {management.length > 0 && (
             <>
-              <div className="mx-3 my-4 h-px bg-slate-100 dark:bg-white/5" />
-              <div className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300 dark:text-slate-600">Gestão</div>
-              <div className="space-y-1">{management.map((item) => <NavItem key={item.to} item={item} active={activeFor(item.to)} />)}</div>
+              <div className={`my-4 h-px bg-slate-100 dark:bg-white/5 ${collapsed ? "mx-auto w-8" : "mx-3"}`} />
+              {!collapsed && <div className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-300 dark:text-slate-600">Gestão</div>}
+              <div className="space-y-1">{management.map((item) => <NavItem key={item.to} item={item} active={activeFor(item.to)} collapsed={collapsed} />)}</div>
             </>
           )}
         </nav>
 
-        {context.isAdvanced && <StorageSidebarCard to="/clinica/armazenamento" variant="clinic" />}
+        {context.isAdvanced && <StorageSidebarCard to="/clinica/armazenamento" variant="clinic" collapsed={collapsed} />}
 
-        <div className="mt-auto border-t border-slate-100 bg-white dark:border-white/5 dark:bg-[#090c11]">
-          {labEnabled && <ModuleRow label="Laboratório" icon={FlaskConical} to="/casos" environment="Laboratório" />}
-          <ModuleRow label="Radiologia" icon={Radio} environment="Radiologia" disabled />
+        <div className="mt-auto flex flex-col overflow-hidden border-t border-slate-100 bg-white dark:border-white/5 dark:bg-[#090c11]">
+          {labEnabled && (
+            <EnvironmentModuleButton
+              label="LABORATÓRIO"
+              shortLabel="LAB"
+              to="/casos"
+              environment="Laboratório"
+              collapsed={collapsed}
+            />
+          )}
+          <EnvironmentModuleButton
+            label="RADIOLOGIA"
+            shortLabel="RAD"
+            environment="Radiologia"
+            collapsed={collapsed}
+            disabled
+          />
         </div>
       </aside>
 
