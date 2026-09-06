@@ -2,6 +2,10 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { isDentalFlowDesktop, provisionDesktopIdentity } from "@/lib/desktop-local";
 import { syncDesktopOfflineData } from "@/lib/desktop-sync";
+import {
+  prepareDesktopRecovery,
+  protectCriticalCachesFromEmptyRegression,
+} from "@/lib/desktop-recovery";
 
 /**
  * Starts the local-first desktop layer only after the authenticated shell exists.
@@ -43,9 +47,22 @@ export function DesktopOfflineBootstrap() {
           });
         }
 
+        const recovery = await prepareDesktopRecovery();
         const summary = await syncDesktopOfflineData();
+        const protectedNamespaces = await protectCriticalCachesFromEmptyRegression(recovery.snapshot);
+
         if (disposed) return;
-        window.dispatchEvent(new CustomEvent("dentalflow:desktop-sync-complete", { detail: summary }));
+        window.dispatchEvent(
+          new CustomEvent("dentalflow:desktop-sync-complete", {
+            detail: {
+              ...summary,
+              recovery: {
+                reconstructedNamespaces: recovery.reconstructedNamespaces,
+                protectedNamespaces,
+              },
+            },
+          }),
+        );
       } catch (error) {
         if (disposed) return;
         console.error("[DentalFlow Desktop] Falha ao preparar dados offline", error);
