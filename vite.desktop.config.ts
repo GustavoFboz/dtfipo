@@ -37,7 +37,7 @@ export default defineConfig({
         },
         {
           find: /^@\/lib\/workflow$/,
-          replacement: fileURLToPath(new URL("./src/lib/workflow-local-first.ts", import.meta.url)),
+          replacement: fileURLToPath(new URL("./src/lib/workflow.desktop.ts", import.meta.url)),
         },
         {
           find: /^@\/lib\/stock$/,
