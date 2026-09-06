@@ -1,0 +1,39 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "DentalFlow",
+  "version": "0.1.0",
+  "identifier": "br.com.dentalflow.desktop",
+  "build": {
+    "beforeDevCommand": "bun run dev:desktop",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "bun run build:desktop",
+    "frontendDist": "../.output/public"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "DentalFlow",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1024,
+        "minHeight": 680,
+        "center": true,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "transparent": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "msi"],
+    "createUpdaterArtifacts": false,
+    "shortDescription": "Gestão integrada para clínicas e laboratórios odontológicos",
+    "longDescription": "DentalFlow Desktop — experiência nativa do DentalFlow para Windows, preparada para evoluir com operação offline, sincronização e integrações locais."
+  }
+}
