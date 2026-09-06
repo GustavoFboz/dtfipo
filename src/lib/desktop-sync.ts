@@ -6,6 +6,8 @@ import { syncPendingStockChanges, warmStockLocalCache } from "@/lib/stock-local-
 import { syncPendingStockV2Changes, warmStockV2LocalCache } from "@/lib/stock-v2-local-first";
 import { warmReferenceLocalCache } from "@/lib/reference-local-first";
 import { warmCaseLocalCache } from "@/lib/cases-local-first";
+import { syncPendingNotificationChanges, warmNotificationLocalCache } from "@/lib/notifications-local-first";
+import { syncPendingWorkflowChanges, warmWorkflowLocalCache } from "@/lib/workflow-local-first";
 
 export type DesktopSyncSummary = {
   processed: number;
@@ -23,6 +25,8 @@ export type DesktopSyncSummary = {
   clinicDashboardDatasetsCached: number;
   clinicContextCached: boolean;
   referenceDatasetsCached: number;
+  notificationsCached: number;
+  workflowDatasetsCached: number;
 };
 
 let activeSync: Promise<DesktopSyncSummary> | null = null;
@@ -45,6 +49,8 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
       clinicDashboardDatasetsCached: 0,
       clinicContextCached: false,
       referenceDatasetsCached: 0,
+      notificationsCached: 0,
+      workflowDatasetsCached: 0,
     };
   }
 
@@ -53,6 +59,9 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
   const recordsSync = await syncPendingClinicRecordChanges();
   const stockSync = await syncPendingStockChanges();
   const stockV2Sync = await syncPendingStockV2Changes();
+  const notificationSync = await syncPendingNotificationChanges();
+  const workflowSync = await syncPendingWorkflowChanges();
+
   let patientsCached = 0;
   let appointmentsCached = clinicSync.appointmentsCached;
   let casesCached = 0;
@@ -65,6 +74,8 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
   let clinicDashboardDatasetsCached = recordsSync.dashboardDatasetsCached;
   let clinicContextCached = clinicSync.contextCached;
   let referenceDatasetsCached = 0;
+  let notificationsCached = notificationSync.cached;
+  let workflowDatasetsCached = workflowSync.datasetsCached;
 
   if (typeof navigator === "undefined" || navigator.onLine !== false) {
     try {
@@ -125,12 +136,49 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
         console.warn("[DentalFlow Desktop] Não foi possível aquecer o estoque atual", error);
       }
     }
+
+    if (!notificationsCached) {
+      try {
+        notificationsCached = await warmNotificationLocalCache();
+      } catch (error) {
+        console.warn("[DentalFlow Desktop] Não foi possível aquecer notificações", error);
+      }
+    }
+
+    if (workflowDatasetsCached < 4) {
+      try {
+        workflowDatasetsCached = Math.max(workflowDatasetsCached, await warmWorkflowLocalCache());
+      } catch (error) {
+        console.warn("[DentalFlow Desktop] Não foi possível aquecer workflow/tarefas", error);
+      }
+    }
   }
 
   return {
-    processed: patientSync.processed + clinicSync.processed + recordsSync.processed + stockSync.processed + stockV2Sync.processed,
-    failed: patientSync.failed + clinicSync.failed + recordsSync.failed + stockSync.failed + stockV2Sync.failed,
-    conflicts: patientSync.conflicts + clinicSync.conflicts + recordsSync.conflicts + stockSync.conflicts + stockV2Sync.conflicts,
+    processed:
+      patientSync.processed +
+      clinicSync.processed +
+      recordsSync.processed +
+      stockSync.processed +
+      stockV2Sync.processed +
+      notificationSync.processed +
+      workflowSync.processed,
+    failed:
+      patientSync.failed +
+      clinicSync.failed +
+      recordsSync.failed +
+      stockSync.failed +
+      stockV2Sync.failed +
+      notificationSync.failed +
+      workflowSync.failed,
+    conflicts:
+      patientSync.conflicts +
+      clinicSync.conflicts +
+      recordsSync.conflicts +
+      stockSync.conflicts +
+      stockV2Sync.conflicts +
+      notificationSync.conflicts +
+      workflowSync.conflicts,
     patientsCached,
     appointmentsCached,
     casesCached,
@@ -143,6 +191,8 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
     clinicDashboardDatasetsCached,
     clinicContextCached,
     referenceDatasetsCached,
+    notificationsCached,
+    workflowDatasetsCached,
   };
 }
 
