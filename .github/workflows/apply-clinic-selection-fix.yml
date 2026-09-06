@@ -1,0 +1,52 @@
+name: Apply clinic selection source fix
+
+on:
+  push:
+    branches:
+      - feature/clinic-dynamic-dashboard-shell
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/clinic-dynamic-dashboard-shell
+          fetch-depth: 0
+
+      - name: Patch plain-click tooth selection
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/components/NewCaseDialog.tsx')
+          source = path.read_text(encoding='utf-8')
+          old = 'const staleTemporary = justAddedTeeth.filter((item) => item !== tooth && !toothHasConfig(item));'
+          new = 'const staleTemporary = teeth.filter((item) => item !== tooth && !toothHasConfig(item));'
+
+          if new in source:
+              print('NewCaseDialog is already patched.')
+          elif old in source:
+              path.write_text(source.replace(old, new, 1), encoding='utf-8')
+              print('Patched NewCaseDialog plain-click selection semantics.')
+          else:
+              raise SystemExit('Expected NewCaseDialog selection line was not found; refusing an unsafe patch.')
+          PY
+
+      - name: Commit focused patch
+        run: |
+          if git diff --quiet; then
+            echo 'No source change to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/components/NewCaseDialog.tsx
+          git commit -m 'fix: make plain tooth click exclusive'
+          git push origin HEAD:feature/clinic-dynamic-dashboard-shell
