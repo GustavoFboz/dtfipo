@@ -7,6 +7,7 @@ import { ModuleEntryBridge } from "@/components/ModuleEntryBridge";
 import { CaseDialogSanitizer } from "@/components/CaseDialogSanitizer";
 import { WorkflowLayoutStabilizer } from "@/components/WorkflowLayoutStabilizer";
 import { EnvironmentTransition } from "@/components/EnvironmentTransition";
+import { ConnectivityLayer } from "@/components/ConnectivityLayer";
 import "@/workflow-layout.css";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -48,6 +49,7 @@ function AuthenticatedShell() {
 
   return (
     <>
+      <ConnectivityLayer />
       <EnvironmentTransition />
       {shell}
     </>
