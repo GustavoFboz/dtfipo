@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TopProgressBar } from "@/components/TopProgressBar";
 import { UploadProgressDock } from "@/components/UploadProgressDock";
 import { DesktopLocalRuntimeBridge } from "@/components/DesktopLocalRuntimeBridge";
+import { DesktopNativeFrame } from "@/components/DesktopNativeFrame";
 import { ConfirmHost } from "@/lib/confirm";
 import { tryAutoConnectPrinter } from "@/lib/print-note/bluetooth";
 import { usePWANavGuard } from "@/hooks/use-pwa-nav-guard";
@@ -78,7 +79,6 @@ function RootShell({ children }: { children: React.ReactNode }) {
             __html: `try{var t=localStorage.getItem('df-theme');if(t==='dark'){document.documentElement.classList.add('dark');}var a=localStorage.getItem('df-arcada-style');if(a==='azul'){document.documentElement.setAttribute('data-arcada','azul');}document.documentElement.classList.add('refresh-boot');window.addEventListener('load',function(){setTimeout(function(){document.documentElement.classList.remove('refresh-boot');},600);});}catch(e){}`,
           }}
         />
-
       </head>
       <body>{children}<Scripts /></body>
     </html>
@@ -116,11 +116,13 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <DesktopLocalRuntimeBridge />
       <SessionLifecycleBridge />
-      <TopProgressBar />
-      <Outlet />
-      <Toaster />
-      <UploadProgressDock />
-      <ConfirmHost />
+      <DesktopNativeFrame>
+        <TopProgressBar />
+        <Outlet />
+        <Toaster />
+        <UploadProgressDock />
+        <ConfirmHost />
+      </DesktopNativeFrame>
     </QueryClientProvider>
   );
 }
