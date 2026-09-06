@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { isDentalFlowDesktop, provisionDesktopIdentity } from "@/lib/desktop-local";
 import { syncDesktopOfflineData } from "@/lib/desktop-sync";
@@ -14,6 +15,8 @@ import {
  * could remain authorized forever without being revalidated by the server.
  */
 export function DesktopOfflineBootstrap() {
+  const queryClient = useQueryClient();
+
   useEffect(() => {
     if (!isDentalFlowDesktop()) return;
 
@@ -47,11 +50,21 @@ export function DesktopOfflineBootstrap() {
           });
         }
 
+        // Recovery runs before synchronization so a list accidentally emptied by
+        // an older Desktop build can be reconstructed from its per-entity mirrors.
         const recovery = await prepareDesktopRecovery();
         const summary = await syncDesktopOfflineData();
         const protectedNamespaces = await protectCriticalCachesFromEmptyRegression(recovery.snapshot);
 
         if (disposed) return;
+
+        // The authenticated shell can render before the recovery pass finishes.
+        // Force every visible query to re-read the repaired SQLite snapshots so
+        // restored patients/cases/clinic data appear immediately, without asking
+        // the user to change pages or restart the program.
+        await queryClient.invalidateQueries();
+        if (disposed) return;
+
         window.dispatchEvent(
           new CustomEvent("dentalflow:desktop-sync-complete", {
             detail: {
@@ -74,7 +87,7 @@ export function DesktopOfflineBootstrap() {
     return () => {
       disposed = true;
     };
-  }, []);
+  }, [queryClient]);
 
   return null;
 }
