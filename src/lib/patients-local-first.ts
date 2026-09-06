@@ -11,6 +11,7 @@ import {
   markOutbox,
   type OutboxEntry,
 } from "@/lib/desktop-local";
+import { requireDesktopOwnerId, resolveDesktopOwnerId } from "@/lib/desktop-identity";
 
 const PATIENT_CACHE_NAMESPACE = "patients:v1";
 const PATIENT_LIST_KEY = "all";
@@ -48,6 +49,7 @@ function isTransientNetworkError(error: unknown) {
     "fetch failed",
     "connection",
     "offline",
+    "timeout",
   ].some((needle) => message.includes(needle));
 }
 
@@ -59,14 +61,11 @@ function makeUuid() {
 }
 
 async function getOwnerId() {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.user?.id ?? null;
+  return resolveDesktopOwnerId();
 }
 
 async function requireOwnerId() {
-  const ownerId = await getOwnerId();
-  if (!ownerId) throw new Error("Sua sessão expirou. Entre novamente para continuar.");
-  return ownerId;
+  return requireDesktopOwnerId();
 }
 
 function patientSort(a: Patient, b: Patient) {
@@ -104,12 +103,26 @@ async function readCachedPatient(ownerId: string, id: string): Promise<Patient |
   return list?.find((patient) => patient.id === id) ?? null;
 }
 
-async function cachePatientSnapshot(ownerId: string, patients: Patient[]) {
+/**
+ * Never let an ambiguous zero-row cloud response erase a previously verified
+ * non-empty local patient list. Cloud Login/RLS can briefly answer with an empty
+ * result while the authenticated profile is still being rehydrated. Explicit
+ * patient deletes update the local list through removeCachedPatient, so a real
+ * user-initiated deletion is not blocked by this safety rail.
+ */
+async function cachePatientSnapshot(ownerId: string, patients: Patient[]): Promise<Patient[]> {
+  const current = await readCachedPatients(ownerId);
+  if (patients.length === 0 && current && current.length > 0) {
+    console.warn("[DentalFlow Desktop] Resposta vazia de pacientes ignorada para preservar o último snapshot local válido.");
+    return current;
+  }
+
   const sorted = [...patients].sort(patientSort);
   await localCachePut(ownerId, PATIENT_CACHE_NAMESPACE, PATIENT_LIST_KEY, sorted);
   await Promise.allSettled(
     sorted.map((patient) => localCachePut(ownerId, PATIENT_CACHE_NAMESPACE, patient.id, patient)),
   );
+  return sorted;
 }
 
 async function upsertCachedPatient(ownerId: string, patient: Patient) {
@@ -174,8 +187,7 @@ export async function fetchPatientsLocalFirst(): Promise<Patient[]> {
   if (isOnline()) {
     try {
       const remote = await cloudFetchPatients();
-      await cachePatientSnapshot(ownerId, remote);
-      return remote;
+      return await cachePatientSnapshot(ownerId, remote);
     } catch (error) {
       if (!isTransientNetworkError(error)) throw error;
     }
@@ -197,6 +209,10 @@ export async function fetchPatientLocalFirst(id: string): Promise<Patient | null
     try {
       const remote = await cloudFetchPatient(id);
       if (remote) await upsertCachedPatient(ownerId, remote);
+      if (!remote) {
+        const cached = await readCachedPatient(ownerId, id);
+        if (cached) return cached;
+      }
       return remote;
     } catch (error) {
       if (!isTransientNetworkError(error)) throw error;
@@ -211,8 +227,8 @@ export async function warmPatientLocalCache() {
   const ownerId = await getOwnerId();
   if (!ownerId) return 0;
   const patients = await cloudFetchPatients();
-  await cachePatientSnapshot(ownerId, patients);
-  return patients.length;
+  const snapshot = await cachePatientSnapshot(ownerId, patients);
+  return snapshot.length;
 }
 
 export async function savePatientLocalFirst(
