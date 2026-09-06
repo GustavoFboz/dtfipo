@@ -1,6 +1,7 @@
 import { isDentalFlowDesktop } from "@/lib/desktop-local";
 import { syncPendingPatientChanges, warmPatientLocalCache } from "@/lib/patients-local-first";
 import { syncPendingClinicChanges, warmClinicLocalCache } from "@/lib/clinic-local-first";
+import { warmReferenceLocalCache } from "@/lib/reference-local-first";
 
 export type DesktopSyncSummary = {
   processed: number;
@@ -9,6 +10,7 @@ export type DesktopSyncSummary = {
   patientsCached: number;
   appointmentsCached: number;
   clinicContextCached: boolean;
+  referenceDatasetsCached: number;
 };
 
 let activeSync: Promise<DesktopSyncSummary> | null = null;
@@ -22,6 +24,7 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
       patientsCached: 0,
       appointmentsCached: 0,
       clinicContextCached: false,
+      referenceDatasetsCached: 0,
     };
   }
 
@@ -30,12 +33,19 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
   let patientsCached = 0;
   let appointmentsCached = clinicSync.appointmentsCached;
   let clinicContextCached = clinicSync.contextCached;
+  let referenceDatasetsCached = 0;
 
   if (typeof navigator === "undefined" || navigator.onLine !== false) {
     try {
       patientsCached = await warmPatientLocalCache();
     } catch (error) {
       console.warn("[DentalFlow Desktop] Não foi possível aquecer o cache local de pacientes", error);
+    }
+
+    try {
+      referenceDatasetsCached = await warmReferenceLocalCache();
+    } catch (error) {
+      console.warn("[DentalFlow Desktop] Não foi possível aquecer os cadastros auxiliares", error);
     }
 
     // When there is no queued clinic work, syncPendingClinicChanges still warms
@@ -58,6 +68,7 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
     patientsCached,
     appointmentsCached,
     clinicContextCached,
+    referenceDatasetsCached,
   };
 }
 
