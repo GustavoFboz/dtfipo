@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { adminCreate, adminUpdate } from "@/lib/api";
+import { savePatientLocalFirst } from "@/lib/patients-local-first";
 import { broadcastEntity } from "@/lib/optimistic";
 import type { Patient } from "@/lib/types";
 
@@ -97,38 +97,49 @@ export function PatientFormDialog({ trigger, patient, open: openProp, onOpenChan
         clinical_notes: f.clinical_notes || null,
         notes: f.notes || null,
       };
-      if (editing && patient) {
-        await adminUpdate("patients", patient.id, payload);
-        return { id: patient.id, row: { id: patient.id, ...(patient as any), ...payload } };
-      }
-      await adminCreate("patients", payload);
-      return { id: null as string | null, row: null };
+
+      return savePatientLocalFirst(payload, editing ? patient ?? null : null);
     },
     onSuccess: (res) => {
-      toast.success(editing ? "Paciente atualizado" : "Paciente cadastrado");
-      // Optimistic: patch patients cache
-      if (res.row) {
-        qc.setQueriesData<any[]>({ queryKey: ["patients"] }, (old) =>
-          Array.isArray(old) ? old.map((p) => (p.id === res.id ? { ...p, ...res.row } : p)) : old,
-        );
-        qc.setQueryData(["patient", res.id], (old: any) => (old ? { ...old, ...res.row } : res.row));
-        // Optimistic: patch every case referencing this patient so cadistas see it instantly.
-        qc.setQueriesData<any[]>({ queryKey: ["cases"] }, (old) =>
-          Array.isArray(old)
-            ? old.map((c) => (c.patient_id === res.id ? { ...c, patient: { ...(c.patient ?? {}), ...res.row } } : c))
-            : old,
-        );
-        qc.setQueriesData<any>({ queryKey: ["case"] }, (old: any) =>
-          old && old.patient_id === res.id ? { ...old, patient: { ...(old.patient ?? {}), ...res.row } } : old,
-        );
-        // Peer broadcast to other tabs/devices
-        broadcastEntity("patients", editing ? "update" : "insert", res.row);
-      }
+      const row = res.patient;
+      const id = row.id;
+
+      toast.success(
+        res.queued
+          ? "Paciente salvo neste computador. A sincronização ocorrerá quando a internet voltar."
+          : editing
+            ? "Paciente atualizado"
+            : "Paciente cadastrado",
+      );
+
+      qc.setQueriesData<Patient[]>({ queryKey: ["patients"] }, (old) => {
+        if (!Array.isArray(old)) return [row];
+        const next = old.some((p) => p.id === id)
+          ? old.map((p) => (p.id === id ? { ...p, ...row } : p))
+          : [...old, row];
+        return next.sort((a, b) => (a.name || "").localeCompare(b.name || "", "pt-BR", { sensitivity: "base" }));
+      });
+      qc.setQueryData(["patient", id], (old: Patient | undefined) => (old ? { ...old, ...row } : row));
+
+      // Keep case cards coherent when a patient name/contact is edited.
+      qc.setQueriesData<any[]>({ queryKey: ["cases"] }, (old) =>
+        Array.isArray(old)
+          ? old.map((c) => (c.patient_id === id ? { ...c, patient: { ...(c.patient ?? {}), ...row } } : c))
+          : old,
+      );
+      qc.setQueriesData<any>({ queryKey: ["case"] }, (old: any) =>
+        old && old.patient_id === id ? { ...old, patient: { ...(old.patient ?? {}), ...row } } : old,
+      );
+
+      // Only broadcast rows that already exist in the cloud. A queued offline
+      // patient must remain local to this Desktop until the sync engine uploads it.
+      if (!res.queued) broadcastEntity("patients", editing ? "update" : "insert", row);
+
       qc.invalidateQueries({ queryKey: ["patients"] });
-      qc.invalidateQueries({ queryKey: ["patient", patient?.id] });
+      qc.invalidateQueries({ queryKey: ["patient", id] });
       qc.invalidateQueries({ queryKey: ["cases"] });
       setOpen(false);
-      onSaved?.(res.id ?? patient?.id ?? "");
+      onSaved?.(id);
     },
     onError: (e: Error) => toast.error(e.message),
   });
