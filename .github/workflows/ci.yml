@@ -34,6 +34,9 @@ jobs:
       - name: Verify Clinic UX regressions
         run: bun scripts/check-clinic-ux-regressions.mjs
 
+      - name: Verify Desktop offline regressions
+        run: bun scripts/check-desktop-offline-regressions.mjs
+
       # The repository has substantial pre-existing formatting/lint debt.
       # A repo-wide lint gate currently reports thousands of legacy findings,
       # so enabling it here would make unrelated historical debt block this
