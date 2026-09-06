@@ -22,10 +22,16 @@ export default defineConfig({
     resolve: {
       alias: [
         {
-          // Desktop reads of patients are local-first, while every other API
-          // function keeps coming from the existing shared DentalFlow module.
+          // Desktop patient reads/writes are local-first, while the remaining
+          // shared API keeps coming from the existing DentalFlow module.
           find: /^@\/lib\/api$/,
           replacement: fileURLToPath(new URL("./src/lib/api.desktop.ts", import.meta.url)),
+        },
+        {
+          // The Clinic shell keeps importing the same module. Only the Desktop
+          // build swaps context + agenda for the SQLite/outbox implementation.
+          find: /^@\/lib\/clinic$/,
+          replacement: fileURLToPath(new URL("./src/lib/clinic.desktop.ts", import.meta.url)),
         },
       ],
     },
