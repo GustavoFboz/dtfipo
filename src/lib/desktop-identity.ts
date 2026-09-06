@@ -5,31 +5,42 @@ import {
   type DeviceIdentity,
 } from "@/lib/desktop-local";
 
+const OFFLINE_MARKER = "dentalflow_offline_device";
+const LOCAL_ACCESS_TOKEN = "dentalflow-local-device-session";
+
 export type EffectiveDesktopIdentity = {
   userId: string;
   source: "cloud" | "device";
   deviceIdentity: DeviceIdentity | null;
 };
 
+function sessionIsDeviceOnly(session: any) {
+  return Boolean(
+    session?.user?.user_metadata?.[OFFLINE_MARKER] ||
+      session?.access_token === LOCAL_ACCESS_TOKEN,
+  );
+}
+
 /**
  * Resolve the identity used by the local-first layer.
  *
- * Supabase remains authoritative while a cloud session is available. When the
- * Windows app is offline (or the browser reports a network that cannot actually
- * reach Supabase), a previously provisioned device identity becomes the owner of
- * the local SQLite cache. This is what lets the same cached rows remain visible
- * after restarting Windows with no internet connection.
+ * A synthetic device session is intentionally NOT classified as a cloud session.
+ * That distinction is critical: a local device identity can unlock SQLite, but it
+ * must never be used as proof that Cloud Login/PostgREST is authenticated. Doing
+ * so previously allowed an apparently "online" Desktop to request protected data
+ * without a real cloud token and interpret zero-row responses as real data loss.
  */
 export async function resolveDesktopIdentity(): Promise<EffectiveDesktopIdentity | null> {
   try {
     const { data } = await supabase.auth.getSession();
-    const userId = data.session?.user?.id;
-    if (userId) {
+    const session = data.session;
+    const userId = session?.user?.id;
+    if (userId && !sessionIsDeviceOnly(session)) {
       return { userId, source: "cloud", deviceIdentity: null };
     }
   } catch {
-    // The cloud auth client can fail during a real offline boot. Fall through to
-    // the device provision instead of treating this as a logged-out state.
+    // A real offline boot can make Cloud Login unreachable. Fall through to the
+    // finite-lived device provision instead of treating the user as logged out.
   }
 
   if (!isDentalFlowDesktop()) return null;
@@ -57,6 +68,13 @@ export async function requireDesktopOwnerId(): Promise<string> {
   return ownerId;
 }
 
+/** True only when Cloud Login is genuinely authenticated and the network is usable. */
+export async function canUseDentalFlowCloud(): Promise<boolean> {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
+  const identity = await resolveDesktopIdentity();
+  return identity?.source === "cloud";
+}
+
 export async function resolveOfflineAuthUser() {
   const identity = await resolveDesktopIdentity();
   if (!identity || identity.source !== "device" || !identity.deviceIdentity) return null;
@@ -64,6 +82,10 @@ export async function resolveOfflineAuthUser() {
   return {
     id: device.user_id,
     email: device.email ?? undefined,
-    user_metadata: { full_name: device.full_name ?? undefined },
+    user_metadata: {
+      full_name: device.full_name ?? undefined,
+      clinic_id: device.clinic_id ?? undefined,
+      [OFFLINE_MARKER]: true,
+    },
   };
 }
