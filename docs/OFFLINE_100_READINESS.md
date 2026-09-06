@@ -28,18 +28,22 @@ O Desktop será considerado offline-ready quando, após uma sincronização onli
 |---|---:|---:|---:|---|
 | Shell/Tauri | Sim | n/a | n/a | pronto |
 | SQLite local | Sim | Sim | Sim | pronto |
-| Pacientes | Sim | Sim | Sim | primeira implementação |
-| Contexto/permissões da Clínica | Sim | n/a | atualização online | implementado |
-| Agenda da Clínica | Sim | Sim | Sim | implementado nesta etapa |
-| Perfil e cadastros auxiliares | Sim | não aplicável em vários fluxos | atualização online | implementado nesta etapa |
-| Casos do Laboratório | Sim | Ainda não | Ainda não | leitura implementada nesta etapa |
-| Financeiro da Clínica | Ainda não completo | Ainda não | Ainda não | próximo |
-| Evoluções/prontuário | Ainda não completo | Ainda não | Ainda não | próximo |
-| Estoque | Ainda não completo | Ainda não | Ainda não | próximo |
-| Etapas/alterações de casos | leitura parcial | Ainda não | Ainda não | próximo |
-| Notificações | Não | Não | Não | pendente |
+| Pacientes | Sim | Sim | Sim | implementado, requer bateria final de conflito |
+| Contexto/permissões da Clínica | Sim | leitura | atualização online | implementado |
+| Agenda da Clínica | Sim | Sim | Sim | implementado |
+| Perfil e cadastros auxiliares | Sim | parcial | atualização online | implementado para os datasets essenciais |
+| Casos do Laboratório | Sim | Ainda não | Ainda não | leitura offline implementada |
+| Financeiro da Clínica | Sim | Sim | Sim | primeira implementação local-first |
+| Evoluções/prontuário | Sim | Sim | Sim | primeira implementação local-first |
+| Dashboard clínico | Sim para datasets migrados | n/a | atualização online | estoque baixo e tratamentos ativos cacheados |
+| Estoque atual (`stock-v2`) | Sim | Sim para CRUD/ajustes | Sim | primeira implementação local-first |
+| Estoque legado | Sim | Sim para CRUD/movimentos manuais | Sim | primeira implementação local-first |
+| Consumo automático ligado ao caso | Parcial | Ainda não seguro | Ainda não | bloqueador de estoque 100% offline |
+| Etapas/alterações de casos | leitura parcial | Ainda não | Ainda não | próximo grande bloco |
+| Notificações | Não completo | Não | Não | pendente |
+| Equipe/admin server-side | Parcial | Não completo | Não completo | funções server-only precisam de adapter |
 | Anexos/imagens/arquivos | metadados não bastam | Não | Não | pendente |
-| Autenticação após reinício sem internet | depende da sessão persistida | n/a | n/a | precisa de cofre local/offline unlock |
+| Identidade após reinício sem internet | provisionamento finito iniciado | n/a | revalidação ao reconectar | fundação implementada, cofre/segredo local ainda obrigatório |
 | Criptografia do banco local | Não final | n/a | n/a | obrigatório antes de produção |
 | Atualizações do app | n/a | n/a | n/a | pendente |
 
@@ -64,28 +68,24 @@ SQLite / local cache     Supabase
 
 A UI não deve decidir se está online ou offline. Cada domínio possui um repositório local-first. O build Web continua usando os módulos cloud existentes; o build Tauri troca apenas as facades por aliases do Vite.
 
+## Identidade offline do dispositivo
+
+O Desktop agora provisiona uma identidade mínima somente depois de uma sessão online válida e estabelece uma validade offline finita de 14 dias. Isso permite estruturar a reabertura do aplicativo sem depender de uma chamada imediata à nuvem.
+
+Esta fundação **não é a segurança final**: o arquivo de provisionamento ainda precisa ser protegido por um segredo local/Windows Credential Manager ou DPAPI. Antes de produção, o usuário também deverá desbloquear o modo offline de forma segura. Não será aceito simplesmente ignorar o Supabase Auth quando estiver offline.
+
 ## Ordem de implementação restante
 
-### 1. Sessão e identidade offline
+### 1. Fechar sessão e identidade offline
 
-- provisionar o dispositivo após login online válido;
-- armazenar somente o necessário para identificar o usuário/tenant local;
+- usar a identidade provisionada como fonte de `owner_id` em todos os adapters quando a sessão Supabase estiver indisponível;
 - criar desbloqueio offline seguro (PIN/segredo local ou integração com o cofre do Windows);
-- definir validade máxima da autorização offline;
+- proteger a credencial/chave com DPAPI/credential vault;
+- definir política administrativa para prazo offline;
 - impedir troca de `owner_id` por manipulação do frontend;
 - limpeza segura ao remover dispositivo/conta.
 
-**Não** será considerado aceitável simplesmente ignorar o Supabase Auth quando estiver offline.
-
-### 2. Clínica completa
-
-- financeiro local-first;
-- evoluções/prontuário local-first;
-- configurações necessárias para operação;
-- equipe/permissões em modo de consulta offline;
-- dashboard calculado preferencialmente a partir dos datasets locais.
-
-### 3. Laboratório completo
+### 2. Laboratório completo
 
 - criação de caso offline;
 - edição de caso;
@@ -97,14 +97,21 @@ A UI não deve decidir se está online ou offline. Cada domínio possui um repos
 
 Operações que dependem de vários registros devem entrar na outbox como uma unidade lógica ou transação reexecutável.
 
-### 4. Estoque
+### 3. Estoque — fechar transações críticas
 
-- snapshot local de itens e movimentos;
-- entradas/saídas offline;
-- reserva/consumo relacionado a casos;
-- regra explícita de conflito para quantidade divergente.
+- consumo/reversão automática relacionado a casos;
+- política explícita de conflito de quantidade;
+- atomicidade entre caso + movimento de estoque;
+- validar custom fields e vínculos de implante em cenários de conflito.
 
 Estoque é um dos domínios em que `last write wins` não é aceitável.
+
+### 4. Clínica — fechar superfícies restantes
+
+- equipe em modo de consulta offline;
+- configurações realmente necessárias à operação;
+- demais datasets de dashboard;
+- validar financeiro/evoluções com conflitos e múltiplos dispositivos.
 
 ### 5. Arquivos e imagens
 
@@ -117,7 +124,14 @@ Arquivos não podem depender somente de URLs Supabase Storage.
 - limites de armazenamento e limpeza;
 - hash para integridade/duplicidade.
 
-### 6. Sync Engine v2
+### 6. Notificações, mensagens e funções server-only
+
+- cache local das notificações úteis;
+- fila local para ações que possam ser feitas offline;
+- substituir dependências indispensáveis de `createServerFn` por adapters remotos explícitos ou operações locais sincronizáveis;
+- não tentar simular localmente ações administrativas que exigem autoridade do servidor.
+
+### 7. Sync Engine v2
 
 O coordenador atual é incremental. A versão final precisa de:
 
@@ -131,7 +145,7 @@ O coordenador atual é incremental. A versão final precisa de:
 - botão de sincronização manual;
 - estado global: Sincronizado / Offline / Pendências / Sincronizando / Conflito.
 
-### 7. Segurança para produção
+### 8. Segurança para produção
 
 - banco local criptografado ou conteúdo sensível criptografado;
 - chave protegida pelo Windows (DPAPI/credential vault quando aplicável);
