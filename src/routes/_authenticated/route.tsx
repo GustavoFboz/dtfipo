@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useLocation } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
-import { getProvisionedDesktopIdentity, isDentalFlowDesktop } from "@/lib/desktop-local";
+import { resolveOfflineAuthUser } from "@/lib/desktop-identity";
 import { AppShell } from "@/components/AppShell";
 import { ClinicShell } from "@/components/ClinicShell";
 import { HubShell } from "@/components/HubShell";
@@ -10,6 +10,7 @@ import { WorkflowLayoutStabilizer } from "@/components/WorkflowLayoutStabilizer"
 import { EnvironmentTransition } from "@/components/EnvironmentTransition";
 import { ConnectivityLayer } from "@/components/ConnectivityLayer";
 import { DesktopOfflineBootstrap } from "@/components/DesktopOfflineBootstrap";
+import { DesktopRealtimeSync } from "@/components/DesktopRealtimeSync";
 import "@/workflow-layout.css";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -23,16 +24,10 @@ export const Route = createFileRoute("/_authenticated")({
     }
 
     let offlineProvision = false;
-    if (!user && isDentalFlowDesktop() && typeof navigator !== "undefined" && navigator.onLine === false) {
-      const identity = await getProvisionedDesktopIdentity();
-      if (identity && identity.valid_until > Date.now()) {
-        // This is not an authentication bypass: the identity can only exist after
-        // a prior successful online session and expires after a finite window.
-        user = {
-          id: identity.user_id,
-          email: identity.email ?? undefined,
-          user_metadata: { full_name: identity.full_name ?? undefined },
-        };
+    if (!user) {
+      const offlineUser = await resolveOfflineAuthUser();
+      if (offlineUser) {
+        user = offlineUser;
         offlineProvision = true;
       }
     }
@@ -73,6 +68,7 @@ function AuthenticatedShell() {
   return (
     <>
       <DesktopOfflineBootstrap />
+      <DesktopRealtimeSync />
       <ConnectivityLayer />
       <EnvironmentTransition />
       {shell}
