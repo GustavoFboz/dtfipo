@@ -22,21 +22,21 @@ export default defineConfig({
     resolve: {
       alias: [
         {
-          // Desktop patient/case/reference reads are progressively local-first,
-          // while every non-migrated function still comes from the shared API.
           find: /^@\/lib\/api$/,
           replacement: fileURLToPath(new URL("./src/lib/api.desktop.ts", import.meta.url)),
         },
         {
-          // Clinic context, agenda and clinical records use SQLite/outbox on Desktop.
           find: /^@\/lib\/clinic$/,
           replacement: fileURLToPath(new URL("./src/lib/clinic.desktop.ts", import.meta.url)),
         },
         {
-          // Legacy stock screens receive the same local-first treatment without
-          // changing their imports or the production Web implementation.
           find: /^@\/lib\/stock$/,
           replacement: fileURLToPath(new URL("./src/lib/stock.desktop.ts", import.meta.url)),
+        },
+        {
+          // `/estoque` currently uses stock-v2, so it needs its own exact alias.
+          find: /^@\/lib\/stock-v2$/,
+          replacement: fileURLToPath(new URL("./src/lib/stock-v2.desktop.ts", import.meta.url)),
         },
       ],
     },
