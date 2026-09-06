@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { RefreshCw, Wifi, WifiOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { syncDesktopOfflineData } from "@/lib/desktop-sync";
 
 type ConnectivityState = "online" | "offline" | "reconnecting";
 
@@ -9,9 +10,10 @@ const RECONNECT_VISIBLE_MS = 900;
 /**
  * Universal DentalFlow connectivity UX.
  *
- * Phase 1 observes device/browser connectivity. The same visual contract will
- * later be driven by the offline sync engine (SQLite outbox + cloud sync), so
- * the shells do not need to know whether they run on Web, Tauri or Capacitor.
+ * On Desktop, a real Offline -> Online transition now waits for the local
+ * outbox/cache coordinator before returning to Online. On Web the same visual
+ * contract remains, but the sync coordinator is a no-op and cloud queries are
+ * simply refreshed.
  */
 export function ConnectivityLayer() {
   const queryClient = useQueryClient();
@@ -36,7 +38,7 @@ export function ConnectivityLayer() {
       setState("offline");
     }
 
-    function handleOnline() {
+    async function handleOnline() {
       // Do not flash a reconnect overlay during the initial online mount. It is
       // reserved for a real Offline -> Online transition.
       if (!wasOffline.current) {
@@ -45,18 +47,29 @@ export function ConnectivityLayer() {
       }
 
       wasOffline.current = false;
-      setState("reconnecting");
-
-      // Phase 1 refreshes active cloud reads. Later this exact transition will
-      // await the local SQLite outbox/sync engine before changing to "online".
-      void queryClient.invalidateQueries();
-      void queryClient.refetchQueries({ type: "active" }).catch(() => undefined);
-
       clearReconnectTimer();
+      setState("reconnecting");
+      const startedAt = Date.now();
+
+      try {
+        const summary = await syncDesktopOfflineData();
+        window.dispatchEvent(new CustomEvent("dentalflow:desktop-sync-complete", { detail: summary }));
+      } catch (error) {
+        // Connectivity itself is restored even if one queued entity fails. The
+        // outbox keeps failed/conflicted work for a later retry/review.
+        console.error("[DentalFlow] Falha ao sincronizar alterações locais", error);
+      }
+
+      await Promise.allSettled([
+        queryClient.invalidateQueries(),
+        queryClient.refetchQueries({ type: "active" }),
+      ]);
+
+      const remaining = Math.max(0, RECONNECT_VISIBLE_MS - (Date.now() - startedAt));
       reconnectTimer.current = window.setTimeout(() => {
         setState(navigator.onLine ? "online" : "offline");
         reconnectTimer.current = null;
-      }, RECONNECT_VISIBLE_MS);
+      }, remaining);
     }
 
     window.addEventListener("offline", handleOffline);
@@ -88,7 +101,7 @@ export function ConnectivityLayer() {
         }`}
         role="status"
         aria-live="polite"
-        title={isOffline ? "Sem conexão com a internet" : isReconnecting ? "Conexão restabelecida. Atualizando dados." : "Conectado"}
+        title={isOffline ? "Sem conexão com a internet" : isReconnecting ? "Conexão restabelecida. Sincronizando dados locais." : "Conectado"}
       >
         {isOffline ? (
           <WifiOff className="h-3.5 w-3.5 stroke-[1.8]" />
@@ -97,7 +110,7 @@ export function ConnectivityLayer() {
         ) : (
           <Wifi className="h-3.5 w-3.5 stroke-[1.8]" />
         )}
-        <span>{isOffline ? "Offline" : isReconnecting ? "Atualizando" : "Online"}</span>
+        <span>{isOffline ? "Offline" : isReconnecting ? "Sincronizando" : "Online"}</span>
       </div>
 
       {isReconnecting && (
@@ -105,7 +118,7 @@ export function ConnectivityLayer() {
           className="fixed inset-0 z-[9998] grid place-items-center overflow-hidden bg-white/62 backdrop-blur-[18px] animate-in fade-in duration-150 dark:bg-[#05070a]/72"
           role="status"
           aria-live="assertive"
-          aria-label="Conexão restabelecida, atualizando dados"
+          aria-label="Conexão restabelecida, sincronizando dados"
         >
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_44%,rgba(255,255,255,0.64),transparent_35%)] dark:bg-[radial-gradient(circle_at_50%_44%,rgba(255,255,255,0.045),transparent_34%)]" />
           <div className="relative flex -translate-y-3 flex-col items-center px-6 text-center">
@@ -113,13 +126,13 @@ export function ConnectivityLayer() {
               Conexão restabelecida
             </div>
             <div className="mt-4 text-[38px] font-extralight tracking-[-0.05em] text-slate-950 sm:text-[54px] dark:text-white">
-              Atualizando dados
+              Sincronizando dados
             </div>
             <div className="mt-8 grid h-11 w-11 place-items-center rounded-full border border-slate-200/70 bg-white/65 shadow-sm dark:border-white/10 dark:bg-white/[0.035]">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-[#1e8f87] dark:border-white/10 dark:border-t-[#48b8ad]" />
             </div>
             <div className="mt-4 text-[11px] font-light tracking-[0.04em] text-slate-400 dark:text-slate-500">
-              Verificando as informações mais recentes…
+              Enviando alterações locais e buscando as informações mais recentes…
             </div>
           </div>
         </div>
