@@ -2,6 +2,7 @@ import { isDentalFlowDesktop } from "@/lib/desktop-local";
 import { syncPendingPatientChanges, warmPatientLocalCache } from "@/lib/patients-local-first";
 import { syncPendingClinicChanges, warmClinicLocalCache } from "@/lib/clinic-local-first";
 import { warmReferenceLocalCache } from "@/lib/reference-local-first";
+import { warmCaseLocalCache } from "@/lib/cases-local-first";
 
 export type DesktopSyncSummary = {
   processed: number;
@@ -9,6 +10,7 @@ export type DesktopSyncSummary = {
   conflicts: number;
   patientsCached: number;
   appointmentsCached: number;
+  casesCached: number;
   clinicContextCached: boolean;
   referenceDatasetsCached: number;
 };
@@ -23,6 +25,7 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
       conflicts: 0,
       patientsCached: 0,
       appointmentsCached: 0,
+      casesCached: 0,
       clinicContextCached: false,
       referenceDatasetsCached: 0,
     };
@@ -32,6 +35,7 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
   const clinicSync = await syncPendingClinicChanges();
   let patientsCached = 0;
   let appointmentsCached = clinicSync.appointmentsCached;
+  let casesCached = 0;
   let clinicContextCached = clinicSync.contextCached;
   let referenceDatasetsCached = 0;
 
@@ -43,13 +47,17 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
     }
 
     try {
+      casesCached = await warmCaseLocalCache();
+    } catch (error) {
+      console.warn("[DentalFlow Desktop] Não foi possível aquecer o cache local de casos", error);
+    }
+
+    try {
       referenceDatasetsCached = await warmReferenceLocalCache();
     } catch (error) {
       console.warn("[DentalFlow Desktop] Não foi possível aquecer os cadastros auxiliares", error);
     }
 
-    // When there is no queued clinic work, syncPendingClinicChanges still warms
-    // the cache. This fallback covers partial failures without blocking patients.
     if (!appointmentsCached || !clinicContextCached) {
       try {
         const warmed = await warmClinicLocalCache();
@@ -67,6 +75,7 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
     conflicts: patientSync.conflicts + clinicSync.conflicts,
     patientsCached,
     appointmentsCached,
+    casesCached,
     clinicContextCached,
     referenceDatasetsCached,
   };
