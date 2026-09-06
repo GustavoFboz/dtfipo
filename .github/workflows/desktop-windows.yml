@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - feature/desktop-tauri-foundation
+      - "fix/desktop-offline-**"
     paths:
       - "src/**"
       - "src-tauri/**"
@@ -13,7 +14,9 @@ on:
       - "vite.desktop.config.ts"
       - ".github/workflows/desktop-windows.yml"
   pull_request:
-    branches: [main]
+    branches:
+      - main
+      - feature/desktop-tauri-foundation
     paths:
       - "src/**"
       - "src-tauri/**"
