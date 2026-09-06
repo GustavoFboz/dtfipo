@@ -22,8 +22,8 @@
         "center": true,
         "resizable": true,
         "fullscreen": false,
-        "decorations": true,
-        "transparent": false
+        "decorations": false,
+        "transparent": true
       }
     ],
     "security": {
@@ -35,6 +35,6 @@
     "targets": ["nsis"],
     "createUpdaterArtifacts": false,
     "shortDescription": "Gestão integrada para clínicas e laboratórios odontológicos",
-    "longDescription": "DentalFlow Desktop — experiência nativa do DentalFlow para Windows, preparada para evoluir com operação offline, sincronização e integrações locais."
+    "longDescription": "DentalFlow Desktop — experiência nativa do DentalFlow para Windows, com operação local-first, sincronização automática e integrações do sistema operacional."
   }
 }
