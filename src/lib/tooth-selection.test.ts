@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { applyToothModifierSelection } from "./tooth-selection";
+import { applyPlainWorkToothSelection, applyToothModifierSelection } from "./tooth-selection";
 
 const sorted = (items: number[]) => [...items].sort((a, b) => a - b);
 
@@ -50,5 +50,19 @@ describe("applyToothModifierSelection", () => {
 
   it("não interfere em clique sem modificadores", () => {
     expect(applyToothModifierSelection([11, 12], 13, 11, { ctrl: false, shift: false })).toBeNull();
+  });
+});
+
+describe("applyPlainWorkToothSelection", () => {
+  it("remove toda seleção temporária feita com atalhos e mantém apenas o dente clicado", () => {
+    expect(applyPlainWorkToothSelection([11, 12, 13, 14], 21, [])).toEqual([21]);
+  });
+
+  it("preserva dentes que já têm trabalho configurado sem mantê-los como seleção temporária", () => {
+    expect(sorted(applyPlainWorkToothSelection([11, 12, 13, 14], 21, [11, 13]))).toEqual([11, 13, 21]);
+  });
+
+  it("ao clicar em um dos dentes da multiseleção, deixa somente ele quando nenhum possui configuração", () => {
+    expect(applyPlainWorkToothSelection([11, 12, 13], 12, [])).toEqual([12]);
   });
 });

@@ -31,7 +31,62 @@ const clinicApi = requireContains(
 if (/patient:patients\([^)]*(birth_date|phone|email|cpf|gender)/.test(clinicApi)) {
   throw new Error("Appointment query references patient columns that are not present in the production schema");
 }
-console.log("OK: appointment fetch cannot regress to invalid nested patient columns");
+if (!clinicApi.includes("fetchClinicLowStockItems") || !clinicApi.includes("fetchClinicActiveTreatments")) {
+  throw new Error("Clinic dashboard operational signals are missing from the clinic API");
+}
+console.log("OK: appointment fetch and clinic dashboard signals remain production-schema safe");
+
+const clinicShell = requireContains(
+  "src/components/ClinicShell.tsx",
+  "<NotificationPanel profile={profile ?? undefined} />",
+  "clinic header exposes the shared notification center",
+);
+if (!clinicShell.includes("dentalflow:clinic-sidebar-collapsed") || !clinicShell.includes("setIsCollapsed")) {
+  throw new Error("Clinic sidebar collapse state regression");
+}
+if (clinicShell.includes("PAGE_TITLES") || clinicShell.includes("pageTitle(pathname)")) {
+  throw new Error("Clinic header must not repeat the current page title");
+}
+console.log("OK: clinic header stays clean, notified and collapsible");
+
+const clinicSidebar = requireContains(
+  "src/components/ClinicSidebar.tsx",
+  "data-clinic-institute-card",
+  "clinic sidebar keeps a dedicated institute card",
+);
+if (!clinicSidebar.includes("Bem-vindo") || !clinicSidebar.includes("Conta ativa")) {
+  throw new Error("Clinic sidebar must keep the account/welcome area above the institute");
+}
+if (!clinicSidebar.includes("--mouse-x") || !clinicSidebar.includes("--mouse-y") || !clinicSidebar.includes("LABORATÓRIO") || !clinicSidebar.includes("RADIOLOGIA")) {
+  throw new Error("Clinic environment controls must preserve the laboratory cursor-following design");
+}
+if (clinicSidebar.includes("Ambiente clínico") || clinicSidebar.includes("Agenda, pacientes e gestão do consultório em um ambiente independente do laboratório.")) {
+  throw new Error("Clinic institute card must contain only the institute identity, not explanatory copy");
+}
+console.log("OK: clinic sidebar identity and environment controls follow the requested compact design");
+
+const clinicDashboard = requireContains(
+  "src/routes/_authenticated/clinica.tsx",
+  "Estoque baixo",
+  "clinic dashboard exposes low-stock attention signals",
+);
+for (const needle of ["Tratamentos em andamento", "Cirurgias / implantes", "Próteses", "Próximos pacientes", "Receitas do mês", "Saldo do mês"]) {
+  if (!clinicDashboard.includes(needle)) throw new Error(`Clinic dashboard lost required dynamic information: ${needle}`);
+}
+if (clinicDashboard.includes("Rotina da Clínica")) {
+  throw new Error("Legacy clinic quick-links card returned to the dashboard");
+}
+console.log("OK: clinic home remains operational, visual and information-dense");
+
+const newCase = requireContains(
+  "src/components/NewCaseDialog.tsx",
+  "const staleTemporary = teeth.filter((item) => item !== tooth && !toothHasConfig(item));",
+  "plain tooth clicks discard every temporary shortcut selection",
+);
+if (newCase.includes("const staleTemporary = justAddedTeeth.filter((item) => item !== tooth")) {
+  throw new Error("NewCaseDialog regressed to tracking only the most recently added shortcut teeth");
+}
+console.log("OK: plain odontogram clicks leave only one temporary tooth active");
 
 const transition = requireContains(
   "src/components/EnvironmentTransition.tsx",

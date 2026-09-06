@@ -21,6 +21,27 @@ export type ClinicContext = {
   permissions: Record<ClinicPermission, boolean>;
 };
 
+export type ClinicLowStockItem = {
+  id: string;
+  name: string;
+  brand: string | null;
+  qty_on_hand: number;
+  min_qty: number;
+  unit: string | null;
+  category: string | null;
+  type: string | null;
+};
+
+export type ClinicActiveTreatment = {
+  id: string;
+  patient_id: string | null;
+  status: string | null;
+  updated_at: string | null;
+  implant_teeth: number[] | null;
+  patient: { id: string; name: string } | null;
+  case_type: { id: string; name: string } | null;
+};
+
 const blankPermissions = () => Object.fromEntries(CLINIC_PERMISSIONS.map((p) => [p, false])) as Record<ClinicPermission, boolean>;
 
 export async function fetchClinicContext(): Promise<ClinicContext> {
@@ -140,6 +161,38 @@ export async function fetchClinicFinancialEntries(month?: string) {
   const { data, error } = await q;
   if (error) throw error;
   return data ?? [];
+}
+
+export async function fetchClinicLowStockItems(limit = 6): Promise<ClinicLowStockItem[]> {
+  const { data, error } = await (supabase as any)
+    .from("stock_items")
+    .select("id,name,brand,qty_on_hand,min_qty,unit,category,type")
+    .order("qty_on_hand", { ascending: true });
+  if (error) throw error;
+
+  return (data ?? [])
+    .map((row: any) => ({
+      ...row,
+      qty_on_hand: Number(row.qty_on_hand ?? 0),
+      min_qty: Number(row.min_qty ?? 0),
+    }))
+    .filter((row: ClinicLowStockItem) => row.qty_on_hand <= row.min_qty)
+    .sort((a: ClinicLowStockItem, b: ClinicLowStockItem) => {
+      const aDeficit = a.min_qty - a.qty_on_hand;
+      const bDeficit = b.min_qty - b.qty_on_hand;
+      return bDeficit - aDeficit || a.qty_on_hand - b.qty_on_hand;
+    })
+    .slice(0, limit) as ClinicLowStockItem[];
+}
+
+export async function fetchClinicActiveTreatments(): Promise<ClinicActiveTreatment[]> {
+  const { data, error } = await (supabase as any)
+    .from("cases")
+    .select("id,patient_id,status,updated_at,implant_teeth,patient:patients(id,name),case_type:case_types(id,name)")
+    .eq("status", "em_andamento")
+    .order("updated_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as ClinicActiveTreatment[];
 }
 
 export async function saveClinicFinancialEntry(input: {

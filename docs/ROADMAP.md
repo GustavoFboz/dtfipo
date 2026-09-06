@@ -21,6 +21,28 @@ Objetivos:
 
 Observação: Web Bluetooth pode continuar existindo como alternativa para dispositivos compatíveis. O bridge local é a solução futura para impressão USB/sistema verdadeiramente silenciosa.
 
+## Notificações da Clínica
+
+### Gatilhos clínicos sobre a central compartilhada
+**Status:** estrutura visual disponível / gatilhos automáticos futuros.
+
+A Clínica já deve usar a mesma central de notificações da plataforma. Evoluir os produtores de eventos sem criar uma segunda caixa de entrada paralela.
+
+Gatilhos planejados:
+- confirmação, alteração e cancelamento de agendamento;
+- paciente chegando ao horário ou atraso relevante;
+- estoque clínico/componente abaixo do mínimo e item esgotado;
+- tratamento aguardando ação, retorno ou etapa importante;
+- pendência financeira e recebimento confirmado quando aplicável;
+- atividade de equipe que exija atenção do usuário;
+- integração futura com Radiologia para exame/laudo disponível.
+
+Requisitos:
+- notificação sempre destinada ao usuário/perfil correto e protegida por RLS;
+- permitir marcar como lida e limpar em lote usando a central existente;
+- links devem abrir o contexto certo (Clínica, Laboratório ou Radiologia), com transição de ambiente quando necessário;
+- evitar duplicidade e excesso de notificações para eventos de alta frequência.
+
 ## Segurança e arquitetura
 
 - Continuar auditando qualquer uso de Supabase Broadcast para garantir que dados clínicos completos nunca sejam enviados por canais públicos; preferir Postgres Realtime protegido por RLS ou eventos destinados a um usuário.
