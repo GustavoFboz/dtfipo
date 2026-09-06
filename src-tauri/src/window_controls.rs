@@ -27,7 +27,13 @@ pub fn desktop_window_action(app: AppHandle, action: String) -> Result<DesktopWi
 
     match action.as_str() {
         "minimize" => window.minimize().map_err(|error| error.to_string())?,
-        "toggle_maximize" => window.toggle_maximize().map_err(|error| error.to_string())?,
+        "toggle_maximize" => {
+            if window.is_maximized().map_err(|error| error.to_string())? {
+                window.unmaximize().map_err(|error| error.to_string())?;
+            } else {
+                window.maximize().map_err(|error| error.to_string())?;
+            }
+        }
         "drag" => window.start_dragging().map_err(|error| error.to_string())?,
         "close" => {
             window.close().map_err(|error| error.to_string())?;
