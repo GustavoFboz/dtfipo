@@ -87,3 +87,20 @@ export function applyToothModifierSelection(
 
   return null;
 }
+
+/**
+ * Case-editor semantics for a click without Ctrl/Cmd or Shift.
+ * Teeth that already have real work configured must remain in the case, but
+ * every temporary multi-selection is discarded. The clicked tooth becomes the
+ * only temporary/active tooth.
+ */
+export function applyPlainWorkToothSelection(
+  value: readonly number[],
+  tooth: number,
+  configuredTeeth: readonly number[],
+): number[] {
+  const configured = new Set(configuredTeeth);
+  const next = value.filter((item) => configured.has(item) || item === tooth);
+  if (!next.includes(tooth)) next.push(tooth);
+  return Array.from(new Set(next));
+}
