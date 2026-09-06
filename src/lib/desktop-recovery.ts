@@ -6,8 +6,9 @@ import {
 } from "@/lib/desktop-local";
 import { resolveDesktopOwnerId } from "@/lib/desktop-identity";
 
-const RECOVERY_NS = "recovery-snapshots:v1";
-const RECOVERY_KEY = "latest";
+const RECOVERY_NS = "recovery-snapshots:v2";
+const RECOVERY_LATEST_KEY = "latest";
+const RECOVERY_PREVIOUS_KEY = "previous";
 
 const CRITICAL_LISTS = [
   ["patients:v1", "all"],
@@ -19,6 +20,10 @@ const CRITICAL_LISTS = [
   ["stock-movements:v1", "all"],
   ["stock-v2-items:v1", "all"],
   ["stock-v2-categories:v1", "all"],
+  ["notifications:v1", "all"],
+  ["workflow-stages:v1", "all"],
+  ["workflow-assignments:v1", "all"],
+  ["workflow-return-reasons:v1", "all"],
 ] as const;
 
 const ENTITY_MIRRORS = ["patients:v1", "cases:v1"] as const;
@@ -28,6 +33,7 @@ type RecoveryItem = {
   key: string;
   payload: unknown;
   updatedAt: number;
+  itemCount: number | null;
 };
 
 export type DesktopRecoverySnapshot = {
@@ -81,7 +87,7 @@ export async function reconstructEntityListsFromLocalRows(): Promise<string[]> {
   return reconstructed;
 }
 
-/** Capture a last-known-good local snapshot immediately before cloud sync. */
+/** Capture two rotating last-known-good local snapshots before cloud sync. */
 export async function captureDesktopRecoverySnapshot(): Promise<DesktopRecoverySnapshot | null> {
   if (!isDentalFlowDesktop()) return null;
   const ownerId = await resolveDesktopOwnerId();
@@ -96,6 +102,7 @@ export async function captureDesktopRecoverySnapshot(): Promise<DesktopRecoveryS
       key,
       payload: entry.payload,
       updatedAt: entry.updated_at,
+      itemCount: Array.isArray(entry.payload) ? entry.payload.length : null,
     });
   }
 
@@ -104,14 +111,19 @@ export async function captureDesktopRecoverySnapshot(): Promise<DesktopRecoveryS
     capturedAt: Date.now(),
     items,
   };
-  await localCachePut(ownerId, RECOVERY_NS, RECOVERY_KEY, snapshot);
+
+  const previousLatest = await localCacheGet<DesktopRecoverySnapshot>(ownerId, RECOVERY_NS, RECOVERY_LATEST_KEY);
+  if (previousLatest?.payload?.ownerId === ownerId && previousLatest.payload.items?.length) {
+    await localCachePut(ownerId, RECOVERY_NS, RECOVERY_PREVIOUS_KEY, previousLatest.payload);
+  }
+  await localCachePut(ownerId, RECOVERY_NS, RECOVERY_LATEST_KEY, snapshot);
   return snapshot;
 }
 
 /**
- * A full list going from N>0 to zero during background sync is treated as a
- * potential destructive regression. Keep the previous local data visible and
- * require an explicit reconciliation instead of silently erasing it.
+ * A full list going from N>0 to zero/missing during background sync is treated
+ * as a potential destructive regression. Keep the previous local data visible
+ * instead of silently replacing real offline data with an empty response.
  */
 export async function protectCriticalCachesFromEmptyRegression(
   snapshot: DesktopRecoverySnapshot | null,
@@ -122,13 +134,25 @@ export async function protectCriticalCachesFromEmptyRegression(
   for (const item of snapshot.items) {
     if (!isNonEmptyArray(item.payload)) continue;
     const current = await localCacheGet<unknown>(snapshot.ownerId, item.namespace, item.key);
-    if (Array.isArray(current?.payload) && current.payload.length === 0) {
+    const becameEmptyOrMissing = current == null || (Array.isArray(current.payload) && current.payload.length === 0);
+    if (becameEmptyOrMissing) {
       await localCachePut(snapshot.ownerId, item.namespace, item.key, item.payload);
       protectedNamespaces.push(item.namespace);
     }
   }
 
   return protectedNamespaces;
+}
+
+export async function getDesktopRecoveryHistory() {
+  if (!isDentalFlowDesktop()) return { latest: null, previous: null };
+  const ownerId = await resolveDesktopOwnerId();
+  if (!ownerId) return { latest: null, previous: null };
+  const [latest, previous] = await Promise.all([
+    localCacheGet<DesktopRecoverySnapshot>(ownerId, RECOVERY_NS, RECOVERY_LATEST_KEY),
+    localCacheGet<DesktopRecoverySnapshot>(ownerId, RECOVERY_NS, RECOVERY_PREVIOUS_KEY),
+  ]);
+  return { latest: latest?.payload ?? null, previous: previous?.payload ?? null };
 }
 
 export async function prepareDesktopRecovery(): Promise<{
