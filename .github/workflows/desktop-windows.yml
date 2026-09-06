@@ -1,0 +1,78 @@
+name: DentalFlow Windows Desktop
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/desktop-tauri-foundation
+      - "fix/desktop-offline-**"
+    paths:
+      - "src/**"
+      - "src-tauri/**"
+      - "package.json"
+      - "bun.lock"
+      - "vite.desktop.config.ts"
+      - ".github/workflows/desktop-windows.yml"
+  pull_request:
+    branches:
+      - main
+      - feature/desktop-tauri-foundation
+    paths:
+      - "src/**"
+      - "src-tauri/**"
+      - "package.json"
+      - "bun.lock"
+      - "vite.desktop.config.ts"
+      - ".github/workflows/desktop-windows.yml"
+
+concurrency:
+  group: dentalflow-desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    name: Build Windows installer
+    runs-on: windows-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build DentalFlow Desktop
+        run: bun run desktop:build
+
+      - name: Verify embedded frontend
+        shell: pwsh
+        run: |
+          if (!(Test-Path "dist/client/index.html")) {
+            throw "Desktop SPA shell was not generated at dist/client/index.html"
+          }
+
+      - name: Verify Windows executable
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem "src-tauri/target/release" -Filter "*.exe" -File | Select-Object -First 1
+          if (-not $exe) { throw "DentalFlow Windows executable was not generated" }
+          Write-Host "Executable: $($exe.FullName)"
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v4
+        with:
+          name: DentalFlow-Windows
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            src-tauri/target/release/*.exe
+            src-tauri/target/release/bundle/nsis/*.exe

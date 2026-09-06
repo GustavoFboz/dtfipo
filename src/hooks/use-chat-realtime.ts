@@ -16,7 +16,6 @@ export function useChatRealtime() {
     let disposed = false;
 
     const refreshActivity = () => {
-      // Invalida apenas se a query estiver ativa (diálogo aberto)
       qc.invalidateQueries({ queryKey: ["case_activity"], refetchType: "active" });
       qc.invalidateQueries({ queryKey: ["case_activity_reads"], refetchType: "active" });
     };
@@ -26,31 +25,49 @@ export function useChatRealtime() {
 
     const connect = () => {
       if (disposed) return;
-      if (channel) supabase.removeChannel(channel);
+      if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+      if (reconnect) {
+        clearTimeout(reconnect);
+        reconnect = null;
+      }
+      if (channel) void supabase.removeChannel(channel);
       channel = supabase
         .channel(`chat:${Math.random().toString(36).slice(2, 10)}`)
         .on("postgres_changes", { event: "*", schema: "public", table: "case_activity" }, refreshActivity)
         .on("postgres_changes", { event: "*", schema: "public", table: "case_activity_reads" }, refreshReads)
         .subscribe((status) => {
           if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-            if (!reconnect && !disposed) {
+            if (!reconnect && !disposed && navigator.onLine !== false) {
               reconnect = setTimeout(() => {
                 reconnect = null;
                 connect();
-              }, 700);
+              }, 1500);
             }
           }
         });
     };
 
+    const disconnectOffline = () => {
+      if (reconnect) {
+        clearTimeout(reconnect);
+        reconnect = null;
+      }
+      if (channel) {
+        void supabase.removeChannel(channel);
+        channel = null;
+      }
+    };
+
     connect();
     window.addEventListener("online", connect);
+    window.addEventListener("offline", disconnectOffline);
 
     return () => {
       disposed = true;
       if (reconnect) clearTimeout(reconnect);
       window.removeEventListener("online", connect);
-      if (channel) supabase.removeChannel(channel);
+      window.removeEventListener("offline", disconnectOffline);
+      if (channel) void supabase.removeChannel(channel);
     };
   }, [qc]);
 }

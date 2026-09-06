@@ -7,7 +7,7 @@ import { ClinicPageGuard } from "@/components/ClinicPageGuard";
 import { PatientFormDialog } from "@/components/PatientFormDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { fetchPatients } from "@/lib/api";
+import { fetchPatientsLocalFirst } from "@/lib/patients-local-first";
 
 export const Route = createFileRoute("/_authenticated/clinica/pacientes")({ component: ClinicPatientsRoute });
 
@@ -28,7 +28,7 @@ function ClinicPatientsPage() {
 
 function Patients() {
   const [q, setQ] = useState("");
-  const patients = useQuery({ queryKey: ["patients"], queryFn: fetchPatients, staleTime: 60_000 });
+  const patients = useQuery({ queryKey: ["patients"], queryFn: fetchPatientsLocalFirst, staleTime: 60_000 });
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (!term) return patients.data ?? [];
@@ -90,7 +90,8 @@ function Patients() {
         </div>
 
         {patients.isLoading && <div className="py-16 text-center text-sm font-light text-slate-400">Carregando pacientes…</div>}
-        {!patients.isLoading && filtered.length === 0 && <div className="py-16 text-center text-sm font-light text-slate-400">Nenhum paciente encontrado.</div>}
+        {patients.isError && <div className="px-5 py-10 text-center text-sm font-light text-amber-600">{(patients.error as Error).message}</div>}
+        {!patients.isLoading && !patients.isError && filtered.length === 0 && <div className="py-16 text-center text-sm font-light text-slate-400">Nenhum paciente encontrado.</div>}
       </section>
     </div>
   );

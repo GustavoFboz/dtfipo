@@ -21,6 +21,10 @@ type Options = {
  * Assina broadcasts do canal `entity:{table}` (instantâneo entre peers)
  * e `postgres_changes` da mesma tabela (reconciliação com o banco).
  * Aplica insert/update/delete no cache de `queryKey` sem refetch.
+ *
+ * Quando o sistema está offline o peer local continua funcionando, mas o canal
+ * remoto é removido para evitar loops de reconexão. Ao voltar a conexão o canal
+ * é recriado normalmente.
  */
 export function useEntityRealtime(table: string, queryKey: QueryKey, opts: Options = {}) {
   const qc = useQueryClient();
@@ -32,8 +36,6 @@ export function useEntityRealtime(table: string, queryKey: QueryKey, opts: Optio
     let generation = 0;
 
     const invalidateAll = () => {
-      // Só re-executa consultas ativas (que estão montadas na tela).
-      // Isso evita a "tempestade" que travava o app quando a aba voltava ao foco.
       qc.invalidateQueries({ queryKey, refetchType: "active" });
       opts.invalidate?.forEach((k) => qc.invalidateQueries({ queryKey: k, refetchType: "active" }));
     };
@@ -49,22 +51,36 @@ export function useEntityRealtime(table: string, queryKey: QueryKey, opts: Optio
       opts.invalidate?.forEach((k) => qc.invalidateQueries({ queryKey: k, refetchType: "active" }));
     };
 
-
     const unsubPeer = subscribeEntity(table, (p) => apply(p.op, p.row));
+
+    const disconnectRemote = () => {
+      generation += 1;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      if (channel) {
+        const current = channel;
+        channel = null;
+        void supabase.removeChannel(current);
+      }
+    };
 
     const scheduleReconnect = () => {
       if (disposed || reconnectTimer) return;
+      if (typeof navigator !== "undefined" && navigator.onLine === false) return;
       reconnectTimer = setTimeout(() => {
         reconnectTimer = null;
         connect();
-      }, 1500); // Aumentado para 1.5s para evitar ciclos rápidos de reconexão
+      }, 1500);
     };
 
     const connect = () => {
       if (disposed) return;
+      if (typeof navigator !== "undefined" && navigator.onLine === false) return;
       generation += 1;
       const token = generation;
-      if (channel) supabase.removeChannel(channel);
+      if (channel) void supabase.removeChannel(channel);
       channel = supabase
         .channel(`db:${table}:${Math.random().toString(36).slice(2, 10)}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table }, (payload) =>
@@ -78,28 +94,24 @@ export function useEntityRealtime(table: string, queryKey: QueryKey, opts: Optio
         )
         .subscribe((status) => {
           if (token !== generation) return;
-          // Não invalida em SUBSCRIBED: gerava refetch a cada reconexão/volta de aba.
           if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") scheduleReconnect();
         });
     };
 
-    const recover = () => {
-      // Reconecta o canal em segundo plano — sem invalidar caches (evita tela travada ao voltar de aba).
-      scheduleReconnect();
-    };
+    const handleOnline = () => scheduleReconnect();
+    const handleOffline = () => disconnectRemote();
 
     connect();
-    window.addEventListener("online", recover);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
     return () => {
       disposed = true;
-      generation += 1;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      window.removeEventListener("online", recover);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
       unsubPeer();
-      if (channel) supabase.removeChannel(channel);
+      disconnectRemote();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [table, JSON.stringify(queryKey)]);
 }
-

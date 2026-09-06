@@ -1,21 +1,20 @@
 import { createFileRoute, Outlet, useMatch, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchPatients, adminDelete } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, User, Trash2, Pencil, Search, ChevronRight } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { Plus, User, Trash2, Pencil, Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { PatientFormDialog } from "@/components/PatientFormDialog";
 import type { Patient } from "@/lib/types";
 import { normalizeText } from "@/lib/utils";
 import { SkeletonCardGrid, SkeletonSwap, useListReveal } from "@/components/ui/skeleton-blocks";
-// FloatingLog removido
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import { deletePatientLocalFirst, fetchPatientsLocalFirst } from "@/lib/patients-local-first";
 
 export const Route = createFileRoute("/_authenticated/patients")({
   component: PatientsLayout,
@@ -24,18 +23,14 @@ export const Route = createFileRoute("/_authenticated/patients")({
 function PatientsLayout() {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const match = useMatch({ from: "/_authenticated/patients/$id", shouldThrow: false });
-  const isDetailOpen = !!match;
+  useMatch({ from: "/_authenticated/patients/$id", shouldThrow: false });
 
-  const patients = useQuery({ 
-    queryKey: ["patients"], 
-    queryFn: async () => {
-      const data = await fetchPatients();
-      return data;
-    }
+  const patients = useQuery({
+    queryKey: ["patients"],
+    queryFn: fetchPatientsLocalFirst,
   });
 
-  const reveal = useListReveal("patients-grid", patients.isPending && !patients.data);
+  useListReveal("patients-grid", patients.isPending && !patients.data);
   const [openNew, setOpenNew] = useState(false);
   const [editPatient, setEditPatient] = useState<Patient | null>(null);
   const [toDelete, setToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -52,12 +47,19 @@ function PatientsLayout() {
   }, [patients.data, q]);
 
   const remove = useMutation({
-    mutationFn: (id: string) => adminDelete("patients", id),
+    mutationFn: (id: string) => deletePatientLocalFirst(id),
     onMutate: (id: string) => {
       setToDelete(null);
       const prev = qc.getQueryData<Patient[]>(["patients"]);
       qc.setQueryData<Patient[]>(["patients"], (old) => (Array.isArray(old) ? old.filter((p) => p.id !== id) : old));
       return { prev };
+    },
+    onSuccess: (result) => {
+      toast.success(
+        result.queued
+          ? "Paciente removido neste computador. A exclusão será sincronizada quando a internet voltar."
+          : "Paciente excluído",
+      );
     },
     onError: (e: Error, _id, ctx: any) => {
       if (ctx?.prev !== undefined) qc.setQueryData(["patients"], ctx.prev);
@@ -77,8 +79,8 @@ function PatientsLayout() {
           <div className="flex gap-4 items-center">
             <div className="relative group hidden sm:block">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-primary transition-colors" />
-              <Input 
-                placeholder="Pesquisar..." 
+              <Input
+                placeholder="Pesquisar..."
                 className="pl-11 h-11 w-64 rounded-full border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 focus-visible:ring-primary/20 transition-all"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
@@ -133,15 +135,15 @@ function PatientsLayout() {
                 </div>
 
                 <div className="flex items-center gap-6 opacity-0 group-hover:opacity-100 transition-all">
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
+                  <Button
+                    size="icon"
+                    variant="ghost"
                     className="h-10 w-10 rounded-full hover:bg-slate-100 dark:hover:bg-white/10"
-                    onClick={(e) => { 
-                      e.preventDefault(); 
+                    onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
-                      setEditPatient(p); 
-                    }} 
+                      setEditPatient(p);
+                    }}
                   >
                     <Pencil className="h-4 w-4 text-slate-400" />
                   </Button>
@@ -149,10 +151,10 @@ function PatientsLayout() {
                     size="icon"
                     variant="ghost"
                     className="h-10 w-10 rounded-full hover:bg-destructive/10 hover:text-destructive"
-                    onClick={(e) => { 
-                      e.preventDefault(); 
+                    onClick={(e) => {
+                      e.preventDefault();
                       e.stopPropagation();
-                      setToDelete({ id: p.id, name: p.name }); 
+                      setToDelete({ id: p.id, name: p.name });
                     }}
                   >
                     <Trash2 className="h-4 w-4 text-slate-400" />
@@ -160,7 +162,12 @@ function PatientsLayout() {
                 </div>
               </motion.div>
             ))}
-            {filtered.length === 0 && (
+            {patients.isError && (
+              <div className="py-16 px-6 text-center text-amber-600 font-light">
+                {(patients.error as Error).message}
+              </div>
+            )}
+            {!patients.isError && filtered.length === 0 && (
               <div className="py-24 text-center text-slate-400 font-light italic">
                 Nenhum paciente encontrado.
               </div>
@@ -191,8 +198,6 @@ function PatientsLayout() {
       </AlertDialog>
 
       <Outlet />
-      
-      {/* O log flutuante foi removido a pedido do usuário */}
     </div>
   );
 }

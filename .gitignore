@@ -16,6 +16,9 @@ dist-ssr
 .nitro
 *.local
 
+# Tauri / Rust desktop build artifacts
+src-tauri/target/
+
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars

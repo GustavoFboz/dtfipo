@@ -1,5 +1,6 @@
 import { createFileRoute, redirect, useLocation } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
+import { resolveOfflineAuthUser } from "@/lib/desktop-identity";
 import { AppShell } from "@/components/AppShell";
 import { ClinicShell } from "@/components/ClinicShell";
 import { HubShell } from "@/components/HubShell";
@@ -7,19 +8,37 @@ import { ModuleEntryBridge } from "@/components/ModuleEntryBridge";
 import { CaseDialogSanitizer } from "@/components/CaseDialogSanitizer";
 import { WorkflowLayoutStabilizer } from "@/components/WorkflowLayoutStabilizer";
 import { EnvironmentTransition } from "@/components/EnvironmentTransition";
+import { ConnectivityLayer } from "@/components/ConnectivityLayer";
+import { DesktopOfflineBootstrap } from "@/components/DesktopOfflineBootstrap";
+import { DesktopRealtimeSync } from "@/components/DesktopRealtimeSync";
 import "@/workflow-layout.css";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async ({ location }) => {
-    const { data } = await supabase.auth.getSession();
-    const user = data.session?.user;
+    let user: any = null;
+    try {
+      const { data } = await supabase.auth.getSession();
+      user = data.session?.user ?? null;
+    } catch {
+      // A cloud session may be temporarily unavailable during a real offline boot.
+    }
+
+    let offlineProvision = false;
+    if (!user) {
+      const offlineUser = await resolveOfflineAuthUser();
+      if (offlineUser) {
+        user = offlineUser;
+        offlineProvision = true;
+      }
+    }
+
     if (!user) {
       throw redirect({
         to: "/auth",
         search: { invite: undefined, mode: undefined, returnTo: location.href },
       });
     }
-    return { user };
+    return { user, offlineProvision };
   },
   component: AuthenticatedShell,
 });
@@ -48,6 +67,9 @@ function AuthenticatedShell() {
 
   return (
     <>
+      <DesktopOfflineBootstrap />
+      <DesktopRealtimeSync />
+      <ConnectivityLayer />
       <EnvironmentTransition />
       {shell}
     </>
