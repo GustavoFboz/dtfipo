@@ -11,6 +11,19 @@ import {
   fetchClinicContextLocalFirst,
   saveClinicAppointmentLocalFirst,
 } from "./clinic-local-first";
+import {
+  deleteClinicPatientEvolutionLocalFirst,
+  fetchClinicActiveTreatmentsLocalFirst,
+  fetchClinicFinancialEntriesLocalFirst,
+  fetchClinicLowStockItemsLocalFirst,
+  fetchClinicPatientEvolutionsLocalFirst,
+  fetchClinicPatientFinancialEntriesLocalFirst,
+  fetchClinicPatientTreatmentsLocalFirst,
+  fetchClinicRolePermissionsLocalFirst,
+  saveClinicFinancialEntryLocalFirst,
+  saveClinicPatientEvolutionLocalFirst,
+  setClinicRolePermissionLocalFirst,
+} from "./clinic-records-local-first";
 import { localCacheGet, localCachePut } from "./desktop-local";
 import { resolveDesktopOwnerId } from "./desktop-identity";
 import { DESKTOP_READ_TIMEOUT_MS, withDesktopCloudTimeout } from "./desktop-cloud";
@@ -20,13 +33,25 @@ export * from "./clinic";
 export {
   cancelClinicAppointmentLocalFirst as cancelClinicAppointment,
   saveClinicAppointmentLocalFirst as saveClinicAppointment,
+  deleteClinicPatientEvolutionLocalFirst as deleteClinicPatientEvolution,
+  fetchClinicPatientEvolutionsLocalFirst as fetchClinicPatientEvolutions,
+  fetchClinicPatientFinancialEntriesLocalFirst as fetchClinicPatientFinancialEntries,
+  fetchClinicPatientTreatmentsLocalFirst as fetchClinicPatientTreatments,
+  fetchClinicRolePermissionsLocalFirst as fetchClinicRolePermissions,
+  saveClinicFinancialEntryLocalFirst as saveClinicFinancialEntry,
+  saveClinicPatientEvolutionLocalFirst as saveClinicPatientEvolution,
+  setClinicRolePermissionLocalFirst as setClinicRolePermission,
 };
 
 type Appointment = Record<string, any> & { starts_at?: string };
+type FinancialRow = Record<string, any> & { due_date?: string | null; created_at?: string | null };
 
 const CONTEXT_NS = "clinic-context:v1";
 const CONTEXT_KEY = "current";
 const PROFILE_NS = "reference-data:v1";
+const FINANCIAL_NS = "clinic-financial:v1";
+const DASHBOARD_NS = "clinic-dashboard:v1";
+const ALL_KEY = "all";
 
 function background(label: string, task: () => Promise<unknown>) {
   if (typeof navigator !== "undefined" && navigator.onLine === false) return;
@@ -43,6 +68,11 @@ function inRange(rows: Appointment[], start?: string, end?: string) {
     if (end && value >= new Date(end).getTime()) return false;
     return true;
   });
+}
+
+function filterMonth(rows: FinancialRow[], month?: string) {
+  if (!month) return rows;
+  return rows.filter((row) => String(row.due_date ?? row.created_at ?? "").slice(0, 7) === month);
 }
 
 function blankPermissions() {
@@ -204,7 +234,7 @@ export async function fetchClinicAppointments(start?: string, end?: string) {
     ? await localCacheGet<Appointment[]>(ownerId, "clinic-appointments:v1", "all")
     : null;
 
-  if (Array.isArray(cached?.payload) && cached.payload.length > 0) {
+  if (Array.isArray(cached?.payload)) {
     background("agenda clínica", () => fetchClinicAppointmentsLocalFirst());
     return inRange(cached.payload, start, end);
   }
@@ -221,16 +251,45 @@ export async function fetchClinicAppointments(start?: string, end?: string) {
   }
 }
 
-export {
-  deleteClinicPatientEvolutionLocalFirst as deleteClinicPatientEvolution,
-  fetchClinicActiveTreatmentsLocalFirst as fetchClinicActiveTreatments,
-  fetchClinicFinancialEntriesLocalFirst as fetchClinicFinancialEntries,
-  fetchClinicLowStockItemsLocalFirst as fetchClinicLowStockItems,
-  fetchClinicPatientEvolutionsLocalFirst as fetchClinicPatientEvolutions,
-  fetchClinicPatientFinancialEntriesLocalFirst as fetchClinicPatientFinancialEntries,
-  fetchClinicPatientTreatmentsLocalFirst as fetchClinicPatientTreatments,
-  fetchClinicRolePermissionsLocalFirst as fetchClinicRolePermissions,
-  saveClinicFinancialEntryLocalFirst as saveClinicFinancialEntry,
-  saveClinicPatientEvolutionLocalFirst as saveClinicPatientEvolution,
-  setClinicRolePermissionLocalFirst as setClinicRolePermission,
-} from "./clinic-records-local-first";
+/** Clinic dashboard datasets render directly from their warmed SQLite read-model. */
+export async function fetchClinicFinancialEntries(month?: string) {
+  const ownerId = await resolveDesktopOwnerId();
+  const cached = ownerId ? await localCacheGet<FinancialRow[]>(ownerId, FINANCIAL_NS, ALL_KEY) : null;
+  if (Array.isArray(cached?.payload)) {
+    background("financeiro da Clínica", () => fetchClinicFinancialEntriesLocalFirst());
+    return filterMonth(cached.payload, month);
+  }
+  return withDesktopCloudTimeout(
+    "financeiro da Clínica",
+    () => fetchClinicFinancialEntriesLocalFirst(month),
+    DESKTOP_READ_TIMEOUT_MS,
+  );
+}
+
+export async function fetchClinicLowStockItems(limit = 6) {
+  const ownerId = await resolveDesktopOwnerId();
+  const cached = ownerId ? await localCacheGet<any[]>(ownerId, DASHBOARD_NS, "low-stock") : null;
+  if (Array.isArray(cached?.payload)) {
+    background("estoque da Clínica", () => fetchClinicLowStockItemsLocalFirst(500));
+    return cached.payload.slice(0, limit);
+  }
+  return withDesktopCloudTimeout(
+    "estoque da Clínica",
+    () => fetchClinicLowStockItemsLocalFirst(limit),
+    DESKTOP_READ_TIMEOUT_MS,
+  );
+}
+
+export async function fetchClinicActiveTreatments() {
+  const ownerId = await resolveDesktopOwnerId();
+  const cached = ownerId ? await localCacheGet<any[]>(ownerId, DASHBOARD_NS, "active-treatments") : null;
+  if (Array.isArray(cached?.payload)) {
+    background("tratamentos ativos da Clínica", fetchClinicActiveTreatmentsLocalFirst);
+    return cached.payload;
+  }
+  return withDesktopCloudTimeout(
+    "tratamentos ativos da Clínica",
+    fetchClinicActiveTreatmentsLocalFirst,
+    DESKTOP_READ_TIMEOUT_MS,
+  );
+}
