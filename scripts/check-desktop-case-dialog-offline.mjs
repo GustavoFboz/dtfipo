@@ -14,6 +14,7 @@ const apiCaseOffline = read("src/lib/api.desktop.case-offline.ts");
 const notificationsLocal = read("src/lib/notifications-local-first.ts");
 const desktopSync = read("src/lib/desktop-sync.ts");
 const desktopVite = read("vite.desktop.config.ts");
+const realtimeSafeClient = read("src/integrations/supabase/client.desktop.030.ts");
 const tauri = read("src-tauri/tauri.conf.json");
 const cargo = read("src-tauri/Cargo.toml");
 
@@ -33,6 +34,17 @@ expect(
 expect(
   portalCss.includes('[data-radix-popper-content-wrapper]') && portalCss.includes("z-index: 1400 !important"),
   "Select/popover portals must remain interactive above case dialogs.",
+);
+
+// A case dialog can unmount/remount while a Realtime cleanup is still resolving.
+// The 0.3.0 Desktop client must never reuse the already-subscribed transport topic.
+expect(
+  desktopVite.includes("client.desktop.030.ts"),
+  "Desktop build must use the 0.3.0 Realtime-safe Supabase facade.",
+);
+expect(
+  realtimeSafeClient.includes('prop === "channel"') && realtimeSafeClient.includes("crypto.randomUUID()"),
+  "Every Desktop Realtime channel must receive a fresh transport topic.",
 );
 
 expect(casesLocal.includes('operation: "create"'), "Offline case creation must enqueue a durable case outbox entry.");
@@ -77,11 +89,11 @@ expect(
   "Desktop sync must create offline cases before replaying their team notifications.",
 );
 
-expect(tauri.includes('"version": "0.2.9"'), "DentalFlow Desktop version must be 0.2.9.");
-expect(cargo.includes('version = "0.2.9"'), "Rust package version must match Desktop 0.2.9.");
+expect(tauri.includes('"version": "0.3.0"'), "DentalFlow Desktop version must be 0.3.0.");
+expect(cargo.includes('version = "0.3.0"'), "Rust package version must match Desktop 0.3.0.");
 expect(
   tauri.includes('"frontendDist": "../dist/client"'),
   "The full frontend must remain bundled in the Windows installer for offline navigation.",
 );
 
-console.log("Desktop 0.2.9 case dialog/offline case regression checks passed.");
+console.log("Desktop 0.3.0 case dialog/offline case regression checks passed.");
