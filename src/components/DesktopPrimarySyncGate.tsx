@@ -22,6 +22,7 @@ type Readiness = {
   verified: boolean;
 };
 
+const SYNC_GATE_WATCHDOG_MS = 45_000;
 const HIDDEN: GateState = {
   visible: false,
   progress: 100,
@@ -55,6 +56,15 @@ async function inspectLocalReadiness(): Promise<Readiness> {
   };
 }
 
+/**
+ * Desktop readiness gate.
+ *
+ * 0.2.9 keeps the first authenticated preparation explicit, but a machine that
+ * already has a verified SQLite snapshot is never blocked again merely because
+ * Windows went offline and came back. Reconnect refreshes are silent/background.
+ * A watchdog also guarantees that a broken endpoint cannot leave the full-screen
+ * "Conferindo todas as listas" state visible forever.
+ */
 export function DesktopPrimarySyncGate() {
   const desktop = isDentalFlowDesktop();
   const [state, setState] = useState<GateState>(HIDDEN);
@@ -62,6 +72,7 @@ export function DesktopPrimarySyncGate() {
   const dismissed = useRef(false);
   const progressTimer = useRef<number | null>(null);
   const hideTimer = useRef<number | null>(null);
+  const watchdogTimer = useRef<number | null>(null);
 
   useEffect(() => {
     if (!desktop) return;
@@ -70,8 +81,29 @@ export function DesktopPrimarySyncGate() {
     const clearTimers = () => {
       if (progressTimer.current !== null) window.clearInterval(progressTimer.current);
       if (hideTimer.current !== null) window.clearTimeout(hideTimer.current);
+      if (watchdogTimer.current !== null) window.clearTimeout(watchdogTimer.current);
       progressTimer.current = null;
       hideTimer.current = null;
+      watchdogTimer.current = null;
+    };
+
+    const armWatchdog = () => {
+      if (watchdogTimer.current !== null) window.clearTimeout(watchdogTimer.current);
+      watchdogTimer.current = window.setTimeout(() => {
+        if (disposed) return;
+        progressTimer.current !== null && window.clearInterval(progressTimer.current);
+        progressTimer.current = null;
+        setState((current) => {
+          if (!current.visible || current.mode !== "syncing") return current;
+          return {
+            visible: true,
+            progress: 0,
+            title: "Sincronização demorou mais que o esperado",
+            detail: "O DentalFlow interrompeu a tela de espera para não prender o programa. Tente novamente; os dados locais já verificados continuam preservados.",
+            mode: "error",
+          };
+        });
+      }, SYNC_GATE_WATCHDOG_MS);
     };
 
     const startProgress = () => {
@@ -90,9 +122,10 @@ export function DesktopPrimarySyncGate() {
       hideTimer.current = null;
       setState({ visible: true, progress: 12, title: "Sincronizando dados deste computador", detail, mode: "syncing" });
       startProgress();
+      armWatchdog();
     };
 
-    const check = async (showIfMissing: boolean) => {
+    const check = async (showIfMissing: boolean, announceReady = false) => {
       const readiness = await inspectLocalReadiness().catch(() => ({
         ready: false,
         ownerId: null,
@@ -106,16 +139,20 @@ export function DesktopPrimarySyncGate() {
 
       if (readiness.ready) {
         clearTimers();
-        setState({
-          visible: !dismissed.current,
-          progress: 100,
-          title: "DentalFlow sincronizado",
-          detail: `${readiness.patients} pacientes e ${readiness.cases} casos confirmados localmente.`,
-          mode: "ready",
-        });
-        hideTimer.current = window.setTimeout(() => {
-          if (!disposed) setState(HIDDEN);
-        }, 800);
+        if (announceReady && !dismissed.current) {
+          setState({
+            visible: true,
+            progress: 100,
+            title: "DentalFlow sincronizado",
+            detail: `${readiness.patients} pacientes e ${readiness.cases} casos confirmados localmente.`,
+            mode: "ready",
+          });
+          hideTimer.current = window.setTimeout(() => {
+            if (!disposed) setState(HIDDEN);
+          }, 700);
+        } else {
+          setState(HIDDEN);
+        }
       } else if (showIfMissing && !dismissed.current) {
         if (navigator.onLine === false) {
           clearTimers();
@@ -133,17 +170,17 @@ export function DesktopPrimarySyncGate() {
       return readiness;
     };
 
-    void check(true);
+    void check(true, false);
 
     const onStart = () => {
-      void check(false).then((readiness) => {
+      void check(false, false).then((readiness) => {
         if (!readiness.ready) showPreparing();
       });
     };
 
     const onComplete = (event: Event) => {
       const detail = (event as CustomEvent<any>).detail;
-      void check(false).then((readiness) => {
+      void check(false, false).then((readiness) => {
         if (readiness.ready || disposed || dismissed.current) return;
         const reason = String(detail?.reason ?? "");
         const finalAttempt = ["boot-finalize", "manual", "online", "account-changed"].some((value) => reason.includes(value));
@@ -181,12 +218,13 @@ export function DesktopPrimarySyncGate() {
           mode: "syncing",
         });
         startProgress();
+        armWatchdog();
       });
     };
 
     const onError = (event: Event) => {
       const message = String((event as CustomEvent<any>).detail?.message ?? "Não foi possível concluir a sincronização.");
-      void check(false).then((readiness) => {
+      void check(false, false).then((readiness) => {
         if (readiness.ready || disposed || dismissed.current) return;
         clearTimers();
         setState({
@@ -203,10 +241,16 @@ export function DesktopPrimarySyncGate() {
 
     const onOnline = () => {
       dismissed.current = false;
-      showPreparing("Conexão disponível. Revalidando a sessão e conferindo todos os dados locais.");
-      window.dispatchEvent(new CustomEvent("dentalflow:desktop-force-sync"));
+      void check(false, false).then((readiness) => {
+        // Once this Windows installation has a verified snapshot, reconnect is a
+        // background refresh; never cover the app with a 90% blocking screen.
+        if (!readiness.ready) {
+          showPreparing("Conexão disponível. Revalidando a sessão e conferindo todos os dados locais.");
+        }
+        window.dispatchEvent(new CustomEvent("dentalflow:desktop-force-sync"));
+      });
     };
-    const onOffline = () => void check(true);
+    const onOffline = () => void check(true, false);
 
     window.addEventListener("dentalflow:desktop-sync-start", onStart as EventListener);
     window.addEventListener("dentalflow:desktop-sync-complete", onComplete as EventListener);
@@ -233,7 +277,7 @@ export function DesktopPrimarySyncGate() {
       visible: true,
       progress: 12,
       title: "Sincronizando novamente",
-      detail: "Revalidando a conta e reconstruindo os read-models locais…",
+      detail: "Revalidando a conta e reconstruindo os dados locais…",
       mode: "syncing",
     });
     window.dispatchEvent(new CustomEvent("dentalflow:desktop-force-sync"));
@@ -265,7 +309,7 @@ export function DesktopPrimarySyncGate() {
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-[20px] border border-slate-200/80 bg-white text-[#2D7FF9] shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
           <Icon className={`h-6 w-6 stroke-[1.5] ${state.mode === "syncing" ? "animate-spin" : ""}`} />
         </div>
-        <div className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">DentalFlow Desktop 0.2.8</div>
+        <div className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">DentalFlow Desktop 0.2.9</div>
         <h1 className="mt-3 text-[30px] font-extralight tracking-[-0.04em] text-slate-950 sm:text-[38px] dark:text-white">{state.title}</h1>
         <p className="mx-auto mt-3 max-w-md text-sm font-light leading-6 text-slate-500 dark:text-slate-400">{state.detail}</p>
 
@@ -291,7 +335,7 @@ export function DesktopPrimarySyncGate() {
         )}
 
         {lastReady && !lastReady.ready && state.mode !== "ready" && (
-          <p className="mt-6 text-[10px] font-light text-slate-400">A 0.2.8 só considera este computador sincronizado depois de confirmar as listas com uma sessão Cloud real.</p>
+          <p className="mt-6 text-[10px] font-light text-slate-400">A 0.2.9 só considera este computador sincronizado depois de confirmar as listas com uma sessão Cloud real.</p>
         )}
       </div>
     </div>
