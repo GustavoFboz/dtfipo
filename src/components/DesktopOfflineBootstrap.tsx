@@ -1,7 +1,11 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { isDentalFlowDesktop, provisionDesktopIdentity } from "@/lib/desktop-local";
+import {
+  isDentalFlowDesktop,
+  provisionDesktopIdentity,
+  verifyDesktopLocalRuntime,
+} from "@/lib/desktop-local";
 import { syncDesktopOfflineData } from "@/lib/desktop-sync";
 import { verifyAndStoreDesktopSyncProof } from "@/lib/desktop-sync-proof";
 import { fetchClinicContext } from "@/lib/clinic";
@@ -16,14 +20,14 @@ import {
 } from "@/lib/desktop-cloud";
 
 const FOCUS_REFRESH_AFTER_MS = 3 * 60_000;
+const FULL_SYNC_TIMEOUT_MS = 65_000;
 
 /**
  * Resilient installed-client boot.
  *
- * 0.2.8 adds an authenticated dataset proof after warming SQLite. A successful
- * HTTP response is not enough: the same authenticated account must see matching
- * counts in Cloud/RLS and in the local mirrors before the client is considered
- * fully prepared for offline use.
+ * 0.2.9 verifies the actual Tauri -> SQLite command boundary before touching any
+ * business read model. The complete synchronization also has a hard deadline, so
+ * reconnect can never leave the application behind a permanent progress screen.
  */
 export function DesktopOfflineBootstrap() {
   const queryClient = useQueryClient();
@@ -35,6 +39,7 @@ export function DesktopOfflineBootstrap() {
     let active: Promise<void> | null = null;
     let lastStartedAt = 0;
     let lastCompletedAt = 0;
+    let localRuntimeVerified = false;
     const timers = new Set<number>();
 
     const dispatch = (name: string, detail?: unknown) => {
@@ -53,6 +58,11 @@ export function DesktopOfflineBootstrap() {
         dispatch("dentalflow:desktop-sync-start", { reason });
         let recovery: Awaited<ReturnType<typeof prepareDesktopRecovery>> | null = null;
         try {
+          if (!localRuntimeVerified) {
+            await verifyDesktopLocalRuntime();
+            localRuntimeVerified = true;
+          }
+
           const { data } = await withDesktopCloudTimeout(
             "sessão inicial do Desktop",
             () => supabase.auth.getSession(),
@@ -104,7 +114,11 @@ export function DesktopOfflineBootstrap() {
           }
 
           recovery = await prepareDesktopRecovery();
-          const summary = await syncDesktopOfflineData();
+          const summary = await withDesktopCloudTimeout(
+            "sincronização integral do Desktop",
+            syncDesktopOfflineData,
+            FULL_SYNC_TIMEOUT_MS,
+          );
           const protectedNamespaces = await protectCriticalCachesFromEmptyRegression(recovery.snapshot);
           const syncProof = cloudValidated
             ? await verifyAndStoreDesktopSyncProof().catch((error) => {
@@ -119,6 +133,7 @@ export function DesktopOfflineBootstrap() {
               reason,
               cloudValidated,
               syncProof,
+              localRuntimeVerified,
               recovery: {
                 reconstructedNamespaces: recovery.reconstructedNamespaces,
                 protectedNamespaces,
