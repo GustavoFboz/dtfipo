@@ -205,3 +205,30 @@ export function markOutbox(
 export function clearDoneOutbox(ownerId: string) {
   return invokeDesktop<number>("outbox_clear_done", { ownerId });
 }
+
+/**
+ * Exercise the exact JS -> Tauri -> SQLite argument contract before starting a
+ * real synchronization. This catches packaging/runtime mismatches immediately
+ * instead of letting every Patients/Cases/Clinic request fail independently.
+ */
+export async function verifyDesktopLocalRuntime() {
+  if (!isDentalFlowDesktop()) return;
+  const ownerId = "__dentalflow_runtime_probe__";
+  const namespace = "runtime-probe:v1";
+  const key = "tauri-sqlite-contract";
+  const payload = { ok: true, at: Date.now() };
+
+  try {
+    await localCachePut(ownerId, namespace, key, payload);
+    const saved = await localCacheGet<typeof payload>(ownerId, namespace, key);
+    if (!saved?.payload?.ok) {
+      throw new Error("O banco local não confirmou a leitura do registro de teste.");
+    }
+  } catch (error) {
+    throw new Error(
+      `Falha no banco local do DentalFlow Desktop: ${String((error as any)?.message ?? error ?? "erro desconhecido")}`,
+    );
+  } finally {
+    await localCacheDelete(ownerId, namespace, key).catch(() => undefined);
+  }
+}
