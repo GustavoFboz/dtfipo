@@ -54,7 +54,26 @@ export async function resolveDesktopIdentity(): Promise<EffectiveDesktopIdentity
   }
 }
 
+/**
+ * Resolve only the SQLite owner namespace.
+ *
+ * Local reads must not wait for a Cloud Login round-trip. The provisioned device
+ * identity is itself finite-lived and was created only after a validated cloud
+ * login; it is therefore the authoritative key for the local cache while it is
+ * valid. This does NOT authorize any cloud request: network reads still go through
+ * resolveDesktopIdentity/canUseDentalFlowCloud and the Desktop Supabase facade.
+ * Manual logout clears the provision, and a validated account change re-provisions
+ * it before new cloud data can be written, keeping account caches isolated.
+ */
 export async function resolveDesktopOwnerId(): Promise<string | null> {
+  if (isDentalFlowDesktop()) {
+    try {
+      const identity = await getProvisionedDesktopIdentity();
+      if (identity && identity.valid_until > Date.now()) return identity.user_id;
+    } catch {
+      // Fall back to the validated cloud/device resolution below.
+    }
+  }
   return (await resolveDesktopIdentity())?.userId ?? null;
 }
 
