@@ -1,100 +1,74 @@
-import { useEffect, useState } from 'react';
-import type { Profile } from '@/lib/types';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, X, CheckCircle2, Trash2, CheckCheck, MessageSquare, Image as ImageIcon, FileText } from 'lucide-react';
-import { useNotificationPopups, type PopupNotification } from '@/hooks/use-notification-popups';
-import { toast } from 'sonner';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchNotifications, markNotificationAsRead, markAllNotificationsAsRead, adminDelete } from '@/lib/api';
-import { format, formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/utils';
+import { useState } from "react";
+import type { Profile } from "@/lib/types";
+import { motion, AnimatePresence } from "framer-motion";
+import { Bell, X, CheckCircle2, Trash2, CheckCheck, MessageSquare, Paperclip } from "lucide-react";
+import { useNotificationPopups, type PopupNotification } from "@/hooks/use-notification-popups";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchNotifications, markNotificationAsRead, markAllNotificationsAsRead, adminDelete } from "@/lib/api";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
-type NotifFilter = 'all' | 'updates' | 'messages';
+type NotifFilter = "all" | "updates" | "messages";
 
 const FILTERS: { key: NotifFilter; label: string }[] = [
-  { key: 'all', label: 'Todos' },
-  { key: 'updates', label: 'Atualizações' },
-  { key: 'messages', label: 'Mensagens' },
+  { key: "all", label: "Todos" },
+  { key: "updates", label: "Atualizações" },
+  { key: "messages", label: "Mensagens" },
 ];
-
-const MESSAGE_TYPES = ['comment', 'attachment', 'mention', 'message'];
-const UPDATE_TYPES = ['update', 'system', 'release'];
+const MESSAGE_TYPES = ["comment", "attachment", "mention", "message"];
 
 function matchesFilter(type: string | null | undefined, filter: NotifFilter) {
-  if (filter === 'all') return true;
-  const t = (type ?? '').toLowerCase();
-  if (filter === 'messages') return MESSAGE_TYPES.includes(t);
-  return UPDATE_TYPES.includes(t);
+  if (filter === "all") return true;
+  const t = String(type || "").toLowerCase();
+  return filter === "messages" ? MESSAGE_TYPES.includes(t) : !MESSAGE_TYPES.includes(t);
 }
 
 function initialsOf(name?: string | null) {
-  const n = (name ?? '').trim();
-  if (!n) return '?';
-  const parts = n.split(/\s+/);
-  return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase() || '?';
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  return ((parts[0]?.[0] || "") + (parts[1]?.[0] || "")).toUpperCase() || "?";
 }
 
 export function NotificationPanel({ profile: externalProfile }: { profile?: Profile }) {
-  const { data: profileData } = useQuery({ queryKey: ["profile"], queryFn: () => import('@/lib/api').then(m => m.fetchProfile()) });
+  const { data: profileData } = useQuery({
+    queryKey: ["profile"],
+    queryFn: () => import("@/lib/api").then((m) => m.fetchProfile()),
+  });
   const profile = externalProfile ?? profileData;
   const [isOpen, setIsOpen] = useState(false);
-  const [filter, setFilter] = useState<NotifFilter>('all');
-  const { popups, removePopup } = useNotificationPopups();
+  const [filter, setFilter] = useState<NotifFilter>("all");
+  const { popups, removePopup, openNotification } = useNotificationPopups();
   const queryClient = useQueryClient();
 
   const { data: notifications = [] } = useQuery({
-    queryKey: ['notifications'],
+    queryKey: ["notifications"],
     queryFn: fetchNotifications,
-    staleTime: 300_000, // 5 minutos
-    refetchInterval: 600_000, // 10 minutos (Realtime cuida das notificações)
+    staleTime: 300_000,
+    refetchInterval: 600_000,
   });
 
   const markRead = useMutation({
     mutationFn: (id: string) => markNotificationAsRead(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
-
   const deleteNotif = useMutation({
-    mutationFn: (id: string) => adminDelete('notifications', id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    },
+    mutationFn: (id: string) => adminDelete("notifications", id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
-
   const markAll = useMutation({
     mutationFn: () => markAllNotificationsAsRead(),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
 
-  function openFromNotification(n: { id: string; read_at: string | null; type: string | null; metadata: any }) {
+  const openFromNotification = (n: any) => {
     if (!n.read_at) markRead.mutate(n.id);
-    const meta = (n.metadata || {}) as { case_id?: string; activity_id?: string | null };
-    const caseId = meta.case_id;
-    const activityId = meta.activity_id;
-    const focus = n.type === 'comment' ? 'comments' : n.type === 'attachment' ? 'attachments' : 'overview';
     setIsOpen(false);
-    if (caseId) {
-      const query = new URLSearchParams({ case: caseId });
-      if (activityId) query.set("msg", activityId);
-      const hash = new URLSearchParams({ case: caseId, focus });
-      if (focus === "comments") hash.set("tab", "comentarios");
-      if (activityId) hash.set("msg", activityId);
+    openNotification(n as PopupNotification);
+  };
 
-      // Use the canonical /casos deep link instead of mutating the hash of
-      // whichever case dialog happened to be open. This guarantees that the
-      // selected notification owns the dialog state.
-      const target = `/casos?${query.toString()}#${hash.toString()}`;
-      window.location.assign(target);
-    }
-  }
-
-  const unreadDbCount = notifications.filter(n => !n.read_at).length;
-  const displayCount = unreadDbCount;
+  const unreadDbCount = notifications.filter((n: any) => !n.read_at).length;
   const filtered = notifications.filter((n: any) => matchesFilter(n.type, filter));
 
   return (
@@ -103,200 +77,103 @@ export function NotificationPanel({ profile: externalProfile }: { profile?: Prof
         <PopoverTrigger asChild>
           <motion.button
             id="notification-trigger"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="relative h-10 w-10 grid place-items-center rounded-xl text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5 hover:text-primary transition-all focus:outline-none"
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            className="relative grid h-10 w-10 place-items-center rounded-xl text-slate-400 transition hover:bg-slate-50 hover:text-primary focus:outline-none dark:hover:bg-white/5"
             aria-label="Notificações"
-            onClick={() => {
-              const dummyAudio = new Audio();
-              dummyAudio.play().catch(() => {});
-            }}
           >
             <Bell className="h-[21px] w-[21px] stroke-[1.4px]" />
             <AnimatePresence>
-              {displayCount > 0 && (
+              {unreadDbCount > 0 && (
                 <motion.span
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0, opacity: 0 }}
-                  className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[9px] font-bold text-white ring-2 ring-white dark:ring-slate-950"
+                  className="absolute right-2 top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white ring-2 ring-white dark:ring-slate-950"
                 >
-                  {displayCount > 99 ? '99+' : displayCount}
+                  {unreadDbCount > 99 ? "99+" : unreadDbCount}
                 </motion.span>
               )}
             </AnimatePresence>
           </motion.button>
         </PopoverTrigger>
-        <PopoverContent align="end" className="w-[380px] p-0 rounded-2xl border-slate-100 dark:border-slate-800 shadow-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl overflow-hidden">
-          <div className="p-4 border-b border-slate-50 dark:border-slate-800/50 flex items-center justify-between">
+
+        <PopoverContent align="end" className="w-[380px] overflow-hidden rounded-2xl border-slate-100 bg-white/95 p-0 shadow-2xl backdrop-blur-xl dark:border-slate-800 dark:bg-slate-900/95">
+          <div className="flex items-center justify-between border-b border-slate-50 p-4 dark:border-slate-800/50">
             <h3 className="text-sm font-semibold tracking-tight">Notificações</h3>
             <div className="flex items-center gap-2">
               {unreadDbCount > 0 && (
-                <button
-                  onClick={() => markAll.mutate()}
-                  disabled={markAll.isPending}
-                  className="text-[10px] font-bold text-primary uppercase tracking-[0.08em] hover:underline flex items-center gap-1"
-                >
+                <button type="button" onClick={() => markAll.mutate()} className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.08em] text-primary hover:underline">
                   <CheckCheck className="h-3 w-3" /> Marcar todas
                 </button>
               )}
-              <span className="text-[10px] font-bold text-primary/60 uppercase tracking-[0.08em]">{filtered.length}</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.08em] text-primary/60">{filtered.length}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-slate-50 dark:border-slate-800/50">
-            {FILTERS.map((f) => (
+          <div className="flex items-center gap-1.5 border-b border-slate-50 px-4 py-2.5 dark:border-slate-800/50">
+            {FILTERS.map((item) => (
               <button
-                key={f.key}
-                onClick={() => setFilter(f.key)}
+                type="button"
+                key={item.key}
+                onClick={() => setFilter(item.key)}
                 className={cn(
                   "rounded-full px-3 py-1 text-[11px] font-medium transition-colors",
-                  filter === f.key
+                  filter === item.key
                     ? "bg-primary text-primary-foreground"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700",
+                    : "bg-slate-100 text-slate-500 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700",
                 )}
               >
-                {f.label}
+                {item.label}
               </button>
             ))}
           </div>
 
           <ScrollArea className="h-[400px]">
             {filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full p-8 text-center space-y-3">
-                <div className="h-12 w-12 rounded-full bg-slate-50 dark:bg-slate-800/50 grid place-items-center">
+              <div className="flex h-[360px] flex-col items-center justify-center gap-3 p-8 text-center">
+                <div className="grid h-12 w-12 place-items-center rounded-full bg-slate-50 dark:bg-slate-800/50">
                   <Bell className="h-6 w-6 text-slate-200 dark:text-slate-700" />
                 </div>
-                <p className="text-sm text-slate-400 font-light">Nenhuma notificação por aqui.</p>
+                <p className="text-sm font-light text-slate-400">Nenhuma notificação por aqui.</p>
               </div>
             ) : (
               <div className="divide-y divide-slate-50 dark:divide-slate-800/50">
                 {filtered.map((n: any) => {
-                  const sender = n.sender ?? null;
-                  const isMessage = MESSAGE_TYPES.includes((n.type ?? '').toLowerCase());
-                  const senderName = n.metadata?.sender_name ?? sender?.full_name ?? sender?.email ?? null;
-                  const avatarUrl = n.metadata?.sender_avatar ?? sender?.avatar_url;
-                  
-                  const title = n.metadata?.action === 'approval_required'
-                    ? 'Solicitação de caso recebida'
-                    : isMessage && senderName
-                      ? (n.type === 'attachment'
-                          ? `${senderName} anexou um arquivo`
-                          : `${senderName} comentou`)
-                      : n.title;
+                  const isMessage = MESSAGE_TYPES.includes(String(n.type || "").toLowerCase());
+                  const senderName = n.metadata?.sender_name ?? n.sender?.full_name ?? n.sender?.email ?? null;
+                  const avatarUrl = n.metadata?.sender_avatar ?? n.sender?.avatar_url;
+                  const title = isMessage && senderName
+                    ? n.type === "attachment" ? `${senderName} anexou um arquivo` : `${senderName} comentou`
+                    : n.title;
 
                   return (
-                    <div 
-                      key={n.id} 
-                      className={cn(
-                        "p-4 transition-colors group relative cursor-pointer",
-                        !n.read_at ? "bg-primary/[0.02]" : "hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
-                      )}
-                      onClick={(e) => {
-                        if (n.metadata?.action === 'approval_required') {
-                          // Abre o dialog de detalhes do caso/solicitação
-                          const parts = [`case=${n.metadata.case_id}`, `focus=overview`];
-                          window.location.hash = parts.join('&');
-                          window.dispatchEvent(new Event('hashchange'));
-                          setIsOpen(false);
-                        } else {
-                          openFromNotification(n as any);
-                        }
-                      }}
+                    <div
+                      key={n.id}
+                      className={cn("group relative cursor-pointer p-4 transition-colors", !n.read_at ? "bg-primary/[0.025]" : "hover:bg-slate-50/50 dark:hover:bg-slate-800/30")}
+                      onClick={() => openFromNotification(n)}
                     >
                       <div className="flex gap-3">
-                        {isMessage ? (
-                          avatarUrl ? (
-                            <img
-                              src={avatarUrl}
-                              alt={senderName ?? 'Usuário'}
-                              className="h-9 w-9 shrink-0 rounded-full object-cover border border-slate-100 dark:border-slate-800"
-                            />
-                          ) : (
-                            <div className="h-9 w-9 shrink-0 rounded-full bg-primary/10 text-primary grid place-items-center text-[11px] font-semibold">
-                              {initialsOf(senderName)}
-                            </div>
-                          )
+                        {avatarUrl ? (
+                          <img src={avatarUrl} alt={senderName || "Usuário"} className="h-9 w-9 shrink-0 rounded-full border border-slate-100 object-cover dark:border-slate-800" />
                         ) : (
-                          <div className={cn(
-                            "h-9 w-9 shrink-0 rounded-full flex items-center justify-center",
-                            !n.read_at ? "bg-primary/10 text-primary" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
-                          )}>
-                            <Bell className="h-4 w-4" />
+                          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
+                            {isMessage ? initialsOf(senderName) : <Bell className="h-4 w-4" />}
                           </div>
                         )}
-                        <div className="flex-1 min-w-0 space-y-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className={cn("text-xs leading-tight truncate", !n.read_at ? "font-semibold text-slate-900 dark:text-slate-100" : "font-medium text-slate-600 dark:text-slate-400")}>
-                              {title}
-                            </p>
-                            <span className="flex items-center gap-1.5 whitespace-nowrap">
-                              <span className="text-[10px] text-slate-400">
-                                {formatDistanceToNow(new Date(n.created_at), { addSuffix: false, locale: ptBR })}
-                              </span>
-                              {!n.read_at && <span className="h-2 w-2 rounded-full bg-primary shrink-0" />}
-                            </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className={cn("truncate text-xs", !n.read_at ? "font-semibold" : "font-medium text-slate-600 dark:text-slate-400")}>{title}</p>
+                            <span className="whitespace-nowrap text-[10px] text-slate-400">{formatDistanceToNow(new Date(n.created_at), { addSuffix: false, locale: ptBR })}</span>
                           </div>
-                          <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-normal line-clamp-2">
-                            {n.content}
-                          </p>
-                          
-                          {n.metadata?.action === 'approval_required' && !n.read_at && (
-                            <div className="flex items-center gap-2 pt-2">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Chamar acceptCaseRequest
-                                  if (n.metadata?.case_id && profile?.id) {
-                                    import('@/lib/api').then(({ acceptCaseRequest }) => {
-                                      acceptCaseRequest(n.metadata.case_id, profile.id)
-                                        .then(() => {
-                                          toast.success("Solicitação aceita!");
-                                          markRead.mutate(n.id);
-                                        })
-                                        .catch(() => toast.error("Erro ao aceitar solicitação."));
-                                    });
-                                  }
-                                }}
-                                className="px-3 py-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold hover:opacity-90 transition-opacity"
-                              >
-                                Aceitar
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  // Chamar reject (permanentDeleteCase ou similar)
-                                  if (n.metadata?.case_id) {
-                                    import('@/lib/api').then(({ permanentDeleteCase }) => {
-                                      permanentDeleteCase(n.metadata.case_id)
-                                        .then(() => {
-                                          toast.success("Solicitação recusada.");
-                                          markRead.mutate(n.id);
-                                        })
-                                        .catch(() => toast.error("Erro ao recusar solicitação."));
-                                    });
-                                  }
-                                }}
-                                className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                              >
-                                Recusar
-                              </button>
-                            </div>
-                          )}
-
-                          <div className="flex items-center gap-2 pt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {!n.read_at && n.metadata?.action !== 'approval_required' && (
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); markRead.mutate(n.id); }}
-                                className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
-                              >
+                          <p className="mt-1 line-clamp-2 text-[11px] leading-normal text-slate-400 dark:text-slate-500">{n.content}</p>
+                          <div className="mt-2 flex items-center gap-3 opacity-0 transition group-hover:opacity-100">
+                            {!n.read_at && (
+                              <button type="button" onClick={(e) => { e.stopPropagation(); markRead.mutate(n.id); }} className="flex items-center gap-1 text-[10px] font-bold text-primary hover:underline">
                                 <CheckCircle2 className="h-3 w-3" /> Lida
                               </button>
                             )}
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); deleteNotif.mutate(n.id); }}
-                              className="text-[10px] font-bold text-rose-500/70 hover:text-rose-500 hover:underline flex items-center gap-1"
-                            >
+                            <button type="button" onClick={(e) => { e.stopPropagation(); deleteNotif.mutate(n.id); }} className="flex items-center gap-1 text-[10px] font-bold text-rose-500/70 hover:text-rose-500 hover:underline">
                               <Trash2 className="h-3 w-3" /> Excluir
                             </button>
                           </div>
@@ -311,16 +188,16 @@ export function NotificationPanel({ profile: externalProfile }: { profile?: Prof
         </PopoverContent>
       </Popover>
 
-      <div className="flex flex-col items-end gap-2 w-80 pointer-events-none fixed top-6 right-6 z-[100]">
+      <div className="df-notification-stack pointer-events-none fixed top-5 z-[1800] flex w-80 flex-col items-end gap-2">
         <AnimatePresence mode="popLayout">
           {popups.map((popup, index) => (
-            <NotificationPopup 
-              key={popup.id} 
-              popup={popup} 
-              index={index} 
-              onClose={() => removePopup(popup.id)} 
+            <NotificationPopup
+              key={popup.id}
+              popup={popup}
+              index={index}
+              onClose={() => removePopup(popup.id)}
               onClick={() => {
-                openFromNotification(popup as any);
+                openFromNotification(popup);
                 removePopup(popup.id);
               }}
             />
@@ -331,111 +208,34 @@ export function NotificationPanel({ profile: externalProfile }: { profile?: Prof
   );
 }
 
-function NotificationPopup({ 
-  popup, 
-  index, 
-  onClose,
-  onClick,
-}: { 
-  popup: PopupNotification; 
-  index: number; 
-  onClose: () => void;
-  onClick?: () => void;
-}) {
-  const getDuration = () => {
-    if (index === 0) return 5000;
-    if (index === 1) return 3750;
-    if (index === 2) return 2500;
-    return 1250;
-  };
-
-  useEffect(() => {
-    const timer = setTimeout(onClose, getDuration());
-    return () => clearTimeout(timer);
-  }, [onClose, index]);
+function NotificationPopup({ popup, index, onClose, onClick }: { popup: PopupNotification; index: number; onClose: () => void; onClick: () => void }) {
+  const duration = Math.max(2400, 5600 - index * 900);
+  const meta = popup.metadata || {};
+  const sender = meta.sender_name || popup.title || "DentalFlow";
+  const isAttachment = popup.type === "attachment";
 
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+      initial={{ opacity: 0, y: -12, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 20, scale: 0.9, transition: { duration: 0.2 } }}
+      exit={{ opacity: 0, x: 24, scale: 0.98 }}
+      transition={{ duration: 0.2 }}
+      className="pointer-events-auto relative w-full cursor-pointer overflow-hidden rounded-[20px] border border-slate-200/80 bg-white/95 p-4 shadow-[0_18px_60px_-24px_rgba(15,23,42,.45)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/95"
       onClick={onClick}
-      role={onClick ? 'button' : undefined}
-      className={cn(
-        "pointer-events-auto w-full overflow-hidden rounded-xl border p-4 shadow-2xl backdrop-blur-xl cursor-pointer transition-colors relative",
-        popup.metadata?.action === 'approval_required'
-          ? "border-rose-200 dark:border-rose-900 bg-white/95 dark:bg-slate-900/95 shadow-rose-500/10"
-          : "border-slate-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 hover:border-primary/30 hover:shadow-primary/10"
-      )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 space-y-1">
-          <h4 className="text-[13px] font-semibold text-slate-900 dark:text-slate-100 leading-none">
-            {popup.metadata?.action === 'approval_required' ? 'Solicitação de caso recebida' : popup.title}
-          </h4>
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 leading-normal">{popup.content}</p>
+      <button type="button" onClick={(e) => { e.stopPropagation(); onClose(); }} className="absolute right-3 top-3 grid h-6 w-6 place-items-center rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10" aria-label="Fechar notificação">
+        <X className="h-3.5 w-3.5" />
+      </button>
+      <div className="flex gap-3 pr-7">
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+          {isAttachment ? <Paperclip className="h-4 w-4" /> : <MessageSquare className="h-4 w-4" />}
         </div>
-        <div className="flex flex-col gap-3 shrink-0">
-          <button 
-            onClick={(e) => { e.stopPropagation(); onClose(); }}
-            className="rounded-full p-1 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-300 hover:text-slate-600 transition-colors ml-auto"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-
-          {popup.metadata?.action === 'approval_required' && (
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  import('@/lib/api').then(({ fetchProfile, acceptCaseRequest, markNotificationAsRead }) => {
-                    fetchProfile().then(profile => {
-                      if (popup.metadata?.case_id && profile?.id) {
-                        acceptCaseRequest(popup.metadata.case_id, profile.id)
-                          .then(() => {
-                            toast.success("Solicitação aceita!");
-                            markNotificationAsRead(popup.id);
-                            onClose();
-                          })
-                          .catch(() => toast.error("Erro ao aceitar solicitação."));
-                      }
-                    });
-                  });
-                }}
-                className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-[10px] font-bold hover:opacity-90 transition-opacity"
-              >
-                Aceitar
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  import('@/lib/api').then(({ permanentDeleteCase, markNotificationAsRead }) => {
-                    if (popup.metadata?.case_id) {
-                      permanentDeleteCase(popup.metadata.case_id)
-                        .then(() => {
-                          toast.success("Solicitação recusada.");
-                          markNotificationAsRead(popup.id);
-                          onClose();
-                        })
-                        .catch(() => toast.error("Erro ao recusar solicitação."));
-                    }
-                  });
-                }}
-                className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-[10px] font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-              >
-                Recusar
-              </button>
-            </div>
-          )}
+        <div className="min-w-0">
+          <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">{sender}</p>
+          <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-slate-500 dark:text-slate-400">{popup.content}</p>
         </div>
       </div>
-      <motion.div 
-        initial={{ width: "100%" }}
-        animate={{ width: "0%" }}
-        transition={{ duration: getDuration() / 1000, ease: "linear" }}
-        className="absolute bottom-0 left-0 h-0.5 bg-primary/30"
-      />
+      <motion.div className="absolute bottom-0 left-0 h-[2px] bg-primary/70" initial={{ width: "100%" }} animate={{ width: "0%" }} transition={{ duration: duration / 1000, ease: "linear" }} onAnimationComplete={onClose} />
     </motion.div>
   );
 }
