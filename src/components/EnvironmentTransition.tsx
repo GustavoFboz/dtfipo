@@ -179,10 +179,11 @@ export function EnvironmentTransition() {
   if (!target) return null;
 
   const accent = accentClass[target];
+  const textAccent = accent.split(" ").find((value) => value.startsWith("text-")) ?? "text-slate-600";
 
   return (
     <div
-      className="fixed inset-0 z-[9999] grid place-items-center overflow-hidden bg-white/68 backdrop-blur-[20px] animate-in fade-in duration-100 dark:bg-[#05070a]/76"
+      className="fixed inset-0 z-[9999] grid place-items-center overflow-hidden bg-white/68 backdrop-blur-[18px] animate-in fade-in duration-100 dark:bg-[#05070a]/76"
       role="status"
       aria-live="polite"
       aria-label={`Trocando para o ambiente ${target}. ${progress}% carregado.`}
@@ -199,7 +200,7 @@ export function EnvironmentTransition() {
 
         <div className="relative mt-8 grid h-[68px] w-[68px] place-items-center rounded-full border border-slate-200/70 bg-white/70 shadow-sm dark:border-white/10 dark:bg-white/[0.035]">
           <div className={`absolute inset-[8px] animate-spin rounded-full border-2 border-slate-200 border-t-current dark:border-white/10 ${accent}`} />
-          <span className={`relative text-[12px] font-medium tabular-nums tracking-[-0.02em] ${accent.split(" ").find((value) => value.startsWith("text-")) ?? "text-slate-600"}`}>
+          <span className={`relative text-[12px] font-medium tabular-nums tracking-[-0.02em] ${textAccent}`}>
             {progress}%
           </span>
         </div>
