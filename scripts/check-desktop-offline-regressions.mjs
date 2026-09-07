@@ -12,6 +12,10 @@ const clinicLocal = read("src/lib/clinic-local-first.ts");
 const notificationPanel = read("src/components/NotificationPanel.tsx");
 const notificationsLocal = read("src/lib/notifications-local-first.ts");
 const bootstrap = read("src/components/DesktopOfflineBootstrap.tsx");
+const realtime = read("src/components/DesktopRealtimeSync.tsx");
+const connectivity = read("src/components/ConnectivityLayer.tsx");
+const transition = read("src/components/EnvironmentTransition.tsx");
+const router = read("src/router.tsx");
 const sync = read("src/lib/desktop-sync.ts");
 const cloud = read("src/lib/desktop-cloud.ts");
 const tauri = read("src-tauri/tauri.conf.json");
@@ -28,7 +32,7 @@ expect(frame.includes("Minimizar") && frame.includes("Maximizar") && frame.inclu
 expect(desktopCss.includes('header[data-dentalflow-native-header="true"]'), "App headers must reserve the Windows caption-button area.");
 expect(desktopCss.includes("inset: 0 !important"), "Windowed Desktop must not keep an invisible six-pixel outer gutter.");
 expect(tauri.includes('"transparent": false'), "Windows app must use an opaque client surface instead of invisible transparent borders.");
-expect(tauri.includes('"version": "0.2.3"'), "Desktop version must be 0.2.3 for this recovery build.");
+expect(tauri.includes('"version": "0.2.4"'), "Desktop version must be 0.2.4 for this recovery/performance build.");
 
 expect(client.includes("usingOfflineDeviceSession"), "Cloud Login shim must track synthetic device sessions.");
 expect(client.includes("requireRealCloudSession"), "Synthetic offline login must not issue cloud database reads.");
@@ -52,7 +56,10 @@ expect(apiDesktop.includes('localCacheGet<Patient[]>(ownerId, "patients:v1", "al
 expect(apiDesktop.includes("withDesktopCloudTimeout"), "Desktop screen reads must not display infinite skeletons on stalled cloud requests.");
 expect(apiDesktop.includes('localCacheGet<Notification[]>(ownerId, "notifications:v1", "all")'), "Notification history must be cache-first on Desktop.");
 
-expect(clinicDesktop.includes('localCacheGet<ClinicContext>(ownerId, "clinic-context:v1", "current")'), "Clinic availability must read the last verified local entitlement first.");
+expect(clinicDesktop.includes('localCacheGet<ClinicContext>(ownerId, CONTEXT_NS, CONTEXT_KEY)'), "Clinic availability must read the last verified local entitlement first.");
+expect(clinicDesktop.includes("repairClinicContextFromVerifiedCloud"), "Desktop must repair stale negative Clinic entitlements from verified Cloud data.");
+expect(clinicDesktop.includes('supabase.from("clinics")') || clinicDesktop.includes('.from("clinics")'), "Clinic repair must verify the actual clinic module list.");
+expect(clinicDesktop.includes('localCachePut(ownerId, CONTEXT_NS, CONTEXT_KEY, repaired)'), "A verified repaired Clinic entitlement must be durable offline.");
 expect(clinicDesktop.includes('localCacheGet<Appointment[]>(ownerId, "clinic-appointments:v1", "all")'), "Clinic agenda must be able to render from SQLite immediately.");
 expect(clinicLocal.includes("canUseDentalFlowCloud"), "Clinic local-first reads must distinguish actual Cloud access from navigator online state.");
 expect(clinicLocal.includes("Contexto vazio da Clínica ignorado"), "A transient empty Clinic context must not erase a verified entitlement.");
@@ -60,11 +67,22 @@ expect(clinicLocal.includes("Contexto vazio da Clínica ignorado"), "A transient
 expect(notificationPanel.includes('id="notification-trigger"'), "Notification center trigger must remain wired in the UI.");
 expect(notificationsLocal.includes('const NS = "notifications:v1"'), "Desktop notifications must have a durable local cache.");
 expect(bootstrap.includes('schedule(2_000, "boot-retry")'), "Desktop must retry hydration after Cloud Login/profile settles.");
-expect(bootstrap.includes('schedule(8_000, "boot-finalize")'), "Desktop must run a final boot hydration pass.");
+expect(bootstrap.includes('schedule(8_000, "boot-finalize")'), "Desktop must run a final cold-boot hydration pass.");
+expect(bootstrap.includes("FOCUS_REFRESH_AFTER_MS"), "Window focus refreshes must have an inactivity threshold.");
+expect(bootstrap.includes("validação do ambiente Clínica"), "Cold boot must proactively revalidate Clinic entitlement.");
 expect(bootstrap.includes("queryClient.invalidateQueries"), "UI queries must refresh even after partial cache recovery.");
+expect(!realtime.includes('window.addEventListener("focus"'), "Realtime mirror must not perform a full sync on every Alt+Tab/window focus.");
+expect(!connectivity.includes('passiveSync ? "Atualizando"'), "Passive background refresh must not show a distracting Atualizando status.");
+
+expect(transition.includes("useIsFetching"), "Environment transition must observe visual query readiness.");
+expect(transition.includes("WARM_MEMORY_TTL_MS"), "Environment transition must keep a temporary warm-memory window.");
+expect(transition.includes("{progress}%"), "Environment spinner must show the current readiness percentage.");
+expect(transition.includes("READY_QUIET_MS"), "Environment overlay must wait for a short visual quiet period before revealing the page.");
+expect(router.includes("desktop ? 5 * 60_000"), "Desktop query data must stay warm long enough to avoid re-buffering between modules.");
+
 expect(sync.includes("não bloqueou o restante da sincronização"), "One failing sync domain must not abort every other Desktop dataset.");
 expect(sync.includes("Promise.all(["), "Independent read-model warmups should proceed concurrently.");
 expect(cloud.includes("DesktopCloudTimeoutError"), "Bounded cloud helper is required for installed clients.");
 expect(contract.includes("Regra de ouro"), "Cross-platform/offline contract must remain documented.");
 
-console.log("Desktop 0.2.3 offline/native-shell regression checks passed.");
+console.log("Desktop 0.2.4 Clinic/readiness/warm-cache regression checks passed.");
