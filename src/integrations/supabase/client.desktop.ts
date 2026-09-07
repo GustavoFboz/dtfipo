@@ -53,6 +53,53 @@ async function localCloudLoginFallback() {
   return { identity, user, session };
 }
 
+function emitAccountMismatch(deviceUserId: string, cloudUserId: string) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent("dentalflow:desktop-account-mismatch", {
+      detail: { deviceUserId, cloudUserId },
+    }),
+  );
+}
+
+/**
+ * A persisted browser session is not enough proof that the Desktop can query the
+ * cloud. WebView2 can keep old auth storage across installer upgrades, so the
+ * session must be revalidated against Cloud Login before it is classified as a
+ * real cloud identity. This prevents a stale account from making every RLS query
+ * look legitimately empty.
+ */
+async function validatedCloudSession(target: typeof cloudSupabase.auth) {
+  const sessionResult = await target.getSession();
+  const session = sessionResult.data.session;
+  if (!session) return { session: null, user: null, mismatch: false };
+
+  const userResult = await target.getUser();
+  const user = userResult.data.user;
+  if (!user || user.id !== session.user.id) {
+    return { session: null, user: null, mismatch: false };
+  }
+
+  const deviceIdentity = await getProvisionedDesktopIdentity().catch(() => null);
+  if (
+    deviceIdentity &&
+    deviceIdentity.valid_until > Date.now() &&
+    deviceIdentity.user_id !== user.id
+  ) {
+    // Never silently switch the owner of a clinical SQLite cache. A stale WebView
+    // login must be explicitly re-authenticated instead of overwriting the
+    // previously validated device identity with a different account.
+    await target.signOut({ scope: "local" }).catch(() => undefined);
+    await clearProvisionedDesktopIdentity().catch(() => undefined);
+    usingOfflineDeviceSession = false;
+    emitAccountMismatch(deviceIdentity.user_id, user.id);
+    return { session: null, user: null, mismatch: true };
+  }
+
+  usingOfflineDeviceSession = false;
+  return { session: { ...session, user } as Session, user, mismatch: false };
+}
+
 async function forceLocalCloudLoginSignOut(target: typeof cloudSupabase.auth) {
   try {
     await target.signOut({ scope: "local" });
@@ -74,11 +121,11 @@ const auth = new Proxy(cloudSupabase.auth, {
         const definitelyOffline = typeof navigator !== "undefined" && navigator.onLine === false;
         if (!definitelyOffline) {
           try {
-            const result = await target.getSession();
-            if (result.data.session) {
-              usingOfflineDeviceSession = false;
-              return result;
+            const validated = await validatedCloudSession(target);
+            if (validated.session) {
+              return { data: { session: validated.session }, error: null };
             }
+            if (validated.mismatch) return { data: { session: null }, error: null };
           } catch {
             // Cloud Login can be temporarily unreachable; use the validated device session below.
           }
@@ -96,13 +143,13 @@ const auth = new Proxy(cloudSupabase.auth, {
         const definitelyOffline = typeof navigator !== "undefined" && navigator.onLine === false;
         if (!definitelyOffline) {
           try {
-            const result = await target.getUser();
-            if (result.data.user) {
-              usingOfflineDeviceSession = false;
-              return result;
+            const validated = await validatedCloudSession(target);
+            if (validated.user) {
+              return { data: { user: validated.user }, error: null };
             }
+            if (validated.mismatch) return { data: { user: null }, error: null };
           } catch {
-            // When Cloud Login is unavailable, keep the installed Windows app usable.
+            // When Cloud Login is unavailable, keep the installed app usable.
           }
         }
 
@@ -136,8 +183,6 @@ const auth = new Proxy(cloudSupabase.auth, {
 
 function requireRealCloudSession(operation: string) {
   if (!usingOfflineDeviceSession) return;
-  // Use a network-shaped message so every local-first adapter takes its SQLite
-  // fallback instead of interpreting unauthenticated RLS zero rows as truth.
   throw new TypeError(`Failed to fetch: Cloud Login is offline (${operation})`);
 }
 
@@ -145,10 +190,9 @@ function requireRealCloudSession(operation: string) {
  * Desktop-only authentication facade for Lovable Cloud Login.
  *
  * A finite-lived local device session unlocks SQLite after a previously valid
- * online login. Crucially, that synthetic session is never allowed to issue
- * database/RPC reads as though it were a real Cloud Login token. This prevents
- * protected queries from returning deceptive empty arrays and erasing good local
- * snapshots while Windows is offline or Cloud Login is temporarily unavailable.
+ * online login. A persisted WebView session is server-validated before any cloud
+ * access, and a synthetic device session is never allowed to issue database/RPC
+ * requests. This keeps account ownership and offline clinical caches isolated.
  */
 export const supabase = new Proxy(cloudSupabase, {
   get(target, prop, receiver) {
