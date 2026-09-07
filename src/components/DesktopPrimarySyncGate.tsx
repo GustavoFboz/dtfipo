@@ -92,6 +92,10 @@ export function DesktopPrimarySyncGate() {
 
     const showPreparing = (detail = "Sincronizando pacientes, casos, permissões e dados essenciais para este computador.") => {
       if (dismissed.current) return;
+      if (hideTimer.current !== null) {
+        window.clearTimeout(hideTimer.current);
+        hideTimer.current = null;
+      }
       setState({
         visible: true,
         progress: 14,
@@ -155,6 +159,23 @@ export function DesktopPrimarySyncGate() {
         if (readiness.ready || disposed || dismissed.current) return;
         const patients = Number(detail?.patientsCached ?? 0);
         const cases = Number(detail?.casesCached ?? 0);
+        const reason = String(detail?.reason ?? "");
+        const finalAttempt = ["boot-finalize", "manual", "online", "account-changed"].some((value) => reason.includes(value));
+
+        if (finalAttempt) {
+          clearTimers();
+          setState({
+            visible: true,
+            progress: 0,
+            title: "Sincronização ainda incompleta",
+            detail: patients || cases
+              ? `${patients} pacientes e ${cases} casos foram recebidos, mas ainda falta confirmar algum dado essencial. Você pode tentar novamente ou abrir a interface com o que já existe localmente.`
+              : "Alguns dados essenciais ainda não puderam ser confirmados. Você pode tentar novamente ou abrir a interface com o que já existe localmente.",
+            mode: "error",
+          });
+          return;
+        }
+
         setState({
           visible: true,
           progress: 88,
