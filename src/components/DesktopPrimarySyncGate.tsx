@@ -59,7 +59,7 @@ async function inspectLocalReadiness(): Promise<Readiness> {
 /**
  * Desktop readiness gate.
  *
- * 0.2.9 keeps the first authenticated preparation explicit, but a machine that
+ * 0.3.0 keeps the first authenticated preparation explicit, but a machine that
  * already has a verified SQLite snapshot is never blocked again merely because
  * Windows went offline and came back. Reconnect refreshes are silent/background.
  * A watchdog also guarantees that a broken endpoint cannot leave the full-screen
@@ -116,7 +116,7 @@ export function DesktopPrimarySyncGate() {
       }, 420);
     };
 
-    const showPreparing = (detail = "Validando sua sessão e sincronizando pacientes, casos, etapas, categorias e estoque.") => {
+    const showPreparing = (detail = "Validando sua sessão e sincronizando os dados críticos deste computador.") => {
       if (dismissed.current) return;
       if (hideTimer.current !== null) window.clearTimeout(hideTimer.current);
       hideTimer.current = null;
@@ -160,7 +160,7 @@ export function DesktopPrimarySyncGate() {
             visible: true,
             progress: 0,
             title: "Sincronização verificada pendente",
-            detail: "A interface está instalada e pode abrir offline, mas este computador ainda precisa concluir uma sincronização autenticada para garantir que todas as listas estejam completas.",
+            detail: "A interface está instalada e pode abrir offline, mas este computador ainda precisa concluir uma sincronização autenticada dos dados críticos antes da primeira operação local.",
             mode: "offline",
           });
         } else {
@@ -203,8 +203,8 @@ export function DesktopPrimarySyncGate() {
           setState({
             visible: true,
             progress: 0,
-            title: "Sincronização ainda incompleta",
-            detail: "A sessão foi validada, mas alguma lista local ainda não coincide com os dados autorizados no Cloud. Tente novamente; o aplicativo não substituirá dados válidos por uma resposta vazia ambígua.",
+            title: "Sincronização dos dados críticos incompleta",
+            detail: "A sessão foi validada, mas pacientes ou casos locais ainda não cobrem os dados autorizados no Cloud. Tente novamente; listas auxiliares não bloqueiam mais a abertura do programa.",
             mode: "error",
           });
           return;
@@ -213,8 +213,8 @@ export function DesktopPrimarySyncGate() {
         setState({
           visible: true,
           progress: 90,
-          title: "Conferindo todas as listas",
-          detail: "Comparando pacientes, casos, tipos, etapas, profissionais, categorias e estoque com o Lovable Cloud…",
+          title: "Conferindo dados críticos",
+          detail: "Comparando pacientes e casos com o Lovable Cloud. Cadastros auxiliares continuam sincronizando em segundo plano.",
           mode: "syncing",
         });
         startProgress();
@@ -245,7 +245,7 @@ export function DesktopPrimarySyncGate() {
         // Once this Windows installation has a verified snapshot, reconnect is a
         // background refresh; never cover the app with a 90% blocking screen.
         if (!readiness.ready) {
-          showPreparing("Conexão disponível. Revalidando a sessão e conferindo todos os dados locais.");
+          showPreparing("Conexão disponível. Revalidando a sessão e conferindo os dados críticos locais.");
         }
         window.dispatchEvent(new CustomEvent("dentalflow:desktop-force-sync"));
       });
@@ -309,7 +309,7 @@ export function DesktopPrimarySyncGate() {
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-[20px] border border-slate-200/80 bg-white text-[#2D7FF9] shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
           <Icon className={`h-6 w-6 stroke-[1.5] ${state.mode === "syncing" ? "animate-spin" : ""}`} />
         </div>
-        <div className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">DentalFlow Desktop 0.2.9</div>
+        <div className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">DentalFlow Desktop 0.3.0</div>
         <h1 className="mt-3 text-[30px] font-extralight tracking-[-0.04em] text-slate-950 sm:text-[38px] dark:text-white">{state.title}</h1>
         <p className="mx-auto mt-3 max-w-md text-sm font-light leading-6 text-slate-500 dark:text-slate-400">{state.detail}</p>
 
@@ -335,7 +335,7 @@ export function DesktopPrimarySyncGate() {
         )}
 
         {lastReady && !lastReady.ready && state.mode !== "ready" && (
-          <p className="mt-6 text-[10px] font-light text-slate-400">A 0.2.9 só considera este computador sincronizado depois de confirmar as listas com uma sessão Cloud real.</p>
+          <p className="mt-6 text-[10px] font-light text-slate-400">A 0.3.0 só considera este computador pronto depois de confirmar pacientes e casos com uma sessão Cloud real; listas auxiliares seguem em segundo plano.</p>
         )}
       </div>
     </div>
