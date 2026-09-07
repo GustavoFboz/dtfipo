@@ -22,6 +22,7 @@ import { Route as AuthenticatedPatientsRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedMeuFinanceiroRouteImport } from './routes/_authenticated/meu-financeiro'
 import { Route as AuthenticatedMensagensRouteImport } from './routes/_authenticated/mensagens'
 import { Route as AuthenticatedMaquinasRouteImport } from './routes/_authenticated/maquinas'
+import { Route as AuthenticatedHubRouteImport } from './routes/_authenticated/hub'
 import { Route as AuthenticatedFluxoRouteImport } from './routes/_authenticated/fluxo'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedEstoqueRouteImport } from './routes/_authenticated/estoque'
@@ -29,6 +30,7 @@ import { Route as AuthenticatedEquipeRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedDentesRouteImport } from './routes/_authenticated/dentes'
 import { Route as AuthenticatedConsumoAutomaticoRouteImport } from './routes/_authenticated/consumo-automatico'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedClinicaRouteImport } from './routes/_authenticated/clinica'
 import { Route as AuthenticatedCasosRouteImport } from './routes/_authenticated/casos'
 import { Route as AuthenticatedCadistaRouteImport } from './routes/_authenticated/cadista'
 import { Route as AuthenticatedBurrsRouteImport } from './routes/_authenticated/burrs'
@@ -51,11 +53,18 @@ import { Route as AuthenticatedEstoqueResinasRouteImport } from './routes/_authe
 import { Route as AuthenticatedEstoqueMovimentacoesRouteImport } from './routes/_authenticated/estoque.movimentacoes'
 import { Route as AuthenticatedConfiguracoesNotaRouteImport } from './routes/_authenticated/configuracoes.nota'
 import { Route as AuthenticatedConfiguracoesImplantesRouteImport } from './routes/_authenticated/configuracoes.implantes'
+import { Route as AuthenticatedClinicaPacientesRouteImport } from './routes/_authenticated/clinica.pacientes'
+import { Route as AuthenticatedClinicaFinanceiroRouteImport } from './routes/_authenticated/clinica.financeiro'
+import { Route as AuthenticatedClinicaEquipeRouteImport } from './routes/_authenticated/clinica.equipe'
+import { Route as AuthenticatedClinicaConfiguracoesRouteImport } from './routes/_authenticated/clinica.configuracoes'
+import { Route as AuthenticatedClinicaArmazenamentoRouteImport } from './routes/_authenticated/clinica.armazenamento'
+import { Route as AuthenticatedClinicaAgendaRouteImport } from './routes/_authenticated/clinica.agenda'
 import { Route as AuthenticatedCadistasCadistaIdRouteImport } from './routes/_authenticated/cadistas.$cadistaId'
 import { Route as AuthenticatedAdminUsuariosRouteImport } from './routes/_authenticated/admin.usuarios'
 import { Route as AuthenticatedAdminRestauracaoRouteImport } from './routes/_authenticated/admin.restauracao'
 import { Route as AuthenticatedAdminBackupRouteImport } from './routes/_authenticated/admin.backup'
 import { Route as ApiPublicHooksCleanupCaseFilesRouteImport } from './routes/api/public/hooks/cleanup-case-files'
+import { Route as AuthenticatedClinicaPacientesPatientIdRouteImport } from './routes/_authenticated/clinica.pacientes.$patientId'
 
 const LpRoute = LpRouteImport.update({
   id: '/lp',
@@ -122,6 +131,11 @@ const AuthenticatedMaquinasRoute = AuthenticatedMaquinasRouteImport.update({
   path: '/maquinas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedHubRoute = AuthenticatedHubRouteImport.update({
+  id: '/hub',
+  path: '/hub',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedFluxoRoute = AuthenticatedFluxoRouteImport.update({
   id: '/fluxo',
   path: '/fluxo',
@@ -159,6 +173,11 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedClinicaRoute = AuthenticatedClinicaRouteImport.update({
+  id: '/clinica',
+  path: '/clinica',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedCasosRoute = AuthenticatedCasosRouteImport.update({
   id: '/casos',
   path: '/casos',
@@ -286,6 +305,42 @@ const AuthenticatedConfiguracoesImplantesRoute =
     path: '/implantes',
     getParentRoute: () => AuthenticatedConfiguracoesRoute,
   } as any)
+const AuthenticatedClinicaPacientesRoute =
+  AuthenticatedClinicaPacientesRouteImport.update({
+    id: '/pacientes',
+    path: '/pacientes',
+    getParentRoute: () => AuthenticatedClinicaRoute,
+  } as any)
+const AuthenticatedClinicaFinanceiroRoute =
+  AuthenticatedClinicaFinanceiroRouteImport.update({
+    id: '/financeiro',
+    path: '/financeiro',
+    getParentRoute: () => AuthenticatedClinicaRoute,
+  } as any)
+const AuthenticatedClinicaEquipeRoute =
+  AuthenticatedClinicaEquipeRouteImport.update({
+    id: '/equipe',
+    path: '/equipe',
+    getParentRoute: () => AuthenticatedClinicaRoute,
+  } as any)
+const AuthenticatedClinicaConfiguracoesRoute =
+  AuthenticatedClinicaConfiguracoesRouteImport.update({
+    id: '/configuracoes',
+    path: '/configuracoes',
+    getParentRoute: () => AuthenticatedClinicaRoute,
+  } as any)
+const AuthenticatedClinicaArmazenamentoRoute =
+  AuthenticatedClinicaArmazenamentoRouteImport.update({
+    id: '/armazenamento',
+    path: '/armazenamento',
+    getParentRoute: () => AuthenticatedClinicaRoute,
+  } as any)
+const AuthenticatedClinicaAgendaRoute =
+  AuthenticatedClinicaAgendaRouteImport.update({
+    id: '/agenda',
+    path: '/agenda',
+    getParentRoute: () => AuthenticatedClinicaRoute,
+  } as any)
 const AuthenticatedCadistasCadistaIdRoute =
   AuthenticatedCadistasCadistaIdRouteImport.update({
     id: '/cadistas/$cadistaId',
@@ -316,6 +371,12 @@ const ApiPublicHooksCleanupCaseFilesRoute =
     path: '/api/public/hooks/cleanup-case-files',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AuthenticatedClinicaPacientesPatientIdRoute =
+  AuthenticatedClinicaPacientesPatientIdRouteImport.update({
+    id: '/$patientId',
+    path: '/$patientId',
+    getParentRoute: () => AuthenticatedClinicaPacientesRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -327,6 +388,7 @@ export interface FileRoutesByFullPath {
   '/burrs': typeof AuthenticatedBurrsRoute
   '/cadista': typeof AuthenticatedCadistaRoute
   '/casos': typeof AuthenticatedCasosRoute
+  '/clinica': typeof AuthenticatedClinicaRouteWithChildren
   '/configuracoes': typeof AuthenticatedConfiguracoesRouteWithChildren
   '/consumo-automatico': typeof AuthenticatedConsumoAutomaticoRoute
   '/dentes': typeof AuthenticatedDentesRoute
@@ -334,6 +396,7 @@ export interface FileRoutesByFullPath {
   '/estoque': typeof AuthenticatedEstoqueRouteWithChildren
   '/financeiro': typeof AuthenticatedFinanceiroRouteWithChildren
   '/fluxo': typeof AuthenticatedFluxoRoute
+  '/hub': typeof AuthenticatedHubRoute
   '/maquinas': typeof AuthenticatedMaquinasRoute
   '/mensagens': typeof AuthenticatedMensagensRoute
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
@@ -346,6 +409,12 @@ export interface FileRoutesByFullPath {
   '/admin/restauracao': typeof AuthenticatedAdminRestauracaoRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/cadistas/$cadistaId': typeof AuthenticatedCadistasCadistaIdRoute
+  '/clinica/agenda': typeof AuthenticatedClinicaAgendaRoute
+  '/clinica/armazenamento': typeof AuthenticatedClinicaArmazenamentoRoute
+  '/clinica/configuracoes': typeof AuthenticatedClinicaConfiguracoesRoute
+  '/clinica/equipe': typeof AuthenticatedClinicaEquipeRoute
+  '/clinica/financeiro': typeof AuthenticatedClinicaFinanceiroRoute
+  '/clinica/pacientes': typeof AuthenticatedClinicaPacientesRouteWithChildren
   '/configuracoes/implantes': typeof AuthenticatedConfiguracoesImplantesRoute
   '/configuracoes/nota': typeof AuthenticatedConfiguracoesNotaRoute
   '/estoque/movimentacoes': typeof AuthenticatedEstoqueMovimentacoesRoute
@@ -363,6 +432,7 @@ export interface FileRoutesByFullPath {
   '/financeiro/producao': typeof AuthenticatedFinanceiroProducaoRoute
   '/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/patients/$id': typeof AuthenticatedPatientsIdRoute
+  '/clinica/pacientes/$patientId': typeof AuthenticatedClinicaPacientesPatientIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
 }
 export interface FileRoutesByTo {
@@ -375,6 +445,7 @@ export interface FileRoutesByTo {
   '/burrs': typeof AuthenticatedBurrsRoute
   '/cadista': typeof AuthenticatedCadistaRoute
   '/casos': typeof AuthenticatedCasosRoute
+  '/clinica': typeof AuthenticatedClinicaRouteWithChildren
   '/configuracoes': typeof AuthenticatedConfiguracoesRouteWithChildren
   '/consumo-automatico': typeof AuthenticatedConsumoAutomaticoRoute
   '/dentes': typeof AuthenticatedDentesRoute
@@ -382,6 +453,7 @@ export interface FileRoutesByTo {
   '/estoque': typeof AuthenticatedEstoqueRouteWithChildren
   '/financeiro': typeof AuthenticatedFinanceiroRouteWithChildren
   '/fluxo': typeof AuthenticatedFluxoRoute
+  '/hub': typeof AuthenticatedHubRoute
   '/maquinas': typeof AuthenticatedMaquinasRoute
   '/mensagens': typeof AuthenticatedMensagensRoute
   '/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
@@ -394,6 +466,12 @@ export interface FileRoutesByTo {
   '/admin/restauracao': typeof AuthenticatedAdminRestauracaoRoute
   '/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/cadistas/$cadistaId': typeof AuthenticatedCadistasCadistaIdRoute
+  '/clinica/agenda': typeof AuthenticatedClinicaAgendaRoute
+  '/clinica/armazenamento': typeof AuthenticatedClinicaArmazenamentoRoute
+  '/clinica/configuracoes': typeof AuthenticatedClinicaConfiguracoesRoute
+  '/clinica/equipe': typeof AuthenticatedClinicaEquipeRoute
+  '/clinica/financeiro': typeof AuthenticatedClinicaFinanceiroRoute
+  '/clinica/pacientes': typeof AuthenticatedClinicaPacientesRouteWithChildren
   '/configuracoes/implantes': typeof AuthenticatedConfiguracoesImplantesRoute
   '/configuracoes/nota': typeof AuthenticatedConfiguracoesNotaRoute
   '/estoque/movimentacoes': typeof AuthenticatedEstoqueMovimentacoesRoute
@@ -411,6 +489,7 @@ export interface FileRoutesByTo {
   '/financeiro/producao': typeof AuthenticatedFinanceiroProducaoRoute
   '/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/patients/$id': typeof AuthenticatedPatientsIdRoute
+  '/clinica/pacientes/$patientId': typeof AuthenticatedClinicaPacientesPatientIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
 }
 export interface FileRoutesById {
@@ -425,6 +504,7 @@ export interface FileRoutesById {
   '/_authenticated/burrs': typeof AuthenticatedBurrsRoute
   '/_authenticated/cadista': typeof AuthenticatedCadistaRoute
   '/_authenticated/casos': typeof AuthenticatedCasosRoute
+  '/_authenticated/clinica': typeof AuthenticatedClinicaRouteWithChildren
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRouteWithChildren
   '/_authenticated/consumo-automatico': typeof AuthenticatedConsumoAutomaticoRoute
   '/_authenticated/dentes': typeof AuthenticatedDentesRoute
@@ -432,6 +512,7 @@ export interface FileRoutesById {
   '/_authenticated/estoque': typeof AuthenticatedEstoqueRouteWithChildren
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRouteWithChildren
   '/_authenticated/fluxo': typeof AuthenticatedFluxoRoute
+  '/_authenticated/hub': typeof AuthenticatedHubRoute
   '/_authenticated/maquinas': typeof AuthenticatedMaquinasRoute
   '/_authenticated/mensagens': typeof AuthenticatedMensagensRoute
   '/_authenticated/meu-financeiro': typeof AuthenticatedMeuFinanceiroRoute
@@ -444,6 +525,12 @@ export interface FileRoutesById {
   '/_authenticated/admin/restauracao': typeof AuthenticatedAdminRestauracaoRoute
   '/_authenticated/admin/usuarios': typeof AuthenticatedAdminUsuariosRoute
   '/_authenticated/cadistas/$cadistaId': typeof AuthenticatedCadistasCadistaIdRoute
+  '/_authenticated/clinica/agenda': typeof AuthenticatedClinicaAgendaRoute
+  '/_authenticated/clinica/armazenamento': typeof AuthenticatedClinicaArmazenamentoRoute
+  '/_authenticated/clinica/configuracoes': typeof AuthenticatedClinicaConfiguracoesRoute
+  '/_authenticated/clinica/equipe': typeof AuthenticatedClinicaEquipeRoute
+  '/_authenticated/clinica/financeiro': typeof AuthenticatedClinicaFinanceiroRoute
+  '/_authenticated/clinica/pacientes': typeof AuthenticatedClinicaPacientesRouteWithChildren
   '/_authenticated/configuracoes/implantes': typeof AuthenticatedConfiguracoesImplantesRoute
   '/_authenticated/configuracoes/nota': typeof AuthenticatedConfiguracoesNotaRoute
   '/_authenticated/estoque/movimentacoes': typeof AuthenticatedEstoqueMovimentacoesRoute
@@ -461,6 +548,7 @@ export interface FileRoutesById {
   '/_authenticated/financeiro/producao': typeof AuthenticatedFinanceiroProducaoRoute
   '/_authenticated/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/_authenticated/patients/$id': typeof AuthenticatedPatientsIdRoute
+  '/_authenticated/clinica/pacientes/$patientId': typeof AuthenticatedClinicaPacientesPatientIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
 }
 export interface FileRouteTypes {
@@ -475,6 +563,7 @@ export interface FileRouteTypes {
     | '/burrs'
     | '/cadista'
     | '/casos'
+    | '/clinica'
     | '/configuracoes'
     | '/consumo-automatico'
     | '/dentes'
@@ -482,6 +571,7 @@ export interface FileRouteTypes {
     | '/estoque'
     | '/financeiro'
     | '/fluxo'
+    | '/hub'
     | '/maquinas'
     | '/mensagens'
     | '/meu-financeiro'
@@ -494,6 +584,12 @@ export interface FileRouteTypes {
     | '/admin/restauracao'
     | '/admin/usuarios'
     | '/cadistas/$cadistaId'
+    | '/clinica/agenda'
+    | '/clinica/armazenamento'
+    | '/clinica/configuracoes'
+    | '/clinica/equipe'
+    | '/clinica/financeiro'
+    | '/clinica/pacientes'
     | '/configuracoes/implantes'
     | '/configuracoes/nota'
     | '/estoque/movimentacoes'
@@ -511,6 +607,7 @@ export interface FileRouteTypes {
     | '/financeiro/producao'
     | '/financeiro/relatorios'
     | '/patients/$id'
+    | '/clinica/pacientes/$patientId'
     | '/api/public/hooks/cleanup-case-files'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -523,6 +620,7 @@ export interface FileRouteTypes {
     | '/burrs'
     | '/cadista'
     | '/casos'
+    | '/clinica'
     | '/configuracoes'
     | '/consumo-automatico'
     | '/dentes'
@@ -530,6 +628,7 @@ export interface FileRouteTypes {
     | '/estoque'
     | '/financeiro'
     | '/fluxo'
+    | '/hub'
     | '/maquinas'
     | '/mensagens'
     | '/meu-financeiro'
@@ -542,6 +641,12 @@ export interface FileRouteTypes {
     | '/admin/restauracao'
     | '/admin/usuarios'
     | '/cadistas/$cadistaId'
+    | '/clinica/agenda'
+    | '/clinica/armazenamento'
+    | '/clinica/configuracoes'
+    | '/clinica/equipe'
+    | '/clinica/financeiro'
+    | '/clinica/pacientes'
     | '/configuracoes/implantes'
     | '/configuracoes/nota'
     | '/estoque/movimentacoes'
@@ -559,6 +664,7 @@ export interface FileRouteTypes {
     | '/financeiro/producao'
     | '/financeiro/relatorios'
     | '/patients/$id'
+    | '/clinica/pacientes/$patientId'
     | '/api/public/hooks/cleanup-case-files'
   id:
     | '__root__'
@@ -572,6 +678,7 @@ export interface FileRouteTypes {
     | '/_authenticated/burrs'
     | '/_authenticated/cadista'
     | '/_authenticated/casos'
+    | '/_authenticated/clinica'
     | '/_authenticated/configuracoes'
     | '/_authenticated/consumo-automatico'
     | '/_authenticated/dentes'
@@ -579,6 +686,7 @@ export interface FileRouteTypes {
     | '/_authenticated/estoque'
     | '/_authenticated/financeiro'
     | '/_authenticated/fluxo'
+    | '/_authenticated/hub'
     | '/_authenticated/maquinas'
     | '/_authenticated/mensagens'
     | '/_authenticated/meu-financeiro'
@@ -591,6 +699,12 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/restauracao'
     | '/_authenticated/admin/usuarios'
     | '/_authenticated/cadistas/$cadistaId'
+    | '/_authenticated/clinica/agenda'
+    | '/_authenticated/clinica/armazenamento'
+    | '/_authenticated/clinica/configuracoes'
+    | '/_authenticated/clinica/equipe'
+    | '/_authenticated/clinica/financeiro'
+    | '/_authenticated/clinica/pacientes'
     | '/_authenticated/configuracoes/implantes'
     | '/_authenticated/configuracoes/nota'
     | '/_authenticated/estoque/movimentacoes'
@@ -608,6 +722,7 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro/producao'
     | '/_authenticated/financeiro/relatorios'
     | '/_authenticated/patients/$id'
+    | '/_authenticated/clinica/pacientes/$patientId'
     | '/api/public/hooks/cleanup-case-files'
   fileRoutesById: FileRoutesById
 }
@@ -714,6 +829,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMaquinasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/hub': {
+      id: '/_authenticated/hub'
+      path: '/hub'
+      fullPath: '/hub'
+      preLoaderRoute: typeof AuthenticatedHubRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/fluxo': {
       id: '/_authenticated/fluxo'
       path: '/fluxo'
@@ -761,6 +883,13 @@ declare module '@tanstack/react-router' {
       path: '/configuracoes'
       fullPath: '/configuracoes'
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinica': {
+      id: '/_authenticated/clinica'
+      path: '/clinica'
+      fullPath: '/clinica'
+      preLoaderRoute: typeof AuthenticatedClinicaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/casos': {
@@ -917,6 +1046,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesImplantesRouteImport
       parentRoute: typeof AuthenticatedConfiguracoesRoute
     }
+    '/_authenticated/clinica/pacientes': {
+      id: '/_authenticated/clinica/pacientes'
+      path: '/pacientes'
+      fullPath: '/clinica/pacientes'
+      preLoaderRoute: typeof AuthenticatedClinicaPacientesRouteImport
+      parentRoute: typeof AuthenticatedClinicaRoute
+    }
+    '/_authenticated/clinica/financeiro': {
+      id: '/_authenticated/clinica/financeiro'
+      path: '/financeiro'
+      fullPath: '/clinica/financeiro'
+      preLoaderRoute: typeof AuthenticatedClinicaFinanceiroRouteImport
+      parentRoute: typeof AuthenticatedClinicaRoute
+    }
+    '/_authenticated/clinica/equipe': {
+      id: '/_authenticated/clinica/equipe'
+      path: '/equipe'
+      fullPath: '/clinica/equipe'
+      preLoaderRoute: typeof AuthenticatedClinicaEquipeRouteImport
+      parentRoute: typeof AuthenticatedClinicaRoute
+    }
+    '/_authenticated/clinica/configuracoes': {
+      id: '/_authenticated/clinica/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/clinica/configuracoes'
+      preLoaderRoute: typeof AuthenticatedClinicaConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedClinicaRoute
+    }
+    '/_authenticated/clinica/armazenamento': {
+      id: '/_authenticated/clinica/armazenamento'
+      path: '/armazenamento'
+      fullPath: '/clinica/armazenamento'
+      preLoaderRoute: typeof AuthenticatedClinicaArmazenamentoRouteImport
+      parentRoute: typeof AuthenticatedClinicaRoute
+    }
+    '/_authenticated/clinica/agenda': {
+      id: '/_authenticated/clinica/agenda'
+      path: '/agenda'
+      fullPath: '/clinica/agenda'
+      preLoaderRoute: typeof AuthenticatedClinicaAgendaRouteImport
+      parentRoute: typeof AuthenticatedClinicaRoute
+    }
     '/_authenticated/cadistas/$cadistaId': {
       id: '/_authenticated/cadistas/$cadistaId'
       path: '/cadistas/$cadistaId'
@@ -952,8 +1123,54 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksCleanupCaseFilesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/clinica/pacientes/$patientId': {
+      id: '/_authenticated/clinica/pacientes/$patientId'
+      path: '/$patientId'
+      fullPath: '/clinica/pacientes/$patientId'
+      preLoaderRoute: typeof AuthenticatedClinicaPacientesPatientIdRouteImport
+      parentRoute: typeof AuthenticatedClinicaPacientesRoute
+    }
   }
 }
+
+interface AuthenticatedClinicaPacientesRouteChildren {
+  AuthenticatedClinicaPacientesPatientIdRoute: typeof AuthenticatedClinicaPacientesPatientIdRoute
+}
+
+const AuthenticatedClinicaPacientesRouteChildren: AuthenticatedClinicaPacientesRouteChildren =
+  {
+    AuthenticatedClinicaPacientesPatientIdRoute:
+      AuthenticatedClinicaPacientesPatientIdRoute,
+  }
+
+const AuthenticatedClinicaPacientesRouteWithChildren =
+  AuthenticatedClinicaPacientesRoute._addFileChildren(
+    AuthenticatedClinicaPacientesRouteChildren,
+  )
+
+interface AuthenticatedClinicaRouteChildren {
+  AuthenticatedClinicaAgendaRoute: typeof AuthenticatedClinicaAgendaRoute
+  AuthenticatedClinicaArmazenamentoRoute: typeof AuthenticatedClinicaArmazenamentoRoute
+  AuthenticatedClinicaConfiguracoesRoute: typeof AuthenticatedClinicaConfiguracoesRoute
+  AuthenticatedClinicaEquipeRoute: typeof AuthenticatedClinicaEquipeRoute
+  AuthenticatedClinicaFinanceiroRoute: typeof AuthenticatedClinicaFinanceiroRoute
+  AuthenticatedClinicaPacientesRoute: typeof AuthenticatedClinicaPacientesRouteWithChildren
+}
+
+const AuthenticatedClinicaRouteChildren: AuthenticatedClinicaRouteChildren = {
+  AuthenticatedClinicaAgendaRoute: AuthenticatedClinicaAgendaRoute,
+  AuthenticatedClinicaArmazenamentoRoute:
+    AuthenticatedClinicaArmazenamentoRoute,
+  AuthenticatedClinicaConfiguracoesRoute:
+    AuthenticatedClinicaConfiguracoesRoute,
+  AuthenticatedClinicaEquipeRoute: AuthenticatedClinicaEquipeRoute,
+  AuthenticatedClinicaFinanceiroRoute: AuthenticatedClinicaFinanceiroRoute,
+  AuthenticatedClinicaPacientesRoute:
+    AuthenticatedClinicaPacientesRouteWithChildren,
+}
+
+const AuthenticatedClinicaRouteWithChildren =
+  AuthenticatedClinicaRoute._addFileChildren(AuthenticatedClinicaRouteChildren)
 
 interface AuthenticatedConfiguracoesRouteChildren {
   AuthenticatedConfiguracoesImplantesRoute: typeof AuthenticatedConfiguracoesImplantesRoute
@@ -1048,6 +1265,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBurrsRoute: typeof AuthenticatedBurrsRoute
   AuthenticatedCadistaRoute: typeof AuthenticatedCadistaRoute
   AuthenticatedCasosRoute: typeof AuthenticatedCasosRoute
+  AuthenticatedClinicaRoute: typeof AuthenticatedClinicaRouteWithChildren
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRouteWithChildren
   AuthenticatedConsumoAutomaticoRoute: typeof AuthenticatedConsumoAutomaticoRoute
   AuthenticatedDentesRoute: typeof AuthenticatedDentesRoute
@@ -1055,6 +1273,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEstoqueRoute: typeof AuthenticatedEstoqueRouteWithChildren
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRouteWithChildren
   AuthenticatedFluxoRoute: typeof AuthenticatedFluxoRoute
+  AuthenticatedHubRoute: typeof AuthenticatedHubRoute
   AuthenticatedMaquinasRoute: typeof AuthenticatedMaquinasRoute
   AuthenticatedMensagensRoute: typeof AuthenticatedMensagensRoute
   AuthenticatedMeuFinanceiroRoute: typeof AuthenticatedMeuFinanceiroRoute
@@ -1073,6 +1292,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBurrsRoute: AuthenticatedBurrsRoute,
   AuthenticatedCadistaRoute: AuthenticatedCadistaRoute,
   AuthenticatedCasosRoute: AuthenticatedCasosRoute,
+  AuthenticatedClinicaRoute: AuthenticatedClinicaRouteWithChildren,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRouteWithChildren,
   AuthenticatedConsumoAutomaticoRoute: AuthenticatedConsumoAutomaticoRoute,
   AuthenticatedDentesRoute: AuthenticatedDentesRoute,
@@ -1080,6 +1300,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEstoqueRoute: AuthenticatedEstoqueRouteWithChildren,
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRouteWithChildren,
   AuthenticatedFluxoRoute: AuthenticatedFluxoRoute,
+  AuthenticatedHubRoute: AuthenticatedHubRoute,
   AuthenticatedMaquinasRoute: AuthenticatedMaquinasRoute,
   AuthenticatedMensagensRoute: AuthenticatedMensagensRoute,
   AuthenticatedMeuFinanceiroRoute: AuthenticatedMeuFinanceiroRoute,
