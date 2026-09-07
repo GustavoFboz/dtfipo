@@ -45,7 +45,9 @@ expect(identity.includes("canUseDentalFlowCloud"), "Cloud availability helper is
 expect(patients.includes("resolveDesktopOwnerId"), "Patient cache ownership must use the stable Desktop identity.");
 expect(patients.includes("Resposta vazia de pacientes ignorada"), "Patient snapshots must be protected from ambiguous empty cloud responses.");
 expect(apiDesktop.includes("recoverCaseMirror"), "Cases must recover their aggregate list from SQLite entity mirrors.");
-expect(apiDesktop.includes('localCachePut(ownerId, "cases:v1", "all", recovered)'), "Recovered cases must repair the aggregate SQLite list.");
+expect(apiDesktop.includes("writeCaseSnapshot(ownerId, recovered)"), "Recovered cases must repair the aggregate SQLite list.");
+expect(apiDesktop.includes("recoverAuthorizedCasesDirectly"), "A valid Cloud Login must have an RLS-authorized case recovery path when profile hydration returns empty.");
+expect(apiDesktop.includes('supabase.from("cases").select("*")'), "Direct case recovery must still rely on database RLS rather than bypassing authorization.");
 expect(apiDesktop.includes('localCacheGet<Patient[]>(ownerId, "patients:v1", "all")'), "Desktop patient screens must render the SQLite snapshot before a cloud refresh.");
 expect(apiDesktop.includes("withDesktopCloudTimeout"), "Desktop screen reads must not display infinite skeletons on stalled cloud requests.");
 expect(apiDesktop.includes('localCacheGet<Notification[]>(ownerId, "notifications:v1", "all")'), "Notification history must be cache-first on Desktop.");
