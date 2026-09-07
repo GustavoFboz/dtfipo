@@ -3,20 +3,27 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { isDentalFlowDesktop, provisionDesktopIdentity } from "@/lib/desktop-local";
 import { syncDesktopOfflineData } from "@/lib/desktop-sync";
+import { fetchClinicContext } from "@/lib/clinic";
 import {
   prepareDesktopRecovery,
   protectCriticalCachesFromEmptyRegression,
 } from "@/lib/desktop-recovery";
 import {
   DESKTOP_AUTH_TIMEOUT_MS,
+  DESKTOP_READ_TIMEOUT_MS,
   withDesktopCloudTimeout,
 } from "@/lib/desktop-cloud";
 
+const FOCUS_REFRESH_AFTER_MS = 3 * 60_000;
+
 /**
- * Installed clients need a resilient boot rather than a one-shot web fetch.
- * WebView2 may restore before Cloud Login/token refresh/profile hydration has
- * completed; the previous one-pass bootstrap could therefore miss the first
- * synchronization and never try again until the application restarted.
+ * Resilient installed-client boot.
+ *
+ * The initial passes repair/validate local data, then the app becomes event-driven.
+ * Window focus no longer means "reload everything": a focus/visibility refresh is
+ * allowed only after a few minutes without a completed hydration. Realtime keeps
+ * genuinely changed entities current in the meantime, so moving between Windows
+ * apps and DentalFlow remains instant and visually quiet.
  */
 export function DesktopOfflineBootstrap() {
   const queryClient = useQueryClient();
@@ -27,6 +34,7 @@ export function DesktopOfflineBootstrap() {
     let disposed = false;
     let active: Promise<void> | null = null;
     let lastStartedAt = 0;
+    let lastCompletedAt = 0;
     const timers = new Set<number>();
 
     const dispatch = (name: string, detail?: unknown) => {
@@ -82,6 +90,19 @@ export function DesktopOfflineBootstrap() {
               fullName,
               clinicId,
             });
+
+            // Repair a stale negative Clinic entitlement before the Hub/Clinic
+            // decides whether to disable the module. The Desktop clinic facade
+            // persists only server-verified context in SQLite.
+            try {
+              await withDesktopCloudTimeout(
+                "validação do ambiente Clínica",
+                fetchClinicContext,
+                DESKTOP_READ_TIMEOUT_MS,
+              );
+            } catch (error) {
+              console.warn("[DentalFlow Desktop] Clínica será revalidada em uma próxima passagem", error);
+            }
           }
 
           recovery = await prepareDesktopRecovery();
@@ -107,10 +128,9 @@ export function DesktopOfflineBootstrap() {
             });
           }
         } finally {
-          // Even a partial/failed cloud pass may have reconstructed useful SQLite
-          // data. Always release existing skeleton queries so they can re-read it.
           if (!disposed) {
             await queryClient.invalidateQueries().catch(() => undefined);
+            lastCompletedAt = Date.now();
           }
         }
       })().finally(() => {
@@ -128,23 +148,24 @@ export function DesktopOfflineBootstrap() {
       timers.add(id);
     };
 
-    // Multi-pass boot: first paint, token/profile settling, then a final recovery
-    // pass. Cached data remains immediately usable while these happen.
+    // Multi-pass cold boot only. After that, warm data is kept in memory and
+    // realtime invalidations handle actual changes.
     void execute("boot");
     schedule(2_000, "boot-retry");
     schedule(8_000, "boot-finalize");
 
     const onOnline = () => void execute("online");
-    const onFocus = () => {
-      if (typeof navigator === "undefined" || navigator.onLine !== false) void execute("focus");
+    const refreshAfterInactivity = (reason: string) => {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+      if (Date.now() - lastCompletedAt < FOCUS_REFRESH_AFTER_MS) return;
+      void execute(reason);
     };
+    const onFocus = () => refreshAfterInactivity("focus-after-inactivity");
     const onVisible = () => {
-      if (!document.hidden && (typeof navigator === "undefined" || navigator.onLine !== false)) void execute("visible");
+      if (!document.hidden) refreshAfterInactivity("visible-after-inactivity");
     };
     const onManual = () => void execute("manual");
     const onAccountChanged = () => {
-      // New Cloud Login account owns a different SQLite namespace. Provision and
-      // hydrate it rather than logging the user out or showing another account's cache.
       schedule(100, "account-changed");
     };
 
