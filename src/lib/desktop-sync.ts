@@ -70,43 +70,41 @@ function emptySummary(): DesktopSyncSummary {
 async function runDesktopSync(): Promise<DesktopSyncSummary> {
   if (!isDentalFlowDesktop()) return emptySummary();
 
-  // Replay writes in dependency order, but isolate each domain. One stale RPC or
-  // schema-specific error must never prevent Patients/Cases/Clinic from warming.
+  // Patients are replayed first because appointments/cases can reference them.
+  // The remaining independent domains run concurrently so a reconnect does not
+  // accumulate one timeout per subsystem. Notifications stay after Cases: an
+  // offline-created case must exist in Cloud before its queued team alerts replay.
   const patientSync = await safe("Sincronização de pacientes", syncPendingPatientChanges, ZERO_BASIC);
-  const clinicSync = await safe(
-    "Sincronização da agenda clínica",
-    syncPendingClinicChanges,
-    { ...ZERO_BASIC, appointmentsCached: 0, contextCached: false },
-  );
-  const recordsSync = await safe(
-    "Sincronização de registros clínicos",
-    syncPendingClinicRecordChanges,
-    { ...ZERO_BASIC, financialCached: 0, evolutionsCached: 0, dashboardDatasetsCached: 0 },
-  );
-  const caseSync = await safe(
-    "Sincronização de casos",
-    syncPendingCaseChanges,
-    { ...ZERO_BASIC, cached: 0 },
-  );
-  const stockSync = await safe(
-    "Sincronização do estoque legado",
-    syncPendingStockChanges,
-    { ...ZERO_BASIC, itemsCached: 0, movementsCached: 0 },
-  );
-  const stockV2Sync = await safe(
-    "Sincronização do estoque",
-    syncPendingStockV2Changes,
-    { ...ZERO_BASIC, itemsCached: 0, categoriesCached: 0 },
-  );
+
+  const [clinicSync, recordsSync, caseSync, stockSync, stockV2Sync, workflowSync] = await Promise.all([
+    safe(
+      "Sincronização da agenda clínica",
+      syncPendingClinicChanges,
+      { ...ZERO_BASIC, appointmentsCached: 0, contextCached: false },
+    ),
+    safe(
+      "Sincronização de registros clínicos",
+      syncPendingClinicRecordChanges,
+      { ...ZERO_BASIC, financialCached: 0, evolutionsCached: 0, dashboardDatasetsCached: 0 },
+    ),
+    safe("Sincronização de casos", syncPendingCaseChanges, { ...ZERO_BASIC, cached: 0 }),
+    safe(
+      "Sincronização do estoque legado",
+      syncPendingStockChanges,
+      { ...ZERO_BASIC, itemsCached: 0, movementsCached: 0 },
+    ),
+    safe(
+      "Sincronização do estoque",
+      syncPendingStockV2Changes,
+      { ...ZERO_BASIC, itemsCached: 0, categoriesCached: 0 },
+    ),
+    safe("Sincronização do workflow", syncPendingWorkflowChanges, { ...ZERO_BASIC, datasetsCached: 0 }),
+  ]);
+
   const notificationSync = await safe(
     "Sincronização de notificações",
     syncPendingNotificationChanges,
     { ...ZERO_BASIC, cached: 0 },
-  );
-  const workflowSync = await safe(
-    "Sincronização do workflow",
-    syncPendingWorkflowChanges,
-    { ...ZERO_BASIC, datasetsCached: 0 },
   );
 
   let summary: DesktopSyncSummary = {
