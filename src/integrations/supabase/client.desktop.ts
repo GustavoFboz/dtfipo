@@ -258,8 +258,18 @@ const auth = new Proxy(cloudSupabase.auth, {
   },
 });
 
+/**
+ * The synthetic device session exists only in this facade; it is never installed
+ * as a bearer token in the underlying Lovable Cloud client. Therefore, while the
+ * machine is physically online we must allow the real persisted Cloud Login to
+ * attempt database/RPC requests even if a previous getUser validation timed out.
+ * PostgreSQL Auth/RLS remains the authority. When Windows is truly offline, the
+ * synthetic session is blocked from every protected Cloud operation as before.
+ */
 function requireRealCloudSession(operation: string) {
   if (!usingOfflineDeviceSession) return;
+  const definitelyOffline = typeof navigator !== "undefined" && navigator.onLine === false;
+  if (!definitelyOffline) return;
   throw new TypeError(`Failed to fetch: Cloud Login is offline (${operation})`);
 }
 

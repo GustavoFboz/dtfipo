@@ -10,6 +10,7 @@ import { WorkflowLayoutStabilizer } from "@/components/WorkflowLayoutStabilizer"
 import { EnvironmentTransition } from "@/components/EnvironmentTransition";
 import { ConnectivityLayer } from "@/components/ConnectivityLayer";
 import { DesktopOfflineBootstrap } from "@/components/DesktopOfflineBootstrap";
+import { DesktopPrimarySyncGate } from "@/components/DesktopPrimarySyncGate";
 import { DesktopRealtimeSync } from "@/components/DesktopRealtimeSync";
 import "@/workflow-layout.css";
 
@@ -68,6 +69,7 @@ function AuthenticatedShell() {
   return (
     <>
       <DesktopOfflineBootstrap />
+      <DesktopPrimarySyncGate />
       <DesktopRealtimeSync />
       <ConnectivityLayer />
       <EnvironmentTransition />
