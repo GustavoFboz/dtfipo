@@ -5,6 +5,7 @@
 // still runs in the background and the global desktop bootstrap invalidates visible
 // queries after synchronization.
 import * as cloudApi from "./api";
+import { supabase } from "@/integrations/supabase/client";
 import type {
   Cadista,
   CaseRow,
@@ -100,6 +101,11 @@ async function owner() {
   return isDentalFlowDesktop() ? resolveDesktopOwnerId() : null;
 }
 
+async function writeCaseSnapshot(ownerId: string, rows: CaseRow[]) {
+  await localCachePut(ownerId, "cases:v1", "all", rows);
+  await Promise.allSettled(rows.map((row) => localCachePut(ownerId, "cases:v1", row.id, row)));
+}
+
 async function recoverCaseMirror(): Promise<CaseRow[]> {
   if (!isDentalFlowDesktop()) return [];
   const ownerId = await owner();
@@ -113,10 +119,66 @@ async function recoverCaseMirror(): Promise<CaseRow[]> {
     .filter((entry) => entry.key !== "all" && entry.payload?.id)
     .map((entry) => entry.payload);
   if (recovered.length > 0) {
-    await localCachePut(ownerId, "cases:v1", "all", recovered);
+    await writeCaseSnapshot(ownerId, recovered);
     console.warn(`[DentalFlow Desktop] Lista de casos recuperada de ${recovered.length} espelhos locais íntegros.`);
   }
   return recovered;
+}
+
+/**
+ * Recovery path for a valid Cloud Login where the API's client-side role/profile
+ * hydration briefly returns an empty list. RLS remains the security authority:
+ * this query asks only for rows the authenticated account is already allowed to
+ * read, then joins display labels from the local read models. It never bypasses
+ * database policies and never writes to the cloud.
+ */
+async function recoverAuthorizedCasesDirectly(): Promise<CaseRow[]> {
+  if (!isDentalFlowDesktop() || (typeof navigator !== "undefined" && navigator.onLine === false)) return [];
+  const ownerId = await owner();
+  if (!ownerId) return [];
+
+  const auth = await withDesktopCloudTimeout(
+    "validação para recuperação de casos",
+    () => supabase.auth.getUser(),
+    DESKTOP_READ_TIMEOUT_MS,
+  );
+  if (!auth.data.user || auth.data.user.user_metadata?.dentalflow_offline_device) return [];
+
+  const rows = await withDesktopCloudTimeout(
+    "casos autorizados por RLS",
+    async () => {
+      const result = await supabase.from("cases").select("*").order("updated_at", { ascending: false });
+      if (result.error) throw result.error;
+      return (result.data ?? []) as unknown as CaseRow[];
+    },
+    DESKTOP_READ_TIMEOUT_MS,
+  );
+  if (!rows.length) return [];
+
+  const [patients, doctors, cadistas, stages] = await Promise.all([
+    fetchPatients().catch(() => [] as Patient[]),
+    fetchDoctors().catch(() => [] as Doctor[]),
+    fetchCadistas().catch(() => [] as Cadista[]),
+    fetchStages().catch(() => [] as Stage[]),
+  ]);
+  const patientMap = new Map(patients.map((item) => [item.id, item]));
+  const doctorMap = new Map(doctors.map((item) => [item.id, item]));
+  const cadistaMap = new Map(cadistas.map((item) => [item.id, item]));
+  const stageMap = new Map(stages.map((item) => [item.id, item]));
+
+  const hydrated = rows.map((row) => ({
+    ...row,
+    patient: (row as any).patient ?? patientMap.get(row.patient_id ?? "") ?? null,
+    doctor: (row as any).doctor ?? doctorMap.get(row.doctor_id ?? "") ?? null,
+    cadista: (row as any).cadista ?? cadistaMap.get(row.cadista_id ?? "") ?? null,
+    current_stage: (row as any).current_stage ?? stageMap.get(row.current_stage_id ?? "") ?? null,
+    case_stages: (row as any).case_stages ?? [],
+    case_components: (row as any).case_components ?? [],
+  })) as CaseRow[];
+
+  await writeCaseSnapshot(ownerId, hydrated);
+  console.warn(`[DentalFlow Desktop] ${hydrated.length} casos recuperados diretamente pelo escopo RLS autenticado.`);
+  return hydrated;
 }
 
 /** Cache-first cases. Existing clinical data appears immediately, then refreshes. */
@@ -139,15 +201,20 @@ export async function fetchCases(
       DESKTOP_READ_TIMEOUT_MS,
     );
     if (rows.length > 0) return rows;
+
     const recovered = await recoverCaseMirror();
     if (recovered.length > 0) return applyCaseScope(recovered, scope, filters);
-    // Empty may be a short Cloud Login/profile hydration gap. The bootstrap will
-    // retry and invalidate this query; do not destroy any local mirror.
+
+    const direct = await recoverAuthorizedCasesDirectly().catch(() => [] as CaseRow[]);
+    if (direct.length > 0) return applyCaseScope(direct, scope, filters);
+
     background("casos (segunda passagem)", () => fetchCasesLocalFirst("all"));
     return rows;
   } catch (error) {
     const recovered = await recoverCaseMirror();
     if (recovered.length > 0) return applyCaseScope(recovered, scope, filters);
+    const direct = await recoverAuthorizedCasesDirectly().catch(() => [] as CaseRow[]);
+    if (direct.length > 0) return applyCaseScope(direct, scope, filters);
     throw error;
   }
 }
