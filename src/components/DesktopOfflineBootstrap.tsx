@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { isDentalFlowDesktop, provisionDesktopIdentity } from "@/lib/desktop-local";
 import { syncDesktopOfflineData } from "@/lib/desktop-sync";
+import { verifyAndStoreDesktopSyncProof } from "@/lib/desktop-sync-proof";
 import { fetchClinicContext } from "@/lib/clinic";
 import {
   prepareDesktopRecovery,
@@ -19,11 +20,10 @@ const FOCUS_REFRESH_AFTER_MS = 3 * 60_000;
 /**
  * Resilient installed-client boot.
  *
- * The initial passes repair/validate local data, then the app becomes event-driven.
- * Window focus no longer means "reload everything": a focus/visibility refresh is
- * allowed only after a few minutes without a completed hydration. Realtime keeps
- * genuinely changed entities current in the meantime, so moving between Windows
- * apps and DentalFlow remains instant and visually quiet.
+ * 0.2.8 adds an authenticated dataset proof after warming SQLite. A successful
+ * HTTP response is not enough: the same authenticated account must see matching
+ * counts in Cloud/RLS and in the local mirrors before the client is considered
+ * fully prepared for offline use.
  */
 export function DesktopOfflineBootstrap() {
   const queryClient = useQueryClient();
@@ -60,8 +60,9 @@ export function DesktopOfflineBootstrap() {
           ).catch(async () => ({ data: { session: null } } as any));
           const user = data.session?.user;
           const isDeviceOnly = Boolean(user?.user_metadata?.dentalflow_offline_device);
+          const cloudValidated = Boolean(user && !isDeviceOnly);
 
-          if (user && !isDeviceOnly) {
+          if (cloudValidated && user) {
             let fullName: string | null = null;
             let clinicId: string | null = null;
             try {
@@ -91,9 +92,6 @@ export function DesktopOfflineBootstrap() {
               clinicId,
             });
 
-            // Repair a stale negative Clinic entitlement before the Hub/Clinic
-            // decides whether to disable the module. The Desktop clinic facade
-            // persists only server-verified context in SQLite.
             try {
               await withDesktopCloudTimeout(
                 "validação do ambiente Clínica",
@@ -108,11 +106,19 @@ export function DesktopOfflineBootstrap() {
           recovery = await prepareDesktopRecovery();
           const summary = await syncDesktopOfflineData();
           const protectedNamespaces = await protectCriticalCachesFromEmptyRegression(recovery.snapshot);
+          const syncProof = cloudValidated
+            ? await verifyAndStoreDesktopSyncProof().catch((error) => {
+                console.warn("[DentalFlow Desktop] Read-models ainda não coincidem com o Cloud", error);
+                return null;
+              })
+            : null;
 
           if (!disposed) {
             dispatch("dentalflow:desktop-sync-complete", {
               ...summary,
               reason,
+              cloudValidated,
+              syncProof,
               recovery: {
                 reconstructedNamespaces: recovery.reconstructedNamespaces,
                 protectedNamespaces,
@@ -148,8 +154,6 @@ export function DesktopOfflineBootstrap() {
       timers.add(id);
     };
 
-    // Multi-pass cold boot only. After that, warm data is kept in memory and
-    // realtime invalidations handle actual changes.
     void execute("boot");
     schedule(2_000, "boot-retry");
     schedule(8_000, "boot-finalize");
@@ -165,9 +169,7 @@ export function DesktopOfflineBootstrap() {
       if (!document.hidden) refreshAfterInactivity("visible-after-inactivity");
     };
     const onManual = () => void execute("manual");
-    const onAccountChanged = () => {
-      schedule(100, "account-changed");
-    };
+    const onAccountChanged = () => schedule(100, "account-changed");
 
     window.addEventListener("online", onOnline);
     window.addEventListener("focus", onFocus);

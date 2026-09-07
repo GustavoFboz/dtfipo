@@ -25,10 +25,8 @@ function sessionIsDeviceOnly(session: any) {
  * Resolve the identity used by the local-first layer.
  *
  * A synthetic device session is intentionally NOT classified as a cloud session.
- * That distinction is critical: a local device identity can unlock SQLite, but it
- * must never be used as proof that Cloud Login/PostgREST is authenticated. Doing
- * so previously allowed an apparently "online" Desktop to request protected data
- * without a real cloud token and interpret zero-row responses as real data loss.
+ * It can unlock SQLite after a previously verified login, but it is never proof
+ * that PostgREST/RLS currently sees an authenticated user.
  */
 export async function resolveDesktopIdentity(): Promise<EffectiveDesktopIdentity | null> {
   try {
@@ -55,15 +53,8 @@ export async function resolveDesktopIdentity(): Promise<EffectiveDesktopIdentity
 }
 
 /**
- * Resolve only the SQLite owner namespace.
- *
- * Local reads must not wait for a Cloud Login round-trip. The provisioned device
- * identity is itself finite-lived and was created only after a validated cloud
- * login; it is therefore the authoritative key for the local cache while it is
- * valid. This does NOT authorize any cloud request: network reads still go through
- * the Desktop client and PostgreSQL Auth/RLS. Manual logout clears the provision,
- * and a validated account change re-provisions it before new cloud data can be
- * written, keeping account caches isolated.
+ * Resolve only the SQLite owner namespace. Local reads never need a network
+ * round-trip. This identity does not authorize Cloud requests.
  */
 export async function resolveDesktopOwnerId(): Promise<string | null> {
   if (isDentalFlowDesktop()) {
@@ -88,29 +79,18 @@ export async function requireDesktopOwnerId(): Promise<string> {
 }
 
 /**
- * True when the installed client may safely ATTEMPT a Lovable Cloud request.
+ * A protected Lovable Cloud request is allowed only after a REAL Cloud Login has
+ * been validated. A device provision is deliberately insufficient here.
  *
- * A real Cloud Login returns true immediately. If its validation round-trip is
- * temporarily slow, a still-valid device provision also allows the request to be
- * attempted while Windows is online. The device provision is never sent as Cloud
- * credentials: the underlying persisted Cloud token and server-side Auth/RLS are
- * still the sole authority and can reject the request normally. This prevents a
- * transient auth validation timeout from deadlocking every Patients/Cases/Clinic
- * warm-up behind the offline facade.
+ * This closes the 0.2.6/0.2.7 failure mode where the Desktop was physically
+ * online, attempted PostgREST with no valid JWT and RLS correctly returned HTTP
+ * 200 + []. Those empty arrays were then indistinguishable from an empty clinic
+ * and could contaminate the SQLite mirrors.
  */
 export async function canUseDentalFlowCloud(): Promise<boolean> {
   if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
-
   const identity = await resolveDesktopIdentity();
-  if (identity?.source === "cloud") return true;
-  if (!isDentalFlowDesktop()) return false;
-
-  try {
-    const provisioned = await getProvisionedDesktopIdentity();
-    return Boolean(provisioned && provisioned.valid_until > Date.now());
-  } catch {
-    return false;
-  }
+  return identity?.source === "cloud";
 }
 
 export async function resolveOfflineAuthUser() {

@@ -77,11 +77,11 @@ expect(
   "Desktop sync must create offline cases before replaying their team notifications.",
 );
 
-expect(tauri.includes('"version": "0.2.7"'), "DentalFlow Desktop version must be 0.2.7.");
-expect(cargo.includes('version = "0.2.7"'), "Rust package version must match Desktop 0.2.7.");
+expect(tauri.includes('"version": "0.2.8"'), "DentalFlow Desktop version must be 0.2.8.");
+expect(cargo.includes('version = "0.2.8"'), "Rust package version must match Desktop 0.2.8.");
 expect(
   tauri.includes('"frontendDist": "../dist/client"'),
   "The full frontend must remain bundled in the Windows installer for offline navigation.",
 );
 
-console.log("Desktop 0.2.7 case dialog/offline case regression checks passed.");
+console.log("Desktop 0.2.8 case dialog/offline case regression checks passed.");

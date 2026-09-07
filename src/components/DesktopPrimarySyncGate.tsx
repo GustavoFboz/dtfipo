@@ -1,15 +1,16 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Database, RefreshCw, WifiOff } from "lucide-react";
+import { Check, Database, LogIn, RefreshCw, WifiOff } from "lucide-react";
 
 import { isDentalFlowDesktop, localCacheGet } from "@/lib/desktop-local";
-import { resolveDesktopOwnerId } from "@/lib/desktop-identity";
+import { inspectDesktopSyncReadiness } from "@/lib/desktop-sync-proof";
 
+type GateMode = "syncing" | "offline" | "error" | "reauth" | "ready";
 type GateState = {
   visible: boolean;
   progress: number;
   title: string;
   detail: string;
-  mode: "syncing" | "offline" | "error" | "ready";
+  mode: GateMode;
 };
 
 type Readiness = {
@@ -18,6 +19,7 @@ type Readiness = {
   patients: number;
   cases: number;
   clinicCached: boolean;
+  verified: boolean;
 };
 
 const HIDDEN: GateState = {
@@ -29,38 +31,30 @@ const HIDDEN: GateState = {
 };
 
 async function inspectLocalReadiness(): Promise<Readiness> {
-  const ownerId = await resolveDesktopOwnerId();
-  if (!ownerId) return { ready: false, ownerId: null, patients: 0, cases: 0, clinicCached: false };
+  const inspected = await inspectDesktopSyncReadiness();
+  const ownerId = inspected.ownerId;
+  if (!ownerId) {
+    return { ready: false, ownerId: null, patients: 0, cases: 0, clinicCached: false, verified: false };
+  }
 
-  const [profile, patients, cases, clinic] = await Promise.all([
+  const [profile, clinic] = await Promise.all([
     localCacheGet<unknown>(ownerId, "reference-data:v1", "profile").catch(() => null),
-    localCacheGet<unknown[]>(ownerId, "patients:v1", "all").catch(() => null),
-    localCacheGet<unknown[]>(ownerId, "cases:v1", "all").catch(() => null),
     localCacheGet<unknown>(ownerId, "clinic-context:v1", "current").catch(() => null),
   ]);
-
-  const patientsReady = Array.isArray(patients?.payload);
-  const casesReady = Array.isArray(cases?.payload);
-  const clinicReady = Boolean(clinic?.payload);
   const profileReady = Boolean(profile?.payload);
+  const clinicCached = Boolean(clinic?.payload);
+  const verified = Boolean(inspected.proof);
 
   return {
-    ready: profileReady && patientsReady && casesReady && clinicReady,
+    ready: verified && profileReady && clinicCached,
     ownerId,
-    patients: patientsReady ? patients!.payload.length : 0,
-    cases: casesReady ? cases!.payload.length : 0,
-    clinicCached: clinicReady,
+    patients: inspected.local?.patients ?? 0,
+    cases: inspected.local?.cases ?? 0,
+    clinicCached,
+    verified,
   };
 }
 
-/**
- * First-device readiness screen for the installed Windows application.
- *
- * The UI itself is already bundled by Tauri and never comes from the network.
- * This gate appears only while a newly authorized account still lacks the local
- * SQLite read models required for a useful offline session. Warm installations
- * skip it completely and render the local interface/data immediately.
- */
 export function DesktopPrimarySyncGate() {
   const desktop = isDentalFlowDesktop();
   const [state, setState] = useState<GateState>(HIDDEN);
@@ -85,24 +79,16 @@ export function DesktopPrimarySyncGate() {
       progressTimer.current = window.setInterval(() => {
         setState((current) => {
           if (!current.visible || current.mode !== "syncing") return current;
-          return { ...current, progress: Math.min(88, current.progress + (current.progress < 55 ? 4 : 1)) };
+          return { ...current, progress: Math.min(90, current.progress + (current.progress < 55 ? 4 : 1)) };
         });
       }, 420);
     };
 
-    const showPreparing = (detail = "Sincronizando pacientes, casos, permissões e dados essenciais para este computador.") => {
+    const showPreparing = (detail = "Validando sua sessão e sincronizando pacientes, casos, etapas, categorias e estoque.") => {
       if (dismissed.current) return;
-      if (hideTimer.current !== null) {
-        window.clearTimeout(hideTimer.current);
-        hideTimer.current = null;
-      }
-      setState({
-        visible: true,
-        progress: 14,
-        title: "Preparando o DentalFlow neste computador",
-        detail,
-        mode: "syncing",
-      });
+      if (hideTimer.current !== null) window.clearTimeout(hideTimer.current);
+      hideTimer.current = null;
+      setState({ visible: true, progress: 12, title: "Sincronizando dados deste computador", detail, mode: "syncing" });
       startProgress();
     };
 
@@ -113,29 +99,31 @@ export function DesktopPrimarySyncGate() {
         patients: 0,
         cases: 0,
         clinicCached: false,
+        verified: false,
       }));
       if (disposed) return readiness;
       setLastReady(readiness);
+
       if (readiness.ready) {
         clearTimers();
         setState({
           visible: !dismissed.current,
           progress: 100,
-          title: "DentalFlow pronto para uso offline",
-          detail: `${readiness.patients} pacientes e ${readiness.cases} casos disponíveis localmente.`,
+          title: "DentalFlow sincronizado",
+          detail: `${readiness.patients} pacientes e ${readiness.cases} casos confirmados localmente.`,
           mode: "ready",
         });
         hideTimer.current = window.setTimeout(() => {
           if (!disposed) setState(HIDDEN);
-        }, 650);
+        }, 800);
       } else if (showIfMissing && !dismissed.current) {
         if (navigator.onLine === false) {
           clearTimers();
           setState({
             visible: true,
             progress: 0,
-            title: "Primeira sincronização pendente",
-            detail: "A interface já está instalada e pode abrir offline, mas os dados desta conta ainda precisam de uma sincronização online completa neste computador.",
+            title: "Sincronização verificada pendente",
+            detail: "A interface está instalada e pode abrir offline, mas este computador ainda precisa concluir uma sincronização autenticada para garantir que todas as listas estejam completas.",
             mode: "offline",
           });
         } else {
@@ -157,10 +145,21 @@ export function DesktopPrimarySyncGate() {
       const detail = (event as CustomEvent<any>).detail;
       void check(false).then((readiness) => {
         if (readiness.ready || disposed || dismissed.current) return;
-        const patients = Number(detail?.patientsCached ?? 0);
-        const cases = Number(detail?.casesCached ?? 0);
         const reason = String(detail?.reason ?? "");
         const finalAttempt = ["boot-finalize", "manual", "online", "account-changed"].some((value) => reason.includes(value));
+        const cloudValidated = Boolean(detail?.cloudValidated);
+
+        if (finalAttempt && !cloudValidated && navigator.onLine !== false) {
+          clearTimers();
+          setState({
+            visible: true,
+            progress: 0,
+            title: "Revalide seu login para sincronizar",
+            detail: "O Windows está conectado, mas a sessão do Lovable Cloud não está autenticada. Para evitar listas vazias falsas, o DentalFlow bloqueou a leitura remota até você entrar novamente.",
+            mode: "reauth",
+          });
+          return;
+        }
 
         if (finalAttempt) {
           clearTimers();
@@ -168,9 +167,7 @@ export function DesktopPrimarySyncGate() {
             visible: true,
             progress: 0,
             title: "Sincronização ainda incompleta",
-            detail: patients || cases
-              ? `${patients} pacientes e ${cases} casos foram recebidos, mas ainda falta confirmar algum dado essencial. Você pode tentar novamente ou abrir a interface com o que já existe localmente.`
-              : "Alguns dados essenciais ainda não puderam ser confirmados. Você pode tentar novamente ou abrir a interface com o que já existe localmente.",
+            detail: "A sessão foi validada, mas alguma lista local ainda não coincide com os dados autorizados no Cloud. Tente novamente; o aplicativo não substituirá dados válidos por uma resposta vazia ambígua.",
             mode: "error",
           });
           return;
@@ -178,11 +175,9 @@ export function DesktopPrimarySyncGate() {
 
         setState({
           visible: true,
-          progress: 88,
-          title: "Concluindo a sincronização local",
-          detail: patients || cases
-            ? `${patients} pacientes e ${cases} casos recebidos nesta passagem. Confirmando os dados essenciais…`
-            : "Confirmando os dados essenciais e as permissões desta conta…",
+          progress: 90,
+          title: "Conferindo todas as listas",
+          detail: "Comparando pacientes, casos, tipos, etapas, profissionais, categorias e estoque com o Lovable Cloud…",
           mode: "syncing",
         });
         startProgress();
@@ -197,9 +192,9 @@ export function DesktopPrimarySyncGate() {
         setState({
           visible: true,
           progress: 0,
-          title: navigator.onLine === false ? "Sem conexão para a primeira sincronização" : "Sincronização incompleta",
+          title: navigator.onLine === false ? "Sem conexão para sincronizar" : "Sincronização incompleta",
           detail: navigator.onLine === false
-            ? "A interface permanece disponível porque está instalada no Windows. Reconecte para baixar os dados desta conta."
+            ? "Os dados já verificados permanecem disponíveis localmente. Reconecte para atualizar o conteúdo."
             : message,
           mode: navigator.onLine === false ? "offline" : "error",
         });
@@ -208,10 +203,9 @@ export function DesktopPrimarySyncGate() {
 
     const onOnline = () => {
       dismissed.current = false;
-      showPreparing("Conexão disponível. Atualizando os dados locais antes de liberar o modo offline.");
+      showPreparing("Conexão disponível. Revalidando a sessão e conferindo todos os dados locais.");
       window.dispatchEvent(new CustomEvent("dentalflow:desktop-force-sync"));
     };
-
     const onOffline = () => void check(true);
 
     window.addEventListener("dentalflow:desktop-sync-start", onStart as EventListener);
@@ -237,12 +231,17 @@ export function DesktopPrimarySyncGate() {
     dismissed.current = false;
     setState({
       visible: true,
-      progress: 14,
+      progress: 12,
       title: "Sincronizando novamente",
-      detail: "Buscando os dados essenciais da conta no Lovable Cloud…",
+      detail: "Revalidando a conta e reconstruindo os read-models locais…",
       mode: "syncing",
     });
     window.dispatchEvent(new CustomEvent("dentalflow:desktop-force-sync"));
+  };
+
+  const reauthenticate = () => {
+    const returnTo = `${window.location.pathname}${window.location.search}`;
+    window.location.assign(`/reauth?returnTo=${encodeURIComponent(returnTo)}`);
   };
 
   const continueLocally = () => {
@@ -250,7 +249,15 @@ export function DesktopPrimarySyncGate() {
     setState(HIDDEN);
   };
 
-  const Icon = state.mode === "ready" ? Check : state.mode === "offline" ? WifiOff : state.mode === "error" ? Database : RefreshCw;
+  const Icon = state.mode === "ready"
+    ? Check
+    : state.mode === "offline"
+      ? WifiOff
+      : state.mode === "reauth"
+        ? LogIn
+        : state.mode === "error"
+          ? Database
+          : RefreshCw;
 
   return (
     <div className="fixed inset-0 z-[10020] grid place-items-center bg-[#f7f9fc]/96 px-6 backdrop-blur-xl dark:bg-[#07090d]/96" role="status" aria-live="polite">
@@ -258,7 +265,7 @@ export function DesktopPrimarySyncGate() {
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-[20px] border border-slate-200/80 bg-white text-[#2D7FF9] shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
           <Icon className={`h-6 w-6 stroke-[1.5] ${state.mode === "syncing" ? "animate-spin" : ""}`} />
         </div>
-        <div className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">DentalFlow Desktop</div>
+        <div className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">DentalFlow Desktop 0.2.8</div>
         <h1 className="mt-3 text-[30px] font-extralight tracking-[-0.04em] text-slate-950 sm:text-[38px] dark:text-white">{state.title}</h1>
         <p className="mx-auto mt-3 max-w-md text-sm font-light leading-6 text-slate-500 dark:text-slate-400">{state.detail}</p>
 
@@ -268,21 +275,23 @@ export function DesktopPrimarySyncGate() {
               <div className="h-full rounded-full bg-[#2D7FF9] transition-[width] duration-500" style={{ width: `${state.progress}%` }} />
             </div>
             <div className="mt-2 flex items-center justify-between text-[10px] font-medium text-slate-400">
-              <span>{state.mode === "ready" ? "Dados locais preparados" : "Sincronização primária"}</span>
+              <span>{state.mode === "ready" ? "Dados verificados" : "Sincronização autenticada"}</span>
               <span>{Math.round(state.progress)}%</span>
             </div>
           </div>
         ) : (
           <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
-            {navigator.onLine !== false && (
+            {state.mode === "reauth" ? (
+              <button type="button" onClick={reauthenticate} className="rounded-full bg-[#2D7FF9] px-5 py-2.5 text-sm text-white transition hover:bg-[#226fe1]">Entrar novamente</button>
+            ) : navigator.onLine !== false ? (
               <button type="button" onClick={retry} className="rounded-full bg-slate-950 px-5 py-2.5 text-sm text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-950">Tentar novamente</button>
-            )}
-            <button type="button" onClick={continueLocally} className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:bg-white/[0.06]">Abrir interface mesmo assim</button>
+            ) : null}
+            <button type="button" onClick={continueLocally} className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm text-slate-600 transition hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:bg-white/[0.06]">Abrir com dados locais</button>
           </div>
         )}
 
         {lastReady && !lastReady.ready && state.mode !== "ready" && (
-          <p className="mt-6 text-[10px] font-light text-slate-400">Depois desta primeira sincronização, pacientes, casos e permissões ficam disponíveis no armazenamento local deste Windows.</p>
+          <p className="mt-6 text-[10px] font-light text-slate-400">A 0.2.8 só considera este computador sincronizado depois de confirmar as listas com uma sessão Cloud real.</p>
         )}
       </div>
     </div>

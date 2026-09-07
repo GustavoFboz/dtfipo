@@ -76,17 +76,6 @@ function emitAccountChanged(deviceUserId: string, cloudUserId: string) {
   );
 }
 
-/**
- * WebView2 persists the Cloud Login storage between installer upgrades. A stored
- * token is not considered cloud-authoritative until Cloud Login validates it.
- *
- * A valid cloud login is always the current account. If it differs from an old
- * device provision we DO NOT log the user out: SQLite is already namespaced by
- * owner id, so the old cache remains isolated and the bootstrap provisions the
- * newly authenticated account. The previous implementation signed out on this
- * mismatch and was capable of sending a perfectly valid user back to the login
- * screen after an update.
- */
 async function validateCloudSessionNow(target: typeof cloudSupabase.auth) {
   const sessionResult = await withDesktopCloudTimeout(
     "Cloud Login (sessão)",
@@ -115,13 +104,6 @@ async function validateCloudSessionNow(target: typeof cloudSupabase.auth) {
   return { session: { ...session, user } as Session, user };
 }
 
-/**
- * Coalesce concurrent Cloud Login validation and keep the freshly validated
- * result warm for a few seconds. Dashboard queries start together, so without
- * this gate Profile/Cases/Notifications could each perform their own getUser
- * round-trip before SQLite was allowed to render. The cache contains only a
- * server-validated session, is short-lived, and is cleared on auth changes.
- */
 async function validatedCloudSession(target: typeof cloudSupabase.auth) {
   const now = Date.now();
   if (validatedCloudCache && validatedCloudCache.validUntil > now) {
@@ -259,25 +241,17 @@ const auth = new Proxy(cloudSupabase.auth, {
 });
 
 /**
- * The synthetic device session exists only in this facade; it is never installed
- * as a bearer token in the underlying Lovable Cloud client. Therefore, while the
- * machine is physically online we must allow the real persisted Cloud Login to
- * attempt database/RPC requests even if a previous getUser validation timed out.
- * PostgreSQL Auth/RLS remains the authority. When Windows is truly offline, the
- * synthetic session is blocked from every protected Cloud operation as before.
+ * A device-only session can unlock SQLite, but it can NEVER authorize a protected
+ * Cloud operation. In 0.2.6/0.2.7 we allowed the request while Windows was online;
+ * PostgREST then legitimately answered HTTP 200 + [] under RLS when no real JWT
+ * was present. Those ambiguous empty arrays contaminated local mirrors. 0.2.8
+ * blocks that path completely: only validatedCloudSession() can clear this guard.
  */
 function requireRealCloudSession(operation: string) {
   if (!usingOfflineDeviceSession) return;
-  const definitelyOffline = typeof navigator !== "undefined" && navigator.onLine === false;
-  if (!definitelyOffline) return;
-  throw new TypeError(`Failed to fetch: Cloud Login is offline (${operation})`);
+  throw new TypeError(`Failed to fetch: Cloud Login requires revalidation (${operation})`);
 }
 
-/**
- * Desktop-only authentication facade for Lovable Cloud Login.
- * A finite-lived device session can unlock SQLite, but never authorizes protected
- * cloud reads. Every stored cloud session is bounded and server-revalidated.
- */
 export const supabase = new Proxy(cloudSupabase, {
   get(target, prop, receiver) {
     if (prop === "auth") return auth;
