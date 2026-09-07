@@ -1,7 +1,7 @@
-import { supabase } from "@/integrations/supabase/client";
 import type { Cadista, CaseType, Component, Doctor, Phase, Profile, Stage, ToothColor } from "./types";
 import * as cloud from "./api";
 import { isDentalFlowDesktop, localCacheGet, localCachePut } from "./desktop-local";
+import { canUseDentalFlowCloud, resolveDesktopOwnerId } from "./desktop-identity";
 
 const NS = "reference-data:v1";
 
@@ -27,20 +27,15 @@ function online() {
 function transient(error: unknown) {
   if (!online()) return true;
   const message = String((error as any)?.message ?? error ?? "").toLowerCase();
-  return ["failed to fetch", "networkerror", "network error", "load failed", "fetch failed", "connection", "offline"].some((x) => message.includes(x));
-}
-
-async function ownerId() {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.user?.id ?? null;
+  return ["failed to fetch", "networkerror", "network error", "load failed", "fetch failed", "connection", "offline", "cloud login"].some((x) => message.includes(x));
 }
 
 async function cached<T>(key: RefKey, loader: () => Promise<T>, fallback: T): Promise<T> {
   if (!isDentalFlowDesktop()) return loader();
-  const id = await ownerId();
+  const id = await resolveDesktopOwnerId();
   if (!id) return fallback;
 
-  if (online()) {
+  if (online() && (await canUseDentalFlowCloud())) {
     try {
       const value = await loader();
       await localCachePut(id, NS, key, value);
@@ -96,7 +91,7 @@ export async function fetchScanJigsLocalFirst(implantSystemId?: string | null): 
 }
 
 export async function warmReferenceLocalCache() {
-  if (!isDentalFlowDesktop() || !online()) return 0;
+  if (!isDentalFlowDesktop() || !online() || !(await canUseDentalFlowCloud())) return 0;
 
   const results = await Promise.allSettled([
     fetchProfileLocalFirst(),
