@@ -97,6 +97,14 @@ function HubPage() {
   const modules = clinic.data?.modules ?? [];
   const labEnabled = modules.includes("laboratory") || modules.length === 0;
   const clinicalEnabled = Boolean(clinic.data?.hasClinicalModule);
+  const clinicStillValidating = !clinic.data && (clinic.isPending || clinic.isFetching);
+  const clinicBadge = clinicalEnabled
+    ? undefined
+    : clinicStillValidating
+      ? "Validando ambiente"
+      : clinic.isError
+        ? "Revalidando acesso"
+        : "Plano não habilitado";
   const firstName = profile.data?.full_name?.split(" ")[0] || "";
 
   return (
@@ -142,7 +150,7 @@ function HubPage() {
             enabled={clinicalEnabled}
             to="/clinica"
             environment="Clínica"
-            badge={clinicalEnabled ? undefined : "Plano não habilitado"}
+            badge={clinicBadge}
             accent="clinic"
           />
           <ModuleCard
