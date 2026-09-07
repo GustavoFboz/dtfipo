@@ -19,11 +19,12 @@ export type DesktopDatasetCounts = {
 };
 
 export type DesktopSyncProof = {
-  version: 1;
+  version: 2;
   userId: string;
   verifiedAt: number;
   remote: DesktopDatasetCounts;
   local: DesktopDatasetCounts;
+  auxiliaryMismatches: Array<keyof DesktopDatasetCounts>;
 };
 
 function arrayCount(value: unknown): number {
@@ -40,6 +41,15 @@ async function remoteCount(table: string): Promise<number> {
     },
     DESKTOP_READ_TIMEOUT_MS,
   );
+}
+
+async function remoteCountOptional(table: string): Promise<number> {
+  try {
+    return await remoteCount(table);
+  } catch (error) {
+    console.warn(`[DentalFlow Desktop] Diagnóstico auxiliar de ${table} adiado`, error);
+    return -1;
+  }
 }
 
 async function inspectLocalCounts(ownerId: string): Promise<DesktopDatasetCounts> {
@@ -68,15 +78,35 @@ async function inspectLocalCounts(ownerId: string): Promise<DesktopDatasetCounts
   };
 }
 
-function localCoversRemote(local: DesktopDatasetCounts, remote: DesktopDatasetCounts) {
-  return (Object.keys(remote) as Array<keyof DesktopDatasetCounts>).every((key) => local[key] >= remote[key]);
+function criticalReadModelsCoverRemote(local: DesktopDatasetCounts, remote: DesktopDatasetCounts) {
+  return local.patients >= remote.patients && local.cases >= remote.cases;
+}
+
+function auxiliaryMismatches(local: DesktopDatasetCounts, remote: DesktopDatasetCounts) {
+  const keys: Array<keyof DesktopDatasetCounts> = [
+    "caseTypes",
+    "stages",
+    "phases",
+    "doctors",
+    "cadistas",
+    "stockCategories",
+    "stockItems",
+  ];
+  return keys.filter((key) => remote[key] >= 0 && local[key] < remote[key]);
 }
 
 /**
- * Creates a durable proof only after the current Cloud Login has been validated
- * and the SQLite read models contain at least every row the same authenticated
- * account is allowed to see through RLS. A 200 + [] response from an anonymous
- * request can therefore never mark a machine as fully synchronized.
+ * 0.3.0 readiness proof.
+ *
+ * The installed client is allowed to enter the application when the authenticated
+ * account has a real Cloud session and the two business-critical list mirrors
+ * (patients + cases) cover the RLS-visible Cloud rows. Profile and Clinic context
+ * are checked separately by DesktopPrimarySyncGate.
+ *
+ * Reference/stock datasets are still synchronized and diagnosed, but a temporary
+ * mismatch in one auxiliary list can no longer lock the entire application behind
+ * "Sincronização ainda incompleta". This removes the 0.2.9 deadlock while keeping
+ * the protection against anonymous HTTP 200 + [] responses.
  */
 export async function verifyAndStoreDesktopSyncProof(): Promise<DesktopSyncProof | null> {
   if (!isDentalFlowDesktop() || (typeof navigator !== "undefined" && navigator.onLine === false)) return null;
@@ -96,13 +126,13 @@ export async function verifyAndStoreDesktopSyncProof(): Promise<DesktopSyncProof
   const [patients, cases, caseTypes, stages, phases, doctors, cadistas, stockCategories, stockItems] = await Promise.all([
     remoteCount("patients"),
     remoteCount("cases"),
-    remoteCount("case_types"),
-    remoteCount("stages"),
-    remoteCount("phases"),
-    remoteCount("doctors"),
-    remoteCount("cadistas"),
-    remoteCount("component_categories"),
-    remoteCount("stock_items"),
+    remoteCountOptional("case_types"),
+    remoteCountOptional("stages"),
+    remoteCountOptional("phases"),
+    remoteCountOptional("doctors"),
+    remoteCountOptional("cadistas"),
+    remoteCountOptional("component_categories"),
+    remoteCountOptional("stock_items"),
   ]);
 
   const remote: DesktopDatasetCounts = {
@@ -117,14 +147,26 @@ export async function verifyAndStoreDesktopSyncProof(): Promise<DesktopSyncProof
     stockItems,
   };
   const local = await inspectLocalCounts(ownerId);
-  if (!localCoversRemote(local, remote)) return null;
+  if (!criticalReadModelsCoverRemote(local, remote)) {
+    console.warn("[DentalFlow Desktop] Read-model crítico ainda incompleto", {
+      remote: { patients: remote.patients, cases: remote.cases },
+      local: { patients: local.patients, cases: local.cases },
+    });
+    return null;
+  }
+
+  const mismatches = auxiliaryMismatches(local, remote);
+  if (mismatches.length > 0) {
+    console.warn("[DentalFlow Desktop] Listas auxiliares continuarão sincronizando em segundo plano", mismatches);
+  }
 
   const proof: DesktopSyncProof = {
-    version: 1,
+    version: 2,
     userId: user.id,
     verifiedAt: Date.now(),
     remote,
     local,
+    auxiliaryMismatches: mismatches,
   };
   await localCachePut(ownerId, NS, KEY, proof);
   return proof;
@@ -136,7 +178,7 @@ export async function getDesktopSyncProof(ownerId?: string | null): Promise<Desk
   if (!owner) return null;
   const entry = await localCacheGet<DesktopSyncProof>(owner, NS, KEY);
   const proof = entry?.payload ?? null;
-  if (!proof || proof.version !== 1 || proof.userId !== owner) return null;
+  if (!proof || proof.version !== 2 || proof.userId !== owner) return null;
   return proof;
 }
 
