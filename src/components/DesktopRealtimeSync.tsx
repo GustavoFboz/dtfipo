@@ -40,11 +40,13 @@ const WATCHED_TABLES = [
 ] as const;
 
 /**
- * Keeps the local SQLite mirror fresh while the Desktop app is online.
- * Realtime is only an invalidation signal: the authoritative read still goes
- * through each local-first repository, which updates SQLite before React Query
- * is invalidated. While Windows is offline we remove the realtime channel so the
- * app does not continuously retry a network service that cannot be reached.
+ * Keeps the local SQLite mirror fresh while Desktop is online.
+ *
+ * Realtime changes and a genuine network reconnection are meaningful refresh
+ * triggers. Merely focusing the Windows window is not: doing a full synchronization
+ * on every Alt+Tab wasted work, invalidated warm queries and caused visible loading
+ * states. Focus freshness is handled separately by the bootstrap with an inactivity
+ * threshold, while this layer stays event-driven.
  */
 export function DesktopRealtimeSync() {
   const queryClient = useQueryClient();
@@ -110,19 +112,16 @@ export function DesktopRealtimeSync() {
       }
       unsubscribe();
     };
-    const handleFocus = () => scheduleSync();
 
     subscribe();
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-    window.addEventListener("focus", handleFocus);
 
     return () => {
       disposed = true;
       if (timer) clearTimeout(timer);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      window.removeEventListener("focus", handleFocus);
       unsubscribe();
     };
   }, [queryClient]);
