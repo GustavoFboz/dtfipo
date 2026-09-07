@@ -58,13 +58,13 @@ html[data-dentalflow-native-window="true"] [data-dentalflow-window-controls] {
 }
 
 /* Cases — installed Windows app only.
-   The page is identified structurally so no web markup or shared component has
-   to change. The visual target is the compact desktop composition: large title
-   close to the left gutter, actions stacked at the right, filters immediately
-   below and more vertical room for the case list. */
-html[data-dentalflow-native-window="true"]
+   DesktopNativeFrame mirrors the first SPA path segment into
+   data-dentalflow-native-route. This lets the reference composition remain
+   exclusive to /casos and avoids changing either Web/Lovable or other native
+   environments. */
+html[data-dentalflow-native-window="true"][data-dentalflow-native-route="casos"]
   main
-  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"]) {
+  [class~="max-w-[1600px]"][class~="max-h-full"] {
   max-width: none !important;
   margin-left: 0 !important;
   margin-right: 0 !important;
@@ -72,9 +72,9 @@ html[data-dentalflow-native-window="true"]
   padding-right: 2rem !important;
 }
 
-html[data-dentalflow-native-window="true"]
+html[data-dentalflow-native-window="true"][data-dentalflow-native-route="casos"]
   main
-  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  [class~="max-w-[1600px]"][class~="max-h-full"]
   > header {
   padding-top: 3.1rem !important;
   padding-bottom: 1.55rem !important;
@@ -82,17 +82,17 @@ html[data-dentalflow-native-window="true"]
 
 /* The clock pill is useful on the web dashboard, but the native window already
    exposes system time and the reference desktop composition intentionally omits it. */
-html[data-dentalflow-native-window="true"]
+html[data-dentalflow-native-window="true"][data-dentalflow-native-route="casos"]
   main
-  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  [class~="max-w-[1600px]"][class~="max-h-full"]
   > header
   > div:first-child {
   display: none !important;
 }
 
-html[data-dentalflow-native-window="true"]
+html[data-dentalflow-native-window="true"][data-dentalflow-native-route="casos"]
   main
-  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  [class~="max-w-[1600px]"][class~="max-h-full"]
   > header
   > div:nth-child(2) {
   margin-top: 0 !important;
@@ -103,9 +103,9 @@ html[data-dentalflow-native-window="true"]
   gap: 2rem !important;
 }
 
-html[data-dentalflow-native-window="true"]
+html[data-dentalflow-native-window="true"][data-dentalflow-native-route="casos"]
   main
-  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  [class~="max-w-[1600px]"][class~="max-h-full"]
   > header
   > div:nth-child(2)
   > div:first-child {
@@ -114,9 +114,9 @@ html[data-dentalflow-native-window="true"]
   min-width: 0 !important;
 }
 
-html[data-dentalflow-native-window="true"]
+html[data-dentalflow-native-window="true"][data-dentalflow-native-route="casos"]
   main
-  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  [class~="max-w-[1600px]"][class~="max-h-full"]
   h1[class~="xl:text-7xl"] {
   font-size: 4.7rem !important;
   line-height: 1 !important;
@@ -126,9 +126,9 @@ html[data-dentalflow-native-window="true"]
 
 /* Source order is Novo paciente, Nova entrada. column-reverse gives the native
    composition Nova entrada above Novo paciente without changing the web DOM. */
-html[data-dentalflow-native-window="true"]
+html[data-dentalflow-native-window="true"][data-dentalflow-native-route="casos"]
   main
-  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  [class~="max-w-[1600px]"][class~="max-h-full"]
   > header
   > div:nth-child(2)
   > div:last-child {
@@ -141,9 +141,9 @@ html[data-dentalflow-native-window="true"]
   gap: 1rem !important;
 }
 
-html[data-dentalflow-native-window="true"]
+html[data-dentalflow-native-window="true"][data-dentalflow-native-route="casos"]
   main
-  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  [class~="max-w-[1600px]"][class~="max-h-full"]
   > header
   > div:nth-child(2)
   > div:last-child
@@ -153,9 +153,9 @@ html[data-dentalflow-native-window="true"]
   justify-content: center !important;
 }
 
-html[data-dentalflow-native-window="true"]
+html[data-dentalflow-native-window="true"][data-dentalflow-native-route="casos"]
   main
-  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  [class~="max-w-[1600px]"][class~="max-h-full"]
   > header
   + section
   > div:first-child {
@@ -163,9 +163,9 @@ html[data-dentalflow-native-window="true"]
   min-height: 3.35rem !important;
 }
 
-html[data-dentalflow-native-window="true"]
+html[data-dentalflow-native-window="true"][data-dentalflow-native-route="casos"]
   main
-  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  [class~="max-w-[1600px]"][class~="max-h-full"]
   > section:last-child {
   margin-top: 1.45rem !important;
   padding-top: 1.9rem !important;
@@ -173,16 +173,16 @@ html[data-dentalflow-native-window="true"]
 }
 
 @media (max-width: 1350px) {
-  html[data-dentalflow-native-window="true"]
+  html[data-dentalflow-native-window="true"][data-dentalflow-native-route="casos"]
     main
-    [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+    [class~="max-w-[1600px]"][class~="max-h-full"]
     h1[class~="xl:text-7xl"] {
     font-size: 3.6rem !important;
   }
 
-  html[data-dentalflow-native-window="true"]
+  html[data-dentalflow-native-window="true"][data-dentalflow-native-route="casos"]
     main
-    [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+    [class~="max-w-[1600px]"][class~="max-h-full"]
     > header
     > div:nth-child(2)
     > div:first-child {
@@ -191,26 +191,26 @@ html[data-dentalflow-native-window="true"]
 }
 
 @media (max-width: 1180px) {
-  html[data-dentalflow-native-window="true"]
+  html[data-dentalflow-native-window="true"][data-dentalflow-native-route="casos"]
     main
-    [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+    [class~="max-w-[1600px]"][class~="max-h-full"]
     h1[class~="xl:text-7xl"] {
     font-size: 3.05rem !important;
     gap: 0.7rem !important;
   }
 
-  html[data-dentalflow-native-window="true"]
+  html[data-dentalflow-native-window="true"][data-dentalflow-native-route="casos"]
     main
-    [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+    [class~="max-w-[1600px]"][class~="max-h-full"]
     > header
     > div:nth-child(2)
     > div:last-child {
     min-width: 9.8rem !important;
   }
 
-  html[data-dentalflow-native-window="true"]
+  html[data-dentalflow-native-window="true"][data-dentalflow-native-route="casos"]
     main
-    [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+    [class~="max-w-[1600px]"][class~="max-h-full"]
     > header
     > div:nth-child(2)
     > div:last-child
