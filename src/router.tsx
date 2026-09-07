@@ -3,6 +3,7 @@ import { createRouter, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { routeTree } from "./routeTree.gen";
 import { installTombstoneGuard } from "@/lib/optimistic";
+import { isDentalFlowDesktop } from "@/lib/desktop-local";
 
 function isStaleAssetError(error: Error) {
   return /Failed to fetch dynamically imported module|Importing a module script failed|Loading chunk|dynamically imported module|ChunkLoadError/i.test(
@@ -70,12 +71,17 @@ function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => vo
 }
 
 export const getRouter = () => {
+  const desktop = typeof window !== "undefined" && isDentalFlowDesktop();
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
-        // Reduzido para diminuir uso de memória em abas de longa duração
-        staleTime: 60_000,
-        gcTime: 15 * 60_000,
+        // Installed clients already maintain an SQLite mirror + realtime invalidation.
+        // Keeping resolved query data warm for five minutes avoids needless visual
+        // re-buffering when the user moves between Clínica, Laboratório and Hub.
+        // The cache can live longer because authoritative realtime/sync invalidations
+        // still refresh it immediately when data actually changes.
+        staleTime: desktop ? 5 * 60_000 : 60_000,
+        gcTime: desktop ? 30 * 60_000 : 15 * 60_000,
         refetchOnMount: false,
         refetchOnReconnect: "always",
         refetchOnWindowFocus: false,
@@ -90,8 +96,8 @@ export const getRouter = () => {
     context: { queryClient },
     scrollRestoration: true,
     defaultPreload: "intent",
-    defaultPreloadDelay: 100, // Adicionado pequeno delay para evitar pré-carregamento acidental
-    defaultPreloadStaleTime: 30_000,
+    defaultPreloadDelay: 100,
+    defaultPreloadStaleTime: desktop ? 5 * 60_000 : 30_000,
     defaultPendingMs: 1500,
     defaultPendingMinMs: 300,
     defaultErrorComponent: DefaultErrorComponent,
