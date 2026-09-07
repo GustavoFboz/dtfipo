@@ -9,11 +9,9 @@ const RECONNECT_VISIBLE_MS = 900;
 
 /**
  * Universal DentalFlow connectivity UX.
- *
- * On Desktop, a real Offline -> Online transition now waits for the local
- * outbox/cache coordinator before returning to Online. On Web the same visual
- * contract remains, but the sync coordinator is a no-op and cloud queries are
- * simply refreshed.
+ * navigator.onLine only describes the physical network. Installed clients also
+ * expose their data-hydration state so the header does not claim everything is
+ * ready while Cloud Login/SQLite synchronization is still running.
  */
 export function ConnectivityLayer() {
   const queryClient = useQueryClient();
@@ -21,6 +19,7 @@ export function ConnectivityLayer() {
     if (typeof navigator === "undefined") return "online";
     return navigator.onLine ? "online" : "offline";
   });
+  const [passiveSync, setPassiveSync] = useState(false);
   const wasOffline = useRef(state === "offline");
   const reconnectTimer = useRef<number | null>(null);
 
@@ -35,12 +34,11 @@ export function ConnectivityLayer() {
     function handleOffline() {
       clearReconnectTimer();
       wasOffline.current = true;
+      setPassiveSync(false);
       setState("offline");
     }
 
     async function handleOnline() {
-      // Do not flash a reconnect overlay during the initial online mount. It is
-      // reserved for a real Offline -> Online transition.
       if (!wasOffline.current) {
         setState("online");
         return;
@@ -48,6 +46,7 @@ export function ConnectivityLayer() {
 
       wasOffline.current = false;
       clearReconnectTimer();
+      setPassiveSync(false);
       setState("reconnecting");
       const startedAt = Date.now();
 
@@ -55,8 +54,6 @@ export function ConnectivityLayer() {
         const summary = await syncDesktopOfflineData();
         window.dispatchEvent(new CustomEvent("dentalflow:desktop-sync-complete", { detail: summary }));
       } catch (error) {
-        // Connectivity itself is restored even if one queued entity fails. The
-        // outbox keeps failed/conflicted work for a later retry/review.
         console.error("[DentalFlow] Falha ao sincronizar alterações locais", error);
       }
 
@@ -72,22 +69,32 @@ export function ConnectivityLayer() {
       }, remaining);
     }
 
+    const handleSyncStart = () => {
+      if (navigator.onLine && state !== "reconnecting") setPassiveSync(true);
+    };
+    const handleSyncEnd = () => setPassiveSync(false);
+
     window.addEventListener("offline", handleOffline);
     window.addEventListener("online", handleOnline);
+    window.addEventListener("dentalflow:desktop-sync-start", handleSyncStart as EventListener);
+    window.addEventListener("dentalflow:desktop-sync-complete", handleSyncEnd as EventListener);
+    window.addEventListener("dentalflow:desktop-sync-error", handleSyncEnd as EventListener);
 
-    // Reconcile with the browser in case connectivity changed between the
-    // initial render and effect registration.
     if (!navigator.onLine) handleOffline();
 
     return () => {
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("online", handleOnline);
+      window.removeEventListener("dentalflow:desktop-sync-start", handleSyncStart as EventListener);
+      window.removeEventListener("dentalflow:desktop-sync-complete", handleSyncEnd as EventListener);
+      window.removeEventListener("dentalflow:desktop-sync-error", handleSyncEnd as EventListener);
       clearReconnectTimer();
     };
-  }, [queryClient]);
+  }, [queryClient, state]);
 
   const isOffline = state === "offline";
   const isReconnecting = state === "reconnecting";
+  const isUpdating = isReconnecting || passiveSync;
 
   return (
     <>
@@ -95,22 +102,22 @@ export function ConnectivityLayer() {
         className={`fixed right-[154px] top-[19px] z-[70] hidden h-[34px] items-center gap-2 rounded-full border px-3 text-[10px] font-medium tracking-[0.02em] shadow-sm backdrop-blur-xl transition-all sm:flex ${
           isOffline
             ? "border-amber-200/80 bg-amber-50/92 text-amber-700 dark:border-amber-800/35 dark:bg-amber-950/75 dark:text-amber-300"
-            : isReconnecting
+            : isUpdating
               ? "border-sky-200/80 bg-sky-50/92 text-sky-700 dark:border-sky-800/35 dark:bg-sky-950/75 dark:text-sky-300"
               : "border-emerald-200/65 bg-white/90 text-emerald-700 dark:border-emerald-900/35 dark:bg-[#090c11]/88 dark:text-emerald-400"
         }`}
         role="status"
         aria-live="polite"
-        title={isOffline ? "Sem conexão com a internet" : isReconnecting ? "Conexão restabelecida. Sincronizando dados locais." : "Conectado"}
+        title={isOffline ? "Sem conexão com a internet" : isUpdating ? "Atualizando os dados locais" : "Conectado e pronto"}
       >
         {isOffline ? (
           <WifiOff className="h-3.5 w-3.5 stroke-[1.8]" />
-        ) : isReconnecting ? (
+        ) : isUpdating ? (
           <RefreshCw className="h-3.5 w-3.5 animate-spin stroke-[1.8]" />
         ) : (
           <Wifi className="h-3.5 w-3.5 stroke-[1.8]" />
         )}
-        <span>{isOffline ? "Offline" : isReconnecting ? "Sincronizando" : "Online"}</span>
+        <span>{isOffline ? "Offline" : isReconnecting ? "Sincronizando" : passiveSync ? "Atualizando" : "Online"}</span>
       </div>
 
       {isReconnecting && (
