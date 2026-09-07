@@ -9,6 +9,9 @@ const patients = read("src/lib/patients-local-first.ts");
 const apiDesktop = read("src/lib/api.desktop.ts");
 const clinicDesktop = read("src/lib/clinic.desktop.ts");
 const clinicLocal = read("src/lib/clinic-local-first.ts");
+const clinicGuard = read("src/components/ClinicPageGuard.tsx");
+const primarySync = read("src/components/DesktopPrimarySyncGate.tsx");
+const authenticatedRoute = read("src/routes/_authenticated/route.tsx");
 const notificationPanel = read("src/components/NotificationPanel.tsx");
 const notificationsLocal = read("src/lib/notifications-local-first.ts");
 const bootstrap = read("src/components/DesktopOfflineBootstrap.tsx");
@@ -35,24 +38,28 @@ expect(desktopCss.includes("inset: 0 !important"), "Windowed Desktop must not ke
 expect(desktopCss.includes('[data-dentalflow-native-route="casos"]'), "Cases reference layout must remain scoped to the native /casos route.");
 expect(desktopCss.includes("flex-direction: column-reverse !important"), "Native Cases actions must preserve the reference stacked order.");
 expect(desktopCss.includes('html[data-dentalflow-native-window="true"]'), "Desktop-only layout rules must remain gated by the native-window marker.");
-expect(tauri.includes('"transparent": false'), "Windows app must use an opaque client surface instead of invisible transparent borders.");
-expect(tauri.includes('"version": "0.2.5"'), "Desktop version must be 0.2.5 for this cases/readiness build.");
+expect(tauri.includes('"version": "0.2.6"'), "Desktop version must be 0.2.6 for this Cloud/bootstrap recovery build.");
+expect(tauri.includes('"frontendDist": "../dist/client"'), "The entire compiled frontend must remain bundled inside the Windows installer.");
 
 expect(client.includes("usingOfflineDeviceSession"), "Cloud Login shim must track synthetic device sessions.");
-expect(client.includes("requireRealCloudSession"), "Synthetic offline login must not issue cloud database reads.");
+expect(client.includes("requireRealCloudSession"), "Synthetic offline login must keep a Cloud-operation guard.");
 expect(client.includes("validatedCloudSession"), "Persisted WebView sessions must be revalidated by Cloud Login.");
 expect(client.includes("withDesktopCloudTimeout"), "Cloud Login validation must have a finite deadline.");
 expect(client.includes("CLOUD_VALIDATION_TTL_MS"), "Concurrent dashboard reads must share a short-lived validated Cloud Login result.");
 expect(client.includes("validatedCloudInFlight"), "Concurrent Cloud Login validation must be coalesced instead of duplicated.");
 expect(client.includes("desktop-account-changed"), "A valid Cloud Login account change must trigger re-provisioning instead of mixing caches.");
 expect(!client.includes("desktop-account-mismatch"), "A valid cloud account must no longer be forcibly logged out because an older device cache exists.");
-expect(client.includes("Failed to fetch: Cloud Login is offline"), "Offline cloud reads must fail into the local-first fallback path.");
+expect(client.includes("The synthetic device session exists only in this facade"), "Online Cloud attempts must document why the local device session cannot become a bearer credential.");
+expect(client.includes("if (!definitelyOffline) return;"), "A stale offline fallback must not synchronously block online Cloud/RLS recovery.");
+expect(client.includes("Failed to fetch: Cloud Login is offline"), "A physically offline client must still block protected Cloud reads.");
 
 expect(identity.includes("sessionIsDeviceOnly"), "Desktop identity must distinguish device and cloud sessions.");
 expect(identity.includes('source: "device"'), "Device identity fallback is missing.");
 expect(identity.includes("canUseDentalFlowCloud"), "Cloud availability helper is missing.");
 expect(identity.includes("Local reads must not wait for a Cloud Login round-trip"), "SQLite owner resolution must stay local-first.");
 expect(identity.includes("identity.valid_until > Date.now()"), "SQLite owner access must remain bounded by the provisioned device lifetime.");
+expect(identity.includes("may safely ATTEMPT a Lovable Cloud request"), "A previously validated device must be able to retry Cloud while online without granting authorization locally.");
+expect(identity.includes("server-side Auth/RLS"), "Cloud retry semantics must keep server Auth/RLS authoritative.");
 
 expect(patients.includes("resolveDesktopOwnerId"), "Patient cache ownership must use the stable Desktop identity.");
 expect(patients.includes("Resposta vazia de pacientes ignorada"), "Patient snapshots must be protected from ambiguous empty cloud responses.");
@@ -70,8 +77,18 @@ expect(clinicDesktop.includes("repairClinicContextFromVerifiedCloud"), "Desktop 
 expect(clinicDesktop.includes('supabase.from("clinics")') || clinicDesktop.includes('.from("clinics")'), "Clinic repair must verify the actual clinic module list.");
 expect(clinicDesktop.includes('localCachePut(ownerId, CONTEXT_NS, CONTEXT_KEY, repaired)'), "A verified repaired Clinic entitlement must be durable offline.");
 expect(clinicDesktop.includes('localCacheGet<Appointment[]>(ownerId, "clinic-appointments:v1", "all")'), "Clinic agenda must be able to render from SQLite immediately.");
-expect(clinicLocal.includes("canUseDentalFlowCloud"), "Clinic local-first reads must distinguish actual Cloud access from navigator online state.");
+expect(clinicLocal.includes("canUseDentalFlowCloud"), "Clinic local-first reads must distinguish an eligible online Cloud attempt from a physical offline state.");
 expect(clinicLocal.includes("Contexto vazio da Clínica ignorado"), "A transient empty Clinic context must not erase a verified entitlement.");
+expect(clinicGuard.includes("Não foi possível validar a Clínica"), "A Cloud/cache error must not be presented as a plan denial.");
+expect(clinicGuard.includes("Módulo Clínica não disponível"), "A verified entitlement denial must keep its explicit unavailable state.");
+
+expect(primarySync.includes('"patients:v1"'), "Primary sync readiness must verify the patient SQLite snapshot.");
+expect(primarySync.includes('"cases:v1"'), "Primary sync readiness must verify the case SQLite snapshot.");
+expect(primarySync.includes('"clinic-context:v1"'), "Primary sync readiness must verify Clinic entitlement locally.");
+expect(primarySync.includes("Preparando o DentalFlow neste computador"), "First-device sync must explain the one-time local preparation.");
+expect(primarySync.includes("Abrir interface mesmo assim"), "The bundled frontend must remain reachable even if first data synchronization cannot finish.");
+expect(primarySync.includes("dentalflow:desktop-force-sync"), "Primary readiness must offer a safe manual retry.");
+expect(authenticatedRoute.includes("<DesktopPrimarySyncGate />"), "The primary sync gate must be mounted in every authenticated Desktop environment.");
 
 expect(notificationPanel.includes('id="notification-trigger"'), "Notification center trigger must remain wired in the UI.");
 expect(notificationsLocal.includes('const NS = "notifications:v1"'), "Desktop notifications must have a durable local cache.");
@@ -94,4 +111,4 @@ expect(sync.includes("Promise.all(["), "Independent read-model warmups should pr
 expect(cloud.includes("DesktopCloudTimeoutError"), "Bounded cloud helper is required for installed clients.");
 expect(contract.includes("Regra de ouro"), "Cross-platform/offline contract must remain documented.");
 
-console.log("Desktop 0.2.5 Cases/local-first/native-layout regression checks passed.");
+console.log("Desktop 0.2.6 Cloud/bootstrap/local-first regression checks passed.");
