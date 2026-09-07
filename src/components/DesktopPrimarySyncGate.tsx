@@ -55,14 +55,6 @@ async function inspectLocalReadiness(): Promise<Readiness> {
   };
 }
 
-/**
- * 0.2.8 readiness gate.
- *
- * Old builds considered `[]` a completed first synchronization. This version
- * requires a durable proof generated only after a REAL Cloud Login and after the
- * authenticated Cloud/RLS counts match the SQLite read models. Existing empty
- * caches from 0.2.6/0.2.7 therefore cannot silently pass as ready anymore.
- */
 export function DesktopPrimarySyncGate() {
   const desktop = isDentalFlowDesktop();
   const [state, setState] = useState<GateState>(HIDDEN);
@@ -249,7 +241,7 @@ export function DesktopPrimarySyncGate() {
 
   const reauthenticate = () => {
     const returnTo = `${window.location.pathname}${window.location.search}`;
-    window.location.assign(`/auth?returnTo=${encodeURIComponent(returnTo)}`);
+    window.location.assign(`/reauth?returnTo=${encodeURIComponent(returnTo)}`);
   };
 
   const continueLocally = () => {
