@@ -29,9 +29,10 @@ expect(frame.includes("data-dentalflow-window-controls"), "Desktop Windows contr
 expect(frame.includes('className="fixed inset-0 z-[1]'), "Desktop native frame must fill the complete Tauri client area.");
 expect(!frame.includes("createPortal"), "Windows controls must not be appended after a full-height header child.");
 expect(frame.includes("Minimizar") && frame.includes("Maximizar") && frame.includes("Fechar"), "Standard window actions must always be rendered.");
+expect(frame.includes("dataset.dentalflowNativeRoute"), "Desktop shell must expose the current SPA route for native-only page styling.");
 expect(desktopCss.includes('header[data-dentalflow-native-header="true"]'), "App headers must reserve the Windows caption-button area.");
 expect(desktopCss.includes("inset: 0 !important"), "Windowed Desktop must not keep an invisible six-pixel outer gutter.");
-expect(desktopCss.includes(':has(> header [class~="xl:text-7xl"])'), "Cases native layout must remain scoped structurally to the installed app.");
+expect(desktopCss.includes('[data-dentalflow-native-route="casos"]'), "Cases reference layout must remain scoped to the native /casos route.");
 expect(desktopCss.includes("flex-direction: column-reverse !important"), "Native Cases actions must preserve the reference stacked order.");
 expect(desktopCss.includes('html[data-dentalflow-native-window="true"]'), "Desktop-only layout rules must remain gated by the native-window marker.");
 expect(tauri.includes('"transparent": false'), "Windows app must use an opaque client surface instead of invisible transparent borders.");
