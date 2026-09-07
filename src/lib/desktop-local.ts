@@ -114,9 +114,16 @@ export function clearProvisionedDesktopIdentity() {
   return invokeDesktop<void>("device_identity_clear");
 }
 
+/**
+ * Tauri command argument names are camelCased at the JS boundary even when the
+ * Rust function parameters are snake_case. The 0.2.8 build passed `owner_id`
+ * directly, so every local-cache/outbox command failed before reaching SQLite
+ * with errors such as "missing required key ownerId". Keep this boundary explicit
+ * here so all Desktop data domains share one correct contract.
+ */
 export function localCachePut<T>(ownerId: string, namespace: string, key: string, payload: T) {
   return invokeDesktop<void>("local_cache_put", {
-    owner_id: ownerId,
+    ownerId,
     namespace,
     key,
     payload,
@@ -125,7 +132,7 @@ export function localCachePut<T>(ownerId: string, namespace: string, key: string
 
 export function localCacheGet<T>(ownerId: string, namespace: string, key: string) {
   return invokeDesktop<LocalCacheEntry<T> | null>("local_cache_get", {
-    owner_id: ownerId,
+    ownerId,
     namespace,
     key,
   });
@@ -133,7 +140,7 @@ export function localCacheGet<T>(ownerId: string, namespace: string, key: string
 
 export function localCacheList<T>(ownerId: string, namespace: string, limit = 100) {
   return invokeDesktop<Array<LocalCacheEntry<T>>>("local_cache_list", {
-    owner_id: ownerId,
+    ownerId,
     namespace,
     limit,
   });
@@ -141,14 +148,14 @@ export function localCacheList<T>(ownerId: string, namespace: string, limit = 10
 
 export function localCacheDelete(ownerId: string, namespace: string, key: string) {
   return invokeDesktop<void>("local_cache_delete", {
-    owner_id: ownerId,
+    ownerId,
     namespace,
     key,
   });
 }
 
 export function localCacheClearOwner(ownerId: string) {
-  return invokeDesktop<void>("local_cache_clear_owner", { owner_id: ownerId });
+  return invokeDesktop<void>("local_cache_clear_owner", { ownerId });
 }
 
 export function enqueueOutbox<T>(input: {
@@ -176,7 +183,7 @@ export function enqueueOutbox<T>(input: {
 
 export function getPendingOutbox<T = unknown>(ownerId: string, limit = 100) {
   return invokeDesktop<Array<OutboxEntry<T>>>("outbox_pending", {
-    owner_id: ownerId,
+    ownerId,
     limit,
   });
 }
@@ -188,13 +195,40 @@ export function markOutbox(
   lastError: string | null = null,
 ) {
   return invokeDesktop<void>("outbox_mark", {
-    owner_id: ownerId,
+    ownerId,
     id,
     status,
-    last_error: lastError,
+    lastError,
   });
 }
 
 export function clearDoneOutbox(ownerId: string) {
-  return invokeDesktop<number>("outbox_clear_done", { owner_id: ownerId });
+  return invokeDesktop<number>("outbox_clear_done", { ownerId });
+}
+
+/**
+ * Exercise the exact JS -> Tauri -> SQLite argument contract before starting a
+ * real synchronization. This catches packaging/runtime mismatches immediately
+ * instead of letting every Patients/Cases/Clinic request fail independently.
+ */
+export async function verifyDesktopLocalRuntime() {
+  if (!isDentalFlowDesktop()) return;
+  const ownerId = "__dentalflow_runtime_probe__";
+  const namespace = "runtime-probe:v1";
+  const key = "tauri-sqlite-contract";
+  const payload = { ok: true, at: Date.now() };
+
+  try {
+    await localCachePut(ownerId, namespace, key, payload);
+    const saved = await localCacheGet<typeof payload>(ownerId, namespace, key);
+    if (!saved?.payload?.ok) {
+      throw new Error("O banco local não confirmou a leitura do registro de teste.");
+    }
+  } catch (error) {
+    throw new Error(
+      `Falha no banco local do DentalFlow Desktop: ${String((error as any)?.message ?? error ?? "erro desconhecido")}`,
+    );
+  } finally {
+    await localCacheDelete(ownerId, namespace, key).catch(() => undefined);
+  }
 }
