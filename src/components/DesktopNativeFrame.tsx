@@ -1,4 +1,5 @@
 import { Minus, Square, X } from "lucide-react";
+import { createPortal } from "react-dom";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   getDesktopWindowState,
@@ -163,6 +164,47 @@ export function DesktopNativeFrame({ children }: { children: ReactNode }) {
 
   if (!desktop) return <>{children}</>;
 
+  const captionControls = typeof document !== "undefined"
+    ? createPortal(
+        <div
+          data-dentalflow-window-controls
+          data-no-window-drag
+          className="fixed right-0 top-0 flex shrink-0 items-stretch text-slate-500 dark:text-slate-300"
+          style={{ height: captionHeight, zIndex: 2147483646 }}
+          onDoubleClick={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            aria-label="Minimizar"
+            title="Minimizar"
+            onClick={() => void run("minimize")}
+            className="grid w-[46px] place-items-center bg-background/95 transition-colors hover:bg-black/[0.055] hover:text-slate-800 dark:bg-slate-950/95 dark:hover:bg-white/[0.08] dark:hover:text-white"
+          >
+            <Minus className="h-3.5 w-3.5 stroke-[1.3]" />
+          </button>
+          <button
+            type="button"
+            aria-label={maximized ? "Restaurar" : "Maximizar"}
+            title={maximized ? "Restaurar" : "Maximizar"}
+            onClick={() => void run("toggle_maximize")}
+            className="grid w-[46px] place-items-center bg-background/95 transition-colors hover:bg-black/[0.055] hover:text-slate-800 dark:bg-slate-950/95 dark:hover:bg-white/[0.08] dark:hover:text-white"
+          >
+            {maximized ? <RestoreIcon /> : <Square className="h-3 w-3 stroke-[1.2]" />}
+          </button>
+          <button
+            type="button"
+            aria-label="Fechar"
+            title="Fechar"
+            onClick={() => void run("close")}
+            className="grid w-[46px] place-items-center bg-background/95 transition-colors hover:bg-[#c42b1c] hover:text-white dark:bg-slate-950/95"
+          >
+            <X className="h-4 w-4 stroke-[1.35]" />
+          </button>
+        </div>,
+        document.body,
+      )
+    : null;
+
   return (
     <div
       className="fixed inset-0 z-[1] overflow-hidden bg-background text-foreground"
@@ -170,45 +212,10 @@ export function DesktopNativeFrame({ children }: { children: ReactNode }) {
     >
       <div className="absolute inset-0 overflow-hidden bg-background">{children}</div>
 
-      {/* Always render our Windows caption buttons. The previous portal inserted
-          them as a second child of <header>; because the header already had a
-          full-height first child, the controls could land outside its 72 px box
-          and effectively disappear. */}
-      <div
-        data-dentalflow-window-controls
-        data-no-window-drag
-        className="absolute right-0 top-0 z-[90] flex shrink-0 items-stretch text-slate-500 dark:text-slate-300"
-        style={{ height: captionHeight }}
-        onDoubleClick={(event) => event.stopPropagation()}
-      >
-        <button
-          type="button"
-          aria-label="Minimizar"
-          title="Minimizar"
-          onClick={() => void run("minimize")}
-          className="grid w-[46px] place-items-center transition-colors hover:bg-black/[0.055] hover:text-slate-800 dark:hover:bg-white/[0.08] dark:hover:text-white"
-        >
-          <Minus className="h-3.5 w-3.5 stroke-[1.3]" />
-        </button>
-        <button
-          type="button"
-          aria-label={maximized ? "Restaurar" : "Maximizar"}
-          title={maximized ? "Restaurar" : "Maximizar"}
-          onClick={() => void run("toggle_maximize")}
-          className="grid w-[46px] place-items-center transition-colors hover:bg-black/[0.055] hover:text-slate-800 dark:hover:bg-white/[0.08] dark:hover:text-white"
-        >
-          {maximized ? <RestoreIcon /> : <Square className="h-3 w-3 stroke-[1.2]" />}
-        </button>
-        <button
-          type="button"
-          aria-label="Fechar"
-          title="Fechar"
-          onClick={() => void run("close")}
-          className="grid w-[46px] place-items-center transition-colors hover:bg-[#c42b1c] hover:text-white"
-        >
-          <X className="h-4 w-4 stroke-[1.35]" />
-        </button>
-      </div>
+      {/* Caption controls are portaled directly to body, outside the app frame's
+          stacking context. Dialogs, sync gates, notifications and any future
+          high-z overlay therefore cannot cover them. */}
+      {captionControls}
 
       {!headerHost ? (
         <div

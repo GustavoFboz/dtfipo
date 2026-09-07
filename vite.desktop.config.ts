@@ -22,10 +22,10 @@ export default defineConfig({
     resolve: {
       alias: [
         {
-          // Desktop gets a Cloud Login facade that can resolve the previously
-          // validated local device identity while Windows is fully offline.
+          // Desktop gets Cloud Login/offline identity plus a 0.3.0 channel layer
+          // that guarantees a fresh Realtime topic per mounted subscriber.
           find: /^@\/integrations\/supabase\/client$/,
-          replacement: fileURLToPath(new URL("./src/integrations/supabase/client.desktop.ts", import.meta.url)),
+          replacement: fileURLToPath(new URL("./src/integrations/supabase/client.desktop.030.ts", import.meta.url)),
         },
         {
           find: /^@\/lib\/api$/,
