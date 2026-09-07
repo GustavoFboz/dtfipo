@@ -6,6 +6,7 @@ import {
   performDesktopWindowAction,
 } from "@/lib/desktop-local";
 import "@/desktop-native.css";
+import "@/desktop-dialog-portals.css";
 
 const INTERACTIVE_SELECTOR = [
   "button",
