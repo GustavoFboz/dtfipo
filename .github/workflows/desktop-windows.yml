@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - feature/desktop-tauri-foundation
-      - "fix/desktop-offline-**"
+      - "fix/**"
     paths:
       - "src/**"
       - "src-tauri/**"

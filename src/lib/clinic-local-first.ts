@@ -11,6 +11,11 @@ import {
   markOutbox,
   type OutboxEntry,
 } from "./desktop-local";
+import {
+  canUseDentalFlowCloud,
+  requireDesktopOwnerId,
+  resolveDesktopOwnerId,
+} from "./desktop-identity";
 import { fetchPatientLocalFirst } from "./patients-local-first";
 
 const CONTEXT_NS = "clinic-context:v1";
@@ -44,7 +49,7 @@ function online() {
 function transient(error: unknown) {
   if (!online()) return true;
   const message = String((error as any)?.message ?? error ?? "").toLowerCase();
-  return ["failed to fetch", "networkerror", "network error", "load failed", "fetch failed", "connection", "offline"].some((x) => message.includes(x));
+  return ["failed to fetch", "networkerror", "network error", "load failed", "fetch failed", "connection", "offline", "cloud login"].some((x) => message.includes(x));
 }
 
 function uuid() {
@@ -53,14 +58,15 @@ function uuid() {
 }
 
 async function ownerId() {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.user?.id ?? null;
+  return resolveDesktopOwnerId();
 }
 
 async function requireOwnerId() {
-  const id = await ownerId();
-  if (!id) throw new Error("Sua sessão local não está disponível. Conecte-se novamente para revalidar este dispositivo.");
-  return id;
+  return requireDesktopOwnerId();
+}
+
+async function cloudAvailable() {
+  return online() && (await canUseDentalFlowCloud());
 }
 
 function inRange(rows: Appointment[], start?: string, end?: string) {
@@ -114,13 +120,25 @@ async function hydrateLocalAppointment(input: Record<string, any>, existing?: Ap
   } as Appointment;
 }
 
+function contextLooksAuthoritative(value: ClinicContext) {
+  return Boolean(value?.clinic?.id || value?.profile?.clinic_id || value?.hasClinicalModule);
+}
+
 export async function fetchClinicContextLocalFirst(): Promise<ClinicContext> {
   if (!isDentalFlowDesktop()) return cloud.fetchClinicContext();
   const id = await requireOwnerId();
+  const cached = await localCacheGet<ClinicContext>(id, CONTEXT_NS, CONTEXT_KEY);
 
-  if (online()) {
+  if (await cloudAvailable()) {
     try {
       const value = await cloud.fetchClinicContext();
+      // A transient profile/entitlement hydration gap must never overwrite a
+      // previously verified Clinic entitlement with the generic unavailable
+      // state. A real authoritative server context is still allowed to revoke it.
+      if (!contextLooksAuthoritative(value) && cached?.payload?.hasClinicalModule) {
+        console.warn("[DentalFlow Desktop] Contexto vazio da Clínica ignorado; mantendo entitlement local verificado.");
+        return cached.payload;
+      }
       await localCachePut(id, CONTEXT_NS, CONTEXT_KEY, value);
       return value;
     } catch (error) {
@@ -128,7 +146,6 @@ export async function fetchClinicContextLocalFirst(): Promise<ClinicContext> {
     }
   }
 
-  const cached = await localCacheGet<ClinicContext>(id, CONTEXT_NS, CONTEXT_KEY);
   if (cached?.payload) return cached.payload;
   throw new Error("As permissões da clínica ainda não foram sincronizadas neste computador.");
 }
@@ -137,9 +154,8 @@ export async function fetchClinicAppointmentsLocalFirst(start?: string, end?: st
   if (!isDentalFlowDesktop()) return cloud.fetchClinicAppointments(start, end);
   const id = await requireOwnerId();
 
-  if (online()) {
+  if (await cloudAvailable()) {
     try {
-      // Cache the complete authorized agenda, not only the current visual range.
       const rows = (await cloud.fetchClinicAppointments()) as Appointment[];
       await writeAppointments(id, rows);
       return inRange(rows, start, end);
@@ -176,7 +192,7 @@ export async function saveClinicAppointmentLocalFirst(input: Record<string, any>
     return local;
   };
 
-  if (!online()) return queue();
+  if (!(await cloudAvailable())) return queue();
 
   try {
     const saved = await cloud.saveClinicAppointment(input as any) as Appointment;
@@ -205,7 +221,7 @@ export async function cancelClinicAppointmentLocalFirst(appointmentId: string) {
     });
   };
 
-  if (!online()) return queue();
+  if (!(await cloudAvailable())) return queue();
   try {
     await cloud.cancelClinicAppointment(appointmentId);
     if (existing) await upsertAppointment(id, { ...existing, status: "cancelled" });
@@ -263,7 +279,7 @@ async function syncAppointmentEntry(id: string, entry: OutboxEntry<Record<string
 }
 
 export async function warmClinicLocalCache(): Promise<{ appointmentsCached: number; contextCached: boolean }> {
-  if (!isDentalFlowDesktop() || !online()) return { appointmentsCached: 0, contextCached: false };
+  if (!isDentalFlowDesktop() || !(await cloudAvailable())) return { appointmentsCached: 0, contextCached: false };
   const id = await ownerId();
   if (!id) return { appointmentsCached: 0, contextCached: false };
 
@@ -272,8 +288,11 @@ export async function warmClinicLocalCache(): Promise<{ appointmentsCached: numb
 
   try {
     const context = await cloud.fetchClinicContext();
-    await localCachePut(id, CONTEXT_NS, CONTEXT_KEY, context);
-    contextCached = true;
+    const existing = await localCacheGet<ClinicContext>(id, CONTEXT_NS, CONTEXT_KEY);
+    if (contextLooksAuthoritative(context) || !existing?.payload?.hasClinicalModule) {
+      await localCachePut(id, CONTEXT_NS, CONTEXT_KEY, context);
+      contextCached = true;
+    }
   } catch (error) {
     if (!transient(error)) console.warn("[DentalFlow Desktop] Falha ao cachear contexto da clínica", error);
   }
@@ -290,7 +309,7 @@ export async function warmClinicLocalCache(): Promise<{ appointmentsCached: numb
 }
 
 export async function syncPendingClinicChanges(): Promise<ClinicOfflineSyncSummary> {
-  if (!isDentalFlowDesktop() || !online()) {
+  if (!isDentalFlowDesktop() || !(await cloudAvailable())) {
     return { processed: 0, failed: 0, conflicts: 0, appointmentsCached: 0, contextCached: false };
   }
   const id = await ownerId();
