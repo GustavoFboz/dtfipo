@@ -102,8 +102,13 @@ async function owner() {
 }
 
 async function writeCaseSnapshot(ownerId: string, rows: CaseRow[]) {
-  await localCachePut(ownerId, "cases:v1", "all", rows);
-  await Promise.allSettled(rows.map((row) => localCachePut(ownerId, "cases:v1", row.id, row)));
+  const results = await Promise.allSettled([
+    localCachePut(ownerId, "cases:v1", "all", rows),
+    ...rows.map((row) => localCachePut(ownerId, "cases:v1", row.id, row)),
+  ]);
+  if (results.some((result) => result.status === "rejected")) {
+    console.warn("[DentalFlow Desktop] Casos recebidos do Cloud, mas o espelho SQLite não pôde ser atualizado por completo.");
+  }
 }
 
 async function recoverCaseMirror(): Promise<CaseRow[]> {
@@ -111,10 +116,10 @@ async function recoverCaseMirror(): Promise<CaseRow[]> {
   const ownerId = await owner();
   if (!ownerId) return [];
 
-  const aggregate = await localCacheGet<CaseRow[]>(ownerId, "cases:v1", "all");
+  const aggregate = await localCacheGet<CaseRow[]>(ownerId, "cases:v1", "all").catch(() => null);
   if (Array.isArray(aggregate?.payload) && aggregate.payload.length > 0) return aggregate.payload;
 
-  const entries = await localCacheList<CaseRow>(ownerId, "cases:v1", 5000);
+  const entries = await localCacheList<CaseRow>(ownerId, "cases:v1", 5000).catch(() => []);
   const recovered = entries
     .filter((entry) => entry.key !== "all" && entry.payload?.id)
     .map((entry) => entry.payload);
@@ -176,6 +181,8 @@ async function recoverAuthorizedCasesDirectly(): Promise<CaseRow[]> {
     case_components: (row as any).case_components ?? [],
   })) as CaseRow[];
 
+  // Showing authorized Cloud data is more important than persisting a local
+  // mirror. A SQLite failure must never turn a valid online result into an empty UI.
   await writeCaseSnapshot(ownerId, hydrated);
   console.warn(`[DentalFlow Desktop] ${hydrated.length} casos recuperados diretamente pelo escopo RLS autenticado.`);
   return hydrated;
@@ -235,7 +242,9 @@ export async function fetchCases(
 export async function fetchPatients(): Promise<Patient[]> {
   if (!isDentalFlowDesktop()) return cloudApi.fetchPatients();
   const ownerId = await owner();
-  const cached = ownerId ? await localCacheGet<Patient[]>(ownerId, "patients:v1", "all") : null;
+  const cached = ownerId
+    ? await localCacheGet<Patient[]>(ownerId, "patients:v1", "all").catch(() => null)
+    : null;
   if (Array.isArray(cached?.payload) && cached.payload.length > 0) {
     background("pacientes", fetchPatientsLocalFirst);
     return cached.payload;
@@ -247,7 +256,7 @@ export async function fetchPatient(id: string): Promise<Patient | null> {
   if (!isDentalFlowDesktop()) return cloudApi.fetchPatient(id);
   const ownerId = await owner();
   if (ownerId) {
-    const direct = await localCacheGet<Patient>(ownerId, "patients:v1", id);
+    const direct = await localCacheGet<Patient>(ownerId, "patients:v1", id).catch(() => null);
     if (direct?.payload) {
       background(`paciente ${id}`, () => fetchPatientLocalFirst(id));
       return direct.payload;
@@ -260,7 +269,7 @@ async function reference<T>(key: string, loader: () => Promise<T>, fallback: T):
   if (!isDentalFlowDesktop()) return loader();
   const ownerId = await owner();
   if (ownerId) {
-    const cached = await localCacheGet<T>(ownerId, "reference-data:v1", key);
+    const cached = await localCacheGet<T>(ownerId, "reference-data:v1", key).catch(() => null);
     if (cached && cached.payload !== undefined && cached.payload !== null) {
       background(`cadastro ${key}`, loader);
       return cached.payload;
@@ -270,7 +279,7 @@ async function reference<T>(key: string, loader: () => Promise<T>, fallback: T):
     return await withDesktopCloudTimeout(`cadastro ${key}`, loader, DESKTOP_READ_TIMEOUT_MS);
   } catch (error) {
     if (ownerId) {
-      const retry = await localCacheGet<T>(ownerId, "reference-data:v1", key);
+      const retry = await localCacheGet<T>(ownerId, "reference-data:v1", key).catch(() => null);
       if (retry?.payload !== undefined) return retry.payload;
     }
     if (fallback !== undefined) return fallback;
@@ -314,7 +323,7 @@ export async function fetchNotifications(): Promise<Notification[]> {
   if (!isDentalFlowDesktop()) return cloudApi.fetchNotifications();
   const ownerId = await owner();
   if (ownerId) {
-    const cached = await localCacheGet<Notification[]>(ownerId, "notifications:v1", "all");
+    const cached = await localCacheGet<Notification[]>(ownerId, "notifications:v1", "all").catch(() => null);
     if (Array.isArray(cached?.payload)) {
       background("notificações", fetchNotificationsLocalFirst);
       return cached.payload;
