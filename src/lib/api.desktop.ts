@@ -1,10 +1,24 @@
 // Desktop-only compatibility facade.
 //
-// Most DentalFlow screens keep importing from `@/lib/api`. The Tauri build
-// aliases that exact module to this facade so progressively migrated domains
-// become local-first without forking the UI or changing the Web build.
+// Installed clients are cache-first: a visible screen should never wait forever
+// on a WebView/cloud request when a verified SQLite snapshot exists. Cloud refresh
+// still runs in the background and the global desktop bootstrap invalidates visible
+// queries after synchronization.
 import * as cloudApi from "./api";
-import type { CaseRow } from "./types";
+import { supabase } from "@/integrations/supabase/client";
+import type {
+  Cadista,
+  CaseRow,
+  CaseType,
+  Component,
+  Doctor,
+  Notification,
+  Patient,
+  Phase,
+  Profile,
+  Stage,
+  ToothColor,
+} from "./types";
 import {
   createCaseLocalFirst,
   deleteCaseLocalFirst,
@@ -16,15 +30,35 @@ import {
   updateCaseLocalFirst,
   updateCaseTiBasesLocalFirst,
 } from "./cases-local-first";
-import { deleteNotificationLocalFirst } from "./notifications-local-first";
+import {
+  fetchPatientLocalFirst,
+  fetchPatientsLocalFirst,
+} from "./patients-local-first";
+import {
+  deleteNotificationLocalFirst,
+  fetchNotificationsLocalFirst,
+  markAllNotificationsAsReadLocalFirst,
+  markCaseNotificationsReadLocalFirst,
+  markNotificationAsReadLocalFirst,
+  sendInternalNotificationLocalFirst,
+} from "./notifications-local-first";
+import {
+  fetchCadistasLocalFirst,
+  fetchCaseTypesLocalFirst,
+  fetchComponentsLocalFirst,
+  fetchDoctorsLocalFirst,
+  fetchImplantSystemsLocalFirst,
+  fetchPhasesLocalFirst,
+  fetchProfileLocalFirst,
+  fetchScanJigsLocalFirst,
+  fetchStagesLocalFirst,
+  fetchToothColorsLocalFirst,
+} from "./reference-local-first";
 import { isDentalFlowDesktop, localCacheGet, localCacheList, localCachePut } from "./desktop-local";
 import { resolveDesktopOwnerId } from "./desktop-identity";
+import { DESKTOP_READ_TIMEOUT_MS, withDesktopCloudTimeout } from "./desktop-cloud";
 
 export * from "./api";
-export {
-  fetchPatientLocalFirst as fetchPatient,
-  fetchPatientsLocalFirst as fetchPatients,
-} from "./patients-local-first";
 export {
   createCaseLocalFirst as createCase,
   deleteCaseLocalFirst as deleteCase,
@@ -34,28 +68,15 @@ export {
   reopenCaseLocalFirst as reopenCase,
   updateCaseLocalFirst as updateCase,
   updateCaseTiBasesLocalFirst as updateCaseTiBases,
-};
-export {
-  fetchCadistasLocalFirst as fetchCadistas,
-  fetchCaseTypesLocalFirst as fetchCaseTypes,
-  fetchComponentsLocalFirst as fetchComponents,
-  fetchDoctorsLocalFirst as fetchDoctors,
-  fetchImplantSystemsLocalFirst as fetchImplantSystems,
-  fetchPhasesLocalFirst as fetchPhases,
-  fetchProfileLocalFirst as fetchProfile,
-  fetchScanJigsLocalFirst as fetchScanJigs,
-  fetchStagesLocalFirst as fetchStages,
-  fetchToothColorsLocalFirst as fetchToothColors,
-} from "./reference-local-first";
-export {
-  fetchNotificationsLocalFirst as fetchNotifications,
   markNotificationAsReadLocalFirst as markNotificationAsRead,
   markCaseNotificationsReadLocalFirst as markCaseNotificationsRead,
   markAllNotificationsAsReadLocalFirst as markAllNotificationsAsRead,
   sendInternalNotificationLocalFirst as sendInternalNotification,
-} from "./notifications-local-first";
+};
 
 type CaseScope = "active" | "finished" | "deleted" | "all" | "archived" | "solicitacoes";
+type ImplantSystem = Awaited<ReturnType<typeof fetchImplantSystemsLocalFirst>>[number];
+type ScanJig = Awaited<ReturnType<typeof fetchScanJigsLocalFirst>>[number];
 
 function applyCaseScope(rows: CaseRow[], scope: CaseScope, filters?: { startDate?: string; endDate?: string }) {
   let result = rows;
@@ -69,9 +90,25 @@ function applyCaseScope(rows: CaseRow[], scope: CaseScope, filters?: { startDate
   return [...result].sort((a, b) => String(b.updated_at ?? b.entry_date ?? "").localeCompare(String(a.updated_at ?? a.entry_date ?? "")));
 }
 
+function background(label: string, task: () => Promise<unknown>) {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return;
+  void withDesktopCloudTimeout(label, task, DESKTOP_READ_TIMEOUT_MS).catch((error) => {
+    console.warn(`[DentalFlow Desktop] Atualização em segundo plano adiada: ${label}`, error);
+  });
+}
+
+async function owner() {
+  return isDentalFlowDesktop() ? resolveDesktopOwnerId() : null;
+}
+
+async function writeCaseSnapshot(ownerId: string, rows: CaseRow[]) {
+  await localCachePut(ownerId, "cases:v1", "all", rows);
+  await Promise.allSettled(rows.map((row) => localCachePut(ownerId, "cases:v1", row.id, row)));
+}
+
 async function recoverCaseMirror(): Promise<CaseRow[]> {
   if (!isDentalFlowDesktop()) return [];
-  const ownerId = await resolveDesktopOwnerId();
+  const ownerId = await owner();
   if (!ownerId) return [];
 
   const aggregate = await localCacheGet<CaseRow[]>(ownerId, "cases:v1", "all");
@@ -82,32 +119,200 @@ async function recoverCaseMirror(): Promise<CaseRow[]> {
     .filter((entry) => entry.key !== "all" && entry.payload?.id)
     .map((entry) => entry.payload);
   if (recovered.length > 0) {
-    await localCachePut(ownerId, "cases:v1", "all", recovered);
+    await writeCaseSnapshot(ownerId, recovered);
     console.warn(`[DentalFlow Desktop] Lista de casos recuperada de ${recovered.length} espelhos locais íntegros.`);
   }
   return recovered;
 }
 
 /**
- * A zero-row case result is ambiguous on Desktop: an offline device identity or
- * a momentary Cloud Login/profile hydration gap can make protected queries look
- * legitimately empty. Prefer the last mirrored SQLite entities when available;
- * explicit case deletion removes those mirrors, so intentional removals remain
- * authoritative.
+ * Recovery path for a valid Cloud Login where the API's client-side role/profile
+ * hydration briefly returns an empty list. RLS remains the security authority:
+ * this query asks only for rows the authenticated account is already allowed to
+ * read, then joins display labels from the local read models. It never bypasses
+ * database policies and never writes to the cloud.
  */
+async function recoverAuthorizedCasesDirectly(): Promise<CaseRow[]> {
+  if (!isDentalFlowDesktop() || (typeof navigator !== "undefined" && navigator.onLine === false)) return [];
+  const ownerId = await owner();
+  if (!ownerId) return [];
+
+  const auth = await withDesktopCloudTimeout(
+    "validação para recuperação de casos",
+    () => supabase.auth.getUser(),
+    DESKTOP_READ_TIMEOUT_MS,
+  );
+  if (!auth.data.user || auth.data.user.user_metadata?.dentalflow_offline_device) return [];
+
+  const rows = await withDesktopCloudTimeout(
+    "casos autorizados por RLS",
+    async () => {
+      const result = await supabase.from("cases").select("*").order("updated_at", { ascending: false });
+      if (result.error) throw result.error;
+      return (result.data ?? []) as unknown as CaseRow[];
+    },
+    DESKTOP_READ_TIMEOUT_MS,
+  );
+  if (!rows.length) return [];
+
+  const [patients, doctors, cadistas, stages] = await Promise.all([
+    fetchPatients().catch(() => [] as Patient[]),
+    fetchDoctors().catch(() => [] as Doctor[]),
+    fetchCadistas().catch(() => [] as Cadista[]),
+    fetchStages().catch(() => [] as Stage[]),
+  ]);
+  const patientMap = new Map(patients.map((item) => [item.id, item]));
+  const doctorMap = new Map(doctors.map((item) => [item.id, item]));
+  const cadistaMap = new Map(cadistas.map((item) => [item.id, item]));
+  const stageMap = new Map(stages.map((item) => [item.id, item]));
+
+  const hydrated = rows.map((row) => ({
+    ...row,
+    patient: (row as any).patient ?? patientMap.get(row.patient_id ?? "") ?? null,
+    doctor: (row as any).doctor ?? doctorMap.get(row.doctor_id ?? "") ?? null,
+    cadista: (row as any).cadista ?? cadistaMap.get(row.cadista_id ?? "") ?? null,
+    current_stage: (row as any).current_stage ?? stageMap.get(row.current_stage_id ?? "") ?? null,
+    case_stages: (row as any).case_stages ?? [],
+    case_components: (row as any).case_components ?? [],
+  })) as CaseRow[];
+
+  await writeCaseSnapshot(ownerId, hydrated);
+  console.warn(`[DentalFlow Desktop] ${hydrated.length} casos recuperados diretamente pelo escopo RLS autenticado.`);
+  return hydrated;
+}
+
+/** Cache-first cases. Existing clinical data appears immediately, then refreshes. */
 export async function fetchCases(
   scope: CaseScope = "active",
   filters?: { startDate?: string; endDate?: string },
 ): Promise<CaseRow[]> {
-  const rows = await fetchCasesLocalFirst(scope, filters);
-  if (!isDentalFlowDesktop() || rows.length > 0) return rows;
-  const recovered = await recoverCaseMirror();
-  return recovered.length > 0 ? applyCaseScope(recovered, scope, filters) : rows;
+  if (!isDentalFlowDesktop()) return cloudApi.fetchCases(scope, filters);
+
+  const cached = await recoverCaseMirror();
+  if (cached.length > 0) {
+    background("casos", () => fetchCasesLocalFirst("all"));
+    return applyCaseScope(cached, scope, filters);
+  }
+
+  try {
+    const rows = await withDesktopCloudTimeout(
+      "casos",
+      () => fetchCasesLocalFirst(scope, filters),
+      DESKTOP_READ_TIMEOUT_MS,
+    );
+    if (rows.length > 0) return rows;
+
+    const recovered = await recoverCaseMirror();
+    if (recovered.length > 0) return applyCaseScope(recovered, scope, filters);
+
+    const direct = await recoverAuthorizedCasesDirectly().catch(() => [] as CaseRow[]);
+    if (direct.length > 0) return applyCaseScope(direct, scope, filters);
+
+    background("casos (segunda passagem)", () => fetchCasesLocalFirst("all"));
+    return rows;
+  } catch (error) {
+    const recovered = await recoverCaseMirror();
+    if (recovered.length > 0) return applyCaseScope(recovered, scope, filters);
+    const direct = await recoverAuthorizedCasesDirectly().catch(() => [] as CaseRow[]);
+    if (direct.length > 0) return applyCaseScope(direct, scope, filters);
+    throw error;
+  }
+}
+
+export async function fetchPatients(): Promise<Patient[]> {
+  if (!isDentalFlowDesktop()) return cloudApi.fetchPatients();
+  const ownerId = await owner();
+  const cached = ownerId ? await localCacheGet<Patient[]>(ownerId, "patients:v1", "all") : null;
+  if (Array.isArray(cached?.payload) && cached.payload.length > 0) {
+    background("pacientes", fetchPatientsLocalFirst);
+    return cached.payload;
+  }
+  return withDesktopCloudTimeout("pacientes", fetchPatientsLocalFirst, DESKTOP_READ_TIMEOUT_MS);
+}
+
+export async function fetchPatient(id: string): Promise<Patient | null> {
+  if (!isDentalFlowDesktop()) return cloudApi.fetchPatient(id);
+  const ownerId = await owner();
+  if (ownerId) {
+    const direct = await localCacheGet<Patient>(ownerId, "patients:v1", id);
+    if (direct?.payload) {
+      background(`paciente ${id}`, () => fetchPatientLocalFirst(id));
+      return direct.payload;
+    }
+  }
+  return withDesktopCloudTimeout(`paciente ${id}`, () => fetchPatientLocalFirst(id), DESKTOP_READ_TIMEOUT_MS);
+}
+
+async function reference<T>(key: string, loader: () => Promise<T>, fallback: T): Promise<T> {
+  if (!isDentalFlowDesktop()) return loader();
+  const ownerId = await owner();
+  if (ownerId) {
+    const cached = await localCacheGet<T>(ownerId, "reference-data:v1", key);
+    if (cached && cached.payload !== undefined && cached.payload !== null) {
+      background(`cadastro ${key}`, loader);
+      return cached.payload;
+    }
+  }
+  try {
+    return await withDesktopCloudTimeout(`cadastro ${key}`, loader, DESKTOP_READ_TIMEOUT_MS);
+  } catch (error) {
+    if (ownerId) {
+      const retry = await localCacheGet<T>(ownerId, "reference-data:v1", key);
+      if (retry?.payload !== undefined) return retry.payload;
+    }
+    if (fallback !== undefined) return fallback;
+    throw error;
+  }
+}
+
+export function fetchProfile(): Promise<Profile | null> {
+  return reference("profile", fetchProfileLocalFirst, null);
+}
+export function fetchDoctors(): Promise<Doctor[]> {
+  return reference("doctors", fetchDoctorsLocalFirst, []);
+}
+export function fetchCadistas(): Promise<Cadista[]> {
+  return reference("cadistas", fetchCadistasLocalFirst, []);
+}
+export function fetchCaseTypes(): Promise<CaseType[]> {
+  return reference("case-types", fetchCaseTypesLocalFirst, []);
+}
+export function fetchToothColors(): Promise<ToothColor[]> {
+  return reference("tooth-colors", fetchToothColorsLocalFirst, []);
+}
+export function fetchStages(): Promise<Stage[]> {
+  return reference("stages", fetchStagesLocalFirst, []);
+}
+export function fetchPhases(): Promise<Phase[]> {
+  return reference("phases", fetchPhasesLocalFirst, []);
+}
+export function fetchComponents(): Promise<Component[]> {
+  return reference("components", fetchComponentsLocalFirst, []);
+}
+export function fetchImplantSystems(): Promise<ImplantSystem[]> {
+  return reference("implant-systems", fetchImplantSystemsLocalFirst, []);
+}
+export async function fetchScanJigs(implantSystemId?: string | null): Promise<ScanJig[]> {
+  const all = await reference("scan-jigs", () => fetchScanJigsLocalFirst(), [] as ScanJig[]);
+  return implantSystemId ? all.filter((row) => row.implant_system_id === implantSystemId) : all;
+}
+
+export async function fetchNotifications(): Promise<Notification[]> {
+  if (!isDentalFlowDesktop()) return cloudApi.fetchNotifications();
+  const ownerId = await owner();
+  if (ownerId) {
+    const cached = await localCacheGet<Notification[]>(ownerId, "notifications:v1", "all");
+    if (Array.isArray(cached?.payload)) {
+      background("notificações", fetchNotificationsLocalFirst);
+      return cached.payload;
+    }
+  }
+  return withDesktopCloudTimeout("notificações", fetchNotificationsLocalFirst, DESKTOP_READ_TIMEOUT_MS);
 }
 
 // NotificationPanel uses the generic adminDelete helper. Keep all other tables
 // on the existing cloud implementation, but make notification deletion durable
-// while the Windows client is offline.
+// while the installed client is offline.
 export async function adminDelete(table: Parameters<typeof cloudApi.adminDelete>[0], id: string) {
   if (String(table) === "notifications") return deleteNotificationLocalFirst(id);
   return cloudApi.adminDelete(table, id);

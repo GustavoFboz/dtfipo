@@ -4,8 +4,13 @@ import {
   clearProvisionedDesktopIdentity,
   getProvisionedDesktopIdentity,
 } from "@/lib/desktop-local";
+import {
+  DESKTOP_AUTH_TIMEOUT_MS,
+  withDesktopCloudTimeout,
+} from "@/lib/desktop-cloud";
 
 const OFFLINE_MARKER = "dentalflow_offline_device";
+const LOCAL_ACCESS_TOKEN = "dentalflow-local-device-session";
 let usingOfflineDeviceSession = false;
 
 function makeOfflineUser(identity: Awaited<ReturnType<typeof getProvisionedDesktopIdentity>>): User | null {
@@ -36,7 +41,7 @@ function makeOfflineSession(identity: Awaited<ReturnType<typeof getProvisionedDe
   const expiresIn = Math.max(0, Math.floor((identity.valid_until - Date.now()) / 1000));
   if (expiresIn <= 0) return null;
   return {
-    access_token: "dentalflow-local-device-session",
+    access_token: LOCAL_ACCESS_TOKEN,
     refresh_token: "",
     expires_in: expiresIn,
     expires_at: Math.floor(identity.valid_until / 1000),
@@ -53,56 +58,61 @@ async function localCloudLoginFallback() {
   return { identity, user, session };
 }
 
-function emitAccountMismatch(deviceUserId: string, cloudUserId: string) {
-  if (typeof window === "undefined") return;
+function emitAccountChanged(deviceUserId: string, cloudUserId: string) {
+  if (typeof window === "undefined" || deviceUserId === cloudUserId) return;
   window.dispatchEvent(
-    new CustomEvent("dentalflow:desktop-account-mismatch", {
-      detail: { deviceUserId, cloudUserId },
+    new CustomEvent("dentalflow:desktop-account-changed", {
+      detail: { previousDeviceUserId: deviceUserId, cloudUserId },
     }),
   );
 }
 
 /**
- * A persisted browser session is not enough proof that the Desktop can query the
- * cloud. WebView2 can keep old auth storage across installer upgrades, so the
- * session must be revalidated against Cloud Login before it is classified as a
- * real cloud identity. This prevents a stale account from making every RLS query
- * look legitimately empty.
+ * WebView2 persists the Cloud Login storage between installer upgrades. A stored
+ * token is not considered cloud-authoritative until Cloud Login validates it.
+ *
+ * A valid cloud login is always the current account. If it differs from an old
+ * device provision we DO NOT log the user out: SQLite is already namespaced by
+ * owner id, so the old cache remains isolated and the bootstrap provisions the
+ * newly authenticated account. The previous implementation signed out on this
+ * mismatch and was capable of sending a perfectly valid user back to the login
+ * screen after an update.
  */
 async function validatedCloudSession(target: typeof cloudSupabase.auth) {
-  const sessionResult = await target.getSession();
+  const sessionResult = await withDesktopCloudTimeout(
+    "Cloud Login (sessão)",
+    () => target.getSession(),
+    DESKTOP_AUTH_TIMEOUT_MS,
+  );
   const session = sessionResult.data.session;
-  if (!session) return { session: null, user: null, mismatch: false };
-
-  const userResult = await target.getUser();
-  const user = userResult.data.user;
-  if (!user || user.id !== session.user.id) {
-    return { session: null, user: null, mismatch: false };
+  if (!session || session.access_token === LOCAL_ACCESS_TOKEN) {
+    return { session: null, user: null };
   }
 
+  const userResult = await withDesktopCloudTimeout(
+    "Cloud Login (usuário)",
+    () => target.getUser(),
+    DESKTOP_AUTH_TIMEOUT_MS,
+  );
+  const user = userResult.data.user;
+  if (!user || user.id !== session.user.id) return { session: null, user: null };
+
   const deviceIdentity = await getProvisionedDesktopIdentity().catch(() => null);
-  if (
-    deviceIdentity &&
-    deviceIdentity.valid_until > Date.now() &&
-    deviceIdentity.user_id !== user.id
-  ) {
-    // Never silently switch the owner of a clinical SQLite cache. A stale WebView
-    // login must be explicitly re-authenticated instead of overwriting the
-    // previously validated device identity with a different account.
-    await target.signOut({ scope: "local" }).catch(() => undefined);
-    await clearProvisionedDesktopIdentity().catch(() => undefined);
-    usingOfflineDeviceSession = false;
-    emitAccountMismatch(deviceIdentity.user_id, user.id);
-    return { session: null, user: null, mismatch: true };
+  if (deviceIdentity && deviceIdentity.valid_until > Date.now() && deviceIdentity.user_id !== user.id) {
+    emitAccountChanged(deviceIdentity.user_id, user.id);
   }
 
   usingOfflineDeviceSession = false;
-  return { session: { ...session, user } as Session, user, mismatch: false };
+  return { session: { ...session, user } as Session, user };
 }
 
 async function forceLocalCloudLoginSignOut(target: typeof cloudSupabase.auth) {
   try {
-    await target.signOut({ scope: "local" });
+    await withDesktopCloudTimeout(
+      "Cloud Login (logout)",
+      () => target.signOut({ scope: "local" }),
+      DESKTOP_AUTH_TIMEOUT_MS,
+    );
   } catch {
     // The device authorization below is the authoritative offline gate.
   }
@@ -122,12 +132,9 @@ const auth = new Proxy(cloudSupabase.auth, {
         if (!definitelyOffline) {
           try {
             const validated = await validatedCloudSession(target);
-            if (validated.session) {
-              return { data: { session: validated.session }, error: null };
-            }
-            if (validated.mismatch) return { data: { session: null }, error: null };
+            if (validated.session) return { data: { session: validated.session }, error: null };
           } catch {
-            // Cloud Login can be temporarily unreachable; use the validated device session below.
+            // Physical connectivity does not guarantee Cloud Login connectivity.
           }
         }
 
@@ -138,18 +145,21 @@ const auth = new Proxy(cloudSupabase.auth, {
 
     if (prop === "getUser") {
       return async (...args: unknown[]) => {
-        if (args.length > 0) return (target.getUser as any)(...args);
+        if (args.length > 0) {
+          return withDesktopCloudTimeout(
+            "Cloud Login (usuário)",
+            () => (target.getUser as any)(...args),
+            DESKTOP_AUTH_TIMEOUT_MS,
+          );
+        }
 
         const definitelyOffline = typeof navigator !== "undefined" && navigator.onLine === false;
         if (!definitelyOffline) {
           try {
             const validated = await validatedCloudSession(target);
-            if (validated.user) {
-              return { data: { user: validated.user }, error: null };
-            }
-            if (validated.mismatch) return { data: { user: null }, error: null };
+            if (validated.user) return { data: { user: validated.user }, error: null };
           } catch {
-            // When Cloud Login is unavailable, keep the installed app usable.
+            // Use the finite local device identity below.
           }
         }
 
@@ -163,7 +173,11 @@ const auth = new Proxy(cloudSupabase.auth, {
         const definitelyOffline = typeof navigator !== "undefined" && navigator.onLine === false;
         if (!definitelyOffline) {
           try {
-            const result = await (target.signOut as any)(...args);
+            const result = await withDesktopCloudTimeout(
+              "Cloud Login (logout)",
+              () => (target.signOut as any)(...args),
+              DESKTOP_AUTH_TIMEOUT_MS,
+            );
             await clearProvisionedDesktopIdentity().catch(() => undefined);
             usingOfflineDeviceSession = false;
             return result;
@@ -188,11 +202,8 @@ function requireRealCloudSession(operation: string) {
 
 /**
  * Desktop-only authentication facade for Lovable Cloud Login.
- *
- * A finite-lived local device session unlocks SQLite after a previously valid
- * online login. A persisted WebView session is server-validated before any cloud
- * access, and a synthetic device session is never allowed to issue database/RPC
- * requests. This keeps account ownership and offline clinical caches isolated.
+ * A finite-lived device session can unlock SQLite, but never authorizes protected
+ * cloud reads. Every stored cloud session is bounded and server-revalidated.
  */
 export const supabase = new Proxy(cloudSupabase, {
   get(target, prop, receiver) {
@@ -214,5 +225,8 @@ export const supabase = new Proxy(cloudSupabase, {
 });
 
 export function isOfflineDeviceSession(session: Session | null | undefined) {
-  return Boolean(session?.user?.user_metadata?.[OFFLINE_MARKER]);
+  return Boolean(
+    session?.user?.user_metadata?.[OFFLINE_MARKER] ||
+      session?.access_token === LOCAL_ACCESS_TOKEN,
+  );
 }

@@ -8,6 +8,7 @@ import { warmReferenceLocalCache } from "@/lib/reference-local-first";
 import { syncPendingCaseChanges, warmCaseLocalCache } from "@/lib/cases-local-first";
 import { syncPendingNotificationChanges, warmNotificationLocalCache } from "@/lib/notifications-local-first";
 import { syncPendingWorkflowChanges, warmWorkflowLocalCache } from "@/lib/workflow-local-first";
+import { DESKTOP_SYNC_TIMEOUT_MS, withDesktopCloudTimeout } from "@/lib/desktop-cloud";
 
 export type DesktopSyncSummary = {
   processed: number;
@@ -29,179 +30,146 @@ export type DesktopSyncSummary = {
   workflowDatasetsCached: number;
 };
 
+type BasicSync = { processed: number; failed: number; conflicts: number };
+
+const ZERO_BASIC: BasicSync = { processed: 0, failed: 0, conflicts: 0 };
+
 let activeSync: Promise<DesktopSyncSummary> | null = null;
 
-async function runDesktopSync(): Promise<DesktopSyncSummary> {
-  if (!isDentalFlowDesktop()) {
-    return {
-      processed: 0,
-      failed: 0,
-      conflicts: 0,
-      patientsCached: 0,
-      appointmentsCached: 0,
-      casesCached: 0,
-      financialCached: 0,
-      evolutionsCached: 0,
-      stockItemsCached: 0,
-      stockMovementsCached: 0,
-      stockV2ItemsCached: 0,
-      stockCategoriesCached: 0,
-      clinicDashboardDatasetsCached: 0,
-      clinicContextCached: false,
-      referenceDatasetsCached: 0,
-      notificationsCached: 0,
-      workflowDatasetsCached: 0,
-    };
+async function safe<T>(label: string, task: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await withDesktopCloudTimeout(label, task, DESKTOP_SYNC_TIMEOUT_MS);
+  } catch (error) {
+    console.warn(`[DentalFlow Desktop] ${label} não bloqueou o restante da sincronização`, error);
+    return fallback;
   }
+}
 
-  // Parent/domain ordering matters. Patients are replayed before cases; case
-  // mutations are replayed before workflow transitions that can target them.
-  const patientSync = await syncPendingPatientChanges();
-  const clinicSync = await syncPendingClinicChanges();
-  const recordsSync = await syncPendingClinicRecordChanges();
-  const caseSync = await syncPendingCaseChanges();
-  const stockSync = await syncPendingStockChanges();
-  const stockV2Sync = await syncPendingStockV2Changes();
-  const notificationSync = await syncPendingNotificationChanges();
-  const workflowSync = await syncPendingWorkflowChanges();
-
-  let patientsCached = 0;
-  let appointmentsCached = clinicSync.appointmentsCached;
-  let casesCached = caseSync.cached;
-  let financialCached = recordsSync.financialCached;
-  let evolutionsCached = recordsSync.evolutionsCached;
-  let stockItemsCached = stockSync.itemsCached;
-  let stockMovementsCached = stockSync.movementsCached;
-  let stockV2ItemsCached = stockV2Sync.itemsCached;
-  let stockCategoriesCached = stockV2Sync.categoriesCached;
-  let clinicDashboardDatasetsCached = recordsSync.dashboardDatasetsCached;
-  let clinicContextCached = clinicSync.contextCached;
-  let referenceDatasetsCached = 0;
-  let notificationsCached = notificationSync.cached;
-  let workflowDatasetsCached = workflowSync.datasetsCached;
-
-  if (typeof navigator === "undefined" || navigator.onLine !== false) {
-    try {
-      patientsCached = await warmPatientLocalCache();
-    } catch (error) {
-      console.warn("[DentalFlow Desktop] Não foi possível aquecer o cache local de pacientes", error);
-    }
-
-    if (!casesCached) {
-      try {
-        casesCached = await warmCaseLocalCache();
-      } catch (error) {
-        console.warn("[DentalFlow Desktop] Não foi possível aquecer o cache local de casos", error);
-      }
-    }
-
-    try {
-      referenceDatasetsCached = await warmReferenceLocalCache();
-    } catch (error) {
-      console.warn("[DentalFlow Desktop] Não foi possível aquecer os cadastros auxiliares", error);
-    }
-
-    if (!appointmentsCached || !clinicContextCached) {
-      try {
-        const warmed = await warmClinicLocalCache();
-        appointmentsCached = Math.max(appointmentsCached, warmed.appointmentsCached);
-        clinicContextCached = clinicContextCached || warmed.contextCached;
-      } catch (error) {
-        console.warn("[DentalFlow Desktop] Não foi possível aquecer o cache da clínica", error);
-      }
-    }
-
-    if (!financialCached || !evolutionsCached || clinicDashboardDatasetsCached < 2) {
-      try {
-        const warmed = await warmClinicRecordsLocalCache();
-        financialCached = Math.max(financialCached, warmed.financialCached);
-        evolutionsCached = Math.max(evolutionsCached, warmed.evolutionsCached);
-        clinicDashboardDatasetsCached = Math.max(clinicDashboardDatasetsCached, warmed.dashboardDatasetsCached);
-      } catch (error) {
-        console.warn("[DentalFlow Desktop] Não foi possível aquecer os registros clínicos", error);
-      }
-    }
-
-    if (!stockItemsCached || !stockMovementsCached) {
-      try {
-        const warmed = await warmStockLocalCache();
-        stockItemsCached = Math.max(stockItemsCached, warmed.itemsCached);
-        stockMovementsCached = Math.max(stockMovementsCached, warmed.movementsCached);
-      } catch (error) {
-        console.warn("[DentalFlow Desktop] Não foi possível aquecer o estoque legado", error);
-      }
-    }
-
-    if (!stockV2ItemsCached || !stockCategoriesCached) {
-      try {
-        const warmed = await warmStockV2LocalCache();
-        stockV2ItemsCached = Math.max(stockV2ItemsCached, warmed.itemsCached);
-        stockCategoriesCached = Math.max(stockCategoriesCached, warmed.categoriesCached);
-      } catch (error) {
-        console.warn("[DentalFlow Desktop] Não foi possível aquecer o estoque atual", error);
-      }
-    }
-
-    if (!notificationsCached) {
-      try {
-        notificationsCached = await warmNotificationLocalCache();
-      } catch (error) {
-        console.warn("[DentalFlow Desktop] Não foi possível aquecer notificações", error);
-      }
-    }
-
-    if (workflowDatasetsCached < 4) {
-      try {
-        workflowDatasetsCached = Math.max(workflowDatasetsCached, await warmWorkflowLocalCache());
-      } catch (error) {
-        console.warn("[DentalFlow Desktop] Não foi possível aquecer workflow/tarefas", error);
-      }
-    }
-  }
-
+function emptySummary(): DesktopSyncSummary {
   return {
-    processed:
-      patientSync.processed +
-      clinicSync.processed +
-      recordsSync.processed +
-      caseSync.processed +
-      stockSync.processed +
-      stockV2Sync.processed +
-      notificationSync.processed +
-      workflowSync.processed,
-    failed:
-      patientSync.failed +
-      clinicSync.failed +
-      recordsSync.failed +
-      caseSync.failed +
-      stockSync.failed +
-      stockV2Sync.failed +
-      notificationSync.failed +
-      workflowSync.failed,
-    conflicts:
-      patientSync.conflicts +
-      clinicSync.conflicts +
-      recordsSync.conflicts +
-      caseSync.conflicts +
-      stockSync.conflicts +
-      stockV2Sync.conflicts +
-      notificationSync.conflicts +
-      workflowSync.conflicts,
-    patientsCached,
-    appointmentsCached,
-    casesCached,
-    financialCached,
-    evolutionsCached,
-    stockItemsCached,
-    stockMovementsCached,
-    stockV2ItemsCached,
-    stockCategoriesCached,
-    clinicDashboardDatasetsCached,
-    clinicContextCached,
-    referenceDatasetsCached,
-    notificationsCached,
-    workflowDatasetsCached,
+    processed: 0,
+    failed: 0,
+    conflicts: 0,
+    patientsCached: 0,
+    appointmentsCached: 0,
+    casesCached: 0,
+    financialCached: 0,
+    evolutionsCached: 0,
+    stockItemsCached: 0,
+    stockMovementsCached: 0,
+    stockV2ItemsCached: 0,
+    stockCategoriesCached: 0,
+    clinicDashboardDatasetsCached: 0,
+    clinicContextCached: false,
+    referenceDatasetsCached: 0,
+    notificationsCached: 0,
+    workflowDatasetsCached: 0,
   };
+}
+
+async function runDesktopSync(): Promise<DesktopSyncSummary> {
+  if (!isDentalFlowDesktop()) return emptySummary();
+
+  // Replay writes in dependency order, but isolate each domain. One stale RPC or
+  // schema-specific error must never prevent Patients/Cases/Clinic from warming.
+  const patientSync = await safe("Sincronização de pacientes", syncPendingPatientChanges, ZERO_BASIC);
+  const clinicSync = await safe(
+    "Sincronização da agenda clínica",
+    syncPendingClinicChanges,
+    { ...ZERO_BASIC, appointmentsCached: 0, contextCached: false },
+  );
+  const recordsSync = await safe(
+    "Sincronização de registros clínicos",
+    syncPendingClinicRecordChanges,
+    { ...ZERO_BASIC, financialCached: 0, evolutionsCached: 0, dashboardDatasetsCached: 0 },
+  );
+  const caseSync = await safe(
+    "Sincronização de casos",
+    syncPendingCaseChanges,
+    { ...ZERO_BASIC, cached: 0 },
+  );
+  const stockSync = await safe(
+    "Sincronização do estoque legado",
+    syncPendingStockChanges,
+    { ...ZERO_BASIC, itemsCached: 0, movementsCached: 0 },
+  );
+  const stockV2Sync = await safe(
+    "Sincronização do estoque",
+    syncPendingStockV2Changes,
+    { ...ZERO_BASIC, itemsCached: 0, categoriesCached: 0 },
+  );
+  const notificationSync = await safe(
+    "Sincronização de notificações",
+    syncPendingNotificationChanges,
+    { ...ZERO_BASIC, cached: 0 },
+  );
+  const workflowSync = await safe(
+    "Sincronização do workflow",
+    syncPendingWorkflowChanges,
+    { ...ZERO_BASIC, datasetsCached: 0 },
+  );
+
+  let summary: DesktopSyncSummary = {
+    processed:
+      patientSync.processed + clinicSync.processed + recordsSync.processed + caseSync.processed +
+      stockSync.processed + stockV2Sync.processed + notificationSync.processed + workflowSync.processed,
+    failed:
+      patientSync.failed + clinicSync.failed + recordsSync.failed + caseSync.failed +
+      stockSync.failed + stockV2Sync.failed + notificationSync.failed + workflowSync.failed,
+    conflicts:
+      patientSync.conflicts + clinicSync.conflicts + recordsSync.conflicts + caseSync.conflicts +
+      stockSync.conflicts + stockV2Sync.conflicts + notificationSync.conflicts + workflowSync.conflicts,
+    patientsCached: 0,
+    appointmentsCached: clinicSync.appointmentsCached,
+    casesCached: caseSync.cached,
+    financialCached: recordsSync.financialCached,
+    evolutionsCached: recordsSync.evolutionsCached,
+    stockItemsCached: stockSync.itemsCached,
+    stockMovementsCached: stockSync.movementsCached,
+    stockV2ItemsCached: stockV2Sync.itemsCached,
+    stockCategoriesCached: stockV2Sync.categoriesCached,
+    clinicDashboardDatasetsCached: recordsSync.dashboardDatasetsCached,
+    clinicContextCached: clinicSync.contextCached,
+    referenceDatasetsCached: 0,
+    notificationsCached: notificationSync.cached,
+    workflowDatasetsCached: workflowSync.datasetsCached,
+  };
+
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return summary;
+
+  // Warm independent read models concurrently. Every operation has its own
+  // deadline, so a single endpoint cannot leave the whole app on skeletons.
+  const [patients, cases, references, clinic, records, stock, stockV2, notifications, workflow] = await Promise.all([
+    safe("Cache de pacientes", warmPatientLocalCache, 0),
+    safe("Cache de casos", warmCaseLocalCache, 0),
+    safe("Cadastros auxiliares", warmReferenceLocalCache, 0),
+    safe("Cache da Clínica", warmClinicLocalCache, { appointmentsCached: 0, contextCached: false }),
+    safe("Cache de registros clínicos", warmClinicRecordsLocalCache, { financialCached: 0, evolutionsCached: 0, dashboardDatasetsCached: 0 }),
+    safe("Cache do estoque legado", warmStockLocalCache, { itemsCached: 0, movementsCached: 0 }),
+    safe("Cache do estoque", warmStockV2LocalCache, { itemsCached: 0, categoriesCached: 0 }),
+    safe("Cache de notificações", warmNotificationLocalCache, 0),
+    safe("Cache do workflow", warmWorkflowLocalCache, 0),
+  ]);
+
+  summary = {
+    ...summary,
+    patientsCached: Math.max(summary.patientsCached, patients),
+    casesCached: Math.max(summary.casesCached, cases),
+    referenceDatasetsCached: Math.max(summary.referenceDatasetsCached, references),
+    appointmentsCached: Math.max(summary.appointmentsCached, clinic.appointmentsCached),
+    clinicContextCached: summary.clinicContextCached || clinic.contextCached,
+    financialCached: Math.max(summary.financialCached, records.financialCached),
+    evolutionsCached: Math.max(summary.evolutionsCached, records.evolutionsCached),
+    clinicDashboardDatasetsCached: Math.max(summary.clinicDashboardDatasetsCached, records.dashboardDatasetsCached),
+    stockItemsCached: Math.max(summary.stockItemsCached, stock.itemsCached),
+    stockMovementsCached: Math.max(summary.stockMovementsCached, stock.movementsCached),
+    stockV2ItemsCached: Math.max(summary.stockV2ItemsCached, stockV2.itemsCached),
+    stockCategoriesCached: Math.max(summary.stockCategoriesCached, stockV2.categoriesCached),
+    notificationsCached: Math.max(summary.notificationsCached, notifications),
+    workflowDatasetsCached: Math.max(summary.workflowDatasetsCached, workflow),
+  };
+
+  return summary;
 }
 
 export function syncDesktopOfflineData(): Promise<DesktopSyncSummary> {
