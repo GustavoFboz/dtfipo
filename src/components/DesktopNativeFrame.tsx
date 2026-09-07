@@ -32,6 +32,12 @@ function visibleTopHeader(): HTMLElement | null {
   );
 }
 
+function syncNativeRouteMarker() {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+  const key = window.location.pathname.split("/").filter(Boolean)[0] ?? "root";
+  document.documentElement.dataset.dentalflowNativeRoute = key;
+}
+
 function RestoreIcon() {
   return (
     <span className="relative block h-3.5 w-3.5" aria-hidden="true">
@@ -54,6 +60,7 @@ export function DesktopNativeFrame({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!desktop) return;
     document.documentElement.dataset.dentalflowNativeWindow = "true";
+    syncNativeRouteMarker();
     document.documentElement.style.background = "transparent";
     document.body.style.background = "transparent";
     document.body.style.overflow = "hidden";
@@ -67,6 +74,7 @@ export function DesktopNativeFrame({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener("resize", syncState);
       delete document.documentElement.dataset.dentalflowNativeWindow;
+      delete document.documentElement.dataset.dentalflowNativeRoute;
     };
   }, [desktop]);
 
@@ -77,6 +85,7 @@ export function DesktopNativeFrame({ children }: { children: ReactNode }) {
 
     const attach = () => {
       frame = 0;
+      syncNativeRouteMarker();
       const next = visibleTopHeader();
       if (next === current) {
         if (next) setCaptionHeight(Math.max(40, Math.round(next.getBoundingClientRect().height)));
@@ -106,11 +115,13 @@ export function DesktopNativeFrame({ children }: { children: ReactNode }) {
       attributeFilter: ["class", "style"],
     });
     window.addEventListener("resize", schedule);
+    window.addEventListener("popstate", schedule);
 
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
       observer.disconnect();
       window.removeEventListener("resize", schedule);
+      window.removeEventListener("popstate", schedule);
       if (current) delete current.dataset.dentalflowNativeHeader;
       setHeaderHost(null);
     };

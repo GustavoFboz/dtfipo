@@ -181,6 +181,12 @@ async function recoverAuthorizedCasesDirectly(): Promise<CaseRow[]> {
   return hydrated;
 }
 
+type CaseRecoveryResult = {
+  source: "primary" | "direct";
+  rows: CaseRow[];
+  error?: unknown;
+};
+
 /** Cache-first cases. Existing clinical data appears immediately, then refreshes. */
 export async function fetchCases(
   scope: CaseScope = "active",
@@ -194,29 +200,36 @@ export async function fetchCases(
     return applyCaseScope(cached, scope, filters);
   }
 
-  try {
-    const rows = await withDesktopCloudTimeout(
-      "casos",
-      () => fetchCasesLocalFirst(scope, filters),
-      DESKTOP_READ_TIMEOUT_MS,
-    );
-    if (rows.length > 0) return rows;
+  // With no local snapshot yet, start the normal rich query and the simpler
+  // RLS-authorized recovery query together. Whichever produces real rows first
+  // wins. This avoids leaving the Cases screen on skeletons while a nested join,
+  // profile hydration or Cloud Login retry is still waiting on its own deadline.
+  const primaryPromise: Promise<CaseRecoveryResult> = withDesktopCloudTimeout(
+    "casos",
+    () => fetchCasesLocalFirst(scope, filters),
+    DESKTOP_READ_TIMEOUT_MS,
+  )
+    .then((rows) => ({ source: "primary" as const, rows }))
+    .catch((error) => ({ source: "primary" as const, rows: [] as CaseRow[], error }));
 
-    const recovered = await recoverCaseMirror();
-    if (recovered.length > 0) return applyCaseScope(recovered, scope, filters);
+  const directPromise: Promise<CaseRecoveryResult> = recoverAuthorizedCasesDirectly()
+    .then((rows) => ({ source: "direct" as const, rows: applyCaseScope(rows, scope, filters) }))
+    .catch((error) => ({ source: "direct" as const, rows: [] as CaseRow[], error }));
 
-    const direct = await recoverAuthorizedCasesDirectly().catch(() => [] as CaseRow[]);
-    if (direct.length > 0) return applyCaseScope(direct, scope, filters);
+  const first = await Promise.race([primaryPromise, directPromise]);
+  if (first.rows.length > 0) return first.rows;
 
-    background("casos (segunda passagem)", () => fetchCasesLocalFirst("all"));
-    return rows;
-  } catch (error) {
-    const recovered = await recoverCaseMirror();
-    if (recovered.length > 0) return applyCaseScope(recovered, scope, filters);
-    const direct = await recoverAuthorizedCasesDirectly().catch(() => [] as CaseRow[]);
-    if (direct.length > 0) return applyCaseScope(direct, scope, filters);
-    throw error;
-  }
+  const [primary, direct] = await Promise.all([primaryPromise, directPromise]);
+  if (primary.rows.length > 0) return primary.rows;
+  if (direct.rows.length > 0) return direct.rows;
+
+  const recovered = await recoverCaseMirror();
+  if (recovered.length > 0) return applyCaseScope(recovered, scope, filters);
+
+  background("casos (segunda passagem)", () => fetchCasesLocalFirst("all"));
+  if (primary.error) throw primary.error;
+  if (direct.error) throw direct.error;
+  return [];
 }
 
 export async function fetchPatients(): Promise<Patient[]> {

@@ -11,7 +11,15 @@ import {
 
 const OFFLINE_MARKER = "dentalflow_offline_device";
 const LOCAL_ACCESS_TOKEN = "dentalflow-local-device-session";
+const CLOUD_VALIDATION_TTL_MS = 20_000;
 let usingOfflineDeviceSession = false;
+let validatedCloudCache: { session: Session; user: User; validUntil: number } | null = null;
+let validatedCloudInFlight: Promise<{ session: Session | null; user: User | null }> | null = null;
+
+function resetValidatedCloudCache() {
+  validatedCloudCache = null;
+  validatedCloudInFlight = null;
+}
 
 function makeOfflineUser(identity: Awaited<ReturnType<typeof getProvisionedDesktopIdentity>>): User | null {
   if (!identity || identity.valid_until <= Date.now()) return null;
@@ -54,6 +62,7 @@ async function localCloudLoginFallback() {
   const identity = await getProvisionedDesktopIdentity();
   const user = makeOfflineUser(identity);
   const session = makeOfflineSession(identity);
+  resetValidatedCloudCache();
   usingOfflineDeviceSession = Boolean(session && user);
   return { identity, user, session };
 }
@@ -78,7 +87,7 @@ function emitAccountChanged(deviceUserId: string, cloudUserId: string) {
  * mismatch and was capable of sending a perfectly valid user back to the login
  * screen after an update.
  */
-async function validatedCloudSession(target: typeof cloudSupabase.auth) {
+async function validateCloudSessionNow(target: typeof cloudSupabase.auth) {
   const sessionResult = await withDesktopCloudTimeout(
     "Cloud Login (sessão)",
     () => target.getSession(),
@@ -106,7 +115,52 @@ async function validatedCloudSession(target: typeof cloudSupabase.auth) {
   return { session: { ...session, user } as Session, user };
 }
 
+/**
+ * Coalesce concurrent Cloud Login validation and keep the freshly validated
+ * result warm for a few seconds. Dashboard queries start together, so without
+ * this gate Profile/Cases/Notifications could each perform their own getUser
+ * round-trip before SQLite was allowed to render. The cache contains only a
+ * server-validated session, is short-lived, and is cleared on auth changes.
+ */
+async function validatedCloudSession(target: typeof cloudSupabase.auth) {
+  const now = Date.now();
+  if (validatedCloudCache && validatedCloudCache.validUntil > now) {
+    usingOfflineDeviceSession = false;
+    return {
+      session: validatedCloudCache.session,
+      user: validatedCloudCache.user,
+    };
+  }
+  if (validatedCloudInFlight) return validatedCloudInFlight;
+
+  validatedCloudInFlight = validateCloudSessionNow(target)
+    .then((validated) => {
+      if (validated.session && validated.user) {
+        const tokenExpiry = validated.session.expires_at
+          ? validated.session.expires_at * 1000 - 5_000
+          : Number.POSITIVE_INFINITY;
+        const validUntil = Math.min(Date.now() + CLOUD_VALIDATION_TTL_MS, tokenExpiry);
+        if (validUntil > Date.now()) {
+          validatedCloudCache = {
+            session: validated.session,
+            user: validated.user,
+            validUntil,
+          };
+        }
+      } else {
+        validatedCloudCache = null;
+      }
+      return validated;
+    })
+    .finally(() => {
+      validatedCloudInFlight = null;
+    });
+
+  return validatedCloudInFlight;
+}
+
 async function forceLocalCloudLoginSignOut(target: typeof cloudSupabase.auth) {
+  resetValidatedCloudCache();
   try {
     await withDesktopCloudTimeout(
       "Cloud Login (logout)",
@@ -122,6 +176,14 @@ async function forceLocalCloudLoginSignOut(target: typeof cloudSupabase.auth) {
     console.warn("[DentalFlow Desktop] Não foi possível revogar a autorização offline local", error);
   }
   usingOfflineDeviceSession = false;
+}
+
+if (typeof window !== "undefined") {
+  cloudSupabase.auth.onAuthStateChange((event) => {
+    if (["SIGNED_IN", "SIGNED_OUT", "TOKEN_REFRESHED", "USER_UPDATED", "PASSWORD_RECOVERY"].includes(event)) {
+      resetValidatedCloudCache();
+    }
+  });
 }
 
 const auth = new Proxy(cloudSupabase.auth, {
@@ -170,6 +232,7 @@ const auth = new Proxy(cloudSupabase.auth, {
 
     if (prop === "signOut") {
       return async (...args: unknown[]) => {
+        resetValidatedCloudCache();
         const definitelyOffline = typeof navigator !== "undefined" && navigator.onLine === false;
         if (!definitelyOffline) {
           try {
