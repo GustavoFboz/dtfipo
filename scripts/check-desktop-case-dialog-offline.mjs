@@ -10,8 +10,10 @@ const portalCss = read("src/desktop-dialog-portals.css");
 const dialog = read("src/components/ui/dialog.tsx");
 const casesLocal = read("src/lib/cases-local-first.ts");
 const caseActivity = read("src/lib/case-activity.ts");
+const apiCaseOffline = read("src/lib/api.desktop.case-offline.ts");
 const notificationsLocal = read("src/lib/notifications-local-first.ts");
 const desktopSync = read("src/lib/desktop-sync.ts");
+const desktopVite = read("vite.desktop.config.ts");
 const tauri = read("src-tauri/tauri.conf.json");
 const cargo = read("src-tauri/Cargo.toml");
 
@@ -37,6 +39,18 @@ expect(casesLocal.includes('operation: "create"'), "Offline case creation must e
 expect(
   casesLocal.includes('await cloud.createCase({ ...(payload.input ?? {}), id, also_arch: null } as any)'),
   "Queued offline cases must be created in Lovable Cloud on reconnect.",
+);
+expect(
+  desktopVite.includes("api.desktop.case-offline.ts"),
+  "Desktop API alias must include the offline case assignment wrapper.",
+);
+expect(
+  apiCaseOffline.includes("startedOffline") && apiCaseOffline.includes("sendInternalNotificationLocalFirst"),
+  "Offline case creation must persist the assigned dentist notification.",
+);
+expect(
+  apiCaseOffline.includes('source: "desktop_offline_case_create"'),
+  "Offline-created case notifications must carry a durable source marker.",
 );
 expect(
   caseActivity.includes("queueOfflineStakeholderNotifications"),
