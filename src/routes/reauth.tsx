@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
@@ -19,7 +19,6 @@ export const Route = createFileRoute("/reauth")({
 });
 
 function ReauthPage() {
-  const navigate = useNavigate();
   const search = useSearch({ from: "/reauth" });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -72,7 +71,7 @@ function ReauthPage() {
           {!loading && <ArrowRight className="ml-2 h-4 w-4" />}
         </Button>
 
-        <button type="button" onClick={() => navigate({ to: search.returnTo || "/hub" })} className="mt-4 w-full text-center text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+        <button type="button" onClick={() => window.location.replace(search.returnTo || "/hub")} className="mt-4 w-full text-center text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
           Voltar e usar somente os dados locais
         </button>
       </form>
