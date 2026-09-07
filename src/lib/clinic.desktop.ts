@@ -187,11 +187,15 @@ async function repairClinicContextFromVerifiedCloud(ownerId: string): Promise<Cl
  * A previously verified Clinic entitlement is an offline authorization asset.
  * Read it before touching the network. A cached negative result from an older
  * buggy build is not trusted while online; it is revalidated and repaired.
+ *
+ * Local cache access itself is deliberately non-authoritative: if SQLite has any
+ * runtime issue, a valid online CEO/admin must still reach the verified Cloud
+ * repair path rather than being trapped forever behind "Revalidando acesso".
  */
 export async function fetchClinicContext(): Promise<ClinicContext> {
   const ownerId = await resolveDesktopOwnerId();
   const cached = ownerId
-    ? await localCacheGet<ClinicContext>(ownerId, CONTEXT_NS, CONTEXT_KEY)
+    ? await localCacheGet<ClinicContext>(ownerId, CONTEXT_NS, CONTEXT_KEY).catch(() => null)
     : null;
 
   if (cached?.payload?.hasClinicalModule) {
@@ -231,7 +235,7 @@ export async function fetchClinicContext(): Promise<ClinicContext> {
 export async function fetchClinicAppointments(start?: string, end?: string) {
   const ownerId = await resolveDesktopOwnerId();
   const cached = ownerId
-    ? await localCacheGet<Appointment[]>(ownerId, "clinic-appointments:v1", "all")
+    ? await localCacheGet<Appointment[]>(ownerId, "clinic-appointments:v1", "all").catch(() => null)
     : null;
 
   if (Array.isArray(cached?.payload)) {
@@ -254,7 +258,9 @@ export async function fetchClinicAppointments(start?: string, end?: string) {
 /** Clinic dashboard datasets render directly from their warmed SQLite read-model. */
 export async function fetchClinicFinancialEntries(month?: string) {
   const ownerId = await resolveDesktopOwnerId();
-  const cached = ownerId ? await localCacheGet<FinancialRow[]>(ownerId, FINANCIAL_NS, ALL_KEY) : null;
+  const cached = ownerId
+    ? await localCacheGet<FinancialRow[]>(ownerId, FINANCIAL_NS, ALL_KEY).catch(() => null)
+    : null;
   if (Array.isArray(cached?.payload)) {
     background("financeiro da Clínica", () => fetchClinicFinancialEntriesLocalFirst());
     return filterMonth(cached.payload, month);
@@ -268,7 +274,9 @@ export async function fetchClinicFinancialEntries(month?: string) {
 
 export async function fetchClinicLowStockItems(limit = 6) {
   const ownerId = await resolveDesktopOwnerId();
-  const cached = ownerId ? await localCacheGet<any[]>(ownerId, DASHBOARD_NS, "low-stock") : null;
+  const cached = ownerId
+    ? await localCacheGet<any[]>(ownerId, DASHBOARD_NS, "low-stock").catch(() => null)
+    : null;
   if (Array.isArray(cached?.payload)) {
     background("estoque da Clínica", () => fetchClinicLowStockItemsLocalFirst(500));
     return cached.payload.slice(0, limit);
@@ -282,7 +290,9 @@ export async function fetchClinicLowStockItems(limit = 6) {
 
 export async function fetchClinicActiveTreatments() {
   const ownerId = await resolveDesktopOwnerId();
-  const cached = ownerId ? await localCacheGet<any[]>(ownerId, DASHBOARD_NS, "active-treatments") : null;
+  const cached = ownerId
+    ? await localCacheGet<any[]>(ownerId, DASHBOARD_NS, "active-treatments").catch(() => null)
+    : null;
   if (Array.isArray(cached?.payload)) {
     background("tratamentos ativos da Clínica", fetchClinicActiveTreatmentsLocalFirst);
     return cached.payload;
