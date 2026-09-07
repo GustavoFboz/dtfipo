@@ -1,0 +1,65 @@
+/* DentalFlow installed-app shell. Never affects the web build because the root
+   dataset is only set by DesktopNativeFrame inside Tauri. */
+html[data-dentalflow-native-window="true"],
+html[data-dentalflow-native-window="true"] body,
+html[data-dentalflow-native-window="true"] #root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: var(--background, #fff);
+}
+
+html[data-dentalflow-native-window="true"] [data-dentalflow-native-frame] {
+  inset: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Reserve the Windows caption-button area in the actual DentalFlow header. */
+html[data-dentalflow-native-window="true"] header[data-dentalflow-native-header="true"] {
+  padding-right: 154px !important;
+}
+
+html[data-dentalflow-native-window="true"] [data-dentalflow-window-controls] {
+  font-family: "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* A desktop window may be 1200–1600 px wide while the page content is much
+   narrower after the sidebar. Tailwind's viewport xl breakpoint alone was
+   therefore making large dashboard titles wrap/crop. Keep installed-app content
+   proportional to the usable pane, not only to the outer WebView width. */
+@media (max-width: 1699px) {
+  html[data-dentalflow-native-window="true"] main [class~="xl:text-7xl"],
+  html[data-dentalflow-native-window="true"] main [class~="2xl:text-7xl"] {
+    font-size: 3rem !important;
+    line-height: 1.02 !important;
+  }
+
+  html[data-dentalflow-native-window="true"] main [class~="xl:flex-row"] {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+}
+
+@media (max-width: 1350px) {
+  html[data-dentalflow-native-window="true"] main [class~="md:px-16"] {
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+  }
+
+  html[data-dentalflow-native-window="true"] main [class~="lg:text-5xl"] {
+    font-size: 2.5rem !important;
+  }
+}
+
+/* Native portals (notifications, dialogs, selects) live outside the inner frame.
+   They must remain above it. */
+html[data-dentalflow-native-window="true"] body > [data-radix-popper-content-wrapper],
+html[data-dentalflow-native-window="true"] body > [role="dialog"] {
+  z-index: 1000;
+}
