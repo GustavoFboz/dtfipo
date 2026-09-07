@@ -1,15 +1,20 @@
 // Desktop-only clinic facade.
 // The Web build continues using `@/lib/clinic` directly.
-import type { ClinicContext } from "./clinic";
+import {
+  CLINIC_PERMISSIONS,
+  type ClinicContext,
+  type ClinicPermission,
+} from "./clinic";
 import {
   cancelClinicAppointmentLocalFirst,
   fetchClinicAppointmentsLocalFirst,
   fetchClinicContextLocalFirst,
   saveClinicAppointmentLocalFirst,
 } from "./clinic-local-first";
-import { localCacheGet } from "./desktop-local";
+import { localCacheGet, localCachePut } from "./desktop-local";
 import { resolveDesktopOwnerId } from "./desktop-identity";
 import { DESKTOP_READ_TIMEOUT_MS, withDesktopCloudTimeout } from "./desktop-cloud";
+import { supabase } from "@/integrations/supabase/client";
 
 export * from "./clinic";
 export {
@@ -18,6 +23,10 @@ export {
 };
 
 type Appointment = Record<string, any> & { starts_at?: string };
+
+const CONTEXT_NS = "clinic-context:v1";
+const CONTEXT_KEY = "current";
+const PROFILE_NS = "reference-data:v1";
 
 function background(label: string, task: () => Promise<unknown>) {
   if (typeof navigator !== "undefined" && navigator.onLine === false) return;
@@ -36,19 +45,132 @@ function inRange(rows: Appointment[], start?: string, end?: string) {
   });
 }
 
+function blankPermissions() {
+  return Object.fromEntries(CLINIC_PERMISSIONS.map((permission) => [permission, false])) as Record<ClinicPermission, boolean>;
+}
+
+/**
+ * Repair an incorrect negative Clinic entitlement using only server-verified
+ * information for the currently authenticated account.
+ *
+ * Why this exists: older Desktop builds could persist a temporary profile/module
+ * hydration gap as "Plano não habilitado". The production database can still have
+ * the Clinical module enabled, but that stale negative snapshot would keep winning
+ * offline. This repair reads the authenticated profile + clinic again, falls back
+ * only to a previously server-cached profile for the same owner, and rewrites the
+ * durable SQLite entitlement. No module is invented and RLS remains authoritative.
+ */
+async function repairClinicContextFromVerifiedCloud(ownerId: string): Promise<ClinicContext | null> {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return null;
+
+  const auth = await withDesktopCloudTimeout(
+    "validação da Clínica",
+    () => supabase.auth.getUser(),
+    DESKTOP_READ_TIMEOUT_MS,
+  );
+  const user = auth.data.user;
+  if (!user || user.id !== ownerId || user.user_metadata?.dentalflow_offline_device) return null;
+
+  const serverProfile = await withDesktopCloudTimeout(
+    "perfil para Clínica",
+    async () => {
+      const result = await supabase
+        .from("profiles")
+        .select("clinic_id,role,account_subtype,is_default_admin")
+        .eq("id", ownerId)
+        .maybeSingle();
+      if (result.error) throw result.error;
+      return result.data as any;
+    },
+    DESKTOP_READ_TIMEOUT_MS,
+  ).catch(() => null);
+
+  const cachedProfile = await localCacheGet<any>(ownerId, PROFILE_NS, "profile").catch(() => null);
+  const profile = serverProfile ?? cachedProfile?.payload ?? null;
+  const clinicId = profile?.clinic_id ?? null;
+  if (!clinicId) return null;
+
+  const clinic = await withDesktopCloudTimeout(
+    "módulos da Clínica",
+    async () => {
+      const result = await supabase
+        .from("clinics")
+        .select("id,name,modules_enabled")
+        .eq("id", clinicId)
+        .maybeSingle();
+      if (result.error) throw result.error;
+      return result.data as any;
+    },
+    DESKTOP_READ_TIMEOUT_MS,
+  );
+  if (!clinic?.id) return null;
+
+  const modules = Array.isArray(clinic.modules_enabled)
+    ? clinic.modules_enabled.map((value: unknown) => String(value).toLowerCase())
+    : [];
+  const hasClinicalModule = modules.includes("clinical");
+  const role = String(profile?.account_subtype || profile?.role || "USER").toUpperCase();
+  const isAdvanced = Boolean(profile?.is_default_admin) || ["CEO", "ADMIN"].includes(role);
+  const permissions = blankPermissions();
+
+  if (hasClinicalModule) {
+    if (isAdvanced) {
+      for (const permission of CLINIC_PERMISSIONS) permissions[permission] = true;
+    } else {
+      const rows = await withDesktopCloudTimeout(
+        "permissões da Clínica",
+        async () => {
+          const result = await (supabase as any)
+            .from("clinic_role_permissions")
+            .select("permission,allowed")
+            .eq("clinic_id", clinicId)
+            .eq("role", role);
+          if (result.error) throw result.error;
+          return result.data ?? [];
+        },
+        DESKTOP_READ_TIMEOUT_MS,
+      ).catch(() => [] as any[]);
+
+      for (const row of rows) {
+        if (CLINIC_PERMISSIONS.includes(row.permission as ClinicPermission)) {
+          permissions[row.permission as ClinicPermission] = Boolean(row.allowed);
+        }
+      }
+    }
+  }
+
+  const repaired: ClinicContext = {
+    clinicId,
+    clinicName: clinic.name ?? null,
+    modules,
+    role,
+    isAdvanced,
+    hasClinicalModule,
+    permissions,
+  };
+
+  await localCachePut(ownerId, CONTEXT_NS, CONTEXT_KEY, repaired);
+  return repaired;
+}
+
 /**
  * A previously verified Clinic entitlement is an offline authorization asset.
- * Read it before touching the network. A cached negative result from older buggy
- * builds is not considered sufficient while online; we revalidate it immediately.
+ * Read it before touching the network. A cached negative result from an older
+ * buggy build is not trusted while online; it is revalidated and repaired.
  */
 export async function fetchClinicContext(): Promise<ClinicContext> {
   const ownerId = await resolveDesktopOwnerId();
   const cached = ownerId
-    ? await localCacheGet<ClinicContext>(ownerId, "clinic-context:v1", "current")
+    ? await localCacheGet<ClinicContext>(ownerId, CONTEXT_NS, CONTEXT_KEY)
     : null;
 
   if (cached?.payload?.hasClinicalModule) {
-    background("permissões da Clínica", fetchClinicContextLocalFirst);
+    background("permissões da Clínica", async () => {
+      const refreshed = await fetchClinicContextLocalFirst();
+      if (!refreshed.hasClinicalModule && ownerId) {
+        await repairClinicContextFromVerifiedCloud(ownerId);
+      }
+    });
     return cached.payload;
   }
 
@@ -57,12 +179,20 @@ export async function fetchClinicContext(): Promise<ClinicContext> {
   }
 
   try {
-    return await withDesktopCloudTimeout(
+    const value = await withDesktopCloudTimeout(
       "permissões da Clínica",
       fetchClinicContextLocalFirst,
       DESKTOP_READ_TIMEOUT_MS,
     );
+    if (value.hasClinicalModule || !ownerId) return value;
+
+    const repaired = await repairClinicContextFromVerifiedCloud(ownerId).catch(() => null);
+    return repaired ?? value;
   } catch (error) {
+    if (ownerId) {
+      const repaired = await repairClinicContextFromVerifiedCloud(ownerId).catch(() => null);
+      if (repaired) return repaired;
+    }
     if (cached?.payload) return cached.payload;
     throw error;
   }
