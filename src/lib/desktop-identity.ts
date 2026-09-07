@@ -61,9 +61,9 @@ export async function resolveDesktopIdentity(): Promise<EffectiveDesktopIdentity
  * identity is itself finite-lived and was created only after a validated cloud
  * login; it is therefore the authoritative key for the local cache while it is
  * valid. This does NOT authorize any cloud request: network reads still go through
- * resolveDesktopIdentity/canUseDentalFlowCloud and the Desktop Supabase facade.
- * Manual logout clears the provision, and a validated account change re-provisions
- * it before new cloud data can be written, keeping account caches isolated.
+ * the Desktop client and PostgreSQL Auth/RLS. Manual logout clears the provision,
+ * and a validated account change re-provisions it before new cloud data can be
+ * written, keeping account caches isolated.
  */
 export async function resolveDesktopOwnerId(): Promise<string | null> {
   if (isDentalFlowDesktop()) {
@@ -87,11 +87,30 @@ export async function requireDesktopOwnerId(): Promise<string> {
   return ownerId;
 }
 
-/** True only when Cloud Login is genuinely authenticated and the network is usable. */
+/**
+ * True when the installed client may safely ATTEMPT a Lovable Cloud request.
+ *
+ * A real Cloud Login returns true immediately. If its validation round-trip is
+ * temporarily slow, a still-valid device provision also allows the request to be
+ * attempted while Windows is online. The device provision is never sent as Cloud
+ * credentials: the underlying persisted Cloud token and server-side Auth/RLS are
+ * still the sole authority and can reject the request normally. This prevents a
+ * transient auth validation timeout from deadlocking every Patients/Cases/Clinic
+ * warm-up behind the offline facade.
+ */
 export async function canUseDentalFlowCloud(): Promise<boolean> {
   if (typeof navigator !== "undefined" && navigator.onLine === false) return false;
+
   const identity = await resolveDesktopIdentity();
-  return identity?.source === "cloud";
+  if (identity?.source === "cloud") return true;
+  if (!isDentalFlowDesktop()) return false;
+
+  try {
+    const provisioned = await getProvisionedDesktopIdentity();
+    return Boolean(provisioned && provisioned.valid_until > Date.now());
+  } catch {
+    return false;
+  }
 }
 
 export async function resolveOfflineAuthUser() {
