@@ -57,6 +57,170 @@ html[data-dentalflow-native-window="true"] [data-dentalflow-window-controls] {
   }
 }
 
+/* Cases — installed Windows app only.
+   The page is identified structurally so no web markup or shared component has
+   to change. The visual target is the compact desktop composition: large title
+   close to the left gutter, actions stacked at the right, filters immediately
+   below and more vertical room for the case list. */
+html[data-dentalflow-native-window="true"]
+  main
+  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"]) {
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 2rem !important;
+  padding-right: 2rem !important;
+}
+
+html[data-dentalflow-native-window="true"]
+  main
+  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  > header {
+  padding-top: 3.1rem !important;
+  padding-bottom: 1.55rem !important;
+}
+
+/* The clock pill is useful on the web dashboard, but the native window already
+   exposes system time and the reference desktop composition intentionally omits it. */
+html[data-dentalflow-native-window="true"]
+  main
+  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  > header
+  > div:first-child {
+  display: none !important;
+}
+
+html[data-dentalflow-native-window="true"]
+  main
+  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  > header
+  > div:nth-child(2) {
+  margin-top: 0 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 2rem !important;
+}
+
+html[data-dentalflow-native-window="true"]
+  main
+  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  > header
+  > div:nth-child(2)
+  > div:first-child {
+  height: 7.1rem !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+html[data-dentalflow-native-window="true"]
+  main
+  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  h1[class~="xl:text-7xl"] {
+  font-size: 4.7rem !important;
+  line-height: 1 !important;
+  flex-wrap: nowrap !important;
+  gap: 1rem !important;
+}
+
+/* Source order is Novo paciente, Nova entrada. column-reverse gives the native
+   composition Nova entrada above Novo paciente without changing the web DOM. */
+html[data-dentalflow-native-window="true"]
+  main
+  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  > header
+  > div:nth-child(2)
+  > div:last-child {
+  display: flex !important;
+  flex-direction: column-reverse !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: 11.5rem !important;
+  gap: 1rem !important;
+}
+
+html[data-dentalflow-native-window="true"]
+  main
+  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  > header
+  > div:nth-child(2)
+  > div:last-child
+  button {
+  width: 11rem !important;
+  height: 3.45rem !important;
+  justify-content: center !important;
+}
+
+html[data-dentalflow-native-window="true"]
+  main
+  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  > header
+  + section
+  > div:first-child {
+  margin-bottom: 1.35rem !important;
+  min-height: 3.35rem !important;
+}
+
+html[data-dentalflow-native-window="true"]
+  main
+  [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+  > section:last-child {
+  margin-top: 1.45rem !important;
+  padding-top: 1.9rem !important;
+  padding-bottom: 2rem !important;
+}
+
+@media (max-width: 1350px) {
+  html[data-dentalflow-native-window="true"]
+    main
+    [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+    h1[class~="xl:text-7xl"] {
+    font-size: 3.6rem !important;
+  }
+
+  html[data-dentalflow-native-window="true"]
+    main
+    [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+    > header
+    > div:nth-child(2)
+    > div:first-child {
+    height: 6.2rem !important;
+  }
+}
+
+@media (max-width: 1180px) {
+  html[data-dentalflow-native-window="true"]
+    main
+    [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+    h1[class~="xl:text-7xl"] {
+    font-size: 3.05rem !important;
+    gap: 0.7rem !important;
+  }
+
+  html[data-dentalflow-native-window="true"]
+    main
+    [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+    > header
+    > div:nth-child(2)
+    > div:last-child {
+    min-width: 9.8rem !important;
+  }
+
+  html[data-dentalflow-native-window="true"]
+    main
+    [class~="max-w-[1600px]"][class~="max-h-full"]:has(> header [class~="xl:text-7xl"])
+    > header
+    > div:nth-child(2)
+    > div:last-child
+    button {
+    width: 9.6rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}
+
 /* Native portals (notifications, dialogs, selects) live outside the inner frame.
    They must remain above it. */
 html[data-dentalflow-native-window="true"] body > [data-radix-popper-content-wrapper],
