@@ -49,7 +49,7 @@ function ReauthPage() {
         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#2D7FF9]/10 text-[#2D7FF9]">
           <ShieldCheck className="h-5 w-5" />
         </div>
-        <div className="mt-6 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">DentalFlow Desktop 0.2.8</div>
+        <div className="mt-6 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">DentalFlow Desktop 0.2.9</div>
         <h1 className="mt-2 text-[30px] font-light tracking-[-0.04em]">Revalidar sessão online</h1>
         <p className="mt-2 text-sm font-light leading-6 text-slate-500 dark:text-slate-400">
           Entre novamente para confirmar sua identidade no Lovable Cloud e baixar todos os dados autorizados desta conta para o Windows.
