@@ -233,3 +233,21 @@ html[data-dentalflow-native-window="true"] body > [role="dialog"],
 html[data-dentalflow-native-window="true"] body > [role="alertdialog"] {
   z-index: 1300 !important;
 }
+
+/* Windows caption safe area — 3 x 46 px buttons + 16 px breathing room.
+   Caption controls are portaled to body and intentionally sit above every app
+   overlay. In-app notification stacks and Sonner toasts are shifted left so no
+   transient surface can visually collide with or hide behind the native controls. */
+html[data-dentalflow-native-window="true"] body > [data-dentalflow-window-controls] {
+  z-index: 2147483646 !important;
+  isolation: isolate;
+}
+
+html[data-dentalflow-native-window="true"] .df-notification-stack {
+  right: 154px !important;
+  left: auto !important;
+}
+
+html[data-dentalflow-native-window="true"] [data-sonner-toaster][data-x-position="right"] {
+  right: 154px !important;
+}
