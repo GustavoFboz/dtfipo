@@ -221,9 +221,15 @@ html[data-dentalflow-native-window="true"][data-dentalflow-native-route="casos"]
   }
 }
 
-/* Native portals (notifications, dialogs, selects) live outside the inner frame.
-   They must remain above it. */
-html[data-dentalflow-native-window="true"] body > [data-radix-popper-content-wrapper],
-html[data-dentalflow-native-window="true"] body > [role="dialog"] {
-  z-index: 1000;
+/* Native portals live outside the inner frame. The overlay from the shared
+   Dialog is z=1200, so forcing dialog content to z=1000 hid it behind its own
+   blur layer in the Windows app. Keep poppers and dialog/alertdialog contents
+   above overlays while leaving the web stack untouched. */
+html[data-dentalflow-native-window="true"] body > [data-radix-popper-content-wrapper] {
+  z-index: 1400 !important;
+}
+
+html[data-dentalflow-native-window="true"] body > [role="dialog"],
+html[data-dentalflow-native-window="true"] body > [role="alertdialog"] {
+  z-index: 1300 !important;
 }

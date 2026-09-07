@@ -91,7 +91,7 @@ export async function fetchCaseStakeholderIds(caseId: string): Promise<string[]>
   return Array.from(ids);
 }
 
-export async function notifyCaseStakeholders(opts: {
+type StakeholderNotificationOptions = {
   caseId: string;
   title: string;
   content: string;
@@ -99,7 +99,69 @@ export async function notifyCaseStakeholders(opts: {
   extraRecipientIds?: string[];
   excludeSelf?: boolean;
   activityId?: string;
-}) {
+};
+
+/**
+ * In the installed app, an offline case already exists in the user's SQLite
+ * mirror before it reaches Lovable Cloud. Resolve the people explicitly linked
+ * to that local case and enqueue one durable notification per recipient. The
+ * normal Desktop sync replays cases before notifications, so recipients only
+ * receive the message after the case itself exists in Cloud/RLS.
+ */
+async function queueOfflineStakeholderNotifications(opts: StakeholderNotificationOptions): Promise<boolean> {
+  if (typeof navigator === "undefined" || navigator.onLine !== false) return false;
+
+  const { isDentalFlowDesktop } = await import("./desktop-local");
+  if (!isDentalFlowDesktop()) return false;
+
+  const [{ fetchCaseByIdLocalFirst }, { sendInternalNotificationLocalFirst }] = await Promise.all([
+    import("./cases-local-first"),
+    import("./notifications-local-first"),
+  ]);
+  const [{ data: auth }, caseRow] = await Promise.all([
+    supabase.auth.getUser(),
+    fetchCaseByIdLocalFirst(opts.caseId),
+  ]);
+  if (!caseRow) throw new Error("O caso offline não está disponível no cache local para notificação.");
+
+  const row = caseRow as any;
+  const allowed = new Set<string>();
+  [
+    row.requested_by,
+    row.accepted_by,
+    row.cadista?.user_id,
+    row.doctor?.user_id,
+  ].filter(Boolean).forEach((id) => allowed.add(String(id)));
+
+  const recipients = new Set<string>(allowed);
+  for (const id of opts.extraRecipientIds ?? []) {
+    if (allowed.has(id)) recipients.add(id);
+  }
+  if (opts.excludeSelf !== false && auth.user?.id) recipients.delete(auth.user.id);
+
+  await Promise.all(Array.from(recipients).map((recipientId) =>
+    sendInternalNotificationLocalFirst(
+      recipientId,
+      opts.title,
+      opts.content,
+      opts.type ?? "case",
+      {
+        case_id: opts.caseId,
+        activity_id: opts.activityId ?? null,
+        case_label: row.patient?.name ?? row.case_label ?? null,
+        queued_offline: true,
+      },
+    )
+  ));
+  return true;
+}
+
+export async function notifyCaseStakeholders(opts: StakeholderNotificationOptions) {
+  // The Desktop notification outbox is intentionally used before any direct
+  // database read. Otherwise an offline creation would fail stakeholder lookup
+  // and the notification would be silently lost forever.
+  if (await queueOfflineStakeholderNotifications(opts)) return;
+
   const { data: { user } } = await supabase.auth.getUser();
   const baseIds = await fetchCaseStakeholderIds(opts.caseId);
   // Mentions cannot expand visibility beyond legitimate case stakeholders.

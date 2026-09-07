@@ -38,7 +38,7 @@ expect(desktopCss.includes("inset: 0 !important"), "Windowed Desktop must not ke
 expect(desktopCss.includes('[data-dentalflow-native-route="casos"]'), "Cases reference layout must remain scoped to the native /casos route.");
 expect(desktopCss.includes("flex-direction: column-reverse !important"), "Native Cases actions must preserve the reference stacked order.");
 expect(desktopCss.includes('html[data-dentalflow-native-window="true"]'), "Desktop-only layout rules must remain gated by the native-window marker.");
-expect(tauri.includes('"version": "0.2.6"'), "Desktop version must be 0.2.6 for this Cloud/bootstrap recovery build.");
+expect(tauri.includes('"version": "0.2.7"'), "Desktop version must be 0.2.7 for the case-dialog/offline-case recovery build.");
 expect(tauri.includes('"frontendDist": "../dist/client"'), "The entire compiled frontend must remain bundled inside the Windows installer.");
 
 expect(client.includes("usingOfflineDeviceSession"), "Cloud Login shim must track synthetic device sessions.");
@@ -111,4 +111,4 @@ expect(sync.includes("Promise.all(["), "Independent read-model warmups should pr
 expect(cloud.includes("DesktopCloudTimeoutError"), "Bounded cloud helper is required for installed clients.");
 expect(contract.includes("Regra de ouro"), "Cross-platform/offline contract must remain documented.");
 
-console.log("Desktop 0.2.6 Cloud/bootstrap/local-first regression checks passed.");
+console.log("Desktop 0.2.7 Cloud/bootstrap/local-first regression checks passed.");

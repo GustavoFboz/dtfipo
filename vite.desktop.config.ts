@@ -29,7 +29,7 @@ export default defineConfig({
         },
         {
           find: /^@\/lib\/api$/,
-          replacement: fileURLToPath(new URL("./src/lib/api.desktop.ts", import.meta.url)),
+          replacement: fileURLToPath(new URL("./src/lib/api.desktop.case-offline.ts", import.meta.url)),
         },
         {
           find: /^@\/lib\/clinic$/,

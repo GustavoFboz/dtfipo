@@ -1,0 +1,21 @@
+/* DentalFlow Desktop — portal ordering.
+   Radix renders overlay/content directly under body. The legacy native rule in
+   desktop-native.css gave role="dialog" z-index 1000, which is below the
+   Dialog overlay (z-[1200]) and caused the Windows app to show only a blurred
+   screen while the dialog itself remained hidden underneath it.
+
+   Keep the native window frame low, the backdrop at its component z-index, and
+   explicitly lift interactive portal surfaces above their overlays. This file
+   is imported after desktop-native.css and only applies inside the installed
+   Tauri window. */
+html[data-dentalflow-native-window="true"] body > [role="dialog"] {
+  z-index: 1210 !important;
+}
+
+html[data-dentalflow-native-window="true"] body > [role="alertdialog"] {
+  z-index: 1310 !important;
+}
+
+html[data-dentalflow-native-window="true"] body > [data-radix-popper-content-wrapper] {
+  z-index: 1400 !important;
+}
