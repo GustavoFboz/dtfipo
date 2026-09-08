@@ -2,17 +2,17 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { isDentalFlowDesktop } from "@/lib/desktop-local";
-import { syncDesktopOfflineData } from "@/lib/desktop-sync";
 import { broadcastEntity } from "@/lib/optimistic";
 
+const REALTIME_RECONNECT_MS = 1_500;
+const CASE_INVALIDATION_DEBOUNCE_MS = 220;
+
 /**
- * 0.3.0 Desktop realtime bridge.
+ * Ponte realtime do Desktop.
  *
- * Only tables actually published to Lovable Cloud Realtime are subscribed here.
- * Register every postgres_changes callback BEFORE subscribe(). This avoids the
- * Supabase Realtime runtime error seen when case dialogs were opened repeatedly.
- * Visible UI caches are invalidated immediately; the heavier SQLite mirror refresh
- * is debounced and never sits in the critical rendering path.
+ * O realtime deve atualizar a interface, não iniciar uma sincronização integral
+ * de todos os domínios a cada evento. Isso era particularmente caro após sleep:
+ * eventos acumulados podiam acordar várias rotinas de cache ao mesmo tempo.
  */
 export function DesktopRealtimeSync() {
   const queryClient = useQueryClient();
@@ -21,126 +21,148 @@ export function DesktopRealtimeSync() {
     if (!isDentalFlowDesktop()) return;
 
     let disposed = false;
-    let mirrorTimer: ReturnType<typeof setTimeout> | null = null;
+    let connecting = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    let reconnectTimer: number | null = null;
+    let caseInvalidationTimer: number | null = null;
     let authSubscription: { unsubscribe: () => void } | null = null;
+    const pendingCaseIds = new Set<string>();
 
-    const scheduleMirrorRefresh = () => {
-      if (disposed || navigator.onLine === false) return;
-      if (mirrorTimer) clearTimeout(mirrorTimer);
-      mirrorTimer = setTimeout(() => {
-        mirrorTimer = null;
-        void syncDesktopOfflineData()
-          .then((summary) => {
-            if (!disposed) {
-              window.dispatchEvent(new CustomEvent("dentalflow:desktop-realtime-sync", { detail: summary }));
-            }
-          })
-          .catch((error) => console.warn("[DentalFlow Desktop] Espelho realtime será tentado novamente", error));
-      }, 350);
+    const clearReconnectTimer = () => {
+      if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    };
+
+    const clearCaseInvalidationTimer = () => {
+      if (caseInvalidationTimer !== null) window.clearTimeout(caseInvalidationTimer);
+      caseInvalidationTimer = null;
     };
 
     const teardownChannel = () => {
+      clearReconnectTimer();
       if (!channel) return;
       const old = channel;
       channel = null;
-      void supabase.removeChannel(old);
+      void supabase.removeChannel(old).catch(() => undefined);
+    };
+
+    const scheduleCaseInvalidation = (caseId: string) => {
+      if (!caseId || disposed) return;
+      pendingCaseIds.add(caseId);
+      if (caseInvalidationTimer !== null) return;
+
+      caseInvalidationTimer = window.setTimeout(() => {
+        caseInvalidationTimer = null;
+        const ids = Array.from(pendingCaseIds);
+        pendingCaseIds.clear();
+        for (const id of ids) {
+          void queryClient.invalidateQueries({ queryKey: ["case_activity", id], refetchType: "active" });
+          void queryClient.invalidateQueries({ queryKey: ["case", id], refetchType: "active" });
+        }
+      }, CASE_INVALIDATION_DEBOUNCE_MS);
+    };
+
+    const queueReconnect = () => {
+      if (disposed || navigator.onLine === false || reconnectTimer !== null) return;
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = null;
+        void connect();
+      }, REALTIME_RECONNECT_MS);
     };
 
     const connect = async () => {
-      if (disposed || channel || navigator.onLine === false) return;
+      if (disposed || connecting || channel || navigator.onLine === false) return;
+      connecting = true;
 
-      const { data } = await supabase.auth.getUser().catch(() => ({ data: { user: null } } as any));
-      const user = data.user;
-      if (!user || user.user_metadata?.dentalflow_offline_device || disposed) return;
+      try {
+        // getSession evita uma chamada remota extra em todo reconnect. A validade
+        // da sessão é cuidada pelo lifecycle separado e o cliente atualiza tokens.
+        const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } } as any));
+        const user = data.session?.user;
+        if (!user || user.user_metadata?.dentalflow_offline_device || disposed) return;
 
-      const next = supabase
-        .channel(`desktop-realtime-030:${user.id}:${crypto.randomUUID()}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "notifications",
-            filter: `recipient_id=eq.${user.id}`,
-          },
-          (payload) => {
-            const row = payload.new as Record<string, any>;
-            // Same-window delivery first; React Query + SQLite reconciliation follow.
-            broadcastEntity("notifications", "insert", row);
-            queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
-              old.some((item) => item?.id === row.id) ? old : [row, ...old],
-            );
-            void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-            window.dispatchEvent(new CustomEvent("dentalflow:realtime-notification", { detail: row }));
-            scheduleMirrorRefresh();
-          },
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "notifications",
-            filter: `recipient_id=eq.${user.id}`,
-          },
-          (payload) => {
-            const row = payload.new as Record<string, any>;
-            broadcastEntity("notifications", "update", row);
-            queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
-              old.map((item) => item?.id === row.id ? { ...item, ...row } : item),
-            );
-          },
-        )
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "case_activity" },
-          (payload) => {
-            const row = payload.new as Record<string, any>;
-            broadcastEntity("case_activity", "insert", row);
-            if (row.case_id) {
-              void queryClient.invalidateQueries({ queryKey: ["case_activity", row.case_id] });
-              void queryClient.invalidateQueries({ queryKey: ["case", row.case_id] });
-              void queryClient.invalidateQueries({ queryKey: ["cases"] });
-            }
-            window.dispatchEvent(new CustomEvent("dentalflow:realtime-case-activity", { detail: row }));
-            scheduleMirrorRefresh();
-          },
-        )
-        .subscribe((status) => {
-          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        const next = supabase
+          .channel(`desktop-realtime-030:${user.id}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "notifications",
+              filter: `recipient_id=eq.${user.id}`,
+            },
+            (payload) => {
+              const row = payload.new as Record<string, any>;
+              broadcastEntity("notifications", "insert", row);
+              queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
+                old.some((item) => item?.id === row.id) ? old : [row, ...old],
+              );
+              window.dispatchEvent(new CustomEvent("dentalflow:realtime-notification", { detail: row }));
+            },
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "notifications",
+              filter: `recipient_id=eq.${user.id}`,
+            },
+            (payload) => {
+              const row = payload.new as Record<string, any>;
+              broadcastEntity("notifications", "update", row);
+              queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
+                old.map((item) => item?.id === row.id ? { ...item, ...row } : item),
+              );
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "case_activity" },
+            (payload) => {
+              const row = payload.new as Record<string, any>;
+              broadcastEntity("case_activity", "insert", row);
+              if (row.case_id) scheduleCaseInvalidation(String(row.case_id));
+              window.dispatchEvent(new CustomEvent("dentalflow:realtime-case-activity", { detail: row }));
+            },
+          )
+          .subscribe((status) => {
+            if (!["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) return;
             if (channel === next) channel = null;
-            void supabase.removeChannel(next);
-            if (!disposed && navigator.onLine !== false) {
-              window.setTimeout(() => void connect(), 1200);
-            }
-          }
-        });
+            void supabase.removeChannel(next).catch(() => undefined);
+            queueReconnect();
+          });
 
-      channel = next;
+        if (disposed) {
+          void supabase.removeChannel(next).catch(() => undefined);
+          return;
+        }
+        channel = next;
+      } finally {
+        connecting = false;
+      }
     };
 
     const onOnline = () => {
       teardownChannel();
       void connect();
-      scheduleMirrorRefresh();
     };
-    const onOffline = () => {
-      if (mirrorTimer) {
-        clearTimeout(mirrorTimer);
-        mirrorTimer = null;
-      }
-      teardownChannel();
+    const onOffline = () => teardownChannel();
+    const onVisibility = () => {
+      if (!document.hidden && navigator.onLine !== false && !channel) void connect();
     };
 
     void connect();
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
+    document.addEventListener("visibilitychange", onVisibility);
 
     const auth = supabase.auth.onAuthStateChange((event) => {
-      if (["SIGNED_IN", "TOKEN_REFRESHED", "INITIAL_SESSION"].includes(event)) {
+      // TOKEN_REFRESHED é propositalmente ignorado. Derrubar e recriar o socket
+      // em toda renovação de token contribuía para travamentos após inatividade.
+      if (["SIGNED_IN", "INITIAL_SESSION", "USER_UPDATED"].includes(event)) {
         teardownChannel();
-        window.setTimeout(() => void connect(), 50);
+        queueReconnect();
       }
       if (event === "SIGNED_OUT") teardownChannel();
     });
@@ -148,9 +170,12 @@ export function DesktopRealtimeSync() {
 
     return () => {
       disposed = true;
-      if (mirrorTimer) clearTimeout(mirrorTimer);
+      clearReconnectTimer();
+      clearCaseInvalidationTimer();
+      pendingCaseIds.clear();
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
+      document.removeEventListener("visibilitychange", onVisibility);
       authSubscription?.unsubscribe();
       teardownChannel();
     };
