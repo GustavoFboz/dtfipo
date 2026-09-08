@@ -59,11 +59,9 @@ async function inspectLocalReadiness(): Promise<Readiness> {
 /**
  * Desktop readiness gate.
  *
- * 0.3.0 keeps the first authenticated preparation explicit, but a machine that
- * already has a verified SQLite snapshot is never blocked again merely because
- * Windows went offline and came back. Reconnect refreshes are silent/background.
- * A watchdog also guarantees that a broken endpoint cannot leave the full-screen
- * "Conferindo todas as listas" state visible forever.
+ * A primeira preparação autenticada continua explícita, mas um computador que
+ * já possui snapshot local verificado nunca volta a ser bloqueado só porque a
+ * conexão caiu e retornou. O watchdog evita uma tela de espera permanente.
  */
 export function DesktopPrimarySyncGate() {
   const desktop = isDentalFlowDesktop();
@@ -192,7 +190,7 @@ export function DesktopPrimarySyncGate() {
             visible: true,
             progress: 0,
             title: "Revalide seu login para sincronizar",
-            detail: "O Windows está conectado, mas a sessão do Lovable Cloud não está autenticada. Para evitar listas vazias falsas, o DentalFlow bloqueou a leitura remota até você entrar novamente.",
+            detail: "O Windows está conectado, mas sua sessão online precisa ser revalidada. Para evitar listas vazias incorretas, o DentalFlow bloqueou apenas a leitura remota até você entrar novamente.",
             mode: "reauth",
           });
           return;
@@ -204,7 +202,7 @@ export function DesktopPrimarySyncGate() {
             visible: true,
             progress: 0,
             title: "Sincronização dos dados críticos incompleta",
-            detail: "A sessão foi validada, mas pacientes ou casos locais ainda não cobrem os dados autorizados no Cloud. Tente novamente; listas auxiliares não bloqueiam mais a abertura do programa.",
+            detail: "A sessão foi validada, mas pacientes ou casos locais ainda não cobrem todos os dados autorizados no servidor. Tente novamente; listas auxiliares não bloqueiam mais a abertura do programa.",
             mode: "error",
           });
           return;
@@ -214,7 +212,7 @@ export function DesktopPrimarySyncGate() {
           visible: true,
           progress: 90,
           title: "Conferindo dados críticos",
-          detail: "Comparando pacientes e casos com o Lovable Cloud. Cadastros auxiliares continuam sincronizando em segundo plano.",
+          detail: "Comparando pacientes e casos com os dados remotos autorizados. Cadastros auxiliares continuam sincronizando em segundo plano.",
           mode: "syncing",
         });
         startProgress();
@@ -242,8 +240,6 @@ export function DesktopPrimarySyncGate() {
     const onOnline = () => {
       dismissed.current = false;
       void check(false, false).then((readiness) => {
-        // Once this Windows installation has a verified snapshot, reconnect is a
-        // background refresh; never cover the app with a 90% blocking screen.
         if (!readiness.ready) {
           showPreparing("Conexão disponível. Revalidando a sessão e conferindo os dados críticos locais.");
         }
@@ -335,7 +331,7 @@ export function DesktopPrimarySyncGate() {
         )}
 
         {lastReady && !lastReady.ready && state.mode !== "ready" && (
-          <p className="mt-6 text-[10px] font-light text-slate-400">A 0.3.0 só considera este computador pronto depois de confirmar pacientes e casos com uma sessão Cloud real; listas auxiliares seguem em segundo plano.</p>
+          <p className="mt-6 text-[10px] font-light text-slate-400">Este computador só é considerado pronto depois de confirmar pacientes e casos com uma sessão online validada; listas auxiliares seguem em segundo plano.</p>
         )}
       </div>
     </div>
