@@ -318,7 +318,7 @@ export function AppShell() {
     await queryClient.cancelQueries();
     queryClient.clear();
     await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true, search: { invite: undefined, mode: undefined } });
+    navigate({ to: "/auth", replace: true, search: { invite: undefined, mode: undefined, returnTo: undefined } });
   }
 
   // Enquanto o profile ainda não chegou, tratamos o email admin como CEO para
