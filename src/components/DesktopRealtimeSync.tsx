@@ -1,18 +1,38 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { isDentalFlowDesktop } from "@/lib/desktop-local";
+import { isDentalFlowDesktop, sendDesktopNativeNotification } from "@/lib/desktop-local";
 import { broadcastEntity } from "@/lib/optimistic";
 
 const REALTIME_RECONNECT_MS = 1_500;
 const CASE_INVALIDATION_DEBOUNCE_MS = 220;
 
+function notificationPresentation(row: Record<string, any>) {
+  const metadata = (row.metadata ?? {}) as Record<string, any>;
+  const sender = String(metadata.sender_name ?? "").trim();
+  const caseLabel = String(metadata.case_label ?? "").trim();
+  const type = String(row.type ?? "").toLowerCase();
+
+  let title = String(row.title ?? "DentalFlow").trim() || "DentalFlow";
+  if (sender) {
+    if (type === "attachment") title = `${sender} anexou um arquivo`;
+    else if (["comment", "mention", "message"].includes(type)) title = `${sender} enviou uma mensagem`;
+  }
+  if (caseLabel) title = `${title} · ${caseLabel}`;
+
+  return {
+    title,
+    body: String(row.content ?? "").trim(),
+  };
+}
+
 /**
- * Ponte realtime do Desktop.
+ * Ponte realtime central do Desktop.
  *
- * O realtime deve atualizar a interface, não iniciar uma sincronização integral
- * de todos os domínios a cada evento. Isso era particularmente caro após sleep:
- * eventos acumulados podiam acordar várias rotinas de cache ao mesmo tempo.
+ * Além de manter os caches locais quentes, esta camada é global em todas as rotas
+ * autenticadas. Por isso ela é o local correto para disparar notificações nativas:
+ * elas continuam chegando pelo Windows quando o usuário está em outro programa,
+ * com a janela minimizada ou com o DentalFlow rodando em segundo plano.
  */
 export function DesktopRealtimeSync() {
   const queryClient = useQueryClient();
@@ -62,6 +82,12 @@ export function DesktopRealtimeSync() {
       }, CASE_INVALIDATION_DEBOUNCE_MS);
     };
 
+    const notifyIfBackground = (row: Record<string, any>) => {
+      if (!document.hidden && document.hasFocus()) return;
+      const presentation = notificationPresentation(row);
+      void sendDesktopNativeNotification(presentation);
+    };
+
     const queueReconnect = () => {
       if (disposed || navigator.onLine === false || reconnectTimer !== null) return;
       reconnectTimer = window.setTimeout(() => {
@@ -75,14 +101,12 @@ export function DesktopRealtimeSync() {
       connecting = true;
 
       try {
-        // getSession evita uma chamada remota extra em todo reconnect. A validade
-        // da sessão é cuidada pelo lifecycle separado e o cliente atualiza tokens.
         const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } } as any));
         const user = data.session?.user;
         if (!user || user.user_metadata?.dentalflow_offline_device || disposed) return;
 
         const next = supabase
-          .channel(`desktop-realtime-030:${user.id}`)
+          .channel(`desktop-realtime-031:${user.id}`)
           .on(
             "postgres_changes",
             {
@@ -97,6 +121,7 @@ export function DesktopRealtimeSync() {
               queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
                 old.some((item) => item?.id === row.id) ? old : [row, ...old],
               );
+              notifyIfBackground(row);
               window.dispatchEvent(new CustomEvent("dentalflow:realtime-notification", { detail: row }));
             },
           )
@@ -158,8 +183,6 @@ export function DesktopRealtimeSync() {
     document.addEventListener("visibilitychange", onVisibility);
 
     const auth = supabase.auth.onAuthStateChange((event) => {
-      // TOKEN_REFRESHED é propositalmente ignorado. Derrubar e recriar o socket
-      // em toda renovação de token contribuía para travamentos após inatividade.
       if (["SIGNED_IN", "INITIAL_SESSION", "USER_UPDATED"].includes(event)) {
         teardownChannel();
         queueReconnect();
