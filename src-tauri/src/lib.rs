@@ -98,6 +98,16 @@ pub fn run() {
 
             Ok(())
         })
+        .on_window_event(|window, event| {
+            #[cfg(desktop)]
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                // Covers Alt+F4/taskbar close in addition to the custom X button.
+                // Explicit `Encerrar DentalFlow` in the tray uses app.exit(0) and
+                // remains the intentional way to terminate background alerts.
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             desktop_runtime_info,
             desktop_window_state,
