@@ -41,14 +41,14 @@ const palette: Record<Accent, {
 }> = {
   lab: {
     ink: "text-[#2D7FF9]",
-    icon: "bg-[#2D7FF9]/9 text-[#2D7FF9] dark:bg-[#2D7FF9]/14",
+    icon: "bg-[#2D7FF9]/[0.09] text-[#2D7FF9] dark:bg-[#2D7FF9]/[0.14]",
     line: "bg-[#2D7FF9]",
     wash: "from-[#2D7FF9]/[0.065]",
     hover: "hover:border-[#2D7FF9]/25",
   },
   clinic: {
     ink: "text-[#168e85] dark:text-[#4dbbb1]",
-    icon: "bg-[#168e85]/9 text-[#168e85] dark:bg-[#4dbbb1]/12 dark:text-[#4dbbb1]",
+    icon: "bg-[#168e85]/[0.09] text-[#168e85] dark:bg-[#4dbbb1]/[0.12] dark:text-[#4dbbb1]",
     line: "bg-[#168e85] dark:bg-[#4dbbb1]",
     wash: "from-[#168e85]/[0.095] dark:from-[#4dbbb1]/[0.07]",
     hover: "hover:border-[#168e85]/30 dark:hover:border-[#4dbbb1]/25",
@@ -80,7 +80,7 @@ function EnvironmentPanel({
 
   const panel = (
     <article
-      className={`group relative flex h-full min-h-[390px] flex-col overflow-hidden border bg-white/88 p-6 transition-[border-color,box-shadow,transform] duration-300 dark:bg-[#0a0d12]/92 sm:p-7 lg:min-h-[510px] ${
+      className={`group relative flex h-full min-h-[390px] flex-col overflow-hidden border bg-white/[0.88] p-6 transition-[border-color,box-shadow,transform] duration-300 dark:bg-[#0a0d12]/[0.92] sm:p-7 lg:min-h-[510px] ${
         featured
           ? `rounded-[34px] border-slate-200/85 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.42)] dark:border-white/[0.09] ${enabled ? `${color.hover} lg:hover:-translate-y-1` : ""}`
           : `rounded-[30px] border-slate-200/70 dark:border-white/[0.07] ${enabled ? `${color.hover} lg:hover:-translate-y-0.5` : "opacity-[0.72]"}`
@@ -170,8 +170,9 @@ function HubPage() {
         ? "Revalidando acesso"
         : "Plano não habilitado";
 
-  const displayName = profile.data?.full_name?.trim() || "Minha conta";
-  const firstName = displayName.split(" ")[0];
+  const profileName = profile.data?.full_name?.trim() || "";
+  const displayName = profileName || "Minha conta";
+  const firstName = profileName ? profileName.split(" ")[0] : "";
   const avatar = profile.data?.avatar_url;
 
   return (
@@ -197,8 +198,8 @@ function HubPage() {
             icon={<FlaskConical className="h-[21px] w-[21px] stroke-[1.45]" />}
             accent="lab"
             enabled={labEnabled}
-            to="/"
-            environment="laboratory"
+            to="/casos"
+            environment="Laboratório"
             status={labEnabled ? "Ambiente disponível" : "Acesso não habilitado"}
           />
 
@@ -210,11 +211,11 @@ function HubPage() {
             accent="clinic"
             enabled={clinicEnabled}
             to="/clinica"
-            environment="clinic"
+            environment="Clínica"
             status={clinicStatus}
             featured
             footer={
-              <div className="flex items-center justify-between gap-4 rounded-[22px] border border-slate-200/75 bg-white/82 p-3 shadow-[0_12px_36px_-28px_rgba(15,23,42,0.45)] dark:border-white/[0.08] dark:bg-white/[0.035]">
+              <div className="flex items-center justify-between gap-4 rounded-[22px] border border-slate-200/75 bg-white/[0.82] p-3 shadow-[0_12px_36px_-28px_rgba(15,23,42,0.45)] dark:border-white/[0.08] dark:bg-white/[0.035]">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-[#168e85]/10 text-xs font-semibold text-[#168e85] dark:bg-[#4dbbb1]/10 dark:text-[#4dbbb1]">
                     {avatar ? (
