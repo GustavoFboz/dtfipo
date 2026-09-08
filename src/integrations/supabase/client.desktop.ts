@@ -58,13 +58,36 @@ function makeOfflineSession(identity: Awaited<ReturnType<typeof getProvisionedDe
   } as Session;
 }
 
-async function localCloudLoginFallback() {
+async function localCloudLoginFallback(markDeviceOnly = true) {
   const identity = await getProvisionedDesktopIdentity();
   const user = makeOfflineUser(identity);
   const session = makeOfflineSession(identity);
-  resetValidatedCloudCache();
-  usingOfflineDeviceSession = Boolean(session && user);
+  if (markDeviceOnly) {
+    resetValidatedCloudCache();
+    usingOfflineDeviceSession = Boolean(session && user);
+  }
   return { identity, user, session };
+}
+
+/**
+ * A remote getUser() validation can time out even though Supabase still has a
+ * genuine persisted JWT in this WebView. Falling straight to the synthetic
+ * device session used to flip the whole client into device-only mode; every
+ * subsequent from()/rpc() then failed synchronously until another auth event.
+ * That manifested as empty Team/Patients/Storage views and a dead Realtime
+ * notification channel. A real stored JWT is safe to keep using: if it is no
+ * longer accepted, PostgREST returns an auth error instead of an anonymous 200 [].
+ */
+async function recoverStoredCloudSession(target: typeof cloudSupabase.auth): Promise<Session | null> {
+  try {
+    const result = await target.getSession();
+    const session = result.data.session;
+    if (!session || session.access_token === LOCAL_ACCESS_TOKEN) return null;
+    usingOfflineDeviceSession = false;
+    return session;
+  } catch {
+    return null;
+  }
 }
 
 function emitAccountChanged(deviceUserId: string, cloudUserId: string) {
@@ -177,12 +200,20 @@ const auth = new Proxy(cloudSupabase.auth, {
           try {
             const validated = await validatedCloudSession(target);
             if (validated.session) return { data: { session: validated.session }, error: null };
+
+            // An explicit online validation with no real session is different
+            // from a timeout: only this case should engage the protected-read gate.
+            const { session } = await localCloudLoginFallback(true);
+            return { data: { session }, error: null };
           } catch {
-            // Physical connectivity does not guarantee Cloud Login connectivity.
+            // Keep an existing genuine JWT alive across a transient validation
+            // timeout instead of globally poisoning all protected reads.
+            const stored = await recoverStoredCloudSession(target);
+            if (stored) return { data: { session: stored }, error: null };
           }
         }
 
-        const { session } = await localCloudLoginFallback();
+        const { session } = await localCloudLoginFallback(true);
         return { data: { session }, error: null };
       };
     }
@@ -202,12 +233,16 @@ const auth = new Proxy(cloudSupabase.auth, {
           try {
             const validated = await validatedCloudSession(target);
             if (validated.user) return { data: { user: validated.user }, error: null };
+
+            const { user } = await localCloudLoginFallback(true);
+            return { data: { user }, error: null };
           } catch {
-            // Use the finite local device identity below.
+            const stored = await recoverStoredCloudSession(target);
+            if (stored?.user) return { data: { user: stored.user }, error: null };
           }
         }
 
-        const { user } = await localCloudLoginFallback();
+        const { user } = await localCloudLoginFallback(true);
         return { data: { user }, error: null };
       };
     }
@@ -244,8 +279,9 @@ const auth = new Proxy(cloudSupabase.auth, {
  * A device-only session can unlock SQLite, but it can NEVER authorize a protected
  * Cloud operation. In 0.2.6/0.2.7 we allowed the request while Windows was online;
  * PostgREST then legitimately answered HTTP 200 + [] under RLS when no real JWT
- * was present. Those ambiguous empty arrays contaminated local mirrors. 0.2.8
- * blocks that path completely: only validatedCloudSession() can clear this guard.
+ * was present. Those ambiguous empty arrays contaminated local mirrors. The guard
+ * remains strict when no real JWT exists, while transient validation timeouts no
+ * longer downgrade a genuine persisted cloud session.
  */
 function requireRealCloudSession(operation: string) {
   if (!usingOfflineDeviceSession) return;
