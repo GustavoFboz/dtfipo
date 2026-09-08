@@ -32,6 +32,12 @@ export default defineConfig({
           replacement: fileURLToPath(new URL("./src/lib/api.desktop.case-offline.ts", import.meta.url)),
         },
         {
+          // Some legacy routes import patients-local-first directly instead of
+          // going through @/lib/api. Keep those native reads cache-first too.
+          find: /^@\/lib\/patients-local-first$/,
+          replacement: fileURLToPath(new URL("./src/lib/patients.desktop.ts", import.meta.url)),
+        },
+        {
           find: /^@\/lib\/clinic$/,
           replacement: fileURLToPath(new URL("./src/lib/clinic.desktop.ts", import.meta.url)),
         },
