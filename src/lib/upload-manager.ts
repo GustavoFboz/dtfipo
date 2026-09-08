@@ -1,9 +1,9 @@
 // Module-level upload manager so uploads keep running even if the dialog closes.
 import JSZip from "jszip";
+import { toast } from "sonner";
 import { uploadCaseAttachment, type CaseAttachmentKind, type CaseAttachment } from "@/lib/api";
 import { addCaseActivity, notifyCaseStakeholders } from "@/lib/case-activity";
 import { supabase } from "@/integrations/supabase/client";
-
 
 export type UploadStatus = "queued" | "zipping" | "uploading" | "success" | "error";
 
@@ -23,7 +23,6 @@ export type UploadTask = {
 };
 
 type Listener = () => void;
-
 type RetryFn = () => Promise<void>;
 
 const tasks = new Map<string, UploadTask>();
@@ -31,6 +30,8 @@ const retryFns = new Map<string, RetryFn>();
 const listeners = new Set<Listener>();
 const cancelledCases = new Set<string>();
 let snapshot: UploadTask[] = [];
+
+const MAX_AUTOMATIC_UPLOAD_ATTEMPTS = 3;
 
 function refreshSnapshot() {
   snapshot = Array.from(tasks.values()).sort((a, b) => b.startedAt - a.startedAt);
@@ -46,6 +47,122 @@ function update(id: string, patch: Partial<UploadTask>) {
   if (!t) return;
   tasks.set(id, { ...t, ...patch });
   emit();
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function uploadErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "string" && error.trim()) return error.trim();
+  try {
+    const candidate = error as { message?: string; error_description?: string; statusText?: string } | null;
+    return candidate?.message || candidate?.error_description || candidate?.statusText || "Falha no upload";
+  } catch {
+    return "Falha no upload";
+  }
+}
+
+function isTransientUploadError(error: unknown) {
+  const msg = uploadErrorMessage(error).toLowerCase();
+  return [
+    "failed to fetch",
+    "network",
+    "networkerror",
+    "timeout",
+    "timed out",
+    "connection",
+    "socket",
+    "econn",
+    "jwt expired",
+    "token has expired",
+    "refresh token",
+    "temporarily unavailable",
+    "bad gateway",
+    "gateway timeout",
+    "service unavailable",
+    "too many requests",
+    "502",
+    "503",
+    "504",
+    "429",
+  ].some((needle) => msg.includes(needle));
+}
+
+async function refreshUploadSessionIfNeeded() {
+  try {
+    const { data } = await supabase.auth.getSession();
+    const expiresAt = Number(data.session?.expires_at ?? 0) * 1000;
+    const expiringSoon = !data.session || !expiresAt || expiresAt - Date.now() < 90_000;
+    if (expiringSoon) await supabase.auth.refreshSession();
+  } catch {
+    // The upload call itself remains authoritative. Session refresh is only a
+    // recovery hint for WebView/network resumes and must never become another
+    // reason to reject a valid upload.
+  }
+}
+
+async function uploadWithRecovery(opts: {
+  taskId: string;
+  caseId: string;
+  file: File;
+  notes?: string;
+  kind: CaseAttachmentKind;
+}): Promise<CaseAttachment> {
+  let lastError: unknown = new Error("Falha no upload");
+
+  for (let attempt = 1; attempt <= MAX_AUTOMATIC_UPLOAD_ATTEMPTS; attempt += 1) {
+    if (cancelledCases.has(opts.caseId)) throw new Error("Cancelado (caso excluído)");
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      throw new Error("Sem conexão com a internet. O arquivo permanece disponível para tentar novamente.");
+    }
+
+    try {
+      if (attempt > 1) {
+        update(opts.taskId, {
+          status: "queued",
+          progress: Math.min(18, 6 + attempt * 4),
+          message: `Reconectando e tentando novamente (${attempt}/${MAX_AUTOMATIC_UPLOAD_ATTEMPTS})...`,
+        });
+        await refreshUploadSessionIfNeeded();
+        await wait(500 * attempt);
+        update(opts.taskId, {
+          status: "uploading",
+          progress: Math.min(24, 10 + attempt * 4),
+          message: `Enviando novamente (${attempt}/${MAX_AUTOMATIC_UPLOAD_ATTEMPTS})...`,
+        });
+      }
+
+      return await uploadCaseAttachment(opts.caseId, opts.file, opts.notes, opts.kind);
+    } catch (error) {
+      lastError = error;
+      const retryable = isTransientUploadError(error)
+        && attempt < MAX_AUTOMATIC_UPLOAD_ATTEMPTS
+        && (typeof navigator === "undefined" || navigator.onLine !== false);
+      if (!retryable) break;
+
+      update(opts.taskId, {
+        status: "queued",
+        message: `Falha temporária. Nova tentativa em instantes (${attempt + 1}/${MAX_AUTOMATIC_UPLOAD_ATTEMPTS})...`,
+      });
+      await refreshUploadSessionIfNeeded();
+      await wait(650 * attempt);
+    }
+  }
+
+  throw lastError;
+}
+
+function showFinalUploadError(id: string, label: string, error: unknown) {
+  const message = uploadErrorMessage(error);
+  toast.error(`Não foi possível enviar “${label}”`, {
+    description: `${message}. O arquivo não foi marcado como concluído e pode ser reenviado pelo painel de uploads.`,
+    duration: 12_000,
+    action: uploadManager.canRetry(id)
+      ? { label: "Tentar novamente", onClick: () => uploadManager.retry(id) }
+      : undefined,
+  });
 }
 
 export const uploadManager = {
@@ -138,7 +255,13 @@ export function startFileUpload(opts: {
   const run = async () => {
     try {
       update(id, { status: "uploading", progress: 10, message: "Enviando..." });
-      const att = await uploadCaseAttachment(opts.caseId, opts.file, opts.notes, opts.kind);
+      const att = await uploadWithRecovery({
+        taskId: id,
+        caseId: opts.caseId,
+        file: opts.file,
+        notes: opts.notes,
+        kind: opts.kind,
+      });
       // If the case was deleted while uploading, immediately purge this attachment.
       if (cancelledCases.has(opts.caseId)) {
         try {
@@ -154,19 +277,24 @@ export function startFileUpload(opts: {
         primeModelThumbFromFile(att.storage_path, opts.file);
       } catch { /* ignore */ }
       retryFns.delete(id);
-      update(id, { status: "success", progress: 100, finishedAt: Date.now(), message: "Concluído" });
+      update(id, { status: "success", progress: 100, finishedAt: Date.now(), message: "Concluído e confirmado no caso" });
       if (!opts.suppressNotification) {
         void postUploadNotify(opts.caseId, opts.kind, opts.file.name, att.id, opts.notes, false, 1);
       }
       opts.onComplete?.(att);
     } catch (e) {
-      update(id, { status: "error", message: (e as Error).message || "Falha no upload", finishedAt: Date.now() });
+      update(id, {
+        status: "error",
+        progress: 100,
+        message: uploadErrorMessage(e),
+        finishedAt: Date.now(),
+      });
+      showFinalUploadError(id, opts.file.name, e);
       opts.onComplete?.();
     }
   };
   retryFns.set(id, run);
   void run();
-
 
   return id;
 }
@@ -197,7 +325,6 @@ export function startFolderUploadFlat(opts: {
   }
   return ids;
 }
-
 
 export function startFolderUpload(opts: {
   caseId: string;
@@ -235,7 +362,13 @@ export function startFolderUpload(opts: {
       );
       const zipFile = new File([blob], label, { type: "application/zip" });
       update(id, { status: "uploading", progress: 55, message: "Enviando..." });
-      const att = await uploadCaseAttachment(opts.caseId, zipFile, opts.notes, opts.kind);
+      const att = await uploadWithRecovery({
+        taskId: id,
+        caseId: opts.caseId,
+        file: zipFile,
+        notes: opts.notes,
+        kind: opts.kind,
+      });
       if (cancelledCases.has(opts.caseId)) {
         try {
           const { deleteCaseAttachment } = await import("@/lib/api");
@@ -245,11 +378,17 @@ export function startFolderUpload(opts: {
         return;
       }
       retryFns.delete(id);
-      update(id, { status: "success", progress: 100, finishedAt: Date.now(), message: "Concluído" });
+      update(id, { status: "success", progress: 100, finishedAt: Date.now(), message: "Concluído e confirmado no caso" });
       void postUploadNotify(opts.caseId, opts.kind, label, att.id, opts.notes, true, opts.files.length);
       opts.onComplete?.();
     } catch (e) {
-      update(id, { status: "error", message: (e as Error).message || "Falha no upload", finishedAt: Date.now() });
+      update(id, {
+        status: "error",
+        progress: 100,
+        message: uploadErrorMessage(e),
+        finishedAt: Date.now(),
+      });
+      showFinalUploadError(id, label, e);
     }
   };
   retryFns.set(id, run);
