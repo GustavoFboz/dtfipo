@@ -179,7 +179,7 @@ export async function saveClinicAppointmentLocalFirst(input: Record<string, any>
 
   const queue = async () => {
     await upsertAppointment(id, local);
-    const payload = { ...input, id: local.id };
+    const payload: Record<string, any> = { ...input, id: local.id };
     delete payload.patient;
     delete payload.doctor;
     await enqueueOutbox({
