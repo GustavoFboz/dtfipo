@@ -19,15 +19,18 @@ import {
   withDesktopCloudTimeout,
 } from "@/lib/desktop-cloud";
 
-const FOCUS_REFRESH_AFTER_MS = 3 * 60_000;
+const RESUME_REFRESH_AFTER_MS = 3 * 60_000;
+const RESUME_DEBOUNCE_MS = 650;
+const RECENT_FULL_SYNC_GUARD_MS = 5_000;
 const FULL_SYNC_TIMEOUT_MS = 65_000;
 
 /**
- * Resilient installed-client boot.
+ * Bootstrap resiliente do cliente instalado.
  *
- * 0.2.9 verifies the actual Tauri -> SQLite command boundary before touching any
- * business read model. The complete synchronization also has a hard deadline, so
- * reconnect can never leave the application behind a permanent progress screen.
+ * Sincronização integral é reservada para boot, reconnect real, mudança de conta
+ * e pedido manual. Voltar de alt-tab/sleep apenas revalida as consultas atualmente
+ * visíveis. Isso evita reaquecer todos os read-models e reescrever SQLite no exato
+ * momento em que o usuário volta a interagir com a interface.
  */
 export function DesktopOfflineBootstrap() {
   const queryClient = useQueryClient();
@@ -39,7 +42,11 @@ export function DesktopOfflineBootstrap() {
     let active: Promise<void> | null = null;
     let lastStartedAt = 0;
     let lastCompletedAt = 0;
+    let lastSuccessfulFullSyncAt = 0;
+    let lastVerifiedSyncAt = 0;
+    let lastResumeRefreshAt = 0;
     let localRuntimeVerified = false;
+    let resumeTimer: number | null = null;
     const timers = new Set<number>();
 
     const dispatch = (name: string, detail?: unknown) => {
@@ -50,8 +57,10 @@ export function DesktopOfflineBootstrap() {
     const execute = async (reason: string) => {
       if (disposed) return;
       if (active) return active;
+
       const now = Date.now();
       if (now - lastStartedAt < 1_500 && reason !== "manual") return;
+      if (reason === "manual" && now - lastSuccessfulFullSyncAt < RECENT_FULL_SYNC_GUARD_MS) return;
       lastStartedAt = now;
 
       active = (async () => {
@@ -122,10 +131,13 @@ export function DesktopOfflineBootstrap() {
           const protectedNamespaces = await protectCriticalCachesFromEmptyRegression(recovery.snapshot);
           const syncProof = cloudValidated
             ? await verifyAndStoreDesktopSyncProof().catch((error) => {
-                console.warn("[DentalFlow Desktop] Read-models ainda não coincidem com o Cloud", error);
+                console.warn("[DentalFlow Desktop] Read-models ainda não coincidem com os dados remotos", error);
                 return null;
               })
             : null;
+
+          lastSuccessfulFullSyncAt = Date.now();
+          if (syncProof) lastVerifiedSyncAt = lastSuccessfulFullSyncAt;
 
           if (!disposed) {
             dispatch("dentalflow:desktop-sync-complete", {
@@ -150,7 +162,9 @@ export function DesktopOfflineBootstrap() {
           }
         } finally {
           if (!disposed) {
-            await queryClient.invalidateQueries().catch(() => undefined);
+            // Atualiza somente o que está montado. O cache inativo permanece quente
+            // e será lido do espelho local quando o usuário navegar até ele.
+            await queryClient.refetchQueries({ type: "active" }).catch(() => undefined);
             lastCompletedAt = Date.now();
           }
         }
@@ -161,30 +175,44 @@ export function DesktopOfflineBootstrap() {
       return active;
     };
 
-    const schedule = (delay: number, reason: string) => {
+    const schedule = (delay: number, reason: string, shouldRun?: () => boolean) => {
       const id = window.setTimeout(() => {
         timers.delete(id);
-        void execute(reason);
+        if (!disposed && (!shouldRun || shouldRun())) void execute(reason);
       }, delay);
       timers.add(id);
     };
 
+    const scheduleResumeRefresh = () => {
+      if (disposed || document.visibilityState !== "visible" || navigator.onLine === false) return;
+      const now = Date.now();
+      const lastUsefulActivity = Math.max(lastCompletedAt, lastResumeRefreshAt);
+      if (now - lastUsefulActivity < RESUME_REFRESH_AFTER_MS) return;
+
+      if (resumeTimer !== null) window.clearTimeout(resumeTimer);
+      resumeTimer = window.setTimeout(() => {
+        resumeTimer = null;
+        if (disposed || document.visibilityState !== "visible" || navigator.onLine === false) return;
+        void queryClient.refetchQueries({ type: "active" })
+          .catch(() => undefined)
+          .finally(() => {
+            lastResumeRefreshAt = Date.now();
+          });
+      }, RESUME_DEBOUNCE_MS);
+    };
+
     void execute("boot");
-    schedule(2_000, "boot-retry");
-    schedule(8_000, "boot-finalize");
+    // Só repete o boot quando a primeira passagem ainda não produziu prova local.
+    schedule(3_000, "boot-retry", () => lastVerifiedSyncAt === 0);
+    schedule(10_000, "boot-finalize", () => lastVerifiedSyncAt === 0);
 
     const onOnline = () => void execute("online");
-    const refreshAfterInactivity = (reason: string) => {
-      if (typeof navigator !== "undefined" && navigator.onLine === false) return;
-      if (Date.now() - lastCompletedAt < FOCUS_REFRESH_AFTER_MS) return;
-      void execute(reason);
-    };
-    const onFocus = () => refreshAfterInactivity("focus-after-inactivity");
+    const onFocus = () => scheduleResumeRefresh();
     const onVisible = () => {
-      if (!document.hidden) refreshAfterInactivity("visible-after-inactivity");
+      if (!document.hidden) scheduleResumeRefresh();
     };
     const onManual = () => void execute("manual");
-    const onAccountChanged = () => schedule(100, "account-changed");
+    const onAccountChanged = () => schedule(120, "account-changed");
 
     window.addEventListener("online", onOnline);
     window.addEventListener("focus", onFocus);
@@ -193,13 +221,18 @@ export function DesktopOfflineBootstrap() {
     document.addEventListener("visibilitychange", onVisible);
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      if (["SIGNED_IN", "TOKEN_REFRESHED", "INITIAL_SESSION"].includes(event)) {
-        schedule(120, `auth:${event.toLowerCase()}`);
+      // Renovação automática de token não é mudança de dados e não deve disparar
+      // uma sincronização integral depois de cada período de inatividade.
+      if (event === "SIGNED_IN" && Date.now() - lastStartedAt > 3_000) {
+        schedule(180, "auth:signed_in");
       }
+      if (event === "USER_UPDATED") schedule(180, "auth:user_updated");
     });
 
     return () => {
       disposed = true;
+      if (resumeTimer !== null) window.clearTimeout(resumeTimer);
+      resumeTimer = null;
       for (const id of timers) window.clearTimeout(id);
       timers.clear();
       window.removeEventListener("online", onOnline);
