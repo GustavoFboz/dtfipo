@@ -19,3 +19,14 @@ html[data-dentalflow-native-window="true"] body > [role="alertdialog"] {
 html[data-dentalflow-native-window="true"] body > [data-radix-popper-content-wrapper] {
   z-index: 1400 !important;
 }
+
+/* The custom Windows caption controls intentionally live above Radix portals so
+   minimize/maximize/close remain reachable. Their sampled header background was
+   opaque, though, so an open dialog blurred everything except a bright white
+   rectangle behind those three buttons. During any modal lock, let the real
+   dialog backdrop show through the caption portal instead. */
+html[data-dentalflow-native-window="true"] body[data-scroll-locked] > [data-dentalflow-window-controls],
+html[data-dentalflow-native-window="true"] body:has(> [role="dialog"][data-state="open"]) > [data-dentalflow-window-controls],
+html[data-dentalflow-native-window="true"] body:has(> [role="alertdialog"][data-state="open"]) > [data-dentalflow-window-controls] {
+  background: transparent !important;
+}
