@@ -46,6 +46,7 @@ import { useMarqueeSelection } from "@/hooks/useMarqueeSelection";
 import { onAttachmentFocus } from "@/lib/attachment-focus";
 
 function timeLeft(iso: string | null | undefined): { label: string; expired: boolean; warn: boolean } {
+  if (!iso) return { label: "expirado", expired: true, warn: false };
   const ms = new Date(iso).getTime() - Date.now();
   if (ms <= 0) return { label: "expirado", expired: true, warn: false };
   const h = Math.floor(ms / 3_600_000);
