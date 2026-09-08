@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeEntity } from "@/lib/optimistic";
+import { isDentalFlowDesktop } from "@/lib/desktop-local";
 import notificationSound from "@/assets/notification.mp3";
 
 export type PopupNotification = {
@@ -16,13 +17,13 @@ export type PopupNotification = {
 };
 
 /**
- * Unified notification delivery for Web + Desktop.
+ * Unified notification presentation for Web + Desktop.
  *
- * 0.3.0 keeps one recipient-scoped postgres_changes channel, recreates it after
- * auth/network changes and never mutates a channel after subscribe(). Desktop also
- * receives the central realtime bridge event as a second, deduplicated delivery
- * path. Notification clicks use TanStack Router, so opening a comment never reloads
- * the whole Cases page.
+ * Desktop owns exactly one recipient-scoped Realtime channel in
+ * DesktopRealtimeSync. This hook only renders in-app popups there, avoiding a
+ * second websocket and duplicate delivery. When the Desktop is in background,
+ * the global bridge has already handed the event to the Windows notification
+ * center, so no hidden in-app popup or browser Notification API is required.
  */
 export function useNotificationPopups() {
   const [popups, setPopups] = useState<PopupNotification[]>([]);
@@ -32,6 +33,7 @@ export function useNotificationPopups() {
   const seenIds = useRef(new Set<string>());
   const currentUserId = useRef<string | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
+  const desktop = isDentalFlowDesktop();
 
   const openNotification = (n: PopupNotification) => {
     const meta = (n.metadata || {}) as { case_id?: string; activity_id?: string | null };
@@ -65,7 +67,10 @@ export function useNotificationPopups() {
       }).catch(() => {
         element.volume = old;
       });
-      if (typeof Notification !== "undefined" && Notification.permission === "default") {
+
+      // Browser notifications remain a Web/PWA fallback. The installed Desktop
+      // uses the Windows notification service directly through Tauri.
+      if (!desktop && typeof Notification !== "undefined" && Notification.permission === "default") {
         void Notification.requestPermission().catch(() => undefined);
       }
     };
@@ -76,12 +81,13 @@ export function useNotificationPopups() {
       element.pause();
       audio.current = null;
     };
-  }, []);
+  }, [desktop]);
 
   useEffect(() => {
     let disposed = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let retryTimer: number | null = null;
+    let authSubscription: { unsubscribe: () => void } | null = null;
 
     const playSound = () => {
       const a = audio.current;
@@ -92,9 +98,15 @@ export function useNotificationPopups() {
       } catch {}
     };
 
-    const showSystemNotification = (n: PopupNotification) => {
+    const showExternalWebNotification = (n: PopupNotification) => {
+      const background = document.hidden || !document.hasFocus();
+      if (!background) return false;
+
+      // On Desktop the native notification has already been emitted by the
+      // globally mounted realtime bridge. Returning true suppresses duplicates.
+      if (desktop) return true;
+
       if (typeof Notification === "undefined" || Notification.permission !== "granted") return false;
-      if (!document.hidden && document.hasFocus()) return false;
       try {
         const meta = (n.metadata || {}) as { sender_name?: string | null; case_label?: string | null };
         const title = meta.sender_name
@@ -127,11 +139,10 @@ export function useNotificationPopups() {
         old.some((item) => item?.id === n.id) ? old : [n, ...old],
       );
       setUnreadCount((value) => value + 1);
-      playSound();
 
-      if (!showSystemNotification(n)) {
-        setPopups((old) => old.some((item) => item.id === n.id) ? old : [n, ...old].slice(0, 5));
-      }
+      if (showExternalWebNotification(n)) return;
+      playSound();
+      setPopups((old) => old.some((item) => item.id === n.id) ? old : [n, ...old].slice(0, 5));
     };
 
     const disconnect = () => {
@@ -146,7 +157,7 @@ export function useNotificationPopups() {
     };
 
     const scheduleReconnect = () => {
-      if (disposed || navigator.onLine === false || retryTimer !== null) return;
+      if (desktop || disposed || navigator.onLine === false || retryTimer !== null) return;
       retryTimer = window.setTimeout(() => {
         retryTimer = null;
         void connect();
@@ -154,9 +165,9 @@ export function useNotificationPopups() {
     };
 
     const connect = async () => {
-      if (disposed || channel || navigator.onLine === false) return;
-      const { data } = await supabase.auth.getUser().catch(() => ({ data: { user: null } } as any));
-      const user = data.user;
+      if (desktop || disposed || channel || navigator.onLine === false) return;
+      const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } } as any));
+      const user = data.session?.user;
       if (!user || user.user_metadata?.dentalflow_offline_device || disposed) return;
       currentUserId.current = user.id;
 
@@ -199,34 +210,48 @@ export function useNotificationPopups() {
     const onDesktopRealtime = (event: Event) => deliver((event as CustomEvent).detail);
     window.addEventListener("dentalflow:realtime-notification", onDesktopRealtime as EventListener);
 
-    const onOnline = () => {
-      disconnect();
-      void connect();
-    };
-    const onOffline = () => disconnect();
-    window.addEventListener("online", onOnline);
-    window.addEventListener("offline", onOffline);
-
-    const auth = supabase.auth.onAuthStateChange((event) => {
-      if (["SIGNED_IN", "TOKEN_REFRESHED", "INITIAL_SESSION"].includes(event)) {
+    if (desktop) {
+      void supabase.auth.getSession().then(({ data }) => {
+        currentUserId.current = data.session?.user?.id ?? null;
+      }).catch(() => undefined);
+    } else {
+      const onOnline = () => {
         disconnect();
-        window.setTimeout(() => void connect(), 30);
-      }
-      if (event === "SIGNED_OUT") disconnect();
-    });
+        void connect();
+      };
+      const onOffline = () => disconnect();
+      window.addEventListener("online", onOnline);
+      window.addEventListener("offline", onOffline);
 
-    void connect();
+      const auth = supabase.auth.onAuthStateChange((event) => {
+        if (["SIGNED_IN", "INITIAL_SESSION", "USER_UPDATED"].includes(event)) {
+          disconnect();
+          window.setTimeout(() => void connect(), 30);
+        }
+        if (event === "SIGNED_OUT") disconnect();
+      });
+      authSubscription = auth.data.subscription;
+      void connect();
+
+      return () => {
+        disposed = true;
+        disconnect();
+        authSubscription?.unsubscribe();
+        unsubPeer();
+        window.removeEventListener("online", onOnline);
+        window.removeEventListener("offline", onOffline);
+        window.removeEventListener("dentalflow:realtime-notification", onDesktopRealtime as EventListener);
+      };
+    }
 
     return () => {
       disposed = true;
       disconnect();
-      auth.data.subscription.unsubscribe();
+      authSubscription?.unsubscribe();
       unsubPeer();
-      window.removeEventListener("online", onOnline);
-      window.removeEventListener("offline", onOffline);
       window.removeEventListener("dentalflow:realtime-notification", onDesktopRealtime as EventListener);
     };
-  }, [navigate, qc]);
+  }, [desktop, navigate, qc]);
 
   const removePopup = (id: string) => setPopups((old) => old.filter((item) => item.id !== id));
 
