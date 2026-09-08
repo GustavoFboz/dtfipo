@@ -10,16 +10,92 @@ use local_db::{
     outbox_pending,
 };
 use notifications::desktop_native_notification;
-use tauri::Manager;
+use tauri::{AppHandle, Manager};
 use window_controls::{desktop_window_action, desktop_window_state};
+
+#[cfg(desktop)]
+fn show_main_window(app: &AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default();
+
+    // Must be registered before the other plugins. If DentalFlow is already
+    // running silently in the tray and the user launches it again, the second
+    // process exits and the existing main window is simply restored.
+    #[cfg(desktop)]
+    {
+        builder = builder
+            .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+                show_main_window(app);
+            }))
+            .plugin(tauri_plugin_autostart::init(
+                tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+                Some(vec!["--background"]),
+            ));
+    }
+
+    builder
         .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let local_db = local_db::initialize(app.handle())?;
             app.manage(local_db);
+
+            #[cfg(desktop)]
+            {
+                use tauri::menu::{Menu, MenuItem};
+                use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+                use tauri_plugin_autostart::ManagerExt;
+
+                // DentalFlow starts with Windows using --background. The WebView
+                // remains alive so the authenticated notification bridge can keep
+                // receiving events without opening the interface.
+                let autostart = app.autolaunch();
+                if !autostart.is_enabled().unwrap_or(false) {
+                    let _ = autostart.enable();
+                }
+
+                let open_item = MenuItem::with_id(app, "open", "Abrir DentalFlow", true, None::<&str>)?;
+                let quit_item = MenuItem::with_id(app, "quit", "Encerrar DentalFlow", true, None::<&str>)?;
+                let menu = Menu::with_items(app, &[&open_item, &quit_item])?;
+
+                let mut tray = TrayIconBuilder::new()
+                    .tooltip("DentalFlow — notificações em segundo plano")
+                    .menu(&menu)
+                    .show_menu_on_left_click(false)
+                    .on_menu_event(|app, event| match event.id.as_ref() {
+                        "open" => show_main_window(app),
+                        "quit" => app.exit(0),
+                        _ => {}
+                    })
+                    .on_tray_icon_event(|tray, event| {
+                        if let TrayIconEvent::Click {
+                            button: MouseButton::Left,
+                            button_state: MouseButtonState::Up,
+                            ..
+                        } = event
+                        {
+                            show_main_window(tray.app_handle());
+                        }
+                    });
+
+                if let Some(icon) = app.default_window_icon() {
+                    tray = tray.icon(icon.clone());
+                }
+                tray.build(app)?;
+
+                let background_start = std::env::args().any(|arg| arg == "--background");
+                if !background_start {
+                    show_main_window(app.handle());
+                }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
