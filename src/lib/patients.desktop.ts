@@ -8,6 +8,13 @@ import { resolveDesktopOwnerId } from "./desktop-identity";
 const NS = "patients:v1";
 const ALL_KEY = "all";
 
+function isRevalidationGap(error: unknown) {
+  const message = String((error as any)?.message ?? error ?? "").toLowerCase();
+  return ["cloud login", "revalidation", "revalidação", "failed to fetch", "timeout", "network"].some((part) => message.includes(part));
+}
+
+const wait = (ms: number) => new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+
 /**
  * Routes that import @/lib/patients-local-first directly used to bypass the
  * Desktop API facade's cache-first behavior. During a transient auth/reconnect
@@ -38,6 +45,13 @@ export async function fetchPatientsLocalFirst(): Promise<Patient[]> {
     return await fetchPatientsBase();
   } catch (error) {
     if (cached) return cached;
+    // First run on a machine may not have a mirror yet. Give the Desktop auth
+    // shim one short self-healing cycle instead of presenting an empty/error
+    // patient registry because getUser happened to time out during startup.
+    if (typeof navigator !== "undefined" && navigator.onLine !== false && isRevalidationGap(error)) {
+      await wait(700);
+      return fetchPatientsBase();
+    }
     throw error;
   }
 }
