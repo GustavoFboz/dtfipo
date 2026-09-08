@@ -38,7 +38,7 @@ function ForgotPage() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Enviando..." : "Enviar link"}
           </Button>
-          <Link to="/auth" search={{ invite: undefined, mode: undefined }} className="block text-sm text-center text-muted-foreground hover:underline">
+          <Link to="/auth" search={{ invite: undefined, mode: undefined, returnTo: undefined }} className="block text-sm text-center text-muted-foreground hover:underline">
             Voltar
           </Link>
         </form>

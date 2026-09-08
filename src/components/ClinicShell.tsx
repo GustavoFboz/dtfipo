@@ -44,7 +44,7 @@ export function ClinicShell() {
     await queryClient.cancelQueries();
     queryClient.clear();
     await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true, search: { invite: undefined, mode: undefined } });
+    navigate({ to: "/auth", replace: true, search: { invite: undefined, mode: undefined, returnTo: undefined } });
   }
 
   return (

@@ -23,7 +23,7 @@ export function useSessionLifecycle() {
       await qc.cancelQueries();
       qc.clear();
       await supabase.auth.signOut();
-      navigate({ to: "/auth", replace: true, search: { invite: undefined, mode: undefined } });
+      navigate({ to: "/auth", replace: true, search: { invite: undefined, mode: undefined, returnTo: undefined } });
     };
 
     const revalidate = async () => {

@@ -81,7 +81,7 @@ function Index() {
           activeFilter="all"
           deepLinkCaseId={deepLinkCaseId}
           deepLinkFocusActivityId={deepLinkMessageId}
-          onDeepLinkClose={() => navigate({ to: "/casos", search: {} })}
+          onDeepLinkClose={() => navigate({ to: "/casos", search: { case: undefined, msg: undefined } })}
         />
       </div>
     );

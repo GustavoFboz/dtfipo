@@ -121,7 +121,7 @@ async function hydrateLocalAppointment(input: Record<string, any>, existing?: Ap
 }
 
 function contextLooksAuthoritative(value: ClinicContext) {
-  return Boolean(value?.clinic?.id || value?.profile?.clinic_id || value?.hasClinicalModule);
+  return Boolean(value?.clinicId || value?.hasClinicalModule);
 }
 
 export async function fetchClinicContextLocalFirst(): Promise<ClinicContext> {
@@ -179,7 +179,7 @@ export async function saveClinicAppointmentLocalFirst(input: Record<string, any>
 
   const queue = async () => {
     await upsertAppointment(id, local);
-    const payload = { ...input, id: local.id };
+    const payload: Record<string, any> = { ...input, id: local.id };
     delete payload.patient;
     delete payload.doctor;
     await enqueueOutbox({

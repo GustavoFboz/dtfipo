@@ -92,7 +92,7 @@ export function getCaseWorkflowStages(
     .filter((stage) => Number(stage.workflow_version || 1) === resolvedVersion)
     .filter((stage) => {
       if (stage.id === currentStageId) return true;
-      if (stage.condition_key === "requires_sintering") return Boolean(options.requiresSintering);
+      if (String(stage.condition_key) === "requires_sintering") return Boolean(options.requiresSintering);
       return true;
     })
     .sort((a, b) => a.position - b.position)
