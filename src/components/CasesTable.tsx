@@ -152,7 +152,7 @@ export function CasesTable({
   onYearChange?: (year: string | null) => void;
   onCountsUpdate?: (counts: Record<string, number>) => void;
   dateRange?: { start: string; end: string } | null;
-  advancedFilters?: { doctorIds: string[]; cadistaIds: string[] };
+  advancedFilters?: { doctorIds: string[]; cadistaIds: string[]; toothColorId?: string };
   deepLinkCaseId?: string;
   deepLinkFocusActivityId?: string;
   onDeepLinkClose?: () => void;
