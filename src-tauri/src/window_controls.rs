@@ -42,10 +42,13 @@ pub fn desktop_window_action(app: AppHandle, action: String) -> Result<DesktopWi
         }
         "drag" => window.start_dragging().map_err(|error| error.to_string())?,
         "close" => {
-            window.close().map_err(|error| error.to_string())?;
+            // The visual close button now means "close the interface", not
+            // "terminate the background service". DentalFlow remains in the
+            // Windows notification area and can still receive native alerts.
+            window.hide().map_err(|error| error.to_string())?;
             return Ok(DesktopWindowState {
-                maximized: false,
-                fullscreen: false,
+                maximized: window.is_maximized().unwrap_or(false),
+                fullscreen: window.is_fullscreen().unwrap_or(false),
                 focused: false,
             });
         }
