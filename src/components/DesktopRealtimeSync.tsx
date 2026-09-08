@@ -14,6 +14,7 @@ const CASE_INVALIDATION_DEBOUNCE_MS = 220;
 const BACKGROUND_NOTIFICATION_POLL_MS = 15_000;
 const BACKGROUND_NOTIFICATION_BATCH = 50;
 const NOTIFICATION_STARTUP_LOOKBACK_MS = 2 * 60_000;
+const CASE_UPDATE_NATIVE_DELAY_MS = 900;
 
 function notificationPresentation(row: Record<string, any>) {
   const metadata = (row.metadata ?? {}) as Record<string, any>;
@@ -39,13 +40,6 @@ function newerIso(a: string, b: string) {
   return Date.parse(a) > Date.parse(b) ? a : b;
 }
 
-/**
- * Ponte realtime central do Desktop.
- *
- * Realtime is the low-latency path. A recipient-scoped 15 s catch-up remains
- * active while the installed client is in background so Windows sleep/throttling
- * or a temporary auth validation gap cannot silently lose notifications.
- */
 export function DesktopRealtimeSync() {
   const queryClient = useQueryClient();
 
@@ -65,6 +59,7 @@ export function DesktopRealtimeSync() {
     const pendingCaseIds = new Set<string>();
     const deliveredNativeIds = new Set<string>();
     const seenNotificationIds = new Set<string>();
+    const pendingCaseNativeTimers = new Map<string, number>();
 
     for (const row of queryClient.getQueryData<any[]>(["notifications"]) ?? []) {
       if (row?.id) seenNotificationIds.add(String(row.id));
@@ -89,6 +84,17 @@ export function DesktopRealtimeSync() {
       backgroundPollTimer = null;
     };
 
+    const cancelPendingCaseNative = (caseId: string) => {
+      const timer = pendingCaseNativeTimers.get(caseId);
+      if (timer !== undefined) window.clearTimeout(timer);
+      pendingCaseNativeTimers.delete(caseId);
+    };
+
+    const clearPendingCaseNative = () => {
+      for (const timer of pendingCaseNativeTimers.values()) window.clearTimeout(timer);
+      pendingCaseNativeTimers.clear();
+    };
+
     const teardownChannel = () => {
       clearReconnectTimer();
       if (!channel) return;
@@ -108,6 +114,7 @@ export function DesktopRealtimeSync() {
         pendingCaseIds.clear();
         for (const id of ids) {
           void queryClient.invalidateQueries({ queryKey: ["case_activity", id], refetchType: "active" });
+          void queryClient.invalidateQueries({ queryKey: ["case-professional-activity", id], refetchType: "active" });
           void queryClient.invalidateQueries({ queryKey: ["case", id], refetchType: "active" });
           void queryClient.invalidateQueries({ queryKey: ["cases"], refetchType: "active" });
         }
@@ -133,6 +140,28 @@ export function DesktopRealtimeSync() {
       return sent;
     };
 
+    const scheduleNativeCaseUpdate = (row: Record<string, any>) => {
+      const caseId = String(row.id ?? "");
+      if (!caseId) return;
+      cancelPendingCaseNative(caseId);
+      const timer = window.setTimeout(() => {
+        pendingCaseNativeTimers.delete(caseId);
+        void (async () => {
+          if (disposed || !(await nativeWindowIsBackground())) return;
+          const version = String(row.updated_at ?? row.current_stage_id ?? row.status ?? Date.now());
+          const dedupeKey = `case-update:${caseId}:${version}`;
+          if (deliveredNativeIds.has(dedupeKey)) return;
+          const label = String(row.case_label ?? "").trim();
+          const sent = await sendDesktopNativeNotification({
+            title: label ? `Caso atualizado · ${label}` : "Caso atualizado",
+            body: "Um caso ao qual você tem acesso recebeu uma atualização.",
+          });
+          if (sent) deliveredNativeIds.add(dedupeKey);
+        })();
+      }, CASE_UPDATE_NATIVE_DELAY_MS);
+      pendingCaseNativeTimers.set(caseId, timer);
+    };
+
     const rememberNotificationCursor = (row: Record<string, any>) => {
       const createdAt = String(row.created_at ?? "");
       if (createdAt && !Number.isNaN(Date.parse(createdAt))) {
@@ -146,6 +175,9 @@ export function DesktopRealtimeSync() {
       const alreadySeen = seenNotificationIds.has(id);
       seenNotificationIds.add(id);
       rememberNotificationCursor(row);
+
+      const relatedCaseId = String((row.metadata as any)?.case_id ?? "");
+      if (relatedCaseId) cancelPendingCaseNative(relatedCaseId);
 
       broadcastEntity("notifications", "insert", row);
       queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
@@ -161,20 +193,12 @@ export function DesktopRealtimeSync() {
     };
 
     const pollBackgroundNotifications = async () => {
-      if (
-        disposed ||
-        pollingNotifications ||
-        navigator.onLine === false ||
-        !currentUserId
-      ) return;
+      if (disposed || pollingNotifications || navigator.onLine === false || !currentUserId) return;
       if (!(await nativeWindowIsBackground())) return;
 
       pollingNotifications = true;
       const cursorAtStart = notificationCursor;
       try {
-        // Revalidate/recover the persisted real JWT before the protected read.
-        // This is deliberately lightweight and also repairs a channel that
-        // started while Cloud Login validation was temporarily unavailable.
         const { data: sessionData } = await supabase.auth.getSession();
         if (!sessionData.session || sessionData.session.user.user_metadata?.dentalflow_offline_device) return;
         currentUserId = sessionData.session.user.id;
@@ -223,9 +247,6 @@ export function DesktopRealtimeSync() {
         const user = data.session?.user;
 
         if (!user || user.user_metadata?.dentalflow_offline_device) {
-          // Previous builds simply returned here. A single transient auth timeout
-          // at startup could therefore leave both Realtime and catch-up dead for
-          // the entire session. Keep the recipient identity and self-heal.
           const identity = await getProvisionedDesktopIdentity().catch(() => null);
           currentUserId = user?.id ?? identity?.user_id ?? currentUserId;
           startBackgroundPoll();
@@ -236,7 +257,7 @@ export function DesktopRealtimeSync() {
         currentUserId = user.id;
 
         const next = supabase
-          .channel(`desktop-realtime-033:${user.id}:${crypto.randomUUID()}`)
+          .channel(`desktop-realtime-034:${user.id}:${crypto.randomUUID()}`)
           .on(
             "postgres_changes",
             {
@@ -281,6 +302,7 @@ export function DesktopRealtimeSync() {
             (payload) => {
               const row = payload.new as Record<string, any>;
               if (row.id) scheduleCaseInvalidation(String(row.id));
+              scheduleNativeCaseUpdate(row);
               window.dispatchEvent(new CustomEvent("dentalflow:realtime-case-update", { detail: row }));
             },
           )
@@ -343,6 +365,7 @@ export function DesktopRealtimeSync() {
       clearReconnectTimer();
       clearCaseInvalidationTimer();
       clearBackgroundPoll();
+      clearPendingCaseNative();
       pendingCaseIds.clear();
       deliveredNativeIds.clear();
       seenNotificationIds.clear();
