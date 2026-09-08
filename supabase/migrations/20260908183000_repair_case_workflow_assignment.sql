@@ -128,41 +128,76 @@ ON public.cases
 FOR EACH ROW
 EXECUTE FUNCTION public.assign_case_workflow();
 
--- Repair legacy mismatches already stored. Updating the derived workflow fields
--- intentionally invokes the trigger above, which maps the current semantic
--- stage_key to the correct flow/version (or to entry when no equivalent exists).
-UPDATE public.cases AS c
-   SET workflow_key = public.case_flow_key(c.has_mockup, c.has_provisional),
-       workflow_version = COALESCE(
-         (
-           SELECT wt.active_version
-             FROM public.workflow_templates wt
-            WHERE wt.flow_key = public.case_flow_key(c.has_mockup, c.has_provisional)
-         ),
-         1
-       )
- WHERE c.workflow_key IS DISTINCT FROM public.case_flow_key(c.has_mockup, c.has_provisional)
-    OR c.workflow_version IS DISTINCT FROM COALESCE(
-         (
-           SELECT wt.active_version
-             FROM public.workflow_templates wt
-            WHERE wt.flow_key = public.case_flow_key(c.has_mockup, c.has_provisional)
-         ),
-         1
-       )
-    OR EXISTS (
-         SELECT 1
-           FROM public.stages s
-          WHERE s.id = c.current_stage_id
-            AND (
-              s.flow_key IS DISTINCT FROM public.case_flow_key(c.has_mockup, c.has_provisional)
-              OR COALESCE(s.workflow_version, 1) IS DISTINCT FROM COALESCE(
-                (
-                  SELECT wt.active_version
-                    FROM public.workflow_templates wt
-                   WHERE wt.flow_key = public.case_flow_key(c.has_mockup, c.has_provisional)
-                ),
-                1
-              )
-            )
-       );
+-- Repair legacy mismatches deterministically. Merely updating workflow_key is
+-- insufficient when it is already correct but current_stage_id still points to
+-- a legacy/other-flow stage. Resolve the current semantic stage_key and replace
+-- current_stage_id itself; legacy stages without a stage_key safely fall back to
+-- the destination flow's entry stage.
+WITH mismatched AS (
+  SELECT
+    c.id,
+    public.case_flow_key(c.has_mockup, c.has_provisional) AS desired_flow,
+    COALESCE(
+      (
+        SELECT wt.active_version
+          FROM public.workflow_templates wt
+         WHERE wt.flow_key = public.case_flow_key(c.has_mockup, c.has_provisional)
+      ),
+      1
+    ) AS desired_version,
+    COALESCE(s.stage_key, 'entry') AS semantic_stage_key
+  FROM public.cases c
+  LEFT JOIN public.stages s ON s.id = c.current_stage_id
+  WHERE c.workflow_key IS DISTINCT FROM public.case_flow_key(c.has_mockup, c.has_provisional)
+     OR c.workflow_version IS DISTINCT FROM COALESCE(
+          (
+            SELECT wt.active_version
+              FROM public.workflow_templates wt
+             WHERE wt.flow_key = public.case_flow_key(c.has_mockup, c.has_provisional)
+          ),
+          1
+        )
+     OR s.flow_key IS DISTINCT FROM public.case_flow_key(c.has_mockup, c.has_provisional)
+     OR COALESCE(s.workflow_version, 1) IS DISTINCT FROM COALESCE(
+          (
+            SELECT wt.active_version
+              FROM public.workflow_templates wt
+             WHERE wt.flow_key = public.case_flow_key(c.has_mockup, c.has_provisional)
+          ),
+          1
+        )
+), targets AS (
+  SELECT
+    m.id,
+    m.desired_flow,
+    m.desired_version,
+    COALESCE(exact_stage.id, entry_stage.id) AS target_stage_id,
+    COALESCE(exact_stage.phase_id, entry_stage.phase_id) AS target_phase_id
+  FROM mismatched m
+  LEFT JOIN LATERAL (
+    SELECT st.id, st.phase_id
+      FROM public.stages st
+     WHERE st.flow_key = m.desired_flow
+       AND COALESCE(st.workflow_version, 1) = m.desired_version
+       AND st.stage_key = m.semantic_stage_key
+     ORDER BY st.position
+     LIMIT 1
+  ) exact_stage ON true
+  LEFT JOIN LATERAL (
+    SELECT st.id, st.phase_id
+      FROM public.stages st
+     WHERE st.flow_key = m.desired_flow
+       AND COALESCE(st.workflow_version, 1) = m.desired_version
+       AND st.stage_key = 'entry'
+     ORDER BY st.position
+     LIMIT 1
+  ) entry_stage ON true
+)
+UPDATE public.cases c
+   SET workflow_key = t.desired_flow,
+       workflow_version = t.desired_version,
+       current_stage_id = t.target_stage_id,
+       current_phase_id = t.target_phase_id
+  FROM targets t
+ WHERE c.id = t.id
+   AND t.target_stage_id IS NOT NULL;
