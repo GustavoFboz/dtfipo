@@ -831,18 +831,18 @@ export function Model3DViewer({
   const draftMentionsRef = useRef<Map<string, string>>(new Map()); // handle -> userId
 
   const handleCommentTextChange = useCallback(async (newText: string) => {
-    if (!commentDraft) return;
+    if (!commentDraft || !caseId) return;
     setCommentDraft({ ...commentDraft, text: newText });
     const m = newText.match(/@([\p{L}\p{N}._-]*)$/u);
     if (m) {
       try {
-        const list = await fetchMentionableProfiles(m[1]);
+        const list = await fetchMentionableProfiles(caseId, m[1]);
         setMentionSuggestions(list.slice(0, 6));
       } catch { setMentionSuggestions([]); }
     } else {
       setMentionSuggestions([]);
     }
-  }, [commentDraft]);
+  }, [commentDraft, caseId]);
 
   const pickMention = useCallback((p: { id: string; full_name: string | null; email: string | null }) => {
     if (!commentDraft) return;
