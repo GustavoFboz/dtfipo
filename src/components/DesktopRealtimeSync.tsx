@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getDesktopWindowState,
+  getProvisionedDesktopIdentity,
   isDentalFlowDesktop,
   sendDesktopNativeNotification,
 } from "@/lib/desktop-local";
@@ -10,8 +11,9 @@ import { broadcastEntity } from "@/lib/optimistic";
 
 const REALTIME_RECONNECT_MS = 1_500;
 const CASE_INVALIDATION_DEBOUNCE_MS = 220;
-const BACKGROUND_NOTIFICATION_POLL_MS = 30_000;
+const BACKGROUND_NOTIFICATION_POLL_MS = 15_000;
 const BACKGROUND_NOTIFICATION_BATCH = 50;
+const NOTIFICATION_STARTUP_LOOKBACK_MS = 2 * 60_000;
 
 function notificationPresentation(row: Record<string, any>) {
   const metadata = (row.metadata ?? {}) as Record<string, any>;
@@ -23,6 +25,7 @@ function notificationPresentation(row: Record<string, any>) {
   if (sender) {
     if (type === "attachment") title = `${sender} anexou um arquivo`;
     else if (["comment", "mention", "message"].includes(type)) title = `${sender} enviou uma mensagem`;
+    else if (["case_update", "case_stage", "case_status"].includes(type)) title = `${sender} atualizou um caso`;
   }
   if (caseLabel) title = `${title} · ${caseLabel}`;
 
@@ -39,10 +42,9 @@ function newerIso(a: string, b: string) {
 /**
  * Ponte realtime central do Desktop.
  *
- * O Realtime continua sendo o caminho de menor latência. O polling leve abaixo é
- * apenas uma rede de segurança quando o Windows reduz timers/socket de uma janela
- * minimizada ou quando o computador retorna do sleep. Ele consulta somente novas
- * notificações do usuário desde o último cursor, sem iniciar sincronização geral.
+ * Realtime is the low-latency path. A recipient-scoped 15 s catch-up remains
+ * active while the installed client is in background so Windows sleep/throttling
+ * or a temporary auth validation gap cannot silently lose notifications.
  */
 export function DesktopRealtimeSync() {
   const queryClient = useQueryClient();
@@ -58,10 +60,19 @@ export function DesktopRealtimeSync() {
     let backgroundPollTimer: number | null = null;
     let pollingNotifications = false;
     let currentUserId: string | null = null;
-    let notificationCursor = new Date().toISOString();
+    let notificationCursor = new Date(Date.now() - NOTIFICATION_STARTUP_LOOKBACK_MS).toISOString();
     let authSubscription: { unsubscribe: () => void } | null = null;
     const pendingCaseIds = new Set<string>();
     const deliveredNativeIds = new Set<string>();
+    const seenNotificationIds = new Set<string>();
+
+    for (const row of queryClient.getQueryData<any[]>(["notifications"]) ?? []) {
+      if (row?.id) seenNotificationIds.add(String(row.id));
+      const createdAt = String(row?.created_at ?? "");
+      if (createdAt && !Number.isNaN(Date.parse(createdAt))) {
+        notificationCursor = newerIso(createdAt, notificationCursor);
+      }
+    }
 
     const clearReconnectTimer = () => {
       if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
@@ -98,6 +109,7 @@ export function DesktopRealtimeSync() {
         for (const id of ids) {
           void queryClient.invalidateQueries({ queryKey: ["case_activity", id], refetchType: "active" });
           void queryClient.invalidateQueries({ queryKey: ["case", id], refetchType: "active" });
+          void queryClient.invalidateQueries({ queryKey: ["cases"], refetchType: "active" });
         }
       }, CASE_INVALIDATION_DEBOUNCE_MS);
     };
@@ -129,14 +141,22 @@ export function DesktopRealtimeSync() {
     };
 
     const ingestNotification = (row: Record<string, any>, emitUiEvent = true) => {
+      const id = String(row.id ?? "");
+      if (!id) return;
+      const alreadySeen = seenNotificationIds.has(id);
+      seenNotificationIds.add(id);
       rememberNotificationCursor(row);
+
       broadcastEntity("notifications", "insert", row);
       queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
         old.some((item) => item?.id === row.id) ? old : [row, ...old],
       );
-      void notifyNativeIfBackground(row);
-      if (emitUiEvent) {
-        window.dispatchEvent(new CustomEvent("dentalflow:realtime-notification", { detail: row }));
+
+      if (!alreadySeen) {
+        void notifyNativeIfBackground(row);
+        if (emitUiEvent) {
+          window.dispatchEvent(new CustomEvent("dentalflow:realtime-notification", { detail: row }));
+        }
       }
     };
 
@@ -152,6 +172,13 @@ export function DesktopRealtimeSync() {
       pollingNotifications = true;
       const cursorAtStart = notificationCursor;
       try {
+        // Revalidate/recover the persisted real JWT before the protected read.
+        // This is deliberately lightweight and also repairs a channel that
+        // started while Cloud Login validation was temporarily unavailable.
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session || sessionData.session.user.user_metadata?.dentalflow_offline_device) return;
+        currentUserId = sessionData.session.user.id;
+
         const { data, error } = await supabase
           .from("notifications")
           .select("*")
@@ -163,10 +190,7 @@ export function DesktopRealtimeSync() {
 
         for (const raw of data ?? []) {
           if (disposed) break;
-          const row = raw as Record<string, any>;
-          // A lista interna também precisa receber eventos eventualmente perdidos
-          // pelo websocket; o Set impede toast nativo duplicado com o Realtime.
-          ingestNotification(row, true);
+          ingestNotification(raw as Record<string, any>, true);
         }
       } catch (error) {
         console.warn("[DentalFlow Desktop] Falha no catch-up de notificações", error);
@@ -176,7 +200,7 @@ export function DesktopRealtimeSync() {
     };
 
     const startBackgroundPoll = () => {
-      clearBackgroundPoll();
+      if (backgroundPollTimer !== null) return;
       backgroundPollTimer = window.setInterval(() => {
         void pollBackgroundNotifications();
       }, BACKGROUND_NOTIFICATION_POLL_MS);
@@ -197,11 +221,22 @@ export function DesktopRealtimeSync() {
       try {
         const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } } as any));
         const user = data.session?.user;
-        if (!user || user.user_metadata?.dentalflow_offline_device || disposed) return;
+
+        if (!user || user.user_metadata?.dentalflow_offline_device) {
+          // Previous builds simply returned here. A single transient auth timeout
+          // at startup could therefore leave both Realtime and catch-up dead for
+          // the entire session. Keep the recipient identity and self-heal.
+          const identity = await getProvisionedDesktopIdentity().catch(() => null);
+          currentUserId = user?.id ?? identity?.user_id ?? currentUserId;
+          startBackgroundPoll();
+          queueReconnect();
+          return;
+        }
+        if (disposed) return;
         currentUserId = user.id;
 
         const next = supabase
-          .channel(`desktop-realtime-032:${user.id}:${crypto.randomUUID()}`)
+          .channel(`desktop-realtime-033:${user.id}:${crypto.randomUUID()}`)
           .on(
             "postgres_changes",
             {
@@ -210,9 +245,7 @@ export function DesktopRealtimeSync() {
               table: "notifications",
               filter: `recipient_id=eq.${user.id}`,
             },
-            (payload) => {
-              ingestNotification(payload.new as Record<string, any>, true);
-            },
+            (payload) => ingestNotification(payload.new as Record<string, any>, true),
           )
           .on(
             "postgres_changes",
@@ -225,6 +258,7 @@ export function DesktopRealtimeSync() {
             (payload) => {
               const row = payload.new as Record<string, any>;
               rememberNotificationCursor(row);
+              if (row?.id) seenNotificationIds.add(String(row.id));
               broadcastEntity("notifications", "update", row);
               queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
                 old.map((item) => item?.id === row.id ? { ...item, ...row } : item),
@@ -239,6 +273,15 @@ export function DesktopRealtimeSync() {
               broadcastEntity("case_activity", "insert", row);
               if (row.case_id) scheduleCaseInvalidation(String(row.case_id));
               window.dispatchEvent(new CustomEvent("dentalflow:realtime-case-activity", { detail: row }));
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "cases" },
+            (payload) => {
+              const row = payload.new as Record<string, any>;
+              if (row.id) scheduleCaseInvalidation(String(row.id));
+              window.dispatchEvent(new CustomEvent("dentalflow:realtime-case-update", { detail: row }));
             },
           )
           .subscribe((status) => {
@@ -265,11 +308,12 @@ export function DesktopRealtimeSync() {
 
     const onOnline = () => {
       teardownChannel();
+      startBackgroundPoll();
       void connect().then(() => pollBackgroundNotifications());
     };
     const onOffline = () => teardownChannel();
     const onVisibility = () => {
-      if (!document.hidden && navigator.onLine !== false && !channel) void connect();
+      if (navigator.onLine !== false && !channel) void connect();
       if (document.hidden) void pollBackgroundNotifications();
     };
     const onWindowBlur = () => void pollBackgroundNotifications();
@@ -285,6 +329,7 @@ export function DesktopRealtimeSync() {
         teardownChannel();
         queueReconnect();
       }
+      if (event === "TOKEN_REFRESHED" && !channel) queueReconnect();
       if (event === "SIGNED_OUT") {
         currentUserId = null;
         teardownChannel();
@@ -300,6 +345,7 @@ export function DesktopRealtimeSync() {
       clearBackgroundPoll();
       pendingCaseIds.clear();
       deliveredNativeIds.clear();
+      seenNotificationIds.clear();
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
       window.removeEventListener("blur", onWindowBlur);
