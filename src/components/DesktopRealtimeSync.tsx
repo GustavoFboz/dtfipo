@@ -1,11 +1,17 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { isDentalFlowDesktop, sendDesktopNativeNotification } from "@/lib/desktop-local";
+import {
+  getDesktopWindowState,
+  isDentalFlowDesktop,
+  sendDesktopNativeNotification,
+} from "@/lib/desktop-local";
 import { broadcastEntity } from "@/lib/optimistic";
 
 const REALTIME_RECONNECT_MS = 1_500;
 const CASE_INVALIDATION_DEBOUNCE_MS = 220;
+const BACKGROUND_NOTIFICATION_POLL_MS = 30_000;
+const BACKGROUND_NOTIFICATION_BATCH = 50;
 
 function notificationPresentation(row: Record<string, any>) {
   const metadata = (row.metadata ?? {}) as Record<string, any>;
@@ -26,13 +32,17 @@ function notificationPresentation(row: Record<string, any>) {
   };
 }
 
+function newerIso(a: string, b: string) {
+  return Date.parse(a) > Date.parse(b) ? a : b;
+}
+
 /**
  * Ponte realtime central do Desktop.
  *
- * Além de manter os caches locais quentes, esta camada é global em todas as rotas
- * autenticadas. Por isso ela é o local correto para disparar notificações nativas:
- * elas continuam chegando pelo Windows quando o usuário está em outro programa,
- * com a janela minimizada ou com o DentalFlow rodando em segundo plano.
+ * O Realtime continua sendo o caminho de menor latência. O polling leve abaixo é
+ * apenas uma rede de segurança quando o Windows reduz timers/socket de uma janela
+ * minimizada ou quando o computador retorna do sleep. Ele consulta somente novas
+ * notificações do usuário desde o último cursor, sem iniciar sincronização geral.
  */
 export function DesktopRealtimeSync() {
   const queryClient = useQueryClient();
@@ -45,8 +55,13 @@ export function DesktopRealtimeSync() {
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let reconnectTimer: number | null = null;
     let caseInvalidationTimer: number | null = null;
+    let backgroundPollTimer: number | null = null;
+    let pollingNotifications = false;
+    let currentUserId: string | null = null;
+    let notificationCursor = new Date().toISOString();
     let authSubscription: { unsubscribe: () => void } | null = null;
     const pendingCaseIds = new Set<string>();
+    const deliveredNativeIds = new Set<string>();
 
     const clearReconnectTimer = () => {
       if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
@@ -56,6 +71,11 @@ export function DesktopRealtimeSync() {
     const clearCaseInvalidationTimer = () => {
       if (caseInvalidationTimer !== null) window.clearTimeout(caseInvalidationTimer);
       caseInvalidationTimer = null;
+    };
+
+    const clearBackgroundPoll = () => {
+      if (backgroundPollTimer !== null) window.clearInterval(backgroundPollTimer);
+      backgroundPollTimer = null;
     };
 
     const teardownChannel = () => {
@@ -82,10 +102,84 @@ export function DesktopRealtimeSync() {
       }, CASE_INVALIDATION_DEBOUNCE_MS);
     };
 
-    const notifyIfBackground = (row: Record<string, any>) => {
-      if (!document.hidden && document.hasFocus()) return;
-      const presentation = notificationPresentation(row);
-      void sendDesktopNativeNotification(presentation);
+    const nativeWindowIsBackground = async () => {
+      try {
+        const state = await getDesktopWindowState();
+        return !state.focused;
+      } catch {
+        return document.hidden || !document.hasFocus();
+      }
+    };
+
+    const notifyNativeIfBackground = async (row: Record<string, any>) => {
+      const id = String(row.id ?? "");
+      if (!id || deliveredNativeIds.has(id)) return false;
+      if (!(await nativeWindowIsBackground())) return false;
+
+      const sent = await sendDesktopNativeNotification(notificationPresentation(row));
+      if (sent) deliveredNativeIds.add(id);
+      return sent;
+    };
+
+    const rememberNotificationCursor = (row: Record<string, any>) => {
+      const createdAt = String(row.created_at ?? "");
+      if (createdAt && !Number.isNaN(Date.parse(createdAt))) {
+        notificationCursor = newerIso(createdAt, notificationCursor);
+      }
+    };
+
+    const ingestNotification = (row: Record<string, any>, emitUiEvent = true) => {
+      rememberNotificationCursor(row);
+      broadcastEntity("notifications", "insert", row);
+      queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
+        old.some((item) => item?.id === row.id) ? old : [row, ...old],
+      );
+      void notifyNativeIfBackground(row);
+      if (emitUiEvent) {
+        window.dispatchEvent(new CustomEvent("dentalflow:realtime-notification", { detail: row }));
+      }
+    };
+
+    const pollBackgroundNotifications = async () => {
+      if (
+        disposed ||
+        pollingNotifications ||
+        navigator.onLine === false ||
+        !currentUserId
+      ) return;
+      if (!(await nativeWindowIsBackground())) return;
+
+      pollingNotifications = true;
+      const cursorAtStart = notificationCursor;
+      try {
+        const { data, error } = await supabase
+          .from("notifications")
+          .select("*")
+          .eq("recipient_id", currentUserId)
+          .gt("created_at", cursorAtStart)
+          .order("created_at", { ascending: true })
+          .limit(BACKGROUND_NOTIFICATION_BATCH);
+        if (error) throw error;
+
+        for (const raw of data ?? []) {
+          if (disposed) break;
+          const row = raw as Record<string, any>;
+          // A lista interna também precisa receber eventos eventualmente perdidos
+          // pelo websocket; o Set impede toast nativo duplicado com o Realtime.
+          ingestNotification(row, true);
+        }
+      } catch (error) {
+        console.warn("[DentalFlow Desktop] Falha no catch-up de notificações", error);
+      } finally {
+        pollingNotifications = false;
+      }
+    };
+
+    const startBackgroundPoll = () => {
+      clearBackgroundPoll();
+      backgroundPollTimer = window.setInterval(() => {
+        void pollBackgroundNotifications();
+      }, BACKGROUND_NOTIFICATION_POLL_MS);
     };
 
     const queueReconnect = () => {
@@ -104,9 +198,10 @@ export function DesktopRealtimeSync() {
         const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } } as any));
         const user = data.session?.user;
         if (!user || user.user_metadata?.dentalflow_offline_device || disposed) return;
+        currentUserId = user.id;
 
         const next = supabase
-          .channel(`desktop-realtime-031:${user.id}`)
+          .channel(`desktop-realtime-032:${user.id}:${crypto.randomUUID()}`)
           .on(
             "postgres_changes",
             {
@@ -116,13 +211,7 @@ export function DesktopRealtimeSync() {
               filter: `recipient_id=eq.${user.id}`,
             },
             (payload) => {
-              const row = payload.new as Record<string, any>;
-              broadcastEntity("notifications", "insert", row);
-              queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
-                old.some((item) => item?.id === row.id) ? old : [row, ...old],
-              );
-              notifyIfBackground(row);
-              window.dispatchEvent(new CustomEvent("dentalflow:realtime-notification", { detail: row }));
+              ingestNotification(payload.new as Record<string, any>, true);
             },
           )
           .on(
@@ -135,6 +224,7 @@ export function DesktopRealtimeSync() {
             },
             (payload) => {
               const row = payload.new as Record<string, any>;
+              rememberNotificationCursor(row);
               broadcastEntity("notifications", "update", row);
               queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
                 old.map((item) => item?.id === row.id ? { ...item, ...row } : item),
@@ -152,6 +242,10 @@ export function DesktopRealtimeSync() {
             },
           )
           .subscribe((status) => {
+            if (status === "SUBSCRIBED") {
+              void pollBackgroundNotifications();
+              return;
+            }
             if (!["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) return;
             if (channel === next) channel = null;
             void supabase.removeChannel(next).catch(() => undefined);
@@ -163,6 +257,7 @@ export function DesktopRealtimeSync() {
           return;
         }
         channel = next;
+        startBackgroundPoll();
       } finally {
         connecting = false;
       }
@@ -170,16 +265,19 @@ export function DesktopRealtimeSync() {
 
     const onOnline = () => {
       teardownChannel();
-      void connect();
+      void connect().then(() => pollBackgroundNotifications());
     };
     const onOffline = () => teardownChannel();
     const onVisibility = () => {
       if (!document.hidden && navigator.onLine !== false && !channel) void connect();
+      if (document.hidden) void pollBackgroundNotifications();
     };
+    const onWindowBlur = () => void pollBackgroundNotifications();
 
     void connect();
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
+    window.addEventListener("blur", onWindowBlur);
     document.addEventListener("visibilitychange", onVisibility);
 
     const auth = supabase.auth.onAuthStateChange((event) => {
@@ -187,7 +285,11 @@ export function DesktopRealtimeSync() {
         teardownChannel();
         queueReconnect();
       }
-      if (event === "SIGNED_OUT") teardownChannel();
+      if (event === "SIGNED_OUT") {
+        currentUserId = null;
+        teardownChannel();
+        clearBackgroundPoll();
+      }
     });
     authSubscription = auth.data.subscription;
 
@@ -195,9 +297,12 @@ export function DesktopRealtimeSync() {
       disposed = true;
       clearReconnectTimer();
       clearCaseInvalidationTimer();
+      clearBackgroundPoll();
       pendingCaseIds.clear();
+      deliveredNativeIds.clear();
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
+      window.removeEventListener("blur", onWindowBlur);
       document.removeEventListener("visibilitychange", onVisibility);
       authSubscription?.unsubscribe();
       teardownChannel();
