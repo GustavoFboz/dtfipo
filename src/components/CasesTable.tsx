@@ -584,6 +584,9 @@ export function CasesTable({
         if (advancedFilters.cadistaIds.length > 0) {
           if (!c.cadista_id || !advancedFilters.cadistaIds.includes(c.cadista_id)) return false;
         }
+        if (advancedFilters.toothColorId && c.tooth_color_id !== advancedFilters.toothColorId) {
+          return false;
+        }
       }
       
       return true;
