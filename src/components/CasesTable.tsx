@@ -152,7 +152,7 @@ export function CasesTable({
   onYearChange?: (year: string | null) => void;
   onCountsUpdate?: (counts: Record<string, number>) => void;
   dateRange?: { start: string; end: string } | null;
-  advancedFilters?: { doctorIds: string[]; cadistaIds: string[] };
+  advancedFilters?: { doctorIds: string[]; cadistaIds: string[]; toothColorId?: string };
   deepLinkCaseId?: string;
   deepLinkFocusActivityId?: string;
   onDeepLinkClose?: () => void;
@@ -584,6 +584,9 @@ export function CasesTable({
         if (advancedFilters.cadistaIds.length > 0) {
           if (!c.cadista_id || !advancedFilters.cadistaIds.includes(c.cadista_id)) return false;
         }
+        if (advancedFilters.toothColorId && c.tooth_color_id !== advancedFilters.toothColorId) {
+          return false;
+        }
       }
       
       return true;
@@ -846,7 +849,7 @@ export function CasesTable({
                       <DropdownMenuSeparator />
                       {stagesForCase(c).map((s) => (
                         <DropdownMenuItem key={s.id} onClick={() => changeStage.mutate({ caseId: c.id, stageId: s.id })} className="rounded-xl font-medium text-xs uppercase py-2.5 mt-1">
-                          <span className="h-2.5 w-2.5 rounded-full mr-3" style={{ background: s.color }} />
+                          <span className="h-2.5 w-2.5 rounded-full mr-3" style={{ background: s.color ?? undefined }} />
                           {s.name}
                         </DropdownMenuItem>
                       ))}
@@ -1216,7 +1219,7 @@ export function CasesTable({
                       <DropdownMenuSeparator />
                       {stagesForCase(c).map((s) => (
                         <DropdownMenuItem key={s.id} onClick={() => changeStage.mutate({ caseId: c.id, stageId: s.id })} className="rounded-xl font-bold text-xs uppercase py-2.5 mt-1">
-                          <span className="h-2.5 w-2.5 rounded-full mr-3 shadow-md" style={{ background: s.color }} />
+                          <span className="h-2.5 w-2.5 rounded-full mr-3 shadow-md" style={{ background: s.color ?? undefined }} />
                           {s.name}
                         </DropdownMenuItem>
                       ))}
