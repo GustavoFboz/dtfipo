@@ -396,7 +396,7 @@ function StageDraftRow({ stage, index, total, onPatch, onMove, onRemove }: {
           onChange={(event) => onPatch({ name: event.target.value })}
           className="flex-1 min-w-0 h-8 rounded-md border border-border bg-background px-2 text-sm font-medium"
         />
-        {stage.condition_key === "requires_sintering" && (
+        {String(stage.condition_key) === "requires_sintering" && (
           <span className="hidden sm:inline-flex rounded-full bg-amber-100 px-2 py-1 text-[10px] font-medium text-amber-800">Condicional · sinterização</span>
         )}
         <button onClick={() => onMove(-1)} disabled={index === 0} className="p-1.5 rounded-md hover:bg-accent disabled:opacity-25"><ArrowUp className="h-3.5 w-3.5" /></button>
