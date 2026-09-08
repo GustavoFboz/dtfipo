@@ -849,7 +849,7 @@ export function CasesTable({
                       <DropdownMenuSeparator />
                       {stagesForCase(c).map((s) => (
                         <DropdownMenuItem key={s.id} onClick={() => changeStage.mutate({ caseId: c.id, stageId: s.id })} className="rounded-xl font-medium text-xs uppercase py-2.5 mt-1">
-                          <span className="h-2.5 w-2.5 rounded-full mr-3" style={{ background: s.color }} />
+                          <span className="h-2.5 w-2.5 rounded-full mr-3" style={{ background: s.color ?? undefined }} />
                           {s.name}
                         </DropdownMenuItem>
                       ))}
@@ -1219,7 +1219,7 @@ export function CasesTable({
                       <DropdownMenuSeparator />
                       {stagesForCase(c).map((s) => (
                         <DropdownMenuItem key={s.id} onClick={() => changeStage.mutate({ caseId: c.id, stageId: s.id })} className="rounded-xl font-bold text-xs uppercase py-2.5 mt-1">
-                          <span className="h-2.5 w-2.5 rounded-full mr-3 shadow-md" style={{ background: s.color }} />
+                          <span className="h-2.5 w-2.5 rounded-full mr-3 shadow-md" style={{ background: s.color ?? undefined }} />
                           {s.name}
                         </DropdownMenuItem>
                       ))}
