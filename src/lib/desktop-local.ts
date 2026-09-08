@@ -88,6 +88,20 @@ export function performDesktopWindowAction(action: "minimize" | "toggle_maximize
   return invokeDesktop<DesktopWindowState>("desktop_window_action", { action });
 }
 
+export async function sendDesktopNativeNotification(input: { title: string; body?: string | null }) {
+  if (!isDentalFlowDesktop()) return false;
+  try {
+    await invokeDesktop<void>("desktop_native_notification", {
+      title: input.title || "DentalFlow",
+      body: input.body ?? "",
+    });
+    return true;
+  } catch (error) {
+    console.warn("[DentalFlow Desktop] Não foi possível exibir a notificação nativa", error);
+    return false;
+  }
+}
+
 export function getProvisionedDesktopIdentity() {
   if (!isDentalFlowDesktop()) return Promise.resolve<DeviceIdentity | null>(null);
   return invokeDesktop<DeviceIdentity | null>("device_identity_get");
