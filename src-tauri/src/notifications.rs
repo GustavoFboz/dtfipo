@@ -1,6 +1,10 @@
 use tauri::AppHandle;
 use tauri_plugin_notification::NotificationExt;
 
+fn truncate_chars(value: &str, max_chars: usize) -> String {
+    value.chars().take(max_chars).collect()
+}
+
 #[tauri::command]
 pub fn desktop_native_notification(
     app: AppHandle,
@@ -14,8 +18,12 @@ pub fn desktop_native_notification(
         return Ok(());
     }
 
-    let safe_title = if title.is_empty() { "DentalFlow" } else { title };
-    let safe_body = if body.len() > 420 { &body[..420] } else { body };
+    let safe_title = if title.is_empty() {
+        "DentalFlow".to_string()
+    } else {
+        truncate_chars(title, 120)
+    };
+    let safe_body = truncate_chars(body, 420);
 
     app.notification()
         .builder()
