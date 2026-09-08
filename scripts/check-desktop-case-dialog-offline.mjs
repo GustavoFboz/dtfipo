@@ -37,10 +37,10 @@ expect(
 );
 
 // A case dialog can unmount/remount while a Realtime cleanup is still resolving.
-// The 0.3.0 Desktop client must never reuse the already-subscribed transport topic.
+// The transport shim introduced in 0.3.0 remains part of the 0.3.1 release.
 expect(
   desktopVite.includes("client.desktop.030.ts"),
-  "Desktop build must use the 0.3.0 Realtime-safe Supabase facade.",
+  "Desktop build must keep the Realtime-safe Supabase facade.",
 );
 expect(
   realtimeSafeClient.includes('prop === "channel"') && realtimeSafeClient.includes("crypto.randomUUID()"),
@@ -50,7 +50,7 @@ expect(
 expect(casesLocal.includes('operation: "create"'), "Offline case creation must enqueue a durable case outbox entry.");
 expect(
   casesLocal.includes('await cloud.createCase({ ...(payload.input ?? {}), id, also_arch: null } as any)'),
-  "Queued offline cases must be created in Lovable Cloud on reconnect.",
+  "Queued offline cases must be created remotely on reconnect.",
 );
 expect(
   desktopVite.includes("api.desktop.case-offline.ts"),
@@ -89,11 +89,11 @@ expect(
   "Desktop sync must create offline cases before replaying their team notifications.",
 );
 
-expect(tauri.includes('"version": "0.3.0"'), "DentalFlow Desktop version must be 0.3.0.");
-expect(cargo.includes('version = "0.3.0"'), "Rust package version must match Desktop 0.3.0.");
+expect(tauri.includes('"version": "0.3.1"'), "DentalFlow Desktop version must be 0.3.1.");
+expect(cargo.includes('version = "0.3.1"'), "Rust package version must match Desktop 0.3.1.");
 expect(
   tauri.includes('"frontendDist": "../dist/client"'),
   "The full frontend must remain bundled in the Windows installer for offline navigation.",
 );
 
-console.log("Desktop 0.3.0 case dialog/offline case regression checks passed.");
+console.log("Desktop 0.3.1 case dialog/offline case regression checks passed.");
