@@ -121,7 +121,7 @@ async function hydrateLocalAppointment(input: Record<string, any>, existing?: Ap
 }
 
 function contextLooksAuthoritative(value: ClinicContext) {
-  return Boolean(value?.clinic?.id || value?.profile?.clinic_id || value?.hasClinicalModule);
+  return Boolean(value?.clinicId || value?.hasClinicalModule);
 }
 
 export async function fetchClinicContextLocalFirst(): Promise<ClinicContext> {
