@@ -16,7 +16,7 @@ function base64ToBlob(base64: string, contentType: string) {
     for (let i = 0; i < part.length; i++) bytes[i] = part.charCodeAt(i);
     chunks.push(bytes);
   }
-  return new Blob(chunks, { type: contentType });
+  return new Blob(chunks as BlobPart[], { type: contentType });
 }
 
 export function SystemExportCard() {

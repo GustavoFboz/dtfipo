@@ -85,6 +85,7 @@ function CadistaProfilePage() {
       <div className="pt-8">
         <Link
           to="/casos"
+          search={{ case: undefined, msg: undefined }}
           className="inline-flex items-center gap-1.5 text-[12px] text-slate-500 hover:text-slate-900 transition-colors"
         >
           <ArrowLeft className="h-3.5 w-3.5" /> voltar
