@@ -41,7 +41,7 @@ BEGIN
      ORDER BY position
      LIMIT 1;
 
-    IF v_target IS NOT NULL THEN
+    IF v_target.id IS NOT NULL THEN
       NEW.current_stage_id := v_target.id;
       NEW.current_phase_id := v_target.phase_id;
     END IF;
@@ -74,7 +74,7 @@ BEGIN
 
   -- If the requested stage already belongs to the destination workflow/version,
   -- keep it exactly as selected and only normalize its phase.
-  IF v_requested IS NOT NULL
+  IF v_requested.id IS NOT NULL
      AND v_requested.flow_key = v_key
      AND COALESCE(v_requested.workflow_version, 1) = v_version THEN
     NEW.current_phase_id := v_requested.phase_id;
@@ -101,7 +101,7 @@ BEGIN
    ORDER BY position
    LIMIT 1;
 
-  IF v_target IS NULL THEN
+  IF v_target.id IS NULL THEN
     SELECT *
       INTO v_target
       FROM public.stages
@@ -112,7 +112,7 @@ BEGIN
      LIMIT 1;
   END IF;
 
-  IF v_target IS NOT NULL THEN
+  IF v_target.id IS NOT NULL THEN
     NEW.current_stage_id := v_target.id;
     NEW.current_phase_id := v_target.phase_id;
   END IF;
@@ -157,6 +157,7 @@ WITH mismatched AS (
           ),
           1
         )
+     OR c.current_stage_id IS NULL
      OR s.flow_key IS DISTINCT FROM public.case_flow_key(c.has_mockup, c.has_provisional)
      OR COALESCE(s.workflow_version, 1) IS DISTINCT FROM COALESCE(
           (
