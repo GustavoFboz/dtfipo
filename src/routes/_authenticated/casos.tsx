@@ -73,14 +73,6 @@ function Index() {
 
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
-  const { data: toothColors = [] } = useQuery({
-    queryKey: ["tooth_colors"],
-    queryFn: fetchToothColors,
-    staleTime: Infinity,
-  });
-  const selectedToothColorCode = advancedFilters.toothColorId
-    ? toothColors.find((color) => color.id === advancedFilters.toothColorId)?.code ?? ""
-    : "";
   const isSolicitante = (profile as any)?.role === "SOLICITANTE";
 
   // QR/deep-link entry: use the same case dialog for every role and device.
@@ -496,8 +488,7 @@ function Index() {
         <CasesTable 
           hideToolbar 
           minimal 
-          hideSearch={false}
-          externalSearch={selectedToothColorCode || undefined}
+          hideSearch 
           activeFilter={isTrashMode ? "deleted" : filter} 
           onFilterChange={setFilter} 
           onYearChange={setCaseYear} 
