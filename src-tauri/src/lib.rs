@@ -1,5 +1,6 @@
 mod device_identity;
 mod local_db;
+mod notifications;
 mod window_controls;
 
 use device_identity::{device_identity_clear, device_identity_get, device_identity_set};
@@ -8,12 +9,14 @@ use local_db::{
     local_cache_list, local_cache_put, outbox_clear_done, outbox_enqueue, outbox_mark,
     outbox_pending,
 };
+use notifications::desktop_native_notification;
 use tauri::Manager;
 use window_controls::{desktop_window_action, desktop_window_state};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let local_db = local_db::initialize(app.handle())?;
             app.manage(local_db);
@@ -23,6 +26,7 @@ pub fn run() {
             desktop_runtime_info,
             desktop_window_state,
             desktop_window_action,
+            desktop_native_notification,
             device_identity_get,
             device_identity_set,
             device_identity_clear,

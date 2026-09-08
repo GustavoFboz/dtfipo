@@ -12,6 +12,7 @@ import { ConnectivityLayer } from "@/components/ConnectivityLayer";
 import { DesktopOfflineBootstrap } from "@/components/DesktopOfflineBootstrap";
 import { DesktopPrimarySyncGate } from "@/components/DesktopPrimarySyncGate";
 import { DesktopRealtimeSync } from "@/components/DesktopRealtimeSync";
+import { DesktopLabHomeShortcut } from "@/components/DesktopLabHomeShortcut";
 import "@/workflow-layout.css";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -54,14 +55,13 @@ function AuthenticatedShell() {
   } else if (pathname.startsWith("/clinica")) {
     shell = <ClinicShell />;
   } else {
-    // O laboratório mantém seu próprio shell e seus próprios efeitos globais.
-    // Clínica e Hub não montam nada do domínio laboratorial.
     shell = (
       <>
         <ModuleEntryBridge />
         <CaseDialogSanitizer />
         <WorkflowLayoutStabilizer />
         <AppShell />
+        <DesktopLabHomeShortcut />
       </>
     );
   }

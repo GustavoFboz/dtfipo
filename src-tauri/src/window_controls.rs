@@ -5,6 +5,7 @@ use tauri::{AppHandle, Manager};
 pub struct DesktopWindowState {
     pub maximized: bool,
     pub fullscreen: bool,
+    pub focused: bool,
 }
 
 fn main_window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
@@ -12,13 +13,18 @@ fn main_window(app: &AppHandle) -> Result<tauri::WebviewWindow, String> {
         .ok_or_else(|| "Janela principal do DentalFlow não encontrada.".to_string())
 }
 
-#[tauri::command]
-pub fn desktop_window_state(app: AppHandle) -> Result<DesktopWindowState, String> {
-    let window = main_window(&app)?;
+fn read_window_state(window: &tauri::WebviewWindow) -> Result<DesktopWindowState, String> {
     Ok(DesktopWindowState {
         maximized: window.is_maximized().map_err(|error| error.to_string())?,
         fullscreen: window.is_fullscreen().map_err(|error| error.to_string())?,
+        focused: window.is_focused().map_err(|error| error.to_string())?,
     })
+}
+
+#[tauri::command]
+pub fn desktop_window_state(app: AppHandle) -> Result<DesktopWindowState, String> {
+    let window = main_window(&app)?;
+    read_window_state(&window)
 }
 
 #[tauri::command]
@@ -40,13 +46,11 @@ pub fn desktop_window_action(app: AppHandle, action: String) -> Result<DesktopWi
             return Ok(DesktopWindowState {
                 maximized: false,
                 fullscreen: false,
+                focused: false,
             });
         }
         _ => return Err(format!("Ação de janela não suportada: {action}")),
     }
 
-    Ok(DesktopWindowState {
-        maximized: window.is_maximized().map_err(|error| error.to_string())?,
-        fullscreen: window.is_fullscreen().map_err(|error| error.to_string())?,
-    })
+    read_window_state(&window)
 }

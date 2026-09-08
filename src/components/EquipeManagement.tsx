@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { confirm, promptDialog } from "@/lib/confirm";
 import { fetchProfile, fetchPendingJoinRequests, approveJoinRequest, rejectJoinRequest, adminSetMemberPassword } from "@/lib/api";
 import { listTeamMembers } from "@/lib/team.functions";
+import { fetchTeamMembersLocalFirst } from "@/lib/team-local-first";
+import { isDentalFlowDesktop } from "@/lib/desktop-local";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,6 +31,7 @@ const ROLE_LABEL: Record<string, string> = {
 export function EquipeManagement({ mode = "laboratory" }: { mode?: "laboratory" | "clinic" }) {
   const clinicMode = mode === "clinic";
   const accent = clinicMode ? "#1e8f87" : undefined;
+  const desktop = isDentalFlowDesktop();
   const qc = useQueryClient();
   const listTeamMembersFn = useServerFn(listTeamMembers);
   const [q, setQ] = useState("");
@@ -36,19 +39,28 @@ export function EquipeManagement({ mode = "laboratory" }: { mode?: "laboratory" 
   const [editing, setEditing] = useState<any | null>(null);
 
   const { data: currentProfile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
-  const isAdmin = currentProfile?.role === "CEO" || currentProfile?.role === "DR";
-  const isCEO = currentProfile?.role === "CEO";
+  const effectiveCurrentRole = String(currentProfile?.account_subtype || currentProfile?.role || "").toUpperCase();
+  const isAdmin = Boolean(currentProfile?.is_default_admin) || ["CEO", "ADMIN", "DR"].includes(effectiveCurrentRole);
+  const isCEO = Boolean(currentProfile?.is_default_admin) || ["CEO", "ADMIN"].includes(effectiveCurrentRole);
   const roleOptions = clinicMode ? CLINIC_ROLES : ALL_ROLES;
 
-  const { data: profiles = [], isLoading } = useQuery({
-    queryKey: ["profiles_full", currentProfile?.clinic_id],
+  const { data: profiles = [], isLoading, isError, error } = useQuery({
+    queryKey: ["profiles_full", currentProfile?.clinic_id, desktop ? "desktop" : "web"],
     enabled: !!currentProfile,
     queryFn: async () => {
+      // React Start server functions are not hosted at the Tauri asset:// origin.
+      // Calling the web-only listTeamMembers server function from the installed
+      // program was resolving to an empty/error response and the component then
+      // rendered "Nenhum colaborador encontrado". Desktop now uses the durable,
+      // same-clinic RLS read model mirrored to SQLite.
+      if (desktop) return fetchTeamMembersLocalFirst();
+
       const result = await listTeamMembersFn();
       const response = result as { success?: boolean; error?: string; members?: any[] };
       if (response?.success === false) throw new Error(response.error ?? "Falha ao carregar equipe");
       return response.members ?? [];
     },
+    staleTime: desktop ? 60_000 : 15_000,
   });
 
   const deleteMember = useMutation({
@@ -70,6 +82,15 @@ export function EquipeManagement({ mode = "laboratory" }: { mode?: "laboratory" 
   }), [profiles, q, roleFilter, clinicMode]);
 
   if (isLoading) return <div className="p-12 text-center text-sm font-light text-slate-400">Carregando equipe…</div>;
+  if (isError && profiles.length === 0) {
+    return (
+      <div className="rounded-[28px] border border-amber-200/60 bg-amber-50/40 px-6 py-12 text-center dark:border-amber-500/15 dark:bg-amber-500/[0.04]">
+        <Users2 className="mx-auto h-8 w-8 text-amber-300" />
+        <p className="mt-3 text-sm font-medium text-amber-800 dark:text-amber-300">Não foi possível carregar a equipe agora.</p>
+        <p className="mx-auto mt-1 max-w-lg text-xs font-light text-amber-700/70 dark:text-amber-300/60">{(error as Error)?.message || "A sessão será revalidada automaticamente. Tente novamente em instantes."}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -87,7 +108,9 @@ export function EquipeManagement({ mode = "laboratory" }: { mode?: "laboratory" 
         {filtered.map((p: any) => (
           <article key={p.id} className={`rounded-[26px] border border-slate-200/70 bg-white p-5 transition hover:-translate-y-px hover:shadow-sm dark:border-white/10 dark:bg-slate-950 ${clinicMode ? "hover:border-[#1e8f87]/20" : "hover:border-primary/20"}`}>
             <div className="flex items-start gap-4">
-              <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-lg font-light ${clinicMode ? "bg-[#1e8f87]/8 text-[#1e8f87]" : "bg-primary/8 text-primary"}`}>{p.full_name?.[0]?.toUpperCase() ?? <Users2 className="h-5 w-5" />}</div>
+              <div className={`grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl text-lg font-light ${clinicMode ? "bg-[#1e8f87]/8 text-[#1e8f87]" : "bg-primary/8 text-primary"}`}>
+                {p.avatar_url ? <img src={p.avatar_url} alt="" className="h-full w-full object-cover" /> : (p.full_name?.[0]?.toUpperCase() ?? <Users2 className="h-5 w-5" />)}
+              </div>
               <div className="min-w-0 flex-1"><h3 className="truncate text-base font-medium text-slate-900 dark:text-white">{p.full_name || "Sem nome"}</h3><div className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.09em] ${clinicMode ? "bg-[#1e8f87]/8 text-[#1e8f87]" : "bg-primary/8 text-primary"}`}>{ROLE_LABEL[p.role] ?? p.role}</div></div>
               <ShieldCheck className={`h-4 w-4 ${clinicMode ? "text-[#1e8f87]/55" : "text-primary/55"}`} />
             </div>

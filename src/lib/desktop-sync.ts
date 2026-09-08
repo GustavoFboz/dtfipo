@@ -8,6 +8,8 @@ import { warmReferenceLocalCache } from "@/lib/reference-local-first";
 import { syncPendingCaseChanges, warmCaseLocalCache } from "@/lib/cases-local-first";
 import { syncPendingNotificationChanges, warmNotificationLocalCache } from "@/lib/notifications-local-first";
 import { syncPendingWorkflowChanges, warmWorkflowLocalCache } from "@/lib/workflow-local-first";
+import { warmTeamMembersLocalCache } from "@/lib/team-local-first";
+import { refreshStorageUsage } from "@/lib/storage";
 import { DESKTOP_SYNC_TIMEOUT_MS, withDesktopCloudTimeout } from "@/lib/desktop-cloud";
 
 export type DesktopSyncSummary = {
@@ -70,10 +72,6 @@ function emptySummary(): DesktopSyncSummary {
 async function runDesktopSync(): Promise<DesktopSyncSummary> {
   if (!isDentalFlowDesktop()) return emptySummary();
 
-  // Patients are replayed first because appointments/cases can reference them.
-  // The remaining independent domains run concurrently so a reconnect does not
-  // accumulate one timeout per subsystem. Notifications stay after Cases: an
-  // offline-created case must exist in Cloud before its queued team alerts replay.
   const patientSync = await safe("Sincronização de pacientes", syncPendingPatientChanges, ZERO_BASIC);
 
   const [clinicSync, recordsSync, caseSync, stockSync, stockV2Sync, workflowSync] = await Promise.all([
@@ -135,8 +133,9 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
 
   if (typeof navigator !== "undefined" && navigator.onLine === false) return summary;
 
-  // Warm independent read models concurrently. Every operation has its own
-  // deadline, so a single endpoint cannot leave the whole app on skeletons.
+  // Warm independent read models concurrently. Team and storage are explicitly
+  // included because both screens are part of the persistent Desktop shell and
+  // must have a verified local snapshot before a later auth/network interruption.
   const [patients, cases, references, clinic, records, stock, stockV2, notifications, workflow] = await Promise.all([
     safe("Cache de pacientes", warmPatientLocalCache, 0),
     safe("Cache de casos", warmCaseLocalCache, 0),
@@ -147,6 +146,8 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
     safe("Cache do estoque", warmStockV2LocalCache, { itemsCached: 0, categoriesCached: 0 }),
     safe("Cache de notificações", warmNotificationLocalCache, 0),
     safe("Cache do workflow", warmWorkflowLocalCache, 0),
+    safe("Cache da equipe", warmTeamMembersLocalCache, 0),
+    safe("Uso de armazenamento", refreshStorageUsage, null),
   ]);
 
   summary = {

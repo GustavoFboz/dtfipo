@@ -1,19 +1,45 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { isDentalFlowDesktop } from "@/lib/desktop-local";
-import { syncDesktopOfflineData } from "@/lib/desktop-sync";
+import {
+  getDesktopWindowState,
+  getProvisionedDesktopIdentity,
+  isDentalFlowDesktop,
+  sendDesktopNativeNotification,
+} from "@/lib/desktop-local";
 import { broadcastEntity } from "@/lib/optimistic";
 
-/**
- * 0.3.0 Desktop realtime bridge.
- *
- * Only tables actually published to Lovable Cloud Realtime are subscribed here.
- * Register every postgres_changes callback BEFORE subscribe(). This avoids the
- * Supabase Realtime runtime error seen when case dialogs were opened repeatedly.
- * Visible UI caches are invalidated immediately; the heavier SQLite mirror refresh
- * is debounced and never sits in the critical rendering path.
- */
+const REALTIME_RECONNECT_MS = 1_500;
+const CASE_INVALIDATION_DEBOUNCE_MS = 220;
+const BACKGROUND_NOTIFICATION_POLL_MS = 15_000;
+const BACKGROUND_NOTIFICATION_BATCH = 50;
+const NOTIFICATION_STARTUP_LOOKBACK_MS = 2 * 60_000;
+const CASE_UPDATE_NATIVE_DELAY_MS = 900;
+
+function notificationPresentation(row: Record<string, any>) {
+  const metadata = (row.metadata ?? {}) as Record<string, any>;
+  const sender = String(metadata.sender_name ?? "").trim();
+  const caseLabel = String(metadata.case_label ?? "").trim();
+  const type = String(row.type ?? "").toLowerCase();
+
+  let title = String(row.title ?? "DentalFlow").trim() || "DentalFlow";
+  if (sender) {
+    if (type === "attachment") title = `${sender} anexou um arquivo`;
+    else if (["comment", "mention", "message"].includes(type)) title = `${sender} enviou uma mensagem`;
+    else if (["case_update", "case_stage", "case_status"].includes(type)) title = `${sender} atualizou um caso`;
+  }
+  if (caseLabel) title = `${title} · ${caseLabel}`;
+
+  return {
+    title,
+    body: String(row.content ?? "").trim(),
+  };
+}
+
+function newerIso(a: string, b: string) {
+  return Date.parse(a) > Date.parse(b) ? a : b;
+}
+
 export function DesktopRealtimeSync() {
   const queryClient = useQueryClient();
 
@@ -21,136 +47,332 @@ export function DesktopRealtimeSync() {
     if (!isDentalFlowDesktop()) return;
 
     let disposed = false;
-    let mirrorTimer: ReturnType<typeof setTimeout> | null = null;
+    let connecting = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    let reconnectTimer: number | null = null;
+    let caseInvalidationTimer: number | null = null;
+    let backgroundPollTimer: number | null = null;
+    let pollingNotifications = false;
+    let currentUserId: string | null = null;
+    let notificationCursor = new Date(Date.now() - NOTIFICATION_STARTUP_LOOKBACK_MS).toISOString();
     let authSubscription: { unsubscribe: () => void } | null = null;
+    const pendingCaseIds = new Set<string>();
+    const deliveredNativeIds = new Set<string>();
+    const seenNotificationIds = new Set<string>();
+    const pendingCaseNativeTimers = new Map<string, number>();
 
-    const scheduleMirrorRefresh = () => {
-      if (disposed || navigator.onLine === false) return;
-      if (mirrorTimer) clearTimeout(mirrorTimer);
-      mirrorTimer = setTimeout(() => {
-        mirrorTimer = null;
-        void syncDesktopOfflineData()
-          .then((summary) => {
-            if (!disposed) {
-              window.dispatchEvent(new CustomEvent("dentalflow:desktop-realtime-sync", { detail: summary }));
-            }
-          })
-          .catch((error) => console.warn("[DentalFlow Desktop] Espelho realtime será tentado novamente", error));
-      }, 350);
+    for (const row of queryClient.getQueryData<any[]>(["notifications"]) ?? []) {
+      if (row?.id) seenNotificationIds.add(String(row.id));
+      const createdAt = String(row?.created_at ?? "");
+      if (createdAt && !Number.isNaN(Date.parse(createdAt))) {
+        notificationCursor = newerIso(createdAt, notificationCursor);
+      }
+    }
+
+    const clearReconnectTimer = () => {
+      if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    };
+
+    const clearCaseInvalidationTimer = () => {
+      if (caseInvalidationTimer !== null) window.clearTimeout(caseInvalidationTimer);
+      caseInvalidationTimer = null;
+    };
+
+    const clearBackgroundPoll = () => {
+      if (backgroundPollTimer !== null) window.clearInterval(backgroundPollTimer);
+      backgroundPollTimer = null;
+    };
+
+    const cancelPendingCaseNative = (caseId: string) => {
+      const timer = pendingCaseNativeTimers.get(caseId);
+      if (timer !== undefined) window.clearTimeout(timer);
+      pendingCaseNativeTimers.delete(caseId);
+    };
+
+    const clearPendingCaseNative = () => {
+      for (const timer of pendingCaseNativeTimers.values()) window.clearTimeout(timer);
+      pendingCaseNativeTimers.clear();
     };
 
     const teardownChannel = () => {
+      clearReconnectTimer();
       if (!channel) return;
       const old = channel;
       channel = null;
-      void supabase.removeChannel(old);
+      void supabase.removeChannel(old).catch(() => undefined);
+    };
+
+    const scheduleCaseInvalidation = (caseId: string) => {
+      if (!caseId || disposed) return;
+      pendingCaseIds.add(caseId);
+      if (caseInvalidationTimer !== null) return;
+
+      caseInvalidationTimer = window.setTimeout(() => {
+        caseInvalidationTimer = null;
+        const ids = Array.from(pendingCaseIds);
+        pendingCaseIds.clear();
+        for (const id of ids) {
+          void queryClient.invalidateQueries({ queryKey: ["case_activity", id], refetchType: "active" });
+          void queryClient.invalidateQueries({ queryKey: ["case-professional-activity", id], refetchType: "active" });
+          void queryClient.invalidateQueries({ queryKey: ["case", id], refetchType: "active" });
+          void queryClient.invalidateQueries({ queryKey: ["cases"], refetchType: "active" });
+        }
+      }, CASE_INVALIDATION_DEBOUNCE_MS);
+    };
+
+    const nativeWindowIsBackground = async () => {
+      try {
+        const state = await getDesktopWindowState();
+        return !state.focused;
+      } catch {
+        return document.hidden || !document.hasFocus();
+      }
+    };
+
+    const notifyNativeIfBackground = async (row: Record<string, any>) => {
+      const id = String(row.id ?? "");
+      if (!id || deliveredNativeIds.has(id)) return false;
+      if (!(await nativeWindowIsBackground())) return false;
+
+      const sent = await sendDesktopNativeNotification(notificationPresentation(row));
+      if (sent) deliveredNativeIds.add(id);
+      return sent;
+    };
+
+    const scheduleNativeCaseUpdate = (row: Record<string, any>) => {
+      const caseId = String(row.id ?? "");
+      if (!caseId) return;
+      cancelPendingCaseNative(caseId);
+      const timer = window.setTimeout(() => {
+        pendingCaseNativeTimers.delete(caseId);
+        void (async () => {
+          if (disposed || !(await nativeWindowIsBackground())) return;
+          const version = String(row.updated_at ?? row.current_stage_id ?? row.status ?? Date.now());
+          const dedupeKey = `case-update:${caseId}:${version}`;
+          if (deliveredNativeIds.has(dedupeKey)) return;
+          const label = String(row.case_label ?? "").trim();
+          const sent = await sendDesktopNativeNotification({
+            title: label ? `Caso atualizado · ${label}` : "Caso atualizado",
+            body: "Um caso ao qual você tem acesso recebeu uma atualização.",
+          });
+          if (sent) deliveredNativeIds.add(dedupeKey);
+        })();
+      }, CASE_UPDATE_NATIVE_DELAY_MS);
+      pendingCaseNativeTimers.set(caseId, timer);
+    };
+
+    const rememberNotificationCursor = (row: Record<string, any>) => {
+      const createdAt = String(row.created_at ?? "");
+      if (createdAt && !Number.isNaN(Date.parse(createdAt))) {
+        notificationCursor = newerIso(createdAt, notificationCursor);
+      }
+    };
+
+    const ingestNotification = (row: Record<string, any>, emitUiEvent = true) => {
+      const id = String(row.id ?? "");
+      if (!id) return;
+      const alreadySeen = seenNotificationIds.has(id);
+      seenNotificationIds.add(id);
+      rememberNotificationCursor(row);
+
+      const relatedCaseId = String((row.metadata as any)?.case_id ?? "");
+      if (relatedCaseId) cancelPendingCaseNative(relatedCaseId);
+
+      broadcastEntity("notifications", "insert", row);
+      queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
+        old.some((item) => item?.id === row.id) ? old : [row, ...old],
+      );
+
+      if (!alreadySeen) {
+        void notifyNativeIfBackground(row);
+        if (emitUiEvent) {
+          window.dispatchEvent(new CustomEvent("dentalflow:realtime-notification", { detail: row }));
+        }
+      }
+    };
+
+    const pollBackgroundNotifications = async () => {
+      if (disposed || pollingNotifications || navigator.onLine === false || !currentUserId) return;
+      if (!(await nativeWindowIsBackground())) return;
+
+      pollingNotifications = true;
+      const cursorAtStart = notificationCursor;
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session || sessionData.session.user.user_metadata?.dentalflow_offline_device) return;
+        currentUserId = sessionData.session.user.id;
+
+        const { data, error } = await supabase
+          .from("notifications")
+          .select("*")
+          .eq("recipient_id", currentUserId)
+          .gt("created_at", cursorAtStart)
+          .order("created_at", { ascending: true })
+          .limit(BACKGROUND_NOTIFICATION_BATCH);
+        if (error) throw error;
+
+        for (const raw of data ?? []) {
+          if (disposed) break;
+          ingestNotification(raw as Record<string, any>, true);
+        }
+      } catch (error) {
+        console.warn("[DentalFlow Desktop] Falha no catch-up de notificações", error);
+      } finally {
+        pollingNotifications = false;
+      }
+    };
+
+    const startBackgroundPoll = () => {
+      if (backgroundPollTimer !== null) return;
+      backgroundPollTimer = window.setInterval(() => {
+        void pollBackgroundNotifications();
+      }, BACKGROUND_NOTIFICATION_POLL_MS);
+    };
+
+    const queueReconnect = () => {
+      if (disposed || navigator.onLine === false || reconnectTimer !== null) return;
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = null;
+        void connect();
+      }, REALTIME_RECONNECT_MS);
     };
 
     const connect = async () => {
-      if (disposed || channel || navigator.onLine === false) return;
+      if (disposed || connecting || channel || navigator.onLine === false) return;
+      connecting = true;
 
-      const { data } = await supabase.auth.getUser().catch(() => ({ data: { user: null } } as any));
-      const user = data.user;
-      if (!user || user.user_metadata?.dentalflow_offline_device || disposed) return;
+      try {
+        const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } } as any));
+        const user = data.session?.user;
 
-      const next = supabase
-        .channel(`desktop-realtime-030:${user.id}:${crypto.randomUUID()}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "notifications",
-            filter: `recipient_id=eq.${user.id}`,
-          },
-          (payload) => {
-            const row = payload.new as Record<string, any>;
-            // Same-window delivery first; React Query + SQLite reconciliation follow.
-            broadcastEntity("notifications", "insert", row);
-            queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
-              old.some((item) => item?.id === row.id) ? old : [row, ...old],
-            );
-            void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-            window.dispatchEvent(new CustomEvent("dentalflow:realtime-notification", { detail: row }));
-            scheduleMirrorRefresh();
-          },
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "notifications",
-            filter: `recipient_id=eq.${user.id}`,
-          },
-          (payload) => {
-            const row = payload.new as Record<string, any>;
-            broadcastEntity("notifications", "update", row);
-            queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
-              old.map((item) => item?.id === row.id ? { ...item, ...row } : item),
-            );
-          },
-        )
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "case_activity" },
-          (payload) => {
-            const row = payload.new as Record<string, any>;
-            broadcastEntity("case_activity", "insert", row);
-            if (row.case_id) {
-              void queryClient.invalidateQueries({ queryKey: ["case_activity", row.case_id] });
-              void queryClient.invalidateQueries({ queryKey: ["case", row.case_id] });
-              void queryClient.invalidateQueries({ queryKey: ["cases"] });
+        if (!user || user.user_metadata?.dentalflow_offline_device) {
+          const identity = await getProvisionedDesktopIdentity().catch(() => null);
+          currentUserId = user?.id ?? identity?.user_id ?? currentUserId;
+          startBackgroundPoll();
+          queueReconnect();
+          return;
+        }
+        if (disposed) return;
+        currentUserId = user.id;
+
+        const next = supabase
+          .channel(`desktop-realtime-034:${user.id}:${crypto.randomUUID()}`)
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "notifications",
+              filter: `recipient_id=eq.${user.id}`,
+            },
+            (payload) => ingestNotification(payload.new as Record<string, any>, true),
+          )
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "notifications",
+              filter: `recipient_id=eq.${user.id}`,
+            },
+            (payload) => {
+              const row = payload.new as Record<string, any>;
+              rememberNotificationCursor(row);
+              if (row?.id) seenNotificationIds.add(String(row.id));
+              broadcastEntity("notifications", "update", row);
+              queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
+                old.map((item) => item?.id === row.id ? { ...item, ...row } : item),
+              );
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "case_activity" },
+            (payload) => {
+              const row = payload.new as Record<string, any>;
+              broadcastEntity("case_activity", "insert", row);
+              if (row.case_id) scheduleCaseInvalidation(String(row.case_id));
+              window.dispatchEvent(new CustomEvent("dentalflow:realtime-case-activity", { detail: row }));
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "cases" },
+            (payload) => {
+              const row = payload.new as Record<string, any>;
+              if (row.id) scheduleCaseInvalidation(String(row.id));
+              scheduleNativeCaseUpdate(row);
+              window.dispatchEvent(new CustomEvent("dentalflow:realtime-case-update", { detail: row }));
+            },
+          )
+          .subscribe((status) => {
+            if (status === "SUBSCRIBED") {
+              void pollBackgroundNotifications();
+              return;
             }
-            window.dispatchEvent(new CustomEvent("dentalflow:realtime-case-activity", { detail: row }));
-            scheduleMirrorRefresh();
-          },
-        )
-        .subscribe((status) => {
-          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+            if (!["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) return;
             if (channel === next) channel = null;
-            void supabase.removeChannel(next);
-            if (!disposed && navigator.onLine !== false) {
-              window.setTimeout(() => void connect(), 1200);
-            }
-          }
-        });
+            void supabase.removeChannel(next).catch(() => undefined);
+            queueReconnect();
+          });
 
-      channel = next;
+        if (disposed) {
+          void supabase.removeChannel(next).catch(() => undefined);
+          return;
+        }
+        channel = next;
+        startBackgroundPoll();
+      } finally {
+        connecting = false;
+      }
     };
 
     const onOnline = () => {
       teardownChannel();
-      void connect();
-      scheduleMirrorRefresh();
+      startBackgroundPoll();
+      void connect().then(() => pollBackgroundNotifications());
     };
-    const onOffline = () => {
-      if (mirrorTimer) {
-        clearTimeout(mirrorTimer);
-        mirrorTimer = null;
-      }
-      teardownChannel();
+    const onOffline = () => teardownChannel();
+    const onVisibility = () => {
+      if (navigator.onLine !== false && !channel) void connect();
+      if (document.hidden) void pollBackgroundNotifications();
     };
+    const onWindowBlur = () => void pollBackgroundNotifications();
 
     void connect();
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
+    window.addEventListener("blur", onWindowBlur);
+    document.addEventListener("visibilitychange", onVisibility);
 
     const auth = supabase.auth.onAuthStateChange((event) => {
-      if (["SIGNED_IN", "TOKEN_REFRESHED", "INITIAL_SESSION"].includes(event)) {
+      if (["SIGNED_IN", "INITIAL_SESSION", "USER_UPDATED"].includes(event)) {
         teardownChannel();
-        window.setTimeout(() => void connect(), 50);
+        queueReconnect();
       }
-      if (event === "SIGNED_OUT") teardownChannel();
+      if (event === "TOKEN_REFRESHED" && !channel) queueReconnect();
+      if (event === "SIGNED_OUT") {
+        currentUserId = null;
+        teardownChannel();
+        clearBackgroundPoll();
+      }
     });
     authSubscription = auth.data.subscription;
 
     return () => {
       disposed = true;
-      if (mirrorTimer) clearTimeout(mirrorTimer);
+      clearReconnectTimer();
+      clearCaseInvalidationTimer();
+      clearBackgroundPoll();
+      clearPendingCaseNative();
+      pendingCaseIds.clear();
+      deliveredNativeIds.clear();
+      seenNotificationIds.clear();
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
+      window.removeEventListener("blur", onWindowBlur);
+      document.removeEventListener("visibilitychange", onVisibility);
       authSubscription?.unsubscribe();
       teardownChannel();
     };

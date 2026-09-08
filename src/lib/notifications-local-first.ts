@@ -36,7 +36,19 @@ function online() {
 function transient(error: unknown) {
   if (!online()) return true;
   const message = String((error as any)?.message ?? error ?? "").toLowerCase();
-  return ["failed to fetch", "networkerror", "network error", "load failed", "fetch failed", "connection", "offline", "timeout"].some((x) => message.includes(x));
+  return [
+    "failed to fetch",
+    "networkerror",
+    "network error",
+    "load failed",
+    "fetch failed",
+    "connection",
+    "offline",
+    "timeout",
+    "cloud login",
+    "revalidation",
+    "revalidação",
+  ].some((x) => message.includes(x));
 }
 
 async function readAll(ownerId: string) {
@@ -180,6 +192,10 @@ export async function sendInternalNotificationLocalFirst(
     try {
       return await cloud.sendInternalNotification(targetUserId, title, content, type, metadata);
     } catch (error) {
+      // A temporary Cloud Login revalidation gap is recoverable and must be
+      // treated exactly like a network interruption. Previous builds classified
+      // it as fatal, so CaseComments swallowed the rejection and the alert was
+      // permanently lost even though the chat message itself was saved.
       if (!transient(error)) throw error;
     }
   }

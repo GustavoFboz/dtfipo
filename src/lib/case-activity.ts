@@ -4,7 +4,7 @@ export type CaseActivity = {
   id: string;
   case_id: string;
   user_id: string | null;
-  kind: string; // 'comment' | 'upload' | 'delete_upload' | 'create' | 'system'
+  kind: string;
   content: string | null;
   mentions: string[];
   attachment_id: string | null;
@@ -54,39 +54,69 @@ export async function deleteCaseActivity(id: string) {
   if (error) throw error;
 }
 
-// Fetch users involved in a case (cadista user + CEO + DR + PROTETICO)
+async function readCaseStakeholderFallback(caseId: string) {
+  try {
+    const [{ isDentalFlowDesktop, localCacheGet }, { resolveDesktopOwnerId }] = await Promise.all([
+      import("./desktop-local"),
+      import("./desktop-identity"),
+    ]);
+    if (!isDentalFlowDesktop()) return null;
+    const ownerId = await resolveDesktopOwnerId();
+    if (!ownerId) return null;
+    const direct = await localCacheGet<any>(ownerId, "cases:v1", caseId).catch(() => null);
+    if (direct?.payload) return direct.payload;
+    const all = await localCacheGet<any[]>(ownerId, "cases:v1", "all").catch(() => null);
+    return all?.payload?.find((row: any) => row?.id === caseId) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchCaseStakeholderIds(caseId: string): Promise<string[]> {
   const ids = new Set<string>();
+  let row: any = null;
 
-  // Case-specific participants only.
-  const { data: caseData } = await supabase
-    .from("cases")
-    .select("requested_by,accepted_by,cadista:cadistas(user_id),doctor:doctors(user_id)")
-    .eq("id", caseId)
-    .maybeSingle();
+  try {
+    const { data: caseData, error } = await supabase
+      .from("cases")
+      .select("requested_by,accepted_by,cadista:cadistas(user_id),doctor:doctors(user_id)")
+      .eq("id", caseId)
+      .maybeSingle();
+    if (error) throw error;
+    row = caseData as any;
+  } catch (error) {
+    row = await readCaseStakeholderFallback(caseId);
+    if (!row) throw error;
+  }
 
-  const row = caseData as any;
   [
     row?.requested_by,
     row?.accepted_by,
     row?.cadista?.user_id,
     row?.doctor?.user_id,
-  ].filter(Boolean).forEach((id) => ids.add(id));
+  ].filter(Boolean).forEach((id) => ids.add(String(id)));
 
-  // Only the explicitly global roles may receive every case notification.
-  const { data: profs } = await supabase
-    .from("profiles")
-    .select("id,role,account_subtype,is_default_admin,notification_preferences");
-
-  (profs ?? []).forEach((p: any) => {
-    const effectiveType = String(p.account_subtype || p.role || "").toUpperCase();
-    // Global visibility does not mean every prosthetist should receive
-    // every chat/upload notification. The responsible prosthetist is already
-    // included through cases.accepted_by; only CEO/admin oversight is global.
-    if (p.is_default_admin || ["CEO", "ADMIN"].includes(effectiveType)) {
-      ids.add(p.id);
-    }
-  });
+  // CEO/admin oversight is global. On Desktop, use the durable team mirror when
+  // a session transition prevents the supplemental profiles query.
+  try {
+    const { data: profs, error } = await supabase
+      .from("profiles")
+      .select("id,role,account_subtype,is_default_admin,notification_preferences");
+    if (error) throw error;
+    (profs ?? []).forEach((p: any) => {
+      const effectiveType = String(p.account_subtype || p.role || "").toUpperCase();
+      if (p.is_default_admin || ["CEO", "ADMIN"].includes(effectiveType)) ids.add(String(p.id));
+    });
+  } catch {
+    try {
+      const { fetchTeamMembersLocalFirst } = await import("./team-local-first");
+      const team = await fetchTeamMembersLocalFirst();
+      team.forEach((p) => {
+        const effectiveType = String(p.account_subtype || p.role || "").toUpperCase();
+        if (p.is_default_admin || ["CEO", "ADMIN"].includes(effectiveType)) ids.add(String(p.id));
+      });
+    } catch { /* case-specific participants above remain valid */ }
+  }
 
   return Array.from(ids);
 }
@@ -101,13 +131,6 @@ type StakeholderNotificationOptions = {
   activityId?: string;
 };
 
-/**
- * In the installed app, an offline case already exists in the user's SQLite
- * mirror before it reaches Lovable Cloud. Resolve the people explicitly linked
- * to that local case and enqueue one durable notification per recipient. The
- * normal Desktop sync replays cases before notifications, so recipients only
- * receive the message after the case itself exists in Cloud/RLS.
- */
 async function queueOfflineStakeholderNotifications(opts: StakeholderNotificationOptions): Promise<boolean> {
   if (typeof navigator === "undefined" || navigator.onLine !== false) return false;
 
@@ -157,14 +180,10 @@ async function queueOfflineStakeholderNotifications(opts: StakeholderNotificatio
 }
 
 export async function notifyCaseStakeholders(opts: StakeholderNotificationOptions) {
-  // The Desktop notification outbox is intentionally used before any direct
-  // database read. Otherwise an offline creation would fail stakeholder lookup
-  // and the notification would be silently lost forever.
   if (await queueOfflineStakeholderNotifications(opts)) return;
 
   const { data: { user } } = await supabase.auth.getUser();
   const baseIds = await fetchCaseStakeholderIds(opts.caseId);
-  // Mentions cannot expand visibility beyond legitimate case stakeholders.
   const allowed = new Set(baseIds);
   const all = new Set<string>(baseIds);
   for (const id of opts.extraRecipientIds ?? []) {
@@ -173,7 +192,6 @@ export async function notifyCaseStakeholders(opts: StakeholderNotificationOption
   if (opts.excludeSelf !== false && user?.id) all.delete(user.id);
   if (all.size === 0) return;
 
-  // Dados de apresentação (usados nas notificações do sistema operacional).
   let senderName: string | null = null;
   let senderAvatar: string | null = null;
   let caseLabel: string | null = null;
@@ -182,12 +200,41 @@ export async function notifyCaseStakeholders(opts: StakeholderNotificationOption
       user?.id
         ? supabase.from("profiles").select("full_name, email, avatar_url").eq("id", user.id).maybeSingle()
         : Promise.resolve({ data: null } as never),
-      supabase.from("cases").select("patient:patients(name)").eq("id", opts.caseId).maybeSingle(),
+      supabase.from("cases").select("patient:patients(name),case_label").eq("id", opts.caseId).maybeSingle(),
     ]);
     senderName = (prof as any)?.full_name ?? (prof as any)?.email ?? null;
     senderAvatar = (prof as any)?.avatar_url ?? null;
-    caseLabel = (cse as any)?.patient?.name ?? null;
-  } catch { /* apresentação é opcional */ }
+    caseLabel = (cse as any)?.patient?.name ?? (cse as any)?.case_label ?? null;
+  } catch {
+    const cachedCase = await readCaseStakeholderFallback(opts.caseId);
+    caseLabel = cachedCase?.patient?.name ?? cachedCase?.case_label ?? null;
+  }
+
+  const metadata = {
+    case_id: opts.caseId,
+    activity_id: opts.activityId ?? null,
+    sender_name: senderName,
+    sender_avatar: senderAvatar,
+    case_label: caseLabel,
+  };
+
+  const { isDentalFlowDesktop } = await import("./desktop-local");
+  if (isDentalFlowDesktop()) {
+    // Every recipient uses the durable outbox-aware path. If the chat message is
+    // saved while auth is briefly revalidating, the alert is queued instead of
+    // being swallowed by CaseComments and lost forever.
+    const { sendInternalNotificationLocalFirst } = await import("./notifications-local-first");
+    await Promise.all(Array.from(all).map((recipientId) =>
+      sendInternalNotificationLocalFirst(
+        recipientId,
+        opts.title,
+        opts.content,
+        opts.type ?? "case",
+        metadata,
+      )
+    ));
+    return;
+  }
 
   const rows = Array.from(all).map((rid) => ({
     id: (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2),
@@ -196,24 +243,17 @@ export async function notifyCaseStakeholders(opts: StakeholderNotificationOption
     title: opts.title,
     content: opts.content,
     type: opts.type ?? "case",
-    metadata: {
-      case_id: opts.caseId,
-      activity_id: opts.activityId ?? null,
-      sender_name: senderName,
-      sender_avatar: senderAvatar,
-      case_label: caseLabel,
-    },
+    metadata,
     read_at: null,
     created_at: new Date().toISOString(),
   }));
 
-  // Broadcast otimista para cada destinatário antes do round-trip.
   try {
     const { broadcastEntity } = await import("./optimistic");
     rows.forEach((r) => broadcastEntity("notifications", "insert", r));
   } catch { /* ignore */ }
   const { error } = await supabase.from("notifications").insert(rows as any);
-  if (error) console.error("notifyCaseStakeholders error:", error);
+  if (error) throw error;
 }
 
 export async function fetchMentionableProfiles(caseId: string, query: string) {

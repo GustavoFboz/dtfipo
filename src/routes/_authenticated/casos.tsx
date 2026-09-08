@@ -16,10 +16,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Search, ChevronRight, Filter, X, Trash2, CalendarDays, FileDown } from "lucide-react";
 import { useNow } from "@/hooks/use-now";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { fetchDoctors, fetchCadistas, fetchStages, fetchCases, fetchProfile } from "@/lib/api";
+import { fetchDoctors, fetchCadistas, fetchStages, fetchCases, fetchProfile, fetchToothColors } from "@/lib/api";
 import { generateCasesReport } from "@/lib/reports";
 import { GeneratingReportDialog } from "@/components/GeneratingReportDialog";
 import { toast } from "sonner";
+
+type AdvancedCaseFilters = {
+  doctorIds: string[];
+  cadistaIds: string[];
+  toothColorId: string;
+};
 
 export const Route = createFileRoute("/_authenticated/casos")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -42,7 +48,7 @@ function Index() {
   const [caseYear, setCaseYear] = useState<string | null>(null);
   const [counts, setCounts] = useState<Record<string, number>>({ all: 0, em_andamento: 0, atrasados: 0, finalizados: 0, arquivados: 0, solicitacoes: 0 });
   const [dateRange, setDateRange] = useState<{ start: string; end: string } | null>(null);
-  const [advancedFilters, setAdvancedFilters] = useState<{ doctorIds: string[]; cadistaIds: string[] }>({ doctorIds: [], cadistaIds: [] });
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedCaseFilters>({ doctorIds: [], cadistaIds: [], toothColorId: "" });
   const [localStartDate, setLocalStartDate] = useState("");
   const [localEndDate, setLocalEndDate] = useState("");
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
@@ -81,7 +87,7 @@ function Index() {
           activeFilter="all"
           deepLinkCaseId={deepLinkCaseId}
           deepLinkFocusActivityId={deepLinkMessageId}
-          onDeepLinkClose={() => navigate({ to: "/casos", search: { case: undefined, msg: undefined } })}
+          onDeepLinkClose={() => navigate({ to: "/casos", search: {} })}
         />
       </div>
     );
@@ -168,6 +174,7 @@ function Index() {
         if (advancedFilters.cadistaIds && advancedFilters.cadistaIds.length > 0) {
           if (!c.cadista_id || !advancedFilters.cadistaIds.includes(c.cadista_id)) return false;
         }
+        if (advancedFilters.toothColorId && c.tooth_color_id !== advancedFilters.toothColorId) return false;
 
         return true;
       });
@@ -426,7 +433,7 @@ function Index() {
 
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className={`h-10 w-10 rounded-full transition-all ${(advancedFilters.doctorIds.length > 0 || advancedFilters.cadistaIds.length > 0) ? (isTrashMode ? "bg-rose-500 text-white shadow-lg shadow-rose-400/20" : "bg-primary text-white shadow-lg shadow-blue-400/20") : (isTrashMode ? "text-rose-400 hover:text-rose-600" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200")}`}>
+                  <Button variant="ghost" size="icon" className={`h-10 w-10 rounded-full transition-all ${(advancedFilters.doctorIds.length > 0 || advancedFilters.cadistaIds.length > 0 || !!advancedFilters.toothColorId) ? (isTrashMode ? "bg-rose-500 text-white shadow-lg shadow-rose-400/20" : "bg-primary text-white shadow-lg shadow-blue-400/20") : (isTrashMode ? "text-rose-400 hover:text-rose-600" : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200")}`}>
                     <Filter className="h-4 w-4 stroke-[1.5px]" />
                   </Button>
                 </PopoverTrigger>
@@ -435,7 +442,7 @@ function Index() {
                 </PopoverContent>
               </Popover>
 
-              {(dateRange || advancedFilters.doctorIds.length > 0 || advancedFilters.cadistaIds.length > 0) && (
+              {(dateRange || advancedFilters.doctorIds.length > 0 || advancedFilters.cadistaIds.length > 0 || !!advancedFilters.toothColorId) && (
                 <>
                   <div className="w-[1px] h-4 bg-slate-200 dark:bg-white/10 mx-1" />
                   <Button 
@@ -446,7 +453,7 @@ function Index() {
                       setDateRange(null);
                       setLocalStartDate("");
                       setLocalEndDate("");
-                      setAdvancedFilters({ doctorIds: [], cadistaIds: [] });
+                      setAdvancedFilters({ doctorIds: [], cadistaIds: [], toothColorId: "" });
                     }}
                   >
                     <X className="h-4 w-4 stroke-[1.5px]" />
@@ -499,12 +506,13 @@ function Index() {
 }
 
 function AdvancedFilterContent({ filters, setFilters }: { 
-  filters: { doctorIds: string[]; cadistaIds: string[] };
-  setFilters: React.Dispatch<React.SetStateAction<{ doctorIds: string[]; cadistaIds: string[] }>>
+  filters: AdvancedCaseFilters;
+  setFilters: React.Dispatch<React.SetStateAction<AdvancedCaseFilters>>
 }) {
   const { data: doctors } = useQuery({ queryKey: ["doctors"], queryFn: fetchDoctors });
   const { data: cadistas } = useQuery({ queryKey: ["cadistas"], queryFn: fetchCadistas });
   const { data: stages } = useQuery({ queryKey: ["stages"], queryFn: fetchStages });
+  const { data: colors } = useQuery({ queryKey: ["tooth_colors"], queryFn: fetchToothColors, staleTime: Infinity });
   
   const [selectedStages, setSelectedStages] = useState<string[]>([]);
 
@@ -526,6 +534,10 @@ function AdvancedFilterContent({ filters, setFilters }: {
     }));
   };
 
+  const toggleColor = (id: string) => {
+    setFilters(prev => ({ ...prev, toothColorId: prev.toothColorId === id ? "" : id }));
+  };
+
   const toggleStage = (id: string) => {
     // Stage filtering is handled by the main status filter in current UI, 
     // but we add it here as per request for "advanced search by stage"
@@ -537,6 +549,22 @@ function AdvancedFilterContent({ filters, setFilters }: {
       <div className="text-[10px] uppercase tracking-[0.12em] text-slate-400 font-medium">Filtragem Avançada</div>
       
       <div className="space-y-5">
+        <div className="space-y-3">
+          <label className="text-[11px] text-slate-400 font-medium px-1 uppercase tracking-wider">Cor do Caso</label>
+          <div className="max-h-[120px] overflow-y-auto grid grid-cols-2 gap-2 pr-2 custom-scrollbar">
+            {colors?.map(color => (
+              <button
+                key={color.id}
+                type="button"
+                onClick={() => toggleColor(color.id)}
+                className={`h-9 rounded-xl border px-3 text-left text-[12px] font-medium transition ${filters.toothColorId === color.id ? "border-primary/35 bg-primary/10 text-primary" : "border-slate-200/70 bg-white text-slate-500 hover:border-primary/20 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300"}`}
+              >
+                Cor {color.code}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="space-y-3">
           <label className="text-[11px] text-slate-400 font-medium px-1 uppercase tracking-wider">Etapa do Fluxo</label>
           <div className="max-h-[120px] overflow-y-auto space-y-2 pr-2 custom-scrollbar">
@@ -601,6 +629,3 @@ function AdvancedFilterContent({ filters, setFilters }: {
     </div>
   );
 }
-
-
-

@@ -1,8 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isDentalFlowDesktop, localCacheGet, localCachePut } from "@/lib/desktop-local";
+import { resolveDesktopOwnerId } from "@/lib/desktop-identity";
 
 export const DEFAULT_STORAGE_LIMIT_BYTES = 1024 * 1024 * 1024;
 export const STORAGE_WARNING_RATIO = 0.85;
 export const STORAGE_CRITICAL_RATIO = 0.95;
+
+const STORAGE_USAGE_NS = "storage-usage:v1";
+const STORAGE_USAGE_KEY = "current";
 
 export type StorageUsage = {
   clinic_id: string | null;
@@ -65,10 +70,29 @@ function normalizeUsage(raw: any, quotaEnforced = true): StorageUsage {
   };
 }
 
+function fallbackUsage() {
+  return normalizeUsage({ used_bytes: 0, limit_bytes: DEFAULT_STORAGE_LIMIT_BYTES, file_count: 0 }, false);
+}
+
 function isMissingStorageBackend(error: any) {
   const code = String(error?.code ?? "");
   const message = String(error?.message ?? "").toLowerCase();
   return code === "PGRST202" || code === "42883" || message.includes("get_storage_usage") || message.includes("schema cache");
+}
+
+async function readDesktopStorageUsage(): Promise<StorageUsage | null> {
+  if (!isDentalFlowDesktop()) return null;
+  const ownerId = await resolveDesktopOwnerId().catch(() => null);
+  if (!ownerId) return null;
+  const entry = await localCacheGet<StorageUsage>(ownerId, STORAGE_USAGE_NS, STORAGE_USAGE_KEY).catch(() => null);
+  return entry?.payload ?? null;
+}
+
+async function persistDesktopStorageUsage(usage: StorageUsage) {
+  if (!isDentalFlowDesktop()) return;
+  const ownerId = await resolveDesktopOwnerId().catch(() => null);
+  if (!ownerId) return;
+  await localCachePut(ownerId, STORAGE_USAGE_NS, STORAGE_USAGE_KEY, usage).catch(() => undefined);
 }
 
 export function subscribeStorageUsage(listener: UsageListener) {
@@ -97,6 +121,7 @@ export function applyOptimisticStorageDelta(delta: number) {
         full: baseUsed >= state.data.limit_bytes,
       },
     };
+    void persistDesktopStorageUsage(state.data);
   }
   emit();
 }
@@ -104,24 +129,46 @@ export function applyOptimisticStorageDelta(delta: number) {
 export async function refreshStorageUsage(): Promise<StorageUsage> {
   state = { ...state, loading: true, error: null };
   emit();
-  const { data, error } = await supabase.rpc("get_storage_usage" as never);
-  if (error) {
+
+  const cached = await readDesktopStorageUsage();
+  try {
+    const { data, error } = await supabase.rpc("get_storage_usage" as never);
+    if (error) throw error;
+
+    // A null RPC payload is not authoritative enough to erase a known local
+    // snapshot. This can occur briefly while an online Desktop session resumes.
+    if ((data == null || (Array.isArray(data) && data.length === 0)) && cached) {
+      state = { ...state, data: cached, loading: false, error: null };
+      pendingDelta = 0;
+      emit();
+      return cached;
+    }
+
+    pendingDelta = 0;
+    const usage = normalizeUsage(data, true);
+    state = { ...state, data: usage, loading: false, error: null };
+    emit();
+    void persistDesktopStorageUsage(usage);
+    return usage;
+  } catch (error: any) {
     if (isMissingStorageBackend(error)) {
-      const fallback = normalizeUsage({ used_bytes: 0, limit_bytes: DEFAULT_STORAGE_LIMIT_BYTES, file_count: 0 }, false);
+      const fallback = cached ?? fallbackUsage();
       state = { ...state, data: fallback, loading: false, error: null };
       pendingDelta = 0;
       emit();
       return fallback;
     }
-    state = { ...state, loading: false, error: error.message };
+
+    // The old Desktop implementation left state.data = null on any auth/network
+    // hiccup, producing the exact "— disponível / — de 1 GB usados" seen in the
+    // screenshot. Keep the last verified measurement (or a safe non-enforced
+    // fallback) while the session self-heals instead of blanking the card.
+    const fallback = cached ?? state.data ?? fallbackUsage();
+    state = { ...state, data: fallback, loading: false, error: String(error?.message ?? error ?? "") || null };
+    pendingDelta = 0;
     emit();
-    throw error;
+    return fallback;
   }
-  pendingDelta = 0;
-  const usage = normalizeUsage(data, true);
-  state = { ...state, data: usage, loading: false, error: null };
-  emit();
-  return usage;
 }
 
 export async function fetchStorageFiles(): Promise<ManagedStorageFile[]> {
@@ -147,7 +194,6 @@ export async function reserveStorageUpload(input: {
   originalName: string;
   mimeType?: string | null;
 }): Promise<{ reservationId: string | null; quotaEnforced: boolean }> {
-  // Reflect the pending upload immediately in every storage card/page in this tab.
   applyOptimisticStorageDelta(input.sizeBytes);
   const { data, error } = await supabase.rpc("reserve_storage_upload" as never, {
     _size_bytes: input.sizeBytes,
@@ -161,7 +207,6 @@ export async function reserveStorageUpload(input: {
   } as never);
   if (error) {
     if (isMissingStorageBackend(error)) {
-      // Keep the legacy upload path working until the database migration is deployed.
       applyOptimisticStorageDelta(-input.sizeBytes);
       return { reservationId: null, quotaEnforced: false };
     }

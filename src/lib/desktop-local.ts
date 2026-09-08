@@ -21,6 +21,7 @@ export type DesktopRuntimeInfo = {
 export type DesktopWindowState = {
   maximized: boolean;
   fullscreen: boolean;
+  focused: boolean;
 };
 
 export type DeviceIdentity = {
@@ -80,12 +81,28 @@ export function getDesktopRuntimeInfo() {
 }
 
 export function getDesktopWindowState() {
-  if (!isDentalFlowDesktop()) return Promise.resolve<DesktopWindowState>({ maximized: false, fullscreen: false });
+  if (!isDentalFlowDesktop()) {
+    return Promise.resolve<DesktopWindowState>({ maximized: false, fullscreen: false, focused: true });
+  }
   return invokeDesktop<DesktopWindowState>("desktop_window_state");
 }
 
 export function performDesktopWindowAction(action: "minimize" | "toggle_maximize" | "drag" | "close") {
   return invokeDesktop<DesktopWindowState>("desktop_window_action", { action });
+}
+
+export async function sendDesktopNativeNotification(input: { title: string; body?: string | null }) {
+  if (!isDentalFlowDesktop()) return false;
+  try {
+    await invokeDesktop<void>("desktop_native_notification", {
+      title: input.title || "DentalFlow",
+      body: input.body ?? "",
+    });
+    return true;
+  } catch (error) {
+    console.warn("[DentalFlow Desktop] Não foi possível exibir a notificação nativa", error);
+    return false;
+  }
 }
 
 export function getProvisionedDesktopIdentity() {

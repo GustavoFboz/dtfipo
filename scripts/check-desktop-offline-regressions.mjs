@@ -9,6 +9,7 @@ const viteDesktop = read("vite.desktop.config.ts");
 const identity = read("src/lib/desktop-identity.ts");
 const desktopLocal = read("src/lib/desktop-local.ts");
 const patients = read("src/lib/patients-local-first.ts");
+const patientsDesktop = read("src/lib/patients.desktop.ts");
 const apiDesktop = read("src/lib/api.desktop.ts");
 const clinicDesktop = read("src/lib/clinic.desktop.ts");
 const clinicLocal = read("src/lib/clinic-local-first.ts");
@@ -20,10 +21,16 @@ const proof = read("src/lib/desktop-sync-proof.ts");
 const notificationPanel = read("src/components/NotificationPanel.tsx");
 const notificationPopups = read("src/hooks/use-notification-popups.ts");
 const notificationsLocal = read("src/lib/notifications-local-first.ts");
+const caseActivity = read("src/lib/case-activity.ts");
+const caseProfessionals = read("src/components/CaseProfessionals.tsx");
+const teamLocal = read("src/lib/team-local-first.ts");
+const teamUi = read("src/components/EquipeManagement.tsx");
+const storage = read("src/lib/storage.ts");
 const bootstrap = read("src/components/DesktopOfflineBootstrap.tsx");
 const realtime = read("src/components/DesktopRealtimeSync.tsx");
 const connectivity = read("src/components/ConnectivityLayer.tsx");
 const transition = read("src/components/EnvironmentTransition.tsx");
+const sessionLifecycle = read("src/hooks/use-session-lifecycle.ts");
 const router = read("src/router.tsx");
 const sync = read("src/lib/desktop-sync.ts");
 const cloud = read("src/lib/desktop-cloud.ts");
@@ -39,13 +46,15 @@ expect(frame.includes("data-dentalflow-window-controls"), "Desktop Windows contr
 expect(frame.includes("Minimizar") && frame.includes("Maximizar") && frame.includes("Fechar"), "Standard window actions must remain rendered.");
 expect(frame.includes("createPortal") && frame.includes("document.body"), "Caption controls must escape the app stacking context via a body portal.");
 expect(frame.includes("2147483646"), "Caption controls must stay above application overlays.");
+expect(frame.includes("resolveCaptionBackground"), "Caption controls must derive their background from the active DentalFlow header.");
+expect(frame.includes("ResizeObserver"), "Native header sizing must use ResizeObserver instead of global style polling.");
+expect(!frame.includes('attributeFilter: ["class", "style"]'), "Never observe class/style mutations across the whole application tree.");
 expect(desktopCss.includes('html[data-dentalflow-native-window="true"]'), "Desktop-only layout rules must remain scoped to native window.");
 expect(desktopCss.includes(".df-notification-stack") && desktopCss.includes("right: 154px"), "Desktop notifications must reserve the Windows caption safe area.");
 expect(tauri.includes('"version": "0.3.0"'), "Desktop version must be 0.3.0.");
 expect(tauri.includes('"frontendDist": "../dist/client"'), "The complete compiled frontend must remain bundled inside the installer.");
 
 // Tauri v2 camelCases top-level Rust command parameter names at the JS boundary.
-// This exact contract was the production root cause of the 0.2.8 empty Desktop.
 expect(desktopLocal.includes('invokeDesktop<void>("local_cache_put", {\n    ownerId,'), "local_cache_put must pass ownerId to Tauri.");
 expect(desktopLocal.includes('invokeDesktop<LocalCacheEntry<T> | null>("local_cache_get", {\n    ownerId,'), "local_cache_get must pass ownerId to Tauri.");
 expect(desktopLocal.includes('invokeDesktop<Array<LocalCacheEntry<T>>>("local_cache_list", {\n    ownerId,'), "local_cache_list must pass ownerId to Tauri.");
@@ -56,8 +65,12 @@ expect(desktopLocal.includes("verifyDesktopLocalRuntime"), "Desktop must probe t
 expect(!desktopLocal.includes('invokeDesktop<void>("local_cache_put", {\n    owner_id: ownerId'), "Do not regress local_cache_put to snake_case top-level args.");
 expect(!desktopLocal.includes('invokeDesktop<LocalCacheEntry<T> | null>("local_cache_get", {\n    owner_id: ownerId'), "Do not regress local_cache_get to snake_case top-level args.");
 
+// Session recovery must distinguish a transient remote validation timeout from an
+// actually missing JWT. Otherwise one timeout poisons all from()/rpc() calls.
 expect(client.includes("usingOfflineDeviceSession"), "Cloud Login shim must track synthetic device sessions.");
 expect(client.includes("validatedCloudSession"), "Persisted Cloud Login must be revalidated.");
+expect(client.includes("recoverStoredCloudSession"), "Transient validation failures must recover a persisted genuine JWT.");
+expect(client.includes("stored?.user"), "getUser must recover from the same genuine persisted session.");
 expect(client.includes("Cloud Login requires revalidation"), "Device-only sessions must block protected Cloud reads.");
 expect(!client.includes("if (!definitelyOffline) return;"), "Device-only protected reads must not be enabled merely because Windows is online.");
 
@@ -66,6 +79,7 @@ expect(!client.includes("if (!definitelyOffline) return;"), "Device-only protect
 expect(client030.includes("crypto.randomUUID()"), "Desktop 0.3.0 must generate unique Realtime topics.");
 expect(client030.includes('prop === "channel"'), "Desktop 0.3.0 must wrap channel creation.");
 expect(viteDesktop.includes("client.desktop.030.ts"), "Desktop Vite build must use the 0.3.0 Realtime-safe client.");
+expect(viteDesktop.includes("patients.desktop.ts"), "Direct patient imports must use the Desktop cache-first facade.");
 
 expect(identity.includes("sessionIsDeviceOnly"), "Desktop identity must distinguish device and Cloud sessions.");
 expect(identity.includes('return identity?.source === "cloud"'), "Cloud access must require a validated real Cloud identity.");
@@ -86,33 +100,51 @@ expect(proof.includes("auxiliaryMismatches"), "Auxiliary mismatches must remain 
 expect(proof.includes("version: 2"), "Desktop 0.3.0 must invalidate the older over-strict sync proof.");
 
 expect(primarySync.includes("inspectDesktopSyncReadiness"), "Primary readiness must depend on authenticated sync proof.");
-expect(primarySync.includes("Revalide seu login para sincronizar"), "Expired/missing Cloud Login must be explicit instead of showing empty lists.");
-expect(primarySync.includes("/reauth?returnTo="), "Desktop must provide a dedicated Cloud reauthentication path.");
+expect(primarySync.includes("Revalide seu login para sincronizar"), "Expired/missing online login must be explicit instead of showing empty lists.");
+expect(primarySync.includes("/reauth?returnTo="), "Desktop must provide a dedicated reauthentication path.");
 expect(primarySync.includes("DentalFlow Desktop 0.3.0"), "Primary sync gate must identify the 0.3.0 recovery build.");
 expect(primarySync.includes("SYNC_GATE_WATCHDOG_MS"), "Full-screen sync state must have a watchdog.");
 expect(primarySync.includes("if (!readiness.ready)"), "Reconnect must only block when no verified local snapshot exists.");
 expect(primarySync.includes("listas auxiliares"), "Sync gate must communicate that auxiliary lists reconcile in background.");
-expect(reauth.includes("signInWithPassword"), "Reauthentication screen must obtain a real Cloud Login.");
+expect(!primarySync.includes("Lovable Cloud"), "Infrastructure provider branding must never appear in the user-facing sync gate.");
+expect(reauth.includes("signInWithPassword"), "Reauthentication screen must obtain a real online login.");
 expect(reauth.includes("Validar e sincronizar"), "Reauthentication screen must clearly continue into synchronization.");
 expect(authenticatedRoute.includes("<DesktopPrimarySyncGate />"), "Primary sync gate must be mounted in authenticated Desktop routes.");
 
 expect(bootstrap.includes("verifyDesktopLocalRuntime"), "Bootstrap must verify the packaged Tauri/SQLite runtime.");
 expect(bootstrap.includes("FULL_SYNC_TIMEOUT_MS"), "The complete Desktop synchronization needs a finite deadline.");
 expect(bootstrap.includes('"sincronização integral do Desktop"'), "Full sync must be bounded as one operation.");
-expect(bootstrap.includes("verifyAndStoreDesktopSyncProof"), "Bootstrap must verify Cloud-vs-SQLite datasets after warming.");
-expect(bootstrap.includes("cloudValidated"), "Bootstrap must report whether a real Cloud session was validated.");
-expect(bootstrap.includes('schedule(2_000, "boot-retry")'), "Desktop must retry cold-boot hydration.");
-expect(bootstrap.includes('schedule(8_000, "boot-finalize")'), "Desktop must run final cold-boot hydration.");
-expect(bootstrap.includes("queryClient.invalidateQueries"), "Visible queries must refresh after sync/recovery.");
+expect(bootstrap.includes("verifyAndStoreDesktopSyncProof"), "Bootstrap must verify remote-vs-SQLite datasets after warming.");
+expect(bootstrap.includes("cloudValidated"), "Bootstrap must report whether a real online session was validated.");
+expect(bootstrap.includes('schedule(3_000, "boot-retry"'), "Desktop must retain a delayed cold-boot retry when verification is still missing.");
+expect(bootstrap.includes('schedule(10_000, "boot-finalize"'), "Desktop must retain a final cold-boot recovery pass when verification is still missing.");
+expect(bootstrap.includes("RESUME_REFRESH_AFTER_MS"), "Idle resume must have an explicit refresh threshold.");
+expect(bootstrap.includes('queryClient.refetchQueries({ type: "active" })'), "Idle resume and completed sync must refresh only currently mounted queries.");
+expect(!bootstrap.includes("queryClient.invalidateQueries()"), "Desktop bootstrap must not globally invalidate the entire query cache after resume/sync.");
+expect(!bootstrap.includes('event === "TOKEN_REFRESHED"'), "Routine token refresh must never trigger a complete Desktop synchronization.");
 
+// Read models that visibly failed in the reported Windows build.
 expect(patients.includes("Resposta vazia de pacientes ignorada"), "Patient snapshots must remain protected from ambiguous empty responses.");
+expect(patientsDesktop.includes('const NS = "patients:v1"'), "Desktop Patients route must read the verified SQLite mirror.");
+expect(patientsDesktop.includes("Return immediately for native UI responsiveness"), "Desktop patient list must be cache-first.");
+expect(teamLocal.includes('const TEAM_NS = "team-members:v1"'), "Desktop team members need a durable SQLite read model.");
+expect(teamLocal.includes("Never let a transient/ambiguous zero-row response erase a verified team"), "Verified team cache must resist ambiguous empty responses.");
+expect(teamUi.includes("fetchTeamMembersLocalFirst"), "Team screen must not depend only on a web server function in Tauri.");
+expect(teamUi.includes("if (desktop) return fetchTeamMembersLocalFirst()"), "Desktop team screen must select the native read model.");
+expect(caseProfessionals.includes("case-professional-activity"), "Case professionals must include actual activity authors/mentions.");
+expect(!caseProfessionals.includes("Protéticos cadastrados (sempre exibidos"), "Case professionals must not append every prosthetist globally.");
+expect(storage.includes('const STORAGE_USAGE_NS = "storage-usage:v1"'), "Desktop storage usage must survive in SQLite.");
+expect(storage.includes("cached ?? state.data ?? fallbackUsage()"), "Storage sidebar must never return to an empty dash state on transient errors.");
+expect(sync.includes("warmTeamMembersLocalCache"), "Full Desktop sync must warm the team read model.");
+expect(sync.includes("refreshStorageUsage"), "Full Desktop sync must warm storage usage.");
+
 expect(apiDesktop.includes("recoverCaseMirror"), "Cases must recover aggregate lists from SQLite mirrors.");
 expect(apiDesktop.includes("recoverAuthorizedCasesDirectly"), "Cases must retain an RLS-authorized recovery path.");
-expect(clinicDesktop.includes("repairClinicContextFromVerifiedCloud"), "Clinic entitlement repair must remain Cloud-verified.");
+expect(clinicDesktop.includes("repairClinicContextFromVerifiedCloud"), "Clinic entitlement repair must remain verified.");
 expect(clinicLocal.includes("Contexto vazio da Clínica ignorado"), "Clinic context must resist transient empty regressions.");
 expect(clinicGuard.includes("Não foi possível validar a Clínica"), "Clinic validation errors must not be presented as plan denial.");
 
-// Notification + Realtime regressions reported in 0.2.9.
+// Notification + Realtime reliability.
 expect(notificationPanel.includes('id="notification-trigger"'), "Notification center trigger must remain wired.");
 expect(notificationPanel.includes("openNotification"), "Notification panel must delegate to internal notification navigation.");
 expect(notificationPanel.includes("df-notification-stack"), "Notification stack must keep the Desktop safe-area hook.");
@@ -120,15 +152,31 @@ expect(notificationPopups.includes("useNavigate"), "Notification clicks must use
 expect(!notificationPopups.includes("window.location.assign(`/casos"), "Notification clicks must never reload the Cases page.");
 expect(notificationPopups.includes('filter: `recipient_id=eq.${user.id}`'), "Notification Realtime must be recipient scoped.");
 expect(notificationsLocal.includes('const NS = "notifications:v1"'), "Notifications must remain durable locally.");
+expect(notificationsLocal.includes('"cloud login"'), "Cloud Login revalidation gaps must be queueable notification failures.");
+expect(caseActivity.includes("sendInternalNotificationLocalFirst"), "Case chat alerts must use the durable Desktop notification outbox.");
 expect(realtime.includes('table: "notifications"'), "Desktop Realtime bridge must subscribe to notifications.");
 expect(realtime.includes('table: "case_activity"'), "Desktop Realtime bridge must subscribe to case activity.");
-expect(!realtime.includes('window.addEventListener("focus"'), "Realtime mirror must not full-sync on every Alt+Tab.");
-expect(!connectivity.includes('passiveSync ? "Atualizando"'), "Passive refresh must remain visually quiet.");
+expect(realtime.includes('event: "UPDATE", schema: "public", table: "cases"'), "Desktop must observe authorized case updates.");
+expect(realtime.includes("scheduleNativeCaseUpdate"), "Background case changes must surface as native notifications.");
+expect(realtime.includes("BACKGROUND_NOTIFICATION_POLL_MS = 15_000"), "Background notification catch-up must stay low-latency.");
+expect(realtime.includes("NOTIFICATION_STARTUP_LOOKBACK_MS"), "Notification catch-up must cover the startup/reconnect race window.");
+expect(realtime.includes("getProvisionedDesktopIdentity"), "A transient device-only startup must preserve recipient identity for self-healing.");
+expect(realtime.includes("queueReconnect();\n          return;"), "Realtime must retry after a transient device-only startup instead of dying silently.");
+expect(realtime.includes("CASE_INVALIDATION_DEBOUNCE_MS"), "Case activity invalidations must be coalesced.");
+expect(realtime.includes('queryKey: ["case-professional-activity", id]'), "Case mentions/professionals must refresh after new activity.");
+expect(!realtime.includes("syncDesktopOfflineData"), "Realtime events must never launch a complete offline mirror synchronization.");
+expect(!realtime.includes('window.addEventListener("focus"'), "Realtime mirror must not reconnect/full-sync on every Alt+Tab.");
+expect(!connectivity.includes("syncDesktopOfflineData"), "Connectivity indicator must not own a second full-sync pipeline.");
+expect(!connectivity.includes("queryClient.invalidateQueries"), "Connectivity indicator must not globally invalidate React Query.");
+expect(!connectivity.includes('className="fixed inset-0 z-[9998]'), "Reconnect must never cover and block the whole application.");
 expect(transition.includes("useIsFetching"), "Environment transition must still observe query readiness.");
 expect(router.includes("desktop ? 5 * 60_000"), "Desktop query data must stay warm between modules.");
+expect(router.includes('refetchOnReconnect: desktop ? false : "always"'), "React Query must not duplicate the Desktop reconnect coordinator.");
+expect(sessionLifecycle.includes("SESSION_REVALIDATE_COOLDOWN_MS"), "Session resume checks must have a cooldown.");
+expect(sessionLifecycle.includes("activeValidation"), "Session revalidation must be single-flight.");
 expect(sync.includes("Promise.all(["), "Independent reconnect domains must run concurrently.");
 expect(sync.indexOf("syncPendingCaseChanges") < sync.indexOf("syncPendingNotificationChanges"), "Queued cases must replay before their notifications.");
-expect(cloud.includes("DesktopCloudTimeoutError"), "Cloud operations must stay bounded by a timeout.");
+expect(cloud.includes("DesktopCloudTimeoutError"), "Remote operations must stay bounded by a timeout.");
 expect(contract.includes("Regra de ouro"), "Cross-platform/offline contract must remain documented.");
 
-console.log("Desktop 0.3.0 Tauri/SQLite, authenticated sync, realtime, notifications and native-window regression checks passed.");
+console.log("Desktop 0.3.0 native read-model recovery, authenticated sync, realtime notifications and Windows regressions passed.");
