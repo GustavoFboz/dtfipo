@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { routeTree } from "./routeTree.gen";
 import { installTombstoneGuard } from "@/lib/optimistic";
 import { isDentalFlowDesktop } from "@/lib/desktop-local";
+import { installDesktopRuntimeOptimizations } from "@/lib/desktop-runtime-optimizations";
 
 function isStaleAssetError(error: Error) {
   return /Failed to fetch dynamically imported module|Importing a module script failed|Loading chunk|dynamically imported module|ChunkLoadError/i.test(
@@ -31,6 +32,11 @@ async function recoverFromStaleAssets() {
 }
 
 if (typeof window !== "undefined") {
+  // Installed builds keep frequently reopened case files on persistent local
+  // storage and hold the hidden notification renderer alive while in the tray.
+  // The web build never installs this narrow fetch/cache layer.
+  if (isDentalFlowDesktop()) installDesktopRuntimeOptimizations();
+
   const globalHandler = (msg: unknown) => {
     const text = typeof msg === "string" ? msg : (msg as Error)?.message ?? "";
     if (isStaleAssetError({ message: text } as Error)) {
