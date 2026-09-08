@@ -17,7 +17,6 @@ async function recoverFromStaleAssets() {
   const key = "dentalflow:stale-assets-reload";
   const now = Date.now();
   const last = Number(sessionStorage.getItem(key) || "0");
-  // Só bloqueia se já recarregamos há menos de 30s (evita loop de reload).
   if (last && now - last < 30_000) return;
   sessionStorage.setItem(key, String(now));
 
@@ -31,8 +30,6 @@ async function recoverFromStaleAssets() {
   window.location.reload();
 }
 
-// Captura erros globais de import dinâmico (modais lazy, chunks) que
-// escapam do errorComponent do router e deixariam a UI em branco.
 if (typeof window !== "undefined") {
   const globalHandler = (msg: unknown) => {
     const text = typeof msg === "string" ? msg : (msg as Error)?.message ?? "";
@@ -75,15 +72,13 @@ export const getRouter = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
-        // Installed clients already maintain an SQLite mirror + realtime invalidation.
-        // Keeping resolved query data warm for five minutes avoids needless visual
-        // re-buffering when the user moves between Clínica, Laboratório and Hub.
-        // The cache can live longer because authoritative realtime/sync invalidations
-        // still refresh it immediately when data actually changes.
+        // O Desktop possui reconciliação local, realtime e um coordenador próprio
+        // de retorno de conexão. Deixar o React Query refazer tudo em paralelo no
+        // reconnect criava uma tempestade de leituras exatamente após sleep/idle.
         staleTime: desktop ? 5 * 60_000 : 60_000,
         gcTime: desktop ? 30 * 60_000 : 15 * 60_000,
         refetchOnMount: false,
-        refetchOnReconnect: "always",
+        refetchOnReconnect: desktop ? false : "always",
         refetchOnWindowFocus: false,
         placeholderData: (prev: unknown) => prev,
         retry: 1,
