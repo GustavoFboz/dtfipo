@@ -151,7 +151,7 @@ const auth = requireContains(
 if (auth.includes('stage === "welcome"') || auth.includes("auth-hero.jpg")) {
   throw new Error("Legacy auth welcome gate/hero returned");
 }
-if (!auth.includes("Uma conta. Até três operações conectadas.")) {
+if (!auth.includes("Uma empresa. Até três operações conectadas.")) {
   throw new Error("Enterprise auth brand message is missing");
 }
 console.log("OK: authentication opens directly into the enterprise access experience");
