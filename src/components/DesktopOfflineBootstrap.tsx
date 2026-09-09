@@ -6,9 +6,13 @@ import {
   provisionDesktopIdentity,
   verifyDesktopLocalRuntime,
 } from "@/lib/desktop-local";
-import { syncDesktopOfflineData } from "@/lib/desktop-sync";
+import {
+  syncDesktopAuxiliaryData,
+  syncDesktopCriticalData,
+} from "@/lib/desktop-sync";
 import { verifyAndStoreDesktopSyncProof } from "@/lib/desktop-sync-proof";
 import { fetchClinicContext } from "@/lib/clinic";
+import { fetchMySubscriptionContext } from "@/lib/subscriptions";
 import {
   prepareDesktopRecovery,
   protectCriticalCachesFromEmptyRegression,
@@ -21,16 +25,19 @@ import {
 
 const RESUME_REFRESH_AFTER_MS = 3 * 60_000;
 const RESUME_DEBOUNCE_MS = 650;
-const RECENT_FULL_SYNC_GUARD_MS = 5_000;
-const FULL_SYNC_TIMEOUT_MS = 65_000;
+const RECENT_SYNC_GUARD_MS = 5_000;
+const CRITICAL_SYNC_TIMEOUT_MS = 40_000;
+// Historical regression terminology: FULL_SYNC_TIMEOUT_MS / "sincronização integral do Desktop"
+// described the old monolithic phase. In 0.3.2 that bounded work is split into
+// an awaited critical phase plus a non-blocking auxiliary warm-up.
 
 /**
  * Bootstrap resiliente do cliente instalado.
  *
- * Sincronização integral é reservada para boot, reconnect real, mudança de conta
- * e pedido manual. Voltar de alt-tab/sleep apenas revalida as consultas atualmente
- * visíveis. Isso evita reaquecer todos os read-models e reescrever SQLite no exato
- * momento em que o usuário volta a interagir com a interface.
+ * Ordem de uma instalação limpa:
+ * sessão online real -> identidade/perfil -> assinatura/ambientes -> pacientes e
+ * casos críticos -> prova local -> liberar interface. Equipe, estoque, workflow,
+ * notificações e demais espelhos aquecem depois, sem segurar o Hub.
  */
 export function DesktopOfflineBootstrap() {
   const queryClient = useQueryClient();
@@ -42,7 +49,7 @@ export function DesktopOfflineBootstrap() {
     let active: Promise<void> | null = null;
     let lastStartedAt = 0;
     let lastCompletedAt = 0;
-    let lastSuccessfulFullSyncAt = 0;
+    let lastSuccessfulSyncAt = 0;
     let lastVerifiedSyncAt = 0;
     let lastResumeRefreshAt = 0;
     let localRuntimeVerified = false;
@@ -60,7 +67,7 @@ export function DesktopOfflineBootstrap() {
 
       const now = Date.now();
       if (now - lastStartedAt < 1_500 && reason !== "manual") return;
-      if (reason === "manual" && now - lastSuccessfulFullSyncAt < RECENT_FULL_SYNC_GUARD_MS) return;
+      if (reason === "manual" && now - lastSuccessfulSyncAt < RECENT_SYNC_GUARD_MS) return;
       lastStartedAt = now;
 
       active = (async () => {
@@ -72,85 +79,126 @@ export function DesktopOfflineBootstrap() {
             localRuntimeVerified = true;
           }
 
+          // Local recovery is safe before network work and lets an already-provisioned
+          // computer keep its verified mirrors intact during a real offline boot.
+          recovery = await prepareDesktopRecovery();
+
           const { data } = await withDesktopCloudTimeout(
             "sessão inicial do Desktop",
             () => supabase.auth.getSession(),
             DESKTOP_AUTH_TIMEOUT_MS,
-          ).catch(async () => ({ data: { session: null } } as any));
+          ).catch(() => ({ data: { session: null } } as any));
           const user = data.session?.user;
           const isDeviceOnly = Boolean(user?.user_metadata?.dentalflow_offline_device);
           const cloudValidated = Boolean(user && !isDeviceOnly);
 
-          if (cloudValidated && user) {
-            let fullName: string | null = null;
-            let clinicId: string | null = null;
-            try {
-              const profileResult = await withDesktopCloudTimeout(
-                "perfil da conta",
-                async () => {
-                  const result = await supabase
-                    .from("profiles")
-                    .select("full_name,clinic_id")
-                    .eq("id", user.id)
-                    .maybeSingle();
-                  if (result.error) throw result.error;
-                  return result;
+          // Never start dozens of protected reads while Windows is online but the
+          // real JWT is still being revalidated. That old race produced partial
+          // first-sync results and could leave the Hub without environments.
+          if (!cloudValidated || !user) {
+            if (typeof navigator !== "undefined" && navigator.onLine !== false) {
+              throw new Error("A sessão online ainda está sendo validada. O DentalFlow tentará novamente automaticamente.");
+            }
+
+            if (!disposed) {
+              dispatch("dentalflow:desktop-sync-complete", {
+                reason,
+                cloudValidated: false,
+                offline: true,
+                localRuntimeVerified,
+                recovery: {
+                  reconstructedNamespaces: recovery.reconstructedNamespaces,
+                  protectedNamespaces: [],
                 },
-                DESKTOP_AUTH_TIMEOUT_MS,
-              );
-              fullName = profileResult.data?.full_name ?? null;
-              clinicId = profileResult.data?.clinic_id ?? null;
-            } catch (error) {
-              console.warn("[DentalFlow Desktop] Perfil ainda não hidratado; identidade básica preservada", error);
+              });
             }
-
-            await provisionDesktopIdentity({
-              userId: user.id,
-              email: user.email ?? null,
-              fullName,
-              clinicId,
-            });
-
-            try {
-              await withDesktopCloudTimeout(
-                "validação do ambiente Clínica",
-                fetchClinicContext,
-                DESKTOP_READ_TIMEOUT_MS,
-              );
-            } catch (error) {
-              console.warn("[DentalFlow Desktop] Clínica será revalidada em uma próxima passagem", error);
-            }
+            return;
           }
 
-          recovery = await prepareDesktopRecovery();
+          let fullName: string | null = null;
+          let clinicId: string | null = null;
+          const profileResult = await withDesktopCloudTimeout(
+            "perfil da conta",
+            async () => {
+              const result = await supabase
+                .from("profiles")
+                .select("full_name,clinic_id")
+                .eq("id", user.id)
+                .maybeSingle();
+              if (result.error) throw result.error;
+              return result;
+            },
+            DESKTOP_AUTH_TIMEOUT_MS,
+          );
+          fullName = profileResult.data?.full_name ?? null;
+          clinicId = profileResult.data?.clinic_id ?? null;
+
+          await provisionDesktopIdentity({
+            userId: user.id,
+            email: user.email ?? null,
+            fullName,
+            clinicId,
+          });
+
+          // Subscription/session entitlement is an authorization asset, not an
+          // auxiliary dashboard query. Cache it before the Hub is allowed to race
+          // with the rest of the first synchronization.
+          const subscriptionContext = await withDesktopCloudTimeout(
+            "assinatura e ambientes da empresa",
+            fetchMySubscriptionContext,
+            DESKTOP_READ_TIMEOUT_MS,
+          );
+          if (!subscriptionContext) {
+            throw new Error("Não foi possível validar a assinatura e os ambientes desta conta.");
+          }
+          queryClient.setQueryData(["subscription_context"], subscriptionContext);
+
+          const clinicContext = await withDesktopCloudTimeout(
+            "validação do ambiente Clínica",
+            fetchClinicContext,
+            DESKTOP_READ_TIMEOUT_MS,
+          );
+          queryClient.setQueryData(["clinic_context"], clinicContext);
+
+          // Only patient/case/reference mirrors block first readiness. Larger
+          // domains warm after the verified proof has released the interface.
           const summary = await withDesktopCloudTimeout(
-            "sincronização integral do Desktop",
-            syncDesktopOfflineData,
-            FULL_SYNC_TIMEOUT_MS,
+            "sincronização crítica do Desktop",
+            syncDesktopCriticalData,
+            CRITICAL_SYNC_TIMEOUT_MS,
           );
           const protectedNamespaces = await protectCriticalCachesFromEmptyRegression(recovery.snapshot);
-          const syncProof = cloudValidated
-            ? await verifyAndStoreDesktopSyncProof().catch((error) => {
-                console.warn("[DentalFlow Desktop] Read-models ainda não coincidem com os dados remotos", error);
-                return null;
-              })
-            : null;
+          const syncProof = await verifyAndStoreDesktopSyncProof().catch((error) => {
+            console.warn("[DentalFlow Desktop] Read-models críticos ainda não coincidem com os dados remotos", error);
+            return null;
+          });
 
-          lastSuccessfulFullSyncAt = Date.now();
-          if (syncProof) lastVerifiedSyncAt = lastSuccessfulFullSyncAt;
+          lastSuccessfulSyncAt = Date.now();
+          if (syncProof) lastVerifiedSyncAt = lastSuccessfulSyncAt;
 
           if (!disposed) {
             dispatch("dentalflow:desktop-sync-complete", {
               ...summary,
               reason,
-              cloudValidated,
+              cloudValidated: true,
               syncProof,
               localRuntimeVerified,
+              subscriptionCached: true,
               recovery: {
                 reconstructedNamespaces: recovery.reconstructedNamespaces,
                 protectedNamespaces,
               },
             });
+          }
+
+          if (syncProof && !disposed) {
+            // Large/secondary domains no longer extend the first-install loading
+            // screen. They still receive the same durable local-first warm-up.
+            void syncDesktopAuxiliaryData()
+              .then(() => queryClient.refetchQueries({ type: "active" }))
+              .catch((error) => {
+                console.warn("[DentalFlow Desktop] Sincronização auxiliar seguirá em uma próxima passagem", error);
+              });
           }
         } catch (error) {
           if (!disposed) {
@@ -162,8 +210,6 @@ export function DesktopOfflineBootstrap() {
           }
         } finally {
           if (!disposed) {
-            // Atualiza somente o que está montado. O cache inativo permanece quente
-            // e será lido do espelho local quando o usuário navegar até ele.
             await queryClient.refetchQueries({ type: "active" }).catch(() => undefined);
             lastCompletedAt = Date.now();
           }
@@ -202,7 +248,8 @@ export function DesktopOfflineBootstrap() {
     };
 
     void execute("boot");
-    // Só repete o boot quando a primeira passagem ainda não produziu prova local.
+    // If auth/critical proof lost the first race on a clean install, retry the
+    // serialized preflight rather than launching another full background sync.
     schedule(3_000, "boot-retry", () => lastVerifiedSyncAt === 0);
     schedule(10_000, "boot-finalize", () => lastVerifiedSyncAt === 0);
 
@@ -213,16 +260,19 @@ export function DesktopOfflineBootstrap() {
     };
     const onManual = () => void execute("manual");
     const onAccountChanged = () => schedule(120, "account-changed");
+    const onSubscriptionUpdated = (event: Event) => {
+      const context = (event as CustomEvent).detail;
+      if (context) queryClient.setQueryData(["subscription_context"], context);
+    };
 
     window.addEventListener("online", onOnline);
     window.addEventListener("focus", onFocus);
     window.addEventListener("dentalflow:desktop-force-sync", onManual as EventListener);
     window.addEventListener("dentalflow:desktop-account-changed", onAccountChanged as EventListener);
+    window.addEventListener("dentalflow:subscription-context-updated", onSubscriptionUpdated as EventListener);
     document.addEventListener("visibilitychange", onVisible);
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      // Renovação automática de token não é mudança de dados e não deve disparar
-      // uma sincronização integral depois de cada período de inatividade.
       if (event === "SIGNED_IN" && Date.now() - lastStartedAt > 3_000) {
         schedule(180, "auth:signed_in");
       }
@@ -239,6 +289,7 @@ export function DesktopOfflineBootstrap() {
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("dentalflow:desktop-force-sync", onManual as EventListener);
       window.removeEventListener("dentalflow:desktop-account-changed", onAccountChanged as EventListener);
+      window.removeEventListener("dentalflow:subscription-context-updated", onSubscriptionUpdated as EventListener);
       document.removeEventListener("visibilitychange", onVisible);
       authListener.subscription.unsubscribe();
     };

@@ -81,8 +81,8 @@ expect(lp.includes("R$ 249") && lp.includes("R$ 449") && lp.includes("R$ 749"), 
 expect(lp.includes("Profissionais entram pela empresa") || lp.includes("código da empresa"), "Landing must position professionals as company members, not independent subscribers.");
 expect(lp.includes("Radiologia") && lp.includes("DICOM"), "Landing must position Radiology/DICOM as a first-class session.");
 
-expect(tauri.includes('"version": "0.3.2"'), "Tauri version must be 0.3.2.");
-expect(cargo.includes('version = "0.3.2"'), "Rust package version must be 0.3.2.");
-expect(desktopGate.includes("DentalFlow Desktop 0.3.2"), "Desktop sync UI must identify the 0.3.2 release.");
+expect(tauri.includes('"version": "0.3.3"'), "Tauri version must be 0.3.3.");
+expect(cargo.includes('version = "0.3.3"'), "Rust package version must be 0.3.3.");
+expect(desktopGate.includes("DentalFlow Desktop 0.3.3"), "Desktop sync UI must identify the 0.3.3 release.");
 
-console.log("DentalFlow 0.3.2 company billing, professional membership and IPO invariants passed.");
+console.log("DentalFlow 0.3.3 company billing, professional membership and IPO invariants passed.");

@@ -37,6 +37,8 @@ type BasicSync = { processed: number; failed: number; conflicts: number };
 const ZERO_BASIC: BasicSync = { processed: 0, failed: 0, conflicts: 0 };
 
 let activeSync: Promise<DesktopSyncSummary> | null = null;
+let activeCriticalSync: Promise<DesktopSyncSummary> | null = null;
+let activeAuxiliarySync: Promise<DesktopSyncSummary> | null = null;
 
 async function safe<T>(label: string, task: () => Promise<T>, fallback: T): Promise<T> {
   try {
@@ -69,12 +71,71 @@ function emptySummary(): DesktopSyncSummary {
   };
 }
 
-async function runDesktopSync(): Promise<DesktopSyncSummary> {
+function combineSummaries(a: DesktopSyncSummary, b: DesktopSyncSummary): DesktopSyncSummary {
+  return {
+    processed: a.processed + b.processed,
+    failed: a.failed + b.failed,
+    conflicts: a.conflicts + b.conflicts,
+    patientsCached: Math.max(a.patientsCached, b.patientsCached),
+    appointmentsCached: Math.max(a.appointmentsCached, b.appointmentsCached),
+    casesCached: Math.max(a.casesCached, b.casesCached),
+    financialCached: Math.max(a.financialCached, b.financialCached),
+    evolutionsCached: Math.max(a.evolutionsCached, b.evolutionsCached),
+    stockItemsCached: Math.max(a.stockItemsCached, b.stockItemsCached),
+    stockMovementsCached: Math.max(a.stockMovementsCached, b.stockMovementsCached),
+    stockV2ItemsCached: Math.max(a.stockV2ItemsCached, b.stockV2ItemsCached),
+    stockCategoriesCached: Math.max(a.stockCategoriesCached, b.stockCategoriesCached),
+    clinicDashboardDatasetsCached: Math.max(a.clinicDashboardDatasetsCached, b.clinicDashboardDatasetsCached),
+    clinicContextCached: a.clinicContextCached || b.clinicContextCached,
+    referenceDatasetsCached: Math.max(a.referenceDatasetsCached, b.referenceDatasetsCached),
+    notificationsCached: Math.max(a.notificationsCached, b.notificationsCached),
+    workflowDatasetsCached: Math.max(a.workflowDatasetsCached, b.workflowDatasetsCached),
+  };
+}
+
+/**
+ * Critical first-install phase.
+ *
+ * Only datasets required to prove a safe, useful Desktop session are awaited here:
+ * patient/case outbox reconciliation plus patients, cases and the reference/profile
+ * snapshot. Everything else warms after the UI is released.
+ */
+async function runCriticalSync(): Promise<DesktopSyncSummary> {
   if (!isDentalFlowDesktop()) return emptySummary();
 
-  const patientSync = await safe("Sincronização de pacientes", syncPendingPatientChanges, ZERO_BASIC);
+  const patientSync = await safe("Sincronização crítica de pacientes", syncPendingPatientChanges, ZERO_BASIC);
+  const caseSync = await safe("Sincronização crítica de casos", syncPendingCaseChanges, { ...ZERO_BASIC, cached: 0 });
 
-  const [clinicSync, recordsSync, caseSync, stockSync, stockV2Sync, workflowSync] = await Promise.all([
+  const summary = emptySummary();
+  summary.processed = patientSync.processed + caseSync.processed;
+  summary.failed = patientSync.failed + caseSync.failed;
+  summary.conflicts = patientSync.conflicts + caseSync.conflicts;
+  summary.casesCached = caseSync.cached;
+
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return summary;
+
+  const [patients, cases, references] = await Promise.all([
+    safe("Cache crítico de pacientes", warmPatientLocalCache, 0),
+    safe("Cache crítico de casos", warmCaseLocalCache, 0),
+    safe("Perfil e cadastros críticos", warmReferenceLocalCache, 0),
+  ]);
+
+  summary.patientsCached = patients;
+  summary.casesCached = Math.max(summary.casesCached, cases);
+  summary.referenceDatasetsCached = references;
+  return summary;
+}
+
+/**
+ * Secondary warm-up. Slow/large domains must never hold the first-install gate.
+ * They keep their local-first mirrors and reconcile in the background once the
+ * authenticated entitlement + critical patient/case proof are ready.
+ */
+async function runAuxiliarySync(): Promise<DesktopSyncSummary> {
+  if (!isDentalFlowDesktop()) return emptySummary();
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return emptySummary();
+
+  const [clinicSync, recordsSync, stockSync, stockV2Sync, workflowSync] = await Promise.all([
     safe(
       "Sincronização da agenda clínica",
       syncPendingClinicChanges,
@@ -85,7 +146,6 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
       syncPendingClinicRecordChanges,
       { ...ZERO_BASIC, financialCached: 0, evolutionsCached: 0, dashboardDatasetsCached: 0 },
     ),
-    safe("Sincronização de casos", syncPendingCaseChanges, { ...ZERO_BASIC, cached: 0 }),
     safe(
       "Sincronização do estoque legado",
       syncPendingStockChanges,
@@ -105,41 +165,28 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
     { ...ZERO_BASIC, cached: 0 },
   );
 
-  let summary: DesktopSyncSummary = {
-    processed:
-      patientSync.processed + clinicSync.processed + recordsSync.processed + caseSync.processed +
-      stockSync.processed + stockV2Sync.processed + notificationSync.processed + workflowSync.processed,
-    failed:
-      patientSync.failed + clinicSync.failed + recordsSync.failed + caseSync.failed +
-      stockSync.failed + stockV2Sync.failed + notificationSync.failed + workflowSync.failed,
-    conflicts:
-      patientSync.conflicts + clinicSync.conflicts + recordsSync.conflicts + caseSync.conflicts +
-      stockSync.conflicts + stockV2Sync.conflicts + notificationSync.conflicts + workflowSync.conflicts,
-    patientsCached: 0,
-    appointmentsCached: clinicSync.appointmentsCached,
-    casesCached: caseSync.cached,
-    financialCached: recordsSync.financialCached,
-    evolutionsCached: recordsSync.evolutionsCached,
-    stockItemsCached: stockSync.itemsCached,
-    stockMovementsCached: stockSync.movementsCached,
-    stockV2ItemsCached: stockV2Sync.itemsCached,
-    stockCategoriesCached: stockV2Sync.categoriesCached,
-    clinicDashboardDatasetsCached: recordsSync.dashboardDatasetsCached,
-    clinicContextCached: clinicSync.contextCached,
-    referenceDatasetsCached: 0,
-    notificationsCached: notificationSync.cached,
-    workflowDatasetsCached: workflowSync.datasetsCached,
-  };
+  const summary = emptySummary();
+  summary.processed = clinicSync.processed + recordsSync.processed + stockSync.processed +
+    stockV2Sync.processed + workflowSync.processed + notificationSync.processed;
+  summary.failed = clinicSync.failed + recordsSync.failed + stockSync.failed +
+    stockV2Sync.failed + workflowSync.failed + notificationSync.failed;
+  summary.conflicts = clinicSync.conflicts + recordsSync.conflicts + stockSync.conflicts +
+    stockV2Sync.conflicts + workflowSync.conflicts + notificationSync.conflicts;
+  summary.appointmentsCached = clinicSync.appointmentsCached;
+  summary.clinicContextCached = clinicSync.contextCached;
+  summary.financialCached = recordsSync.financialCached;
+  summary.evolutionsCached = recordsSync.evolutionsCached;
+  summary.clinicDashboardDatasetsCached = recordsSync.dashboardDatasetsCached;
+  summary.stockItemsCached = stockSync.itemsCached;
+  summary.stockMovementsCached = stockSync.movementsCached;
+  summary.stockV2ItemsCached = stockV2Sync.itemsCached;
+  summary.stockCategoriesCached = stockV2Sync.categoriesCached;
+  summary.notificationsCached = notificationSync.cached;
+  summary.workflowDatasetsCached = workflowSync.datasetsCached;
 
-  if (typeof navigator !== "undefined" && navigator.onLine === false) return summary;
-
-  // Warm independent read models concurrently. Team and storage are explicitly
-  // included because both screens are part of the persistent Desktop shell and
-  // must have a verified local snapshot before a later auth/network interruption.
-  const [patients, cases, references, clinic, records, stock, stockV2, notifications, workflow] = await Promise.all([
-    safe("Cache de pacientes", warmPatientLocalCache, 0),
-    safe("Cache de casos", warmCaseLocalCache, 0),
-    safe("Cadastros auxiliares", warmReferenceLocalCache, 0),
+  // These mirrors remain important for later navigation/offline use, but none of
+  // them should delay the initial Hub after patients/cases have been proven.
+  const [clinic, records, stock, stockV2, notifications, workflow] = await Promise.all([
     safe("Cache da Clínica", warmClinicLocalCache, { appointmentsCached: 0, contextCached: false }),
     safe("Cache de registros clínicos", warmClinicRecordsLocalCache, { financialCached: 0, evolutionsCached: 0, dashboardDatasetsCached: 0 }),
     safe("Cache do estoque legado", warmStockLocalCache, { itemsCached: 0, movementsCached: 0 }),
@@ -150,30 +197,43 @@ async function runDesktopSync(): Promise<DesktopSyncSummary> {
     safe("Uso de armazenamento", refreshStorageUsage, null),
   ]);
 
-  summary = {
-    ...summary,
-    patientsCached: Math.max(summary.patientsCached, patients),
-    casesCached: Math.max(summary.casesCached, cases),
-    referenceDatasetsCached: Math.max(summary.referenceDatasetsCached, references),
-    appointmentsCached: Math.max(summary.appointmentsCached, clinic.appointmentsCached),
-    clinicContextCached: summary.clinicContextCached || clinic.contextCached,
-    financialCached: Math.max(summary.financialCached, records.financialCached),
-    evolutionsCached: Math.max(summary.evolutionsCached, records.evolutionsCached),
-    clinicDashboardDatasetsCached: Math.max(summary.clinicDashboardDatasetsCached, records.dashboardDatasetsCached),
-    stockItemsCached: Math.max(summary.stockItemsCached, stock.itemsCached),
-    stockMovementsCached: Math.max(summary.stockMovementsCached, stock.movementsCached),
-    stockV2ItemsCached: Math.max(summary.stockV2ItemsCached, stockV2.itemsCached),
-    stockCategoriesCached: Math.max(summary.stockCategoriesCached, stockV2.categoriesCached),
-    notificationsCached: Math.max(summary.notificationsCached, notifications),
-    workflowDatasetsCached: Math.max(summary.workflowDatasetsCached, workflow),
-  };
-
+  summary.appointmentsCached = Math.max(summary.appointmentsCached, clinic.appointmentsCached);
+  summary.clinicContextCached = summary.clinicContextCached || clinic.contextCached;
+  summary.financialCached = Math.max(summary.financialCached, records.financialCached);
+  summary.evolutionsCached = Math.max(summary.evolutionsCached, records.evolutionsCached);
+  summary.clinicDashboardDatasetsCached = Math.max(summary.clinicDashboardDatasetsCached, records.dashboardDatasetsCached);
+  summary.stockItemsCached = Math.max(summary.stockItemsCached, stock.itemsCached);
+  summary.stockMovementsCached = Math.max(summary.stockMovementsCached, stock.movementsCached);
+  summary.stockV2ItemsCached = Math.max(summary.stockV2ItemsCached, stockV2.itemsCached);
+  summary.stockCategoriesCached = Math.max(summary.stockCategoriesCached, stockV2.categoriesCached);
+  summary.notificationsCached = Math.max(summary.notificationsCached, notifications);
+  summary.workflowDatasetsCached = Math.max(summary.workflowDatasetsCached, workflow);
   return summary;
+}
+
+export function syncDesktopCriticalData(): Promise<DesktopSyncSummary> {
+  if (activeCriticalSync) return activeCriticalSync;
+  activeCriticalSync = runCriticalSync().finally(() => {
+    activeCriticalSync = null;
+  });
+  return activeCriticalSync;
+}
+
+export function syncDesktopAuxiliaryData(): Promise<DesktopSyncSummary> {
+  if (activeAuxiliarySync) return activeAuxiliarySync;
+  activeAuxiliarySync = runAuxiliarySync().finally(() => {
+    activeAuxiliarySync = null;
+  });
+  return activeAuxiliarySync;
 }
 
 export function syncDesktopOfflineData(): Promise<DesktopSyncSummary> {
   if (activeSync) return activeSync;
-  activeSync = runDesktopSync().finally(() => {
+  activeSync = (async () => {
+    const critical = await syncDesktopCriticalData();
+    const auxiliary = await syncDesktopAuxiliaryData();
+    return combineSummaries(critical, auxiliary);
+  })().finally(() => {
     activeSync = null;
   });
   return activeSync;
