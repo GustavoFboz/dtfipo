@@ -1,519 +1,188 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ArrowRight,
-  Workflow,
-  Boxes,
-  Bell,
-  ShieldCheck,
-  Smartphone,
-  Layers,
-  Zap,
-  Users,
-  Printer,
-  LineChart,
-  Check,
-} from "lucide-react";
+import { ArrowRight, Bell, Building2, Check, Database, FlaskConical, Layers3, RadioTower, ShieldCheck, Stethoscope, UserRound, Users } from "lucide-react";
 
 export const Route = createFileRoute("/lp")({
   head: () => ({
     meta: [
-      { title: "DentalFlow — O sistema que organiza seu laboratório odontológico" },
-      {
-        name: "description",
-        content:
-          "Gestão de casos, estoque, fluxo de etapas e equipe em um só lugar. Feito para laboratórios e consultórios odontológicos que querem produzir mais, com menos retrabalho.",
-      },
-      { property: "og:title", content: "DentalFlow — Sistema para laboratórios odontológicos" },
-      {
-        property: "og:description",
-        content: "Fluxo de casos, estoque automático, notação FDI, notificações em tempo real e muito mais.",
-      },
+      { title: "DentalFlow — Hub empresarial para Odontologia Digital" },
+      { name: "description", content: "Conecte laboratório protético, clínica odontológica e radiologia em um único hub empresarial, com planos por sessão, equipe e capacidade." },
+      { property: "og:title", content: "DentalFlow — Laboratório, Clínica e Radiologia em um único hub" },
+      { property: "og:description", content: "Gestão por sessões independentes ou integradas, profissionais vinculados e estrutura pronta para assinatura." },
       { property: "og:type", content: "website" },
     ],
   }),
   component: LandingPage,
 });
 
-function LandingPage() {
-  const handleAuth = (mode?: "company" | "employee" | "user") => {
-    if (mode === "company") {
-      window.location.href = "/auth?mode=signup";
-    } else {
-      window.location.href = "/auth";
-    }
-  };
+const COMPANY_PLANS = [
+  {
+    code: "company_initial",
+    name: "Empresa Inicial",
+    price: "R$ 249",
+    sessions: "1 sessão empresarial",
+    members: "Até 8 membros",
+    storage: "25 GB incluídos",
+    description: "Para iniciar com uma operação completa: Laboratório, Clínica ou Radiologia.",
+  },
+  {
+    code: "company_growth",
+    name: "Empresa Crescimento",
+    price: "R$ 449",
+    sessions: "Até 2 sessões",
+    members: "Até 20 membros",
+    storage: "100 GB incluídos",
+    description: "Duas áreas conectadas, mais equipe e compartilhamento de informações entre sessões.",
+  },
+  {
+    code: "company_advanced",
+    name: "Empresa Avançado",
+    price: "R$ 749",
+    sessions: "3 sessões completas",
+    members: "Até 50 membros",
+    storage: "500 GB incluídos",
+    description: "O hub completo com Laboratório, Clínica e Radiologia integrados na mesma empresa.",
+    highlight: true,
+  },
+];
 
+function LandingPage() {
   return (
-    <div className="min-h-screen bg-white text-slate-900">
-      {/* NAV */}
-      <header className="sticky top-0 z-40 backdrop-blur bg-white/80 border-b border-slate-100">
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
+    <div className="min-h-screen bg-white text-slate-950">
+      <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/85 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
           <Brand />
-          <nav className="hidden md:flex items-center gap-8 text-[13px] font-light text-slate-500">
-            <a href="#recursos" className="hover:text-slate-900 transition">Recursos</a>
-            <a href="#fluxo" className="hover:text-slate-900 transition">Fluxo</a>
-            <a href="#planos" className="hover:text-slate-900 transition">Planos</a>
-            <a href="#faq" className="hover:text-slate-900 transition">FAQ</a>
+          <nav className="hidden items-center gap-8 text-[12px] font-light text-slate-500 md:flex">
+            <a href="#hub" className="transition hover:text-slate-900">Hub</a>
+            <a href="#sessoes" className="transition hover:text-slate-900">Sessões</a>
+            <a href="#planos" className="transition hover:text-slate-900">Planos</a>
+            <a href="#seguranca" className="transition hover:text-slate-900">Segurança</a>
           </nav>
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => handleAuth()}
-              className="text-[12px] font-medium tracking-[0.15em] uppercase text-slate-500 hover:text-slate-900 cursor-pointer"
-            >
-              Entrar
-            </button>
-            <button 
-              onClick={() => handleAuth("company")} 
-              className="btn-brand h-10 text-[11px] px-5 cursor-pointer"
-            >
-              Começar
-            </button>
+            <a href="/auth" className="text-[11px] font-semibold uppercase tracking-[0.13em] text-slate-500">Entrar</a>
+            <a href="/auth?mode=company" className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#15988f] px-4 text-[11px] font-medium text-white shadow-[0_12px_28px_-16px_rgba(21,152,143,.75)] transition hover:bg-[#12877f]">Criar empresa <ArrowRight className="h-3.5 w-3.5" /></a>
           </div>
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="relative overflow-hidden">
-        <div
-          aria-hidden
-          className="absolute inset-0 opacity-70 pointer-events-none"
-          style={{
-            background:
-              "radial-gradient(1000px 500px at 80% -10%, rgba(45,127,249,0.18), transparent 60%), radial-gradient(700px 400px at -10% 30%, rgba(74,155,255,0.14), transparent 60%)",
-          }}
-        />
-        <div className="relative max-w-6xl mx-auto px-6 pt-20 md:pt-28 pb-20 md:pb-28 grid md:grid-cols-2 gap-14 items-center">
-          <div>
-            <span className="inline-flex items-center gap-2 text-[10px] font-medium tracking-[0.28em] uppercase text-[#2D7FF9] bg-[rgba(45,127,249,0.08)] rounded-full px-3 py-1.5">
-              Novo · DentalFlowPro
-            </span>
-            <h1 className="mt-6 text-[44px] md:text-[64px] leading-[1.02] tracking-[-0.035em] font-extralight text-slate-900">
-              O sistema que organiza seu <span className="text-brand-gradient">laboratório odontológico</span>.
-            </h1>
-            <p className="mt-6 text-[16px] md:text-[17px] font-light text-slate-500 max-w-[520px] leading-relaxed">
-              Casos, etapas, estoque, equipe e notificações em um único fluxo. Feito por quem vive o dia a dia
-              da prótese — para eliminar retrabalho, esquecimento e planilhas.
-            </p>
-            <div className="mt-10 flex flex-wrap items-center gap-4">
-              <button onClick={() => handleAuth("company")} className="btn-brand cursor-pointer">
-                Criar minha empresa <ArrowRight className="h-4 w-4" />
-              </button>
-              <button onClick={() => handleAuth()} className="btn-brand-outline cursor-pointer">
-                Já tenho conta
-              </button>
-            </div>
-            <div className="mt-10 flex items-center gap-8 text-[11px] font-light tracking-[0.14em] uppercase text-slate-400">
-              <span className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#2D7FF9]" /> Sem instalar</span>
-              <span className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#2D7FF9]" /> PWA no celular</span>
-              <span className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#2D7FF9]" /> Backup em nuvem</span>
-            </div>
-          </div>
-
-          {/* Mock do produto */}
-          <div className="relative">
-            <div className="absolute -inset-6 rounded-[36px] bg-gradient-to-br from-[#2D7FF9]/25 to-[#4a9bff]/10 blur-2xl" />
-            <div className="relative rounded-[28px] border border-slate-200 bg-white shadow-[0_30px_80px_-30px_rgba(45,127,249,0.35)] overflow-hidden">
-              <div className="flex items-center gap-1.5 px-4 py-3 border-b border-slate-100 bg-slate-50/60">
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
-                <span className="ml-4 text-[10px] font-medium tracking-[0.22em] uppercase text-slate-400">
-                  dentalflow · fluxo
-                </span>
-              </div>
-              <div className="p-6 grid grid-cols-4 gap-3">
-                {["Novo", "Desenho", "Impressão", "Entrega"].map((s, i) => (
-                  <div key={s} className="rounded-xl border border-slate-100 p-3">
-                    <div className="text-[9px] tracking-[0.22em] uppercase text-slate-400 font-medium">
-                      {s}
-                    </div>
-                    <div className="mt-3 space-y-2">
-                      {Array.from({ length: 3 - (i % 3) }).map((_, j) => (
-                        <div
-                          key={j}
-                          className="rounded-lg bg-gradient-to-br from-white to-slate-50 border border-slate-100 px-2.5 py-2"
-                        >
-                          <div className="h-1.5 w-16 rounded-full bg-slate-200" />
-                          <div className="mt-1.5 h-1.5 w-10 rounded-full bg-gradient-to-r from-[#2D7FF9] to-[#4a9bff]" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="px-6 pb-6 grid grid-cols-3 gap-3">
-                <MockKpi label="Em fluxo" value="42" />
-                <MockKpi label="Entregas hoje" value="7" />
-                <MockKpi label="Estoque OK" value="98%" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* SOCIAL PROOF STRIP */}
-      <section className="border-y border-slate-100 bg-slate-50/60">
-        <div className="max-w-6xl mx-auto px-6 py-8 flex flex-wrap items-center justify-between gap-6">
-          <p className="text-[11px] font-medium tracking-[0.08em] uppercase text-slate-400">
-            Feito para laboratórios que fazem
-          </p>
-          <div className="flex flex-wrap items-center gap-x-10 gap-y-3 text-[12px] font-light text-slate-500">
-            <span>Zircônia</span>
-            <span>Dissilicato</span>
-            <span>Provisórios</span>
-            <span>Implantes</span>
-            <span>Digital & analógico</span>
-          </div>
-        </div>
-      </section>
-
-      {/* PROBLEMAS → SOLUÇÃO */}
-      <section className="max-w-6xl mx-auto px-6 py-24 md:py-28">
-        <div className="max-w-2xl">
-          <span className="chip">Por que existe</span>
-          <h2 className="mt-4 text-[32px] md:text-[44px] tracking-[-0.03em] font-extralight leading-[1.05]">
-            Chega de <span className="text-brand-gradient">planilha, WhatsApp e memória</span> gerenciando seus casos.
-          </h2>
-          <p className="mt-4 text-[15px] font-light text-slate-500 leading-relaxed">
-            Cada caso perdido, cada retrabalho, cada esquecimento tem um custo real. O DentalFlow substitui todos
-            os improvisos por um único fluxo, feito sob medida para a rotina do laboratório odontológico.
-          </p>
-        </div>
-
-        <div className="mt-14 grid md:grid-cols-3 gap-4">
-          <ProblemCard
-            before="Caso parou e ninguém sabe."
-            after="Cada etapa tem responsável. Notificação em tempo real quando o caso chega até você."
-          />
-          <ProblemCard
-            before="Estoque na cabeça do técnico."
-            after="Consumo automático por caso, por dente, por etapa. Alertas antes do zero."
-          />
-          <ProblemCard
-            before="Dente errado, cor errada, retrabalho."
-            after="Notação FDI, cor, sistema de implante e scanbody amarrados ao caso desde o início."
-          />
-        </div>
-      </section>
-
-      {/* RECURSOS */}
-      <section id="recursos" className="bg-slate-50/60 border-y border-slate-100">
-        <div className="max-w-6xl mx-auto px-6 py-24 md:py-28">
-          <div className="max-w-2xl">
-            <span className="chip">Recursos</span>
-            <h2 className="mt-4 text-[32px] md:text-[44px] tracking-[-0.03em] font-extralight leading-[1.05]">
-              Um sistema com <span className="text-brand-gradient">tudo o que o laboratório precisa</span>.
-            </h2>
-          </div>
-
-          <div className="mt-14 grid md:grid-cols-3 gap-4">
-            <Feature icon={<Workflow className="h-4 w-4" />} title="Fluxo por etapas" desc="Kanban visual com fases, responsáveis, retorno com justificativa e histórico completo do caso." />
-            <Feature icon={<Boxes className="h-4 w-4" />} title="Estoque inteligente" desc="Consumo automático por regra, por dente (FDI) ou manual. Categorias, movimentações e alertas." />
-            <Feature icon={<Bell className="h-4 w-4" />} title="Notificações em tempo real" desc="Central com filtros, som, popup e sincronização instantânea entre celular e desktop." />
-            <Feature icon={<Layers className="h-4 w-4" />} title="Cadastro rico do caso" desc="Cor, sistema de implante, scanbody, provisório, dentes, anexos, comentários e 3D." />
-            <Feature icon={<Smartphone className="h-4 w-4" />} title="PWA de verdade" desc="Instala no celular, funciona como app nativo, com navegação, atalhos e câmera integrados." />
-            <Feature icon={<Users className="h-4 w-4" />} title="Equipe organizada" desc="Papéis (CEO, DR, Protético, Cadista, Atendimento), permissões e convite por código." />
-            <Feature icon={<Printer className="h-4 w-4" />} title="Impressão térmica" desc="Etiquetas e notas de trabalho enviadas direto para impressora Bluetooth." />
-            <Feature icon={<LineChart className="h-4 w-4" />} title="Painel executivo" desc="Casos em fluxo, entregas do dia, atrasos e produtividade por técnico em um olhar." />
-            <Feature icon={<ShieldCheck className="h-4 w-4" />} title="Backup e segurança" desc="Backup completo em um arquivo, restauração guiada e políticas de acesso por papel." />
-          </div>
-        </div>
-      </section>
-
-      {/* FLUXO */}
-      <section id="fluxo" className="max-w-6xl mx-auto px-6 py-24 md:py-28">
-        <div className="max-w-2xl">
-          <span className="chip">Como funciona</span>
-          <h2 className="mt-4 text-[32px] md:text-[44px] tracking-[-0.03em] font-extralight leading-[1.05]">
-            Do primeiro clique <span className="text-brand-gradient">à entrega</span>.
-          </h2>
-        </div>
-
-        <ol className="mt-14 grid md:grid-cols-4 gap-4">
-          <Step n={1} title="Cadastre o caso" desc="Paciente, dentista, dentes, materiais e anexos em segundos." />
-          <Step n={2} title="Fluxo automático" desc="Etapa correta, responsável certo, consumo lançado sozinho." />
-          <Step n={3} title="Comunique em contexto" desc="Comentários com menções, notificações e histórico do caso." />
-          <Step n={4} title="Entregue e reveja" desc="Feche o caso, imprima a nota e acompanhe indicadores." />
-        </ol>
-      </section>
-
-      {/* DIFERENCIAIS */}
-      <section className="bg-gradient-to-br from-[#0b1e3a] to-[#0a1730] text-white">
-        <div className="max-w-6xl mx-auto px-6 py-24 md:py-28 grid md:grid-cols-2 gap-14">
-          <div>
-            <span className="inline-flex items-center gap-2 text-[10px] font-medium tracking-[0.28em] uppercase text-white/60 bg-white/5 rounded-full px-3 py-1.5">
-              Diferenciais
-            </span>
-            <h2 className="mt-6 text-[32px] md:text-[44px] tracking-[-0.03em] font-extralight leading-[1.05]">
-              Rápido, íntimo do laboratório, <span className="text-brand-gradient">sem inchar</span>.
-            </h2>
-            <p className="mt-5 text-[15px] font-light text-white/70 max-w-[500px] leading-relaxed">
-              Cada tela foi desenhada para caber na palma da mão do técnico e na mesa do gestor. Nada de menus
-              intermináveis: só o que resolve.
-            </p>
-          </div>
-          <div className="grid gap-3">
-            <Bullet title="Notação FDI nativa" desc="Consumo por dente selecionado — não por chute." />
-            <Bullet title="Regras de consumo por gatilho" desc="Abertura, etapa, cancelamento, finalização, situação." />
-            <Bullet title="Mobile-first" desc="Interface leve, offline-tolerante e instalável como app." />
-            <Bullet title="Segurança com RLS" desc="Cada empresa vê só o que é seu — isolado no banco." />
-          </div>
-        </div>
-      </section>
-
-      {/* PLANOS */}
-      <section id="planos" className="max-w-6xl mx-auto px-6 py-24 md:py-28">
-        <div className="text-center max-w-2xl mx-auto">
-          <span className="chip">Planos</span>
-          <h2 className="mt-4 text-[32px] md:text-[44px] tracking-[-0.03em] font-extralight leading-[1.05]">
-            Simples de começar. <span className="text-brand-gradient">Escala com você.</span>
-          </h2>
-        </div>
-
-        <div className="mt-14 grid md:grid-cols-3 gap-4">
-          <Plan
-            name="Starter"
-            price="R$ 0"
-            period="para começar"
-            highlight={false}
-            features={["Até 3 usuários", "Casos ilimitados no mês", "Estoque básico", "Suporte por e-mail"]}
-            cta="Criar conta"
-            onAuth={handleAuth}
-          />
-          <Plan
-            name="Profissional"
-            price="R$ 149"
-            period="/ mês"
-            highlight
-            features={[
-              "Usuários ilimitados",
-              "Consumo automático avançado",
-              "Notação FDI + regras por dente",
-              "Notificações e comentários",
-              "Impressão térmica",
-            ]}
-            cta="Assinar plano"
-            onAuth={handleAuth}
-          />
-          <Plan
-            name="Laboratório"
-            price="Sob consulta"
-            period="para grandes operações"
-            highlight={false}
-            features={[
-              "Onboarding assistido",
-              "Backup dedicado",
-              "Integrações sob medida",
-              "SLA e suporte prioritário",
-            ]}
-            cta="Falar com vendas"
-            onAuth={handleAuth}
-          />
-        </div>
-      </section>
-
-      {/* CTA FINAL */}
-      <section className="max-w-6xl mx-auto px-6 pb-24">
-        <div className="rounded-[28px] border border-slate-100 bg-gradient-to-br from-white to-slate-50 p-10 md:p-16 text-center shadow-[0_30px_80px_-40px_rgba(45,127,249,0.35)]">
-          <Zap className="h-6 w-6 mx-auto text-[#2D7FF9]" strokeWidth={1.5} />
-          <h2 className="mt-4 text-[30px] md:text-[42px] tracking-[-0.03em] font-extralight leading-[1.05]">
-            Pronto para <span className="text-brand-gradient">acabar com o retrabalho</span>?
-          </h2>
-          <p className="mt-4 text-[15px] font-light text-slate-500 max-w-[520px] mx-auto">
-            Crie sua empresa em menos de um minuto. Sem cartão, sem burocracia.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            <button onClick={() => handleAuth("company")} className="btn-brand cursor-pointer">
-              Começar agora <ArrowRight className="h-4 w-4" />
-            </button>
-            <button onClick={() => handleAuth()} className="btn-brand-outline cursor-pointer">
-              Ver demonstração
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* RECONHECIMENTO ADICIONAL (Para quem pediu redirect ao topo) */}
-      <section className="bg-slate-50/40 border-y border-slate-100/50">
-        <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex items-center gap-6">
-            <div className="h-14 w-14 rounded-2xl bg-white shadow-sm grid place-items-center">
-              <Boxes className="h-6 w-6 text-primary/60" />
-            </div>
+      <main>
+        <section id="hub" className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_5%,rgba(21,152,143,.12),transparent_32%),radial-gradient(circle_at_84%_15%,rgba(45,127,249,.1),transparent_30%)]" />
+          <div className="relative mx-auto grid max-w-7xl gap-14 px-5 pb-24 pt-20 sm:px-8 md:pb-28 md:pt-28 lg:grid-cols-[1.03fr_.97fr] lg:items-center">
             <div>
-              <h3 className="text-sm font-semibold text-slate-900">Instituto Praia de Odontologia - IPO</h3>
-              <p className="text-[12px] font-light text-slate-500">Empresa verificada e parceira DentalFlow</p>
+              <span className="inline-flex items-center rounded-full bg-[#15988f]/8 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.22em] text-[#15988f]">DentalFlow 0.3.2 · Hub empresarial</span>
+              <h1 className="mt-6 max-w-3xl text-[48px] font-extralight leading-[.98] tracking-[-0.052em] sm:text-[64px] lg:text-[76px]">
+                Uma empresa.<br />Até <span className="text-[#15988f]">três operações</span> conectadas.
+              </h1>
+              <p className="mt-7 max-w-2xl text-[15px] font-light leading-7 text-slate-500 sm:text-[17px]">
+                Laboratório protético, Clínica odontológica e Radiologia funcionam como sessões independentes dentro do DentalFlow — ou compartilham pacientes, casos e informações quando o plano permite.
+              </p>
+              <div className="mt-9 flex flex-wrap gap-3">
+                <a href="/auth?mode=company" className="inline-flex h-12 items-center gap-2 rounded-xl bg-[#15988f] px-6 text-[12px] font-medium text-white transition hover:bg-[#12877f]">Criar conta de empresa <ArrowRight className="h-4 w-4" /></a>
+                <a href="/auth?mode=professional" className="inline-flex h-12 items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-[12px] font-medium text-slate-600 transition hover:border-slate-300">Sou profissional</a>
+              </div>
+              <div className="mt-9 flex flex-wrap gap-x-8 gap-y-3 text-[10px] font-medium uppercase tracking-[0.13em] text-slate-400">
+                <span className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#15988f]" /> Web + Windows</span>
+                <span className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#15988f]" /> Multiempresa</span>
+                <span className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#15988f]" /> Pagamento-ready</span>
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="absolute -inset-7 rounded-[40px] bg-gradient-to-br from-[#15988f]/15 via-[#2d7ff9]/8 to-[#7668d9]/12 blur-3xl" />
+              <div className="relative overflow-hidden rounded-[30px] border border-slate-200/80 bg-[#f6f9fa] p-4 shadow-[0_36px_100px_-56px_rgba(15,23,42,.42)] sm:p-6">
+                <div className="flex items-center justify-between border-b border-slate-200/70 pb-4">
+                  <div className="text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-400">Ambiente de trabalho</div>
+                  <div className="flex gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-300" /><span className="h-2 w-2 rounded-full bg-slate-300" /><span className="h-2 w-2 rounded-full bg-slate-300" /></div>
+                </div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  <SessionPreview icon={<FlaskConical className="h-5 w-5" />} name="Laboratório" tone="blue" text="Casos, produção, estoque e equipe." />
+                  <SessionPreview icon={<Stethoscope className="h-5 w-5" />} name="Clínica" tone="teal" text="Pacientes, agenda e tratamentos." />
+                  <SessionPreview icon={<RadioTower className="h-5 w-5" />} name="Radiologia" tone="violet" text="DICOM, exames e diagnóstico." />
+                </div>
+                <div className="mt-4 rounded-2xl border border-slate-200/70 bg-white p-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-[11px] font-medium text-slate-500">IPO</span><div><div className="text-[12px] font-medium">Conta empresarial</div><div className="mt-0.5 text-[9px] font-light text-slate-400">Plano Avançado · 3 sessões ativas</div></div></div>
+                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-emerald-700">Ativo</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[11px] font-medium tracking-[0.1em] uppercase text-emerald-600">Sistema 100% Funcional</span>
+        </section>
+
+        <section id="sessoes" className="border-y border-slate-100 bg-slate-50/60">
+          <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8 md:py-28">
+            <div className="max-w-3xl">
+              <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#15988f]">Sessões empresariais</span>
+              <h2 className="mt-4 text-[38px] font-extralight leading-[1.04] tracking-[-0.045em] sm:text-[52px]">Cada área é completa sozinha. Juntas, formam o hub.</h2>
+            </div>
+            <div className="mt-12 grid gap-4 md:grid-cols-3">
+              <AreaCard icon={<FlaskConical className="h-5 w-5" />} title="Laboratório" description="Produção protética, casos, etapas, CAD, impressão, estoque, entregas, equipe e comunicação." bullets={["Fluxos por necessidade", "Arquivos 3D e anexos", "Equipe técnica e estoque"]} />
+              <AreaCard icon={<Stethoscope className="h-5 w-5" />} title="Clínica" description="Pacientes, agenda, evoluções, tratamentos, financeiro e integração com os casos laboratoriais." bullets={["Prontuário e agenda", "Pacientes compartilháveis", "Integração com laboratório"]} />
+              <AreaCard icon={<RadioTower className="h-5 w-5" />} title="Radiologia" description="Estrutura dedicada para exames e imagens DICOM, vinculada a pacientes e às demais sessões." bullets={["Estudos e séries DICOM", "Armazenamento privado", "Integração futura PACS/DICOMweb"]} />
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* FAQ */}
-      <section id="faq" className="border-t border-slate-100 bg-slate-50/60">
-        <div className="max-w-3xl mx-auto px-6 py-24">
-          <span className="chip">Dúvidas frequentes</span>
-          <h2 className="mt-4 text-[28px] md:text-[36px] tracking-[-0.03em] font-extralight leading-[1.05]">
-            Antes de começar.
-          </h2>
-          <div className="mt-10 divide-y divide-slate-200">
-            <Faq q="Preciso instalar algo?" a="Não. O DentalFlow roda no navegador e pode ser instalado como PWA no celular, tablet ou desktop." />
-            <Faq q="Serve para consultório e laboratório?" a="Sim. Você escolhe o tipo ao criar a empresa e o sistema adapta os fluxos e permissões." />
-            <Faq q="E o meu estoque atual?" a="Você importa via cadastro rápido ou backup. Depois, o consumo automático assume." />
-            <Faq q="Meus dados ficam seguros?" a="Isolamento por empresa via RLS no banco, backup completo em um clique e políticas por papel." />
-            <Faq q="Consigo cancelar quando quiser?" a="Sim. Sem fidelidade. Você baixa seu backup e mantém tudo." />
+        <section className="mx-auto max-w-7xl px-5 py-24 sm:px-8 md:py-28">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+            <div>
+              <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#15988f]">Conta profissional</span>
+              <h2 className="mt-4 text-[38px] font-extralight leading-[1.04] tracking-[-0.045em] sm:text-[50px]">Seu perfil acompanha você entre empresas.</h2>
+              <p className="mt-5 max-w-xl text-[14px] font-light leading-7 text-slate-500">Dentistas, CADISTAs, protéticos e outros profissionais podem ter uma assinatura própria por R$ 89/mês e trabalhar em até duas empresas. Sem vínculo empresarial, o perfil não cria uma operação isolada.</p>
+              <a href="/auth?mode=professional" className="mt-7 inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 px-5 text-[12px] font-medium text-slate-600">Criar perfil profissional <ArrowRight className="h-4 w-4" /></a>
+            </div>
+            <div className="rounded-[28px] border border-slate-200/70 bg-slate-50/70 p-7">
+              <div className="flex items-start justify-between gap-5"><div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#15988f]/10 text-[#15988f]"><UserRound className="h-5 w-5" /></div><div className="text-right"><div className="text-[30px] font-extralight tracking-[-0.03em]">R$ 89</div><div className="text-[9px] font-medium uppercase tracking-[0.16em] text-slate-400">por mês</div></div></div>
+              <div className="mt-7 space-y-3 text-[12px] font-light text-slate-500"><Line text="Até 2 empresas vinculadas" /><Line text="Perfil profissional único" /><Line text="Notificações e contexto por empresa" /><Line text="Sem ambiente empresarial independente" /></div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* FOOTER */}
-      <footer className="border-t border-slate-100">
-        <div className="max-w-6xl mx-auto px-6 py-10 flex flex-wrap items-center justify-between gap-4">
-          <Brand />
-          <p className="text-[11px] font-light text-slate-400 tracking-[0.15em] uppercase">
-            © {new Date().getFullYear()} DentalFlow. Todos os direitos reservados.
-          </p>
-        </div>
-      </footer>
+        <section id="planos" className="border-y border-slate-100 bg-[#0b1619] text-white">
+          <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8 md:py-28">
+            <div className="max-w-3xl">
+              <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#69cfc7]">Planos empresariais</span>
+              <h2 className="mt-4 text-[38px] font-extralight leading-[1.04] tracking-[-0.045em] sm:text-[52px]">O preço cresce com a operação, não com recursos escondidos.</h2>
+              <p className="mt-5 max-w-2xl text-[13px] font-light leading-6 text-white/48">Cada sessão contratada recebe os recursos completos daquela área. O que muda entre os planos é quantidade de sessões, equipe, armazenamento e integração entre operações.</p>
+            </div>
+            <div className="mt-12 grid gap-4 lg:grid-cols-3">
+              {COMPANY_PLANS.map((plan) => <PlanCard key={plan.code} {...plan} />)}
+            </div>
+            <p className="mt-7 text-[10px] font-light leading-5 text-white/35">Valores mensais de referência da estrutura 0.3.2. O mecanismo de assinatura já separa plano, status, vencimento, período, carência e checkout; a cobrança efetiva será conectada ao provedor de pagamentos.</p>
+          </div>
+        </section>
+
+        <section id="seguranca" className="mx-auto max-w-7xl px-5 py-24 sm:px-8 md:py-28">
+          <div className="grid gap-12 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
+            <div>
+              <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#15988f]">Arquitetura de assinatura</span>
+              <h2 className="mt-4 text-[38px] font-extralight leading-[1.04] tracking-[-0.045em] sm:text-[50px]">Pagamento controla acesso. Nunca controla a existência dos seus dados.</h2>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SecurityCard icon={<ShieldCheck className="h-4 w-4" />} title="Status no servidor" text="Ativo, atraso, carência, suspensão e cancelamento são estados autoritativos do backend." />
+              <SecurityCard icon={<Database className="h-4 w-4" />} title="Dados preservados" text="Suspensão bloqueia operação, mas não apaga pacientes, casos, exames ou arquivos." />
+              <SecurityCard icon={<Layers3 className="h-4 w-4" />} title="Entitlements" text="Sessões, membros e armazenamento derivam do plano ativo, não de flags no navegador." />
+              <SecurityCard icon={<Bell className="h-4 w-4" />} title="Webhook-ready" text="A futura integração usa eventos idempotentes para evitar cobranças duplicadas e estados inconsistentes." />
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-7xl px-5 pb-24 sm:px-8">
+          <div className="rounded-[30px] bg-gradient-to-br from-[#15988f] to-[#0b6f69] p-8 text-white sm:p-12 md:p-16">
+            <div className="max-w-3xl"><div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/55">Comece pela sua realidade</div><h2 className="mt-4 text-[36px] font-extralight leading-[1.03] tracking-[-0.045em] sm:text-[50px]">Uma sessão hoje. Três quando sua empresa precisar.</h2><p className="mt-5 text-[13px] font-light leading-6 text-white/65">Crie a empresa, escolha o plano e os ambientes. O DentalFlow monta a estrutura e leva você até o checkout seguro.</p><a href="/auth?mode=company" className="mt-7 inline-flex h-12 items-center gap-2 rounded-xl bg-white px-6 text-[12px] font-medium text-[#0d6e68]">Criar minha empresa <ArrowRight className="h-4 w-4" /></a></div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-slate-100"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-10 sm:px-8"><Brand /><div className="text-[9px] font-medium uppercase tracking-[0.16em] text-slate-400">© {new Date().getFullYear()} DentalFlow · Hub empresarial odontológico</div></div></footer>
     </div>
   );
 }
 
-function Brand() {
-  return (
-    <Link to="/lp" className="flex items-center gap-2.5">
-      <span
-        className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#2D7FF9] to-[#4a9bff] text-white grid place-items-center font-medium shadow-[0_8px_22px_-8px_rgba(45,127,249,0.55)]"
-        style={{ fontFamily: '"Google Sans Display", Inter, sans-serif' }}
-      >
-        D
-      </span>
-      <span className="text-[13px] font-medium tracking-[0.22em] text-slate-700 uppercase">DentalFlow</span>
-    </Link>
-  );
-}
-
-function MockKpi({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-slate-100 p-3">
-      <div className="text-[9px] tracking-[0.22em] uppercase text-slate-400 font-medium">{label}</div>
-      <div className="mt-1 text-[22px] font-extralight text-slate-900">{value}</div>
-    </div>
-  );
-}
-
-function ProblemCard({ before, after }: { before: string; after: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-6">
-      <div className="text-[10px] tracking-[0.22em] uppercase text-slate-400 font-medium">Antes</div>
-      <div className="mt-2 text-[15px] font-light text-slate-700 leading-relaxed">{before}</div>
-      <div className="mt-6 text-[10px] tracking-[0.22em] uppercase text-[#2D7FF9] font-medium">Com DentalFlow</div>
-      <div className="mt-2 text-[15px] font-light text-slate-900 leading-relaxed">{after}</div>
-    </div>
-  );
-}
-
-function Feature({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
-  return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-6 hover:border-[rgba(45,127,249,0.35)] hover:shadow-[0_20px_50px_-30px_rgba(45,127,249,0.35)] transition-all">
-      <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#2D7FF9] to-[#4a9bff] text-white grid place-items-center">
-        {icon}
-      </div>
-      <div className="mt-5 text-[15px] font-medium text-slate-900">{title}</div>
-      <div className="mt-2 text-[13px] font-light text-slate-500 leading-relaxed">{desc}</div>
-    </div>
-  );
-}
-
-function Step({ n, title, desc }: { n: number; title: string; desc: string }) {
-  return (
-    <li className="rounded-2xl border border-slate-100 bg-white p-6">
-      <div className="text-[10px] tracking-[0.22em] uppercase text-slate-400 font-medium">Passo {n}</div>
-      <div className="mt-3 text-[16px] font-medium text-slate-900">{title}</div>
-      <div className="mt-2 text-[13px] font-light text-slate-500 leading-relaxed">{desc}</div>
-    </li>
-  );
-}
-
-function Bullet({ title, desc }: { title: string; desc: string }) {
-  return (
-    <div className="rounded-2xl bg-white/5 border border-white/10 p-5">
-      <div className="flex items-center gap-2">
-        <span className="h-6 w-6 rounded-full bg-gradient-to-br from-[#2D7FF9] to-[#4a9bff] grid place-items-center">
-          <Check className="h-3.5 w-3.5 text-white" />
-        </span>
-        <div className="text-[14px] font-medium">{title}</div>
-      </div>
-      <div className="mt-2 text-[13px] font-light text-white/60 leading-relaxed pl-8">{desc}</div>
-    </div>
-  );
-}
-
-function Plan({
-  name,
-  price,
-  period,
-  features,
-  highlight,
-  cta,
-  onAuth,
-}: {
-  name: string;
-  price: string;
-  period: string;
-  features: string[];
-  highlight: boolean;
-  cta: string;
-  onAuth: (mode?: "company" | "employee" | "user") => void;
-}) {
-
-  return (
-    <div
-      className={`rounded-2xl p-8 flex flex-col ${
-        highlight
-          ? "border-2 border-transparent bg-white shadow-[0_30px_80px_-30px_rgba(45,127,249,0.45)] relative before:absolute before:inset-0 before:rounded-2xl before:p-[2px] before:bg-gradient-to-br before:from-[#2D7FF9] before:to-[#4a9bff] before:-z-10"
-          : "border border-slate-100 bg-white"
-      }`}
-    >
-      {highlight && (
-        <span className="self-start text-[10px] font-medium tracking-[0.22em] uppercase text-[#2D7FF9] bg-[rgba(45,127,249,0.08)] rounded-full px-3 py-1 mb-4">
-          Mais escolhido
-        </span>
-      )}
-      <div className="text-[13px] font-medium tracking-[0.08em] uppercase text-slate-500">{name}</div>
-      <div className="mt-4 flex items-end gap-2">
-        <span className="text-[36px] font-extralight tracking-[-0.03em] text-slate-900">{price}</span>
-        <span className="text-[12px] font-light text-slate-400 pb-2">{period}</span>
-      </div>
-      <ul className="mt-6 space-y-3 flex-1">
-        {features.map((f) => (
-          <li key={f} className="flex items-start gap-2 text-[13px] font-light text-slate-600">
-            <Check className="h-4 w-4 text-[#2D7FF9] mt-0.5 shrink-0" />
-            <span>{f}</span>
-          </li>
-        ))}
-      </ul>
-      <button
-        onClick={() => onAuth("company")}
-        className={`mt-8 ${highlight ? "btn-brand" : "btn-brand-outline"} justify-center cursor-pointer`}
-      >
-        {cta}
-      </button>
-    </div>
-  );
-}
-
-function Faq({ q, a }: { q: string; a: string }) {
-  return (
-    <details className="group py-5">
-      <summary className="flex items-center justify-between cursor-pointer list-none">
-        <span className="text-[15px] font-light text-slate-900">{q}</span>
-        <span className="h-6 w-6 rounded-full border border-slate-200 grid place-items-center text-slate-400 group-open:rotate-45 transition-transform">+</span>
-      </summary>
-      <p className="mt-3 text-[13px] font-light text-slate-500 leading-relaxed">{a}</p>
-    </details>
-  );
-}
+function Brand() { return <Link to="/lp" className="flex items-center gap-2.5"><span className="grid h-9 w-9 place-items-center rounded-xl bg-[#15988f] text-[13px] font-semibold text-white">D</span><span className="text-[12px] font-semibold uppercase tracking-[0.18em] text-slate-700">DentalFlow</span></Link>; }
+function Line({ text }: { text: string }) { return <div className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0 text-[#15988f]" />{text}</div>; }
+function SessionPreview({ icon, name, text, tone }: { icon: React.ReactNode; name: string; text: string; tone: "blue" | "teal" | "violet" }) { const cls = tone === "blue" ? "bg-blue-50 text-blue-600" : tone === "teal" ? "bg-teal-50 text-teal-600" : "bg-violet-50 text-violet-600"; return <div className="rounded-2xl border border-slate-200/70 bg-white p-4"><div className={`grid h-9 w-9 place-items-center rounded-xl ${cls}`}>{icon}</div><div className="mt-4 text-[12px] font-medium">{name}</div><div className="mt-1 text-[9px] font-light leading-4 text-slate-400">{text}</div></div>; }
+function AreaCard({ icon, title, description, bullets }: { icon: React.ReactNode; title: string; description: string; bullets: string[] }) { return <div className="rounded-[24px] border border-slate-200/75 bg-white p-6"><div className="grid h-10 w-10 place-items-center rounded-xl bg-[#15988f]/8 text-[#15988f]">{icon}</div><h3 className="mt-5 text-[18px] font-medium">{title}</h3><p className="mt-3 text-[12px] font-light leading-6 text-slate-500">{description}</p><div className="mt-5 space-y-2">{bullets.map((b) => <Line key={b} text={b} />)}</div></div>; }
+function PlanCard({ code, name, price, sessions, members, storage, description, highlight }: (typeof COMPANY_PLANS)[number]) { return <div className={`relative rounded-[26px] border p-7 ${highlight ? "border-[#69cfc7]/45 bg-white/[0.07] shadow-[0_30px_80px_-50px_rgba(105,207,199,.45)]" : "border-white/10 bg-white/[0.035]"}`}>{highlight ? <span className="absolute right-5 top-5 rounded-full bg-[#69cfc7]/12 px-2.5 py-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-[#69cfc7]">Completo</span> : null}<div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50">{name}</div><div className="mt-5 text-[36px] font-extralight tracking-[-0.04em]">{price}<span className="ml-1 text-[10px] font-light tracking-normal text-white/35">/mês</span></div><p className="mt-4 min-h-12 text-[11px] font-light leading-5 text-white/45">{description}</p><div className="mt-6 space-y-3 text-[11px] font-light text-white/65"><div className="flex gap-2"><Check className="h-4 w-4 text-[#69cfc7]" />{sessions}</div><div className="flex gap-2"><Users className="h-4 w-4 text-[#69cfc7]" />{members}</div><div className="flex gap-2"><Database className="h-4 w-4 text-[#69cfc7]" />{storage}</div></div><a href={`/auth?mode=company&plan=${code}`} className={`mt-7 inline-flex h-11 w-full items-center justify-center rounded-xl text-[11px] font-medium ${highlight ? "bg-[#69cfc7] text-[#0b1619]" : "border border-white/15 text-white/75"}`}>Escolher plano</a></div>; }
+function SecurityCard({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) { return <div className="rounded-2xl border border-slate-200/75 bg-white p-5"><div className="grid h-8 w-8 place-items-center rounded-lg bg-[#15988f]/8 text-[#15988f]">{icon}</div><div className="mt-4 text-[13px] font-medium">{title}</div><div className="mt-2 text-[11px] font-light leading-5 text-slate-500">{text}</div></div>; }
