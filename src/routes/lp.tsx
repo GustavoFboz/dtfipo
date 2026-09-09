@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Bell, Building2, Check, Database, FlaskConical, Layers3, RadioTower, ShieldCheck, Stethoscope, UserRound, Users } from "lucide-react";
+import { ArrowRight, Bell, Building2, Check, Database, FlaskConical, Layers3, RadioTower, ShieldCheck, Stethoscope, Users } from "lucide-react";
 
 export const Route = createFileRoute("/lp")({
   head: () => ({
@@ -7,7 +7,7 @@ export const Route = createFileRoute("/lp")({
       { title: "DentalFlow — Hub empresarial para Odontologia Digital" },
       { name: "description", content: "Conecte laboratório protético, clínica odontológica e radiologia em um único hub empresarial, com planos por sessão, equipe e capacidade." },
       { property: "og:title", content: "DentalFlow — Laboratório, Clínica e Radiologia em um único hub" },
-      { property: "og:description", content: "Gestão por sessões independentes ou integradas, profissionais vinculados e estrutura pronta para assinatura." },
+      { property: "og:description", content: "Planos empresariais com sessões independentes ou integradas, equipe vinculada e cobrança recorrente." },
       { property: "og:type", content: "website" },
     ],
   }),
@@ -70,41 +70,29 @@ function LandingPage() {
           <div className="relative mx-auto grid max-w-7xl gap-14 px-5 pb-24 pt-20 sm:px-8 md:pb-28 md:pt-28 lg:grid-cols-[1.03fr_.97fr] lg:items-center">
             <div>
               <span className="inline-flex items-center rounded-full bg-[#15988f]/8 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.22em] text-[#15988f]">DentalFlow 0.3.2 · Hub empresarial</span>
-              <h1 className="mt-6 max-w-3xl text-[48px] font-extralight leading-[.98] tracking-[-0.052em] sm:text-[64px] lg:text-[76px]">
-                Uma empresa.<br />Até <span className="text-[#15988f]">três operações</span> conectadas.
-              </h1>
-              <p className="mt-7 max-w-2xl text-[15px] font-light leading-7 text-slate-500 sm:text-[17px]">
-                Laboratório protético, Clínica odontológica e Radiologia funcionam como sessões independentes dentro do DentalFlow — ou compartilham pacientes, casos e informações quando o plano permite.
-              </p>
+              <h1 className="mt-6 max-w-3xl text-[48px] font-extralight leading-[.98] tracking-[-0.052em] sm:text-[64px] lg:text-[76px]">Uma empresa.<br />Até <span className="text-[#15988f]">três operações</span> conectadas.</h1>
+              <p className="mt-7 max-w-2xl text-[15px] font-light leading-7 text-slate-500 sm:text-[17px]">Laboratório protético, Clínica odontológica e Radiologia funcionam como sessões independentes — ou compartilham pacientes, casos e informações quando o plano permite.</p>
               <div className="mt-9 flex flex-wrap gap-3">
                 <a href="/auth?mode=company" className="inline-flex h-12 items-center gap-2 rounded-xl bg-[#15988f] px-6 text-[12px] font-medium text-white transition hover:bg-[#12877f]">Criar conta de empresa <ArrowRight className="h-4 w-4" /></a>
-                <a href="/auth?mode=professional" className="inline-flex h-12 items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-[12px] font-medium text-slate-600 transition hover:border-slate-300">Sou profissional</a>
+                <a href="/auth?mode=professional" className="inline-flex h-12 items-center gap-2 rounded-xl border border-slate-200 bg-white px-6 text-[12px] font-medium text-slate-600 transition hover:border-slate-300">Recebi um código da empresa</a>
               </div>
               <div className="mt-9 flex flex-wrap gap-x-8 gap-y-3 text-[10px] font-medium uppercase tracking-[0.13em] text-slate-400">
                 <span className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#15988f]" /> Web + Windows</span>
-                <span className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#15988f]" /> Multiempresa</span>
-                <span className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#15988f]" /> Pagamento-ready</span>
+                <span className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#15988f]" /> Equipe por vagas</span>
+                <span className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-[#15988f]" /> Cobrança recorrente</span>
               </div>
             </div>
 
             <div className="relative">
               <div className="absolute -inset-7 rounded-[40px] bg-gradient-to-br from-[#15988f]/15 via-[#2d7ff9]/8 to-[#7668d9]/12 blur-3xl" />
               <div className="relative overflow-hidden rounded-[30px] border border-slate-200/80 bg-[#f6f9fa] p-4 shadow-[0_36px_100px_-56px_rgba(15,23,42,.42)] sm:p-6">
-                <div className="flex items-center justify-between border-b border-slate-200/70 pb-4">
-                  <div className="text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-400">Ambiente de trabalho</div>
-                  <div className="flex gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-300" /><span className="h-2 w-2 rounded-full bg-slate-300" /><span className="h-2 w-2 rounded-full bg-slate-300" /></div>
-                </div>
+                <div className="flex items-center justify-between border-b border-slate-200/70 pb-4"><div className="text-[9px] font-semibold uppercase tracking-[0.2em] text-slate-400">Ambiente de trabalho</div><div className="flex gap-1.5"><span className="h-2 w-2 rounded-full bg-slate-300" /><span className="h-2 w-2 rounded-full bg-slate-300" /><span className="h-2 w-2 rounded-full bg-slate-300" /></div></div>
                 <div className="mt-5 grid gap-3 sm:grid-cols-3">
                   <SessionPreview icon={<FlaskConical className="h-5 w-5" />} name="Laboratório" tone="blue" text="Casos, produção, estoque e equipe." />
                   <SessionPreview icon={<Stethoscope className="h-5 w-5" />} name="Clínica" tone="teal" text="Pacientes, agenda e tratamentos." />
                   <SessionPreview icon={<RadioTower className="h-5 w-5" />} name="Radiologia" tone="violet" text="DICOM, exames e diagnóstico." />
                 </div>
-                <div className="mt-4 rounded-2xl border border-slate-200/70 bg-white p-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-[11px] font-medium text-slate-500">IPO</span><div><div className="text-[12px] font-medium">Conta empresarial</div><div className="mt-0.5 text-[9px] font-light text-slate-400">Plano Avançado · 3 sessões ativas</div></div></div>
-                    <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-emerald-700">Ativo</span>
-                  </div>
-                </div>
+                <div className="mt-4 rounded-2xl border border-slate-200/70 bg-white p-4"><div className="flex items-center justify-between gap-4"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-[11px] font-medium text-slate-500">IPO</span><div><div className="text-[12px] font-medium">Conta empresarial</div><div className="mt-0.5 text-[9px] font-light text-slate-400">Plano Avançado · 3 sessões ativas</div></div></div><span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-emerald-700">Ativo</span></div></div>
               </div>
             </div>
           </div>
@@ -112,10 +100,7 @@ function LandingPage() {
 
         <section id="sessoes" className="border-y border-slate-100 bg-slate-50/60">
           <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8 md:py-28">
-            <div className="max-w-3xl">
-              <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#15988f]">Sessões empresariais</span>
-              <h2 className="mt-4 text-[38px] font-extralight leading-[1.04] tracking-[-0.045em] sm:text-[52px]">Cada área é completa sozinha. Juntas, formam o hub.</h2>
-            </div>
+            <div className="max-w-3xl"><span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#15988f]">Sessões empresariais</span><h2 className="mt-4 text-[38px] font-extralight leading-[1.04] tracking-[-0.045em] sm:text-[52px]">Cada área é completa sozinha. Juntas, formam o hub.</h2></div>
             <div className="mt-12 grid gap-4 md:grid-cols-3">
               <AreaCard icon={<FlaskConical className="h-5 w-5" />} title="Laboratório" description="Produção protética, casos, etapas, CAD, impressão, estoque, entregas, equipe e comunicação." bullets={["Fluxos por necessidade", "Arquivos 3D e anexos", "Equipe técnica e estoque"]} />
               <AreaCard icon={<Stethoscope className="h-5 w-5" />} title="Clínica" description="Pacientes, agenda, evoluções, tratamentos, financeiro e integração com os casos laboratoriais." bullets={["Prontuário e agenda", "Pacientes compartilháveis", "Integração com laboratório"]} />
@@ -127,52 +112,39 @@ function LandingPage() {
         <section className="mx-auto max-w-7xl px-5 py-24 sm:px-8 md:py-28">
           <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
-              <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#15988f]">Conta profissional</span>
-              <h2 className="mt-4 text-[38px] font-extralight leading-[1.04] tracking-[-0.045em] sm:text-[50px]">Seu perfil acompanha você entre empresas.</h2>
-              <p className="mt-5 max-w-xl text-[14px] font-light leading-7 text-slate-500">Dentistas, CADISTAs, protéticos e outros profissionais podem ter uma assinatura própria por R$ 89/mês e trabalhar em até duas empresas. Sem vínculo empresarial, o perfil não cria uma operação isolada.</p>
-              <a href="/auth?mode=professional" className="mt-7 inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 px-5 text-[12px] font-medium text-slate-600">Criar perfil profissional <ArrowRight className="h-4 w-4" /></a>
+              <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#15988f]">Profissionais da equipe</span>
+              <h2 className="mt-4 text-[38px] font-extralight leading-[1.04] tracking-[-0.045em] sm:text-[50px]">O profissional entra pela empresa — sem uma assinatura separada.</h2>
+              <p className="mt-5 max-w-xl text-[14px] font-light leading-7 text-slate-500">Dentistas, CADISTAs, protéticos, atendimento e radiologistas criam a própria credencial somente com um código empresarial válido. Cada profissional ocupa uma vaga do plano e, ao entrar, acessa diretamente a empresa à qual pertence.</p>
+              <a href="/auth?mode=professional" className="mt-7 inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 px-5 text-[12px] font-medium text-slate-600">Cadastrar com código da empresa <ArrowRight className="h-4 w-4" /></a>
             </div>
             <div className="rounded-[28px] border border-slate-200/70 bg-slate-50/70 p-7">
-              <div className="flex items-start justify-between gap-5"><div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#15988f]/10 text-[#15988f]"><UserRound className="h-5 w-5" /></div><div className="text-right"><div className="text-[30px] font-extralight tracking-[-0.03em]">R$ 89</div><div className="text-[9px] font-medium uppercase tracking-[0.16em] text-slate-400">por mês</div></div></div>
-              <div className="mt-7 space-y-3 text-[12px] font-light text-slate-500"><Line text="Até 2 empresas vinculadas" /><Line text="Perfil profissional único" /><Line text="Notificações e contexto por empresa" /><Line text="Sem ambiente empresarial independente" /></div>
+              <div className="flex items-start justify-between gap-5"><div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#15988f]/10 text-[#15988f]"><Users className="h-5 w-5" /></div><div className="rounded-full bg-[#15988f]/8 px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#15988f]">Incluído no plano</div></div>
+              <div className="mt-7 space-y-3 text-[12px] font-light text-slate-500"><Line text="1 empresa por conta profissional" /><Line text="Login individual e senha própria" /><Line text="Perfil e permissões de equipe" /><Line text="Sem cobrança individual" /></div>
             </div>
           </div>
         </section>
 
         <section id="planos" className="border-y border-slate-100 bg-[#0b1619] text-white">
           <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8 md:py-28">
-            <div className="max-w-3xl">
-              <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#69cfc7]">Planos empresariais</span>
-              <h2 className="mt-4 text-[38px] font-extralight leading-[1.04] tracking-[-0.045em] sm:text-[52px]">O preço cresce com a operação, não com recursos escondidos.</h2>
-              <p className="mt-5 max-w-2xl text-[13px] font-light leading-6 text-white/48">Cada sessão contratada recebe os recursos completos daquela área. O que muda entre os planos é quantidade de sessões, equipe, armazenamento e integração entre operações.</p>
-            </div>
-            <div className="mt-12 grid gap-4 lg:grid-cols-3">
-              {COMPANY_PLANS.map((plan) => <PlanCard key={plan.code} {...plan} />)}
-            </div>
-            <p className="mt-7 text-[10px] font-light leading-5 text-white/35">Valores mensais de referência da estrutura 0.3.2. O mecanismo de assinatura já separa plano, status, vencimento, período, carência e checkout; a cobrança efetiva será conectada ao provedor de pagamentos.</p>
+            <div className="max-w-3xl"><span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#69cfc7]">Planos empresariais</span><h2 className="mt-4 text-[38px] font-extralight leading-[1.04] tracking-[-0.045em] sm:text-[52px]">O preço cresce com a operação, não com recursos escondidos.</h2><p className="mt-5 max-w-2xl text-[13px] font-light leading-6 text-white/48">Cada sessão contratada recebe os recursos completos daquela área. O que muda é quantidade de sessões, vagas de equipe, armazenamento e integração entre operações.</p></div>
+            <div className="mt-12 grid gap-4 lg:grid-cols-3">{COMPANY_PLANS.map((plan) => <PlanCard key={plan.code} {...plan} />)}</div>
+            <p className="mt-7 text-[10px] font-light leading-5 text-white/35">Cobrança mensal por empresa. O acesso operacional depende do período pago; em caso de suspensão, os dados permanecem preservados.</p>
           </div>
         </section>
 
         <section id="seguranca" className="mx-auto max-w-7xl px-5 py-24 sm:px-8 md:py-28">
           <div className="grid gap-12 lg:grid-cols-[.9fr_1.1fr] lg:items-center">
-            <div>
-              <span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#15988f]">Arquitetura de assinatura</span>
-              <h2 className="mt-4 text-[38px] font-extralight leading-[1.04] tracking-[-0.045em] sm:text-[50px]">Pagamento controla acesso. Nunca controla a existência dos seus dados.</h2>
-            </div>
+            <div><span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#15988f]">Arquitetura de assinatura</span><h2 className="mt-4 text-[38px] font-extralight leading-[1.04] tracking-[-0.045em] sm:text-[50px]">Pagamento controla acesso. Nunca controla a existência dos seus dados.</h2></div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <SecurityCard icon={<ShieldCheck className="h-4 w-4" />} title="Status no servidor" text="Ativo, atraso, carência, suspensão e cancelamento são estados autoritativos do backend." />
+              <SecurityCard icon={<ShieldCheck className="h-4 w-4" />} title="Status no servidor" text="Plano, período pago, atraso, carência, suspensão e cancelamento são estados autoritativos do backend." />
               <SecurityCard icon={<Database className="h-4 w-4" />} title="Dados preservados" text="Suspensão bloqueia operação, mas não apaga pacientes, casos, exames ou arquivos." />
-              <SecurityCard icon={<Layers3 className="h-4 w-4" />} title="Entitlements" text="Sessões, membros e armazenamento derivam do plano ativo, não de flags no navegador." />
-              <SecurityCard icon={<Bell className="h-4 w-4" />} title="Webhook-ready" text="A futura integração usa eventos idempotentes para evitar cobranças duplicadas e estados inconsistentes." />
+              <SecurityCard icon={<Layers3 className="h-4 w-4" />} title="Limites do plano" text="Sessões, membros e armazenamento derivam do plano efetivamente pago." />
+              <SecurityCard icon={<Bell className="h-4 w-4" />} title="Webhook-ready" text="A confirmação de pagamento será recebida pelo servidor com idempotência e assinatura do provedor." />
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-5 pb-24 sm:px-8">
-          <div className="rounded-[30px] bg-gradient-to-br from-[#15988f] to-[#0b6f69] p-8 text-white sm:p-12 md:p-16">
-            <div className="max-w-3xl"><div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/55">Comece pela sua realidade</div><h2 className="mt-4 text-[36px] font-extralight leading-[1.03] tracking-[-0.045em] sm:text-[50px]">Uma sessão hoje. Três quando sua empresa precisar.</h2><p className="mt-5 text-[13px] font-light leading-6 text-white/65">Crie a empresa, escolha o plano e os ambientes. O DentalFlow monta a estrutura e leva você até o checkout seguro.</p><a href="/auth?mode=company" className="mt-7 inline-flex h-12 items-center gap-2 rounded-xl bg-white px-6 text-[12px] font-medium text-[#0d6e68]">Criar minha empresa <ArrowRight className="h-4 w-4" /></a></div>
-          </div>
-        </section>
+        <section className="mx-auto max-w-7xl px-5 pb-24 sm:px-8"><div className="rounded-[30px] bg-gradient-to-br from-[#15988f] to-[#0b6f69] p-8 text-white sm:p-12 md:p-16"><div className="max-w-3xl"><div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/55">Comece pela sua realidade</div><h2 className="mt-4 text-[36px] font-extralight leading-[1.03] tracking-[-0.045em] sm:text-[50px]">Uma sessão hoje. Três quando sua empresa precisar.</h2><p className="mt-5 text-[13px] font-light leading-6 text-white/65">Crie a empresa, escolha o plano e os ambientes. O DentalFlow prepara a assinatura e leva você ao checkout.</p><a href="/auth?mode=company" className="mt-7 inline-flex h-12 items-center gap-2 rounded-xl bg-white px-6 text-[12px] font-medium text-[#0d6e68]">Criar minha empresa <ArrowRight className="h-4 w-4" /></a></div></div></section>
       </main>
 
       <footer className="border-t border-slate-100"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-10 sm:px-8"><Brand /><div className="text-[9px] font-medium uppercase tracking-[0.16em] text-slate-400">© {new Date().getFullYear()} DentalFlow · Hub empresarial odontológico</div></div></footer>
