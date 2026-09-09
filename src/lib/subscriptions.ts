@@ -69,6 +69,26 @@ export type BillingTestCapability = {
   until: string | null;
 };
 
+export type CompanyInviteValidation = {
+  valid: boolean;
+  reason?: "invalid_code" | "company_inactive" | "seat_limit" | string;
+  clinic_name?: string;
+  plan_name?: string;
+  members_used?: number;
+  members_limit?: number;
+};
+
+export type CompanyTeamInviteInfo = {
+  clinic_id: string;
+  clinic_name: string;
+  invite_code: string;
+  plan_code: string | null;
+  plan_name: string | null;
+  members_used: number;
+  members_limit: number;
+  access_mode: SubscriptionAccessMode;
+};
+
 export const COMPANY_SESSION_LABEL: Record<CompanySessionType, string> = {
   laboratory: "Laboratório",
   clinic: "Clínica",
@@ -129,10 +149,15 @@ export async function fetchMySubscriptionContext(): Promise<MySubscriptionContex
   }
 }
 
-export async function createCheckoutIntent(planCode: string, clinicId: string): Promise<CheckoutIntent> {
+export async function createCheckoutIntent(
+  planCode: string,
+  clinicId: string,
+  sessions: CompanySessionType[] = [],
+): Promise<CheckoutIntent> {
   const { data, error } = await (supabase as any).rpc("create_checkout_intent", {
     p_plan_code: planCode,
     p_clinic_id: clinicId,
+    p_session_types: sessions,
   });
   if (error) throw error;
   return data as CheckoutIntent;
@@ -147,6 +172,20 @@ export async function configureCompanySessions(clinicId: string, sessions: Compa
   return data as CompanySubscriptionSnapshot;
 }
 
+export async function validateCompanyInviteCode(inviteCode: string): Promise<CompanyInviteValidation> {
+  const { data, error } = await (supabase as any).rpc("validate_company_invite_code", {
+    p_invite_code: inviteCode.trim(),
+  });
+  if (error) throw error;
+  return (data ?? { valid: false, reason: "invalid_code" }) as CompanyInviteValidation;
+}
+
+export async function fetchCompanyTeamInviteInfo(): Promise<CompanyTeamInviteInfo> {
+  const { data, error } = await (supabase as any).rpc("company_team_invite_info");
+  if (error) throw error;
+  return data as CompanyTeamInviteInfo;
+}
+
 export async function linkProfessionalCompany(inviteCode: string) {
   const { data, error } = await (supabase as any).rpc("link_professional_company", {
     p_invite_code: inviteCode.trim(),
@@ -156,10 +195,26 @@ export async function linkProfessionalCompany(inviteCode: string) {
   return data as { success: true; clinic_id: string; clinic_name: string; context: MySubscriptionContext };
 }
 
+export async function finalizePendingOnboarding() {
+  const { data, error } = await (supabase as any).rpc("finalize_pending_onboarding");
+  if (error) throw error;
+  if (data?.success === false) throw new Error(data?.error ?? "Não foi possível concluir o cadastro.");
+  return data as { success: true; already_finalized?: boolean; nothing_pending?: boolean };
+}
+
 export async function fetchBillingTestCapability(): Promise<BillingTestCapability> {
   const { data, error } = await (supabase as any).rpc("billing_test_capability");
   if (error) return { enabled: false, until: null };
   return (data ?? { enabled: false, until: null }) as BillingTestCapability;
+}
+
+export async function redeemBillingTestToken(token: string): Promise<BillingTestCapability> {
+  const { data, error } = await (supabase as any).rpc("billing_test_redeem_token", {
+    p_token: token.trim(),
+  });
+  if (error) throw error;
+  if (!data?.success) throw new Error(data?.error ?? "Não foi possível ativar o modo de teste.");
+  return { enabled: Boolean(data.enabled), until: data.until ?? null };
 }
 
 export async function confirmSandboxPayment(checkoutIntentId: string) {
