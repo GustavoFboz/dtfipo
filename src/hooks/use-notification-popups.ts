@@ -247,7 +247,7 @@ export function useNotificationPopups() {
     return () => {
       disposed = true;
       disconnect();
-      authSubscription?.unsubscribe();
+      (authSubscription as { unsubscribe: () => void } | null)?.unsubscribe();
       unsubPeer();
       window.removeEventListener("dentalflow:realtime-notification", onDesktopRealtime as EventListener);
     };

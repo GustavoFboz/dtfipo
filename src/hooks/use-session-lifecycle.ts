@@ -30,7 +30,7 @@ export function useSessionLifecycle() {
       qc.clear();
       await supabase.auth.signOut();
       if (!disposed) {
-        navigate({ to: "/auth", replace: true, search: { invite: undefined, mode: undefined } });
+        navigate({ to: "/auth", replace: true, search: { invite: undefined, mode: undefined, returnTo: undefined } });
       }
     };
 

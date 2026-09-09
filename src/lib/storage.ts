@@ -121,7 +121,7 @@ export function applyOptimisticStorageDelta(delta: number) {
         full: baseUsed >= state.data.limit_bytes,
       },
     };
-    void persistDesktopStorageUsage(state.data);
+    void persistDesktopStorageUsage(state.data as StorageUsage);
   }
   emit();
 }
@@ -137,7 +137,8 @@ export async function refreshStorageUsage(): Promise<StorageUsage> {
 
     // A null RPC payload is not authoritative enough to erase a known local
     // snapshot. This can occur briefly while an online Desktop session resumes.
-    if ((data == null || (Array.isArray(data) && data.length === 0)) && cached) {
+    const payload = data as unknown;
+    if ((payload == null || (Array.isArray(payload) && payload.length === 0)) && cached) {
       state = { ...state, data: cached, loading: false, error: null };
       pendingDelta = 0;
       emit();

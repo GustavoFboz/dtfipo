@@ -235,6 +235,8 @@ export function NewCaseDialog({
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [pendingGalleryFiles, setPendingGalleryFiles] = useState<File[]>([]);
   const pendingGalleryInput = useRef<HTMLInputElement>(null);
+  // Quantidade de uploads realmente enfileirados no upload manager (scans + galeria).
+  const queuedUploadCountRef = useRef(0);
 
   // Snapshot do formulário para reabrir intacto após F5.
   // Persiste apenas campos serializáveis — arquivos (File) e refs são ignorados.
@@ -822,15 +824,18 @@ export function NewCaseDialog({
 
       // Disparar uploads de Scans pendentes em background
       // Disparar uploads pendentes em background (com o tipo escolhido por arquivo)
-      if (createdId && !isCadista) {
+      // Quem conseguiu criar/editar o caso tem acesso a ele (can_access_case),
+      // portanto pode enviar os anexos pendentes — inclusive CADISTA.
+      queuedUploadCountRef.current = 0;
+      if (createdId) {
         for (const item of pendingScanFiles) {
           startFileUpload({ caseId: createdId, kind: item.kind, file: item.file, suppressNotification: true });
+          queuedUploadCountRef.current += 1;
         }
-      }
-      // Galeria pendente
-      if (createdId) {
+        // Galeria pendente
         for (const f of pendingGalleryFiles) {
           startFileUpload({ caseId: createdId, kind: "gallery", file: f, suppressNotification: true });
+          queuedUploadCountRef.current += 1;
         }
       }
 
@@ -873,10 +878,10 @@ export function NewCaseDialog({
           qc.setQueryData(key, next);
         });
       }
-      const pending = pendingScanFiles.length;
+      const queued = queuedUploadCountRef.current;
       toast.success(
         (isEdit ? "Caso atualizado" : "Caso cadastrado") +
-        (pending > 0 ? ` · ${pending} scan(s) enviando em segundo plano` : "")
+        (queued > 0 ? ` · ${queued} arquivo(s) enviando em segundo plano` : "")
       );
       await qc.invalidateQueries();
       await qc.refetchQueries({ queryKey: ["cases"], type: "active" });
