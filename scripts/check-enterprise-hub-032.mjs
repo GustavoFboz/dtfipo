@@ -8,6 +8,8 @@ const radiology = read("supabase/migrations/20260909034500_radiology_storage_and
 const companyBilling = read("supabase/migrations/20260909043000_company_only_billing_sandbox_032.sql");
 const inviteGuards = read("supabase/migrations/20260909044000_company_invites_and_entitlement_guards_032.sql");
 const ipo = read("supabase/migrations/20260909144500_ipo_internal_full_access_032.sql");
+const ipoHardening = read("supabase/migrations/20260909145500_ipo_entitlement_hardening_032.sql");
+const ipoBillingExclusion = read("supabase/migrations/20260909150000_ipo_billing_exclusion_032.sql");
 const subscriptions = read("src/lib/subscriptions.ts");
 const gate = read("src/components/SubscriptionGate.tsx");
 const hub = read("src/routes/_authenticated/hub.tsx");
@@ -15,6 +17,7 @@ const auth = read("src/routes/auth.tsx");
 const lp = read("src/routes/lp.tsx");
 const tauri = read("src-tauri/tauri.conf.json");
 const cargo = read("src-tauri/Cargo.toml");
+const desktopGate = read("src/components/DesktopPrimarySyncGate.tsx");
 
 for (const [needle, message] of [
   ["24900, 1, 8", "Initial company plan limits changed unexpectedly."],
@@ -56,6 +59,13 @@ for (const needle of [
 ]) expect(ipo.includes(needle), `IPO permanent full-access invariant missing: ${needle}`);
 expect(!ipo.includes("values(trim(p_name),lower(coalesce(p_kind,'empresa')),'IPO',uid"), "Ordinary company creation must never tag a customer as IPO.");
 
+expect(ipoHardening.includes("protect_internal_company_session"), "IPO sessions must be protected against billing downgrades.");
+expect(ipoHardening.includes("prevent_internal_company_session_delete"), "IPO sessions must not be deletable.");
+expect(ipoHardening.includes("ipo_internal_invariant_report"), "IPO rollout diagnostic is missing.");
+expect(ipoHardening.includes("tg_op='INSERT'"), "IPO subscription trigger must be INSERT-safe and not dereference OLD.");
+expect(ipoBillingExclusion.includes("A conta interna IPO possui acesso completo permanente"), "IPO checkout must be rejected server-side.");
+expect(ipoBillingExclusion.includes("is_internal_full_access_company(p_clinic_id)"), "IPO billing exclusion must be enforced by authoritative company flag.");
+
 expect(subscriptions.includes("fetchMySubscriptionContext"), "Subscription context client is missing.");
 expect(subscriptions.includes("validateCompanyInviteCode"), "Professional invite validation client is missing.");
 expect(gate.includes('effective_access === "full"') && gate.includes("return <BillingRequired"), "Subscription gate must allow only full access and route every other paid state to billing.");
@@ -73,5 +83,6 @@ expect(lp.includes("Radiologia") && lp.includes("DICOM"), "Landing must position
 
 expect(tauri.includes('"version": "0.3.2"'), "Tauri version must be 0.3.2.");
 expect(cargo.includes('version = "0.3.2"'), "Rust package version must be 0.3.2.");
+expect(desktopGate.includes("DentalFlow Desktop 0.3.2"), "Desktop sync UI must identify the 0.3.2 release.");
 
 console.log("DentalFlow 0.3.2 company billing, professional membership and IPO invariants passed.");
