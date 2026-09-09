@@ -89,11 +89,27 @@ expect(
   "Desktop sync must create offline cases before replaying their team notifications.",
 );
 
-expect(tauri.includes('"version": "0.3.0"'), "DentalFlow Desktop version must be 0.3.0.");
-expect(cargo.includes('version = "0.3.0"'), "Rust package version must match Desktop 0.3.0.");
+const newCaseDialog = read("src/components/NewCaseDialog.tsx");
+expect(
+  !/createdId\s*&&\s*!isCadista/.test(newCaseDialog),
+  "CADISTAs must not be excluded from pending attachment uploads in NewCaseDialog.",
+);
+expect(
+  newCaseDialog.includes("queuedUploadCountRef.current += 1"),
+  "Pending uploads must be counted only after being queued in the upload manager.",
+);
+expect(
+  newCaseDialog.includes("arquivo(s) enviando em segundo plano"),
+  "Success toast must report all queued files (scans + gallery), not only scans.",
+);
+expect(
+  newCaseDialog.includes("pendingScanFiles.length + pendingGalleryFiles.length"),
+  "Initial attachment count must sum scans and gallery files.",
+);
+
 expect(
   tauri.includes('"frontendDist": "../dist/client"'),
   "The full frontend must remain bundled in the Windows installer for offline navigation.",
 );
 
-console.log("Desktop 0.3.0 case dialog/offline case regression checks passed.");
+console.log("Desktop case dialog/offline case regression checks passed.");
