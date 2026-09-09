@@ -5,7 +5,18 @@ import { CaseDetailDialog } from "./CaseDetailDialog";
 
 const OPEN_CASE_KEY = "case_dialog:open";
 
-type DeepLinkState = { caseId: string | null; focus: string | null; msgId: string | null; source: "hash" | "session" | null };
+type DeepLinkState = {
+  caseId: string | null;
+  focus: string | null;
+  msgId: string | null;
+  source: "hash" | "session" | "event" | null;
+};
+
+type OpenCaseDialogDetail = {
+  caseId?: string | null;
+  focus?: string | null;
+  msgId?: string | null;
+};
 
 function parseHash(): DeepLinkState {
   if (typeof window === "undefined") return { caseId: null, focus: null, msgId: null, source: null };
@@ -35,20 +46,38 @@ export function CaseDeepLink() {
 
   useEffect(() => {
     const onHash = () => setState(parseHash());
+    const onOpenCase = (event: Event) => {
+      const detail = (event as CustomEvent<OpenCaseDialogDetail>).detail;
+      const caseId = String(detail?.caseId ?? "").trim();
+      if (!caseId) return;
+      setState({
+        caseId,
+        focus: detail?.focus ?? null,
+        msgId: detail?.msgId ?? null,
+        source: "event",
+      });
+    };
+
     window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
+    window.addEventListener("dentalflow:open-case-dialog", onOpenCase as EventListener);
+    return () => {
+      window.removeEventListener("hashchange", onHash);
+      window.removeEventListener("dentalflow:open-case-dialog", onOpenCase as EventListener);
+    };
   }, []);
 
   const { data: caseRow } = useQuery({
     queryKey: ["case_by_id", state.caseId],
     queryFn: () => fetchCaseById(state.caseId!),
     enabled: !!state.caseId,
-    staleTime: 30_000,
+    staleTime: 5 * 60_000,
+    placeholderData: (previous) => previous,
   });
 
-  // Highlight focus area after dialog opens
+  // Highlight the requested section after the dialog opens. Message deep-links
+  // are handled by CaseDetailDialog itself through focusActivityId.
   useEffect(() => {
-    if (!caseRow || !state.focus || state.source !== "hash" || state.msgId) return;
+    if (!caseRow || !state.focus || state.msgId) return;
     const t = setTimeout(() => {
       const sel =
         state.focus === "comments"
@@ -65,7 +94,7 @@ export function CaseDeepLink() {
       }
     }, 350);
     return () => clearTimeout(t);
-  }, [caseRow, state.focus]);
+  }, [caseRow, state.focus, state.msgId]);
 
   function close(open: boolean) {
     if (!open) {
@@ -82,5 +111,13 @@ export function CaseDeepLink() {
   }
 
   if (!state.caseId || !caseRow) return null;
-  return <CaseDetailDialog caseRow={caseRow} open onOpenChange={close} syncUrlHash={state.source === "hash"} focusActivityId={state.msgId} />;
+  return (
+    <CaseDetailDialog
+      caseRow={caseRow}
+      open
+      onOpenChange={close}
+      syncUrlHash={state.source === "hash"}
+      focusActivityId={state.msgId}
+    />
+  );
 }

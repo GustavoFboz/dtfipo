@@ -1,4 +1,4 @@
-import { useSyncExternalStore, useState } from "react";
+import { useEffect, useRef, useSyncExternalStore, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { uploadManager, type UploadTask } from "@/lib/upload-manager";
 import { Progress } from "@/components/ui/progress";
@@ -19,6 +19,20 @@ export function UploadProgressDock() {
   const tasks = useUploadTasks();
   const [collapsed, setCollapsed] = useState(false);
   const qc = useQueryClient();
+  const syncedSuccesses = useRef(new Set<string>());
+
+  // A successful background upload must become visible even when the component
+  // that created the optimistic placeholder was closed/unmounted or after a
+  // manual retry. This prevents a confirmed server upload from looking as if
+  // it vanished until the user reloads the case.
+  useEffect(() => {
+    for (const task of tasks) {
+      if (task.status !== "success" || syncedSuccesses.current.has(task.id)) continue;
+      syncedSuccesses.current.add(task.id);
+      void qc.invalidateQueries({ queryKey: ["case_attachments", task.caseId] });
+      void qc.invalidateQueries({ queryKey: ["case_activity", task.caseId] });
+    }
+  }, [tasks, qc]);
 
   if (tasks.length === 0) return null;
   const active = tasks.filter((t) => t.status === "zipping" || t.status === "uploading" || t.status === "queued").length;
@@ -89,7 +103,7 @@ export function UploadProgressDock() {
                   </button>
                 )}
               </div>
-              {(t.status === "zipping" || t.status === "uploading") && <Progress value={t.progress} className="h-1.5" />}
+              {(t.status === "zipping" || t.status === "uploading" || t.status === "queued") && <Progress value={t.progress} className="h-1.5" />}
               <div className={`text-[10.5px] ${t.status === "error" ? "text-destructive" : "text-muted-foreground"}`}>
                 {t.message ?? t.status}
                 {t.isFolder && t.fileCount > 0 && ` · ${t.fileCount} arquivos`}

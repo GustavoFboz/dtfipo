@@ -39,13 +39,32 @@ export function useNotificationPopups() {
     const meta = (n.metadata || {}) as { case_id?: string; activity_id?: string | null };
     if (!meta.case_id) return;
     const focus = n.type === "comment" ? "comments" : n.type === "attachment" ? "attachments" : "overview";
+
+    // When the user is already on Cases, never re-navigate to /casos with query
+    // params. The old path activated the route's minimal/deep-link rendering at
+    // the same time as CaseDeepLink opened a dialog, producing a second strange
+    // Cases interface underneath it. Open the existing global dialog in-place.
+    if (window.location.pathname.startsWith("/casos")) {
+      window.dispatchEvent(new CustomEvent("dentalflow:open-case-dialog", {
+        detail: {
+          caseId: meta.case_id,
+          focus,
+          msgId: meta.activity_id ?? null,
+        },
+      }));
+      return;
+    }
+
+    // From another page, change environments once, but use only the hash-based
+    // dialog deep-link. Explicitly clear the legacy query parameters so the
+    // normal Cases dashboard remains mounted behind the modal.
     const hash = new URLSearchParams({ case: meta.case_id, focus });
     if (focus === "comments") hash.set("tab", "comentarios");
     if (meta.activity_id) hash.set("msg", meta.activity_id);
 
     void navigate({
       to: "/casos",
-      search: { case: meta.case_id, msg: meta.activity_id || undefined },
+      search: { case: undefined, msg: undefined },
       hash: hash.toString(),
       replace: false,
     } as any);
