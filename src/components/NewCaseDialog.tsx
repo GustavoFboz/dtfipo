@@ -235,6 +235,8 @@ export function NewCaseDialog({
   const [attachMenuOpen, setAttachMenuOpen] = useState(false);
   const [pendingGalleryFiles, setPendingGalleryFiles] = useState<File[]>([]);
   const pendingGalleryInput = useRef<HTMLInputElement>(null);
+  // Quantidade de uploads realmente enfileirados no upload manager (scans + galeria).
+  const queuedUploadCountRef = useRef(0);
 
   // Snapshot do formulário para reabrir intacto após F5.
   // Persiste apenas campos serializáveis — arquivos (File) e refs são ignorados.
