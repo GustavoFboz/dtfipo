@@ -19,6 +19,7 @@ type Readiness = {
   patients: number;
   cases: number;
   clinicCached: boolean;
+  subscriptionCached: boolean;
   verified: boolean;
 };
 
@@ -35,23 +36,26 @@ async function inspectLocalReadiness(): Promise<Readiness> {
   const inspected = await inspectDesktopSyncReadiness();
   const ownerId = inspected.ownerId;
   if (!ownerId) {
-    return { ready: false, ownerId: null, patients: 0, cases: 0, clinicCached: false, verified: false };
+    return { ready: false, ownerId: null, patients: 0, cases: 0, clinicCached: false, subscriptionCached: false, verified: false };
   }
 
-  const [profile, clinic] = await Promise.all([
+  const [profile, clinic, subscription] = await Promise.all([
     localCacheGet<unknown>(ownerId, "reference-data:v1", "profile").catch(() => null),
     localCacheGet<unknown>(ownerId, "clinic-context:v1", "current").catch(() => null),
+    localCacheGet<unknown>(ownerId, "subscription-context:v2", "current").catch(() => null),
   ]);
   const profileReady = Boolean(profile?.payload);
   const clinicCached = Boolean(clinic?.payload);
+  const subscriptionCached = Boolean(subscription?.payload);
   const verified = Boolean(inspected.proof);
 
   return {
-    ready: verified && profileReady && clinicCached,
+    ready: verified && profileReady && clinicCached && subscriptionCached,
     ownerId,
     patients: inspected.local?.patients ?? 0,
     cases: inspected.local?.cases ?? 0,
     clinicCached,
+    subscriptionCached,
     verified,
   };
 }
@@ -114,7 +118,7 @@ export function DesktopPrimarySyncGate() {
       }, 420);
     };
 
-    const showPreparing = (detail = "Validando sua sessão e sincronizando os dados críticos deste computador.") => {
+    const showPreparing = (detail = "Validando sua sessão, assinatura e dados críticos deste computador.") => {
       if (dismissed.current) return;
       if (hideTimer.current !== null) window.clearTimeout(hideTimer.current);
       hideTimer.current = null;
@@ -130,6 +134,7 @@ export function DesktopPrimarySyncGate() {
         patients: 0,
         cases: 0,
         clinicCached: false,
+        subscriptionCached: false,
         verified: false,
       }));
       if (disposed) return readiness;
@@ -158,7 +163,7 @@ export function DesktopPrimarySyncGate() {
             visible: true,
             progress: 0,
             title: "Sincronização verificada pendente",
-            detail: "A interface está instalada e pode abrir offline, mas este computador ainda precisa concluir uma sincronização autenticada dos dados críticos antes da primeira operação local.",
+            detail: "A interface está instalada e pode abrir offline, mas este computador ainda precisa concluir uma sincronização autenticada da assinatura, dos ambientes e dos dados críticos antes da primeira operação local.",
             mode: "offline",
           });
         } else {
@@ -202,7 +207,7 @@ export function DesktopPrimarySyncGate() {
             visible: true,
             progress: 0,
             title: "Sincronização dos dados críticos incompleta",
-            detail: "A sessão foi validada, mas pacientes ou casos locais ainda não cobrem todos os dados autorizados no servidor. Tente novamente; listas auxiliares não bloqueiam mais a abertura do programa.",
+            detail: "A sessão foi validada, mas assinatura, ambientes, pacientes ou casos locais ainda não estão completamente confirmados. Tente novamente; listas auxiliares continuam em segundo plano.",
             mode: "error",
           });
           return;
@@ -212,7 +217,7 @@ export function DesktopPrimarySyncGate() {
           visible: true,
           progress: 90,
           title: "Conferindo dados críticos",
-          detail: "Comparando pacientes e casos com os dados remotos autorizados. Cadastros auxiliares continuam sincronizando em segundo plano.",
+          detail: "Confirmando assinatura e ambientes e comparando pacientes/casos com os dados remotos autorizados. Cadastros auxiliares continuam sincronizando em segundo plano.",
           mode: "syncing",
         });
         startProgress();
@@ -241,7 +246,7 @@ export function DesktopPrimarySyncGate() {
       dismissed.current = false;
       void check(false, false).then((readiness) => {
         if (!readiness.ready) {
-          showPreparing("Conexão disponível. Revalidando a sessão e conferindo os dados críticos locais.");
+          showPreparing("Conexão disponível. Revalidando sessão, assinatura, ambientes e dados críticos locais.");
         }
         window.dispatchEvent(new CustomEvent("dentalflow:desktop-force-sync"));
       });
@@ -331,7 +336,7 @@ export function DesktopPrimarySyncGate() {
         )}
 
         {lastReady && !lastReady.ready && state.mode !== "ready" && (
-          <p className="mt-6 text-[10px] font-light text-slate-400">Este computador só é considerado pronto depois de confirmar pacientes e casos com uma sessão online validada; listas auxiliares seguem em segundo plano.</p>
+          <p className="mt-6 text-[10px] font-light text-slate-400">Este computador só é considerado pronto depois de confirmar assinatura, ambientes, pacientes e casos com uma sessão online validada; listas auxiliares seguem em segundo plano.</p>
         )}
       </div>
     </div>
