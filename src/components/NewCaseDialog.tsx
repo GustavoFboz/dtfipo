@@ -878,10 +878,10 @@ export function NewCaseDialog({
           qc.setQueryData(key, next);
         });
       }
-      const pending = pendingScanFiles.length;
+      const queued = queuedUploadCountRef.current;
       toast.success(
         (isEdit ? "Caso atualizado" : "Caso cadastrado") +
-        (pending > 0 ? ` · ${pending} scan(s) enviando em segundo plano` : "")
+        (queued > 0 ? ` · ${queued} arquivo(s) enviando em segundo plano` : "")
       );
       await qc.invalidateQueries();
       await qc.refetchQueries({ queryKey: ["cases"], type: "active" });
