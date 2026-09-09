@@ -6,6 +6,7 @@ const bootstrap = read("src/components/DesktopOfflineBootstrap.tsx");
 const gate = read("src/components/DesktopPrimarySyncGate.tsx");
 const sync = read("src/lib/desktop-sync.ts");
 const vite = read("vite.desktop.config.ts");
+const tauri = read("src-tauri/tauri.conf.json");
 
 function expect(condition, message) {
   if (!condition) throw new Error(message);
@@ -23,9 +24,9 @@ expect(!subscriptions.includes("company_advanced\"" + " as"), "Desktop must neve
 
 const authIndex = bootstrap.indexOf('"sessão inicial do Desktop"');
 const subscriptionIndex = bootstrap.indexOf('"assinatura e ambientes da empresa"');
-const criticalIndex = bootstrap.indexOf("syncDesktopCriticalData");
+const criticalIndex = bootstrap.indexOf('"sincronização crítica do Desktop"');
+const proofIndex = bootstrap.indexOf("const syncProof = await verifyAndStoreDesktopSyncProof");
 const auxiliaryCallIndex = bootstrap.lastIndexOf("syncDesktopAuxiliaryData()");
-const proofIndex = bootstrap.indexOf("verifyAndStoreDesktopSyncProof");
 expect(authIndex >= 0 && subscriptionIndex > authIndex, "Desktop must validate auth before subscription/session entitlement.");
 expect(criticalIndex > subscriptionIndex, "Desktop must cache entitlement before critical business mirrors start.");
 expect(proofIndex > criticalIndex, "Desktop readiness proof must happen after critical patient/case synchronization.");
@@ -44,5 +45,7 @@ expect(sync.includes("syncDesktopAuxiliaryData"), "Desktop sync must expose a no
 expect(sync.includes("Cache crítico de pacientes") && sync.includes("Cache crítico de casos"), "Patients and cases must remain in the critical phase.");
 expect(sync.includes("Cache da equipe") && sync.includes("Uso de armazenamento"), "Team/storage must still warm after the first-install gate.");
 expect(sync.indexOf("Cache da equipe") > sync.indexOf("runAuxiliarySync"), "Team cache must not block critical first readiness.");
+expect(tauri.includes('"version": "0.3.3"'), "DentalFlow Desktop release must be 0.3.3.");
+expect(gate.includes("DentalFlow Desktop 0.3.3"), "The visible Desktop gate must identify release 0.3.3.");
 
-console.log("Desktop 0.3.2 entitlement/bootstrap regressions: OK");
+console.log("Desktop 0.3.3 entitlement/bootstrap regressions: OK");
