@@ -145,13 +145,16 @@ if (!authenticatedRoute || !bridge) throw new Error("Environment transition wiri
 
 const auth = requireContains(
   "src/routes/auth.tsx",
-  "Da agenda ao laboratório, tudo no mesmo fluxo.",
-  "authentication uses the DentalFlow split brand experience",
+  "Hub empresarial odontológico",
+  "authentication uses the DentalFlow enterprise split brand experience",
 );
 if (auth.includes('stage === "welcome"') || auth.includes("auth-hero.jpg")) {
   throw new Error("Legacy auth welcome gate/hero returned");
 }
-console.log("OK: authentication opens directly into the access experience");
+if (!auth.includes("Uma empresa. Até três operações conectadas.")) {
+  throw new Error("Enterprise auth brand message is missing");
+}
+console.log("OK: authentication opens directly into the enterprise access experience");
 
 const cases = requireContains(
   "src/components/CasesTable.tsx",

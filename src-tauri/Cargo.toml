@@ -1,6 +1,6 @@
 [package]
 name = "dentalflow-desktop"
-version = "0.3.1"
+version = "0.3.2"
 description = "DentalFlow Desktop for Windows"
 authors = ["DentalFlow"]
 edition = "2021"

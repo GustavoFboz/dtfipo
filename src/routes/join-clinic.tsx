@@ -1,212 +1,124 @@
 // @ts-nocheck
-import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { fetchClinics, fetchMyMemberships, requestJoinClinic } from "@/lib/api";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Building2, Clock, CheckCircle2, XCircle, LogOut, Plus } from "lucide-react";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowRight, Building2, KeyRound, LogOut, ShieldCheck } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { useEffect, useRef, useState } from "react";
 
+import { supabase } from "@/integrations/supabase/client";
+import { fetchMySubscriptionContext, linkProfessionalCompany, validateCompanyInviteCode } from "@/lib/subscriptions";
 
 export const Route = createFileRoute("/join-clinic")({
   ssr: false,
   beforeLoad: async () => {
-    // Clinic/membership schema is not restored yet; skip the join flow and
-    // send every authenticated user straight to the app.
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) {
-      throw redirect({ to: "/auth", search: { invite: undefined, mode: undefined } });
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data.session?.user) {
+      throw redirect({ to: "/auth", search: { invite: undefined, mode: "professional", returnTo: "/join-clinic" } });
     }
-    throw redirect({ to: "/" });
   },
-  component: JoinClinicPage,
+  component: ProfessionalCompanyRecoveryPage,
 });
 
-function JoinClinicPage() {
-  const router = useRouter();
-  const { data: clinics = [], isLoading } = useQuery({ queryKey: ["clinics"], queryFn: fetchClinics });
-  const { data: memberships = [], refetch } = useQuery({
-    queryKey: ["my_memberships"],
-    queryFn: fetchMyMemberships,
-    refetchInterval: 5000,
-  });
+function ProfessionalCompanyRecoveryPage() {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [inviteCode, setInviteCode] = useState("");
+  const [companyName, setCompanyName] = useState<string | null>(null);
+  const context = useQuery({ queryKey: ["subscription_context"], queryFn: fetchMySubscriptionContext, staleTime: 10_000 });
 
-  // Detect approval: when any membership becomes "active", reload into the app.
-  const notifiedRef = useRef(false);
-  useEffect(() => {
-    if (notifiedRef.current) return;
-    if (memberships.some((m) => m.status === "active")) {
-      notifiedRef.current = true;
-      toast.success("Sua solicitação foi aprovada! Redirecionando...");
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 1200);
-    }
-  }, [memberships]);
-
-  const join = useMutation({
-    mutationFn: requestJoinClinic,
-    onSuccess: () => {
-      toast.success("Solicitação enviada! Aguarde a aprovação do administrador.");
-      refetch();
+  const validate = useMutation({
+    mutationFn: () => validateCompanyInviteCode(inviteCode),
+    onSuccess: (result) => {
+      if (!result.valid) {
+        setCompanyName(null);
+        if (result.reason === "company_inactive") toast.error("A assinatura desta empresa não está ativa.");
+        else if (result.reason === "seat_limit") toast.error("A empresa atingiu o limite de membros do plano.");
+        else toast.error("Código de empresa inválido.");
+        return;
+      }
+      setCompanyName(result.clinic_name ?? "Empresa DentalFlow");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (error: any) => toast.error(error?.message ?? "Não foi possível validar o código."),
   });
 
-
-  const statusOf = (clinicId: string) =>
-    memberships.find((m) => m.clinic_id === clinicId)?.status;
-
-  const [companyName, setCompanyName] = useState("");
-  const [companyKind, setCompanyKind] = useState<"consultorio" | "laboratorio">("consultorio");
-  const createCompany = useMutation({
+  const link = useMutation({
     mutationFn: async () => {
-      const { data, error } = await supabase.rpc("create_company_account", {
-        p_name: companyName.trim(),
-        p_kind: companyKind,
-        p_full_name: null as unknown as string,
-      });
-      if (error) throw new Error(error.message);
-      const res = data as { success: boolean; error?: string };
-      if (!res?.success) throw new Error(res?.error ?? "Erro ao criar consultório");
+      const checked = await validateCompanyInviteCode(inviteCode);
+      if (!checked.valid) throw new Error("O código não está disponível para vínculo.");
+      return linkProfessionalCompany(inviteCode);
     },
-    onSuccess: () => {
-      toast.success("Consultório criado!");
-      setTimeout(() => (window.location.href = "/"), 800);
+    onSuccess: async (result) => {
+      toast.success(`Perfil vinculado a ${result.clinic_name}.`);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["subscription_context"] }),
+        qc.invalidateQueries({ queryKey: ["clinic_context"] }),
+        qc.invalidateQueries({ queryKey: ["profile"] }),
+      ]);
+      navigate({ to: "/hub", replace: true });
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (error: any) => toast.error(error?.message ?? "Não foi possível concluir o vínculo."),
   });
 
-  const handleLogout = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch {
-      // ignore
-    }
-    // Hard redirect avoids any router/loader race that could keep the page.
+  const logout = async () => {
+    await supabase.auth.signOut().catch(() => undefined);
     window.location.href = "/auth";
-    // Fallback in case the assignment is intercepted
-    setTimeout(() => router.navigate({ to: "/auth", replace: true, search: { invite: undefined, mode: undefined } }), 50);
   };
 
+  if (context.isLoading) return <CenteredStatus text="Validando seu perfil…" />;
+
+  if (context.data?.account_type !== "professional") {
+    return (
+      <div className="grid min-h-screen place-items-center bg-[#f4f8f7] px-5 dark:bg-[#080b10] dark:text-white">
+        <div className="w-full max-w-xl rounded-[28px] border border-slate-200 bg-white p-8 dark:border-white/[0.07] dark:bg-[#0d1218]">
+          <Building2 className="h-6 w-6 text-[#15988f]" />
+          <h1 className="mt-5 text-[30px] font-light tracking-[-0.04em]">Este vínculo é exclusivo para contas profissionais.</h1>
+          <p className="mt-4 text-[13px] font-light leading-6 text-slate-500 dark:text-white/45">Contas empresariais administram a equipe pelo código privado da empresa.</p>
+          <button onClick={() => navigate({ to: "/hub" })} className="mt-6 h-11 rounded-xl bg-[#15988f] px-5 text-[12px] font-medium text-white">Voltar ao Hub</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (context.data.active_clinic_id) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-[#f4f8f7] px-5 dark:bg-[#080b10] dark:text-white">
+        <div className="w-full max-w-xl rounded-[28px] border border-slate-200 bg-white p-8 dark:border-white/[0.07] dark:bg-[#0d1218]">
+          <ShieldCheck className="h-6 w-6 text-[#15988f]" />
+          <h1 className="mt-5 text-[30px] font-light tracking-[-0.04em]">Seu perfil já pertence a uma empresa.</h1>
+          <p className="mt-4 text-[13px] font-light leading-6 text-slate-500 dark:text-white/45">A 0.3.2 não permite que uma conta profissional seja vinculada a várias empresas. Seu login sempre abre no contexto empresarial já associado.</p>
+          <button onClick={() => navigate({ to: "/hub", replace: true })} className="mt-6 h-11 rounded-xl bg-[#15988f] px-5 text-[12px] font-medium text-white">Abrir DentalFlow</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-start justify-center p-6 md:p-12">
-      <div className="w-full max-w-3xl">
-        <div className="flex justify-between items-start mb-10">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-[10px] font-bold text-primary uppercase tracking-[0.08em] mb-4">
-              <Building2 className="h-3 w-3" />
-              Acesso ao Sistema
-            </div>
-            <h1 className="text-4xl md:text-5xl font-light text-slate-900 tracking-tight">
-              Junte-se a um <span className="text-primary">consultório</span>
-            </h1>
-            <p className="text-slate-500 font-light mt-3 max-w-xl">
-              Para acessar o sistema, envie uma solicitação para o consultório do qual você faz parte.
-              Um administrador irá revisar e aprovar seu acesso.
-            </p>
-          </div>
-          <Button variant="outline" size="sm" onClick={handleLogout} className="text-slate-600">
-            <LogOut className="h-4 w-4 mr-2" /> Sair
-          </Button>
+    <div className="min-h-screen bg-[#f4f8f7] px-5 py-8 text-slate-950 sm:px-8 dark:bg-[#080b10] dark:text-white">
+      <div className="mx-auto max-w-3xl">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-white/45"><span className="grid h-9 w-9 place-items-center rounded-xl bg-[#15988f] text-white">D</span> DentalFlow · Recuperação de vínculo</div>
+          <button onClick={logout} className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 px-3 text-[10px] font-medium text-slate-500 dark:border-white/[0.08] dark:text-white/45"><LogOut className="h-3.5 w-3.5" /> Sair</button>
         </div>
 
-        <div className="mb-8 bg-white rounded-2xl p-6 border border-slate-100 shadow-sm">
-          <div className="flex items-center gap-2 mb-4">
-            <Plus className="h-4 w-4 text-primary" />
-            <h2 className="font-medium text-slate-900">Criar um novo consultório ou laboratório</h2>
-          </div>
-          <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
-            <div>
-              <Label className="text-xs text-slate-500">Nome</Label>
-              <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Ex.: Clínica Sorriso" />
-            </div>
-            <div>
-              <Label className="text-xs text-slate-500">Tipo</Label>
-              <Select value={companyKind} onValueChange={(v) => setCompanyKind(v as "consultorio" | "laboratorio")}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="consultorio">Consultório</SelectItem>
-                  <SelectItem value="laboratorio">Laboratório</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button
-                className="w-full"
-                onClick={() => createCompany.mutate()}
-                disabled={createCompany.isPending || companyName.trim().length < 2}
-              >
-                {createCompany.isPending ? "Criando..." : "Criar"}
-              </Button>
-            </div>
+        <div className="mt-14 rounded-[30px] border border-slate-200/80 bg-white p-7 sm:p-10 dark:border-white/[0.07] dark:bg-[#0d1218]">
+          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#15988f]/10 text-[#15988f]"><KeyRound className="h-5 w-5" /></div>
+          <div className="mt-7 text-[10px] font-semibold uppercase tracking-[0.19em] text-[#15988f]">Código da empresa</div>
+          <h1 className="mt-3 text-[36px] font-light leading-[1.03] tracking-[-0.045em] sm:text-[48px]">Recupere um perfil antigo sem vínculo.</h1>
+          <p className="mt-5 max-w-2xl text-[13px] font-light leading-6 text-slate-500 dark:text-white/45">Novas contas profissionais já exigem o código durante o cadastro. Esta etapa existe somente para perfis anteriores à 0.3.2.</p>
+
+          <input value={inviteCode} onChange={(event) => { setInviteCode(event.target.value.toUpperCase().replace(/\s+/g, "")); setCompanyName(null); }} placeholder="Ex.: 1267A2F0" className="mt-7 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 font-mono text-[13px] tracking-[0.12em] outline-none transition focus:border-[#15988f]/45 dark:border-white/[0.07] dark:bg-white/[0.025]" />
+          {companyName ? <div className="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[10px] text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/[0.06] dark:text-emerald-300">Código confirmado · {companyName}</div> : null}
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button disabled={inviteCode.length < 4 || validate.isPending} onClick={() => validate.mutate()} className="h-11 rounded-xl border border-slate-200 px-5 text-[11px] font-medium disabled:opacity-40 dark:border-white/[0.08]">{validate.isPending ? "Validando…" : "Validar código"}</button>
+            <button disabled={!companyName || link.isPending} onClick={() => link.mutate()} className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#15988f] px-5 text-[11px] font-medium text-white disabled:opacity-40">{link.isPending ? "Vinculando…" : "Concluir vínculo"}<ArrowRight className="h-4 w-4" /></button>
           </div>
         </div>
-
-        {isLoading ? (
-          <div className="text-center py-12 text-slate-400 animate-pulse">Carregando consultórios...</div>
-        ) : (
-          <div className="space-y-4">
-            {clinics.map((c) => {
-              const status = statusOf(c.id);
-              return (
-                <div
-                  key={c.id}
-                  className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center justify-between gap-4"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-xl bg-primary/10 grid place-items-center">
-                      <Building2 className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-slate-900">{c.name}</h3>
-                      {status && (
-                        <div className="mt-1">
-                          {status === "pending" && (
-                            <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
-                              <Clock className="h-3 w-3 mr-1" /> Solicitação pendente
-                            </Badge>
-                          )}
-                          {status === "active" && (
-                            <Badge variant="outline" className="text-emerald-600 border-emerald-200 bg-emerald-50">
-                              <CheckCircle2 className="h-3 w-3 mr-1" /> Ativo
-                            </Badge>
-                          )}
-                          {status === "rejected" && (
-                            <Badge variant="outline" className="text-red-600 border-red-200 bg-red-50">
-                              <XCircle className="h-3 w-3 mr-1" /> Recusado
-                            </Badge>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    onClick={() => join.mutate(c.id)}
-                    disabled={join.isPending || status === "pending" || status === "active"}
-                  >
-                    {status === "pending"
-                      ? "Aguardando"
-                      : status === "active"
-                      ? "Membro"
-                      : status === "rejected"
-                      ? "Solicitar novamente"
-                      : "Solicitar entrada"}
-                  </Button>
-                </div>
-              );
-            })}
-            {clinics.length === 0 && (
-              <div className="text-center py-12 text-slate-400">Nenhum consultório cadastrado ainda.</div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
+}
+
+function CenteredStatus({ text }: { text: string }) {
+  return <div className="grid min-h-screen place-items-center bg-[#f4f8f7] text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400 dark:bg-[#080b10]">{text}</div>;
 }

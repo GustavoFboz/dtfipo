@@ -1,6 +1,7 @@
 import { createFileRoute, redirect, useLocation } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveOfflineAuthUser } from "@/lib/desktop-identity";
+import { finalizePendingOnboarding } from "@/lib/subscriptions";
 import { AppShell } from "@/components/AppShell";
 import { ClinicShell } from "@/components/ClinicShell";
 import { HubShell } from "@/components/HubShell";
@@ -13,6 +14,7 @@ import { DesktopOfflineBootstrap } from "@/components/DesktopOfflineBootstrap";
 import { DesktopPrimarySyncGate } from "@/components/DesktopPrimarySyncGate";
 import { DesktopRealtimeSync } from "@/components/DesktopRealtimeSync";
 import { DesktopLabHomeShortcut } from "@/components/DesktopLabHomeShortcut";
+import { SubscriptionGate } from "@/components/SubscriptionGate";
 import "@/workflow-layout.css";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -40,6 +42,13 @@ export const Route = createFileRoute("/_authenticated")({
         search: { invite: undefined, mode: undefined, returnTo: location.href },
       });
     }
+
+    // If e-mail confirmation delayed the first authenticated session, complete
+    // the pending company/member setup before billing/session entitlements load.
+    if (!offlineProvision) {
+      await finalizePendingOnboarding().catch(() => undefined);
+    }
+
     return { user, offlineProvision };
   },
   component: AuthenticatedShell,
@@ -73,7 +82,7 @@ function AuthenticatedShell() {
       <DesktopRealtimeSync />
       <ConnectivityLayer />
       <EnvironmentTransition />
-      {shell}
+      <SubscriptionGate>{shell}</SubscriptionGate>
     </>
   );
 }

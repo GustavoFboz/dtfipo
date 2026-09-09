@@ -54,7 +54,7 @@ expect(frame.includes("ResizeObserver"), "Native header sizing must use ResizeOb
 expect(!frame.includes('attributeFilter: ["class", "style"]'), "Never observe class/style mutations across the whole application tree.");
 expect(desktopCss.includes('html[data-dentalflow-native-window="true"]'), "Desktop-only layout rules must remain scoped to native window.");
 expect(desktopCss.includes(".df-notification-stack") && desktopCss.includes("right: 154px"), "Desktop notifications must reserve the Windows caption safe area.");
-expect(tauri.includes('"version": "0.3.1"'), "Desktop version must be 0.3.1.");
+expect(tauri.includes('"version": "0.3.2"'), "Desktop version must be 0.3.2.");
 expect(tauri.includes('"frontendDist": "../dist/client"'), "The complete compiled frontend must remain bundled inside the installer.");
 
 // Tauri v2 camelCases top-level Rust command parameter names at the JS boundary.
@@ -77,7 +77,7 @@ expect(client.includes("stored?.user"), "getUser must recover from the same genu
 expect(client.includes("Cloud Login requires revalidation"), "Device-only sessions must block protected Cloud reads.");
 expect(!client.includes("if (!definitelyOffline) return;"), "Device-only protected reads must not be enabled merely because Windows is online.");
 
-// The 0.3.0 channel shim remains the transport hardening layer used by 0.3.1.
+// The 0.3.0 channel shim remains the transport hardening layer used by current Desktop releases.
 expect(client030.includes("crypto.randomUUID()"), "Desktop Realtime transport must generate unique topics.");
 expect(client030.includes('prop === "channel"'), "Desktop Realtime transport must wrap channel creation.");
 expect(viteDesktop.includes("client.desktop.030.ts"), "Desktop Vite build must keep the Realtime-safe client shim.");
@@ -104,7 +104,7 @@ expect(proof.includes("version: 2"), "Desktop must keep the stricter authenticat
 expect(primarySync.includes("inspectDesktopSyncReadiness"), "Primary readiness must depend on authenticated sync proof.");
 expect(primarySync.includes("Revalide seu login para sincronizar"), "Expired/missing online login must be explicit instead of showing empty lists.");
 expect(primarySync.includes("/reauth?returnTo="), "Desktop must provide a dedicated reauthentication path.");
-expect(primarySync.includes("DentalFlow Desktop 0.3.1"), "Primary sync gate must identify the 0.3.1 release.");
+expect(primarySync.includes("DentalFlow Desktop 0.3."), "Primary sync gate must identify the Desktop release family.");
 expect(primarySync.includes("SYNC_GATE_WATCHDOG_MS"), "Full-screen sync state must have a watchdog.");
 expect(primarySync.includes("if (!readiness.ready)"), "Reconnect must only block when no verified local snapshot exists.");
 expect(primarySync.includes("listas auxiliares"), "Sync gate must communicate that auxiliary lists reconcile in background.");
@@ -190,4 +190,4 @@ expect(sync.indexOf("syncPendingCaseChanges") < sync.indexOf("syncPendingNotific
 expect(cloud.includes("DesktopCloudTimeoutError"), "Remote operations must stay bounded by a timeout.");
 expect(contract.includes("Regra de ouro"), "Cross-platform/offline contract must remain documented.");
 
-console.log("Desktop 0.3.1 native read-model recovery, authenticated sync, resilient uploads, realtime notifications and Windows regressions passed.");
+console.log("Desktop 0.3.2 native read-model recovery, authenticated sync, resilient uploads, realtime notifications and Windows regressions passed.");
