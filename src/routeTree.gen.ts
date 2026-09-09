@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ReauthRouteImport } from './routes/reauth'
 import { Route as LpRouteImport } from './routes/lp'
 import { Route as JoinClinicRouteImport } from './routes/join-clinic'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -66,6 +67,11 @@ import { Route as AuthenticatedAdminBackupRouteImport } from './routes/_authenti
 import { Route as ApiPublicHooksCleanupCaseFilesRouteImport } from './routes/api/public/hooks/cleanup-case-files'
 import { Route as AuthenticatedClinicaPacientesPatientIdRouteImport } from './routes/_authenticated/clinica.pacientes.$patientId'
 
+const ReauthRoute = ReauthRouteImport.update({
+  id: '/reauth',
+  path: '/reauth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LpRoute = LpRouteImport.update({
   id: '/lp',
   path: '/lp',
@@ -383,6 +389,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/join-clinic': typeof JoinClinicRoute
   '/lp': typeof LpRoute
+  '/reauth': typeof ReauthRoute
   '/agenda': typeof AuthenticatedAgendaRoute
   '/armazenamento': typeof AuthenticatedArmazenamentoRoute
   '/burrs': typeof AuthenticatedBurrsRoute
@@ -440,6 +447,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/join-clinic': typeof JoinClinicRoute
   '/lp': typeof LpRoute
+  '/reauth': typeof ReauthRoute
   '/agenda': typeof AuthenticatedAgendaRoute
   '/armazenamento': typeof AuthenticatedArmazenamentoRoute
   '/burrs': typeof AuthenticatedBurrsRoute
@@ -499,6 +507,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/join-clinic': typeof JoinClinicRoute
   '/lp': typeof LpRoute
+  '/reauth': typeof ReauthRoute
   '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
   '/_authenticated/armazenamento': typeof AuthenticatedArmazenamentoRoute
   '/_authenticated/burrs': typeof AuthenticatedBurrsRoute
@@ -558,6 +567,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/join-clinic'
     | '/lp'
+    | '/reauth'
     | '/agenda'
     | '/armazenamento'
     | '/burrs'
@@ -615,6 +625,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/join-clinic'
     | '/lp'
+    | '/reauth'
     | '/agenda'
     | '/armazenamento'
     | '/burrs'
@@ -673,6 +684,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/join-clinic'
     | '/lp'
+    | '/reauth'
     | '/_authenticated/agenda'
     | '/_authenticated/armazenamento'
     | '/_authenticated/burrs'
@@ -732,12 +744,20 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   JoinClinicRoute: typeof JoinClinicRoute
   LpRoute: typeof LpRoute
+  ReauthRoute: typeof ReauthRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiPublicHooksCleanupCaseFilesRoute: typeof ApiPublicHooksCleanupCaseFilesRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/reauth': {
+      id: '/reauth'
+      path: '/reauth'
+      fullPath: '/reauth'
+      preLoaderRoute: typeof ReauthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/lp': {
       id: '/lp'
       path: '/lp'
@@ -1334,6 +1354,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   JoinClinicRoute: JoinClinicRoute,
   LpRoute: LpRoute,
+  ReauthRoute: ReauthRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   ApiPublicHooksCleanupCaseFilesRoute: ApiPublicHooksCleanupCaseFilesRoute,
 }
