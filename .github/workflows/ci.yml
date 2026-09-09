@@ -35,8 +35,8 @@ jobs:
       - name: Verify Clinic UX regressions
         run: bun scripts/check-clinic-ux-regressions.mjs
 
-      - name: Verify Desktop offline regressions
-        run: bun scripts/check-desktop-offline-regressions.mjs
+      - name: Verify Desktop 0.3.3 offline regressions
+        run: bun scripts/check-desktop-offline-regressions-033.mjs
 
       - name: Verify Desktop entitlement-first bootstrap
         run: bun scripts/check-desktop-entitlement-bootstrap-032.mjs
