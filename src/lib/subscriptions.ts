@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isDentalFlowDesktop, localCacheGet, localCachePut } from "@/lib/desktop-local";
 
 export type AccountScope = "professional" | "company";
 export type CompanySessionType = "laboratory" | "clinic" | "radiology";
@@ -75,11 +76,27 @@ export type CheckoutIntent = {
   status: "pending" | "provider_created" | "paid" | "expired" | "canceled" | "failed";
 };
 
+export type ProfessionalCompanyLink = {
+  clinic_id: string;
+  clinic_name: string;
+  membership_role: string;
+  membership_status: string;
+  access_source: string;
+  is_current: boolean;
+  company_plan_code: string | null;
+  company_plan_name: string | null;
+  company_access_mode: SubscriptionAccessMode | null;
+  sessions: CompanySessionType[];
+};
+
 export const COMPANY_SESSION_LABEL: Record<CompanySessionType, string> = {
   laboratory: "Laboratório",
   clinic: "Clínica",
   radiology: "Radiologia",
 };
+
+const SUBSCRIPTION_CACHE_NAMESPACE = "subscription-context:v1";
+const SUBSCRIPTION_CACHE_KEY = "current";
 
 export async function fetchBillingPlans(scope?: AccountScope): Promise<BillingPlan[]> {
   let query = (supabase as any)
@@ -102,13 +119,27 @@ export async function fetchBillingPlans(scope?: AccountScope): Promise<BillingPl
 }
 
 export async function fetchMySubscriptionContext(): Promise<MySubscriptionContext | null> {
-  const { data, error } = await (supabase as any).rpc("my_subscription_context");
-  if (error) {
-    // 0.3.2 migration may not be present yet while rolling out across environments.
-    if (String(error.message ?? "").toLowerCase().includes("my_subscription_context")) return null;
+  const { data: sessionData } = await supabase.auth.getSession();
+  const ownerId = sessionData.session?.user?.id ?? null;
+
+  try {
+    const { data, error } = await (supabase as any).rpc("my_subscription_context");
+    if (error) throw error;
+    const context = (data ?? null) as MySubscriptionContext | null;
+    if (context && ownerId && isDentalFlowDesktop()) {
+      void localCachePut(ownerId, SUBSCRIPTION_CACHE_NAMESPACE, SUBSCRIPTION_CACHE_KEY, context).catch(() => undefined);
+    }
+    return context;
+  } catch (error) {
+    // Desktop may legitimately start without network. A previously verified
+    // subscription snapshot is safe for offline continuity; browser failures
+    // remain fail-closed in SubscriptionGate.
+    if (ownerId && isDentalFlowDesktop()) {
+      const cached = await localCacheGet<MySubscriptionContext>(ownerId, SUBSCRIPTION_CACHE_NAMESPACE, SUBSCRIPTION_CACHE_KEY).catch(() => null);
+      if (cached?.payload) return cached.payload;
+    }
     throw error;
   }
-  return (data ?? null) as MySubscriptionContext | null;
 }
 
 export async function createCheckoutIntent(planCode: string, clinicId?: string | null): Promise<CheckoutIntent> {
@@ -135,6 +166,29 @@ export async function switchCompanyContext(clinicId: string): Promise<MySubscrip
   return data as MySubscriptionContext;
 }
 
+export async function fetchMyProfessionalCompanyLinks(): Promise<ProfessionalCompanyLink[]> {
+  const { data, error } = await (supabase as any).rpc("my_professional_company_links");
+  if (error) throw error;
+  return (data ?? []) as ProfessionalCompanyLink[];
+}
+
+export async function linkProfessionalCompany(inviteCode: string) {
+  const { data, error } = await (supabase as any).rpc("link_professional_company", {
+    p_invite_code: inviteCode.trim(),
+  });
+  if (error) throw error;
+  if (!data?.success) throw new Error(data?.error ?? "Não foi possível vincular a empresa.");
+  return data as { success: true; clinic_id: string; clinic_name: string; already_linked: boolean; context: MySubscriptionContext };
+}
+
+export async function unlinkProfessionalCompany(clinicId: string): Promise<MySubscriptionContext> {
+  const { data, error } = await (supabase as any).rpc("unlink_professional_company", {
+    p_clinic_id: clinicId,
+  });
+  if (error) throw error;
+  return data as MySubscriptionContext;
+}
+
 export function formatPlanPrice(cents: number, currency = "BRL") {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -151,5 +205,5 @@ export function formatStorage(bytes: number) {
 }
 
 export function canOperate(context: MySubscriptionContext | null | undefined) {
-  return !context || context.effective_access === "full";
+  return context?.effective_access === "full";
 }
