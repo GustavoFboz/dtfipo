@@ -42,6 +42,13 @@ export default defineConfig({
           replacement: fileURLToPath(new URL("./src/lib/clinic.desktop.ts", import.meta.url)),
         },
         {
+          // Billing/session entitlement is part of the Desktop authorization
+          // snapshot. A fresh install verifies it once; later boots can render a
+          // still-valid paid snapshot immediately from SQLite.
+          find: /^@\/lib\/subscriptions$/,
+          replacement: fileURLToPath(new URL("./src/lib/subscriptions.desktop.ts", import.meta.url)),
+        },
+        {
           find: /^@\/lib\/workflow$/,
           replacement: fileURLToPath(new URL("./src/lib/workflow.desktop.ts", import.meta.url)),
         },
