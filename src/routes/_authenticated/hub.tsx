@@ -6,6 +6,7 @@ import { Home, LogIn, Moon, Sun } from "lucide-react";
 import { startEnvironmentTransition, type EnvironmentName } from "@/components/EnvironmentTransition";
 import { fetchProfile } from "@/lib/api";
 import { fetchClinicContext } from "@/lib/clinic";
+import { fetchMySubscriptionContext, type CompanySessionType } from "@/lib/subscriptions";
 import { useTheme } from "@/hooks/use-theme";
 
 export const Route = createFileRoute("/_authenticated/hub")({ component: HubPage });
@@ -31,7 +32,7 @@ const ENVIRONMENTS: Record<EnvironmentOption["id"], EnvironmentOption> = {
   clinic: {
     id: "clinic",
     name: "Clínica",
-    description: "Gerencie seus arquivos e informações clínicas tudo em um único ambiente integrado.",
+    description: "Pacientes, agenda, tratamentos e informações clínicas dentro do mesmo hub empresarial.",
     to: "/clinica",
     accent: "#15988f",
     tint: "rgba(21,152,143,.09)",
@@ -39,7 +40,7 @@ const ENVIRONMENTS: Record<EnvironmentOption["id"], EnvironmentOption> = {
   radiology: {
     id: "radiology",
     name: "Radiologia",
-    description: "Organize exames, imagens e informações diagnósticas em um ambiente dedicado.",
+    description: "Estudos DICOM, exames e imagens diagnósticas integrados aos pacientes e à operação.",
     to: "/radiologia",
     accent: "#7668d9",
     tint: "rgba(118,104,217,.08)",
@@ -76,6 +77,11 @@ function HubPage() {
     queryFn: fetchClinicContext,
     staleTime: 60_000,
   });
+  const subscription = useQuery({
+    queryKey: ["subscription_context"],
+    queryFn: fetchMySubscriptionContext,
+    staleTime: 30_000,
+  });
   const profile = useQuery({
     queryKey: ["profile"],
     queryFn: fetchProfile,
@@ -83,23 +89,28 @@ function HubPage() {
   });
 
   const available = useMemo(() => {
+    const paidSessions = subscription.data?.company?.sessions?.filter((session): session is CompanySessionType =>
+      session === "laboratory" || session === "clinic" || session === "radiology",
+    );
+
+    // 0.3.2: when the subscription architecture is available, the plan/session
+    // entitlement is the single source of truth. Unauthorized modules are not rendered.
+    if (paidSessions?.length) {
+      return paidSessions.map((session) => ENVIRONMENTS[session]);
+    }
+
+    // Migration-safe fallback for older/offline snapshots. A professional without
+    // an active company is no longer given a synthetic laboratory workspace.
     if (!clinic.data) return [] as EnvironmentOption[];
+    if (subscription.data?.account_type === "professional" && !subscription.data.active_clinic_id) return [];
 
     const modules = normalizeModules(clinic.data.modules);
-    const hasClinic = Boolean(clinic.data.clinicId);
     const result: EnvironmentOption[] = [];
-    const clinical = Boolean(clinic.data.hasClinicalModule) || hasAny(modules, ["clinical", "clinic", "clinica"]);
-    const laboratory = hasAny(modules, ["laboratory", "laboratorio", "laboratório", "lab"]);
-    const radiology = hasAny(modules, ["radiology", "radiologia", "imaging", "image"]);
-
-    // Profissional individual sem empresa/Clínica vinculada usa o ambiente de
-    // Laboratório. Em uma conta empresarial, só entram módulos realmente ativos.
-    if (!hasClinic || laboratory) result.push(ENVIRONMENTS.laboratory);
-    if (clinical) result.push(ENVIRONMENTS.clinic);
-    if (radiology) result.push(ENVIRONMENTS.radiology);
-
+    if (hasAny(modules, ["laboratory", "laboratorio", "laboratório", "lab"])) result.push(ENVIRONMENTS.laboratory);
+    if (Boolean(clinic.data.hasClinicalModule) || hasAny(modules, ["clinical", "clinic", "clinica"])) result.push(ENVIRONMENTS.clinic);
+    if (hasAny(modules, ["radiology", "radiologia", "imaging", "image"])) result.push(ENVIRONMENTS.radiology);
     return result;
-  }, [clinic.data]);
+  }, [clinic.data, subscription.data]);
 
   useEffect(() => {
     if (!available.length) {
@@ -187,25 +198,17 @@ function HubPage() {
                 className={`group relative min-h-0 min-w-0 overflow-hidden outline-none ${index > 0 ? "border-t border-[#d7e1e7]/75 sm:border-l sm:border-t-0 dark:border-white/[0.055]" : ""}`}
               >
                 <span className="absolute inset-0 bg-[#edf4f8] transition-colors duration-500 dark:bg-[#080b10]" />
-
                 <span
                   className={`absolute inset-0 transition-opacity duration-700 ${active ? "opacity-100" : "opacity-0"}`}
-                  style={{
-                    background: `radial-gradient(ellipse at 50% 49%, ${environment.tint} 0%, transparent 46%), linear-gradient(104deg, rgba(255,255,255,.52) 0%, rgba(255,255,255,.12) 52%, rgba(219,232,238,.14) 100%)`,
-                  }}
+                  style={{ background: `radial-gradient(ellipse at 50% 49%, ${environment.tint} 0%, transparent 46%), linear-gradient(104deg, rgba(255,255,255,.52) 0%, rgba(255,255,255,.12) 52%, rgba(219,232,238,.14) 100%)` }}
                 />
-
-                <span
-                  className={`pointer-events-none absolute inset-0 transition-opacity duration-700 ${active ? "opacity-[.29]" : "opacity-0"}`}
-                  aria-hidden="true"
-                >
+                <span className={`pointer-events-none absolute inset-0 transition-opacity duration-700 ${active ? "opacity-[.29]" : "opacity-0"}`} aria-hidden="true">
                   <span className="absolute left-[8%] top-[27%] h-[35%] w-[84%] -skew-y-6 bg-white/20" />
                   <span className="absolute left-[15%] top-[34%] h-px w-[72%] rotate-[-11deg] bg-white/80" />
                   <span className="absolute left-[20%] top-[43%] h-px w-[66%] rotate-[-7deg] bg-white/65" />
                   <span className="absolute left-[25%] top-[52%] h-px w-[58%] rotate-[-3deg] bg-white/50" />
                   <span className="absolute bottom-[21%] left-[12%] h-[17%] w-[76%] rounded-[40%] bg-white/24 blur-xl" />
                 </span>
-
                 <span className="absolute inset-x-4 top-[50.5%] -translate-y-1/2 text-center sm:inset-x-5 sm:top-[51%]">
                   <span
                     className={`block whitespace-nowrap font-extralight leading-none tracking-[-0.065em] transition-[font-size,color,opacity,transform] duration-500 ${active ? "text-[50px] sm:text-[64px] lg:text-[88px] xl:text-[96px]" : "text-[40px] text-[#555b60]/78 sm:text-[51px] lg:text-[64px] xl:text-[69px] dark:text-white/54"}`}
@@ -213,9 +216,7 @@ function HubPage() {
                   >
                     {environment.name}
                   </span>
-                  <span
-                    className={`mx-auto mt-3.5 block max-w-[350px] text-[11px] font-extralight leading-[1.28] tracking-[-0.014em] text-[#92999e] transition-all duration-500 sm:text-[13px] lg:text-[14px] ${active ? "translate-y-0 opacity-100" : "translate-y-[8px] opacity-0"}`}
-                  >
+                  <span className={`mx-auto mt-3.5 block max-w-[350px] text-[11px] font-extralight leading-[1.28] tracking-[-0.014em] text-[#92999e] transition-all duration-500 sm:text-[13px] lg:text-[14px] ${active ? "translate-y-0 opacity-100" : "translate-y-[8px] opacity-0"}`}>
                     {environment.description}
                   </span>
                 </span>
@@ -226,7 +227,7 @@ function HubPage() {
       ) : (
         <div className="absolute inset-0 z-10 grid place-items-center px-6 pt-20 text-center">
           <p className="max-w-sm text-[12px] font-light leading-6 text-[#9aa1a7]">
-            {clinic.isError ? "Não foi possível validar seus ambientes agora. Tente novamente em instantes." : "Preparando seus ambientes…"}
+            {clinic.isError || subscription.isError ? "Não foi possível validar seus ambientes agora. Tente novamente em instantes." : "Preparando seus ambientes…"}
           </p>
         </div>
       )}
@@ -248,14 +249,7 @@ function HubPage() {
               <span className="mt-[1px] block text-[15px] font-extralight leading-none text-[#aab0b5] sm:text-[17px]">Entrar</span>
             </span>
           </button>
-
-          <button
-            type="button"
-            data-no-window-drag
-            onClick={enterSelected}
-            aria-label={`Abrir ${selected.name}`}
-            className="pointer-events-auto mt-3 grid h-9 w-9 place-items-center rounded-full text-[#25292d] transition hover:bg-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/10 dark:text-white/70 dark:hover:bg-white/[0.05]"
-          >
+          <button type="button" data-no-window-drag onClick={enterSelected} aria-label={`Abrir ${selected.name}`} className="pointer-events-auto mt-3 grid h-9 w-9 place-items-center rounded-full text-[#25292d] transition hover:bg-white/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/10 dark:text-white/70 dark:hover:bg-white/[0.05]">
             <LogIn className="h-[22px] w-[22px] stroke-[1.15]" />
           </button>
         </div>
