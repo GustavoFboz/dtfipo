@@ -37,10 +37,10 @@ expect(
 );
 
 // A case dialog can unmount/remount while a Realtime cleanup is still resolving.
-// The transport shim introduced in 0.3.0 remains part of the 0.3.1 release.
+// The 0.3.0 Desktop client must never reuse the already-subscribed transport topic.
 expect(
   desktopVite.includes("client.desktop.030.ts"),
-  "Desktop build must keep the Realtime-safe Supabase facade.",
+  "Desktop build must use the 0.3.0 Realtime-safe Supabase facade.",
 );
 expect(
   realtimeSafeClient.includes('prop === "channel"') && realtimeSafeClient.includes("crypto.randomUUID()"),
@@ -50,7 +50,7 @@ expect(
 expect(casesLocal.includes('operation: "create"'), "Offline case creation must enqueue a durable case outbox entry.");
 expect(
   casesLocal.includes('await cloud.createCase({ ...(payload.input ?? {}), id, also_arch: null } as any)'),
-  "Queued offline cases must be created remotely on reconnect.",
+  "Queued offline cases must be created in Lovable Cloud on reconnect.",
 );
 expect(
   desktopVite.includes("api.desktop.case-offline.ts"),
@@ -89,11 +89,27 @@ expect(
   "Desktop sync must create offline cases before replaying their team notifications.",
 );
 
-expect(tauri.includes('"version": "0.3.1"'), "DentalFlow Desktop version must be 0.3.1.");
-expect(cargo.includes('version = "0.3.1"'), "Rust package version must match Desktop 0.3.1.");
+const newCaseDialog = read("src/components/NewCaseDialog.tsx");
+expect(
+  !/createdId\s*&&\s*!isCadista/.test(newCaseDialog),
+  "CADISTAs must not be excluded from pending attachment uploads in NewCaseDialog.",
+);
+expect(
+  newCaseDialog.includes("queuedUploadCountRef.current += 1"),
+  "Pending uploads must be counted only after being queued in the upload manager.",
+);
+expect(
+  newCaseDialog.includes("arquivo(s) enviando em segundo plano"),
+  "Success toast must report all queued files (scans + gallery), not only scans.",
+);
+expect(
+  newCaseDialog.includes("pendingScanFiles.length + pendingGalleryFiles.length"),
+  "Initial attachment count must sum scans and gallery files.",
+);
+
 expect(
   tauri.includes('"frontendDist": "../dist/client"'),
   "The full frontend must remain bundled in the Windows installer for offline navigation.",
 );
 
-console.log("Desktop 0.3.1 case dialog/offline case regression checks passed.");
+console.log("Desktop case dialog/offline case regression checks passed.");
