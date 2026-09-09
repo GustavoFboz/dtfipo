@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { createFileRoute, Link, redirect, useNavigate, useSearch } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,30 +9,29 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   ArrowRight,
   Building2,
-  CheckCircle2,
+  Check,
   Eye,
   EyeOff,
   FlaskConical,
+  RadioTower,
   ShieldCheck,
-  Sparkles,
   Stethoscope,
-  User,
-  UserPlus,
+  UserRound,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { fetchBillingPlans, formatPlanPrice, type CompanySessionType } from "@/lib/subscriptions";
 
-type SignupMode = "company" | "employee" | "user";
+type SignupMode = "company" | "employee" | "professional";
+const PROFESSIONS = ["DENTISTA", "CADISTA", "PROTETICO", "ATENDIMENTO", "RADIOLOGISTA", "OUTRO"] as const;
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
   validateSearch: (s: Record<string, unknown>) => ({
     invite: typeof s.invite === "string" ? s.invite : undefined,
-    mode: (s.mode === "company" || s.mode === "employee" || s.mode === "user" ? s.mode : undefined) as
-      | SignupMode
-      | undefined,
-    returnTo: typeof s.returnTo === "string" && s.returnTo.startsWith("/") && !s.returnTo.startsWith("//")
-      ? s.returnTo
-      : undefined,
+    mode: (s.mode === "company" || s.mode === "employee" || s.mode === "professional" || s.mode === "user" ? (s.mode === "user" ? "professional" : s.mode) : undefined) as SignupMode | undefined,
+    plan: typeof s.plan === "string" ? s.plan : undefined,
+    returnTo: typeof s.returnTo === "string" && s.returnTo.startsWith("/") && !s.returnTo.startsWith("//") ? s.returnTo : undefined,
   }),
   beforeLoad: async ({ search }) => {
     const { data } = await supabase.auth.getSession();
@@ -47,9 +47,7 @@ function AuthPage() {
   const navigate = useNavigate();
   const search = useSearch({ from: "/auth" });
   const [tab, setTab] = useState<"login" | "signup">(search.invite || search.mode ? "signup" : "login");
-  const [signupMode, setSignupMode] = useState<SignupMode>(
-    search.mode ?? (search.invite ? "employee" : "company"),
-  );
+  const [signupMode, setSignupMode] = useState<SignupMode>(search.mode ?? (search.invite ? "employee" : "company"));
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -63,51 +61,51 @@ function AuthPage() {
   const [loadingSignup, setLoadingSignup] = useState(false);
 
   const [companyName, setCompanyName] = useState("");
-  const [companyKind, setCompanyKind] = useState<"consultorio" | "laboratorio">("consultorio");
+  const [companyPlan, setCompanyPlan] = useState(search.plan?.startsWith("company_") ? search.plan : "company_initial");
+  const [companySessions, setCompanySessions] = useState<CompanySessionType[]>(["laboratory"]);
   const [inviteCode, setInviteCode] = useState(search.invite ?? "");
+  const [profession, setProfession] = useState<(typeof PROFESSIONS)[number]>("CADISTA");
+
+  const plans = useQuery({
+    queryKey: ["billing_plans", "company"],
+    queryFn: () => fetchBillingPlans("company"),
+    staleTime: 5 * 60_000,
+    retry: 0,
+  });
+  const selectedPlan = useMemo(() => plans.data?.find((p) => p.code === companyPlan), [plans.data, companyPlan]);
+  const maxSessions = selectedPlan?.max_sessions ?? (companyPlan === "company_advanced" ? 3 : companyPlan === "company_growth" ? 2 : 1);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        if (search.returnTo) window.location.replace(search.returnTo);
-        else navigate({ to: "/", replace: true });
-      }
-    });
-  }, [navigate, search.returnTo]);
+    setCompanySessions((current) => current.slice(0, Math.max(1, maxSessions)));
+  }, [maxSessions]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoadingLogin(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: loginEmail.trim(),
-      password: loginPassword,
-    });
-    setLoadingLogin(false);
-    if (error) return toast.error(error.message);
-    toast.success("Bem-vindo!");
-    if (search.returnTo) window.location.replace(search.returnTo);
-    else navigate({ to: "/", replace: true });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email: loginEmail.trim(), password: loginPassword });
+      if (error) return toast.error(error.message);
+      toast.success("Bem-vindo!");
+      if (search.returnTo) window.location.replace(search.returnTo);
+      else navigate({ to: "/", replace: true });
+    } finally {
+      setLoadingLogin(false);
+    }
   }
 
-  async function signUpAndSignIn(): Promise<boolean> {
+  async function signUpAndSignIn() {
     const email = signupEmail.trim();
     const { error } = await supabase.auth.signUp({
       email,
       password: signupPassword,
-      options: {
-        data: { full_name: signupName.trim() },
-        emailRedirectTo: `${window.location.origin}/`,
-      },
+      options: { data: { full_name: signupName.trim() }, emailRedirectTo: `${window.location.origin}/` },
     });
-    if (error) {
-      toast.error(error.message);
-      return false;
-    }
+    if (error) throw error;
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) {
-      const { error: siErr } = await supabase.auth.signInWithPassword({ email, password: signupPassword });
-      if (siErr) {
-        toast.success("Conta criada! Verifique seu e-mail para confirmar antes de continuar.");
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: signupPassword });
+      if (signInError) {
+        toast.success("Conta criada. Confirme seu e-mail para continuar.");
         return false;
       }
     }
@@ -122,185 +120,149 @@ function AuthPage() {
       if (!ok) return;
 
       if (signupMode === "company") {
-        if (companyName.trim().length < 2) {
-          toast.error("Informe o nome do consultório ou laboratório");
-          return;
-        }
-        const { data, error } = await supabase.rpc("create_company_account", {
+        if (companyName.trim().length < 2) return toast.error("Informe o nome da empresa.");
+        if (!companySessions.length) return toast.error("Selecione ao menos um ambiente de trabalho.");
+        const { data, error } = await (supabase as any).rpc("create_company_account", {
           p_name: companyName.trim(),
-          p_kind: companyKind,
+          p_kind: companySessions[0] === "clinic" ? "consultorio" : companySessions[0] === "radiology" ? "radiologia" : "laboratorio",
           p_full_name: signupName.trim(),
+          p_plan_code: companyPlan,
+          p_session_types: companySessions,
         });
-        if (error) return toast.error(error.message);
-        const res = data as { success: boolean; error?: string };
-        if (!res?.success) return toast.error(res?.error ?? "Erro ao criar conta");
-        toast.success("Conta criada com sucesso!");
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error ?? "Não foi possível criar a empresa.");
+        toast.success("Empresa criada. Agora vamos ativar sua assinatura.");
         navigate({ to: "/", replace: true });
-      } else if (signupMode === "employee") {
-        if (!inviteCode.trim()) {
-          toast.error("Informe o código de convite");
-          return;
-        }
-        const { data, error } = await supabase.rpc("join_company_with_code", {
-          p_invite_code: inviteCode.trim(),
-          p_role: "USER",
-        });
-        if (error) return toast.error(error.message);
-        const res = data as { success: boolean; error?: string; clinic_name?: string };
-        if (!res?.success) return toast.error(res?.error ?? "Código inválido");
-        toast.success(`Bem-vindo a ${res.clinic_name ?? "sua conta"}!`);
-        navigate({ to: "/", replace: true });
-      } else {
-        toast.success("Conta criada! Escolha um consultório para solicitar entrada.");
-        navigate({ to: "/join-clinic", replace: true });
+        return;
       }
+
+      if (signupMode === "professional") {
+        const { data, error } = await (supabase as any).rpc("create_professional_account", {
+          p_full_name: signupName.trim(),
+          p_profession_type: profession,
+        });
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error ?? "Não foi possível criar o perfil profissional.");
+        toast.success("Perfil profissional criado. Ative seu plano para continuar.");
+        navigate({ to: "/", replace: true });
+        return;
+      }
+
+      if (!inviteCode.trim()) return toast.error("Informe o código de convite.");
+      const { data, error } = await (supabase as any).rpc("join_company_with_code", {
+        p_invite_code: inviteCode.trim(),
+        p_role: "USER",
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error ?? "Código inválido.");
+      toast.success(`Bem-vindo a ${data.clinic_name ?? "sua empresa"}!`);
+      navigate({ to: "/", replace: true });
+    } catch (error: any) {
+      toast.error(error?.message ?? "Não foi possível concluir o cadastro.");
     } finally {
       setLoadingSignup(false);
     }
   }
 
-  const isLogin = tab === "login";
+  const toggleSession = (session: CompanySessionType) => {
+    setCompanySessions((current) => {
+      if (current.includes(session)) return current.length === 1 ? current : current.filter((item) => item !== session);
+      if (current.length >= maxSessions) return [...current.slice(1), session];
+      return [...current, session];
+    });
+  };
 
   return (
-    <div className="min-h-[100dvh] bg-[#f6f9f8] text-slate-950 lg:grid lg:grid-cols-[1.08fr_.92fr]">
-      <BrandPanel />
-
-      <main className="relative flex min-h-[100dvh] items-center justify-center overflow-y-auto bg-white px-5 py-8 sm:px-8 lg:px-12 xl:px-16">
-        <div className="absolute right-8 top-7 hidden items-center gap-2 text-[10px] font-medium uppercase tracking-[0.16em] text-slate-300 xl:flex">
-          <ShieldCheck className="h-3.5 w-3.5 text-[#1e8f87]" />
-          Ambiente seguro
+    <div className="min-h-[100dvh] bg-[#f4f8f7] text-slate-950 lg:grid lg:grid-cols-[.92fr_1.08fr]">
+      <aside className="relative hidden overflow-hidden bg-[#0f6f69] p-12 text-white lg:flex lg:flex-col lg:justify-between">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(112,236,220,.32),transparent_27%),radial-gradient(circle_at_90%_75%,rgba(83,122,255,.22),transparent_32%),linear-gradient(145deg,#0d6762,#168c83_58%,#0b5b57)]" />
+        <div className="relative z-10 flex items-center gap-3 text-[12px] font-semibold uppercase tracking-[0.2em]"><span className="grid h-10 w-10 place-items-center rounded-xl bg-white/12">D</span> DentalFlow</div>
+        <div className="relative z-10 max-w-xl">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/55">Hub empresarial odontológico</div>
+          <h1 className="mt-5 text-[48px] font-light leading-[1.02] tracking-[-0.045em]">Uma conta. Até três operações conectadas.</h1>
+          <p className="mt-6 max-w-lg text-[14px] font-light leading-7 text-white/68">Laboratório, Clínica e Radiologia podem funcionar de forma independente ou compartilhar dados dentro da mesma empresa, conforme o plano ativo.</p>
+          <div className="mt-8 grid gap-3 text-[12px] font-light text-white/72">
+            <Benefit text="Empresa com administrador e limites claros por plano" />
+            <Benefit text="Profissionais independentes vinculados a até duas empresas" />
+            <Benefit text="Assinatura preparada para integração segura com pagamentos" />
+          </div>
         </div>
+        <div className="relative z-10 text-[10px] font-medium uppercase tracking-[0.18em] text-white/35">DentalFlow 0.3.2</div>
+      </aside>
 
-        <div className="w-full max-w-[470px] py-5 lg:py-12">
-          <div className="mb-9 flex items-center justify-between lg:hidden">
-            <DentalFlowBrand dark={false} />
-            <div className="rounded-full bg-[#1e8f87]/8 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.16em] text-[#1e8f87]">BR</div>
-          </div>
-
+      <main className="flex min-h-[100dvh] items-center justify-center bg-white px-5 py-8 sm:px-8 lg:px-12 dark:bg-[#080b10] dark:text-white">
+        <div className="w-full max-w-[620px] py-6">
+          <div className="mb-8 flex items-center justify-between lg:hidden"><div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#15988f]">DentalFlow</div><ShieldCheck className="h-4 w-4 text-[#15988f]" /></div>
           <div className="mb-8">
-            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#1e8f87]">
-              {isLogin ? "Acesso ao DentalFlow" : "Comece no DentalFlow"}
-            </div>
-            <h1 className="mt-3 text-[34px] font-light leading-[1.06] tracking-[-0.045em] text-slate-950 sm:text-[42px]">
-              {isLogin ? "Bem-vindo de volta." : "Sua operação começa aqui."}
-            </h1>
-            <p className="mt-3 max-w-md text-[13px] font-light leading-relaxed text-slate-500">
-              {isLogin
-                ? "Entre para continuar sua rotina clínica e laboratorial exatamente de onde parou."
-                : "Crie sua conta e conecte consultório, equipe e laboratório em um fluxo único."}
-            </p>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#15988f]">{tab === "login" ? "Acesso" : "Cadastro"}</div>
+            <h2 className="mt-3 text-[36px] font-light leading-[1.04] tracking-[-0.045em] sm:text-[46px]">{tab === "login" ? "Bem-vindo de volta." : "Escolha como você participa do DentalFlow."}</h2>
           </div>
 
-          <div className="mb-7 grid grid-cols-2 rounded-2xl bg-slate-100/80 p-1">
-            <button
-              type="button"
-              onClick={() => setTab("login")}
-              className={`h-10 rounded-xl text-[12px] font-medium transition-all ${isLogin ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
-            >
-              Entrar
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("signup")}
-              className={`h-10 rounded-xl text-[12px] font-medium transition-all ${!isLogin ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
-            >
-              Criar conta
-            </button>
+          <div className="mb-7 grid grid-cols-2 rounded-2xl bg-slate-100 p-1 dark:bg-white/[0.05]">
+            <button type="button" onClick={() => setTab("login")} className={`h-10 rounded-xl text-[12px] font-medium transition ${tab === "login" ? "bg-white shadow-sm dark:bg-white/10" : "text-slate-400"}`}>Entrar</button>
+            <button type="button" onClick={() => setTab("signup")} className={`h-10 rounded-xl text-[12px] font-medium transition ${tab === "signup" ? "bg-white shadow-sm dark:bg-white/10" : "text-slate-400"}`}>Criar conta</button>
           </div>
 
-          {isLogin ? (
+          {tab === "login" ? (
             <form onSubmit={handleLogin} className="space-y-5">
-              <FieldBox type="email" label="E-mail" value={loginEmail} onChange={setLoginEmail} placeholder="seu@email.com" autoComplete="email" required />
-              <PasswordField
-                label="Senha"
-                value={loginPassword}
-                onChange={setLoginPassword}
-                visible={showLoginPassword}
-                onToggle={() => setShowLoginPassword((value) => !value)}
-                autoComplete="current-password"
-                required
-              />
-
-              <div className="flex items-center justify-end">
-                <Link
-                  to="/auth/forgot"
-                  search={{ invite: undefined, mode: undefined }}
-                  className="text-[12px] font-normal text-slate-400 transition hover:text-[#1e8f87]"
-                >
-                  Esqueci minha senha
-                </Link>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={loadingLogin}
-                className="group h-12 w-full rounded-xl bg-[#1e8f87] text-[13px] font-medium text-white shadow-[0_12px_30px_-14px_rgba(30,143,135,.7)] transition hover:bg-[#177a73]"
-              >
-                {loadingLogin ? "Entrando…" : "Entrar no DentalFlow"}
-                {!loadingLogin && <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
-              </Button>
-
-              <p className="pt-1 text-center text-[12px] font-light text-slate-400">
-                Ainda não usa o DentalFlow?{" "}
-                <button type="button" onClick={() => setTab("signup")} className="font-medium text-[#1e8f87] hover:underline">
-                  Crie sua conta
-                </button>
-              </p>
+              <Field label="E-mail"><Input type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} autoComplete="email" required /></Field>
+              <PasswordField label="Senha" value={loginPassword} onChange={setLoginPassword} visible={showLoginPassword} onToggle={() => setShowLoginPassword((v) => !v)} autoComplete="current-password" />
+              <div className="flex justify-end"><Link to="/auth/forgot" search={{ invite: undefined, mode: undefined }} className="text-[12px] text-slate-400 hover:text-[#15988f]">Esqueci minha senha</Link></div>
+              <Button disabled={loadingLogin} className="h-12 w-full rounded-xl bg-[#15988f] text-white hover:bg-[#12877f]">{loadingLogin ? "Entrando…" : "Entrar"}<ArrowRight className="ml-2 h-4 w-4" /></Button>
             </form>
           ) : (
             <form onSubmit={handleSignup} className="space-y-5">
               <div>
-                <div className="mb-2 text-[11px] font-medium text-slate-500">Como você vai usar o DentalFlow?</div>
-                <RadioGroup
-                  value={signupMode}
-                  onValueChange={(v) => setSignupMode(v as SignupMode)}
-                  className="grid grid-cols-3 gap-2"
-                >
-                  <ModeCard value="company" label="Empresa" icon={<Building2 className="h-4 w-4" strokeWidth={1.6} />} />
-                  <ModeCard value="employee" label="Equipe" icon={<UserPlus className="h-4 w-4" strokeWidth={1.6} />} />
-                  <ModeCard value="user" label="Usuário" icon={<User className="h-4 w-4" strokeWidth={1.6} />} />
+                <div className="mb-2 text-[11px] font-medium text-slate-500">Tipo de conta</div>
+                <RadioGroup value={signupMode} onValueChange={(v) => setSignupMode(v as SignupMode)} className="grid grid-cols-3 gap-2">
+                  <ModeCard value="company" label="Empresa" icon={<Building2 className="h-4 w-4" />} />
+                  <ModeCard value="professional" label="Profissional" icon={<UserRound className="h-4 w-4" />} />
+                  <ModeCard value="employee" label="Convite" icon={<Users className="h-4 w-4" />} />
                 </RadioGroup>
               </div>
 
-              {signupMode === "company" && (
-                <div className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50/65 p-4">
-                  <FieldBox label="Nome do consultório / laboratório" value={companyName} onChange={setCompanyName} placeholder="Nome da sua operação" required />
-                  <div className="grid grid-cols-2 gap-2">
-                    <KindCard active={companyKind === "consultorio"} onClick={() => setCompanyKind("consultorio")} label="Consultório" icon={<Stethoscope className="h-4 w-4" />} />
-                    <KindCard active={companyKind === "laboratorio"} onClick={() => setCompanyKind("laboratorio")} label="Laboratório" icon={<FlaskConical className="h-4 w-4" />} />
+              {signupMode === "company" ? (
+                <div className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 dark:border-white/[0.06] dark:bg-white/[0.025]">
+                  <Field label="Nome da empresa"><Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Nome da operação" required /></Field>
+                  <div>
+                    <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Plano</div>
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      {[{ code: "company_initial", name: "Inicial", price: 249, sessions: 1 }, { code: "company_growth", name: "Crescimento", price: 449, sessions: 2 }, { code: "company_advanced", name: "Avançado", price: 749, sessions: 3 }].map((plan) => (
+                        <button key={plan.code} type="button" onClick={() => setCompanyPlan(plan.code)} className={`rounded-xl border p-3 text-left ${companyPlan === plan.code ? "border-[#15988f]/50 bg-[#15988f]/[0.05]" : "border-slate-200 bg-white dark:border-white/[0.06] dark:bg-white/[0.02]"}`}>
+                          <div className="text-[11px] font-semibold">{plan.name}</div><div className="mt-1 text-[10px] text-slate-400">R$ {plan.price}/mês · {plan.sessions} sessão{plan.sessions > 1 ? "ões" : ""}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Ambientes ({companySessions.length}/{maxSessions})</div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <SessionCard active={companySessions.includes("laboratory")} onClick={() => toggleSession("laboratory")} icon={<FlaskConical className="h-4 w-4" />} label="Laboratório" />
+                      <SessionCard active={companySessions.includes("clinic")} onClick={() => toggleSession("clinic")} icon={<Stethoscope className="h-4 w-4" />} label="Clínica" />
+                      <SessionCard active={companySessions.includes("radiology")} onClick={() => toggleSession("radiology")} icon={<RadioTower className="h-4 w-4" />} label="Radiologia" />
+                    </div>
                   </div>
                 </div>
-              )}
+              ) : null}
 
-              {signupMode === "employee" && (
-                <FieldBox label="Código de convite" value={inviteCode} onChange={(v) => setInviteCode(v.toUpperCase())} placeholder="Ex.: DF-7K2P" required />
-              )}
+              {signupMode === "professional" ? (
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 dark:border-white/[0.06] dark:bg-white/[0.025]">
+                  <div className="text-[11px] font-medium">Plano Profissional · R$ 89/mês</div>
+                  <p className="mt-1 text-[10px] font-light leading-5 text-slate-400">Seu perfil pode trabalhar em até duas empresas. Sem vínculo com uma empresa, não existe ambiente operacional independente.</p>
+                  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {PROFESSIONS.map((item) => <button key={item} type="button" onClick={() => setProfession(item)} className={`rounded-xl border px-3 py-2 text-[10px] font-medium ${profession === item ? "border-[#15988f]/50 bg-[#15988f]/[0.05] text-[#15988f]" : "border-slate-200 bg-white text-slate-500 dark:border-white/[0.06] dark:bg-white/[0.02]"}`}>{item === "PROTETICO" ? "PROTÉTICO" : item}</button>)}
+                  </div>
+                </div>
+              ) : null}
 
-              <FieldBox label="Nome completo" value={signupName} onChange={setSignupName} placeholder="Como devemos chamar você?" autoComplete="name" required />
-              <FieldBox type="email" label="E-mail" value={signupEmail} onChange={setSignupEmail} placeholder="seu@email.com" autoComplete="email" required />
-              <PasswordField
-                label="Senha"
-                value={signupPassword}
-                onChange={setSignupPassword}
-                visible={showSignupPassword}
-                onToggle={() => setShowSignupPassword((value) => !value)}
-                autoComplete="new-password"
-                minLength={8}
-                required
-              />
+              {signupMode === "employee" ? <Field label="Código de convite"><Input value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())} placeholder="Ex.: DF-7K2P" required /></Field> : null}
 
-              <Button
-                type="submit"
-                disabled={loadingSignup}
-                className="group h-12 w-full rounded-xl bg-[#1e8f87] text-[13px] font-medium text-white shadow-[0_12px_30px_-14px_rgba(30,143,135,.7)] transition hover:bg-[#177a73]"
-              >
-                {loadingSignup ? "Criando…" : "Criar minha conta"}
-                {!loadingSignup && <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />}
-              </Button>
+              <Field label="Nome completo"><Input value={signupName} onChange={(e) => setSignupName(e.target.value)} autoComplete="name" required /></Field>
+              <Field label="E-mail"><Input type="email" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} autoComplete="email" required /></Field>
+              <PasswordField label="Senha" value={signupPassword} onChange={setSignupPassword} visible={showSignupPassword} onToggle={() => setShowSignupPassword((v) => !v)} autoComplete="new-password" />
 
-              <p className="text-center text-[11px] font-light leading-relaxed text-slate-400">
-                Ao continuar, você cria um acesso protegido para sua operação no DentalFlow.
-              </p>
+              <Button disabled={loadingSignup} className="h-12 w-full rounded-xl bg-[#15988f] text-white hover:bg-[#12877f]">{loadingSignup ? "Criando…" : signupMode === "employee" ? "Aceitar convite" : "Criar conta e continuar"}<ArrowRight className="ml-2 h-4 w-4" /></Button>
+              <p className="text-center text-[10px] font-light leading-5 text-slate-400">A cobrança só será ativada depois da confirmação do futuro provedor de pagamentos. O navegador nunca define uma assinatura como paga.</p>
             </form>
           )}
         </div>
@@ -309,173 +271,8 @@ function AuthPage() {
   );
 }
 
-function BrandPanel() {
-  return (
-    <aside className="relative hidden min-h-[100dvh] overflow-hidden bg-[#126f6a] p-10 text-white lg:flex lg:flex-col lg:justify-between xl:p-14">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_22%,rgba(96,219,207,.42),transparent_30%),radial-gradient(circle_at_88%_72%,rgba(59,130,246,.25),transparent_32%),linear-gradient(145deg,#0c6c67_0%,#168d85_54%,#126f6a_100%)]" />
-      <div className="absolute -left-24 top-[18%] h-80 w-80 rounded-full border-[54px] border-white/[0.055]" />
-      <div className="absolute right-[-9rem] top-[-7rem] h-[27rem] w-[27rem] rounded-full border-[78px] border-white/[0.05]" />
-      <div className="absolute bottom-[12%] right-[8%] h-36 w-64 rotate-[-18deg] rounded-[38px] border border-white/10 bg-white/[0.045] backdrop-blur" />
-      <div className="absolute left-[46%] top-[30%] h-32 w-32 rotate-45 rounded-[30px] border border-white/10 bg-white/[0.055]" />
-
-      <div className="relative z-10">
-        <DentalFlowBrand dark />
-      </div>
-
-      <div className="relative z-10 max-w-[640px] pb-8 xl:pb-14">
-        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/[0.075] px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-white/75 backdrop-blur">
-          <Sparkles className="h-3.5 w-3.5 text-[#a7f3e8]" />
-          Operação conectada
-        </div>
-        <h2 className="max-w-[570px] text-[48px] font-light leading-[1.02] tracking-[-0.05em] text-white xl:text-[62px]">
-          Da agenda ao laboratório, tudo no mesmo fluxo.
-        </h2>
-        <p className="mt-6 max-w-[520px] text-[15px] font-light leading-7 text-white/65">
-          Clínica, pacientes, produção e gestão trabalhando juntos — com menos ruído entre quem atende e quem entrega.
-        </p>
-
-        <div className="mt-9 grid max-w-[560px] grid-cols-3 gap-2.5">
-          <BrandFeature icon={<Stethoscope className="h-4 w-4" />} title="Clínica" subtitle="Agenda e pacientes" />
-          <BrandFeature icon={<FlaskConical className="h-4 w-4" />} title="Laboratório" subtitle="Casos e produção" />
-          <BrandFeature icon={<CheckCircle2 className="h-4 w-4" />} title="Um fluxo" subtitle="Dados conectados" />
-        </div>
-      </div>
-
-      <div className="relative z-10 flex items-center justify-between border-t border-white/10 pt-5 text-[10px] font-light uppercase tracking-[0.14em] text-white/45">
-        <span>DentalFlow BR</span>
-        <span>Clareza para decidir. Fluxo para produzir.</span>
-      </div>
-    </aside>
-  );
-}
-
-function DentalFlowBrand({ dark }: { dark: boolean }) {
-  return (
-    <div className="flex items-center gap-3">
-      <div className={`grid h-10 w-10 place-items-center rounded-[14px] border ${dark ? "border-white/15 bg-white/10 text-white" : "border-[#1e8f87]/15 bg-[#1e8f87]/8 text-[#1e8f87]"}`}>
-        <span className="relative block h-5 w-5 rounded-[6px] border-[1.5px] border-current">
-          <span className="absolute left-1/2 top-[3px] h-[11px] w-px -translate-x-1/2 bg-current" />
-          <span className="absolute left-[3px] top-1/2 h-px w-[11px] -translate-y-1/2 bg-current" />
-        </span>
-      </div>
-      <div>
-        <div className={`text-[14px] font-semibold tracking-[0.03em] ${dark ? "text-white" : "text-slate-800"}`}>DENTALFLOW <span className={dark ? "text-white/45" : "text-slate-300"}>BR</span></div>
-        <div className={`mt-0.5 text-[9px] font-medium uppercase tracking-[0.23em] ${dark ? "text-[#b7eee8]" : "text-[#1e8f87]"}`}>Clínica + Laboratório</div>
-      </div>
-    </div>
-  );
-}
-
-function BrandFeature({ icon, title, subtitle }: { icon: React.ReactNode; title: string; subtitle: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.055] p-3.5 backdrop-blur-sm">
-      <div className="text-[#b6eee7]">{icon}</div>
-      <div className="mt-3 text-[12px] font-medium text-white/90">{title}</div>
-      <div className="mt-0.5 text-[9px] font-light text-white/45">{subtitle}</div>
-    </div>
-  );
-}
-
-function FieldBox({
-  type = "text",
-  label,
-  value,
-  onChange,
-  placeholder,
-  required,
-  minLength,
-  autoComplete,
-}: {
-  type?: string;
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  required?: boolean;
-  minLength?: number;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-[11px] font-medium text-slate-600">{label}</span>
-      <Input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        required={required}
-        minLength={minLength}
-        autoComplete={autoComplete}
-        className="h-12 rounded-xl border-slate-200 bg-slate-50/55 px-4 text-[14px] font-normal text-slate-900 shadow-none placeholder:text-slate-300 focus-visible:border-[#1e8f87]/40 focus-visible:ring-4 focus-visible:ring-[#1e8f87]/8"
-      />
-    </label>
-  );
-}
-
-function PasswordField({
-  label,
-  value,
-  onChange,
-  visible,
-  onToggle,
-  required,
-  minLength,
-  autoComplete,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  visible: boolean;
-  onToggle: () => void;
-  required?: boolean;
-  minLength?: number;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-2 block text-[11px] font-medium text-slate-600">{label}</span>
-      <div className="relative">
-        <Input
-          type={visible ? "text" : "password"}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          required={required}
-          minLength={minLength}
-          autoComplete={autoComplete}
-          className="h-12 rounded-xl border-slate-200 bg-slate-50/55 px-4 pr-11 text-[14px] font-normal text-slate-900 shadow-none focus-visible:border-[#1e8f87]/40 focus-visible:ring-4 focus-visible:ring-[#1e8f87]/8"
-        />
-        <button
-          type="button"
-          onClick={onToggle}
-          className="absolute right-3 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-lg text-slate-300 transition hover:bg-white hover:text-slate-500"
-          aria-label={visible ? "Ocultar senha" : "Mostrar senha"}
-        >
-          {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </button>
-      </div>
-    </label>
-  );
-}
-
-function ModeCard({ value, label, icon }: { value: string; label: string; icon: React.ReactNode }) {
-  return (
-    <label className="flex min-h-[72px] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-slate-400 transition-all hover:border-[#1e8f87]/25 hover:text-slate-600 has-[[data-state=checked]]:border-[#1e8f87]/35 has-[[data-state=checked]]:bg-[#1e8f87]/[0.045] has-[[data-state=checked]]:text-[#1e8f87]">
-      <RadioGroupItem value={value} className="sr-only" />
-      {icon}
-      <span className="text-[10px] font-medium uppercase tracking-[0.09em]">{label}</span>
-    </label>
-  );
-}
-
-function KindCard({ active, onClick, label, icon }: { active: boolean; onClick: () => void; label: string; icon: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex h-11 items-center justify-center gap-2 rounded-xl border text-[11px] font-medium transition ${active ? "border-[#1e8f87]/30 bg-white text-[#1e8f87] shadow-sm" : "border-transparent bg-transparent text-slate-400 hover:bg-white"}`}
-    >
-      {icon}
-      {label}
-    </button>
-  );
-}
+function Benefit({ text }: { text: string }) { return <div className="flex items-center gap-3"><span className="grid h-6 w-6 place-items-center rounded-full bg-white/10"><Check className="h-3.5 w-3.5" /></span>{text}</div>; }
+function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block"><span className="mb-2 block text-[11px] font-medium text-slate-500">{label}</span>{children}</label>; }
+function ModeCard({ value, label, icon }: { value: SignupMode; label: string; icon: React.ReactNode }) { return <label className="cursor-pointer"><RadioGroupItem value={value} className="peer sr-only" /><span className="flex h-16 flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-[10px] font-medium text-slate-500 transition peer-data-[state=checked]:border-[#15988f]/50 peer-data-[state=checked]:bg-[#15988f]/[0.05] peer-data-[state=checked]:text-[#15988f] dark:border-white/[0.07] dark:bg-white/[0.025]">{icon}{label}</span></label>; }
+function SessionCard({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) { return <button type="button" onClick={onClick} className={`flex h-16 flex-col items-center justify-center gap-2 rounded-xl border text-[10px] font-medium transition ${active ? "border-[#15988f]/50 bg-[#15988f]/[0.05] text-[#15988f]" : "border-slate-200 bg-white text-slate-400 dark:border-white/[0.06] dark:bg-white/[0.02]"}`}>{icon}{label}</button>; }
+function PasswordField({ label, value, onChange, visible, onToggle, autoComplete }: { label: string; value: string; onChange: (v: string) => void; visible: boolean; onToggle: () => void; autoComplete: string }) { return <Field label={label}><div className="relative"><Input type={visible ? "text" : "password"} value={value} onChange={(e) => onChange(e.target.value)} autoComplete={autoComplete} minLength={8} required className="pr-11" /><button type="button" onClick={onToggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></Field>; }
