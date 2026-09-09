@@ -58,7 +58,7 @@ expect(!ipo.includes("values(trim(p_name),lower(coalesce(p_kind,'empresa')),'IPO
 
 expect(subscriptions.includes("fetchMySubscriptionContext"), "Subscription context client is missing.");
 expect(subscriptions.includes("validateCompanyInviteCode"), "Professional invite validation client is missing.");
-expect(gate.includes("billing_only"), "Subscription gate must block unpaid companies.");
+expect(gate.includes('effective_access === "full"') && gate.includes("return <BillingRequired"), "Subscription gate must allow only full access and route every other paid state to billing.");
 expect(gate.includes("Gerar checkout"), "Checkout preparation UI is missing.");
 expect(hub.includes("subscription_context") && hub.includes("paidSessions"), "Hub environments must come from paid company sessions.");
 expect(!hub.includes("if (!hasClinic || laboratory)"), "Users must not receive a synthetic laboratory workspace.");
