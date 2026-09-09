@@ -824,15 +824,18 @@ export function NewCaseDialog({
 
       // Disparar uploads de Scans pendentes em background
       // Disparar uploads pendentes em background (com o tipo escolhido por arquivo)
-      if (createdId && !isCadista) {
+      // Quem conseguiu criar/editar o caso tem acesso a ele (can_access_case),
+      // portanto pode enviar os anexos pendentes — inclusive CADISTA.
+      queuedUploadCountRef.current = 0;
+      if (createdId) {
         for (const item of pendingScanFiles) {
           startFileUpload({ caseId: createdId, kind: item.kind, file: item.file, suppressNotification: true });
+          queuedUploadCountRef.current += 1;
         }
-      }
-      // Galeria pendente
-      if (createdId) {
+        // Galeria pendente
         for (const f of pendingGalleryFiles) {
           startFileUpload({ caseId: createdId, kind: "gallery", file: f, suppressNotification: true });
+          queuedUploadCountRef.current += 1;
         }
       }
 
