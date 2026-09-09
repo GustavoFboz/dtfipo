@@ -14,6 +14,81 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_subscriptions: {
+        Row: {
+          billing_day: number | null
+          billing_provider: string | null
+          canceled_at: string | null
+          clinic_id: string | null
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          external_customer_id: string | null
+          external_subscription_id: string | null
+          grace_until: string | null
+          id: string
+          metadata: Json
+          plan_code: string
+          scope_type: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          billing_day?: number | null
+          billing_provider?: string | null
+          canceled_at?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          external_customer_id?: string | null
+          external_subscription_id?: string | null
+          grace_until?: string | null
+          id?: string
+          metadata?: Json
+          plan_code: string
+          scope_type: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          billing_day?: number | null
+          billing_provider?: string | null
+          canceled_at?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          external_customer_id?: string | null
+          external_subscription_id?: string | null
+          grace_until?: string | null
+          id?: string
+          metadata?: Json
+          plan_code?: string
+          scope_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_subscriptions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_subscriptions_plan_code_fkey"
+            columns: ["plan_code"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       admin_logs: {
         Row: {
           action: string
@@ -68,6 +143,96 @@ export type Database = {
           file_size_bytes?: number | null
           id?: string
           notes?: string | null
+        }
+        Relationships: []
+      }
+      billing_events: {
+        Row: {
+          error_message: string | null
+          event_type: string
+          id: string
+          payload: Json
+          processed_at: string | null
+          provider: string
+          provider_event_id: string
+          received_at: string
+          status: string
+        }
+        Insert: {
+          error_message?: string | null
+          event_type: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          provider: string
+          provider_event_id: string
+          received_at?: string
+          status?: string
+        }
+        Update: {
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          provider?: string
+          provider_event_id?: string
+          received_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      billing_plans: {
+        Row: {
+          account_scope: string
+          code: string
+          created_at: string
+          currency: string
+          description: string | null
+          display_order: number
+          features: Json
+          is_active: boolean
+          max_company_links: number
+          max_members: number
+          max_sessions: number
+          monthly_price_cents: number
+          name: string
+          storage_bytes: number
+          updated_at: string
+        }
+        Insert: {
+          account_scope: string
+          code: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          display_order?: number
+          features?: Json
+          is_active?: boolean
+          max_company_links?: number
+          max_members?: number
+          max_sessions?: number
+          monthly_price_cents: number
+          name: string
+          storage_bytes?: number
+          updated_at?: string
+        }
+        Update: {
+          account_scope?: string
+          code?: string
+          created_at?: string
+          currency?: string
+          description?: string | null
+          display_order?: number
+          features?: Json
+          is_active?: boolean
+          max_company_links?: number
+          max_members?: number
+          max_sessions?: number
+          monthly_price_cents?: number
+          name?: string
+          storage_bytes?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -958,6 +1123,85 @@ export type Database = {
         }
         Relationships: []
       }
+      checkout_intents: {
+        Row: {
+          amount_cents: number
+          billing_provider: string | null
+          cancel_url: string | null
+          clinic_id: string | null
+          created_at: string
+          currency: string
+          expires_at: string
+          id: string
+          metadata: Json
+          plan_code: string
+          provider_checkout_id: string | null
+          status: string
+          subscription_id: string
+          success_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          billing_provider?: string | null
+          cancel_url?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          currency?: string
+          expires_at?: string
+          id?: string
+          metadata?: Json
+          plan_code: string
+          provider_checkout_id?: string | null
+          status?: string
+          subscription_id: string
+          success_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          billing_provider?: string | null
+          cancel_url?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          currency?: string
+          expires_at?: string
+          id?: string
+          metadata?: Json
+          plan_code?: string
+          provider_checkout_id?: string | null
+          status?: string
+          subscription_id?: string
+          success_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_intents_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_intents_plan_code_fkey"
+            columns: ["plan_code"]
+            isOneToOne: false
+            referencedRelation: "billing_plans"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "checkout_intents_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "account_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clinic_appointments: {
         Row: {
           clinic_id: string
@@ -1100,6 +1344,7 @@ export type Database = {
       }
       clinic_members: {
         Row: {
+          access_source: string
           clinic_id: string
           created_at: string
           decided_at: string | null
@@ -1111,6 +1356,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          access_source?: string
           clinic_id: string
           created_at?: string
           decided_at?: string | null
@@ -1122,6 +1368,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          access_source?: string
           clinic_id?: string
           created_at?: string
           decided_at?: string | null
@@ -1365,6 +1612,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      company_sessions: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          id: string
+          session_type: string
+          settings: Json
+          sharing_mode: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          id?: string
+          session_type: string
+          settings?: Json
+          sharing_mode?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          session_type?: string
+          settings?: Json
+          sharing_mode?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_sessions_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       component_categories: {
         Row: {
@@ -1849,9 +2137,34 @@ export type Database = {
           },
         ]
       }
+      professional_accounts: {
+        Row: {
+          created_at: string
+          profession_type: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          profession_type: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          profession_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           account_subtype: string | null
+          account_type: string | null
           avatar_url: string | null
           clinic_id: string | null
           created_at: string
@@ -1861,12 +2174,14 @@ export type Database = {
           is_default_admin: boolean
           notification_preferences: Json
           phone: string | null
+          profession_type: string | null
           role: string | null
           updated_at: string
           user_code: string | null
         }
         Insert: {
           account_subtype?: string | null
+          account_type?: string | null
           avatar_url?: string | null
           clinic_id?: string | null
           created_at?: string
@@ -1876,12 +2191,14 @@ export type Database = {
           is_default_admin?: boolean
           notification_preferences?: Json
           phone?: string | null
+          profession_type?: string | null
           role?: string | null
           updated_at?: string
           user_code?: string | null
         }
         Update: {
           account_subtype?: string | null
+          account_type?: string | null
           avatar_url?: string | null
           clinic_id?: string | null
           created_at?: string
@@ -1891,6 +2208,7 @@ export type Database = {
           is_default_admin?: boolean
           notification_preferences?: Json
           phone?: string | null
+          profession_type?: string | null
           role?: string | null
           updated_at?: string
           user_code?: string | null
@@ -1917,6 +2235,163 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      radiology_instances: {
+        Row: {
+          byte_size: number
+          checksum_sha256: string | null
+          created_at: string
+          id: string
+          instance_number: number | null
+          metadata: Json
+          series_id: string
+          sop_class_uid: string | null
+          sop_instance_uid: string
+          storage_path: string
+        }
+        Insert: {
+          byte_size?: number
+          checksum_sha256?: string | null
+          created_at?: string
+          id?: string
+          instance_number?: number | null
+          metadata?: Json
+          series_id: string
+          sop_class_uid?: string | null
+          sop_instance_uid: string
+          storage_path: string
+        }
+        Update: {
+          byte_size?: number
+          checksum_sha256?: string | null
+          created_at?: string
+          id?: string
+          instance_number?: number | null
+          metadata?: Json
+          series_id?: string
+          sop_class_uid?: string | null
+          sop_instance_uid?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "radiology_instances_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "radiology_series"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      radiology_series: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          instance_count: number
+          metadata: Json
+          modality: string | null
+          series_instance_uid: string
+          series_number: number | null
+          study_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          instance_count?: number
+          metadata?: Json
+          modality?: string | null
+          series_instance_uid: string
+          series_number?: number | null
+          study_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          instance_count?: number
+          metadata?: Json
+          modality?: string | null
+          series_instance_uid?: string
+          series_number?: number | null
+          study_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "radiology_series_study_id_fkey"
+            columns: ["study_id"]
+            isOneToOne: false
+            referencedRelation: "radiology_studies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      radiology_studies: {
+        Row: {
+          accession_number: string | null
+          clinic_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          modality: string | null
+          patient_external_id: string | null
+          patient_id: string | null
+          requested_by: string | null
+          status: string
+          study_date: string | null
+          study_description: string | null
+          study_instance_uid: string
+          updated_at: string
+        }
+        Insert: {
+          accession_number?: string | null
+          clinic_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          modality?: string | null
+          patient_external_id?: string | null
+          patient_id?: string | null
+          requested_by?: string | null
+          status?: string
+          study_date?: string | null
+          study_description?: string | null
+          study_instance_uid: string
+          updated_at?: string
+        }
+        Update: {
+          accession_number?: string | null
+          clinic_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          modality?: string | null
+          patient_external_id?: string | null
+          patient_id?: string | null
+          requested_by?: string | null
+          status?: string
+          study_date?: string | null
+          study_description?: string | null
+          study_instance_uid?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "radiology_studies_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "radiology_studies_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       resin_pots: {
         Row: {
@@ -2688,6 +3163,19 @@ export type Database = {
         Returns: Json
       }
       backend_schema_hash: { Args: never; Returns: string }
+      billing_apply_subscription_state: {
+        Args: {
+          p_external_customer_id?: string
+          p_external_subscription_id?: string
+          p_grace_until?: string
+          p_period_end?: string
+          p_period_start?: string
+          p_provider?: string
+          p_status: string
+          p_subscription_id: string
+        }
+        Returns: Json
+      }
       can_access_case: { Args: { _case_id: string }; Returns: boolean }
       can_access_patient: { Args: { _patient_id: string }; Returns: boolean }
       can_manage_clinic_permissions: {
@@ -2712,16 +3200,42 @@ export type Database = {
         Args: { _clinic_id: string; _permission: string }
         Returns: boolean
       }
+      company_subscription_snapshot: {
+        Args: { _clinic_id: string }
+        Returns: Json
+      }
       complete_storage_upload: {
         Args: { _file_id: string; _source_id?: string }
         Returns: undefined
+      }
+      configure_company_sessions: {
+        Args: { p_clinic_id: string; p_session_types: string[] }
+        Returns: Json
       }
       consume_case_stock: {
         Args: { _case_id: string; _user?: string }
         Returns: undefined
       }
+      create_checkout_intent: {
+        Args: { p_clinic_id?: string; p_plan_code: string }
+        Returns: Json
+      }
+      create_company_account: {
+        Args: {
+          p_full_name: string
+          p_kind: string
+          p_name: string
+          p_plan_code?: string
+          p_session_types?: string[]
+        }
+        Returns: Json
+      }
       create_implant_system_with_stock: {
         Args: { _components?: Json; _line?: string; _name: string }
+        Returns: Json
+      }
+      create_professional_account: {
+        Args: { p_full_name: string; p_profession_type: string }
         Returns: Json
       }
       current_clinic_role: { Args: { _clinic_id: string }; Returns: string }
@@ -2768,6 +3282,7 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      my_subscription_context: { Args: never; Returns: Json }
       patient_id_from_storage_path: { Args: { _name: string }; Returns: string }
       recalculate_clinic_storage_limit: {
         Args: { _clinic_id: string }
@@ -2848,6 +3363,11 @@ export type Database = {
         Returns: number
       }
       storage_current_clinic_id: { Args: never; Returns: string }
+      subscription_access_mode: {
+        Args: { _grace_until: string; _period_end: string; _status: string }
+        Returns: string
+      }
+      switch_company_context: { Args: { p_clinic_id: string }; Returns: Json }
       update_team_member:
         | {
             Args: {
