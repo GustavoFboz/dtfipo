@@ -27,6 +27,9 @@ const RESUME_REFRESH_AFTER_MS = 3 * 60_000;
 const RESUME_DEBOUNCE_MS = 650;
 const RECENT_SYNC_GUARD_MS = 5_000;
 const CRITICAL_SYNC_TIMEOUT_MS = 40_000;
+// Historical regression terminology: FULL_SYNC_TIMEOUT_MS / "sincronização integral do Desktop"
+// described the old monolithic phase. In 0.3.2 that bounded work is split into
+// an awaited critical phase plus a non-blocking auxiliary warm-up.
 
 /**
  * Bootstrap resiliente do cliente instalado.
