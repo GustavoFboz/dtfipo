@@ -38,6 +38,9 @@ jobs:
       - name: Verify Desktop offline regressions
         run: bun scripts/check-desktop-offline-regressions.mjs
 
+      - name: Verify Desktop entitlement-first bootstrap
+        run: bun scripts/check-desktop-entitlement-bootstrap-032.mjs
+
       - name: Verify Desktop case dialogs and offline case creation
         run: bun scripts/check-desktop-case-dialog-offline.mjs
 
