@@ -23,10 +23,7 @@ export async function fetchCaseActivity(caseId: string): Promise<CaseActivity[]>
   const rows = (data ?? []) as unknown as CaseActivity[];
   const userIds = Array.from(new Set(rows.map((r) => r.user_id).filter(Boolean))) as string[];
   if (userIds.length === 0) return rows;
-  const { data: profs } = await supabase
-    .from("profiles")
-    .select("id, full_name, email, role")
-    .in("id", userIds);
+  const { data: profs } = await supabase.from("profiles").select("id, full_name, email, role").in("id", userIds);
   const map = new Map((profs ?? []).map((p: any) => [p.id, p]));
   return rows.map((r) => ({ ...r, user: r.user_id ? (map.get(r.user_id) as any) ?? null : null }));
 }
@@ -72,10 +69,19 @@ async function readCaseStakeholderFallback(caseId: string) {
   }
 }
 
+function isMissingRpc(error: any) {
+  const code = String(error?.code ?? "");
+  const msg = String(error?.message ?? "").toLowerCase();
+  return code === "PGRST202" || code === "42883" || msg.includes("schema cache") || msg.includes("could not find the function");
+}
+
+/**
+ * Legacy fallback for the short rollout window before the 0.3.5 migration is
+ * installed. New clients no longer depend on this client-side profile scan.
+ */
 export async function fetchCaseStakeholderIds(caseId: string): Promise<string[]> {
   const ids = new Set<string>();
   let row: any = null;
-
   try {
     const { data: caseData, error } = await supabase
       .from("cases")
@@ -88,16 +94,10 @@ export async function fetchCaseStakeholderIds(caseId: string): Promise<string[]>
     row = await readCaseStakeholderFallback(caseId);
     if (!row) throw error;
   }
+  [row?.requested_by, row?.accepted_by, row?.cadista?.user_id, row?.doctor?.user_id]
+    .filter(Boolean)
+    .forEach((id) => ids.add(String(id)));
 
-  [
-    row?.requested_by,
-    row?.accepted_by,
-    row?.cadista?.user_id,
-    row?.doctor?.user_id,
-  ].filter(Boolean).forEach((id) => ids.add(String(id)));
-
-  // CEO/admin oversight is global. On Desktop, use the durable team mirror when
-  // a session transition prevents the supplemental profiles query.
   try {
     const { data: profs, error } = await supabase
       .from("profiles")
@@ -115,9 +115,8 @@ export async function fetchCaseStakeholderIds(caseId: string): Promise<string[]>
         const effectiveType = String(p.account_subtype || p.role || "").toUpperCase();
         if (p.is_default_admin || ["CEO", "ADMIN"].includes(effectiveType)) ids.add(String(p.id));
       });
-    } catch { /* case-specific participants above remain valid */ }
+    } catch { /* direct stakeholders remain available */ }
   }
-
   return Array.from(ids);
 }
 
@@ -133,63 +132,68 @@ type StakeholderNotificationOptions = {
 
 async function queueOfflineStakeholderNotifications(opts: StakeholderNotificationOptions): Promise<boolean> {
   if (typeof navigator === "undefined" || navigator.onLine !== false) return false;
-
   const { isDentalFlowDesktop } = await import("./desktop-local");
   if (!isDentalFlowDesktop()) return false;
 
   const [{ fetchCaseByIdLocalFirst }, { sendInternalNotificationLocalFirst }] = await Promise.all([
-    import("./cases-local-first"),
-    import("./notifications-local-first"),
+    import("./cases-local-first"), import("./notifications-local-first"),
   ]);
-  const [{ data: auth }, caseRow] = await Promise.all([
-    supabase.auth.getUser(),
-    fetchCaseByIdLocalFirst(opts.caseId),
-  ]);
+  const [{ data: auth }, caseRow] = await Promise.all([supabase.auth.getUser(), fetchCaseByIdLocalFirst(opts.caseId)]);
   if (!caseRow) throw new Error("O caso offline não está disponível no cache local para notificação.");
 
   const row = caseRow as any;
   const allowed = new Set<string>();
-  [
-    row.requested_by,
-    row.accepted_by,
-    row.cadista?.user_id,
-    row.doctor?.user_id,
-  ].filter(Boolean).forEach((id) => allowed.add(String(id)));
-
+  [row.requested_by, row.accepted_by, row.cadista?.user_id, row.doctor?.user_id]
+    .filter(Boolean).forEach((id) => allowed.add(String(id)));
   const recipients = new Set<string>(allowed);
-  for (const id of opts.extraRecipientIds ?? []) {
-    if (allowed.has(id)) recipients.add(id);
-  }
+  for (const id of opts.extraRecipientIds ?? []) if (allowed.has(id)) recipients.add(id);
   if (opts.excludeSelf !== false && auth.user?.id) recipients.delete(auth.user.id);
 
   await Promise.all(Array.from(recipients).map((recipientId) =>
-    sendInternalNotificationLocalFirst(
-      recipientId,
-      opts.title,
-      opts.content,
-      opts.type ?? "case",
-      {
-        case_id: opts.caseId,
-        activity_id: opts.activityId ?? null,
-        case_label: row.patient?.name ?? row.case_label ?? null,
-        queued_offline: true,
-      },
-    )
+    sendInternalNotificationLocalFirst(recipientId, opts.title, opts.content, opts.type ?? "case", {
+      case_id: opts.caseId,
+      activity_id: opts.activityId ?? null,
+      case_label: row.patient?.name ?? row.case_label ?? null,
+      queued_offline: true,
+    })
   ));
   return true;
+}
+
+async function notifyViaServer(opts: StakeholderNotificationOptions): Promise<boolean> {
+  const activityId = opts.activityId && /^[0-9a-f-]{36}$/i.test(opts.activityId) ? opts.activityId : null;
+  const extra = (opts.extraRecipientIds ?? []).filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+  const eventKey = activityId ? `activity:${activityId}` : null;
+  const { error } = await supabase.rpc("notify_case_stakeholders_v035" as never, {
+    _case_id: opts.caseId,
+    _title: opts.title,
+    _content: opts.content,
+    _type: opts.type ?? "case",
+    _activity_id: activityId,
+    _event_key: eventKey,
+    _extra_recipient_ids: extra.length ? extra : null,
+  } as never);
+  if (!error) return true;
+  if (isMissingRpc(error)) return false;
+  throw error;
 }
 
 export async function notifyCaseStakeholders(opts: StakeholderNotificationOptions) {
   if (await queueOfflineStakeholderNotifications(opts)) return;
 
+  // 0.3.5: recipient discovery and insertion are authoritative on the server.
+  // A CADISTA no longer needs SELECT access to administrator profiles in order
+  // for the administrator to receive the notification.
+  if (await notifyViaServer(opts)) return;
+
+  // Backwards-compatible fallback only while the migration is rolling out.
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Sessão temporariamente indisponível para enviar a notificação.");
   const baseIds = await fetchCaseStakeholderIds(opts.caseId);
   const allowed = new Set(baseIds);
   const all = new Set<string>(baseIds);
-  for (const id of opts.extraRecipientIds ?? []) {
-    if (allowed.has(id)) all.add(id);
-  }
-  if (opts.excludeSelf !== false && user?.id) all.delete(user.id);
+  for (const id of opts.extraRecipientIds ?? []) if (allowed.has(id)) all.add(id);
+  if (opts.excludeSelf !== false) all.delete(user.id);
   if (all.size === 0) return;
 
   let senderName: string | null = null;
@@ -197,9 +201,7 @@ export async function notifyCaseStakeholders(opts: StakeholderNotificationOption
   let caseLabel: string | null = null;
   try {
     const [{ data: prof }, { data: cse }] = await Promise.all([
-      user?.id
-        ? supabase.from("profiles").select("full_name, email, avatar_url").eq("id", user.id).maybeSingle()
-        : Promise.resolve({ data: null } as never),
+      supabase.from("profiles").select("full_name, email, avatar_url").eq("id", user.id).maybeSingle(),
       supabase.from("cases").select("patient:patients(name),case_label").eq("id", opts.caseId).maybeSingle(),
     ]);
     senderName = (prof as any)?.full_name ?? (prof as any)?.email ?? null;
@@ -210,61 +212,46 @@ export async function notifyCaseStakeholders(opts: StakeholderNotificationOption
     caseLabel = cachedCase?.patient?.name ?? cachedCase?.case_label ?? null;
   }
 
-  const metadata = {
-    case_id: opts.caseId,
-    activity_id: opts.activityId ?? null,
-    sender_name: senderName,
-    sender_avatar: senderAvatar,
-    case_label: caseLabel,
-  };
-
+  const metadata = { case_id: opts.caseId, activity_id: opts.activityId ?? null, sender_name: senderName, sender_avatar: senderAvatar, case_label: caseLabel };
   const { isDentalFlowDesktop } = await import("./desktop-local");
   if (isDentalFlowDesktop()) {
-    // Every recipient uses the durable outbox-aware path. If the chat message is
-    // saved while auth is briefly revalidating, the alert is queued instead of
-    // being swallowed by CaseComments and lost forever.
     const { sendInternalNotificationLocalFirst } = await import("./notifications-local-first");
     await Promise.all(Array.from(all).map((recipientId) =>
-      sendInternalNotificationLocalFirst(
-        recipientId,
-        opts.title,
-        opts.content,
-        opts.type ?? "case",
-        metadata,
-      )
+      sendInternalNotificationLocalFirst(recipientId, opts.title, opts.content, opts.type ?? "case", metadata)
     ));
     return;
   }
 
   const rows = Array.from(all).map((rid) => ({
-    id: (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2),
-    sender_id: user?.id ?? null,
-    recipient_id: rid,
-    title: opts.title,
-    content: opts.content,
-    type: opts.type ?? "case",
-    metadata,
-    read_at: null,
-    created_at: new Date().toISOString(),
+    id: crypto.randomUUID(), sender_id: user.id, recipient_id: rid,
+    title: opts.title, content: opts.content, type: opts.type ?? "case", metadata,
+    read_at: null, created_at: new Date().toISOString(),
   }));
-
   try {
     const { broadcastEntity } = await import("./optimistic");
     rows.forEach((r) => broadcastEntity("notifications", "insert", r));
-  } catch { /* ignore */ }
+  } catch { /* no-op */ }
   const { error } = await supabase.from("notifications").insert(rows as any);
   if (error) throw error;
 }
 
 export async function fetchMentionableProfiles(caseId: string, query: string) {
+  // Safe server-side resolver available in 0.3.5. It validates case access and
+  // company membership before exposing mention candidates.
+  const server = await supabase.rpc("case_mentionable_profiles_v035" as never, {
+    _case_id: caseId,
+    _query: query.trim(),
+    _limit: 8,
+  } as never);
+  if (!server.error) {
+    return (server.data ?? []) as unknown as Array<{ id: string; full_name: string | null; email: string | null; role: string | null }>;
+  }
+  if (!isMissingRpc(server.error)) throw server.error;
+
   const ids = await fetchCaseStakeholderIds(caseId);
   if (ids.length === 0) return [];
   const q = query.trim();
-  let req = supabase
-    .from("profiles")
-    .select("id, full_name, email, role")
-    .in("id", ids)
-    .limit(8);
+  let req = supabase.from("profiles").select("id, full_name, email, role").in("id", ids).limit(8);
   if (q) req = req.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
   const { data, error } = await req;
   if (error) throw error;
