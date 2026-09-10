@@ -55,8 +55,8 @@ jobs:
         run: |
           $tauri = Get-Content "src-tauri/tauri.conf.json" -Raw
           $cargo = Get-Content "src-tauri/Cargo.toml" -Raw
-          if ($tauri -notmatch '"version"\s*:\s*"0\.3\.3"') { throw "Tauri release is not 0.3.5" }
-          if ($cargo -notmatch 'version\s*=\s*"0\.3\.3"') { throw "Rust package release is not 0.3.5" }
+          if ($tauri -notmatch '"version"\s*:\s*"0\.3\.5"') { throw "Tauri release is not 0.3.5" }
+          if ($cargo -notmatch 'version\s*=\s*"0\.3\.5"') { throw "Rust package release is not 0.3.5" }
 
       - name: Build DentalFlow Desktop
         run: bun run desktop:build
