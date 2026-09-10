@@ -7,6 +7,7 @@ on:
       - main
       - feature/desktop-tauri-foundation
       - "fix/**"
+      - "release/**"
     paths:
       - "src/**"
       - "src-tauri/**"
@@ -53,67 +54,16 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Verify release metadata 0.3.5
+      - name: Verify release metadata 0.4.x
         shell: pwsh
         run: |
-          $tauri = Get-Content "src-tauri/tauri.conf.json" -Raw
+          $tauriConfig = Get-Content "src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json
           $cargo = Get-Content "src-tauri/Cargo.toml" -Raw
-          if ($tauri -notmatch '"version"\s*:\s*"0\.3\.5"') { throw "Tauri release is not 0.3.5" }
-          if ($cargo -notmatch 'version\s*=\s*"0\.3\.5"') { throw "Rust package release is not 0.3.5" }
-
-      - name: Generate branded NSIS artwork
-        shell: pwsh
-        run: |
-          Add-Type -AssemblyName System.Drawing
-          New-Item -ItemType Directory -Force -Path "src-tauri/windows" | Out-Null
-          $brand = [System.Drawing.ColorTranslator]::FromHtml("#2D7FF9")
-          $brandDark = [System.Drawing.ColorTranslator]::FromHtml("#1559C7")
-          $surface = [System.Drawing.ColorTranslator]::FromHtml("#F6FAFF")
-          $ink = [System.Drawing.ColorTranslator]::FromHtml("#183153")
-          $logo = [System.Drawing.Image]::FromFile((Resolve-Path "public/icon-512.png"))
-
-          function Save-Sidebar {
-            $bmp = New-Object System.Drawing.Bitmap 164,314
-            $g = [System.Drawing.Graphics]::FromImage($bmp)
-            $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-            $rect = New-Object System.Drawing.Rectangle 0,0,164,314
-            $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush($rect,$brand,$brandDark,90)
-            $g.FillRectangle($brush,$rect)
-            $g.DrawImage($logo,42,38,80,80)
-            $title = New-Object System.Drawing.Font("Segoe UI",20,[System.Drawing.FontStyle]::Bold,[System.Drawing.GraphicsUnit]::Pixel)
-            $sub = New-Object System.Drawing.Font("Segoe UI",10,[System.Drawing.FontStyle]::Regular,[System.Drawing.GraphicsUnit]::Pixel)
-            $white = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::White)
-            $soft = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(220,255,255,255))
-            $format = New-Object System.Drawing.StringFormat
-            $format.Alignment = [System.Drawing.StringAlignment]::Center
-            $g.DrawString("DentalFlow",$title,$white,(New-Object System.Drawing.RectangleF 8,145,148,34),$format)
-            $g.DrawString("Desktop 0.3.5",$sub,$soft,(New-Object System.Drawing.RectangleF 8,181,148,22),$format)
-            $g.DrawString("Fluxo odontológico`nconectado ao seu Windows",$sub,$soft,(New-Object System.Drawing.RectangleF 12,232,140,46),$format)
-            $bmp.Save("src-tauri/windows/installer-sidebar.bmp",[System.Drawing.Imaging.ImageFormat]::Bmp)
-            $format.Dispose(); $soft.Dispose(); $white.Dispose(); $sub.Dispose(); $title.Dispose(); $brush.Dispose(); $g.Dispose(); $bmp.Dispose()
-          }
-
-          function Save-Header {
-            $bmp = New-Object System.Drawing.Bitmap 150,57
-            $g = [System.Drawing.Graphics]::FromImage($bmp)
-            $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
-            $g.Clear($surface)
-            $blue = New-Object System.Drawing.SolidBrush($brand)
-            $g.FillRectangle($blue,0,0,6,57)
-            $g.DrawImage($logo,14,8,41,41)
-            $title = New-Object System.Drawing.Font("Segoe UI",14,[System.Drawing.FontStyle]::Bold,[System.Drawing.GraphicsUnit]::Pixel)
-            $sub = New-Object System.Drawing.Font("Segoe UI",8,[System.Drawing.FontStyle]::Regular,[System.Drawing.GraphicsUnit]::Pixel)
-            $inkBrush = New-Object System.Drawing.SolidBrush($ink)
-            $muted = New-Object System.Drawing.SolidBrush([System.Drawing.ColorTranslator]::FromHtml("#66809F"))
-            $g.DrawString("DentalFlow",$title,$inkBrush,62,10)
-            $g.DrawString("Instalação segura no Windows",$sub,$muted,62,31)
-            $bmp.Save("src-tauri/windows/installer-header.bmp",[System.Drawing.Imaging.ImageFormat]::Bmp)
-            $muted.Dispose(); $inkBrush.Dispose(); $sub.Dispose(); $title.Dispose(); $blue.Dispose(); $g.Dispose(); $bmp.Dispose()
-          }
-
-          Save-Sidebar
-          Save-Header
-          $logo.Dispose()
+          $version = [string]$tauriConfig.version
+          if ($version -notmatch '^0\.4\.\d+$') { throw "Tauri release is not in the 0.4.x family: $version" }
+          $escaped = [regex]::Escape($version)
+          if ($cargo -notmatch "(?m)^version\s*=\s*`"$escaped`"") { throw "Rust package version does not match Tauri $version" }
+          Write-Host "DentalFlow Desktop release: $version"
 
       - name: Prepare trusted Windows code signing
         id: codesign
@@ -158,12 +108,15 @@ jobs:
             throw "Desktop SPA shell was not generated at dist/client/index.html"
           }
 
-      - name: Verify Windows executable
+      - name: Verify Windows executable and installer
         shell: pwsh
         run: |
-          $exe = Get-ChildItem "src-tauri/target/release" -Filter "*.exe" -File | Select-Object -First 1
-          if (-not $exe) { throw "DentalFlow Windows executable was not generated" }
-          Write-Host "Executable: $($exe.FullName)"
+          $app = Get-ChildItem "src-tauri/target/release" -Filter "*.exe" -File | Select-Object -First 1
+          $installer = Get-ChildItem "src-tauri/target/release/bundle/nsis" -Filter "*.exe" -File | Select-Object -First 1
+          if (-not $app) { throw "DentalFlow Windows executable was not generated" }
+          if (-not $installer) { throw "DentalFlow NSIS installer was not generated" }
+          Write-Host "Executable: $($app.FullName)"
+          Write-Host "Installer: $($installer.FullName)"
 
       - name: Verify Authenticode signature
         if: steps.codesign.outputs.ready == 'true'
@@ -183,7 +136,7 @@ jobs:
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
         with:
-          name: DentalFlow-Windows
+          name: DentalFlow-Windows-0.4.0
           if-no-files-found: error
           retention-days: 14
           path: |
