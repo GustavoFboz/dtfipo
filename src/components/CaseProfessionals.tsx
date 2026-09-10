@@ -12,6 +12,16 @@ type ActivityParticipantRow = {
   mentions: string[] | null;
 };
 
+const norm = (s: string | null | undefined) =>
+  (s ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+
+const isCadistaProfile = (profile: LiteProfile | null | undefined) =>
+  norm(profile?.account_subtype || profile?.role) === "cadista";
+
 /** One resilient profile lookup shared by every visible case row. */
 function useProfilesLite() {
   return useQuery({
@@ -23,9 +33,9 @@ function useProfilesLite() {
       const merged = new Map<string, LiteProfile>();
       for (const item of cachedTeam) merged.set(item.id, item as LiteProfile);
 
-      // Case participants can belong to another authorized organization, so the
-      // normal RLS-visible profile set may contain people beyond the local team.
-      // Merge it when available; never erase the SQLite team snapshot on failure.
+      // The backend is the authoritative privacy boundary. This secondary merge
+      // only enriches identities already visible through RLS and never makes an
+      // historical CAD designer eligible for a case (see useProfessionals).
       try {
         const { data, error } = await supabase
           .from("profiles")
@@ -56,21 +66,12 @@ function useCaseActivityParticipants(caseId: string) {
         if (error) throw error;
         return (data ?? []) as unknown as ActivityParticipantRow[];
       } catch (error) {
-        // The core doctor/cadista/requester/assignee data below still renders if
-        // a transient Desktop session gap blocks activity enrichment.
         console.warn(`[DentalFlow] Participantes de atividade indisponíveis para ${caseId}`, error);
         return [] as ActivityParticipantRow[];
       }
     },
   });
 }
-
-const norm = (s: string | null | undefined) =>
-  (s ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .trim()
-    .toLowerCase();
 
 const roleLabel = (profile: LiteProfile | null | undefined, fallback = "Colaborador") => {
   const role = norm(profile?.account_subtype || profile?.role);
@@ -97,10 +98,9 @@ function initials(name: string) {
 }
 
 /**
- * Professionals means people actually tied to THIS case: dentist, CAD designer,
- * requester/assignee, authors and explicit @mentions. The previous component
- * appended every prosthetist in the account and simultaneously missed mentioned
- * people, which made the column both incomplete and misleading.
+ * A CAD designer is intentionally special: only the currently assigned CAD
+ * designer may appear. Authors/mentions from an earlier assignment must never
+ * resurrect another CAD designer in the UI or expose that person's existence.
  */
 function useProfessionals(c: CaseRow): Professional[] {
   const profiles = useProfilesLite();
@@ -114,7 +114,24 @@ function useProfessionals(c: CaseRow): Professional[] {
     const seenIds = new Set<string>();
     const seenNames = new Set<string>();
 
+    const doctor = (c as any).doctor;
+    const cadista = (c as any).cadista;
+    const doctorProfile = doctor?.user_id ? byId.get(doctor.user_id) : byName.get(norm(doctor?.name));
+    const cadistaProfile = cadista?.user_id ? byId.get(cadista.user_id) : byName.get(norm(cadista?.name));
+    const currentCadistaId = String(cadista?.user_id ?? cadistaProfile?.id ?? "");
+    const currentCadistaName = norm(cadista?.name ?? cadistaProfile?.full_name);
+
+    const isCurrentCadista = (profile: LiteProfile | null | undefined, fallbackName?: string | null) => {
+      if (!isCadistaProfile(profile)) return false;
+      if (currentCadistaId && profile?.id === currentCadistaId) return true;
+      return Boolean(currentCadistaName && norm(profile?.full_name ?? fallbackName) === currentCadistaName);
+    };
+
     const push = (profile: LiteProfile | null | undefined, fallbackName: string | null | undefined, fallbackRole: string) => {
+      // Critical privacy guard. Even when an old CAD designer is present in
+      // historical activity or a stale local team cache, the row is discarded.
+      if (isCadistaProfile(profile) && !isCurrentCadista(profile, fallbackName)) return;
+
       const label = (profile?.full_name ?? fallbackName ?? "").trim();
       if (!label) return;
       if (profile?.id && seenIds.has(profile.id)) return;
@@ -129,11 +146,6 @@ function useProfessionals(c: CaseRow): Professional[] {
         avatar: profile?.avatar_url ?? null,
       });
     };
-
-    const doctor = (c as any).doctor;
-    const cadista = (c as any).cadista;
-    const doctorProfile = doctor?.user_id ? byId.get(doctor.user_id) : byName.get(norm(doctor?.name));
-    const cadistaProfile = cadista?.user_id ? byId.get(cadista.user_id) : byName.get(norm(cadista?.name));
 
     if (doctor?.name || doctorProfile) push(doctorProfile, doctor?.name, "Dentista");
     if (cadista?.name || cadistaProfile) push(cadistaProfile, cadista?.name, "Cadista");
