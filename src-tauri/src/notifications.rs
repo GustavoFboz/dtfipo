@@ -1,8 +1,33 @@
 use tauri::AppHandle;
 use tauri_plugin_notification::NotificationExt;
 
+#[cfg(target_os = "windows")]
+#[link(name = "user32")]
+extern "system" {
+    fn MessageBeep(u_type: u32) -> i32;
+}
+
 fn truncate_chars(value: &str, max_chars: usize) -> String {
     value.chars().take(max_chars).collect()
+}
+
+fn play_native_notification_sound() -> bool {
+    #[cfg(target_os = "windows")]
+    unsafe {
+        // MB_ICONASTERISK / system notification sound. It respects the user's
+        // Windows sound scheme and volume instead of relying on WebView autoplay.
+        return MessageBeep(0x0000_0040) != 0;
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        false
+    }
+}
+
+#[tauri::command]
+pub fn desktop_notification_sound() -> bool {
+    play_native_notification_sound()
 }
 
 #[tauri::command]
@@ -24,6 +49,8 @@ pub fn desktop_native_notification(
         truncate_chars(title, 120)
     };
     let safe_body = truncate_chars(body, 420);
+
+    let _ = play_native_notification_sound();
 
     app.notification()
         .builder()

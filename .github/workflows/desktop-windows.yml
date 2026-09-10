@@ -4,11 +4,14 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - feature/desktop-tauri-foundation
       - "fix/**"
+      - "release/**"
     paths:
       - "src/**"
       - "src-tauri/**"
+      - "public/icon-512.png"
       - "package.json"
       - "bun.lock"
       - "vite.desktop.config.ts"
@@ -20,6 +23,7 @@ on:
     paths:
       - "src/**"
       - "src-tauri/**"
+      - "public/icon-512.png"
       - "package.json"
       - "bun.lock"
       - "vite.desktop.config.ts"
@@ -50,13 +54,49 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Verify release metadata 0.3.5
+      - name: Verify release metadata 0.4.x
         shell: pwsh
         run: |
-          $tauri = Get-Content "src-tauri/tauri.conf.json" -Raw
+          $tauriConfig = Get-Content "src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json
           $cargo = Get-Content "src-tauri/Cargo.toml" -Raw
-          if ($tauri -notmatch '"version"\s*:\s*"0\.3\.5"') { throw "Tauri release is not 0.3.5" }
-          if ($cargo -notmatch 'version\s*=\s*"0\.3\.5"') { throw "Rust package release is not 0.3.5" }
+          $version = [string]$tauriConfig.version
+          if ($version -notmatch '^0\.4\.\d+$') { throw "Tauri release is not in the 0.4.x family: $version" }
+          $escaped = [regex]::Escape($version)
+          if ($cargo -notmatch "(?m)^version\s*=\s*`"$escaped`"") { throw "Rust package version does not match Tauri $version" }
+          Write-Host "DentalFlow Desktop release: $version"
+
+      - name: Prepare trusted Windows code signing
+        id: codesign
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE) -or [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PASSWORD)) {
+            "ready=false" >> $env:GITHUB_OUTPUT
+            Write-Host "Trusted code-signing secrets are not configured; build will remain unsigned."
+            exit 0
+          }
+
+          New-Item -ItemType Directory -Force -Path certificate | Out-Null
+          $base64 = ($env:WINDOWS_CERTIFICATE -replace '-----BEGIN [^-]+-----','' -replace '-----END [^-]+-----','' -replace '\s','')
+          [IO.File]::WriteAllBytes("certificate/dentalflow-code-signing.pfx", [Convert]::FromBase64String($base64))
+          $securePassword = ConvertTo-SecureString -String $env:WINDOWS_CERTIFICATE_PASSWORD -Force -AsPlainText
+          $cert = Import-PfxCertificate -FilePath "certificate/dentalflow-code-signing.pfx" -CertStoreLocation Cert:\CurrentUser\My -Password $securePassword
+          if (-not $cert -or [string]::IsNullOrWhiteSpace($cert.Thumbprint)) { throw "Windows code-signing certificate could not be imported." }
+
+          $platformConfig = @{
+            bundle = @{
+              windows = @{
+                certificateThumbprint = $cert.Thumbprint
+                digestAlgorithm = "sha256"
+                timestampUrl = "http://timestamp.digicert.com"
+              }
+            }
+          } | ConvertTo-Json -Depth 6
+          Set-Content -Path "src-tauri/tauri.windows.conf.json" -Value $platformConfig -Encoding UTF8
+          "ready=true" >> $env:GITHUB_OUTPUT
+          Write-Host "Trusted signing enabled for publisher certificate $($cert.Subject)."
 
       - name: Build DentalFlow Desktop
         run: bun run desktop:build
@@ -68,17 +108,35 @@ jobs:
             throw "Desktop SPA shell was not generated at dist/client/index.html"
           }
 
-      - name: Verify Windows executable
+      - name: Verify Windows executable and installer
         shell: pwsh
         run: |
-          $exe = Get-ChildItem "src-tauri/target/release" -Filter "*.exe" -File | Select-Object -First 1
-          if (-not $exe) { throw "DentalFlow Windows executable was not generated" }
-          Write-Host "Executable: $($exe.FullName)"
+          $app = Get-ChildItem "src-tauri/target/release" -Filter "*.exe" -File | Select-Object -First 1
+          $installer = Get-ChildItem "src-tauri/target/release/bundle/nsis" -Filter "*.exe" -File | Select-Object -First 1
+          if (-not $app) { throw "DentalFlow Windows executable was not generated" }
+          if (-not $installer) { throw "DentalFlow NSIS installer was not generated" }
+          Write-Host "Executable: $($app.FullName)"
+          Write-Host "Installer: $($installer.FullName)"
+
+      - name: Verify Authenticode signature
+        if: steps.codesign.outputs.ready == 'true'
+        shell: pwsh
+        run: |
+          $files = @(
+            Get-ChildItem "src-tauri/target/release" -Filter "*.exe" -File
+            Get-ChildItem "src-tauri/target/release/bundle/nsis" -Filter "*.exe" -File
+          )
+          if ($files.Count -lt 2) { throw "Expected application and NSIS installer for signature verification." }
+          foreach ($file in $files) {
+            $signature = Get-AuthenticodeSignature $file.FullName
+            Write-Host "$($file.Name): $($signature.Status) | $($signature.SignerCertificate.Subject)"
+            if ($signature.Status -ne "Valid") { throw "Invalid Authenticode signature: $($file.FullName)" }
+          }
 
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
         with:
-          name: DentalFlow-Windows
+          name: DentalFlow-Windows-0.4.0
           if-no-files-found: error
           retention-days: 14
           path: |

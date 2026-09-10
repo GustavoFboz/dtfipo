@@ -18,6 +18,7 @@ const lp = read("src/routes/lp.tsx");
 const tauri = read("src-tauri/tauri.conf.json");
 const cargo = read("src-tauri/Cargo.toml");
 const desktopGate = read("src/components/DesktopPrimarySyncGate.tsx");
+const currentVersion = String(JSON.parse(tauri).version || "").trim();
 
 for (const [needle, message] of [
   ["24900, 1, 8", "Initial company plan limits changed unexpectedly."],
@@ -81,8 +82,8 @@ expect(lp.includes("R$ 249") && lp.includes("R$ 449") && lp.includes("R$ 749"), 
 expect(lp.includes("Profissionais entram pela empresa") || lp.includes("código da empresa"), "Landing must position professionals as company members, not independent subscribers.");
 expect(lp.includes("Radiologia") && lp.includes("DICOM"), "Landing must position Radiology/DICOM as a first-class session.");
 
-expect(tauri.includes('"version": "0.3.3"'), "Tauri version must be 0.3.3.");
-expect(cargo.includes('version = "0.3.3"'), "Rust package version must be 0.3.3.");
-expect(desktopGate.includes("DentalFlow Desktop 0.3.3"), "Desktop sync UI must identify the 0.3.3 release.");
+expect(/^0\.[34]\.\d+$/.test(currentVersion), `Unexpected DentalFlow Desktop release version: ${currentVersion || "missing"}.`);
+expect(cargo.includes(`version = "${currentVersion}"`), `Rust package version must match Tauri ${currentVersion}.`);
+expect(desktopGate.includes(`DentalFlow Desktop ${currentVersion}`), `Desktop sync UI must identify release ${currentVersion}.`);
 
-console.log("DentalFlow 0.3.3 company billing, professional membership and IPO invariants passed.");
+console.log(`DentalFlow ${currentVersion} company billing, professional membership and IPO invariants passed.`);

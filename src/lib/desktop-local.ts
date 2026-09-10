@@ -59,6 +59,12 @@ export type OutboxEntry<T = unknown> = {
   updated_at: number;
 };
 
+export type DesktopNotificationTarget = {
+  route?: string;
+  caseId?: string;
+  activityId?: string;
+};
+
 function getDesktopInvoke(): DesktopInvoke | null {
   if (typeof window === "undefined") return null;
   return window.__TAURI__?.core?.invoke ?? null;
@@ -91,16 +97,31 @@ export function performDesktopWindowAction(action: "minimize" | "toggle_maximize
   return invokeDesktop<DesktopWindowState>("desktop_window_action", { action });
 }
 
-export async function sendDesktopNativeNotification(input: { title: string; body?: string | null }) {
+export async function sendDesktopNativeNotification(input: {
+  title: string;
+  body?: string | null;
+  data?: DesktopNotificationTarget;
+}) {
   if (!isDentalFlowDesktop()) return false;
   try {
     await invokeDesktop<void>("desktop_native_notification", {
       title: input.title || "DentalFlow",
       body: input.body ?? "",
+      data: input.data ?? null,
     });
     return true;
   } catch (error) {
     console.warn("[DentalFlow Desktop] Não foi possível exibir a notificação nativa", error);
+    return false;
+  }
+}
+
+export async function playDesktopNotificationSound() {
+  if (!isDentalFlowDesktop()) return false;
+  try {
+    return await invokeDesktop<boolean>("desktop_notification_sound");
+  } catch (error) {
+    console.warn("[DentalFlow Desktop] Não foi possível reproduzir o som nativo da notificação", error);
     return false;
   }
 }
@@ -221,6 +242,64 @@ export function markOutbox(
 
 export function clearDoneOutbox(ownerId: string) {
   return invokeDesktop<number>("outbox_clear_done", { ownerId });
+}
+
+const REALTIME_NOTIFICATION_CACHE_LIMIT = 500;
+const REALTIME_CASE_ACTIVITY_CACHE_LIMIT = 300;
+
+function newestFirst<T extends Record<string, any>>(rows: T[]) {
+  return [...rows].sort((a, b) => String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")));
+}
+
+function mergeRowsById<T extends Record<string, any>>(current: T[], incoming: T[], limit: number) {
+  const byId = new Map<string, T>();
+  for (const row of [...incoming, ...current]) {
+    const id = String(row?.id ?? "");
+    if (!id) continue;
+    const previous = byId.get(id);
+    byId.set(id, previous ? { ...previous, ...row } : row);
+  }
+  return newestFirst(Array.from(byId.values())).slice(0, limit);
+}
+
+/** Persist realtime notification rows immediately in the same bounded mirror used by the notification center. */
+export async function upsertLocalNotifications(rows: Array<Record<string, any>>) {
+  if (!isDentalFlowDesktop() || !rows.length) return;
+  const identity = await getProvisionedDesktopIdentity();
+  if (!identity?.user_id) return;
+  const entry = await localCacheGet<Array<Record<string, any>>>(identity.user_id, "notifications:v1", "all");
+  const current = Array.isArray(entry?.payload) ? entry.payload : [];
+  await localCachePut(
+    identity.user_id,
+    "notifications:v1",
+    "all",
+    mergeRowsById(current, rows, REALTIME_NOTIFICATION_CACHE_LIMIT),
+  );
+}
+
+/** Keep the most recent chat history per case. The cap prevents an unbounded SQLite mirror on high-volume accounts. */
+export async function upsertLocalCaseActivities(rows: Array<Record<string, any>>) {
+  if (!isDentalFlowDesktop() || !rows.length) return;
+  const identity = await getProvisionedDesktopIdentity();
+  if (!identity?.user_id) return;
+  const groups = new Map<string, Array<Record<string, any>>>();
+  for (const row of rows) {
+    const caseId = String(row?.case_id ?? "");
+    if (!caseId) continue;
+    const group = groups.get(caseId) ?? [];
+    group.push(row);
+    groups.set(caseId, group);
+  }
+  await Promise.all(Array.from(groups.entries()).map(async ([caseId, incoming]) => {
+    const entry = await localCacheGet<Array<Record<string, any>>>(identity.user_id, "case-activity:v1", caseId);
+    const current = Array.isArray(entry?.payload) ? entry.payload : [];
+    await localCachePut(
+      identity.user_id,
+      "case-activity:v1",
+      caseId,
+      mergeRowsById(current, incoming, REALTIME_CASE_ACTIVITY_CACHE_LIMIT),
+    );
+  }));
 }
 
 /**

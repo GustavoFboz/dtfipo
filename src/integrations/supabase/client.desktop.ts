@@ -70,13 +70,9 @@ async function localCloudLoginFallback(markDeviceOnly = true) {
 }
 
 /**
- * A remote getUser() validation can time out even though Supabase still has a
- * genuine persisted JWT in this WebView. Falling straight to the synthetic
- * device session used to flip the whole client into device-only mode; every
- * subsequent from()/rpc() then failed synchronously until another auth event.
- * That manifested as empty Team/Patients/Storage views and a dead Realtime
- * notification channel. A real stored JWT is safe to keep using: if it is no
- * longer accepted, PostgREST returns an auth error instead of an anonymous 200 [].
+ * A remote getUser() validation can time out even though the WebView still has
+ * a genuine persisted JWT. Preserve that JWT across transient validation
+ * failures so a temporary network hiccup never poisons every protected read.
  */
 async function recoverStoredCloudSession(target: typeof cloudSupabase.auth): Promise<Session | null> {
   try {
@@ -164,6 +160,64 @@ async function validatedCloudSession(target: typeof cloudSupabase.auth) {
   return validatedCloudInFlight;
 }
 
+/**
+ * Explicit online recovery primitive used by the realtime synchronizer.
+ * Device-only authentication is an offline capability and must never become a
+ * sticky online state. Whenever connectivity/focus returns we first recover a
+ * genuine persisted JWT, then ask the auth client to refresh it when needed.
+ */
+export async function recoverDesktopCloudSession(): Promise<Session | null> {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return null;
+
+  resetValidatedCloudCache();
+  let session = await recoverStoredCloudSession(cloudSupabase.auth);
+
+  const expiresAtMs = session?.expires_at ? session.expires_at * 1000 : Number.POSITIVE_INFINITY;
+  const needsRefresh = !session || expiresAtMs <= Date.now() + 60_000;
+  if (needsRefresh) {
+    try {
+      const refreshed = await withDesktopCloudTimeout(
+        "Cloud Login (renovação)",
+        () => cloudSupabase.auth.refreshSession(),
+        DESKTOP_AUTH_TIMEOUT_MS,
+      );
+      if (refreshed.data.session && refreshed.data.session.access_token !== LOCAL_ACCESS_TOKEN) {
+        session = refreshed.data.session;
+      }
+    } catch {
+      // A valid persisted JWT may still work even if refresh temporarily fails.
+    }
+  }
+
+  if (!session || session.access_token === LOCAL_ACCESS_TOKEN) return null;
+
+  try {
+    const userResult = await withDesktopCloudTimeout(
+      "Cloud Login (revalidação)",
+      () => cloudSupabase.auth.getUser(session!.access_token),
+      DESKTOP_AUTH_TIMEOUT_MS,
+    );
+    const user = userResult.data.user;
+    if (!user || user.id !== session.user.id) return null;
+    const healed = { ...session, user } as Session;
+    usingOfflineDeviceSession = false;
+    validatedCloudCache = {
+      session: healed,
+      user,
+      validUntil: Math.min(Date.now() + CLOUD_VALIDATION_TTL_MS, (healed.expires_at ?? Number.MAX_SAFE_INTEGER) * 1000 - 5_000),
+    };
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("dentalflow:desktop-cloud-session-restored", { detail: { userId: user.id } }));
+    }
+    return healed;
+  } catch {
+    // Do not downgrade a stored JWT here. Protected reads will surface a real
+    // auth error and the next healing cycle can retry without cache poisoning.
+    usingOfflineDeviceSession = false;
+    return session;
+  }
+}
+
 async function forceLocalCloudLoginSignOut(target: typeof cloudSupabase.auth) {
   resetValidatedCloudCache();
   try {
@@ -187,6 +241,7 @@ if (typeof window !== "undefined") {
   cloudSupabase.auth.onAuthStateChange((event) => {
     if (["SIGNED_IN", "SIGNED_OUT", "TOKEN_REFRESHED", "USER_UPDATED", "PASSWORD_RECOVERY"].includes(event)) {
       resetValidatedCloudCache();
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") usingOfflineDeviceSession = false;
     }
   });
 }
@@ -201,13 +256,12 @@ const auth = new Proxy(cloudSupabase.auth, {
             const validated = await validatedCloudSession(target);
             if (validated.session) return { data: { session: validated.session }, error: null };
 
-            // An explicit online validation with no real session is different
-            // from a timeout: only this case should engage the protected-read gate.
+            const recovered = await recoverDesktopCloudSession();
+            if (recovered) return { data: { session: recovered }, error: null };
+
             const { session } = await localCloudLoginFallback(true);
             return { data: { session }, error: null };
           } catch {
-            // Keep an existing genuine JWT alive across a transient validation
-            // timeout instead of globally poisoning all protected reads.
             const stored = await recoverStoredCloudSession(target);
             if (stored) return { data: { session: stored }, error: null };
           }
@@ -233,6 +287,9 @@ const auth = new Proxy(cloudSupabase.auth, {
           try {
             const validated = await validatedCloudSession(target);
             if (validated.user) return { data: { user: validated.user }, error: null };
+
+            const recovered = await recoverDesktopCloudSession();
+            if (recovered?.user) return { data: { user: recovered.user }, error: null };
 
             const { user } = await localCloudLoginFallback(true);
             return { data: { user }, error: null };
@@ -275,14 +332,6 @@ const auth = new Proxy(cloudSupabase.auth, {
   },
 });
 
-/**
- * A device-only session can unlock SQLite, but it can NEVER authorize a protected
- * Cloud operation. In 0.2.6/0.2.7 we allowed the request while Windows was online;
- * PostgREST then legitimately answered HTTP 200 + [] under RLS when no real JWT
- * was present. Those ambiguous empty arrays contaminated local mirrors. The guard
- * remains strict when no real JWT exists, while transient validation timeouts no
- * longer downgrade a genuine persisted cloud session.
- */
 function requireRealCloudSession(operation: string) {
   if (!usingOfflineDeviceSession) return;
   throw new TypeError(`Failed to fetch: Cloud Login requires revalidation (${operation})`);
@@ -307,9 +356,12 @@ export const supabase = new Proxy(cloudSupabase, {
   },
 });
 
-export function isOfflineDeviceSession(session: Session | null | undefined) {
-  return Boolean(
-    session?.user?.user_metadata?.[OFFLINE_MARKER] ||
-      session?.access_token === LOCAL_ACCESS_TOKEN,
-  );
+export function isOfflineDeviceSession(session?: Session | null) {
+  if (session) {
+    return Boolean(
+      session.user?.user_metadata?.[OFFLINE_MARKER] ||
+        session.access_token === LOCAL_ACCESS_TOKEN,
+    );
+  }
+  return usingOfflineDeviceSession;
 }

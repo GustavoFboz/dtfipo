@@ -9,6 +9,7 @@ on:
       - "feature/**"
       - "feat/**"
       - "fix/**"
+      - "release/**"
 
 jobs:
   build:
@@ -35,8 +36,8 @@ jobs:
       - name: Verify Clinic UX regressions
         run: bun scripts/check-clinic-ux-regressions.mjs
 
-      - name: Verify Desktop 0.3.3 offline regressions
-        run: bun scripts/check-desktop-offline-regressions-033.mjs
+      - name: Verify Desktop 0.4.0 offline and realtime regressions
+        run: bun scripts/check-desktop-offline-regressions-040.mjs
 
       - name: Verify Desktop entitlement-first bootstrap
         run: bun scripts/check-desktop-entitlement-bootstrap-032.mjs
@@ -44,7 +45,7 @@ jobs:
       - name: Verify Desktop case dialogs and offline case creation
         run: bun scripts/check-desktop-case-dialog-offline.mjs
 
-      - name: Verify 0.3.2 enterprise hub and subscriptions
+      - name: Verify enterprise hub and subscriptions
         run: bun scripts/check-enterprise-hub-032.mjs
 
       # The repository has substantial pre-existing formatting/lint debt.
