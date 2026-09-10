@@ -13,11 +13,12 @@ if (!/^0\.4\.\d+$/.test(currentVersion)) {
 }
 
 // Preserve the historical contract while adapting only guarantees deliberately
-// strengthened in 0.4.x: faster notification catch-up and explicit cloud-session
-// healing before focus/reconnect reconciliation.
+// strengthened in 0.4.x: faster notification catch-up, explicit cloud-session
+// healing and the visible 0.4 release marker.
 const adapted = source
   .replaceAll('"version": "0.3.2"', `"version": "${currentVersion}"`)
   .replaceAll("Desktop version must be 0.3.2.", `Desktop version must be ${currentVersion}.`)
+  .replaceAll('DentalFlow Desktop 0.3.', 'DentalFlow Desktop 0.4.')
   .replaceAll('NOTIFICATION_RECONCILE_MS = 8_000', 'NOTIFICATION_RECONCILE_MS = 5_000')
   .replaceAll('Notification reconciliation must remain low-latency in 0.3.5.', 'Notification reconciliation must remain low-latency in 0.4.0.')
   .replaceAll('FULL_RECONCILE_MS = 12_000', 'FULL_RECONCILE_MS = 15_000')
