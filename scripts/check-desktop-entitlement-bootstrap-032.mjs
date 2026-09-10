@@ -7,11 +7,14 @@ const gate = read("src/components/DesktopPrimarySyncGate.tsx");
 const sync = read("src/lib/desktop-sync.ts");
 const vite = read("vite.desktop.config.ts");
 const tauri = read("src-tauri/tauri.conf.json");
+const tauriConfig = JSON.parse(tauri);
+const currentVersion = String(tauriConfig.version || "").trim();
 
 function expect(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+expect(/^0\.3\.\d+$/.test(currentVersion), `Unexpected DentalFlow Desktop release version: ${currentVersion || "missing"}.`);
 expect(vite.includes("subscriptions.desktop.ts"), "Desktop build must route subscriptions through its local-first facade.");
 expect(subscriptions.includes('const SUBSCRIPTION_CACHE_NAMESPACE = "subscription-context:v2"'), "Desktop entitlement must use the durable subscription cache.");
 expect(subscriptions.includes("locallySafeContext"), "Cached subscription access must be normalized before offline use.");
@@ -39,13 +42,14 @@ expect(bootstrap.includes("subscriptionCached: true"), "Successful preflight mus
 expect(gate.includes('"subscription-context:v2"'), "Desktop readiness must require the verified subscription snapshot.");
 expect(gate.includes("subscriptionCached"), "Desktop readiness diagnostics must track subscription cache readiness.");
 expect(gate.includes("verified && profileReady && clinicCached && subscriptionCached"), "First offline readiness must include profile, Clinic and paid entitlement.");
+expect(gate.includes("DentalFlow"), "The visible readiness gate must remain branded as DentalFlow.");
+expect(!gate.includes("DentalFlow Desktop 0.3.3"), "The readiness UI must not retain a stale hard-coded 0.3.3 release label.");
 
 expect(sync.includes("syncDesktopCriticalData"), "Desktop sync must expose a critical first-install phase.");
 expect(sync.includes("syncDesktopAuxiliaryData"), "Desktop sync must expose a non-blocking auxiliary phase.");
 expect(sync.includes("Cache crítico de pacientes") && sync.includes("Cache crítico de casos"), "Patients and cases must remain in the critical phase.");
 expect(sync.includes("Cache da equipe") && sync.includes("Uso de armazenamento"), "Team/storage must still warm after the first-install gate.");
 expect(sync.indexOf("Cache da equipe") > sync.indexOf("runAuxiliarySync"), "Team cache must not block critical first readiness.");
-expect(tauri.includes('"version": "0.3.3"'), "DentalFlow Desktop release must be 0.3.3.");
-expect(gate.includes("DentalFlow Desktop 0.3.3"), "The visible Desktop gate must identify release 0.3.3.");
+expect(tauri.includes(`"version": "${currentVersion}"`), `Tauri release metadata must identify ${currentVersion}.`);
 
-console.log("Desktop 0.3.3 entitlement/bootstrap regressions: OK");
+console.log(`DentalFlow Desktop ${currentVersion} entitlement/bootstrap regressions: OK`);
