@@ -16,14 +16,16 @@ export type PopupNotification = {
   read_at?: string | null;
 };
 
+const DESKTOP_NOTIFICATION_POLL_MS = 6_000;
+const DESKTOP_FIRST_POLL_GRACE_MS = 2_500;
+
 /**
  * Unified notification presentation for Web + Desktop.
  *
  * Desktop owns exactly one recipient-scoped Realtime channel in
- * DesktopRealtimeSync. This hook only renders in-app popups there, avoiding a
- * second websocket and duplicate delivery. When the Desktop is in background,
- * the global bridge has already handed the event to the Windows notification
- * center, so no hidden in-app popup or browser Notification API is required.
+ * DesktopRealtimeSync. This hook renders in-app popups and also keeps a short
+ * local-first reconciliation fallback so a WebView websocket/token transition
+ * cannot permanently hide a notification from the user.
  */
 export function useNotificationPopups() {
   const [popups, setPopups] = useState<PopupNotification[]>([]);
@@ -97,7 +99,15 @@ export function useNotificationPopups() {
     let disposed = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let retryTimer: number | null = null;
+    let desktopPollTimer: number | null = null;
+    let desktopPolling = false;
+    let desktopBaselineReady = false;
+    const desktopStartedAt = Date.now();
     let authSubscription: { unsubscribe: () => void } | null = null;
+
+    for (const row of qc.getQueryData<any[]>(["notifications"]) ?? []) {
+      if (row?.id) seenIds.current.add(String(row.id));
+    }
 
     const playWebSound = () => {
       const a = audio.current;
@@ -122,6 +132,8 @@ export function useNotificationPopups() {
       const background = document.hidden || !document.hasFocus();
       if (!background) return false;
 
+      // DesktopRealtimeSync emits the native Windows toast when the window is in
+      // background. Its native command now owns the Windows notification sound.
       if (desktop) return true;
 
       if (typeof Notification === "undefined" || Notification.permission !== "granted") return false;
@@ -161,6 +173,38 @@ export function useNotificationPopups() {
       if (showExternalWebNotification(n)) return;
       playSound();
       setPopups((old) => old.some((item) => item.id === n.id) ? old : [n, ...old].slice(0, 5));
+    };
+
+    const pollDesktopNotifications = async () => {
+      if (!desktop || disposed || desktopPolling || navigator.onLine === false) return;
+      desktopPolling = true;
+      try {
+        const { fetchNotificationsLocalFirst } = await import("@/lib/notifications-local-first");
+        const rows = await fetchNotificationsLocalFirst();
+        if (disposed) return;
+
+        const ordered = [...(rows as any[])].sort((a, b) => String(a.created_at ?? "").localeCompare(String(b.created_at ?? "")));
+        qc.setQueryData(["notifications"], rows);
+
+        if (!desktopBaselineReady) {
+          desktopBaselineReady = true;
+          for (const row of ordered) {
+            const createdAt = Date.parse(String(row?.created_at ?? ""));
+            if (Number.isFinite(createdAt) && createdAt >= desktopStartedAt - DESKTOP_FIRST_POLL_GRACE_MS) {
+              deliver(row);
+            } else if (row?.id) {
+              seenIds.current.add(String(row.id));
+            }
+          }
+          return;
+        }
+
+        for (const row of ordered) deliver(row);
+      } catch (error) {
+        console.warn("[DentalFlow Desktop] Reconciliação visual de notificações adiada", error);
+      } finally {
+        desktopPolling = false;
+      }
     };
 
     const disconnect = () => {
@@ -232,6 +276,8 @@ export function useNotificationPopups() {
       void supabase.auth.getSession().then(({ data }) => {
         currentUserId.current = data.session?.user?.id ?? null;
       }).catch(() => undefined);
+      void pollDesktopNotifications();
+      desktopPollTimer = window.setInterval(() => void pollDesktopNotifications(), DESKTOP_NOTIFICATION_POLL_MS);
     } else {
       const onOnline = () => {
         disconnect();
@@ -264,6 +310,7 @@ export function useNotificationPopups() {
 
     return () => {
       disposed = true;
+      if (desktopPollTimer !== null) window.clearInterval(desktopPollTimer);
       disconnect();
       (authSubscription as { unsubscribe: () => void } | null)?.unsubscribe();
       unsubPeer();
