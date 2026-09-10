@@ -11,6 +11,7 @@ use local_db::{
     outbox_pending,
 };
 use notifications::desktop_native_notification;
+use printing::{desktop_list_printers, desktop_open_printer_settings, desktop_print_text};
 use tauri::{AppHandle, Manager};
 use window_controls::{desktop_window_action, desktop_window_state};
 
@@ -114,6 +115,9 @@ pub fn run() {
             desktop_window_state,
             desktop_window_action,
             desktop_native_notification,
+            desktop_list_printers,
+            desktop_open_printer_settings,
+            desktop_print_text,
             device_identity_get,
             device_identity_set,
             device_identity_clear,

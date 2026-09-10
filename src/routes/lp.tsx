@@ -69,7 +69,7 @@ function LandingPage() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_5%,rgba(21,152,143,.12),transparent_32%),radial-gradient(circle_at_84%_15%,rgba(45,127,249,.1),transparent_30%)]" />
           <div className="relative mx-auto grid max-w-7xl gap-14 px-5 pb-24 pt-20 sm:px-8 md:pb-28 md:pt-28 lg:grid-cols-[1.03fr_.97fr] lg:items-center">
             <div>
-              <span className="inline-flex items-center rounded-full bg-[#15988f]/8 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.22em] text-[#15988f]">DentalFlow 0.3.2 · Hub empresarial</span>
+              <span className="inline-flex items-center rounded-full bg-[#15988f]/8 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.22em] text-[#15988f]">DentalFlow 0.3.5 · Hub empresarial</span>
               <h1 className="mt-6 max-w-3xl text-[48px] font-extralight leading-[.98] tracking-[-0.052em] sm:text-[64px] lg:text-[76px]">Uma empresa.<br />Até <span className="text-[#15988f]">três operações</span> conectadas.</h1>
               <p className="mt-7 max-w-2xl text-[15px] font-light leading-7 text-slate-500 sm:text-[17px]">Laboratório protético, Clínica odontológica e Radiologia funcionam como sessões independentes — ou compartilham pacientes, casos e informações quando o plano permite.</p>
               <div className="mt-9 flex flex-wrap gap-3">
