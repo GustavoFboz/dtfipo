@@ -82,7 +82,7 @@ expect(lp.includes("R$ 249") && lp.includes("R$ 449") && lp.includes("R$ 749"), 
 expect(lp.includes("Profissionais entram pela empresa") || lp.includes("código da empresa"), "Landing must position professionals as company members, not independent subscribers.");
 expect(lp.includes("Radiologia") && lp.includes("DICOM"), "Landing must position Radiology/DICOM as a first-class session.");
 
-expect(/^0\.3\.\d+$/.test(currentVersion), `Unexpected DentalFlow Desktop release version: ${currentVersion || "missing"}.`);
+expect(/^0\.[34]\.\d+$/.test(currentVersion), `Unexpected DentalFlow Desktop release version: ${currentVersion || "missing"}.`);
 expect(cargo.includes(`version = "${currentVersion}"`), `Rust package version must match Tauri ${currentVersion}.`);
 expect(desktopGate.includes(`DentalFlow Desktop ${currentVersion}`), `Desktop sync UI must identify release ${currentVersion}.`);
 
