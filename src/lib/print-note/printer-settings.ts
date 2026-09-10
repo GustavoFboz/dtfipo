@@ -23,6 +23,8 @@ export type CaseNotePrinterSettings = {
   customWidthMm: number;
   customHeightMm: number;
   dpi: 203 | 300;
+  /** Impressora do sistema escolhida no aplicativo instalado (Windows). */
+  printerName?: string | null;
   printerModel?: string | null;
   printerProfileId?: string | null;
   configuredAt?: string | null;
@@ -117,6 +119,7 @@ export const DEFAULT_CASE_NOTE_PRINTER_SETTINGS: CaseNotePrinterSettings = {
   customWidthMm: 100,
   customHeightMm: 170,
   dpi: 203,
+  printerName: null,
   printerModel: null,
   printerProfileId: null,
   configuredAt: null,
@@ -142,6 +145,7 @@ function normalizeSettings(value: Partial<CaseNotePrinterSettings> | null | unde
     customWidthMm: clampMm(value?.customWidthMm, 40, 216, DEFAULT_CASE_NOTE_PRINTER_SETTINGS.customWidthMm),
     customHeightMm: clampMm(value?.customHeightMm, 60, 500, DEFAULT_CASE_NOTE_PRINTER_SETTINGS.customHeightMm),
     dpi: value?.dpi === 300 ? 300 : matchedProfile?.dpi ?? 203,
+    printerName: typeof value?.printerName === "string" && value.printerName.trim() ? value.printerName.trim() : null,
     printerModel,
     printerProfileId: value?.printerProfileId ?? matchedProfile?.id ?? null,
     configuredAt: typeof value?.configuredAt === "string" ? value.configuredAt : null,

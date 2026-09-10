@@ -50,13 +50,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Verify release metadata 0.3.3
+      - name: Verify release metadata 0.3.5
         shell: pwsh
         run: |
           $tauri = Get-Content "src-tauri/tauri.conf.json" -Raw
           $cargo = Get-Content "src-tauri/Cargo.toml" -Raw
-          if ($tauri -notmatch '"version"\s*:\s*"0\.3\.3"') { throw "Tauri release is not 0.3.3" }
-          if ($cargo -notmatch 'version\s*=\s*"0\.3\.3"') { throw "Rust package release is not 0.3.3" }
+          if ($tauri -notmatch '"version"\s*:\s*"0\.3\.5"') { throw "Tauri release is not 0.3.5" }
+          if ($cargo -notmatch 'version\s*=\s*"0\.3\.5"') { throw "Rust package release is not 0.3.5" }
 
       - name: Build DentalFlow Desktop
         run: bun run desktop:build
