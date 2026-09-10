@@ -169,14 +169,17 @@ expect(realtime.includes('table: "notifications"'), "Desktop Realtime bridge mus
 expect(realtime.includes('table: "case_activity"'), "Desktop Realtime bridge must subscribe to case activity.");
 expect(realtime.includes('event: "UPDATE", schema: "public", table: "cases"'), "Desktop must observe authorized case updates.");
 expect(realtime.includes("scheduleNativeCaseUpdate"), "Background case changes must surface as native notifications.");
-expect(realtime.includes("BACKGROUND_NOTIFICATION_POLL_MS = 15_000"), "Background notification catch-up must stay low-latency.");
+expect(realtime.includes("NOTIFICATION_RECONCILE_MS = 8_000"), "Notification reconciliation must remain low-latency in 0.3.5.");
+expect(realtime.includes("FULL_RECONCILE_MS = 12_000"), "Active Desktop data must retain a bounded periodic reconciliation safety net.");
+expect(realtime.includes("NOTIFICATION_CURSOR_OVERLAP_MS"), "Notification catch-up must overlap its cursor to avoid token/channel transition gaps.");
 expect(realtime.includes("NOTIFICATION_STARTUP_LOOKBACK_MS"), "Notification catch-up must cover the startup/reconnect race window.");
 expect(realtime.includes("getProvisionedDesktopIdentity"), "A transient device-only startup must preserve recipient identity for self-healing.");
 expect(realtime.includes("queueReconnect();\n          return;"), "Realtime must retry after a transient device-only startup instead of dying silently.");
-expect(realtime.includes("CASE_INVALIDATION_DEBOUNCE_MS"), "Case activity invalidations must be coalesced.");
+expect(realtime.includes("ENTITY_INVALIDATION_DEBOUNCE_MS"), "Realtime entity invalidations must be coalesced.");
 expect(realtime.includes('queryKey: ["case-professional-activity", id]'), "Case mentions/professionals must refresh after new activity.");
-expect(!realtime.includes("syncDesktopOfflineData"), "Realtime events must never launch a complete offline mirror synchronization.");
-expect(!realtime.includes('window.addEventListener("focus"'), "Realtime mirror must not reconnect/full-sync on every Alt+Tab.");
+expect(realtime.includes('window.addEventListener("focus", onWindowFocus)'), "Desktop focus recovery must reconcile only active data.");
+expect(realtime.includes("const onWindowFocus = () => void reconcileActiveData()"), "Focus recovery must use bounded active-data reconciliation.");
+expect(!realtime.includes("syncDesktopOfflineData"), "Realtime events or focus recovery must never launch a complete offline mirror synchronization.");
 expect(!connectivity.includes("syncDesktopOfflineData"), "Connectivity indicator must not own a second full-sync pipeline.");
 expect(!connectivity.includes("queryClient.invalidateQueries"), "Connectivity indicator must not globally invalidate React Query.");
 expect(!connectivity.includes('className="fixed inset-0 z-[9998]'), "Reconnect must never cover and block the whole application.");
@@ -190,4 +193,4 @@ expect(sync.indexOf("syncPendingCaseChanges") < sync.indexOf("syncPendingNotific
 expect(cloud.includes("DesktopCloudTimeoutError"), "Remote operations must stay bounded by a timeout.");
 expect(contract.includes("Regra de ouro"), "Cross-platform/offline contract must remain documented.");
 
-console.log("Desktop 0.3.2 native read-model recovery, authenticated sync, resilient uploads, realtime notifications and Windows regressions passed.");
+console.log("Desktop historical native read-model recovery, authenticated sync, resilient uploads, realtime notifications and Windows regressions passed.");
