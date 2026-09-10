@@ -9,14 +9,12 @@ const tauri = fs.readFileSync(tauriPath, "utf8");
 const tauriConfig = JSON.parse(tauri);
 const currentVersion = String(tauriConfig.version || "").trim();
 
-if (!/^0\.3\.\d+$/.test(currentVersion)) {
+if (!/^0\.[3-9]\.\d+$/.test(currentVersion)) {
   throw new Error(`Unexpected DentalFlow Desktop release version: ${currentVersion || "missing"}.`);
 }
 
-// Preserve the complete historical regression suite while allowing maintenance
-// releases in the 0.3.x family to advance the formal Desktop version marker.
-// The legacy script intentionally remains untouched so older maintenance
-// branches can still execute it against their original release.
+// Preserve the complete historical regression suite while allowing the desktop
+// release train to advance without weakening the original offline contract.
 const adapted = source
   .replaceAll('"version": "0.3.2"', `"version": "${currentVersion}"`)
   .replaceAll("Desktop version must be 0.3.2.", `Desktop version must be ${currentVersion}.`);
