@@ -14,7 +14,7 @@ function expect(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-expect(/^0\.3\.\d+$/.test(currentVersion), `Unexpected DentalFlow Desktop release version: ${currentVersion || "missing"}.`);
+expect(/^0\.[34]\.\d+$/.test(currentVersion), `Unexpected DentalFlow Desktop release version: ${currentVersion || "missing"}.`);
 expect(vite.includes("subscriptions.desktop.ts"), "Desktop build must route subscriptions through its local-first facade.");
 expect(subscriptions.includes('const SUBSCRIPTION_CACHE_NAMESPACE = "subscription-context:v2"'), "Desktop entitlement must use the durable subscription cache.");
 expect(subscriptions.includes("locallySafeContext"), "Cached subscription access must be normalized before offline use.");
