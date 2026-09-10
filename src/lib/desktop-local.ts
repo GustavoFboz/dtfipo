@@ -249,3 +249,27 @@ export async function verifyDesktopLocalRuntime() {
     await localCacheDelete(ownerId, namespace, key).catch(() => undefined);
   }
 }
+
+export type DesktopPrinter = { name: string; is_default: boolean };
+
+/** Impressoras instaladas no sistema operacional (apenas no aplicativo instalado). */
+export async function listDesktopPrinters(): Promise<DesktopPrinter[]> {
+  if (!isDentalFlowDesktop()) return [];
+  const printers = await invokeDesktop<DesktopPrinter[]>("desktop_list_printers");
+  return Array.isArray(printers) ? printers : [];
+}
+
+/** Abre o painel de impressoras do sistema operacional. */
+export async function openDesktopPrinterSettings(): Promise<void> {
+  if (!isDentalFlowDesktop()) return;
+  await invokeDesktop<void>("desktop_open_printer_settings");
+}
+
+/**
+ * Envia texto puro para uma impressora instalada. O nome é validado no lado
+ * nativo contra a lista real de impressoras — nenhum comando de shell é
+ * aceito a partir da interface.
+ */
+export async function desktopPrintText(printer: string, text: string): Promise<void> {
+  await invokeDesktop<void>("desktop_print_text", { printer, text });
+}
