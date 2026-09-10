@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeEntity } from "@/lib/optimistic";
-import { isDentalFlowDesktop } from "@/lib/desktop-local";
+import { isDentalFlowDesktop, playDesktopNotificationSound } from "@/lib/desktop-local";
 import notificationSound from "@/assets/notification.mp3";
 
 export type PopupNotification = {
@@ -40,10 +40,6 @@ export function useNotificationPopups() {
     if (!meta.case_id) return;
     const focus = n.type === "comment" ? "comments" : n.type === "attachment" ? "attachments" : "overview";
 
-    // When the user is already on Cases, never re-navigate to /casos with query
-    // params. The old path activated the route's minimal/deep-link rendering at
-    // the same time as CaseDeepLink opened a dialog, producing a second strange
-    // Cases interface underneath it. Open the existing global dialog in-place.
     if (window.location.pathname.startsWith("/casos")) {
       window.dispatchEvent(new CustomEvent("dentalflow:open-case-dialog", {
         detail: {
@@ -55,9 +51,6 @@ export function useNotificationPopups() {
       return;
     }
 
-    // From another page, change environments once, but use only the hash-based
-    // dialog deep-link. Explicitly clear the legacy query parameters so the
-    // normal Cases dashboard remains mounted behind the modal.
     const hash = new URLSearchParams({ case: meta.case_id, focus });
     if (focus === "comments") hash.set("tab", "comentarios");
     if (meta.activity_id) hash.set("msg", meta.activity_id);
@@ -87,8 +80,6 @@ export function useNotificationPopups() {
         element.volume = old;
       });
 
-      // Browser notifications remain a Web/PWA fallback. The installed Desktop
-      // uses the Windows notification service directly through Tauri.
       if (!desktop && typeof Notification !== "undefined" && Notification.permission === "default") {
         void Notification.requestPermission().catch(() => undefined);
       }
@@ -108,7 +99,7 @@ export function useNotificationPopups() {
     let retryTimer: number | null = null;
     let authSubscription: { unsubscribe: () => void } | null = null;
 
-    const playSound = () => {
+    const playWebSound = () => {
       const a = audio.current;
       if (!a) return;
       try {
@@ -117,12 +108,20 @@ export function useNotificationPopups() {
       } catch {}
     };
 
+    const playSound = () => {
+      if (!desktop) {
+        playWebSound();
+        return;
+      }
+      void playDesktopNotificationSound().then((played) => {
+        if (!played) playWebSound();
+      }).catch(() => playWebSound());
+    };
+
     const showExternalWebNotification = (n: PopupNotification) => {
       const background = document.hidden || !document.hasFocus();
       if (!background) return false;
 
-      // On Desktop the native notification has already been emitted by the
-      // globally mounted realtime bridge. Returning true suppresses duplicates.
       if (desktop) return true;
 
       if (typeof Notification === "undefined" || Notification.permission !== "granted") return false;
@@ -155,7 +154,7 @@ export function useNotificationPopups() {
       seenIds.current.add(n.id);
 
       qc.setQueryData<any[]>(["notifications"], (old = []) =>
-        old.some((item) => item?.id === n.id) ? old : [n, ...old],
+        old.some((item) => item?.id === n.id) ? old.map((item) => item?.id === n.id ? { ...item, ...n } : item) : [n, ...old],
       );
       setUnreadCount((value) => value + 1);
 
