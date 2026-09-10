@@ -1,6 +1,7 @@
 mod device_identity;
 mod local_db;
 mod notifications;
+mod printing;
 mod window_controls;
 
 use device_identity::{device_identity_clear, device_identity_get, device_identity_set};
