@@ -14,15 +14,16 @@ import {
 } from "@/lib/desktop-local";
 import { broadcastEntity } from "@/lib/optimistic";
 
-const REALTIME_RECONNECT_MS = 1_500;
-const ENTITY_INVALIDATION_DEBOUNCE_MS = 180;
-const NOTIFICATION_RECONCILE_MS = 5_000;
+// Realtime is always the primary path. These timers are only recovery nets for
+// suspended WebViews, brief network transitions and token refreshes.
+const REALTIME_RECONNECT_MS = 400;
+const ENTITY_INVALIDATION_DEBOUNCE_MS = 80;
+const NOTIFICATION_RECONCILE_MS = 1_200;
 const FULL_RECONCILE_MS = 15_000;
 const SESSION_HEAL_MS = 20_000;
 const BACKGROUND_NOTIFICATION_BATCH = 150;
 const NOTIFICATION_STARTUP_LOOKBACK_MS = 15 * 60_000;
-const NOTIFICATION_CURSOR_OVERLAP_MS = 20_000;
-const CASE_UPDATE_NATIVE_DELAY_MS = 1_100;
+const NOTIFICATION_CURSOR_OVERLAP_MS = 15_000;
 
 function notificationTarget(row: Record<string, any>) {
   const metadata = (row.metadata ?? {}) as Record<string, any>;
@@ -42,9 +43,15 @@ function notificationPresentation(row: Record<string, any>) {
 
   let title = String(row.title ?? "DentalFlow").trim() || "DentalFlow";
   if (sender) {
-    if (type === "attachment") title = `${sender} alterou um arquivo`;
-    else if (["comment", "mention", "message"].includes(type)) title = `${sender} enviou uma mensagem`;
-    else if (["case_update", "case_stage", "case_status"].includes(type)) title = `${sender} atualizou um caso`;
+    if (["attachment", "attachment_added", "attachment_removed"].includes(type)) {
+      title = `${sender} alterou um arquivo`;
+    } else if (["comment", "mention", "message"].includes(type)) {
+      title = `${sender} enviou uma mensagem`;
+    } else if (["case_assignment", "assignment", "case_assigned"].includes(type)) {
+      title = `${sender} atribuiu um caso a você`;
+    } else if (["case_update", "case_stage", "case_status"].includes(type)) {
+      title = `${sender} atualizou um caso`;
+    }
   }
   if (caseLabel) title = `${title} · ${caseLabel}`;
 
@@ -73,6 +80,7 @@ export function DesktopRealtimeSync() {
 
     let disposed = false;
     let connecting = false;
+    let realtimeReady = false;
     let channel: ReturnType<typeof supabase.channel> | null = null;
     let reconnectTimer: number | null = null;
     let entityInvalidationTimer: number | null = null;
@@ -89,22 +97,25 @@ export function DesktopRealtimeSync() {
     const pendingDomains = new Set<string>();
     const deliveredNativeIds = new Set<string>();
     const seenNotificationIds = new Set<string>();
-    const pendingCaseNativeTimers = new Map<string, number>();
 
     for (const row of queryClient.getQueryData<any[]>(["notifications"]) ?? []) {
       if (row?.id) seenNotificationIds.add(String(row.id));
       const createdAt = String(row?.created_at ?? "");
-      if (createdAt && !Number.isNaN(Date.parse(createdAt))) notificationCursor = newerIso(createdAt, notificationCursor);
+      if (createdAt && !Number.isNaN(Date.parse(createdAt))) {
+        notificationCursor = newerIso(createdAt, notificationCursor);
+      }
     }
 
     const clearReconnectTimer = () => {
       if (reconnectTimer !== null) window.clearTimeout(reconnectTimer);
       reconnectTimer = null;
     };
+
     const clearEntityInvalidationTimer = () => {
       if (entityInvalidationTimer !== null) window.clearTimeout(entityInvalidationTimer);
       entityInvalidationTimer = null;
     };
+
     const clearReconcileTimers = () => {
       if (notificationPollTimer !== null) window.clearInterval(notificationPollTimer);
       if (fullReconcileTimer !== null) window.clearInterval(fullReconcileTimer);
@@ -113,17 +124,10 @@ export function DesktopRealtimeSync() {
       fullReconcileTimer = null;
       sessionHealTimer = null;
     };
-    const cancelPendingCaseNative = (caseId: string) => {
-      const timer = pendingCaseNativeTimers.get(caseId);
-      if (timer !== undefined) window.clearTimeout(timer);
-      pendingCaseNativeTimers.delete(caseId);
-    };
-    const clearPendingCaseNative = () => {
-      for (const timer of pendingCaseNativeTimers.values()) window.clearTimeout(timer);
-      pendingCaseNativeTimers.clear();
-    };
+
     const teardownChannel = () => {
       clearReconnectTimer();
+      realtimeReady = false;
       if (!channel) return;
       const old = channel;
       channel = null;
@@ -143,8 +147,12 @@ export function DesktopRealtimeSync() {
         void queryClient.invalidateQueries({ queryKey: ["case_attachments", id], refetchType: "active" });
         void queryClient.invalidateQueries({ queryKey: ["case", id], refetchType: "active" });
       }
-      if (ids.length || domains.has("cases")) void queryClient.invalidateQueries({ queryKey: ["cases"], refetchType: "active" });
-      if (domains.has("notifications")) void queryClient.invalidateQueries({ queryKey: ["notifications"], refetchType: "active" });
+      if (ids.length || domains.has("cases")) {
+        void queryClient.invalidateQueries({ queryKey: ["cases"], refetchType: "active" });
+      }
+      if (domains.has("notifications")) {
+        void queryClient.invalidateQueries({ queryKey: ["notifications"], refetchType: "active" });
+      }
       if (domains.has("team")) {
         void queryClient.invalidateQueries({ queryKey: ["team"], refetchType: "active" });
         void queryClient.invalidateQueries({ queryKey: ["team_members"], refetchType: "active" });
@@ -184,32 +192,11 @@ export function DesktopRealtimeSync() {
       return sent;
     };
 
-    const scheduleNativeCaseUpdate = (row: Record<string, any>) => {
-      const caseId = String(row.id ?? "");
-      if (!caseId) return;
-      cancelPendingCaseNative(caseId);
-      const timer = window.setTimeout(() => {
-        pendingCaseNativeTimers.delete(caseId);
-        void (async () => {
-          if (disposed || !(await nativeWindowIsBackground())) return;
-          const version = String(row.updated_at ?? row.current_stage_id ?? row.status ?? Date.now());
-          const dedupeKey = `case-update:${caseId}:${version}`;
-          if (deliveredNativeIds.has(dedupeKey)) return;
-          const label = String(row.case_label ?? "").trim();
-          const sent = await sendDesktopNativeNotification({
-            title: label ? `Caso atualizado · ${label}` : "Caso atualizado",
-            body: "Um caso ao qual você tem acesso recebeu uma atualização.",
-            data: { route: `/cases/${encodeURIComponent(caseId)}`, caseId },
-          });
-          if (sent) deliveredNativeIds.add(dedupeKey);
-        })();
-      }, CASE_UPDATE_NATIVE_DELAY_MS);
-      pendingCaseNativeTimers.set(caseId, timer);
-    };
-
     const rememberNotificationCursor = (row: Record<string, any>) => {
       const createdAt = String(row.created_at ?? "");
-      if (createdAt && !Number.isNaN(Date.parse(createdAt))) notificationCursor = newerIso(createdAt, notificationCursor);
+      if (createdAt && !Number.isNaN(Date.parse(createdAt))) {
+        notificationCursor = newerIso(createdAt, notificationCursor);
+      }
     };
 
     const ingestNotification = (row: Record<string, any>, emitUiEvent = true) => {
@@ -218,8 +205,6 @@ export function DesktopRealtimeSync() {
       const alreadySeen = seenNotificationIds.has(id);
       seenNotificationIds.add(id);
       rememberNotificationCursor(row);
-      const relatedCaseId = String((row.metadata as any)?.case_id ?? row.case_id ?? "");
-      if (relatedCaseId) cancelPendingCaseNative(relatedCaseId);
 
       void upsertLocalNotifications([row as any]).catch((error) => {
         console.warn("[DentalFlow Desktop] Cache local de notificação adiado", error);
@@ -233,14 +218,18 @@ export function DesktopRealtimeSync() {
       window.dispatchEvent(new CustomEvent("dentalflow:notifications-updated", { detail: row }));
       if (!alreadySeen) {
         void notifyNativeIfBackground(row);
-        if (emitUiEvent) window.dispatchEvent(new CustomEvent("dentalflow:realtime-notification", { detail: row }));
+        if (emitUiEvent) {
+          window.dispatchEvent(new CustomEvent("dentalflow:realtime-notification", { detail: row }));
+        }
       }
     };
 
     const removeNotification = (row: Record<string, any>) => {
       const id = String(row.id ?? "");
       if (!id) return;
-      queryClient.setQueryData<any[]>(["notifications"], (old = []) => old.filter((item) => String(item?.id ?? "") !== id));
+      queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
+        old.filter((item) => String(item?.id ?? "") !== id),
+      );
       broadcastEntity("notifications", "delete", row);
       window.dispatchEvent(new CustomEvent("dentalflow:notifications-updated", { detail: row }));
     };
@@ -260,25 +249,40 @@ export function DesktopRealtimeSync() {
       }
     };
 
-    // Realtime is the low-latency path. The overlap-window poll is the delivery
-    // guarantee for suspended WebViews, token transitions and brief disconnects.
     const pollNotifications = async () => {
       if (disposed || pollingNotifications || navigator.onLine === false) return;
       pollingNotifications = true;
       try {
-        const healed = await healSession();
-        const userId = healed?.user?.id ?? currentUserId;
+        // Do not perform a network JWT revalidation before every fallback read.
+        // A live Realtime channel already proves the current authenticated user.
+        // Session healing is only used when identity is missing or a read fails.
+        let userId = currentUserId;
+        if (!userId) {
+          const healed = await healSession();
+          userId = healed?.user?.id ?? null;
+        }
         if (!userId) return;
-        currentUserId = userId;
-        const { data, error } = await supabase
+
+        const runRead = () => supabase
           .from("notifications")
           .select("*")
-          .eq("recipient_id", userId)
+          .eq("recipient_id", userId!)
           .gte("created_at", cursorWithOverlap(notificationCursor))
           .order("created_at", { ascending: true })
           .limit(BACKGROUND_NOTIFICATION_BATCH);
-        if (error) throw error;
-        for (const raw of data ?? []) {
+
+        let result = await runRead();
+        if (result.error && !realtimeReady) {
+          const healed = await healSession();
+          if (healed?.user?.id) {
+            currentUserId = healed.user.id;
+            userId = healed.user.id;
+            result = await runRead();
+          }
+        }
+        if (result.error) throw result.error;
+
+        for (const raw of result.data ?? []) {
           if (disposed) break;
           ingestNotification(raw as Record<string, any>, true);
         }
@@ -293,9 +297,11 @@ export function DesktopRealtimeSync() {
       if (disposed || reconciling || navigator.onLine === false) return;
       reconciling = true;
       try {
-        const healed = await healSession();
-        if (!healed) return;
-        currentUserId = healed.user.id;
+        if (!currentUserId) {
+          const healed = await healSession();
+          if (!healed) return;
+          currentUserId = healed.user.id;
+        }
         await pollNotifications();
         try {
           const { syncPendingNotificationChanges } = await import("@/lib/notifications-local-first");
@@ -315,10 +321,15 @@ export function DesktopRealtimeSync() {
     };
 
     const startReconcileTimers = () => {
-      if (notificationPollTimer === null) notificationPollTimer = window.setInterval(() => void pollNotifications(), NOTIFICATION_RECONCILE_MS);
-      if (fullReconcileTimer === null) fullReconcileTimer = window.setInterval(() => void reconcileActiveData(), FULL_RECONCILE_MS);
+      if (notificationPollTimer === null) {
+        notificationPollTimer = window.setInterval(() => void pollNotifications(), NOTIFICATION_RECONCILE_MS);
+      }
+      if (fullReconcileTimer === null) {
+        fullReconcileTimer = window.setInterval(() => void reconcileActiveData(), FULL_RECONCILE_MS);
+      }
       if (sessionHealTimer === null) {
         sessionHealTimer = window.setInterval(() => {
+          if (realtimeReady) return;
           void healSession().then((session) => {
             if (!session || disposed) return;
             if (!channel) void connect();
@@ -338,7 +349,9 @@ export function DesktopRealtimeSync() {
     const applyCaseUpdate = (row: Record<string, any>) => {
       if (!row?.id) return;
       queryClient.setQueriesData<any[]>({ queryKey: ["cases"] }, (old) =>
-        Array.isArray(old) ? old.map((item) => item?.id === row.id ? { ...item, ...row } : item) : old,
+        Array.isArray(old)
+          ? old.map((item) => item?.id === row.id ? { ...item, ...row } : item)
+          : old,
       );
       queryClient.setQueryData<any>(["case", row.id], (old: any) => old ? { ...old, ...row } : old);
       scheduleInvalidation("cases", String(row.id));
@@ -361,47 +374,57 @@ export function DesktopRealtimeSync() {
         currentUserId = user.id;
 
         const next = supabase
-          .channel(`desktop-realtime-040:${user.id}:${crypto.randomUUID()}`)
-          .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `recipient_id=eq.${user.id}` },
-            (payload) => ingestNotification(payload.new as Record<string, any>, true))
-          .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `recipient_id=eq.${user.id}` },
+          .channel(`desktop-realtime-041:${user.id}:${crypto.randomUUID()}`)
+          .on(
+            "postgres_changes",
+            { event: "INSERT", schema: "public", table: "notifications", filter: `recipient_id=eq.${user.id}` },
+            (payload) => ingestNotification(payload.new as Record<string, any>, true),
+          )
+          .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "notifications", filter: `recipient_id=eq.${user.id}` },
             (payload) => {
               const row = payload.new as Record<string, any>;
               rememberNotificationCursor(row);
               if (row?.id) seenNotificationIds.add(String(row.id));
               void upsertLocalNotifications([row as any]).catch(() => undefined);
               broadcastEntity("notifications", "update", row);
-              queryClient.setQueryData<any[]>(["notifications"], (old = []) => old.map((item) => item?.id === row.id ? { ...item, ...row } : item));
+              queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
+                old.map((item) => item?.id === row.id ? { ...item, ...row } : item),
+              );
               window.dispatchEvent(new CustomEvent("dentalflow:notifications-updated", { detail: row }));
-            })
-          .on("postgres_changes", { event: "DELETE", schema: "public", table: "notifications" },
-            (payload) => removeNotification(payload.old as Record<string, any>))
-          .on("postgres_changes", { event: "*", schema: "public", table: "case_activity" },
-            (payload) => {
-              const row = (payload.eventType === "DELETE" ? payload.old : payload.new) as Record<string, any>;
-              if (payload.eventType !== "DELETE" && row?.id && row?.case_id) {
-                void upsertLocalCaseActivities([row as any]).catch((error) => {
-                  console.warn("[DentalFlow Desktop] Cache local do chat aguardará reconciliação", error);
-                });
-              }
-              broadcastEntity("case_activity", payload.eventType.toLowerCase() as any, row);
-              if (row?.case_id) scheduleInvalidation("cases", String(row.case_id));
-              window.dispatchEvent(new CustomEvent("dentalflow:realtime-case-activity", { detail: row }));
-            })
-          .on("postgres_changes", { event: "*", schema: "public", table: "case_attachments" },
-            (payload) => {
-              const row = (payload.eventType === "DELETE" ? payload.old : payload.new) as Record<string, any>;
-              broadcastEntity("case_attachments", payload.eventType.toLowerCase() as any, row);
-              if (row?.case_id) scheduleInvalidation("cases", String(row.case_id));
-              window.dispatchEvent(new CustomEvent("dentalflow:realtime-case-attachment", { detail: row }));
-            })
-          .on("postgres_changes", { event: "UPDATE", schema: "public", table: "cases" },
-            (payload) => {
-              const row = payload.new as Record<string, any>;
-              applyCaseUpdate(row);
-              scheduleNativeCaseUpdate(row);
-              window.dispatchEvent(new CustomEvent("dentalflow:realtime-case-update", { detail: row }));
-            })
+            },
+          )
+          .on(
+            "postgres_changes",
+            { event: "DELETE", schema: "public", table: "notifications" },
+            (payload) => removeNotification(payload.old as Record<string, any>),
+          )
+          .on("postgres_changes", { event: "*", schema: "public", table: "case_activity" }, (payload) => {
+            const row = (payload.eventType === "DELETE" ? payload.old : payload.new) as Record<string, any>;
+            if (payload.eventType !== "DELETE" && row?.id && row?.case_id) {
+              void upsertLocalCaseActivities([row as any]).catch((error) => {
+                console.warn("[DentalFlow Desktop] Cache local do chat aguardará reconciliação", error);
+              });
+            }
+            broadcastEntity("case_activity", payload.eventType.toLowerCase() as any, row);
+            if (row?.case_id) scheduleInvalidation("cases", String(row.case_id));
+            window.dispatchEvent(new CustomEvent("dentalflow:realtime-case-activity", { detail: row }));
+          })
+          .on("postgres_changes", { event: "*", schema: "public", table: "case_attachments" }, (payload) => {
+            const row = (payload.eventType === "DELETE" ? payload.old : payload.new) as Record<string, any>;
+            broadcastEntity("case_attachments", payload.eventType.toLowerCase() as any, row);
+            if (row?.case_id) scheduleInvalidation("cases", String(row.case_id));
+            window.dispatchEvent(new CustomEvent("dentalflow:realtime-case-attachment", { detail: row }));
+          })
+          .on("postgres_changes", { event: "UPDATE", schema: "public", table: "cases" }, (payload) => {
+            const row = payload.new as Record<string, any>;
+            applyCaseUpdate(row);
+            // Native toasts are emitted exclusively from canonical notification
+            // rows. This removes the old 1.1s synthetic case-toast delay and
+            // prevents duplicates with assignment/status notifications.
+            window.dispatchEvent(new CustomEvent("dentalflow:realtime-case-update", { detail: row }));
+          })
           .on("postgres_changes", { event: "*", schema: "public", table: "clinic_members" }, () => scheduleInvalidation("team"))
           .on("postgres_changes", { event: "*", schema: "public", table: "company_sessions" }, () => scheduleInvalidation("sessions"))
           .on("postgres_changes", { event: "*", schema: "public", table: "company_member_sessions" }, () => {
@@ -410,10 +433,12 @@ export function DesktopRealtimeSync() {
           })
           .subscribe((status) => {
             if (status === "SUBSCRIBED") {
-              void reconcileActiveData();
+              realtimeReady = true;
+              void pollNotifications();
               return;
             }
             if (!["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) return;
+            realtimeReady = false;
             if (channel === next) channel = null;
             void supabase.removeChannel(next).catch(() => undefined);
             queueReconnect();
@@ -434,8 +459,9 @@ export function DesktopRealtimeSync() {
       if (disposed || navigator.onLine === false) return;
       teardownChannel();
       startReconcileTimers();
-      void healSession().then(() => connect()).then(() => reconcileActiveData());
+      void healSession().then(() => connect()).then(() => pollNotifications());
     };
+
     const onOnline = () => forceOnlineRecovery();
     const onOffline = () => teardownChannel();
     const onVisibility = () => {
@@ -462,7 +488,7 @@ export function DesktopRealtimeSync() {
       if (["SIGNED_IN", "INITIAL_SESSION", "USER_UPDATED", "TOKEN_REFRESHED"].includes(event)) {
         teardownChannel();
         queueReconnect();
-        window.setTimeout(() => void reconcileActiveData(), 150);
+        window.setTimeout(() => void pollNotifications(), 75);
       }
       if (event === "SIGNED_OUT") {
         currentUserId = null;
@@ -477,7 +503,6 @@ export function DesktopRealtimeSync() {
       clearReconnectTimer();
       clearEntityInvalidationTimer();
       clearReconcileTimers();
-      clearPendingCaseNative();
       pendingCaseIds.clear();
       pendingDomains.clear();
       deliveredNativeIds.clear();
