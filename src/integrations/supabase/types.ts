@@ -182,6 +182,79 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_payments: {
+        Row: {
+          amount_cents: number
+          checkout_intent_id: string | null
+          clinic_id: string
+          created_at: string
+          currency: string
+          id: string
+          metadata: Json
+          paid_at: string | null
+          period_end: string | null
+          period_start: string | null
+          provider: string | null
+          provider_payment_id: string | null
+          status: string
+          subscription_id: string
+        }
+        Insert: {
+          amount_cents: number
+          checkout_intent_id?: string | null
+          clinic_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          provider?: string | null
+          provider_payment_id?: string | null
+          status: string
+          subscription_id: string
+        }
+        Update: {
+          amount_cents?: number
+          checkout_intent_id?: string | null
+          clinic_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          metadata?: Json
+          paid_at?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          provider?: string | null
+          provider_payment_id?: string | null
+          status?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_payments_checkout_intent_id_fkey"
+            columns: ["checkout_intent_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_intents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_payments_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_payments_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "account_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_plans: {
         Row: {
           account_scope: string
@@ -233,6 +306,57 @@ export type Database = {
           name?: string
           storage_bytes?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      billing_test_access: {
+        Row: {
+          created_at: string
+          created_by: string
+          enabled_until: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          enabled_until: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          enabled_until?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      billing_test_tokens: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          label: string | null
+          max_redemptions: number
+          redemption_count: number
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          label?: string | null
+          max_redemptions?: number
+          redemption_count?: number
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          label?: string | null
+          max_redemptions?: number
+          redemption_count?: number
+          token_hash?: string
         }
         Relationships: []
       }
@@ -1576,6 +1700,7 @@ export type Database = {
       }
       clinics: {
         Row: {
+          billing_exempt: boolean
           company_type: string
           created_at: string
           id: string
@@ -1588,6 +1713,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          billing_exempt?: boolean
           company_type?: string
           created_at?: string
           id?: string
@@ -1600,6 +1726,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          billing_exempt?: boolean
           company_type?: string
           created_at?: string
           id?: string
@@ -3146,6 +3273,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      active_company_member: {
+        Args: { _clinic_id: string; _user_id?: string }
+        Returns: boolean
+      }
       add_implant_component: {
         Args: {
           _min_qty?: number
@@ -3163,6 +3294,18 @@ export type Database = {
         Returns: Json
       }
       backend_schema_hash: { Args: never; Returns: string }
+      billing_apply_checkout_paid: {
+        Args: {
+          p_checkout_intent_id: string
+          p_period_end?: string
+          p_period_start?: string
+          p_provider: string
+          p_provider_customer_id?: string
+          p_provider_payment_id: string
+          p_provider_subscription_id?: string
+        }
+        Returns: Json
+      }
       billing_apply_subscription_state: {
         Args: {
           p_external_customer_id?: string
@@ -3174,6 +3317,16 @@ export type Database = {
           p_status: string
           p_subscription_id: string
         }
+        Returns: Json
+      }
+      billing_test_capability: { Args: never; Returns: Json }
+      billing_test_mark_checkout_paid: {
+        Args: { p_checkout_intent_id: string }
+        Returns: Json
+      }
+      billing_test_redeem_token: { Args: { p_token: string }; Returns: Json }
+      billing_test_simulate_nonpayment: {
+        Args: { p_clinic_id: string }
         Returns: Json
       }
       can_access_case: { Args: { _case_id: string }; Returns: boolean }
@@ -3200,10 +3353,15 @@ export type Database = {
         Args: { _clinic_id: string; _permission: string }
         Returns: boolean
       }
+      company_has_operational_access: {
+        Args: { _clinic_id: string }
+        Returns: boolean
+      }
       company_subscription_snapshot: {
         Args: { _clinic_id: string }
         Returns: Json
       }
+      company_team_invite_info: { Args: never; Returns: Json }
       complete_storage_upload: {
         Args: { _file_id: string; _source_id?: string }
         Returns: undefined
@@ -3216,10 +3374,16 @@ export type Database = {
         Args: { _case_id: string; _user?: string }
         Returns: undefined
       }
-      create_checkout_intent: {
-        Args: { p_clinic_id?: string; p_plan_code: string }
-        Returns: Json
-      }
+      create_checkout_intent:
+        | { Args: { p_clinic_id: string; p_plan_code: string }; Returns: Json }
+        | {
+            Args: {
+              p_clinic_id: string
+              p_plan_code: string
+              p_session_types?: string[]
+            }
+            Returns: Json
+          }
       create_company_account: {
         Args: {
           p_full_name: string
@@ -3235,7 +3399,11 @@ export type Database = {
         Returns: Json
       }
       create_professional_account: {
-        Args: { p_full_name: string; p_profession_type: string }
+        Args: {
+          p_full_name: string
+          p_invite_code: string
+          p_profession_type: string
+        }
         Returns: Json
       }
       current_clinic_role: { Args: { _clinic_id: string }; Returns: string }
@@ -3247,6 +3415,7 @@ export type Database = {
       }
       delete_managed_storage_file: { Args: { _file_id: string }; Returns: Json }
       export_backup: { Args: never; Returns: string }
+      finalize_pending_onboarding: { Args: never; Returns: Json }
       generate_user_code: { Args: never; Returns: string }
       get_storage_usage: {
         Args: never
@@ -3276,12 +3445,36 @@ export type Database = {
         }
         Returns: boolean
       }
+      ipo_internal_invariant_report: { Args: never; Returns: Json }
       is_cadista: { Args: { _user_id: string }; Returns: boolean }
       is_clinic_member: {
         Args: { _clinic_id: string; _user_id: string }
         Returns: boolean
       }
+      is_internal_full_access_company: {
+        Args: { _clinic_id: string }
+        Returns: boolean
+      }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      link_professional_company: {
+        Args: { p_invite_code: string }
+        Returns: Json
+      }
+      my_professional_company_links: {
+        Args: never
+        Returns: {
+          access_source: string
+          clinic_id: string
+          clinic_name: string
+          company_access_mode: string
+          company_plan_code: string
+          company_plan_name: string
+          is_current: boolean
+          membership_role: string
+          membership_status: string
+          sessions: string[]
+        }[]
+      }
       my_subscription_context: { Args: never; Returns: Json }
       patient_id_from_storage_path: { Args: { _name: string }; Returns: string }
       recalculate_clinic_storage_limit: {
@@ -3368,6 +3561,10 @@ export type Database = {
         Returns: string
       }
       switch_company_context: { Args: { p_clinic_id: string }; Returns: Json }
+      sync_company_legacy_modules: {
+        Args: { _clinic_id: string }
+        Returns: undefined
+      }
       update_team_member:
         | {
             Args: {
@@ -3395,6 +3592,14 @@ export type Database = {
       user_can_advance: {
         Args: { _phase_id: string; _stage_id: string; _user: string }
         Returns: boolean
+      }
+      user_can_use_company_session: {
+        Args: { _clinic_id: string; _session_type: string }
+        Returns: boolean
+      }
+      validate_company_invite_code: {
+        Args: { p_invite_code: string }
+        Returns: Json
       }
       workflow_default_stages: { Args: { _flow_key: string }; Returns: Json }
       workflow_stage_semantic_key: {
