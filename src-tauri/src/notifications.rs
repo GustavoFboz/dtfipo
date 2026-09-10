@@ -2,7 +2,10 @@ use tauri::AppHandle;
 use tauri_plugin_notification::NotificationExt;
 
 #[cfg(target_os = "windows")]
-use windows_sys::Win32::UI::WindowsAndMessaging::{MessageBeep, MB_ICONASTERISK};
+#[link(name = "user32")]
+extern "system" {
+    fn MessageBeep(u_type: u32) -> i32;
+}
 
 fn truncate_chars(value: &str, max_chars: usize) -> String {
     value.chars().take(max_chars).collect()
@@ -11,7 +14,9 @@ fn truncate_chars(value: &str, max_chars: usize) -> String {
 fn play_native_notification_sound() -> bool {
     #[cfg(target_os = "windows")]
     unsafe {
-        return MessageBeep(MB_ICONASTERISK) != 0;
+        // MB_ICONASTERISK / system notification sound. It respects the user's
+        // Windows sound scheme and volume instead of relying on WebView autoplay.
+        return MessageBeep(0x0000_0040) != 0;
     }
 
     #[cfg(not(target_os = "windows"))]
@@ -45,10 +50,6 @@ pub fn desktop_native_notification(
     };
     let safe_body = truncate_chars(body, 420);
 
-    // Tauri's Windows toast backend can display correctly while remaining silent
-    // depending on the user's notification sound policy. Trigger the Windows
-    // notification sound explicitly so the installed app behaves consistently
-    // with the in-app notification experience.
     let _ = play_native_notification_sound();
 
     app.notification()
