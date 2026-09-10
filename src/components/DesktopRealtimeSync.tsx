@@ -1,22 +1,38 @@
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  recoverDesktopCloudSession,
+  supabase,
+} from "@/integrations/supabase/client";
 import {
   getDesktopWindowState,
   getProvisionedDesktopIdentity,
   isDentalFlowDesktop,
   sendDesktopNativeNotification,
+  upsertLocalCaseActivities,
+  upsertLocalNotifications,
 } from "@/lib/desktop-local";
 import { broadcastEntity } from "@/lib/optimistic";
 
 const REALTIME_RECONNECT_MS = 1_500;
 const ENTITY_INVALIDATION_DEBOUNCE_MS = 180;
-const NOTIFICATION_RECONCILE_MS = 8_000;
-const FULL_RECONCILE_MS = 12_000;
-const BACKGROUND_NOTIFICATION_BATCH = 100;
-const NOTIFICATION_STARTUP_LOOKBACK_MS = 5 * 60_000;
-const NOTIFICATION_CURSOR_OVERLAP_MS = 10_000;
+const NOTIFICATION_RECONCILE_MS = 5_000;
+const FULL_RECONCILE_MS = 15_000;
+const SESSION_HEAL_MS = 20_000;
+const BACKGROUND_NOTIFICATION_BATCH = 150;
+const NOTIFICATION_STARTUP_LOOKBACK_MS = 15 * 60_000;
+const NOTIFICATION_CURSOR_OVERLAP_MS = 20_000;
 const CASE_UPDATE_NATIVE_DELAY_MS = 1_100;
+
+function notificationTarget(row: Record<string, any>) {
+  const metadata = (row.metadata ?? {}) as Record<string, any>;
+  const caseId = String(metadata.case_id ?? row.case_id ?? "").trim() || undefined;
+  const activityId = String(
+    metadata.activity_id ?? metadata.case_activity_id ?? row.activity_id ?? row.case_activity_id ?? "",
+  ).trim() || undefined;
+  const route = caseId ? `/cases/${encodeURIComponent(caseId)}` : "/notifications";
+  return { route, caseId, activityId };
+}
 
 function notificationPresentation(row: Record<string, any>) {
   const metadata = (row.metadata ?? {}) as Record<string, any>;
@@ -32,7 +48,11 @@ function notificationPresentation(row: Record<string, any>) {
   }
   if (caseLabel) title = `${title} · ${caseLabel}`;
 
-  return { title, body: String(row.content ?? "").trim() };
+  return {
+    title,
+    body: String(row.content ?? "").trim(),
+    data: notificationTarget(row),
+  };
 }
 
 function newerIso(a: string, b: string) {
@@ -58,8 +78,10 @@ export function DesktopRealtimeSync() {
     let entityInvalidationTimer: number | null = null;
     let notificationPollTimer: number | null = null;
     let fullReconcileTimer: number | null = null;
+    let sessionHealTimer: number | null = null;
     let pollingNotifications = false;
     let reconciling = false;
+    let healingSession = false;
     let currentUserId: string | null = null;
     let notificationCursor = new Date(Date.now() - NOTIFICATION_STARTUP_LOOKBACK_MS).toISOString();
     let authSubscription: { unsubscribe: () => void } | null = null;
@@ -86,8 +108,10 @@ export function DesktopRealtimeSync() {
     const clearReconcileTimers = () => {
       if (notificationPollTimer !== null) window.clearInterval(notificationPollTimer);
       if (fullReconcileTimer !== null) window.clearInterval(fullReconcileTimer);
+      if (sessionHealTimer !== null) window.clearInterval(sessionHealTimer);
       notificationPollTimer = null;
       fullReconcileTimer = null;
+      sessionHealTimer = null;
     };
     const cancelPendingCaseNative = (caseId: string) => {
       const timer = pendingCaseNativeTimers.get(caseId);
@@ -175,6 +199,7 @@ export function DesktopRealtimeSync() {
           const sent = await sendDesktopNativeNotification({
             title: label ? `Caso atualizado · ${label}` : "Caso atualizado",
             body: "Um caso ao qual você tem acesso recebeu uma atualização.",
+            data: { route: `/cases/${encodeURIComponent(caseId)}`, caseId },
           });
           if (sent) deliveredNativeIds.add(dedupeKey);
         })();
@@ -193,12 +218,19 @@ export function DesktopRealtimeSync() {
       const alreadySeen = seenNotificationIds.has(id);
       seenNotificationIds.add(id);
       rememberNotificationCursor(row);
-      const relatedCaseId = String((row.metadata as any)?.case_id ?? "");
+      const relatedCaseId = String((row.metadata as any)?.case_id ?? row.case_id ?? "");
       if (relatedCaseId) cancelPendingCaseNative(relatedCaseId);
+
+      void upsertLocalNotifications([row as any]).catch((error) => {
+        console.warn("[DentalFlow Desktop] Cache local de notificação adiado", error);
+      });
       broadcastEntity("notifications", "insert", row);
       queryClient.setQueryData<any[]>(["notifications"], (old = []) =>
-        old.some((item) => item?.id === row.id) ? old.map((item) => item?.id === row.id ? { ...item, ...row } : item) : [row, ...old],
+        old.some((item) => item?.id === row.id)
+          ? old.map((item) => item?.id === row.id ? { ...item, ...row } : item)
+          : [row, ...old],
       );
+      window.dispatchEvent(new CustomEvent("dentalflow:notifications-updated", { detail: row }));
       if (!alreadySeen) {
         void notifyNativeIfBackground(row);
         if (emitUiEvent) window.dispatchEvent(new CustomEvent("dentalflow:realtime-notification", { detail: row }));
@@ -210,22 +242,38 @@ export function DesktopRealtimeSync() {
       if (!id) return;
       queryClient.setQueryData<any[]>(["notifications"], (old = []) => old.filter((item) => String(item?.id ?? "") !== id));
       broadcastEntity("notifications", "delete", row);
+      window.dispatchEvent(new CustomEvent("dentalflow:notifications-updated", { detail: row }));
     };
 
-    // This catch-up runs in foreground AND background. Realtime is the low-latency
-    // path; this overlap-window reconciliation is the delivery guarantee when a
-    // WebView channel/token transition misses an event.
+    const healSession = async () => {
+      if (disposed || healingSession || navigator.onLine === false) return null;
+      healingSession = true;
+      try {
+        const healed = await recoverDesktopCloudSession();
+        if (healed?.user?.id) currentUserId = healed.user.id;
+        return healed;
+      } catch (error) {
+        console.warn("[DentalFlow Desktop] Sessão online aguardando revalidação", error);
+        return null;
+      } finally {
+        healingSession = false;
+      }
+    };
+
+    // Realtime is the low-latency path. The overlap-window poll is the delivery
+    // guarantee for suspended WebViews, token transitions and brief disconnects.
     const pollNotifications = async () => {
-      if (disposed || pollingNotifications || navigator.onLine === false || !currentUserId) return;
+      if (disposed || pollingNotifications || navigator.onLine === false) return;
       pollingNotifications = true;
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (!sessionData.session || sessionData.session.user.user_metadata?.dentalflow_offline_device) return;
-        currentUserId = sessionData.session.user.id;
+        const healed = await healSession();
+        const userId = healed?.user?.id ?? currentUserId;
+        if (!userId) return;
+        currentUserId = userId;
         const { data, error } = await supabase
           .from("notifications")
           .select("*")
-          .eq("recipient_id", currentUserId)
+          .eq("recipient_id", userId)
           .gte("created_at", cursorWithOverlap(notificationCursor))
           .order("created_at", { ascending: true })
           .limit(BACKGROUND_NOTIFICATION_BATCH);
@@ -245,9 +293,9 @@ export function DesktopRealtimeSync() {
       if (disposed || reconciling || navigator.onLine === false) return;
       reconciling = true;
       try {
-        const { data } = await supabase.auth.getSession();
-        if (!data.session || data.session.user.user_metadata?.dentalflow_offline_device) return;
-        currentUserId = data.session.user.id;
+        const healed = await healSession();
+        if (!healed) return;
+        currentUserId = healed.user.id;
         await pollNotifications();
         try {
           const { syncPendingNotificationChanges } = await import("@/lib/notifications-local-first");
@@ -255,7 +303,6 @@ export function DesktopRealtimeSync() {
         } catch (error) {
           console.warn("[DentalFlow Desktop] Outbox de notificações aguardará a próxima reconciliação", error);
         }
-        // Only active observers refetch; hidden/unmounted screens keep their cache.
         void queryClient.invalidateQueries({ queryKey: ["cases"], refetchType: "active" });
         void queryClient.invalidateQueries({ queryKey: ["case_activity"], refetchType: "active" });
         void queryClient.invalidateQueries({ queryKey: ["case_attachments"], refetchType: "active" });
@@ -268,11 +315,15 @@ export function DesktopRealtimeSync() {
     };
 
     const startReconcileTimers = () => {
-      if (notificationPollTimer === null) {
-        notificationPollTimer = window.setInterval(() => void pollNotifications(), NOTIFICATION_RECONCILE_MS);
-      }
-      if (fullReconcileTimer === null) {
-        fullReconcileTimer = window.setInterval(() => void reconcileActiveData(), FULL_RECONCILE_MS);
+      if (notificationPollTimer === null) notificationPollTimer = window.setInterval(() => void pollNotifications(), NOTIFICATION_RECONCILE_MS);
+      if (fullReconcileTimer === null) fullReconcileTimer = window.setInterval(() => void reconcileActiveData(), FULL_RECONCILE_MS);
+      if (sessionHealTimer === null) {
+        sessionHealTimer = window.setInterval(() => {
+          void healSession().then((session) => {
+            if (!session || disposed) return;
+            if (!channel) void connect();
+          });
+        }, SESSION_HEAL_MS);
       }
     };
 
@@ -297,11 +348,11 @@ export function DesktopRealtimeSync() {
       if (disposed || connecting || channel || navigator.onLine === false) return;
       connecting = true;
       try {
-        const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } } as any));
-        const user = data.session?.user;
-        if (!user || user.user_metadata?.dentalflow_offline_device) {
+        const healed = await healSession();
+        const user = healed?.user;
+        if (!user) {
           const identity = await getProvisionedDesktopIdentity().catch(() => null);
-          currentUserId = user?.id ?? identity?.user_id ?? currentUserId;
+          currentUserId = identity?.user_id ?? currentUserId;
           startReconcileTimers();
           queueReconnect();
           return;
@@ -310,7 +361,7 @@ export function DesktopRealtimeSync() {
         currentUserId = user.id;
 
         const next = supabase
-          .channel(`desktop-realtime-035:${user.id}:${crypto.randomUUID()}`)
+          .channel(`desktop-realtime-040:${user.id}:${crypto.randomUUID()}`)
           .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications", filter: `recipient_id=eq.${user.id}` },
             (payload) => ingestNotification(payload.new as Record<string, any>, true))
           .on("postgres_changes", { event: "UPDATE", schema: "public", table: "notifications", filter: `recipient_id=eq.${user.id}` },
@@ -318,14 +369,21 @@ export function DesktopRealtimeSync() {
               const row = payload.new as Record<string, any>;
               rememberNotificationCursor(row);
               if (row?.id) seenNotificationIds.add(String(row.id));
+              void upsertLocalNotifications([row as any]).catch(() => undefined);
               broadcastEntity("notifications", "update", row);
               queryClient.setQueryData<any[]>(["notifications"], (old = []) => old.map((item) => item?.id === row.id ? { ...item, ...row } : item));
+              window.dispatchEvent(new CustomEvent("dentalflow:notifications-updated", { detail: row }));
             })
           .on("postgres_changes", { event: "DELETE", schema: "public", table: "notifications" },
             (payload) => removeNotification(payload.old as Record<string, any>))
           .on("postgres_changes", { event: "*", schema: "public", table: "case_activity" },
             (payload) => {
               const row = (payload.eventType === "DELETE" ? payload.old : payload.new) as Record<string, any>;
+              if (payload.eventType !== "DELETE" && row?.id && row?.case_id) {
+                void upsertLocalCaseActivities([row as any]).catch((error) => {
+                  console.warn("[DentalFlow Desktop] Cache local do chat aguardará reconciliação", error);
+                });
+              }
               broadcastEntity("case_activity", payload.eventType.toLowerCase() as any, row);
               if (row?.case_id) scheduleInvalidation("cases", String(row.case_id));
               window.dispatchEvent(new CustomEvent("dentalflow:realtime-case-activity", { detail: row }));
@@ -372,18 +430,24 @@ export function DesktopRealtimeSync() {
       }
     };
 
-    const onOnline = () => {
+    const forceOnlineRecovery = () => {
+      if (disposed || navigator.onLine === false) return;
       teardownChannel();
       startReconcileTimers();
-      void connect().then(() => reconcileActiveData());
+      void healSession().then(() => connect()).then(() => reconcileActiveData());
     };
+    const onOnline = () => forceOnlineRecovery();
     const onOffline = () => teardownChannel();
     const onVisibility = () => {
-      if (navigator.onLine !== false && !channel) void connect();
-      void reconcileActiveData();
+      if (document.visibilityState === "visible") forceOnlineRecovery();
+      else void pollNotifications();
     };
-    const onWindowFocus = () => void reconcileActiveData();
+    const onWindowFocus = () => forceOnlineRecovery();
     const onWindowBlur = () => void pollNotifications();
+    const onCloudSessionRestored = () => {
+      if (!channel) void connect();
+      void pollNotifications();
+    };
 
     void connect();
     startReconcileTimers();
@@ -391,6 +455,7 @@ export function DesktopRealtimeSync() {
     window.addEventListener("offline", onOffline);
     window.addEventListener("focus", onWindowFocus);
     window.addEventListener("blur", onWindowBlur);
+    window.addEventListener("dentalflow:desktop-cloud-session-restored", onCloudSessionRestored);
     document.addEventListener("visibilitychange", onVisibility);
 
     const auth = supabase.auth.onAuthStateChange((event) => {
@@ -421,6 +486,7 @@ export function DesktopRealtimeSync() {
       window.removeEventListener("offline", onOffline);
       window.removeEventListener("focus", onWindowFocus);
       window.removeEventListener("blur", onWindowBlur);
+      window.removeEventListener("dentalflow:desktop-cloud-session-restored", onCloudSessionRestored);
       document.removeEventListener("visibilitychange", onVisibility);
       authSubscription?.unsubscribe();
       teardownChannel();
