@@ -105,6 +105,16 @@ export async function sendDesktopNativeNotification(input: { title: string; body
   }
 }
 
+export async function playDesktopNotificationSound() {
+  if (!isDentalFlowDesktop()) return false;
+  try {
+    return await invokeDesktop<boolean>("desktop_notification_sound");
+  } catch (error) {
+    console.warn("[DentalFlow Desktop] Não foi possível reproduzir o som nativo da notificação", error);
+    return false;
+  }
+}
+
 export function getProvisionedDesktopIdentity() {
   if (!isDentalFlowDesktop()) return Promise.resolve<DeviceIdentity | null>(null);
   return invokeDesktop<DeviceIdentity | null>("device_identity_get");
