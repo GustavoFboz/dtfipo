@@ -36,7 +36,27 @@
     "active": true,
     "targets": ["nsis"],
     "createUpdaterArtifacts": false,
+    "icon": ["icons/icon.ico"],
     "shortDescription": "Hub empresarial para clínicas, laboratórios e radiologia odontológica",
-    "longDescription": "DentalFlow Desktop — hub empresarial odontológico com sessões de Laboratório, Clínica e Radiologia, operação local-first, sincronização automática e integrações do Windows."
+    "longDescription": "DentalFlow Desktop — hub empresarial odontológico com sessões de Laboratório, Clínica e Radiologia, operação local-first, sincronização automática e integrações do Windows.",
+    "windows": {
+      "allowDowngrades": false,
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["PortugueseBR"],
+        "displayLanguageSelector": false,
+        "compression": "lzma",
+        "startMenuFolder": "DentalFlow",
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "headerImage": "windows/installer-header.bmp",
+        "uninstallerHeaderImage": "windows/installer-header.bmp",
+        "sidebarImage": "windows/installer-sidebar.bmp"
+      }
+    }
   }
 }
