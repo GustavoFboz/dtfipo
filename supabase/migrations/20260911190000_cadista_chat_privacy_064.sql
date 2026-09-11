@@ -6,7 +6,7 @@
 
 create or replace function public.case_cadista_assignment_started_at(
   _case_id uuid,
-  _user_id uuid
+  _user_id uuid default auth.uid()
 )
 returns timestamptz
 language sql
@@ -14,16 +14,22 @@ stable
 security definer
 set search_path = public
 as $$
-  select ca.created_at
-  from public.case_activity ca
-  join public.cases c on c.id = _case_id
-  join public.cadistas current_cd on current_cd.id = c.cadista_id
-  where ca.case_id = _case_id
-    and current_cd.user_id = _user_id
-    and coalesce(ca.metadata ->> 'event_key', '') = 'case_cadista_reassigned'
-    and coalesce(ca.metadata ->> 'cadista_user_id', '') = _user_id::text
-  order by ca.created_at desc
-  limit 1
+  select coalesce(
+    (
+      select max(a.created_at)
+      from public.case_activity a
+      cross join lateral jsonb_array_elements(coalesce(a.metadata->'changes','[]'::jsonb)) ch
+      where a.case_id = c.id
+        and a.kind = 'case_edit'
+        and ch->>'field' = 'cadista_id'
+        and nullif(ch->>'to','')::uuid = c.cadista_id
+    ),
+    c.created_at
+  )
+  from public.cases c
+  join public.cadistas cd on cd.id = c.cadista_id
+  where c.id = _case_id
+    and cd.user_id = _user_id
 $$;
 
 create or replace function public.case_activity_visible_to_user(
