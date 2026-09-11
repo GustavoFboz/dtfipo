@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TopProgressBar } from "@/components/TopProgressBar";
 import { UploadProgressDock } from "@/components/UploadProgressDock";
 import { DesktopLocalRuntimeBridge } from "@/components/DesktopLocalRuntimeBridge";
+import { DesktopNotificationSoundBridge } from "@/components/DesktopNotificationSoundBridge";
 import { DesktopNativeFrame } from "@/components/DesktopNativeFrame";
 import { ConfirmHost } from "@/lib/confirm";
 import { tryAutoConnectPrinter } from "@/lib/print-note/bluetooth";
@@ -115,6 +116,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <DesktopLocalRuntimeBridge />
+      <DesktopNotificationSoundBridge />
       <SessionLifecycleBridge />
       <DesktopNativeFrame>
         <TopProgressBar />
