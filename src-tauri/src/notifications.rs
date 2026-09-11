@@ -1,48 +1,17 @@
 use tauri::AppHandle;
 use tauri_plugin_notification::NotificationExt;
 
-#[cfg(target_os = "windows")]
-#[link(name = "winmm")]
-extern "system" {
-    fn PlaySoundW(psz_sound: *const u16, hmod: isize, fdw_sound: u32) -> i32;
-}
-
-#[cfg(target_os = "windows")]
-#[link(name = "user32")]
-extern "system" {
-    fn MessageBeep(u_type: u32) -> i32;
-}
-
 fn truncate_chars(value: &str, max_chars: usize) -> String {
     value.chars().take(max_chars).collect()
 }
 
-fn play_native_notification_sound() -> bool {
-    #[cfg(target_os = "windows")]
-    unsafe {
-        // Use the same Windows notification sound class used by regular native
-        // applications. This avoids WebView autoplay latency and follows the
-        // user's Windows sound scheme/volume. MessageBeep remains a fallback for
-        // systems where the Notification.Default alias is unavailable.
-        const SND_ASYNC: u32 = 0x0001;
-        const SND_NODEFAULT: u32 = 0x0002;
-        const SND_ALIAS: u32 = 0x0001_0000;
-        let alias: Vec<u16> = "Notification.Default\0".encode_utf16().collect();
-        if PlaySoundW(alias.as_ptr(), 0, SND_ALIAS | SND_ASYNC | SND_NODEFAULT) != 0 {
-            return true;
-        }
-        return MessageBeep(0x0000_0040) != 0;
-    }
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        false
-    }
-}
-
 #[tauri::command]
 pub fn desktop_notification_sound() -> bool {
-    play_native_notification_sound()
+    // The actual notification sound is attached to the Windows toast itself in
+    // `desktop_native_notification`. Keeping this command available avoids
+    // breaking older frontend calls, but it no longer tries to emulate WinRT
+    // sound URIs through the legacy winmm PlaySound alias API.
+    true
 }
 
 #[tauri::command]
@@ -65,14 +34,16 @@ pub fn desktop_native_notification(
     };
     let safe_body = truncate_chars(body, 420);
 
-    // Play immediately before registering the toast. It is asynchronous, so it
-    // does not add perceptible delay to notification delivery.
-    let _ = play_native_notification_sound();
-
+    // IMPORTANT: on Windows this goes through notify-rust ->
+    // tauri-winrt-notification. `Default` is parsed as WinRT's
+    // ms-winsoundevent:Notification.Default, so the audio is part of the same
+    // native toast instead of being fired separately through legacy winmm.
+    // This preserves the low-latency realtime path and avoids double sounds.
     app.notification()
         .builder()
         .title(safe_title)
         .body(safe_body)
+        .sound("Default")
         .show()
         .map_err(|error| format!("Falha ao exibir notificação nativa: {error}"))?;
 
