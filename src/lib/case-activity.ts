@@ -179,6 +179,13 @@ async function notifyViaServer(opts: StakeholderNotificationOptions): Promise<bo
 }
 
 export async function notifyCaseStakeholders(opts: StakeholderNotificationOptions) {
+  // Since 0.4.1, attachment INSERT/DELETE events are authoritative in the
+  // database trigger `trg_notify_case_attachment_v041`. Keeping the historical
+  // client-side notification call active created a second row for the same file
+  // event (and therefore two web/native alerts). Preserve the call sites for
+  // compatibility, but make attachment delivery single-source and deterministic.
+  if ((opts.type ?? "case").toLowerCase() === "attachment") return;
+
   if (await queueOfflineStakeholderNotifications(opts)) return;
 
   // 0.3.5: recipient discovery and insertion are authoritative on the server.

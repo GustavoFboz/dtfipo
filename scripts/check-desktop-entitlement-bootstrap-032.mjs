@@ -14,7 +14,7 @@ function expect(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-expect(/^0\.[34]\.\d+$/.test(currentVersion), `Unexpected DentalFlow Desktop release version: ${currentVersion || "missing"}.`);
+expect(currentVersion === "0.6.3", `Unexpected DentalFlow Desktop release version: ${currentVersion || "missing"}.`);
 expect(vite.includes("subscriptions.desktop.ts"), "Desktop build must route subscriptions through its local-first facade.");
 expect(subscriptions.includes('const SUBSCRIPTION_CACHE_NAMESPACE = "subscription-context:v2"'), "Desktop entitlement must use the durable subscription cache.");
 expect(subscriptions.includes("locallySafeContext"), "Cached subscription access must be normalized before offline use.");
@@ -43,7 +43,7 @@ expect(gate.includes('"subscription-context:v2"'), "Desktop readiness must requi
 expect(gate.includes("subscriptionCached"), "Desktop readiness diagnostics must track subscription cache readiness.");
 expect(gate.includes("verified && profileReady && clinicCached && subscriptionCached"), "First offline readiness must include profile, Clinic and paid entitlement.");
 expect(gate.includes("DentalFlow"), "The visible readiness gate must remain branded as DentalFlow.");
-expect(!gate.includes("DentalFlow Desktop 0.3.3"), "The readiness UI must not retain a stale hard-coded 0.3.3 release label.");
+expect(gate.includes("DentalFlow Desktop 0.6.3"), "The readiness UI must identify the 0.6.3 release.");
 
 expect(sync.includes("syncDesktopCriticalData"), "Desktop sync must expose a critical first-install phase.");
 expect(sync.includes("syncDesktopAuxiliaryData"), "Desktop sync must expose a non-blocking auxiliary phase.");

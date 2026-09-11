@@ -54,13 +54,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Verify release metadata 0.4.x
+      - name: Verify release metadata 0.6.3
         shell: pwsh
         run: |
           $tauriConfig = Get-Content "src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json
           $cargo = Get-Content "src-tauri/Cargo.toml" -Raw
           $version = [string]$tauriConfig.version
-          if ($version -notmatch '^0\.4\.\d+$') { throw "Tauri release is not in the 0.4.x family: $version" }
+          if ($version -ne '0.6.3') { throw "Tauri release must be 0.6.3: $version" }
           $escaped = [regex]::Escape($version)
           if ($cargo -notmatch "(?m)^version\s*=\s*`"$escaped`"") { throw "Rust package version does not match Tauri $version" }
           Write-Host "DentalFlow Desktop release: $version"
@@ -136,7 +136,7 @@ jobs:
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
         with:
-          name: DentalFlow-Windows-0.4.0
+          name: DentalFlow-Windows-0.6.3
           if-no-files-found: error
           retention-days: 14
           path: |
