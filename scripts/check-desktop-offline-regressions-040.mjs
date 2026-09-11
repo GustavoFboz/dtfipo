@@ -8,19 +8,19 @@ const source = fs.readFileSync(sourcePath, "utf8");
 const tauriConfig = JSON.parse(fs.readFileSync(tauriPath, "utf8"));
 const currentVersion = String(tauriConfig.version || "").trim();
 
-if (!/^0\.4\.\d+$/.test(currentVersion)) {
-  throw new Error(`Unexpected DentalFlow Desktop 0.4.x version: ${currentVersion || "missing"}.`);
+if (currentVersion !== "0.6.3") {
+  throw new Error(`Unexpected DentalFlow Desktop release: ${currentVersion || "missing"}; expected 0.6.3.`);
 }
 
-// Preserve the historical contract while adapting only guarantees deliberately
-// strengthened in 0.4.x: faster notification catch-up, explicit cloud-session
-// healing, canonical case notifications and the visible 0.4 release marker.
+// Preserve the historical offline/realtime contract while adapting only
+// guarantees deliberately strengthened since 0.4.x: faster notification catch-up,
+// explicit cloud-session healing and canonical case notifications.
 const adapted = source
   .replaceAll('"version": "0.3.2"', `"version": "${currentVersion}"`)
   .replaceAll("Desktop version must be 0.3.2.", `Desktop version must be ${currentVersion}.`)
-  .replaceAll('DentalFlow Desktop 0.3.', 'DentalFlow Desktop 0.4.')
+  .replaceAll('DentalFlow Desktop 0.3.', 'DentalFlow Desktop 0.6.')
   .replaceAll('NOTIFICATION_RECONCILE_MS = 8_000', 'NOTIFICATION_RECONCILE_MS = 1_200')
-  .replaceAll('Notification reconciliation must remain low-latency in 0.3.5.', 'Notification reconciliation must remain low-latency in 0.4.1.')
+  .replaceAll('Notification reconciliation must remain low-latency in 0.3.5.', 'Notification reconciliation must remain low-latency in 0.6.3.')
   .replaceAll('FULL_RECONCILE_MS = 12_000', 'FULL_RECONCILE_MS = 15_000')
   .replaceAll(
     'expect(realtime.includes("scheduleNativeCaseUpdate"), "Background case changes must surface as native notifications.");',
