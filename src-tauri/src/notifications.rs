@@ -25,7 +25,7 @@ fn play_native_notification_sound() -> bool {
         // "Notification.Default", which is not a dependable WinMM alias and can
         // succeed silently depending on the machine's sound scheme. Keep two
         // aliases plus the standard system asterisk/beep as fallbacks so a
-        // received DentalFlow toast never depends on a WebView audio policy.
+        // received DentalFlow notification never depends on WebView audio.
         const SND_ASYNC: u32 = 0x0001;
         const SND_NODEFAULT: u32 = 0x0002;
         const SND_ALIAS: u32 = 0x0001_0000;
@@ -75,10 +75,9 @@ pub fn desktop_native_notification(
     };
     let safe_body = truncate_chars(body, 420);
 
-    // Sound is dispatched independently from the Windows toast. It remains
-    // asynchronous, so this cannot reintroduce latency into the realtime path.
-    let _ = play_native_notification_sound();
-
+    // Sound is dispatched once by DesktopNotificationSoundBridge for every new
+    // canonical notification, regardless of whether the window is focused.
+    // Keeping the toast command silent prevents a double sound in background.
     app.notification()
         .builder()
         .title(safe_title)
