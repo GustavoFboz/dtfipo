@@ -2,7 +2,7 @@ import type { CaseRow } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 import { createQrSvg } from "./qr";
 import type { CaseNotePrinterSettings } from "./printer-settings";
-import { resolveCaseNotePaper } from "./printer-settings";
+import { resolveCaseNotePaper } from "./printer-settings";\nimport { isNativeMobileApp, printHtmlNative } from "@/lib/mobile/native";
 
 type ImplantComponentLine = { tooth: number; text: string };
 type StockItemLite = { id: string; name: string | null; brand: string | null; block_type: string | null };
