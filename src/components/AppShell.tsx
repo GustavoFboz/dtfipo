@@ -629,9 +629,11 @@ export function AppShell() {
           <div className="h-9 w-9 rounded-full bg-[#4a9bff] grid place-items-center shrink-0 shadow-[0_4px_12px_-4px_rgba(74,155,255,0.55)]">
             <span className="text-white text-[15px] font-semibold leading-none">D</span>
           </div>
-          <div className="text-[15px] tracking-[0.02em] text-slate-800 dark:text-slate-100 truncate">
-            <span className="font-light">DENTAL</span>
-            <span className="font-bold">FLOW</span>
+          <div className="min-w-0 leading-tight">
+            <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#4a9bff]">DentalFlow</div>
+            <div className="mt-0.5 truncate text-[15px] font-medium tracking-[-0.02em] text-slate-800 dark:text-slate-100">
+              {getMobilePageTitle(pathname, filteredNavItems)}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-3 ml-auto shrink-0">
@@ -689,12 +691,15 @@ export function AppShell() {
         className="md:hidden fixed inset-x-0 z-50 pointer-events-none flex justify-center px-5"
         style={{ bottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
       >
-        <div className={`pointer-events-auto w-full max-w-md rounded-full bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-[0_18px_44px_-12px_rgba(15,23,42,0.22),0_6px_16px_-8px_rgba(15,23,42,0.12)] border border-white/60 dark:border-white/5 grid grid-cols-4 h-[68px] px-3 transition-all duration-300 ${dialogOpen ? "pointer-events-none blur-md grayscale-[0.05] brightness-[0.98] opacity-[0.98]" : ""}`}>
+        <div className={`pointer-events-auto w-full max-w-md rounded-full bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl shadow-[0_18px_44px_-12px_rgba(15,23,42,0.22),0_6px_16px_-8px_rgba(15,23,42,0.12)] border border-white/60 dark:border-white/5 grid grid-cols-4 h-[72px] px-3 transition-all duration-300 ${dialogOpen ? "pointer-events-none blur-md grayscale-[0.05] brightness-[0.98] opacity-[0.98]" : ""}`}>
           {(() => {
+            const preferred = ["/casos", "/mensagens"];
             const items = [
               { to: "/", label: "Início", icon: Home as any },
-              ...filteredNavItems.filter((n) => n.to !== "/casos").slice(0, 2),
-            ];
+              ...preferred
+                .map((to) => filteredNavItems.find((item) => item.to === to))
+                .filter(Boolean),
+            ] as any[];
             return items.map((n) => {
               const active = n.to === "/" ? pathname === "/" : pathname.startsWith(n.to);
               const showBadge =
@@ -719,11 +724,11 @@ export function AppShell() {
                       <span className="absolute -top-0.5 -right-1 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
                     )}
                   </div>
-                  <span
-                    className={`h-[3px] w-6 rounded-full transition-all ${
-                      active ? "bg-[#4a9bff] opacity-100" : "bg-transparent opacity-0"
-                    }`}
-                  />
+                  <span className={`text-[10px] font-medium tracking-[-0.01em] transition-colors ${
+                    active ? "text-[#4a9bff]" : "text-slate-400 dark:text-slate-500"
+                  }`}>
+                    {n.label}
+                  </span>
                 </Link>
               );
             });
@@ -737,7 +742,7 @@ export function AppShell() {
                     <span className="absolute -top-0.5 -right-1 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
                   )}
                 </div>
-                <span className="h-[3px] w-6 rounded-full bg-transparent" />
+                <span className="text-[10px] font-medium tracking-[-0.01em]">Mais</span>
               </button>
             </SheetTrigger>
             <SheetContent side="bottom" className="rounded-t-3xl border-0 p-0 max-h-[85vh] flex flex-col bg-white dark:bg-slate-900">
