@@ -1,0 +1,95 @@
+name: DentalFlow Android Mobile
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "mobile/android-*"
+    paths:
+      - "src/**"
+      - "src-tauri/**"
+      - "package.json"
+      - "bun.lock"
+      - "vite.desktop.config.ts"
+      - ".github/workflows/mobile-android.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-android-apk:
+    name: Build Android APK 0.1.0
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform and NDK
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Install frontend dependencies
+        run: bun install
+
+      - name: Verify Android metadata
+        shell: bash
+        run: |
+          test "$(jq -r '.version' src-tauri/tauri.android.conf.json)" = "0.1.0"
+          test "$(jq -r '.identifier' src-tauri/tauri.android.conf.json)" = "br.com.dentalflow.mobile"
+
+      - name: Initialize Tauri Android project
+        run: bunx @tauri-apps/cli@2 android init --ci
+
+      - name: Build DentalFlow Android APK
+        run: bunx @tauri-apps/cli@2 android build --apk --target aarch64
+
+      - name: Locate APK
+        id: apk
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="$(find src-tauri/gen/android -type f -name '*.apk' | grep -E '/release/|/apk/' | head -n 1 || true)"
+          if [ -z "$APK" ]; then
+            APK="$(find src-tauri/gen/android -type f -name '*.apk' | head -n 1 || true)"
+          fi
+          if [ -z "$APK" ]; then
+            echo "APK não encontrado após o build"
+            find src-tauri/gen/android -maxdepth 8 -type f | sort | tail -n 200
+            exit 1
+          fi
+          cp "$APK" DentalFlow_Android_0.1.0_arm64.apk
+          sha256sum DentalFlow_Android_0.1.0_arm64.apk
+
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DentalFlow-Android-0.1.0
+          path: DentalFlow_Android_0.1.0_arm64.apk
+          if-no-files-found: error
+          retention-days: 14
