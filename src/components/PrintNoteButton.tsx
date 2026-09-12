@@ -7,7 +7,7 @@ import { printNoteBluetooth } from "@/lib/print-note/print";
 import { bluetoothSupported } from "@/lib/print-note/bluetooth";
 import { printCaseNoteSystem } from "@/lib/print-note/system-print";
 import { printCaseNoteDirectDesktop } from "@/lib/print-note/desktop-print";
-import { isDentalFlowDesktop } from "@/lib/desktop-local";
+import { isDentalFlowWindowsDesktop } from "@/lib/desktop-local";
 import {
   CASE_NOTE_PAPERS,
   loadCaseNotePrinterSettings,
@@ -27,7 +27,7 @@ type Variant = "pill" | "icon";
 const globalPrintLock = new Set<string>();
 
 export function PrintNoteButton({ caseRow, variant = "pill" }: { caseRow: CaseRow; variant?: Variant }) {
-  const desktop = isDentalFlowDesktop();
+  const desktop = isDentalFlowWindowsDesktop();
   const [busy, setBusy] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [setupReason, setSetupReason] = useState<string | null>(null);
