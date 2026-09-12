@@ -274,7 +274,12 @@ export function markOutbox(
   lastError: string | null = null,
 ) {
   if (mobileLocal.isNativeMobileLocalRuntime()) return mobileLocal.mobileMarkOutbox(ownerId, id, status, lastError);
-  return invokeDesktop<void>("outbox_mark", { ownerId, id, status, lastError });
+  return invokeDesktop<void>("outbox_mark", {
+    ownerId,
+    id,
+    status,
+    lastError,
+  });
 }
 
 export function clearDoneOutbox(ownerId: string) {
