@@ -103,7 +103,7 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            set -euo pipefail
+            set -eu
             PACKAGE="br.com.dentalflow.mobile"
             ACTIVITY="br.com.dentalflow.mobile/.MainActivity"
             APK="android/app/build/outputs/apk/debug/app-debug.apk"
