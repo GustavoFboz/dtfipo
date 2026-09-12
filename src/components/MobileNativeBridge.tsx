@@ -25,6 +25,7 @@ function notificationId(value: unknown) {
 export function MobileNativeBridge() {
   useEffect(() => {
     if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return;
+    document.documentElement.dataset.dentalflowMobileNative = "true";
 
     let disposed = false;
     const handles: Array<{ remove: () => Promise<void> }> = [];
@@ -123,6 +124,7 @@ export function MobileNativeBridge() {
       disposed = true;
       window.removeEventListener("dentalflow:realtime-notification", onCanonicalNotification as EventListener);
       for (const handle of handles) void handle.remove();
+      delete document.documentElement.dataset.dentalflowMobileNative;
     };
   }, []);
 
