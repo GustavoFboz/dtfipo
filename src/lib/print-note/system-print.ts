@@ -2,7 +2,8 @@ import type { CaseRow } from "@/lib/types";
 import { supabase } from "@/integrations/supabase/client";
 import { createQrSvg } from "./qr";
 import type { CaseNotePrinterSettings } from "./printer-settings";
-import { resolveCaseNotePaper } from "./printer-settings";\nimport { isNativeMobileApp, printHtmlNative } from "@/lib/mobile/native";
+import { resolveCaseNotePaper } from "./printer-settings";
+import { isNativeMobileApp, printHtmlNative } from "@/lib/mobile/native";
 
 type ImplantComponentLine = { tooth: number; text: string };
 type StockItemLite = { id: string; name: string | null; brand: string | null; block_type: string | null };
@@ -75,6 +76,10 @@ export async function buildCaseNoteSystemHtml(caseRow:CaseRow,settings:CaseNoteP
 }
 export async function printCaseNoteSystem(caseRow:CaseRow,settings:CaseNotePrinterSettings):Promise<void>{
   const html=await buildCaseNoteSystemHtml(caseRow,settings);
+  if (isNativeMobileApp()) {
+    await printHtmlNative(html, `DentalFlow - Caso ${caseDisplayNumber(caseRow)}`);
+    return;
+  }
   const iframe=document.createElement("iframe");
   iframe.setAttribute("aria-hidden","true");
   iframe.style.cssText="position:fixed;left:-10000px;top:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none";
