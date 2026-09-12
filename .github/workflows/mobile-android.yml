@@ -102,34 +102,9 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          script: |
-            set -eu
-            PACKAGE="br.com.dentalflow.mobile"
-            ACTIVITY="br.com.dentalflow.mobile/.MainActivity"
-            APK="android/app/build/outputs/apk/debug/app-debug.apk"
-
-            adb install -r "$APK"
-            adb logcat -c
-            adb shell am force-stop "$PACKAGE" || true
-            adb shell am start -W -n "$ACTIVITY"
-            sleep 8
-
-            PID="$(adb shell pidof "$PACKAGE" | tr -d '\r' || true)"
-            if [ -z "$PID" ]; then
-              echo "DentalFlow Android process exited during startup."
-              adb logcat -d -v threadtime | tail -n 500
-              exit 1
-            fi
-
-            adb shell dumpsys activity activities | grep -F "$PACKAGE" >/dev/null
-            adb logcat -d -v threadtime > android-startup.log
-            if grep -E "FATAL EXCEPTION|Process: br\.com\.dentalflow\.mobile.*has died" android-startup.log; then
-              echo "Fatal Android startup error detected."
-              tail -n 500 android-startup.log
-              exit 1
-            fi
-
-            echo "DentalFlow Android stayed alive after cold launch (pid $PID)."
+          # The emulator action evaluates each inline line in a separate `sh -c`.
+          # Keep stateful variables and checks in one versioned POSIX script.
+          script: sh scripts/smoke-test-android.sh
 
       - name: Prepare APK
         shell: bash
