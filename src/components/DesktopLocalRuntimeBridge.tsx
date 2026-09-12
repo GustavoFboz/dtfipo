@@ -1,11 +1,11 @@
 import { useEffect } from "react";
-import { getDesktopRuntimeInfo, isDentalFlowDesktop } from "@/lib/desktop-local";
+import { getDesktopRuntimeInfo, isDentalFlowWindowsDesktop } from "@/lib/desktop-local";
 
 const READY_EVENT = "dentalflow:desktop-local-ready";
 
 export function DesktopLocalRuntimeBridge() {
   useEffect(() => {
-    if (!isDentalFlowDesktop()) return;
+    if (!isDentalFlowWindowsDesktop()) return;
 
     let disposed = false;
     document.documentElement.dataset.dentalflowDesktop = "initializing";
