@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Home } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { isDentalFlowDesktop } from "@/lib/desktop-local";
+import { isDentalFlowWindowsDesktop } from "@/lib/desktop-local";
 
 /**
  * O AppShell do laboratório troca para o cabeçalho mobile abaixo do breakpoint
@@ -16,7 +16,7 @@ export function DesktopLabHomeShortcut() {
   const [desktop, setDesktop] = useState(false);
 
   useEffect(() => {
-    setDesktop(isDentalFlowDesktop());
+    setDesktop(isDentalFlowWindowsDesktop());
   }, []);
 
   if (!desktop) return null;
