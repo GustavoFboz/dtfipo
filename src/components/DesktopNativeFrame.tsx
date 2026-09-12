@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   getDesktopWindowState,
-  isDentalFlowDesktop,
+  isDentalFlowWindowsDesktop,
   performDesktopWindowAction,
 } from "@/lib/desktop-local";
 import "@/desktop-native.css";
@@ -92,7 +92,7 @@ export function DesktopNativeFrame({ children }: { children: ReactNode }) {
   const resizeStateTimer = useRef<number | null>(null);
 
   useEffect(() => {
-    setDesktop(isDentalFlowDesktop());
+    setDesktop(isDentalFlowWindowsDesktop());
   }, []);
 
   useEffect(() => {
