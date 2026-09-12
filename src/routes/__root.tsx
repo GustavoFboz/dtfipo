@@ -16,6 +16,7 @@ import { usePWANavGuard } from "@/hooks/use-pwa-nav-guard";
 import { useSessionLifecycle } from "@/hooks/use-session-lifecycle";
 import { logAuditEvent } from "@/lib/audit";
 import appCss from "../styles.css?url";
+import mobileCss from "../mobile-app.css?url";
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -58,6 +59,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "stylesheet", href: mobileCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Google+Sans+Display:wght@300;400;500;700&family=Google+Sans+Text:wght@400;500;700&display=swap" },
