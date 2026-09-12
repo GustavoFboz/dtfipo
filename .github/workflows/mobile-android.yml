@@ -1,4 +1,5 @@
 name: DentalFlow Android Mobile
+# Capacitor-only mobile release; Tauri remains exclusive to the Windows desktop client.
 
 on:
   workflow_dispatch:
