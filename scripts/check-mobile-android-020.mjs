@@ -12,6 +12,7 @@ const desktopLocal = read("src/lib/desktop-local.ts");
 const printButton = read("src/components/PrintNoteButton.tsx");
 const systemPrint = read("src/lib/print-note/system-print.ts");
 const workflow = read(".github/workflows/mobile-android.yml");
+const smokeTest = read("scripts/smoke-test-android.sh");
 const mobileCss = read("src/mobile-app.css");
 const soundPrepare = read("scripts/prepare-notification-sound.mjs");
 
@@ -27,6 +28,8 @@ expect(desktopLocal.includes("mobileLocal.isNativeMobileLocalRuntime()"), "Share
 expect(printButton.includes("isDentalFlowWindowsDesktop"), "Android printing must never be routed to Windows-only commands.");
 expect(systemPrint.includes("isNativeMobileApp()") && systemPrint.includes("printHtmlNative"), "Case-note printing must use the Android Print Framework bridge.");
 expect(workflow.includes("DentalFlow_Android_0.2.0.apk") && workflow.includes("versionName \"0.2.0\""), "Android release workflow must package version 0.2.0.");
+expect(workflow.includes("script: sh scripts/smoke-test-android.sh"), "Android emulator smoke test must run as one stateful POSIX shell process.");
+expect(smokeTest.includes('test -s "$apk"') && smokeTest.includes('adb install -r "$apk"'), "Android smoke test must validate and install the generated APK.");
 expect(mobileCss.includes("--df-mobile-blue") && mobileCss.includes('[role="dialog"][data-state="open"]'), "Mobile UI layer must keep touch/dialog adaptations.");
 expect(soundPrepare.includes("28416") || soundPrepare.includes("28_416"), "Custom notification sound integrity length must remain pinned.");
 expect(soundPrepare.includes("3ab06b76690800dee2c80b15f58583458d2973606dea0bdcbdae3806e99cb326"), "Custom notification sound integrity hash must remain pinned.");
