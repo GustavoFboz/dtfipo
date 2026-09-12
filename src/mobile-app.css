@@ -1,0 +1,174 @@
+/* DentalFlow Mobile 0.2.0 — high-value compact interface layer.
+   The web/desktop design remains unchanged above the mobile breakpoint. */
+@media (max-width: 767px) {
+  :root {
+    --df-mobile-blue: #2d7ff9;
+    --df-mobile-bg: #f6f8fc;
+    --df-mobile-card: rgba(255, 255, 255, 0.96);
+    --df-mobile-border: rgba(148, 163, 184, 0.16);
+    --df-mobile-radius: 22px;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+    background: var(--df-mobile-bg);
+  }
+
+  body {
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+  }
+
+  button,
+  a,
+  [role="button"],
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+
+  button,
+  [role="button"] {
+    min-height: 42px;
+  }
+
+  input:not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select,
+  [role="combobox"] {
+    min-height: 48px;
+    border-radius: 15px !important;
+    font-size: 16px !important;
+  }
+
+  textarea {
+    min-height: 108px;
+  }
+
+  [data-scroll-container="app"] {
+    padding-top: calc(4rem + env(safe-area-inset-top)) !important;
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom)) !important;
+    background:
+      radial-gradient(circle at 90% -10%, rgba(45, 127, 249, 0.09), transparent 33%),
+      var(--df-mobile-bg) !important;
+    scroll-behavior: smooth;
+  }
+
+  [data-scroll-container="app"] > div,
+  [data-scroll-container="app"] > div > div {
+    max-width: 100%;
+  }
+
+  /* Consistent premium content rhythm on all authenticated routes. */
+  [data-scroll-container="app"] main,
+  [data-scroll-container="app"] section {
+    max-width: 100%;
+  }
+
+  [data-scroll-container="app"] .container,
+  [data-scroll-container="app"] [class*="max-w-7xl"],
+  [data-scroll-container="app"] [class*="max-w-6xl"],
+  [data-scroll-container="app"] [class*="max-w-5xl"] {
+    width: 100% !important;
+    padding-left: 18px !important;
+    padding-right: 18px !important;
+  }
+
+  /* Make desktop grids naturally collapse without squeezing controls. */
+  [data-scroll-container="app"] [class*="grid-cols-2"],
+  [data-scroll-container="app"] [class*="grid-cols-3"],
+  [data-scroll-container="app"] [class*="grid-cols-4"],
+  [data-scroll-container="app"] [class*="grid-cols-5"],
+  [data-scroll-container="app"] [class*="grid-cols-6"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  [data-scroll-container="app"] [class*="rounded-xl"],
+  [data-scroll-container="app"] [class*="rounded-2xl"] {
+    border-color: var(--df-mobile-border);
+  }
+
+  [data-scroll-container="app"] table {
+    min-width: 680px;
+    font-size: 12px;
+  }
+
+  [data-scroll-container="app"] [class*="overflow-x-auto"],
+  [data-scroll-container="app"] [data-radix-scroll-area-viewport] {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Native-feeling dialogs and sheets: generous radius, safe-area aware,
+     no desktop-width modal floating awkwardly in a phone viewport. */
+  [role="dialog"][data-state="open"] {
+    width: calc(100vw - 20px) !important;
+    max-width: 620px !important;
+    max-height: calc(100dvh - env(safe-area-inset-top) - 18px) !important;
+    border-radius: 28px !important;
+    border: 1px solid rgba(148, 163, 184, 0.16) !important;
+    box-shadow: 0 30px 90px -42px rgba(15, 23, 42, 0.56) !important;
+  }
+
+  [role="dialog"][data-state="open"] > form,
+  [role="dialog"][data-state="open"] > div {
+    max-width: 100%;
+  }
+
+  [data-radix-popper-content-wrapper] {
+    max-width: calc(100vw - 20px) !important;
+  }
+
+  [data-radix-menu-content],
+  [data-radix-select-content],
+  [data-radix-popover-content] {
+    max-width: calc(100vw - 20px) !important;
+    border-radius: 20px !important;
+    box-shadow: 0 24px 70px -35px rgba(15, 23, 42, 0.45) !important;
+  }
+
+  /* Notification center becomes a phone panel instead of a desktop popover. */
+  [data-radix-popper-content-wrapper] [class*="w-[380px]"] {
+    width: calc(100vw - 24px) !important;
+    max-width: 420px !important;
+  }
+
+  .df-notification-stack {
+    top: calc(4.5rem + env(safe-area-inset-top)) !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+  }
+
+  /* Keep floating actions away from the Android gesture bar/bottom tabs. */
+  [class*="fixed"][class*="bottom-4"],
+  [class*="fixed"][class*="bottom-6"] {
+    bottom: calc(6.25rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Avoid tiny desktop icon-only actions on touch surfaces. */
+  [data-scroll-container="app"] button[class*="h-8"][class*="w-8"],
+  [data-scroll-container="app"] button[class*="h-9"][class*="w-9"] {
+    min-width: 42px;
+    min-height: 42px;
+  }
+
+  .dark {
+    --df-mobile-bg: #070a0f;
+    --df-mobile-card: rgba(10, 14, 21, 0.96);
+    --df-mobile-border: rgba(255, 255, 255, 0.08);
+  }
+}
+
+html[data-dentalflow-mobile-native="true"] body {
+  user-select: none;
+}
+
+html[data-dentalflow-mobile-native="true"] input,
+html[data-dentalflow-mobile-native="true"] textarea,
+html[data-dentalflow-mobile-native="true"] [contenteditable="true"] {
+  user-select: text;
+}

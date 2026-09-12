@@ -3,7 +3,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeEntity } from "@/lib/optimistic";
-import { isDentalFlowDesktop, playDesktopNotificationSound } from "@/lib/desktop-local";
+import { isDentalFlowWindowsDesktop, playDesktopNotificationSound } from "@/lib/desktop-local";
+import { isNativeMobileApp } from "@/lib/mobile/native";
 import notificationSound from "@/assets/notification.mp3";
 
 export type PopupNotification = {
@@ -35,7 +36,8 @@ export function useNotificationPopups() {
   const seenIds = useRef(new Set<string>());
   const currentUserId = useRef<string | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
-  const desktop = isDentalFlowDesktop();
+  const desktop = isDentalFlowWindowsDesktop();
+  const mobile = isNativeMobileApp();
 
   const openNotification = (n: PopupNotification) => {
     const meta = (n.metadata || {}) as { case_id?: string; activity_id?: string | null };
@@ -119,6 +121,9 @@ export function useNotificationPopups() {
     };
 
     const playSound = () => {
+      // Android audio is owned by MobileNativeBridge/notification channel.
+      // Keeping WebAudio silent here prevents double alerts in the foreground.
+      if (mobile) return;
       if (!desktop) {
         playWebSound();
         return;
@@ -134,7 +139,7 @@ export function useNotificationPopups() {
 
       // DesktopRealtimeSync emits the native Windows toast when the window is in
       // background. Its native command now owns the Windows notification sound.
-      if (desktop) return true;
+      if (desktop || mobile) return true;
 
       if (typeof Notification === "undefined" || Notification.permission !== "granted") return false;
       try {
@@ -316,7 +321,7 @@ export function useNotificationPopups() {
       unsubPeer();
       window.removeEventListener("dentalflow:realtime-notification", onDesktopRealtime as EventListener);
     };
-  }, [desktop, navigate, qc]);
+  }, [desktop, mobile, navigate, qc]);
 
   const removePopup = (id: string) => setPopups((old) => old.filter((item) => item.id !== id));
 

@@ -48,6 +48,9 @@ jobs:
       - name: Verify enterprise hub and subscriptions
         run: bun scripts/check-enterprise-hub-032.mjs
 
+      - name: Verify Android 0.2.0 native and offline contract
+        run: bun scripts/check-mobile-android-020.mjs
+
       # The repository has substantial pre-existing formatting/lint debt.
       # A repo-wide lint gate currently reports thousands of legacy findings,
       # so enabling it here would make unrelated historical debt block this

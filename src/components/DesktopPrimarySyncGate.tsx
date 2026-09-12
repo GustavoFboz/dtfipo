@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Database, LogIn, RefreshCw, WifiOff } from "lucide-react";
 
 import { isDentalFlowDesktop, localCacheGet } from "@/lib/desktop-local";
+import { isNativeMobileApp } from "@/lib/mobile/native";
 import { inspectDesktopSyncReadiness } from "@/lib/desktop-sync-proof";
 
 type GateMode = "syncing" | "offline" | "error" | "reauth" | "ready";
@@ -63,12 +64,13 @@ async function inspectLocalReadiness(): Promise<Readiness> {
 /**
  * Desktop readiness gate.
  *
- * A primeira preparação autenticada continua explícita, mas um computador que
+ * A primeira preparação autenticada continua explícita, mas um dispositivo que
  * já possui snapshot local verificado nunca volta a ser bloqueado só porque a
  * conexão caiu e retornou. O watchdog evita uma tela de espera permanente.
  */
 export function DesktopPrimarySyncGate() {
   const desktop = isDentalFlowDesktop();
+  const mobile = isNativeMobileApp();
   const [state, setState] = useState<GateState>(HIDDEN);
   const [lastReady, setLastReady] = useState<Readiness | null>(null);
   const dismissed = useRef(false);
@@ -118,11 +120,11 @@ export function DesktopPrimarySyncGate() {
       }, 420);
     };
 
-    const showPreparing = (detail = "Validando sua sessão, assinatura e dados críticos deste computador.") => {
+    const showPreparing = (detail = "Validando sua sessão, assinatura e dados críticos deste dispositivo.") => {
       if (dismissed.current) return;
       if (hideTimer.current !== null) window.clearTimeout(hideTimer.current);
       hideTimer.current = null;
-      setState({ visible: true, progress: 12, title: "Sincronizando dados deste computador", detail, mode: "syncing" });
+      setState({ visible: true, progress: 12, title: "Sincronizando dados deste dispositivo", detail, mode: "syncing" });
       startProgress();
       armWatchdog();
     };
@@ -163,7 +165,7 @@ export function DesktopPrimarySyncGate() {
             visible: true,
             progress: 0,
             title: "Sincronização verificada pendente",
-            detail: "A interface está instalada e pode abrir offline, mas este computador ainda precisa concluir uma sincronização autenticada da assinatura, dos ambientes e dos dados críticos antes da primeira operação local.",
+            detail: "A interface está instalada e pode abrir offline, mas este dispositivo ainda precisa concluir uma sincronização autenticada da assinatura, dos ambientes e dos dados críticos antes da primeira operação local.",
             mode: "offline",
           });
         } else {
@@ -195,7 +197,7 @@ export function DesktopPrimarySyncGate() {
             visible: true,
             progress: 0,
             title: "Revalide seu login para sincronizar",
-            detail: "O Windows está conectado, mas sua sessão online precisa ser revalidada. Para evitar listas vazias incorretas, o DentalFlow bloqueou apenas a leitura remota até você entrar novamente.",
+            detail: "O dispositivo está conectado, mas sua sessão online precisa ser revalidada. Para evitar listas vazias incorretas, o DentalFlow bloqueou apenas a leitura remota até você entrar novamente.",
             mode: "reauth",
           });
           return;
@@ -310,7 +312,7 @@ export function DesktopPrimarySyncGate() {
         <div className="mx-auto grid h-14 w-14 place-items-center rounded-[20px] border border-slate-200/80 bg-white text-[#2D7FF9] shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
           <Icon className={`h-6 w-6 stroke-[1.5] ${state.mode === "syncing" ? "animate-spin" : ""}`} />
         </div>
-        <div className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">DentalFlow Desktop 0.6.4</div>
+        <div className="mt-6 text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">{mobile ? "DentalFlow Mobile 0.2.0" : "DentalFlow Desktop 0.6.5"}</div>
         <h1 className="mt-3 text-[30px] font-extralight tracking-[-0.04em] text-slate-950 sm:text-[38px] dark:text-white">{state.title}</h1>
         <p className="mx-auto mt-3 max-w-md text-sm font-light leading-6 text-slate-500 dark:text-slate-400">{state.detail}</p>
 
@@ -336,7 +338,7 @@ export function DesktopPrimarySyncGate() {
         )}
 
         {lastReady && !lastReady.ready && state.mode !== "ready" && (
-          <p className="mt-6 text-[10px] font-light text-slate-400">Este computador só é considerado pronto depois de confirmar assinatura, ambientes, pacientes e casos com uma sessão online validada; listas auxiliares seguem em segundo plano.</p>
+          <p className="mt-6 text-[10px] font-light text-slate-400">Este dispositivo só é considerado pronto depois de confirmar assinatura, ambientes, pacientes e casos com uma sessão online validada; listas auxiliares seguem em segundo plano.</p>
         )}
       </div>
     </div>

@@ -197,8 +197,8 @@ function AuthPage() {
 
   return (
     <div className="min-h-[100dvh] bg-[#f4f8f7] text-slate-950 lg:grid lg:grid-cols-[.92fr_1.08fr]">
-      <aside className="relative hidden overflow-hidden bg-[#0f6f69] p-12 text-white lg:flex lg:flex-col lg:justify-between">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(112,236,220,.32),transparent_27%),radial-gradient(circle_at_90%_75%,rgba(83,122,255,.22),transparent_32%),linear-gradient(145deg,#0d6762,#168c83_58%,#0b5b57)]" />
+      <aside className="relative hidden overflow-hidden bg-[#0b5bd3] p-12 text-white lg:flex lg:flex-col lg:justify-between">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(112,236,220,.32),transparent_27%),radial-gradient(circle_at_90%_75%,rgba(83,122,255,.22),transparent_32%),linear-gradient(145deg,#0b4fb8,#2D7FF9_58%,#174aa1)]" />
         <div className="relative z-10 flex items-center gap-3 text-[12px] font-semibold uppercase tracking-[0.2em]"><span className="grid h-10 w-10 place-items-center rounded-xl bg-white/12">D</span> DentalFlow</div>
         <div className="relative z-10 max-w-xl">
           <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/55">Hub empresarial odontológico</div>
@@ -213,12 +213,22 @@ function AuthPage() {
         <div className="relative z-10 text-[10px] font-medium uppercase tracking-[0.18em] text-white/35">DentalFlow 0.3.2</div>
       </aside>
 
-      <main className="flex min-h-[100dvh] items-center justify-center bg-white px-5 py-8 sm:px-8 lg:px-12 dark:bg-[#080b10] dark:text-white">
-        <div className="w-full max-w-[620px] py-6">
-          <div className="mb-8 flex items-center justify-between lg:hidden"><div className="text-[12px] font-semibold uppercase tracking-[0.18em] text-[#15988f]">DentalFlow</div><ShieldCheck className="h-4 w-4 text-[#15988f]" /></div>
-          <div className="mb-8"><div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#15988f]">{tab === "login" ? "Acesso" : "Cadastro"}</div><h2 className="mt-3 text-[36px] font-light leading-[1.04] tracking-[-0.045em] sm:text-[46px]">{tab === "login" ? "Bem-vindo de volta." : "Como você participa do DentalFlow?"}</h2></div>
+      <main className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-white px-5 py-8 sm:px-8 lg:px-12 dark:bg-[#080b10] dark:text-white">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[320px] bg-[radial-gradient(circle_at_50%_-10%,rgba(45,127,249,.18),transparent_65%)] lg:hidden" />
+        <div className="relative w-full max-w-[620px] py-6">
+          <div className="mb-8 flex items-center justify-between lg:hidden">
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#2D7FF9] text-sm font-semibold text-white shadow-[0_12px_30px_-12px_rgba(45,127,249,.65)]">D</span>
+              <div>
+                <div className="text-[13px] tracking-[-0.01em] text-slate-800 dark:text-white"><span className="font-light">DENTAL</span><span className="font-bold">FLOW</span></div>
+                <div className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.16em] text-slate-400">Acesso seguro</div>
+              </div>
+            </div>
+            <span className="grid h-9 w-9 place-items-center rounded-full border border-slate-200/80 bg-white/80 text-[#2D7FF9] shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[.04]"><ShieldCheck className="h-4 w-4" /></span>
+          </div>
+          <div className="mb-8"><div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#2D7FF9]">{tab === "login" ? "Acesso" : "Cadastro"}</div><h2 className="mt-3 text-[32px] font-light leading-[1.06] tracking-[-0.045em] sm:text-[46px]">{tab === "login" ? "Bem-vindo de volta." : "Como você participa do DentalFlow?"}</h2></div>
 
-          <div className="mb-7 grid grid-cols-2 rounded-2xl bg-slate-100 p-1 dark:bg-white/[0.05]">
+          <div className="mb-7 grid grid-cols-2 rounded-[18px] border border-slate-200/70 bg-slate-100/80 p-1.5 shadow-[0_12px_35px_-28px_rgba(15,23,42,.55)] dark:border-white/[0.06] dark:bg-white/[0.05]">
             <button type="button" onClick={() => setTab("login")} className={`h-10 rounded-xl text-[12px] font-medium ${tab === "login" ? "bg-white shadow-sm dark:bg-white/10" : "text-slate-400"}`}>Entrar</button>
             <button type="button" onClick={() => setTab("signup")} className={`h-10 rounded-xl text-[12px] font-medium ${tab === "signup" ? "bg-white shadow-sm dark:bg-white/10" : "text-slate-400"}`}>Criar conta</button>
           </div>
@@ -227,8 +237,8 @@ function AuthPage() {
             <form onSubmit={handleLogin} className="space-y-5">
               <Field label="E-mail"><Input type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} autoComplete="email" required /></Field>
               <PasswordField label="Senha" value={loginPassword} onChange={setLoginPassword} visible={showLoginPassword} onToggle={() => setShowLoginPassword((v) => !v)} autoComplete="current-password" />
-              <div className="flex justify-end"><Link to="/auth/forgot" search={{ invite: undefined, mode: undefined }} className="text-[12px] text-slate-400 hover:text-[#15988f]">Esqueci minha senha</Link></div>
-              <Button disabled={loadingLogin} className="h-12 w-full rounded-xl bg-[#15988f] text-white hover:bg-[#12877f]">{loadingLogin ? "Entrando…" : "Entrar"}<ArrowRight className="ml-2 h-4 w-4" /></Button>
+              <div className="flex justify-end"><Link to="/auth/forgot" search={{ invite: undefined, mode: undefined }} className="text-[12px] text-slate-400 hover:text-[#2D7FF9]">Esqueci minha senha</Link></div>
+              <Button disabled={loadingLogin} className="h-13 w-full rounded-2xl bg-[#2D7FF9] text-white shadow-[0_14px_28px_-14px_rgba(45,127,249,.62)] hover:bg-[#226fe1]">{loadingLogin ? "Entrando…" : "Entrar"}<ArrowRight className="ml-2 h-4 w-4" /></Button>
             </form>
           ) : (
             <form onSubmit={handleSignup} className="space-y-5">
@@ -241,7 +251,7 @@ function AuthPage() {
                     { code: "company_initial", name: "Inicial", price: 249, sessions: 1 },
                     { code: "company_growth", name: "Crescimento", price: 449, sessions: 2 },
                     { code: "company_advanced", name: "Avançado", price: 749, sessions: 3 },
-                  ].map((plan) => <button key={plan.code} type="button" onClick={() => setCompanyPlan(plan.code)} className={`rounded-xl border p-3 text-left ${companyPlan === plan.code ? "border-[#15988f]/50 bg-[#15988f]/[0.05]" : "border-slate-200 bg-white dark:border-white/[0.06] dark:bg-white/[0.02]"}`}><div className="text-[11px] font-semibold">{plan.name}</div><div className="mt-1 text-[10px] text-slate-400">R$ {plan.price}/mês · {plan.sessions} sessão{plan.sessions > 1 ? "ões" : ""}</div></button>)}</div></div>
+                  ].map((plan) => <button key={plan.code} type="button" onClick={() => setCompanyPlan(plan.code)} className={`rounded-xl border p-3 text-left ${companyPlan === plan.code ? "border-[#2D7FF9]/50 bg-[#2D7FF9]/[0.05]" : "border-slate-200 bg-white dark:border-white/[0.06] dark:bg-white/[0.02]"}`}><div className="text-[11px] font-semibold">{plan.name}</div><div className="mt-1 text-[10px] text-slate-400">R$ {plan.price}/mês · {plan.sessions} sessão{plan.sessions > 1 ? "ões" : ""}</div></button>)}</div></div>
                   <div><div className="mb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Ambientes ({companySessions.length}/{maxSessions})</div><div className="grid grid-cols-3 gap-2"><SessionCard active={companySessions.includes("laboratory")} onClick={() => toggleSession("laboratory")} icon={<FlaskConical className="h-4 w-4" />} label="Laboratório" /><SessionCard active={companySessions.includes("clinic")} onClick={() => toggleSession("clinic")} icon={<Stethoscope className="h-4 w-4" />} label="Clínica" /><SessionCard active={companySessions.includes("radiology")} onClick={() => toggleSession("radiology")} icon={<RadioTower className="h-4 w-4" />} label="Radiologia" /></div></div>
                 </div>
               ) : (
@@ -249,7 +259,7 @@ function AuthPage() {
                   <div><div className="text-[11px] font-medium">Conta profissional vinculada</div><p className="mt-1 text-[10px] font-light leading-5 text-slate-400">Não existe plano individual. Seu login será uma vaga da empresa e sempre abrirá no contexto dela.</p></div>
                   <Field label="Código da empresa"><Input value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase().replace(/\s+/g, ""))} placeholder="Ex.: 1267A2F0" required /></Field>
                   {validatedCompany ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[10px] text-emerald-700">Código validado · {validatedCompany}</div> : null}
-                  <div><div className="mb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Seu perfil</div><div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{PROFESSIONS.map((item) => <button key={item} type="button" onClick={() => setProfession(item)} className={`rounded-xl border px-3 py-2 text-[10px] font-medium ${profession === item ? "border-[#15988f]/50 bg-[#15988f]/[0.05] text-[#15988f]" : "border-slate-200 bg-white text-slate-500 dark:border-white/[0.06] dark:bg-white/[0.02]"}`}>{labelProfession(item)}</button>)}</div></div>
+                  <div><div className="mb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Seu perfil</div><div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{PROFESSIONS.map((item) => <button key={item} type="button" onClick={() => setProfession(item)} className={`rounded-xl border px-3 py-2 text-[10px] font-medium ${profession === item ? "border-[#2D7FF9]/50 bg-[#2D7FF9]/[0.05] text-[#2D7FF9]" : "border-slate-200 bg-white text-slate-500 dark:border-white/[0.06] dark:bg-white/[0.02]"}`}>{labelProfession(item)}</button>)}</div></div>
                 </div>
               )}
 
@@ -257,7 +267,7 @@ function AuthPage() {
               <Field label="E-mail"><Input type="email" value={signupEmail} onChange={(e) => setSignupEmail(e.target.value)} autoComplete="email" required /></Field>
               <PasswordField label="Senha" value={signupPassword} onChange={setSignupPassword} visible={showSignupPassword} onToggle={() => setShowSignupPassword((v) => !v)} autoComplete="new-password" />
 
-              <Button disabled={loadingSignup} className="h-12 w-full rounded-xl bg-[#15988f] text-white hover:bg-[#12877f]">{loadingSignup ? "Criando…" : signupMode === "professional" ? "Criar conta na empresa" : "Criar empresa e continuar"}<ArrowRight className="ml-2 h-4 w-4" /></Button>
+              <Button disabled={loadingSignup} className="h-13 w-full rounded-2xl bg-[#2D7FF9] text-white shadow-[0_14px_28px_-14px_rgba(45,127,249,.62)] hover:bg-[#226fe1]">{loadingSignup ? "Criando…" : signupMode === "professional" ? "Criar conta na empresa" : "Criar empresa e continuar"}<ArrowRight className="ml-2 h-4 w-4" /></Button>
               <p className="text-center text-[10px] font-light leading-5 text-slate-400">Somente contas de empresa possuem assinatura. O pagamento nunca é confirmado pelo navegador; a ativação depende do backend.</p>
             </form>
           )}
@@ -278,6 +288,6 @@ function labelProfession(value: Profession) {
 
 function Benefit({ text }: { text: string }) { return <div className="flex items-center gap-3"><span className="grid h-6 w-6 place-items-center rounded-full bg-white/10"><Check className="h-3.5 w-3.5" /></span>{text}</div>; }
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block"><span className="mb-2 block text-[11px] font-medium text-slate-500">{label}</span>{children}</label>; }
-function ModeCard({ value, label, icon }: { value: SignupMode; label: string; icon: React.ReactNode }) { return <label className="cursor-pointer"><RadioGroupItem value={value} className="peer sr-only" /><span className="flex h-16 flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-[10px] font-medium text-slate-500 transition peer-data-[state=checked]:border-[#15988f]/50 peer-data-[state=checked]:bg-[#15988f]/[0.05] peer-data-[state=checked]:text-[#15988f] dark:border-white/[0.07] dark:bg-white/[0.025]">{icon}{label}</span></label>; }
-function SessionCard({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) { return <button type="button" onClick={onClick} className={`flex h-16 flex-col items-center justify-center gap-2 rounded-xl border text-[10px] font-medium transition ${active ? "border-[#15988f]/50 bg-[#15988f]/[0.05] text-[#15988f]" : "border-slate-200 bg-white text-slate-400 dark:border-white/[0.06] dark:bg-white/[0.02]"}`}>{icon}{label}</button>; }
+function ModeCard({ value, label, icon }: { value: SignupMode; label: string; icon: React.ReactNode }) { return <label className="cursor-pointer"><RadioGroupItem value={value} className="peer sr-only" /><span className="flex h-16 flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-[10px] font-medium text-slate-500 transition peer-data-[state=checked]:border-[#2D7FF9]/50 peer-data-[state=checked]:bg-[#2D7FF9]/[0.05] peer-data-[state=checked]:text-[#2D7FF9] dark:border-white/[0.07] dark:bg-white/[0.025]">{icon}{label}</span></label>; }
+function SessionCard({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) { return <button type="button" onClick={onClick} className={`flex h-16 flex-col items-center justify-center gap-2 rounded-xl border text-[10px] font-medium transition ${active ? "border-[#2D7FF9]/50 bg-[#2D7FF9]/[0.05] text-[#2D7FF9]" : "border-slate-200 bg-white text-slate-400 dark:border-white/[0.06] dark:bg-white/[0.02]"}`}>{icon}{label}</button>; }
 function PasswordField({ label, value, onChange, visible, onToggle, autoComplete }: { label: string; value: string; onChange: (v: string) => void; visible: boolean; onToggle: () => void; autoComplete: string }) { return <Field label={label}><div className="relative"><Input type={visible ? "text" : "password"} value={value} onChange={(e) => onChange(e.target.value)} autoComplete={autoComplete} minLength={8} required className="pr-11" /><button type="button" onClick={onToggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></Field>; }

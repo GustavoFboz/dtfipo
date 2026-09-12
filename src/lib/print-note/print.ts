@@ -2,6 +2,7 @@ import type { CaseRow } from "@/lib/types";
 import type { PrintNoteTemplate } from "./types";
 import { renderNoteCanvas } from "./render-canvas";
 import { printCanvasBluetooth } from "./bluetooth";
+import { isNativeMobileApp, printHtmlNative } from "@/lib/mobile/native";
 
 async function ensureInterForPrint() {
   if (typeof document === "undefined") return;
@@ -26,23 +27,30 @@ export async function printNoteBluetooth(c: CaseRow, tpl: PrintNoteTemplate) {
   await printCanvasBluetooth(canvas, tpl.density ?? "alta");
 }
 
-/** Imprime via diálogo do navegador (impressora normal / PDF). */
+/** Imprime pela integração nativa no mobile ou pelo diálogo do navegador. */
 export async function printNoteWindow(c: CaseRow, tpl: PrintNoteTemplate) {
   await ensureInterForPrint();
   const { canvas } = renderNoteCanvas(c, tpl);
   const dataUrl = canvas.toDataURL("image/png");
+  const widthMm = tpl.paper === "80mm" ? 80 : tpl.paper === "a4" ? 210 : 58;
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Nota</title>
+    <style>
+      @page { size: ${widthMm}mm auto; margin: 0; }
+      html,body{margin:0;padding:0;background:#fff}
+      img{display:block;width:100%}
+    </style></head><body><img src="${dataUrl}" /></body></html>`;
+
+  if (isNativeMobileApp()) {
+    await printHtmlNative(html, `DentalFlow - ${c.patient?.name ?? "Nota do caso"}`);
+    return;
+  }
+
   const iframe = document.createElement("iframe");
   iframe.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
   document.body.appendChild(iframe);
   const doc = iframe.contentDocument!;
   doc.open();
-  const widthMm = tpl.paper === "80mm" ? 80 : tpl.paper === "a4" ? 210 : 58;
-  doc.write(`<!doctype html><html><head><meta charset="utf-8"><title>Nota</title>
-    <style>
-      @page { size: ${widthMm}mm auto; margin: 0; }
-      html,body{margin:0;padding:0;background:#fff}
-      img{display:block;width:100%}
-    </style></head><body><img src="${dataUrl}" /></body></html>`);
+  doc.write(html);
   doc.close();
   await new Promise(r => setTimeout(r, 120));
   try { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); } catch {}

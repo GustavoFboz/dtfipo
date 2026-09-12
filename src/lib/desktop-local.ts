@@ -1,3 +1,5 @@
+import * as mobileLocal from "@/lib/mobile/local-runtime";
+
 type DesktopInvoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
 
 type DentalFlowTauriGlobal = {
@@ -70,8 +72,15 @@ function getDesktopInvoke(): DesktopInvoke | null {
   return window.__TAURI__?.core?.invoke ?? null;
 }
 
-export function isDentalFlowDesktop() {
+export function isDentalFlowWindowsDesktop() {
   return getDesktopInvoke() !== null;
+}
+
+// The local-first data layer is shared by installed Windows and Android clients.
+// Historical callers keep using this name; UI that needs the Windows chrome must
+// use isDentalFlowWindowsDesktop().
+export function isDentalFlowDesktop() {
+  return isDentalFlowWindowsDesktop() || mobileLocal.isNativeMobileLocalRuntime();
 }
 
 async function invokeDesktop<T>(command: string, args?: Record<string, unknown>): Promise<T> {
@@ -83,17 +92,23 @@ async function invokeDesktop<T>(command: string, args?: Record<string, unknown>)
 }
 
 export function getDesktopRuntimeInfo() {
+  if (mobileLocal.isNativeMobileLocalRuntime()) {
+    return mobileLocal.mobileRuntimeInfo() as unknown as Promise<DesktopRuntimeInfo>;
+  }
   return invokeDesktop<DesktopRuntimeInfo>("desktop_runtime_info");
 }
 
 export function getDesktopWindowState() {
-  if (!isDentalFlowDesktop()) {
+  if (!isDentalFlowWindowsDesktop()) {
     return Promise.resolve<DesktopWindowState>({ maximized: false, fullscreen: false, focused: true });
   }
   return invokeDesktop<DesktopWindowState>("desktop_window_state");
 }
 
 export function performDesktopWindowAction(action: "minimize" | "toggle_maximize" | "drag" | "close") {
+  if (!isDentalFlowWindowsDesktop()) {
+    return Promise.resolve<DesktopWindowState>({ maximized: false, fullscreen: false, focused: true });
+  }
   return invokeDesktop<DesktopWindowState>("desktop_window_action", { action });
 }
 
@@ -102,7 +117,10 @@ export async function sendDesktopNativeNotification(input: {
   body?: string | null;
   data?: DesktopNotificationTarget;
 }) {
-  if (!isDentalFlowDesktop()) return false;
+  if (mobileLocal.isNativeMobileLocalRuntime()) {
+    return mobileLocal.mobileNativeNotification(input);
+  }
+  if (!isDentalFlowWindowsDesktop()) return false;
   try {
     await invokeDesktop<void>("desktop_native_notification", {
       title: input.title || "DentalFlow",
@@ -117,7 +135,10 @@ export async function sendDesktopNativeNotification(input: {
 }
 
 export async function playDesktopNotificationSound() {
-  if (!isDentalFlowDesktop()) return false;
+  if (mobileLocal.isNativeMobileLocalRuntime()) {
+    return mobileLocal.mobilePlayNotificationSound();
+  }
+  if (!isDentalFlowWindowsDesktop()) return false;
   try {
     return await invokeDesktop<boolean>("desktop_notification_sound");
   } catch (error) {
@@ -127,7 +148,10 @@ export async function playDesktopNotificationSound() {
 }
 
 export function getProvisionedDesktopIdentity() {
-  if (!isDentalFlowDesktop()) return Promise.resolve<DeviceIdentity | null>(null);
+  if (mobileLocal.isNativeMobileLocalRuntime()) {
+    return Promise.resolve(mobileLocal.mobileGetIdentity() as DeviceIdentity | null);
+  }
+  if (!isDentalFlowWindowsDesktop()) return Promise.resolve<DeviceIdentity | null>(null);
   return invokeDesktop<DeviceIdentity | null>("device_identity_get");
 }
 
@@ -137,6 +161,14 @@ export function provisionDesktopIdentity(input: {
   fullName?: string | null;
   clinicId?: string | null;
 }) {
+  if (mobileLocal.isNativeMobileLocalRuntime()) {
+    return Promise.resolve(mobileLocal.mobileSetIdentity({
+      user_id: input.userId,
+      email: input.email ?? null,
+      full_name: input.fullName ?? null,
+      clinic_id: input.clinicId ?? null,
+    }) as DeviceIdentity);
+  }
   return invokeDesktop<DeviceIdentity>("device_identity_set", {
     input: {
       user_id: input.userId,
@@ -148,7 +180,11 @@ export function provisionDesktopIdentity(input: {
 }
 
 export function clearProvisionedDesktopIdentity() {
-  if (!isDentalFlowDesktop()) return Promise.resolve();
+  if (mobileLocal.isNativeMobileLocalRuntime()) {
+    mobileLocal.mobileClearIdentity();
+    return Promise.resolve();
+  }
+  if (!isDentalFlowWindowsDesktop()) return Promise.resolve();
   return invokeDesktop<void>("device_identity_clear");
 }
 
@@ -160,6 +196,7 @@ export function clearProvisionedDesktopIdentity() {
  * here so all Desktop data domains share one correct contract.
  */
 export function localCachePut<T>(ownerId: string, namespace: string, key: string, payload: T) {
+  if (mobileLocal.isNativeMobileLocalRuntime()) return mobileLocal.mobileCachePut(ownerId, namespace, key, payload);
   return invokeDesktop<void>("local_cache_put", {
     ownerId,
     namespace,
@@ -169,6 +206,7 @@ export function localCachePut<T>(ownerId: string, namespace: string, key: string
 }
 
 export function localCacheGet<T>(ownerId: string, namespace: string, key: string) {
+  if (mobileLocal.isNativeMobileLocalRuntime()) return mobileLocal.mobileCacheGet<T>(ownerId, namespace, key);
   return invokeDesktop<LocalCacheEntry<T> | null>("local_cache_get", {
     ownerId,
     namespace,
@@ -177,6 +215,7 @@ export function localCacheGet<T>(ownerId: string, namespace: string, key: string
 }
 
 export function localCacheList<T>(ownerId: string, namespace: string, limit = 100) {
+  if (mobileLocal.isNativeMobileLocalRuntime()) return mobileLocal.mobileCacheList<T>(ownerId, namespace, limit);
   return invokeDesktop<Array<LocalCacheEntry<T>>>("local_cache_list", {
     ownerId,
     namespace,
@@ -185,14 +224,12 @@ export function localCacheList<T>(ownerId: string, namespace: string, limit = 10
 }
 
 export function localCacheDelete(ownerId: string, namespace: string, key: string) {
-  return invokeDesktop<void>("local_cache_delete", {
-    ownerId,
-    namespace,
-    key,
-  });
+  if (mobileLocal.isNativeMobileLocalRuntime()) return mobileLocal.mobileCacheDelete(ownerId, namespace, key);
+  return invokeDesktop<void>("local_cache_delete", { ownerId, namespace, key });
 }
 
 export function localCacheClearOwner(ownerId: string) {
+  if (mobileLocal.isNativeMobileLocalRuntime()) return mobileLocal.mobileCacheClearOwner(ownerId);
   return invokeDesktop<void>("local_cache_clear_owner", { ownerId });
 }
 
@@ -206,6 +243,9 @@ export function enqueueOutbox<T>(input: {
   id?: string;
 }) {
   const id = input.id ?? crypto.randomUUID();
+  if (mobileLocal.isNativeMobileLocalRuntime()) {
+    return mobileLocal.mobileEnqueueOutbox({ ...input, id });
+  }
   return invokeDesktop<string>("outbox_enqueue", {
     input: {
       id,
@@ -220,6 +260,7 @@ export function enqueueOutbox<T>(input: {
 }
 
 export function getPendingOutbox<T = unknown>(ownerId: string, limit = 100) {
+  if (mobileLocal.isNativeMobileLocalRuntime()) return mobileLocal.mobilePendingOutbox<T>(ownerId, limit) as Promise<Array<OutboxEntry<T>>>;
   return invokeDesktop<Array<OutboxEntry<T>>>("outbox_pending", {
     ownerId,
     limit,
@@ -232,6 +273,7 @@ export function markOutbox(
   status: OutboxStatus,
   lastError: string | null = null,
 ) {
+  if (mobileLocal.isNativeMobileLocalRuntime()) return mobileLocal.mobileMarkOutbox(ownerId, id, status, lastError);
   return invokeDesktop<void>("outbox_mark", {
     ownerId,
     id,
@@ -241,6 +283,7 @@ export function markOutbox(
 }
 
 export function clearDoneOutbox(ownerId: string) {
+  if (mobileLocal.isNativeMobileLocalRuntime()) return mobileLocal.mobileClearDoneOutbox(ownerId);
   return invokeDesktop<number>("outbox_clear_done", { ownerId });
 }
 
@@ -333,14 +376,14 @@ export type DesktopPrinter = { name: string; is_default: boolean };
 
 /** Impressoras instaladas no sistema operacional (apenas no aplicativo instalado). */
 export async function listDesktopPrinters(): Promise<DesktopPrinter[]> {
-  if (!isDentalFlowDesktop()) return [];
+  if (!isDentalFlowWindowsDesktop()) return [];
   const printers = await invokeDesktop<DesktopPrinter[]>("desktop_list_printers");
   return Array.isArray(printers) ? printers : [];
 }
 
 /** Abre o painel de impressoras do sistema operacional. */
 export async function openDesktopPrinterSettings(): Promise<void> {
-  if (!isDentalFlowDesktop()) return;
+  if (!isDentalFlowWindowsDesktop()) return;
   await invokeDesktop<void>("desktop_open_printer_settings");
 }
 
@@ -350,5 +393,8 @@ export async function openDesktopPrinterSettings(): Promise<void> {
  * aceito a partir da interface.
  */
 export async function desktopPrintText(printer: string, text: string): Promise<void> {
+  if (!isDentalFlowWindowsDesktop()) {
+    throw new Error("A impressão direta do Windows não está disponível neste dispositivo.");
+  }
   await invokeDesktop<void>("desktop_print_text", { printer, text });
 }
