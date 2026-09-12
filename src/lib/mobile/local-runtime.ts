@@ -1,3 +1,5 @@
+import { Capacitor } from "@capacitor/core";
+
 type MobileIdentity = {
   user_id: string;
   email: string | null;
@@ -50,7 +52,7 @@ declare global {
 export function isNativeMobileLocalRuntime() {
   if (typeof window === "undefined") return false;
   try {
-    return Boolean(window.Capacitor?.isNativePlatform?.()) && window.Capacitor?.getPlatform?.() === "android";
+    return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
   } catch {
     return false;
   }
