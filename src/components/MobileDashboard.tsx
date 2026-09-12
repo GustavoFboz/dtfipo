@@ -5,6 +5,7 @@ import { fetchCases, fetchProfile } from "@/lib/api";
 import { NewCaseDialog } from "./NewCaseDialog";
 import { CaseDetailDialog } from "./CaseDetailDialog";
 import { useListReveal } from "@/components/ui/skeleton-blocks";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { CaseRow } from "@/lib/types";
 
 type Filter = "all" | "active" | "late" | "month" | "finished" | "solicitacao";
@@ -31,6 +32,7 @@ export function MobileDashboard() {
   const [filter, setFilter] = useState<Filter>("all");
   const [selected, setSelected] = useState<CaseRow | null>(null);
   const [newOpen, setNewOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
   const active = useQuery({ queryKey: ["cases", "active"], queryFn: () => fetchCases("active") });
@@ -96,8 +98,12 @@ export function MobileDashboard() {
             className="flex-1 bg-transparent outline-none text-[15px] font-light placeholder:text-slate-400 min-w-0"
           />
           <button
+            type="button"
             aria-label="Filtros"
-            className="h-9 w-9 rounded-full grid place-items-center text-slate-500 active:scale-90 transition-transform"
+            onClick={() => setFilterOpen(true)}
+            className={`h-9 w-9 rounded-full grid place-items-center active:scale-90 transition-all ${
+              filter !== "all" ? "bg-[#4a9bff] text-white shadow-sm" : "text-slate-500"
+            }`}
           >
             <SlidersHorizontal className="h-[18px] w-[18px] stroke-[1.6px]" />
           </button>
@@ -129,6 +135,46 @@ export function MobileDashboard() {
       >
         <Plus className="h-6 w-6 stroke-[2px]" />
       </button>
+
+      <Sheet open={filterOpen} onOpenChange={setFilterOpen}>
+        <SheetContent side="bottom" className="rounded-t-[30px] border-0 px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4">
+          <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-slate-200 dark:bg-slate-700" />
+          <SheetHeader className="text-left">
+            <SheetTitle className="text-[22px] font-medium tracking-[-0.03em]">Filtrar casos</SheetTitle>
+          </SheetHeader>
+          <div className="mt-5 grid gap-2">
+            {([
+              ["all", "Todos os casos", "Visão geral do laboratório"],
+              ["late", "Em atraso", "Entregas que exigem atenção"],
+              ["month", "Entradas do mês", "Casos recebidos neste mês"],
+              ["solicitacao", "Solicitações", "Aguardando atribuição"],
+              ["finished", "Finalizados", "Histórico concluído"],
+            ] as Array<[Filter, string, string]>).map(([value, label, detail]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  setFilter(value);
+                  setFilterOpen(false);
+                }}
+                className={`flex min-h-[64px] items-center justify-between rounded-2xl border px-4 text-left transition ${
+                  filter === value
+                    ? "border-[#4a9bff]/35 bg-[#4a9bff]/[0.07]"
+                    : "border-slate-100 bg-slate-50/70 dark:border-white/[0.06] dark:bg-white/[0.025]"
+                }`}
+              >
+                <span>
+                  <span className="block text-[14px] font-medium text-slate-800 dark:text-slate-100">{label}</span>
+                  <span className="mt-0.5 block text-[11px] font-light text-slate-400">{detail}</span>
+                </span>
+                <span className={`h-2.5 w-2.5 rounded-full ${
+                  filter === value ? "bg-[#4a9bff]" : "bg-slate-200 dark:bg-slate-700"
+                }`} />
+              </button>
+            ))}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <NewCaseDialog open={newOpen} onOpenChange={setNewOpen} />
       <CaseDetailDialog caseRow={selected} open={!!selected} onOpenChange={(o) => !o && setSelected(null)} />
