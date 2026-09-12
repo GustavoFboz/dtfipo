@@ -12,9 +12,8 @@ const config: CapacitorConfig = {
   },
   plugins: {
     LocalNotifications: {
-      smallIcon: 'ic_stat_dentalflow',
       iconColor: '#2D7FF9',
-      sound: 'default',
+      sound: 'dentalflow_notification.mp3',
     },
   },
 };
