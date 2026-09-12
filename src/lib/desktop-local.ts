@@ -371,14 +371,14 @@ export type DesktopPrinter = { name: string; is_default: boolean };
 
 /** Impressoras instaladas no sistema operacional (apenas no aplicativo instalado). */
 export async function listDesktopPrinters(): Promise<DesktopPrinter[]> {
-  if (!isDentalFlowDesktop()) return [];
+  if (!isDentalFlowWindowsDesktop()) return [];
   const printers = await invokeDesktop<DesktopPrinter[]>("desktop_list_printers");
   return Array.isArray(printers) ? printers : [];
 }
 
 /** Abre o painel de impressoras do sistema operacional. */
 export async function openDesktopPrinterSettings(): Promise<void> {
-  if (!isDentalFlowDesktop()) return;
+  if (!isDentalFlowWindowsDesktop()) return;
   await invokeDesktop<void>("desktop_open_printer_settings");
 }
 
@@ -388,5 +388,8 @@ export async function openDesktopPrinterSettings(): Promise<void> {
  * aceito a partir da interface.
  */
 export async function desktopPrintText(printer: string, text: string): Promise<void> {
+  if (!isDentalFlowWindowsDesktop()) {
+    throw new Error("A impressão direta do Windows não está disponível neste dispositivo.");
+  }
   await invokeDesktop<void>("desktop_print_text", { printer, text });
 }
