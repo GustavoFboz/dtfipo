@@ -2,9 +2,18 @@ use tauri::AppHandle;
 use tauri_plugin_notification::NotificationExt;
 
 #[cfg(target_os = "windows")]
+use std::{path::PathBuf, sync::OnceLock};
+
+#[cfg(target_os = "windows")]
 #[link(name = "winmm")]
 extern "system" {
     fn PlaySoundW(psz_sound: *const u16, hmod: isize, fdw_sound: u32) -> i32;
+    fn mciSendStringW(
+        command: *const u16,
+        return_string: *mut u16,
+        return_length: u32,
+        callback: isize,
+    ) -> u32;
 }
 
 #[cfg(target_os = "windows")]
@@ -17,30 +26,79 @@ fn truncate_chars(value: &str, max_chars: usize) -> String {
     value.chars().take(max_chars).collect()
 }
 
+#[cfg(target_os = "windows")]
+fn wide(value: &str) -> Vec<u16> {
+    format!("{value}\0").encode_utf16().collect()
+}
+
+#[cfg(target_os = "windows")]
+fn custom_sound_path() -> Option<&'static PathBuf> {
+    static PATH: OnceLock<Option<PathBuf>> = OnceLock::new();
+    PATH.get_or_init(|| {
+        let bytes = include_bytes!("../resources/dentalflow_notification.mp3");
+        let path = std::env::temp_dir().join("dentalflow_notification_065.mp3");
+
+        let should_write = std::fs::metadata(&path)
+            .map(|metadata| metadata.len() != bytes.len() as u64)
+            .unwrap_or(true);
+
+        if should_write && std::fs::write(&path, bytes).is_err() {
+            return None;
+        }
+        Some(path)
+    })
+    .as_ref()
+}
+
+#[cfg(target_os = "windows")]
+unsafe fn mci(command: &str) -> bool {
+    mciSendStringW(wide(command).as_ptr(), std::ptr::null_mut(), 0, 0) == 0
+}
+
+#[cfg(target_os = "windows")]
+unsafe fn play_embedded_dentalflow_sound() -> bool {
+    let Some(path) = custom_sound_path() else {
+        return false;
+    };
+    let path = path.to_string_lossy().replace('"', "");
+
+    // MCI gives us dependable native MP3 playback without routing through the
+    // WebView. The audio bytes are embedded in the executable through
+    // include_bytes!, while the tiny temp copy is only a WinMM playback target.
+    let _ = mci("close dentalflow_notification");
+    if !mci(&format!(
+        "open \"{path}\" type mpegvideo alias dentalflow_notification"
+    )) {
+        return false;
+    }
+    if mci("play dentalflow_notification from 0") {
+        return true;
+    }
+    let _ = mci("close dentalflow_notification");
+    false
+}
+
 fn play_native_notification_sound() -> bool {
     #[cfg(target_os = "windows")]
     unsafe {
-        // Windows' documented sound-scheme event for notifications is
-        // "SystemNotification". The previous 0.6.3 implementation only tried
-        // "Notification.Default", which is not a dependable WinMM alias and can
-        // succeed silently depending on the machine's sound scheme. Keep two
-        // aliases plus the standard system asterisk/beep as fallbacks so a
-        // received DentalFlow notification never depends on WebView audio.
+        if play_embedded_dentalflow_sound() {
+            return true;
+        }
+
+        // If a Windows media component is unavailable, retain the system sound
+        // chain rather than silently dropping a notification.
         const SND_ASYNC: u32 = 0x0001;
         const SND_NODEFAULT: u32 = 0x0002;
         const SND_ALIAS: u32 = 0x0001_0000;
         let flags = SND_ALIAS | SND_ASYNC | SND_NODEFAULT;
 
         for alias in ["SystemNotification", "Notification.Default", "SystemAsterisk"] {
-            let wide: Vec<u16> = format!("{alias}\0").encode_utf16().collect();
-            if PlaySoundW(wide.as_ptr(), 0, flags) != 0 {
+            let alias_wide = wide(alias);
+            if PlaySoundW(alias_wide.as_ptr(), 0, flags) != 0 {
                 return true;
             }
         }
 
-        // MB_ICONASTERISK follows the user's Windows sound scheme and master
-        // volume. It is intentionally the last fallback so we still prefer the
-        // dedicated system notification event whenever it exists.
         MessageBeep(0x0000_0040) != 0
     }
 
@@ -75,9 +133,8 @@ pub fn desktop_native_notification(
     };
     let safe_body = truncate_chars(body, 420);
 
-    // Sound is dispatched once by DesktopNotificationSoundBridge for every new
-    // canonical notification, regardless of whether the window is focused.
-    // Keeping the toast command silent prevents a double sound in background.
+    // Sound is dispatched exactly once by DesktopNotificationSoundBridge. The
+    // Windows toast itself stays silent so background delivery cannot double-play.
     app.notification()
         .builder()
         .title(safe_title)
