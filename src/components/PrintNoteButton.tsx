@@ -8,6 +8,7 @@ import { bluetoothSupported } from "@/lib/print-note/bluetooth";
 import { printCaseNoteSystem } from "@/lib/print-note/system-print";
 import { printCaseNoteDirectDesktop } from "@/lib/print-note/desktop-print";
 import { isDentalFlowWindowsDesktop } from "@/lib/desktop-local";
+import { isNativeMobileApp } from "@/lib/mobile/native";
 import {
   CASE_NOTE_PAPERS,
   loadCaseNotePrinterSettings,
@@ -28,6 +29,7 @@ const globalPrintLock = new Set<string>();
 
 export function PrintNoteButton({ caseRow, variant = "pill" }: { caseRow: CaseRow; variant?: Variant }) {
   const desktop = isDentalFlowWindowsDesktop();
+  const mobile = isNativeMobileApp();
   const [busy, setBusy] = useState(false);
   const [setupOpen, setSetupOpen] = useState(false);
   const [setupReason, setSetupReason] = useState<string | null>(null);
@@ -126,7 +128,7 @@ export function PrintNoteButton({ caseRow, variant = "pill" }: { caseRow: CaseRo
               <div className="grid gap-2">
                 <button type="button" onClick={() => setSettings((s) => ({ ...s, transport: "system" }))} className={"w-full rounded-xl border p-3 text-left transition " + (settings.transport === "system" ? "border-primary bg-primary/5" : "border-border hover:bg-muted/60")}>
                   <div className="flex items-center gap-2 text-sm font-medium text-foreground"><Usb className="h-4 w-4" /> Sistema / USB / rede <Wifi className="h-4 w-4 ml-auto text-muted-foreground" /></div>
-                  <div className="mt-1 text-xs text-muted-foreground">Para impressoras instaladas no Windows/macOS por USB, rede, Wi‑Fi ou Bluetooth.</div>
+                  <div className="mt-1 text-xs text-muted-foreground">{mobile ? "Abre o serviço nativo de impressão do Android para USB, rede, Wi‑Fi ou serviços instalados." : "Para impressoras instaladas no Windows/macOS por USB, rede, Wi‑Fi ou Bluetooth."}</div>
                 </button>
                 <button type="button" onClick={() => setSettings((s) => ({ ...s, transport: "bluetooth" }))} className={"w-full rounded-xl border p-3 text-left transition " + (settings.transport === "bluetooth" ? "border-primary bg-primary/5" : "border-border hover:bg-muted/60")}>
                   <div className="flex items-center gap-2 text-sm font-medium text-foreground"><Bluetooth className="h-4 w-4" /> Bluetooth direto <span className="ml-auto text-xs text-muted-foreground">{bluetoothReady ? "Disponível" : "Indisponível"}</span></div>
