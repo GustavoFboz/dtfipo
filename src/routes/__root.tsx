@@ -9,6 +9,7 @@ import { UploadProgressDock } from "@/components/UploadProgressDock";
 import { DesktopLocalRuntimeBridge } from "@/components/DesktopLocalRuntimeBridge";
 import { DesktopNotificationSoundBridge } from "@/components/DesktopNotificationSoundBridge";
 import { DesktopNativeFrame } from "@/components/DesktopNativeFrame";
+import { MobileNativeBridge } from "@/components/MobileNativeBridge";
 import { ConfirmHost } from "@/lib/confirm";
 import { tryAutoConnectPrinter } from "@/lib/print-note/bluetooth";
 import { usePWANavGuard } from "@/hooks/use-pwa-nav-guard";
@@ -117,6 +118,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <DesktopLocalRuntimeBridge />
       <DesktopNotificationSoundBridge />
+      <MobileNativeBridge />
       <SessionLifecycleBridge />
       <DesktopNativeFrame>
         <TopProgressBar />
