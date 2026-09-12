@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - "mobile/android-*"
+      - "release/**"
     paths:
       - "src/**"
       - "mobile/**"
@@ -12,6 +13,7 @@ on:
       - "bun.lock"
       - "capacitor.config.ts"
       - "vite.mobile.config.ts"
+      - "scripts/prepare-notification-sound.mjs"
       - ".github/workflows/mobile-android.yml"
 
 permissions:
@@ -19,7 +21,7 @@ permissions:
 
 jobs:
   build-android-apk:
-    name: Build Android APK 0.1.0
+    name: Build Android APK 0.2.0
     runs-on: ubuntu-latest
     timeout-minutes: 45
     env:
@@ -64,6 +66,9 @@ jobs:
           cp mobile/android/native/DentalFlowPrintPlugin.java android/app/src/main/java/br/com/dentalflow/mobile/DentalFlowPrintPlugin.java
           cp mobile/android/native/MainActivity.java android/app/src/main/java/br/com/dentalflow/mobile/MainActivity.java
           bunx cap sync android
+          mkdir -p android/app/src/main/res/raw
+          cp mobile/generated/dentalflow_notification.mp3 android/app/src/main/res/raw/dentalflow_notification.mp3
+          test -s android/app/src/main/res/raw/dentalflow_notification.mp3
 
       - name: Set Android app version
         shell: bash
@@ -76,8 +81,8 @@ jobs:
               raise SystemExit('Android app Gradle file not found')
           s = p.read_text()
           import re
-          s = re.sub(r'versionCode\s+\d+', 'versionCode 1', s)
-          s = re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "0.1.0"', s)
+          s = re.sub(r'versionCode\s+\d+', 'versionCode 2', s)
+          s = re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "0.2.0"', s)
           p.write_text(s)
           print(p)
           PY
@@ -94,15 +99,15 @@ jobs:
           set -euo pipefail
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
           test -f "$APK"
-          cp "$APK" DentalFlow_Android_0.1.0.apk
-          sha256sum DentalFlow_Android_0.1.0.apk | tee DentalFlow_Android_0.1.0.sha256
+          cp "$APK" DentalFlow_Android_0.2.0.apk
+          sha256sum DentalFlow_Android_0.2.0.apk | tee DentalFlow_Android_0.2.0.sha256
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
-          name: DentalFlow-Android-0.1.0
+          name: DentalFlow-Android-0.2.0
           path: |
-            DentalFlow_Android_0.1.0.apk
-            DentalFlow_Android_0.1.0.sha256
+            DentalFlow_Android_0.2.0.apk
+            DentalFlow_Android_0.2.0.sha256
           if-no-files-found: error
           retention-days: 14
