@@ -197,17 +197,30 @@ export function clearProvisionedDesktopIdentity() {
  */
 export function localCachePut<T>(ownerId: string, namespace: string, key: string, payload: T) {
   if (mobileLocal.isNativeMobileLocalRuntime()) return mobileLocal.mobileCachePut(ownerId, namespace, key, payload);
-  return invokeDesktop<void>("local_cache_put", { ownerId, namespace, key, payload });
+  return invokeDesktop<void>("local_cache_put", {
+    ownerId,
+    namespace,
+    key,
+    payload,
+  });
 }
 
 export function localCacheGet<T>(ownerId: string, namespace: string, key: string) {
   if (mobileLocal.isNativeMobileLocalRuntime()) return mobileLocal.mobileCacheGet<T>(ownerId, namespace, key);
-  return invokeDesktop<LocalCacheEntry<T> | null>("local_cache_get", { ownerId, namespace, key });
+  return invokeDesktop<LocalCacheEntry<T> | null>("local_cache_get", {
+    ownerId,
+    namespace,
+    key,
+  });
 }
 
 export function localCacheList<T>(ownerId: string, namespace: string, limit = 100) {
   if (mobileLocal.isNativeMobileLocalRuntime()) return mobileLocal.mobileCacheList<T>(ownerId, namespace, limit);
-  return invokeDesktop<Array<LocalCacheEntry<T>>>("local_cache_list", { ownerId, namespace, limit });
+  return invokeDesktop<Array<LocalCacheEntry<T>>>("local_cache_list", {
+    ownerId,
+    namespace,
+    limit,
+  });
 }
 
 export function localCacheDelete(ownerId: string, namespace: string, key: string) {
@@ -248,7 +261,10 @@ export function enqueueOutbox<T>(input: {
 
 export function getPendingOutbox<T = unknown>(ownerId: string, limit = 100) {
   if (mobileLocal.isNativeMobileLocalRuntime()) return mobileLocal.mobilePendingOutbox<T>(ownerId, limit) as Promise<Array<OutboxEntry<T>>>;
-  return invokeDesktop<Array<OutboxEntry<T>>>("outbox_pending", { ownerId, limit });
+  return invokeDesktop<Array<OutboxEntry<T>>>("outbox_pending", {
+    ownerId,
+    limit,
+  });
 }
 
 export function markOutbox(
