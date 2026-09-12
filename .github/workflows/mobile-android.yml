@@ -7,10 +7,11 @@ on:
       - "mobile/android-*"
     paths:
       - "src/**"
-      - "src-tauri/**"
+      - "mobile/**"
       - "package.json"
       - "bun.lock"
-      - "vite.desktop.config.ts"
+      - "capacitor.config.ts"
+      - "vite.mobile.config.ts"
       - ".github/workflows/mobile-android.yml"
 
 permissions:
@@ -20,7 +21,7 @@ jobs:
   build-android-apk:
     name: Build Android APK 0.1.0
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 45
     env:
       CI: "true"
 
@@ -42,54 +43,66 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android platform and NDK
-        shell: bash
-        run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0" "ndk;27.0.12077973"
-          echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> "$GITHUB_ENV"
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
-
-      - name: Install frontend dependencies
+      - name: Install dependencies
         run: bun install
 
-      - name: Verify Android metadata
+      - name: Verify Capacitor metadata
         shell: bash
         run: |
-          test "$(jq -r '.version' src-tauri/tauri.android.conf.json)" = "0.1.0"
-          test "$(jq -r '.identifier' src-tauri/tauri.android.conf.json)" = "br.com.dentalflow.mobile"
+          grep -q "br.com.dentalflow.mobile" capacitor.config.ts
+          grep -q "appName: 'DentalFlow'" capacitor.config.ts
 
-      - name: Initialize Tauri Android project
-        run: bunx @tauri-apps/cli@2 android init --ci
+      - name: Build DentalFlow mobile SPA
+        run: bun run build:mobile
 
-      - name: Build DentalFlow Android APK
-        run: bunx @tauri-apps/cli@2 android build --apk --target aarch64
+      - name: Generate Capacitor Android project
+        shell: bash
+        run: |
+          rm -rf android
+          bunx cap add android
+          mkdir -p android/app/src/main/java/br/com/dentalflow/mobile
+          cp mobile/android/native/DentalFlowPrintPlugin.java android/app/src/main/java/br/com/dentalflow/mobile/DentalFlowPrintPlugin.java
+          cp mobile/android/native/MainActivity.java android/app/src/main/java/br/com/dentalflow/mobile/MainActivity.java
+          bunx cap sync android
 
-      - name: Locate APK
-        id: apk
+      - name: Set Android app version
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          candidates = [Path('android/app/build.gradle'), Path('android/app/build.gradle.kts')]
+          p = next((x for x in candidates if x.exists()), None)
+          if not p:
+              raise SystemExit('Android app Gradle file not found')
+          s = p.read_text()
+          import re
+          s = re.sub(r'versionCode\s+\d+', 'versionCode 1', s)
+          s = re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "0.1.0"', s)
+          p.write_text(s)
+          print(p)
+          PY
+
+      - name: Build debug APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Prepare APK
         shell: bash
         run: |
           set -euo pipefail
-          APK="$(find src-tauri/gen/android -type f -name '*.apk' | grep -E '/release/|/apk/' | head -n 1 || true)"
-          if [ -z "$APK" ]; then
-            APK="$(find src-tauri/gen/android -type f -name '*.apk' | head -n 1 || true)"
-          fi
-          if [ -z "$APK" ]; then
-            echo "APK não encontrado após o build"
-            find src-tauri/gen/android -maxdepth 8 -type f | sort | tail -n 200
-            exit 1
-          fi
-          cp "$APK" DentalFlow_Android_0.1.0_arm64.apk
-          sha256sum DentalFlow_Android_0.1.0_arm64.apk
+          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          test -f "$APK"
+          cp "$APK" DentalFlow_Android_0.1.0.apk
+          sha256sum DentalFlow_Android_0.1.0.apk | tee DentalFlow_Android_0.1.0.sha256
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
           name: DentalFlow-Android-0.1.0
-          path: DentalFlow_Android_0.1.0_arm64.apk
+          path: |
+            DentalFlow_Android_0.1.0.apk
+            DentalFlow_Android_0.1.0.sha256
           if-no-files-found: error
           retention-days: 14
