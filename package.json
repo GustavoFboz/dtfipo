@@ -8,14 +8,22 @@
     "dev:desktop": "vite dev --config vite.desktop.config.ts --host 127.0.0.1 --port 1420 --strictPort",
     "build": "vite build",
     "build:desktop": "vite build --config vite.desktop.config.ts",
+    "build:mobile": "vite build --config vite.mobile.config.ts",
     "desktop:dev": "bunx @tauri-apps/cli@2 dev",
     "desktop:build": "bunx @tauri-apps/cli@2 build",
+    "mobile:sync": "bunx cap sync android",
+    "mobile:android": "bun run build:mobile && bunx cap sync android",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@capacitor/app": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/local-notifications": "^7.0.0",
+    "@capacitor/push-notifications": "^7.0.0",
+    "@capacitor/share": "^7.0.0",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -76,6 +84,8 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
     "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "2.13.1",
     "@types/node": "^22.16.5",
