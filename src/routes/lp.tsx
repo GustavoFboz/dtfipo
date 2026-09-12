@@ -1,7 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { ArrowRight, Bell, Building2, Check, Database, FlaskConical, Layers3, RadioTower, ShieldCheck, Stethoscope, Users } from "lucide-react";
+import { isNativeMobileApp } from "@/lib/mobile/native";
 
 export const Route = createFileRoute("/lp")({
+  beforeLoad: () => {
+    if (isNativeMobileApp()) throw redirect({ to: "/auth", search: { invite: undefined, mode: undefined, returnTo: undefined } as any });
+  },
   head: () => ({
     meta: [
       { title: "DentalFlow — Hub empresarial para Odontologia Digital" },
