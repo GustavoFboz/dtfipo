@@ -16,6 +16,7 @@ on:
       - "capacitor.config.ts"
       - "vite.mobile.config.ts"
       - "scripts/prepare-notification-sound.mjs"
+      - "scripts/smoke-test-android.sh"
       - ".github/workflows/mobile-android.yml"
 
 permissions:
