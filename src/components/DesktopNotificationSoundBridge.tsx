@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-import { isDentalFlowDesktop, playDesktopNotificationSound } from "@/lib/desktop-local";
+import { isDentalFlowWindowsDesktop, playDesktopNotificationSound } from "@/lib/desktop-local";
 
 /**
  * Plays one Windows system notification sound for every newly ingested
@@ -12,7 +12,7 @@ export function DesktopNotificationSoundBridge() {
   const deliveredIds = useRef(new Set<string>());
 
   useEffect(() => {
-    if (!isDentalFlowDesktop()) return;
+    if (!isDentalFlowWindowsDesktop()) return;
 
     const onNotification = (event: Event) => {
       const row = (event as CustomEvent<Record<string, any>>).detail;
