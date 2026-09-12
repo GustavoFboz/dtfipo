@@ -49,22 +49,6 @@ pub fn run() {
             let local_db = local_db::initialize(app.handle())?;
             app.manage(local_db);
 
-            #[cfg(mobile)]
-            {
-                use tauri::plugin::PermissionState;
-                use tauri_plugin_notification::NotificationExt;
-
-                // Android 13+ requires runtime permission for native notifications.
-                // Ask once during the first mobile bootstrap; later launches simply
-                // reuse the persisted system decision.
-                if matches!(
-                    app.notification().permission_state(),
-                    Ok(PermissionState::Unknown)
-                ) {
-                    let _ = app.notification().request_permission();
-                }
-            }
-
             #[cfg(desktop)]
             {
                 use tauri::menu::{Menu, MenuItem};
@@ -149,5 +133,5 @@ pub fn run() {
             outbox_clear_done,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running DentalFlow");
+        .expect("error while running DentalFlow Desktop");
 }
