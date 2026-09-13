@@ -30,7 +30,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api: [35, 37]
+        api: ["35", "37.0"]
     timeout-minutes: 45
     env:
       CI: "true"
@@ -64,8 +64,6 @@ jobs:
 
       - name: Build DentalFlow mobile SPA
         run: bun run build:mobile
-        env:
-          NODE_ENV: development
 
       - name: Generate Capacitor Android project
         shell: bash
@@ -112,6 +110,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api }}
+          target: google_apis
           arch: x86_64
           profile: pixel_6
           disable-animations: true
