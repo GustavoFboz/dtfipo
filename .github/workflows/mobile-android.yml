@@ -18,6 +18,8 @@ on:
       - "scripts/prepare-notification-sound.mjs"
       - "scripts/smoke-test-android.sh"
       - "scripts/test-android-webview.mjs"
+      - "scripts/prepare-android-release.py"
+      - "scripts/test-android-recovery.sh"
       - ".github/workflows/mobile-android.yml"
 
 permissions:
@@ -25,7 +27,7 @@ permissions:
 
 jobs:
   build-android-apk:
-    name: Build Android APK 0.2.0
+    name: Build Android APK 0.2.1
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -34,6 +36,7 @@ jobs:
     timeout-minutes: 45
     env:
       CI: "true"
+      DENTALFLOW_ANDROID_PARALLEL: "true"
 
     steps:
       - name: Checkout
@@ -71,29 +74,14 @@ jobs:
           rm -rf android
           bunx cap add android
           mkdir -p android/app/src/main/java/br/com/dentalflow/mobile
-          cp mobile/android/native/DentalFlowPrintPlugin.java android/app/src/main/java/br/com/dentalflow/mobile/DentalFlowPrintPlugin.java
-          cp mobile/android/native/MainActivity.java android/app/src/main/java/br/com/dentalflow/mobile/MainActivity.java
+          cp mobile/android/native/*.java android/app/src/main/java/br/com/dentalflow/mobile/
           bunx cap sync android
           mkdir -p android/app/src/main/res/raw
           cp mobile/generated/dentalflow_notification.mp3 android/app/src/main/res/raw/dentalflow_notification.mp3
           test -s android/app/src/main/res/raw/dentalflow_notification.mp3
 
       - name: Set Android app version
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          candidates = [Path('android/app/build.gradle'), Path('android/app/build.gradle.kts')]
-          p = next((x for x in candidates if x.exists()), None)
-          if not p:
-              raise SystemExit('Android app Gradle file not found')
-          s = p.read_text()
-          import re
-          s = re.sub(r'versionCode\s+\d+', 'versionCode 2', s)
-          s = re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "0.2.0"', s)
-          p.write_text(s)
-          print(p)
-          PY
+        run: python scripts/prepare-android-release.py
 
       - name: Build debug APK
         working-directory: android
@@ -116,6 +104,8 @@ jobs:
           disable-animations: true
           disable-linux-hw-accel: false
           ram-size: 4096M
+          disk-size: 6G
+          emulator-options: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim -camera-back none -partition-size 6144
           # The emulator action evaluates each inline line in a separate `sh -c`.
           # Keep stateful variables and checks in one versioned POSIX script.
           script: sh scripts/smoke-test-android.sh
@@ -128,6 +118,7 @@ jobs:
           path: |
             android-*.log
             android-startup.png
+            android-recovery.xml
           if-no-files-found: warn
           retention-days: 7
 
@@ -138,16 +129,18 @@ jobs:
           set -euo pipefail
           APK="android/app/build/outputs/apk/debug/app-debug.apk"
           test -f "$APK"
-          cp "$APK" DentalFlow_Android_0.2.0.apk
-          sha256sum DentalFlow_Android_0.2.0.apk | tee DentalFlow_Android_0.2.0.sha256
+          cp "$APK" DentalFlow_Android_0.2.1.apk
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" apksigner.jar
+          sha256sum DentalFlow_Android_0.2.1.apk | tee DentalFlow_Android_0.2.1.sha256
 
       - name: Upload Android APK
         if: matrix.api == 35
         uses: actions/upload-artifact@v4
         with:
-          name: DentalFlow-Android-0.2.0
+          name: DentalFlow-Android-0.2.1
           path: |
-            DentalFlow_Android_0.2.0.apk
-            DentalFlow_Android_0.2.0.sha256
+            DentalFlow_Android_0.2.1.apk
+            DentalFlow_Android_0.2.1.sha256
+            apksigner.jar
           if-no-files-found: error
           retention-days: 14

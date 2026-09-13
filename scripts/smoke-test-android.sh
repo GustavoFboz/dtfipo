@@ -2,7 +2,9 @@
 set -eu
 
 package="br.com.dentalflow.mobile"
-activity="br.com.dentalflow.mobile/.MainActivity"
+if [ "${DENTALFLOW_ANDROID_PARALLEL:-false}" = true ]; then package="$package.preview"; fi
+export DENTALFLOW_ANDROID_PACKAGE="$package"
+activity="$package/br.com.dentalflow.mobile.StartupActivity"
 apk="android/app/build/outputs/apk/debug/app-debug.apk"
 startup_log="android-startup.log"
 
@@ -57,3 +59,6 @@ if grep -Eq 'FATAL EXCEPTION|Fatal signal|ANR in br\.com\.dentalflow\.mobile|E C
   exit 1
 fi
 echo "Activity launch and process continuity passed; this is not proof of functional login."
+cp android-startup.log android-clean-startup.log
+cp android-crash.log android-clean-crash.log
+sh scripts/test-android-recovery.sh

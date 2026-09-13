@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 // Inspect the installed APK's real WebView, without a browser substitute or
 // modifying authentication. Runs only against the disposable CI emulator.
 const adb = (...args) => execFileSync("adb", args, { encoding: "utf8" }).trim();
-const pid = adb("shell", "pidof", "br.com.dentalflow.mobile");
+const pid = adb("shell", "pidof", process.env.DENTALFLOW_ANDROID_PACKAGE || "br.com.dentalflow.mobile");
 adb("forward", "tcp:9222", `localabstract:webview_devtools_remote_${pid}`);
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 let socket;
