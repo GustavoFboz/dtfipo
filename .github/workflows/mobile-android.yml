@@ -17,6 +17,7 @@ on:
       - "vite.mobile.config.ts"
       - "scripts/prepare-notification-sound.mjs"
       - "scripts/smoke-test-android.sh"
+      - "scripts/test-android-webview.mjs"
       - ".github/workflows/mobile-android.yml"
 
 permissions:
@@ -26,6 +27,10 @@ jobs:
   build-android-apk:
     name: Build Android APK 0.2.0
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [35, 37]
     timeout-minutes: 45
     env:
       CI: "true"
@@ -49,7 +54,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Verify Capacitor metadata
         shell: bash
@@ -59,6 +64,8 @@ jobs:
 
       - name: Build DentalFlow mobile SPA
         run: bun run build:mobile
+        env:
+          NODE_ENV: development
 
       - name: Generate Capacitor Android project
         shell: bash
@@ -104,11 +111,12 @@ jobs:
       - name: Smoke-test installed Android app
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: ${{ matrix.api }}
           arch: x86_64
           profile: pixel_6
           disable-animations: true
           disable-linux-hw-accel: false
+          ram-size: 4096M
           # The emulator action evaluates each inline line in a separate `sh -c`.
           # Keep stateful variables and checks in one versioned POSIX script.
           script: sh scripts/smoke-test-android.sh
@@ -117,7 +125,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: DentalFlow-Android-startup-diagnostics
+          name: DentalFlow-Android-startup-diagnostics-API-${{ matrix.api }}
           path: |
             android-*.log
             android-startup.png
@@ -125,6 +133,7 @@ jobs:
           retention-days: 7
 
       - name: Prepare APK
+        if: matrix.api == 35
         shell: bash
         run: |
           set -euo pipefail
@@ -134,6 +143,7 @@ jobs:
           sha256sum DentalFlow_Android_0.2.0.apk | tee DentalFlow_Android_0.2.0.sha256
 
       - name: Upload Android APK
+        if: matrix.api == 35
         uses: actions/upload-artifact@v4
         with:
           name: DentalFlow-Android-0.2.0
