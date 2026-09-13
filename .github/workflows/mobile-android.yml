@@ -107,6 +107,17 @@ jobs:
           # Keep stateful variables and checks in one versioned POSIX script.
           script: sh scripts/smoke-test-android.sh
 
+      - name: Preserve Android startup diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DentalFlow-Android-startup-diagnostics
+          path: |
+            android-*.log
+            android-startup.png
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Prepare APK
         shell: bash
         run: |
