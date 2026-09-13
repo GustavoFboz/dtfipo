@@ -96,6 +96,11 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --stacktrace
 
+      - name: Enable emulator hardware acceleration
+        run: |
+          sudo chown "$USER" /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm
+
       - name: Smoke-test installed Android app
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -103,6 +108,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
+          disable-linux-hw-accel: false
           # The emulator action evaluates each inline line in a separate `sh -c`.
           # Keep stateful variables and checks in one versioned POSIX script.
           script: sh scripts/smoke-test-android.sh

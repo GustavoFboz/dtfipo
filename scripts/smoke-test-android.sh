@@ -13,6 +13,8 @@ collect_diagnostics() {
   adb shell dumpsys activity exit-info "$package" > android-exit-info.log 2>&1 || true
   adb shell dumpsys webviewupdate > android-webview.log 2>&1 || true
   adb exec-out screencap -p > android-startup.png 2>/dev/null || true
+  cat android-crash.log android-exit-info.log || true
+  grep -E -A 20 -B 3 'AndroidRuntime|Capacitor|FATAL|ANR in br.com.dentalflow' "$startup_log" | tail -n 250 || true
 }
 trap collect_diagnostics EXIT
 
