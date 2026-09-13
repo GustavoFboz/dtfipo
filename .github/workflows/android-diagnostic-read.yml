@@ -1,0 +1,21 @@
+name: Inspect Android startup diagnostics
+on:
+  push:
+    branches: ["mobile/android-021-startup-diagnosis"]
+    paths: [".github/workflows/android-diagnostic-read.yml"]
+permissions:
+  actions: read
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: DentalFlow-Android-startup-diagnostics
+          run-id: 34741258229
+          github-token: ${{ github.token }}
+      - name: Inspect crash and WebView evidence
+        run: |
+          cat android-crash.log android-exit-info.log android-webview.log
+          grep -E -A 25 -B 5 'AndroidRuntime|FATAL|Capacitor|chromium|br.com.dentalflow|ANR in' android-startup.log | tail -n 800
