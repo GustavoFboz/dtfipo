@@ -20,6 +20,10 @@ if parallel:
     source, count = re.subn(r'applicationId\s+"br\.com\.dentalflow\.mobile"',
                            'applicationId "br.com.dentalflow.mobile.preview"', source)
     assert count == 1, "Unexpected applicationId for parallel build"
+# Both CI variants use the same AGP-managed temporary certificate, so release
+# can be installed over debug for runtime verification. Delivery is re-signed
+# with the retained private certificate outside CI.
+source += "\nandroid.buildTypes.release.signingConfig = android.signingConfigs.debug\n"
 gradle.write_text(source)
 
 android = "{http://schemas.android.com/apk/res/android}"

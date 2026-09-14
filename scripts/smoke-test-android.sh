@@ -72,6 +72,6 @@ sh scripts/test-android-recovery.sh
 
 # Test production packaging too. The disposable CI key only signs this test
 # installation; the deliverable is re-signed with the retained private key.
-"$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks "$HOME/.android/debug.keystore" --ks-pass pass:android --key-pass pass:android --out android-release-candidate.apk android/app/build/outputs/apk/release/app-release-unsigned.apk
+cp android/app/build/outputs/apk/release/app-release.apk android-release-candidate.apk
 adb install -r android-release-candidate.apk
 python scripts/test-android-release.py
