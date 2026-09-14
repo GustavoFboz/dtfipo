@@ -20,6 +20,7 @@ on:
       - "scripts/test-android-webview.mjs"
       - "scripts/prepare-android-release.py"
       - "scripts/test-android-recovery.sh"
+      - "scripts/test-android-release.py"
       - ".github/workflows/mobile-android.yml"
 
 permissions:
@@ -32,7 +33,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        api: ["35", "37.0"]
+        include:
+          - api: "35"
+            target: default
+          - api: "37.0"
+            target: google_apis
     timeout-minutes: 45
     env:
       CI: "true"
@@ -87,7 +92,7 @@ jobs:
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug assembleRelease --stacktrace
 
       - name: Enable emulator hardware acceleration
         run: |
@@ -98,14 +103,14 @@ jobs:
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api }}
-          target: google_apis
+          target: ${{ matrix.target }}
           arch: x86_64
           profile: pixel_6
           disable-animations: true
           disable-linux-hw-accel: false
           ram-size: 4096M
           disk-size: 6G
-          emulator-options: -no-window -gpu swiftshader -no-snapshot -noaudio -no-boot-anim -camera-back none -partition-size 6144
+          emulator-options: -no-window -gpu swiftshader_indirect -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none -partition-size 6144
           # The emulator action evaluates each inline line in a separate `sh -c`.
           # Keep stateful variables and checks in one versioned POSIX script.
           script: sh scripts/smoke-test-android.sh
@@ -119,6 +124,7 @@ jobs:
             android-*.log
             android-startup.png
             android-recovery.xml
+            android-release-ui.xml
           if-no-files-found: warn
           retention-days: 7
 
@@ -127,7 +133,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          APK="android-release-candidate.apk"
           test -f "$APK"
           cp "$APK" DentalFlow_Android_0.2.1.apk
           cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" apksigner.jar

@@ -20,8 +20,8 @@ root = ET.parse('android-recovery.xml').getroot()
 texts = [node.get('text', '') for node in root.iter('node')]
 assert any('Vamos reabrir o DentalFlow' in text for text in texts), texts
 assert any('Falha nativa:' in text for text in texts), 'Native exception was not recorded'
-assert any('Compartilhar diagnóstico' in text for text in texts), 'No cable-free diagnostic action'
-retry = next(node for node in root.iter('node') if node.get('text') == 'Tentar novamente')
+assert any('compartilhar diagnóstico' in text.casefold() for text in texts), 'No cable-free diagnostic action'
+retry = next(node for node in root.iter('node') if node.get('text', '').casefold() == 'tentar novamente')
 x1, y1, x2, y2 = map(int, re.findall(r'\d+', retry.get('bounds')))
 subprocess.run(['adb', 'shell', 'input', 'tap', str((x1+x2)//2), str((y1+y2)//2)], check=True)
 PY

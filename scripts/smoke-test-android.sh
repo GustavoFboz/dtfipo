@@ -7,6 +7,13 @@ export DENTALFLOW_ANDROID_PACKAGE="$package"
 activity="$package/br.com.dentalflow.mobile.StartupActivity"
 apk="android/app/build/outputs/apk/debug/app-debug.apk"
 startup_log="android-startup.log"
+api="$(adb shell getprop ro.build.version.sdk | tr -d '\r')"
+# API 37 emulator images currently crash in GPU readback used by gesture
+# navigation. Use Android's standard three-button mode in this test device.
+if [ "$api" -ge 37 ]; then
+  adb shell cmd overlay enable-exclusive --category com.android.internal.systemui.navbar.threebutton
+fi
+sleep 20
 
 collect_diagnostics() {
   adb logcat -d -v threadtime > "$startup_log" 2>&1 || true
@@ -14,7 +21,7 @@ collect_diagnostics() {
   adb shell dumpsys activity activities > android-activities.log 2>&1 || true
   adb shell dumpsys activity exit-info "$package" > android-exit-info.log 2>&1 || true
   adb shell dumpsys webviewupdate > android-webview.log 2>&1 || true
-  adb exec-out screencap -p > android-startup.png 2>/dev/null || true
+  if [ "$api" -lt 37 ]; then adb exec-out screencap -p > android-startup.png 2>/dev/null || true; fi
   cat android-crash.log android-exit-info.log || true
   grep -E -A 20 -B 3 'AndroidRuntime|Capacitor|FATAL|ANR in br.com.dentalflow' "$startup_log" | tail -n 250 || true
 }
@@ -62,3 +69,9 @@ echo "Activity launch and process continuity passed; this is not proof of functi
 cp android-startup.log android-clean-startup.log
 cp android-crash.log android-clean-crash.log
 sh scripts/test-android-recovery.sh
+
+# Test production packaging too. The disposable CI key only signs this test
+# installation; the deliverable is re-signed with the retained private key.
+"$ANDROID_HOME/build-tools/35.0.0/apksigner" sign --ks "$HOME/.android/debug.keystore" --ks-pass pass:android --key-pass pass:android --out android-release-candidate.apk android/app/build/outputs/apk/release/app-release-unsigned.apk
+adb install -r android-release-candidate.apk
+python scripts/test-android-release.py
