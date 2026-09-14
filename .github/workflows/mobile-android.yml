@@ -126,6 +126,7 @@ jobs:
             android-recovery.xml
             android-release-ui.xml
             android-renderer-recovery.xml
+            android-native-exit.xml
           if-no-files-found: warn
           retention-days: 7
 

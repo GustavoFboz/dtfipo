@@ -124,7 +124,10 @@ public class StartupActivity extends Activity {
         if (Build.VERSION.SDK_INT < 30) return;
         try {
             ActivityManager manager = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-            for (ApplicationExitInfo exit : manager.getHistoricalProcessExitReasons(getPackageName(), 0, 1)) {
+            // Isolated renderer exits may be newer than the application's own
+            // native crash. Do not let those hide the host's failure record.
+            for (ApplicationExitInfo exit : manager.getHistoricalProcessExitReasons(getPackageName(), 0, 8)) {
+                if (!getPackageName().equals(exit.getProcessName())) continue;
                 long checked = preferences(this).getLong("checked-exit", 0);
                 if (exit.getTimestamp() <= checked) return;
                 preferences(this).edit().putLong("checked-exit", exit.getTimestamp()).apply();

@@ -53,6 +53,8 @@ não são migrados silenciosamente. Não orientar desinstalação ou limpeza de 
 O pacote gerado pelo CI é um insumo de teste. A entrega deve ser assinada com a
 chave privada retida, usando `scripts/sign-android-apk.sh`. A chave nunca deve
 ser commitada. Próximas atualizações desse pacote precisam usar a mesma chave.
+Certificado retido (SHA-256):
+`73496c6c870d51919e31e5b320afabe456277b27b87c8f8ead0bf79cb9092b91`.
 O pacote principal `br.com.dentalflow.mobile` continua disponível no preparador
 quando `DENTALFLOW_ANDROID_PARALLEL` não está ativado; não usá-lo como atualização
 do APK antigo sem recuperar a assinatura correspondente.

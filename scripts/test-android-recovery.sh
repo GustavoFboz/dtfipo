@@ -35,6 +35,34 @@ bun scripts/test-android-webview.mjs
 adb logcat -d -v threadtime > android-recovery-injected.log
 echo "Native exception recorded; recovery UI and retry passed without USB."
 
+# SIGABRT cannot be caught by a Java handler. Verify Android's persisted exit
+# history also reaches recovery, even when renderer exit records are newer.
+native_pid="$(adb shell pidof "$package" | tr -d '\r')"
+adb shell run-as "$package" kill -6 "$native_pid"
+for sample in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+  if [ -z "$(adb shell pidof "$package" || true)" ]; then break; fi
+  sleep 1
+done
+test -z "$(adb shell pidof "$package" || true)"
+adb shell am force-stop "$package"
+adb shell am start -W -n "$activity" > android-native-exit-launch.log
+sleep 2
+adb shell uiautomator dump /sdcard/dentalflow-native-exit.xml
+adb pull /sdcard/dentalflow-native-exit.xml android-native-exit.xml
+python - <<'PY'
+import re
+import subprocess
+import xml.etree.ElementTree as ET
+root = ET.parse('android-native-exit.xml').getroot()
+assert any('Encerramento registrado pelo Android:' in node.get('text', '') for node in root.iter('node')), 'Native exit history was not recovered'
+retry = next(node for node in root.iter('node') if node.get('text', '').casefold() == 'tentar novamente')
+x1, y1, x2, y2 = map(int, re.findall(r'\d+', retry.get('bounds')))
+subprocess.run(['adb', 'shell', 'input', 'tap', str((x1+x2)//2), str((y1+y2)//2)], check=True)
+PY
+sleep 3
+bun scripts/test-android-webview.mjs
+echo "Native SIGABRT exit history and retry passed."
+
 pid="$(adb shell pidof "$package" | tr -d '\r')"
 bun scripts/test-android-webview.mjs --crash-renderer
 test "$(adb shell pidof "$package" | tr -d '\r')" = "$pid"
