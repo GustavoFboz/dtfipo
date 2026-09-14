@@ -68,9 +68,12 @@ são separados dos logs de inicialização limpa. Falha do emulador não deve se
 rotulada como aprovação do dispositivo.
 
 As verificações existentes de regressão Android e dos adapters locais/privacidade
-Windows passaram. O login em uma conta real, as operações autenticadas completas
-e o comportamento no Moto físico não foram confirmados; não declarar validação
-integral apenas a partir dos testes de abertura.
+Windows passaram. O job API 35 é o bloqueio obrigatório para gerar o APK; o job
+API 37 permanece diagnóstico e preserva evidências, mas não deve bloquear a
+entrega quando a falha vier da instabilidade do emulador Android 17. O login em
+uma conta real, as operações autenticadas completas e o comportamento no Moto
+físico não foram confirmados; não declarar validação integral apenas a partir dos
+testes de abertura.
 
 Referências: [React #418](https://react.dev/errors/418),
 [TanStack SPA](https://tanstack.com/start/latest/docs/framework/react/guide/spa-mode),
