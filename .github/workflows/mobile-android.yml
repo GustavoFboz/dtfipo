@@ -36,8 +36,11 @@ jobs:
         include:
           - api: "35"
             target: default
+            experimental: false
           - api: "37.0"
             target: google_apis
+            experimental: true
+    continue-on-error: ${{ matrix.experimental }}
     timeout-minutes: 45
     env:
       CI: "true"
