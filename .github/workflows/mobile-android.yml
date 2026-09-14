@@ -125,6 +125,7 @@ jobs:
             android-startup.png
             android-recovery.xml
             android-release-ui.xml
+            android-renderer-recovery.xml
           if-no-files-found: warn
           retention-days: 7
 

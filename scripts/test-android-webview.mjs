@@ -66,6 +66,11 @@ try {
   assert.equal(errors.length, 0, "Uncaught JavaScript errors during login interaction");
   console.log("Installed APK: login rendered and login/signup controls responded.");
   writeFileSync("android-webview-ui.log", JSON.stringify({ loginRendered: ready, interactive: true, errors }, null, 2));
+  if (process.argv.includes("--crash-renderer")) {
+    // The renderer closes the CDP connection. The native recovery screen is
+    // asserted separately; a timeout alone is never considered a passed test.
+    await call("Page.crash").catch(() => undefined);
+  }
 } finally {
   socket?.close();
   adb("forward", "--remove", "tcp:9222");
