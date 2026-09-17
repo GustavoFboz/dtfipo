@@ -54,13 +54,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          MISSING=0
           if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
             echo "::error::Repository secret DENTALFLOW_ANDROID_KEYSTORE_BASE64 is not configured."
-            exit 10
+            MISSING=1
           fi
           if [ -z "$ANDROID_KEYSTORE_PASSWORD" ]; then
             echo "::error::Repository secret DENTALFLOW_ANDROID_KEYSTORE_PASSWORD is not configured."
-            exit 11
+            MISSING=1
+          fi
+          if [ "$MISSING" -ne 0 ]; then
+            exit 10
           fi
           umask 077
           trap 'rm -f dentalflow-release.p12 dentalflow-release.pem' EXIT
