@@ -54,14 +54,29 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -n "$ANDROID_KEYSTORE_BASE64"
-          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "::error::Repository secret DENTALFLOW_ANDROID_KEYSTORE_BASE64 is not configured."
+            exit 10
+          fi
+          if [ -z "$ANDROID_KEYSTORE_PASSWORD" ]; then
+            echo "::error::Repository secret DENTALFLOW_ANDROID_KEYSTORE_PASSWORD is not configured."
+            exit 11
+          fi
           umask 077
           trap 'rm -f dentalflow-release.p12 dentalflow-release.pem' EXIT
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > dentalflow-release.p12
-          openssl pkcs12 -in dentalflow-release.p12 -clcerts -nokeys -passin env:ANDROID_KEYSTORE_PASSWORD -out dentalflow-release.pem
+          if ! printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > dentalflow-release.p12; then
+            echo "::error::DENTALFLOW_ANDROID_KEYSTORE_BASE64 is not valid Base64."
+            exit 12
+          fi
+          if ! openssl pkcs12 -in dentalflow-release.p12 -clcerts -nokeys -passin env:ANDROID_KEYSTORE_PASSWORD -out dentalflow-release.pem; then
+            echo "::error::The Android PKCS#12 file or password is invalid."
+            exit 13
+          fi
           ACTUAL_CERT_SHA256="$(openssl x509 -in dentalflow-release.pem -noout -fingerprint -sha256 | cut -d= -f2 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
-          test "$ACTUAL_CERT_SHA256" = "$EXPECTED_CERT_SHA256"
+          if [ "$ACTUAL_CERT_SHA256" != "$EXPECTED_CERT_SHA256" ]; then
+            echo "::error::The configured Android certificate does not match the pinned DentalFlow certificate."
+            exit 14
+          fi
           echo "::notice::Android signing secrets are configured and match the pinned certificate."
 
   build-android-apk:
