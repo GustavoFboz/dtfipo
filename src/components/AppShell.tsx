@@ -44,6 +44,7 @@ import { StorageSidebarCard } from "./StorageSidebarCard";
 import { useCasesRealtime } from "@/hooks/use-cases-realtime";
 import { useEntityRealtime } from "@/hooks/use-entity-realtime";
 import { useChatRealtime } from "@/hooks/use-chat-realtime";
+import { NativeUpdateCenterButton } from "./NativeUpdateCenter";
 
 
 
@@ -397,6 +398,7 @@ export function AppShell() {
         </div>
 
         <div className="flex items-center gap-2">
+          <NativeUpdateCenterButton />
           <NotificationPanel profile={profile ?? undefined} />
           
           <Link
@@ -636,7 +638,8 @@ export function AppShell() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-3 ml-auto shrink-0">
+        <div className="flex items-center gap-1 ml-auto shrink-0">
+          <NativeUpdateCenterButton />
           {/* Sino próprio do mobile — dispara o mesmo trigger do painel global */}
           <button
             aria-label="Notificações"

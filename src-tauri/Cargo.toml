@@ -1,6 +1,6 @@
 [package]
 name = "dentalflow-desktop"
-version = "0.6.5"
+version = "0.6.6"
 description = "DentalFlow Desktop for Windows"
 authors = ["DentalFlow"]
 edition = "2021"
@@ -16,6 +16,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["tray-icon"] }
 tauri-plugin-notification = "2"
+tauri-plugin-opener = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-single-instance = "2"
 rusqlite = { version = "0.32", features = ["bundled"] }

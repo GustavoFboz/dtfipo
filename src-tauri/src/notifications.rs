@@ -36,7 +36,7 @@ fn custom_sound_path() -> Option<&'static PathBuf> {
     static PATH: OnceLock<Option<PathBuf>> = OnceLock::new();
     PATH.get_or_init(|| {
         let bytes = include_bytes!("../resources/dentalflow_notification.mp3");
-        let path = std::env::temp_dir().join("dentalflow_notification_065.mp3");
+        let path = std::env::temp_dir().join("dentalflow_notification_066.mp3");
 
         let should_write = std::fs::metadata(&path)
             .map(|metadata| metadata.len() != bytes.len() as u64)

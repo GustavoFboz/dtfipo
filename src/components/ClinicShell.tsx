@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { ClinicSidebar } from "@/components/ClinicSidebar";
 import { NotificationPanel } from "@/components/NotificationPanel";
+import { NativeUpdateCenterButton } from "@/components/NativeUpdateCenter";
 import { fetchProfile } from "@/lib/api";
 import { fetchClinicContext } from "@/lib/clinic";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,6 +83,7 @@ export function ClinicShell() {
           </div>
 
           <div className="flex items-center gap-1.5">
+            <NativeUpdateCenterButton />
             <NotificationPanel profile={profile ?? undefined} />
             <Link
               to="/hub"

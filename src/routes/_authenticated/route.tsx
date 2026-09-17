@@ -15,6 +15,7 @@ import { DesktopPrimarySyncGate } from "@/components/DesktopPrimarySyncGate";
 import { DesktopRealtimeSync } from "@/components/DesktopRealtimeSync";
 import { DesktopLabHomeShortcut } from "@/components/DesktopLabHomeShortcut";
 import { SubscriptionGate } from "@/components/SubscriptionGate";
+import { NativeUpdateCenterProvider } from "@/components/NativeUpdateCenter";
 import "@/workflow-layout.css";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -76,13 +77,13 @@ function AuthenticatedShell() {
   }
 
   return (
-    <>
+    <NativeUpdateCenterProvider>
       <DesktopOfflineBootstrap />
       <DesktopPrimarySyncGate />
       <DesktopRealtimeSync />
       <ConnectivityLayer />
       <EnvironmentTransition />
       <SubscriptionGate>{shell}</SubscriptionGate>
-    </>
+    </NativeUpdateCenterProvider>
   );
 }

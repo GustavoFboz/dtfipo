@@ -6,6 +6,9 @@ type DentalFlowTauriGlobal = {
   core?: {
     invoke?: DesktopInvoke;
   };
+  opener?: {
+    openUrl?: (url: string) => Promise<void>;
+  };
 };
 
 declare global {
@@ -16,6 +19,7 @@ declare global {
 
 export type DesktopRuntimeInfo = {
   platform: "tauri";
+  version: string;
   database_path: string;
   schema_version: number;
 };
@@ -110,6 +114,15 @@ export function performDesktopWindowAction(action: "minimize" | "toggle_maximize
     return Promise.resolve<DesktopWindowState>({ maximized: false, fullscreen: false, focused: true });
   }
   return invokeDesktop<DesktopWindowState>("desktop_window_action", { action });
+}
+
+export async function openDesktopExternalUrl(url: string) {
+  if (!isDentalFlowWindowsDesktop()) {
+    throw new Error("O navegador externo do DentalFlow Desktop não está disponível.");
+  }
+  const openUrl = window.__TAURI__?.opener?.openUrl;
+  if (!openUrl) throw new Error("O módulo seguro de downloads não foi inicializado.");
+  await openUrl(url);
 }
 
 export async function sendDesktopNativeNotification(input: {
