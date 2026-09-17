@@ -41,7 +41,31 @@ permissions:
   contents: read
 
 jobs:
+  verify-retained-signing:
+    name: Verify retained Android signing
+    if: github.ref == 'refs/heads/mobile/android-signing-diagnostic'
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.DENTALFLOW_ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.DENTALFLOW_ANDROID_KEYSTORE_PASSWORD }}
+      EXPECTED_CERT_SHA256: "8e0c25bfe43f32fd6bdda49c49e6e19624957c2c968af00c867a13936d5330e3"
+    steps:
+      - name: Validate configured signing identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          test -n "$ANDROID_KEYSTORE_PASSWORD"
+          umask 077
+          trap 'rm -f dentalflow-release.p12 dentalflow-release.pem' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > dentalflow-release.p12
+          openssl pkcs12 -in dentalflow-release.p12 -clcerts -nokeys -passin env:ANDROID_KEYSTORE_PASSWORD -out dentalflow-release.pem
+          ACTUAL_CERT_SHA256="$(openssl x509 -in dentalflow-release.pem -noout -fingerprint -sha256 | cut -d= -f2 | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          test "$ACTUAL_CERT_SHA256" = "$EXPECTED_CERT_SHA256"
+          echo "::notice::Android signing secrets are configured and match the pinned certificate."
+
   build-android-apk:
+    if: github.ref != 'refs/heads/mobile/android-signing-diagnostic'
     name: Build Android APK 0.3.0
     runs-on: ubuntu-latest
     strategy:
