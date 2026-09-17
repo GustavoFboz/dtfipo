@@ -19,7 +19,7 @@ function notificationId(value: unknown) {
  * PushNotifications on every boot; on builds without google-services.json that
  * could tear down the Activity before the WebView became usable.
  *
- * Realtime + local Android notifications are the stable transport in 0.2.2.
+ * Realtime + local Android notifications are the stable transport in 0.3.0.
  * Remote FCM registration is opt-in through VITE_DENTALFLOW_PUSH_ENABLED=true.
  */
 export function MobileNativeBridge() {

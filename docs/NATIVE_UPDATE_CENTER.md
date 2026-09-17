@@ -47,8 +47,8 @@ Para manter a mesma identidade criptográfica entre APKs, configure os secrets:
 - `DENTALFLOW_ANDROID_KEYSTORE_BASE64`: PKCS#12 em Base64, alias `dentalflow`.
 - `DENTALFLOW_ANDROID_KEYSTORE_PASSWORD`: senha forte do PKCS#12 e da chave.
 
-Sem esses secrets o workflow ainda produz um APK de pré-visualização instalável, mas o Android pode exigir desinstalação antes de uma versão assinada por outro certificado. O canal distribuído deve sempre usar a chave retida.
+O certificado permanente esperado possui SHA-256 `8e0c25bfe43f32fd6bdda49c49e6e19624957c2c968af00c867a13936d5330e3`. Builds da `main` falham sem os secrets ou quando o certificado diverge. Pull requests e branches de diagnóstico continuam usando pacote e certificado descartáveis, sem acesso aos segredos de produção.
 
 ## Primeira adoção
 
-As versões anteriores (`Windows 0.6.5` e `Android 0.2.1` ou inferior) não contêm esta interface, pois ambos os aplicativos embarcam o frontend dentro do instalador. É necessário instalar manualmente **Windows 0.6.6** e **Android 0.2.2** uma vez. A partir dessas versões, lançamentos futuros aparecem no próprio Centro de atualizações sem depender da versão web.
+As versões anteriores (`Windows 0.6.5` e `Android 0.2.1` ou inferior) não contêm esta interface, pois ambos os aplicativos embarcam o frontend dentro do instalador. É necessário instalar manualmente **Windows 0.6.6** e **Android 0.2.2** uma vez para receber o Centro. A versão Android **0.3.0** conclui a migração única para o pacote e a assinatura permanentes; lançamentos posteriores poderão atualizar essa instalação normalmente.

@@ -28,11 +28,13 @@ expect(runtime.includes("Capacitor.isNativePlatform()") && runtime.includes('Cap
 expect(desktopLocal.includes("mobileLocal.isNativeMobileLocalRuntime()"), "Shared installed-client local-first facade must delegate to Android storage.");
 expect(printButton.includes("isDentalFlowWindowsDesktop"), "Android printing must never be routed to Windows-only commands.");
 expect(systemPrint.includes("isNativeMobileApp()") && systemPrint.includes("printHtmlNative"), "Case-note printing must use the Android Print Framework bridge.");
-expect(workflow.includes('APK="DentalFlow_Android_${VERSION}.apk"') && workflow.includes('VERSION="0.2.2"') && release.includes('VERSION = "0.2.2"'), "Android release workflow must package version 0.2.2.");
+expect(workflow.includes('APK="DentalFlow_Android_${VERSION}.apk"') && workflow.includes('VERSION="0.3.0"') && release.includes('VERSION = "0.3.0"'), "Android release workflow must package version 0.3.0.");
+expect(workflow.includes("github.ref != 'refs/heads/main'") && workflow.includes("canonical Android release requires"), "Main Android releases must use the canonical package and fail closed without retained signing secrets.");
+expect(workflow.includes("8e0c25bfe43f32fd6bdda49c49e6e19624957c2c968af00c867a13936d5330e3"), "Android release workflow must pin the permanent signing certificate.");
 expect(workflow.includes("script: sh scripts/smoke-test-android.sh"), "Android emulator smoke test must run as one stateful POSIX shell process.");
 expect(smokeTest.includes('test -s "$apk"') && smokeTest.includes('adb install -r "$apk"'), "Android smoke test must validate and install the generated APK.");
 expect(mobileCss.includes("--df-mobile-blue") && mobileCss.includes('[role="dialog"][data-state="open"]'), "Mobile UI layer must keep touch/dialog adaptations.");
 expect(soundPrepare.includes("28416") || soundPrepare.includes("28_416"), "Custom notification sound integrity length must remain pinned.");
 expect(soundPrepare.includes("3ab06b76690800dee2c80b15f58583458d2973606dea0bdcbdae3806e99cb326"), "Custom notification sound integrity hash must remain pinned.");
 
-console.log("DentalFlow Android 0.2.2 native/offline/print/notification regressions: OK");
+console.log("DentalFlow Android 0.3.0 native/offline/print/notification regressions: OK");

@@ -42,7 +42,7 @@ permissions:
 
 jobs:
   build-android-apk:
-    name: Build Android APK 0.2.2
+    name: Build Android APK 0.3.0
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -58,7 +58,9 @@ jobs:
     timeout-minutes: 45
     env:
       CI: "true"
-      DENTALFLOW_ANDROID_PARALLEL: "true"
+      # Pull requests and diagnostic branches keep the isolated preview package.
+      # The main branch alone produces the canonical production package.
+      DENTALFLOW_ANDROID_PARALLEL: ${{ github.ref != 'refs/heads/main' }}
 
     steps:
       - name: Checkout
@@ -159,9 +161,10 @@ jobs:
         env:
           ANDROID_KEYSTORE_BASE64: ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') && secrets.DENTALFLOW_ANDROID_KEYSTORE_BASE64 || '' }}
           ANDROID_KEYSTORE_PASSWORD: ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') && secrets.DENTALFLOW_ANDROID_KEYSTORE_PASSWORD || '' }}
+          DENTALFLOW_ANDROID_EXPECTED_CERT_SHA256: "8e0c25bfe43f32fd6bdda49c49e6e19624957c2c968af00c867a13936d5330e3"
         run: |
           set -euo pipefail
-          VERSION="0.2.2"
+          VERSION="0.3.0"
           CANDIDATE="android-release-candidate.apk"
           APK="DentalFlow_Android_${VERSION}.apk"
           CHECKSUM="DentalFlow_Android_${VERSION}.sha256"
@@ -175,10 +178,13 @@ jobs:
             sh scripts/sign-android-apk.sh "$SIGNER" "$CANDIDATE" "$APK" dentalflow-release.p12 dentalflow-release.password
             rm -f dentalflow-release.p12 dentalflow-release.password
             echo "signing=retained" >> "$GITHUB_OUTPUT"
+          elif [ "$GITHUB_REF" = "refs/heads/main" ]; then
+            echo "::error::The canonical Android release requires the retained DentalFlow signing secrets."
+            exit 1
           else
             cp "$CANDIDATE" "$APK"
             echo "signing=ci-preview" >> "$GITHUB_OUTPUT"
-            echo "::warning::Retained Android signing secrets are not configured; publishing the installable preview certificate."
+            echo "::notice::Using the disposable preview certificate outside the main branch."
           fi
 
           sha256sum "$APK" | tee "$CHECKSUM"
@@ -191,7 +197,7 @@ jobs:
         if: matrix.api == 35
         uses: actions/upload-artifact@v4
         with:
-          name: DentalFlow-Android-0.2.2
+          name: DentalFlow-Android-0.3.0
           path: |
             ${{ steps.release.outputs.apk }}
             ${{ steps.release.outputs.checksum }}
@@ -213,7 +219,7 @@ jobs:
       - name: Download verified Android installer
         uses: actions/download-artifact@v4
         with:
-          name: DentalFlow-Android-0.2.2
+          name: DentalFlow-Android-0.3.0
           path: release
 
       - name: Publish permanent Android installer
