@@ -1,4 +1,4 @@
-import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
+import { Outlet, Link, ClientOnly, createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useRouter } from "@tanstack/react-router";
@@ -116,8 +116,8 @@ function RootComponent() {
     tryAutoConnectPrinter().catch(() => {});
   }, []);
   usePWANavGuard();
-  return (
-    <QueryClientProvider client={queryClient}>
+  const application = (
+    <>
       <DesktopLocalRuntimeBridge />
       <DesktopNotificationSoundBridge />
       <MobileNativeBridge />
@@ -129,6 +129,17 @@ function RootComponent() {
         <UploadProgressDock />
         <ConfirmHost />
       </DesktopNativeFrame>
+    </>
+  );
+  return (
+    <QueryClientProvider client={queryClient}>
+      {/* The packaged shell has no authenticated route at build time. Wait for
+          hydration before native redirects and plugins replace its fallback. */}
+      {import.meta.env.VITE_DENTALFLOW_MOBILE_SHELL ? (
+        <ClientOnly fallback={<div role="status" className="flex min-h-screen items-center justify-center bg-background text-foreground">Abrindo DentalFlow…</div>}>
+          {application}
+        </ClientOnly>
+      ) : application}
     </QueryClientProvider>
   );
 }

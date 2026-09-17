@@ -3,5 +3,15 @@
   "identifier": "default",
   "description": "Default capability set for the DentalFlow main window",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": [
+    "core:default",
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://github.com/GustavoFboz/dtfipo/releases/download/**"
+        }
+      ]
+    }
+  ]
 }

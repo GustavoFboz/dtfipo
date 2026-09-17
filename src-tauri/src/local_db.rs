@@ -21,6 +21,7 @@ pub struct LocalDb {
 #[derive(Serialize)]
 pub struct DesktopRuntimeInfo {
     platform: &'static str,
+    version: String,
     database_path: String,
     schema_version: i64,
 }
@@ -169,7 +170,7 @@ fn decode_payload(encoded: &str) -> Result<Value, String> {
 }
 
 #[tauri::command]
-pub fn desktop_runtime_info(state: State<'_, LocalDb>) -> Result<DesktopRuntimeInfo, String> {
+pub fn desktop_runtime_info(app: AppHandle, state: State<'_, LocalDb>) -> Result<DesktopRuntimeInfo, String> {
     let connection = lock_connection(&state)?;
     let schema_version = connection
         .query_row(
@@ -184,6 +185,7 @@ pub fn desktop_runtime_info(state: State<'_, LocalDb>) -> Result<DesktopRuntimeI
 
     Ok(DesktopRuntimeInfo {
         platform: "tauri",
+        version: app.package_info().version.to_string(),
         database_path: state.path.to_string_lossy().into_owned(),
         schema_version,
     })

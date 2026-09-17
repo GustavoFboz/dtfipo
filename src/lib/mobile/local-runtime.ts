@@ -1,3 +1,4 @@
+import { App } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
 
 type MobileIdentity = {
@@ -99,7 +100,8 @@ export async function mobileRuntimeInfo() {
   requireMobile();
   const db = await openDb();
   db.close();
-  return { platform: "android", database_path: DB_NAME, schema_version: DB_VERSION };
+  const app = await App.getInfo();
+  return { platform: "android", version: app.version, database_path: DB_NAME, schema_version: DB_VERSION };
 }
 
 export function mobileGetIdentity(): MobileIdentity | null {

@@ -8,6 +8,7 @@ import { fetchProfile } from "@/lib/api";
 import { fetchClinicContext } from "@/lib/clinic";
 import { fetchMySubscriptionContext, type CompanySessionType } from "@/lib/subscriptions";
 import { useTheme } from "@/hooks/use-theme";
+import { NativeUpdateCenterButton } from "@/components/NativeUpdateCenter";
 
 export const Route = createFileRoute("/_authenticated/hub")({ component: HubPage });
 
@@ -150,24 +151,27 @@ function HubPage() {
         <Home className="h-[17px] w-[17px] stroke-[1.15]" />
       </Link>
 
-      <button
-        type="button"
-        data-no-window-drag
-        onClick={toggleTheme}
-        className="absolute right-5 top-5 z-50 flex h-[42px] w-[102px] items-center overflow-hidden rounded-full border border-white/90 bg-white/48 p-[3px] shadow-[0_8px_24px_-19px_rgba(15,23,42,.5)] backdrop-blur-2xl transition sm:right-8 sm:top-8 dark:border-white/[0.08] dark:bg-white/[0.035]"
-        aria-label={theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"}
-        title={theme === "dark" ? "Tema claro" : "Tema escuro"}
-      >
-        <span
-          className={`absolute top-[3px] h-[36px] w-[46px] rounded-full bg-white/94 shadow-[0_5px_16px_-10px_rgba(15,23,42,.52)] transition-transform duration-300 dark:bg-white/[0.10] ${theme === "dark" ? "translate-x-[49px]" : "translate-x-0"}`}
-        />
-        <span className="relative z-10 grid h-[36px] w-[46px] place-items-center text-[#c7ccd0]">
-          <Moon className="h-[17px] w-[17px] stroke-[1.05]" />
-        </span>
-        <span className="relative z-10 grid h-[36px] w-[46px] place-items-center text-[#c7ccd0]">
-          <Sun className="h-[17px] w-[17px] stroke-[1.05]" />
-        </span>
-      </button>
+      <div className="absolute right-5 top-5 z-50 flex items-center gap-2 sm:right-8 sm:top-8">
+        <NativeUpdateCenterButton className="rounded-full bg-card/50 text-muted-foreground backdrop-blur-2xl hover:bg-card hover:text-foreground" />
+        <button
+          type="button"
+          data-no-window-drag
+          onClick={toggleTheme}
+          className="relative flex h-[42px] w-[102px] items-center overflow-hidden rounded-full border border-white/90 bg-white/48 p-[3px] shadow-[0_8px_24px_-19px_rgba(15,23,42,.5)] backdrop-blur-2xl transition dark:border-white/[0.08] dark:bg-white/[0.035]"
+          aria-label={theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"}
+          title={theme === "dark" ? "Tema claro" : "Tema escuro"}
+        >
+          <span
+            className={`absolute top-[3px] h-[36px] w-[46px] rounded-full bg-white/94 shadow-[0_5px_16px_-10px_rgba(15,23,42,.52)] transition-transform duration-300 dark:bg-white/[0.10] ${theme === "dark" ? "translate-x-[49px]" : "translate-x-0"}`}
+          />
+          <span className="relative z-10 grid h-[36px] w-[46px] place-items-center text-[#c7ccd0]">
+            <Moon className="h-[17px] w-[17px] stroke-[1.05]" />
+          </span>
+          <span className="relative z-10 grid h-[36px] w-[46px] place-items-center text-[#c7ccd0]">
+            <Sun className="h-[17px] w-[17px] stroke-[1.05]" />
+          </span>
+        </button>
+      </div>
 
       <header className="pointer-events-none absolute inset-x-0 top-[11.6vh] z-40 px-5 text-center sm:top-[12.4vh]">
         <h1 className="mx-auto max-w-[660px] leading-[.98] tracking-[-0.042em] text-[#4b4f53] dark:text-white/78">

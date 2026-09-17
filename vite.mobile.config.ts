@@ -13,6 +13,9 @@ export default defineConfig({
   },
   vite: {
     base: "./",
+    define: {
+      "import.meta.env.VITE_DENTALFLOW_MOBILE_SHELL": "true",
+    },
     resolve: {
       alias: [
         {

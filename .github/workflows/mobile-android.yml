@@ -3,6 +3,19 @@ name: DentalFlow Android Mobile
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "mobile/**"
+      - "package.json"
+      - "bun.lock"
+      - "capacitor.config.ts"
+      - "vite.mobile.config.ts"
+      - "scripts/**android**"
+      - "docs/releases/**"
+      - ".github/workflows/mobile-android.yml"
   push:
     branches:
       - main
@@ -17,6 +30,11 @@ on:
       - "vite.mobile.config.ts"
       - "scripts/prepare-notification-sound.mjs"
       - "scripts/smoke-test-android.sh"
+      - "scripts/test-android-webview.mjs"
+      - "scripts/prepare-android-release.py"
+      - "scripts/test-android-recovery.sh"
+      - "scripts/test-android-release.py"
+      - "docs/releases/**"
       - ".github/workflows/mobile-android.yml"
 
 permissions:
@@ -24,11 +42,23 @@ permissions:
 
 jobs:
   build-android-apk:
-    name: Build Android APK 0.2.0
+    name: Build Android APK 0.2.2
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - api: "35"
+            target: default
+            experimental: false
+          - api: "37.0"
+            target: google_apis
+            experimental: true
+    continue-on-error: ${{ matrix.experimental }}
     timeout-minutes: 45
     env:
       CI: "true"
+      DENTALFLOW_ANDROID_PARALLEL: "true"
 
     steps:
       - name: Checkout
@@ -49,7 +79,7 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Verify Capacitor metadata
         shell: bash
@@ -66,62 +96,142 @@ jobs:
           rm -rf android
           bunx cap add android
           mkdir -p android/app/src/main/java/br/com/dentalflow/mobile
-          cp mobile/android/native/DentalFlowPrintPlugin.java android/app/src/main/java/br/com/dentalflow/mobile/DentalFlowPrintPlugin.java
-          cp mobile/android/native/MainActivity.java android/app/src/main/java/br/com/dentalflow/mobile/MainActivity.java
+          cp mobile/android/native/*.java android/app/src/main/java/br/com/dentalflow/mobile/
           bunx cap sync android
           mkdir -p android/app/src/main/res/raw
           cp mobile/generated/dentalflow_notification.mp3 android/app/src/main/res/raw/dentalflow_notification.mp3
           test -s android/app/src/main/res/raw/dentalflow_notification.mp3
 
       - name: Set Android app version
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          candidates = [Path('android/app/build.gradle'), Path('android/app/build.gradle.kts')]
-          p = next((x for x in candidates if x.exists()), None)
-          if not p:
-              raise SystemExit('Android app Gradle file not found')
-          s = p.read_text()
-          import re
-          s = re.sub(r'versionCode\s+\d+', 'versionCode 2', s)
-          s = re.sub(r'versionName\s+["\'][^"\']+["\']', 'versionName "0.2.0"', s)
-          p.write_text(s)
-          print(p)
-          PY
+        run: python scripts/prepare-android-release.py
 
       - name: Build debug APK
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug assembleRelease --stacktrace
+
+      - name: Enable emulator hardware acceleration
+        run: |
+          sudo chown "$USER" /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm
 
       - name: Smoke-test installed Android app
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: ${{ matrix.api }}
+          target: ${{ matrix.target }}
           arch: x86_64
           profile: pixel_6
           disable-animations: true
+          disable-linux-hw-accel: false
+          ram-size: 4096M
+          disk-size: 6G
+          emulator-options: -no-window -gpu swiftshader_indirect -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none -partition-size 6144
           # The emulator action evaluates each inline line in a separate `sh -c`.
           # Keep stateful variables and checks in one versioned POSIX script.
           script: sh scripts/smoke-test-android.sh
 
-      - name: Prepare APK
-        shell: bash
-        run: |
-          set -euo pipefail
-          APK="android/app/build/outputs/apk/debug/app-debug.apk"
-          test -f "$APK"
-          cp "$APK" DentalFlow_Android_0.2.0.apk
-          sha256sum DentalFlow_Android_0.2.0.apk | tee DentalFlow_Android_0.2.0.sha256
-
-      - name: Upload Android APK
+      - name: Preserve Android startup diagnostics
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: DentalFlow-Android-0.2.0
+          name: DentalFlow-Android-startup-diagnostics-API-${{ matrix.api }}
           path: |
-            DentalFlow_Android_0.2.0.apk
-            DentalFlow_Android_0.2.0.sha256
+            android-*.log
+            android-startup.png
+            android-recovery.xml
+            android-release-ui.xml
+            android-renderer-recovery.xml
+            android-native-exit.xml
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Prepare APK
+        if: matrix.api == 35
+        id: release
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') && secrets.DENTALFLOW_ANDROID_KEYSTORE_BASE64 || '' }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') && secrets.DENTALFLOW_ANDROID_KEYSTORE_PASSWORD || '' }}
+        run: |
+          set -euo pipefail
+          VERSION="0.2.2"
+          CANDIDATE="android-release-candidate.apk"
+          APK="DentalFlow_Android_${VERSION}.apk"
+          CHECKSUM="DentalFlow_Android_${VERSION}.sha256"
+          SIGNER="$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar"
+          test -f "$CANDIDATE"
+          test -f "$SIGNER"
+
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ -n "$ANDROID_KEYSTORE_PASSWORD" ]; then
+            printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > dentalflow-release.p12
+            printf '%s' "$ANDROID_KEYSTORE_PASSWORD" > dentalflow-release.password
+            sh scripts/sign-android-apk.sh "$SIGNER" "$CANDIDATE" "$APK" dentalflow-release.p12 dentalflow-release.password
+            rm -f dentalflow-release.p12 dentalflow-release.password
+            echo "signing=retained" >> "$GITHUB_OUTPUT"
+          else
+            cp "$CANDIDATE" "$APK"
+            echo "signing=ci-preview" >> "$GITHUB_OUTPUT"
+            echo "::warning::Retained Android signing secrets are not configured; publishing the installable preview certificate."
+          fi
+
+          sha256sum "$APK" | tee "$CHECKSUM"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=android-v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "apk=$APK" >> "$GITHUB_OUTPUT"
+          echo "checksum=$CHECKSUM" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Android APK
+        if: matrix.api == 35
+        uses: actions/upload-artifact@v4
+        with:
+          name: DentalFlow-Android-0.2.2
+          path: |
+            ${{ steps.release.outputs.apk }}
+            ${{ steps.release.outputs.checksum }}
           if-no-files-found: error
           retention-days: 14
+
+  publish-android-release:
+    name: Publish permanent Android installer
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    needs: build-android-apk
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download verified Android installer
+        uses: actions/download-artifact@v4
+        with:
+          name: DentalFlow-Android-0.2.2
+          path: release
+
+      - name: Publish permanent Android installer
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          RELEASE_VERSION="$(python -c 'import ast; print(next(node.value.value for node in ast.parse(open("scripts/prepare-android-release.py").read()).body if isinstance(node, ast.Assign) and any(getattr(target, "id", None) == "VERSION" for target in node.targets)))')"
+          RELEASE_TAG="android-v${RELEASE_VERSION}"
+          RELEASE_APK="release/DentalFlow_Android_${RELEASE_VERSION}.apk"
+          RELEASE_CHECKSUM="release/DentalFlow_Android_${RELEASE_VERSION}.sha256"
+          RELEASE_NOTES="docs/releases/android-${RELEASE_VERSION}.md"
+          test -s "$RELEASE_APK"
+          test -s "$RELEASE_CHECKSUM"
+          test -f "$RELEASE_NOTES"
+          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "DentalFlow Android $RELEASE_VERSION" \
+              --notes-file "$RELEASE_NOTES"
+          fi
+          gh release upload "$RELEASE_TAG" "$RELEASE_APK" "$RELEASE_CHECKSUM" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber

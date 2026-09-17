@@ -110,6 +110,13 @@ arquivo `_zzz_self_heal_v2.sql` (nunca crie um novo com data anterior).**
 - Responda ao usuário em português, curto e direto. Nada de recap em
   terceira pessoa.
 
+## 8.1 Centro de atualizações nativo
+
+- Existe somente em Windows/Tauri e Android/Capacitor; nunca renderize o botão na Web/PWA.
+- GitHub Releases é o catálogo permanente. Tags: `windows-vX.Y.Z` e `android-vX.Y.Z`.
+- O cliente deve filtrar rigorosamente `.exe`/`.apk` por plataforma e aceitar downloads somente do repositório oficial.
+- Fluxo completo e requisitos de assinatura: `docs/NATIVE_UPDATE_CENTER.md`.
+
 ## 9. Contato de emergência (contexto)
 
 - Empresa: **IPO — Instituto Praia de Odontologia**.

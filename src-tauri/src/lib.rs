@@ -45,6 +45,7 @@ pub fn run() {
 
     builder
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             let local_db = local_db::initialize(app.handle())?;
             app.manage(local_db);
