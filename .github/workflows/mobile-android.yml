@@ -1,3 +1,4 @@
+# Signing secret preflight rerun: 2026-09-18
 name: DentalFlow Android Mobile
 # Capacitor-only mobile release; Tauri remains exclusive to the Windows desktop client.
 
