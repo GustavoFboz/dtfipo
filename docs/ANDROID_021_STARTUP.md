@@ -50,11 +50,12 @@ O aplicativo anterior permanece instalado com seu armazenamento intacto.
 O usuário entra normalmente na conta; dados apenas locais do aplicativo antigo
 não são migrados silenciosamente. Não orientar desinstalação ou limpeza de dados.
 
-O pacote gerado pelo CI é um insumo de teste. A entrega deve ser assinada com a
-chave privada retida, usando `scripts/sign-android-apk.sh`. A chave nunca deve
-ser commitada. Próximas atualizações desse pacote precisam usar a mesma chave.
-Certificado retido (SHA-256):
-`73496c6c870d51919e31e5b320afabe456277b27b87c8f8ead0bf79cb9092b91`.
+O pacote gerado fora da `main` é um insumo de teste. A partir da 0.3.0, a entrega
+da `main` deve ser assinada com a chave privada retida, usando
+`scripts/sign-android-apk.sh`. A chave nunca deve ser commitada. Próximas
+atualizações desse pacote precisam usar a mesma chave. Certificado permanente
+(SHA-256):
+`8e0c25bfe43f32fd6bdda49c49e6e19624957c2c968af00c867a13936d5330e3`.
 O pacote principal `br.com.dentalflow.mobile` continua disponível no preparador
 quando `DENTALFLOW_ANDROID_PARALLEL` não está ativado; não usá-lo como atualização
 do APK antigo sem recuperar a assinatura correspondente.

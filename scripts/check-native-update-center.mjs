@@ -26,7 +26,7 @@ const desktopVersion = String(JSON.parse(tauri).version || "");
 const androidVersion = androidRelease.match(/VERSION = "([^"]+)"/)?.[1] ?? "";
 
 expect(desktopVersion === "0.6.6", "The first Windows update-center release must be 0.6.6.");
-expect(androidVersion === "0.2.2", "The first Android update-center release must be 0.2.2.");
+expect(androidVersion === "0.3.0", "The current Android update-center release must be 0.3.0.");
 expect(cargo.includes(`version = "${desktopVersion}"`), "Tauri and Cargo versions must match.");
 
 expect(

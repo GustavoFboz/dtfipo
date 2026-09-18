@@ -4,10 +4,10 @@ import os
 import re
 import xml.etree.ElementTree as ET
 
-VERSION = "0.2.2"
+VERSION = "0.3.0"
 gradle = Path("android/app/build.gradle")
 source = gradle.read_text()
-source, count = re.subn(r'versionCode\s+\d+', 'versionCode 4', source)
+source, count = re.subn(r'versionCode\s+\d+', 'versionCode 5', source)
 assert count == 1, "Expected one Android versionCode"
 source, count = re.subn(r'versionName\s+[\"\'][^\"\']+[\"\']', f'versionName "{VERSION}"', source)
 assert count == 1, "Expected one Android versionName"
