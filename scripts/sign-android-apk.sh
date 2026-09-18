@@ -22,6 +22,13 @@ if [ -n "${DENTALFLOW_ANDROID_EXPECTED_CERT_SHA256:-}" ]; then
     exit 1
   fi
 fi
-java -jar "$signer" sign --ks "$keystore" --ks-key-alias dentalflow --ks-pass "file:$password" --key-pass "file:$password" --v4-signing-enabled false --out "$output" "$input"
+# apksigner keeps one reader per password-file path. When the same path is
+# reused for --ks-pass and --key-pass, its second read reaches EOF. Give the
+# key password an independent, private copy so both reads start at byte zero.
+key_password="${password}.key"
+umask 077
+cp "$password" "$key_password"
+trap 'rm -f "$key_password"' 0 HUP INT TERM
+java -jar "$signer" sign --ks "$keystore" --ks-key-alias dentalflow --ks-pass "file:$password" --key-pass "file:$key_password" --v4-signing-enabled false --out "$output" "$input"
 java -jar "$signer" verify --verbose --print-certs "$output"
 sha256sum "$output"
