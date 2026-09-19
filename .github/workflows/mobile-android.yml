@@ -32,6 +32,7 @@ on:
       - "scripts/smoke-test-android.sh"
       - "scripts/test-android-webview.mjs"
       - "scripts/prepare-android-release.py"
+      - "scripts/sign-android-apk.sh"
       - "scripts/test-android-recovery.sh"
       - "scripts/test-android-release.py"
       - "docs/releases/**"
