@@ -31,6 +31,8 @@ const protocol = read("docs/saas/PROTOCOL.md");
 const asaasDecisionPath = "docs/saas/ADR-001-ASAAS-RECURRING-BILLING.md";
 const asaasDecision = read(asaasDecisionPath);
 const liveAudit = read("docs/saas/sql/stage-00-live-audit.sql");
+const liveEvidencePath = "docs/saas/evidence/STAGE-00-LIVE-AUDIT-2026-09-19.md";
+const liveEvidence = read(liveEvidencePath);
 
 for (const file of [
   foundationPath,
@@ -38,6 +40,7 @@ for (const file of [
   invitePath,
   ipoPath,
   asaasDecisionPath,
+  liveEvidencePath,
   "docs/saas/PROTOCOL.md",
   "docs/saas/STAGE-00-BASELINE-AUDIT.md",
   "docs/saas/sql/stage-00-live-audit.sql",
@@ -65,6 +68,8 @@ expect(generatedTypes.includes("billing_events:") && generatedTypes.includes("bi
 expect(liveAudit.includes("begin transaction read only;") && liveAudit.includes("rollback;"), "Auditoria viva deve permanecer somente leitura.");
 expect(liveAudit.includes("stage_00_audit_report"), "Auditoria viva deve gerar um relatório consolidado exportável.");
 expect(!liveAudit.includes("as ipo_invariants"), "Auditoria viva não deve exportar o relatório IPO com identificadores internos.");
+expect(liveEvidence.includes("48189eaabdbbfb90aecdfd89406f63a0ef0c2ee956cc2265cf752c8916d09a6c"), "Checksum da evidência viva divergiu.");
+expect(liveEvidence.includes("A Etapa 00 está concluída"), "Evidência viva não conclui formalmente a Etapa 00.");
 
 for (const [needle, message] of [
   ["Provedor financeiro obrigatório para lançamento: Asaas", "O protocolo deixou de fixar o Asaas como provedor de lançamento."],

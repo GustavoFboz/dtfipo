@@ -94,14 +94,27 @@ hardening posteriores.
 Critério para resolver: restaurar um banco vazio e obter o mesmo schema,
 funções, GRANTs, policies e invariantes da sequência atual de migrations.
 
-### P0 — Estado vivo ainda não foi provado
+### P0 resolvido — Estado vivo provado
 
 O backend oficial é Lovable Cloud e não há deploy de migrations via GitHub. A
 existência dos arquivos no repositório não prova que todos foram aplicados no
 ambiente vivo.
 
-Critério para resolver: executar `sql/stage-00-live-audit.sql` no SQL editor do
-Lovable Cloud, anexar o resultado à PR e comparar com este baseline.
+O SQL somente leitura foi executado no Lovable Cloud em 2026-09-19 20:45:50
+UTC. Todos os nove objetos esperados estavam presentes, as RLS estavam
+habilitadas e as RPCs financeiras estavam restritas a `service_role`. A
+evidência sanitizada e o checksum do CSV estão em
+`evidence/STAGE-00-LIVE-AUDIT-2026-09-19.md`.
+
+### P1 — Intents de checkout expirados
+
+O banco vivo contém dois intents `pending`, ambos vencidos, sem pagamentos ou
+eventos de provedor associados. Eles não são órfãos e não foram apagados pela
+auditoria.
+
+Critério para resolver: rotina idempotente deve marcar intents expirados sem
+ativar assinatura, e a reconciliação deve impedir duplicidade ao reiniciar um
+checkout. Implementação prevista nas Etapas 03 e 04.
 
 ### P1 — Não existe caminho de pagamento real
 
@@ -165,6 +178,10 @@ DentalFlow Desktop 0.6.6 entitlement/bootstrap regressions: OK
 
 node scripts/check-clinic-route-outlets.mjs
 OK: Clinic e Patients preservam rotas filhas
+
+Lovable Cloud SQL editor
+Relatório consolidado gerado sem nomes, UUIDs, e-mails ou dados clínicos.
+Todos os 9 objetos esperados presentes; 0 órfãos; 0 duplicidades externas.
 ```
 
 O build completo não foi repetido localmente porque este ambiente não possui
@@ -179,7 +196,8 @@ O build completo não foi repetido localmente porque este ambiente não possui
 - [x] aceite ponta a ponta formalizado no ADR-001;
 - [x] check automatizado do baseline;
 - [x] SQL vivo somente leitura preparado;
-- [ ] SQL executado no Lovable Cloud e evidência anexada;
-- [ ] decisão formal de entrada na Etapa 01.
+- [x] SQL executado no Lovable Cloud e evidência sanitizada anexada;
+- [x] decisão formal de entrada na Etapa 01.
 
-Próxima branch recomendada: `saas/stage-01-contract-recovery`.
+Etapa 00 concluída em 2026-09-19. Próxima branch:
+`saas/stage-01-contract-recovery`.

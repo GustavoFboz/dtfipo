@@ -2,6 +2,8 @@
 
 Status: iniciado em 2026-09-19
 
+Etapa atual: 01 — contrato canônico e recuperação
+
 Provedor financeiro obrigatório para lançamento: Asaas
 
 Homologação: Asaas Sandbox; operação: Asaas Produção
@@ -87,6 +89,8 @@ estorno, cancelamento, reativação e paridade Web/Windows/Android.
 ## Etapas executáveis
 
 ### 00 — Baseline e auditoria
+
+Status: concluída em 2026-09-19.
 
 - inventariar schema, RLS, autenticação, planos, entitlements e adapters;
 - executar `npm run check:saas:stage-00` (ou o comando Node equivalente);
