@@ -40,7 +40,7 @@ export const Route = createFileRoute("/_authenticated")({
     if (!user) {
       throw redirect({
         to: "/auth",
-        search: { invite: undefined, mode: undefined, returnTo: location.href },
+        search: { invite: undefined, mode: undefined, plan: undefined, profession: undefined, returnTo: location.href },
       });
     }
 
