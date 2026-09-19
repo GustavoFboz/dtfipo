@@ -30,6 +30,7 @@ const generatedTypes = read("src/integrations/supabase/types.ts");
 const protocol = read("docs/saas/PROTOCOL.md");
 const asaasDecisionPath = "docs/saas/ADR-001-ASAAS-RECURRING-BILLING.md";
 const asaasDecision = read(asaasDecisionPath);
+const liveAudit = read("docs/saas/sql/stage-00-live-audit.sql");
 
 for (const file of [
   foundationPath,
@@ -61,6 +62,9 @@ expect(subscriptions.includes("fetchMySubscriptionContext"), "Contrato cliente d
 expect(gate.includes('effective_access === "full"'), "Gate não exige acesso integral.");
 expect(desktopSubscriptions.includes("fetchVerifiedCloudContext") && desktopSubscriptions.includes("SUBSCRIPTION_CACHE_NAMESPACE"), "Snapshot offline verificado do Windows ausente.");
 expect(generatedTypes.includes("billing_events:") && generatedTypes.includes("billing_payments:"), "Tipos gerados não incluem o domínio SaaS.");
+expect(liveAudit.includes("begin transaction read only;") && liveAudit.includes("rollback;"), "Auditoria viva deve permanecer somente leitura.");
+expect(liveAudit.includes("stage_00_audit_report"), "Auditoria viva deve gerar um relatório consolidado exportável.");
+expect(!liveAudit.includes("as ipo_invariants"), "Auditoria viva não deve exportar o relatório IPO com identificadores internos.");
 
 for (const [needle, message] of [
   ["Provedor financeiro obrigatório para lançamento: Asaas", "O protocolo deixou de fixar o Asaas como provedor de lançamento."],
