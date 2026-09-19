@@ -1,8 +1,11 @@
 # Etapa 01 — Contrato canônico e recuperação
 
-Status: implementação preparada; aplicação e auditoria no Lovable Cloud pendentes  
+Status: schema vivo e auditoria aprovados; tipos e restauração limpa pendentes
 Branch: `saas/stage-01-contract-recovery`  
 Migration: `20260919213000_saas_contract_recovery_stage01.sql`
+
+Evidência viva:
+`evidence/STAGE-01-LIVE-AUDIT-2026-09-19.md`
 
 ## Resultado esperado
 
@@ -78,8 +81,8 @@ remoção exige exportação, validação de retenção e migration específica.
 - [x] contrato de ambiente e identidade externa definido;
 - [x] perfil fiscal protegido e RPCs separadas por autoridade;
 - [x] mapeamento de eventos congelado;
-- [ ] pacote de restauração sincronizado;
-- [ ] migration aplicada no Lovable Cloud;
-- [ ] auditoria viva aprovada;
+- [x] pacote de restauração sincronizado;
+- [x] migration aplicada no Lovable Cloud;
+- [x] auditoria viva aprovada;
 - [ ] tipos Supabase regenerados;
 - [ ] restauração limpa ensaiada.

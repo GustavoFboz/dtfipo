@@ -19,6 +19,8 @@ const contract = read("src/lib/billing/asaas-contract.ts");
 const mapping = read("docs/saas/ASAAS-STATE-MAPPING.md");
 const stage = read("docs/saas/STAGE-01-CONTRACT-RECOVERY.md");
 const audit = read("docs/saas/sql/stage-01-live-audit.sql");
+const liveEvidencePath = "docs/saas/evidence/STAGE-01-LIVE-AUDIT-2026-09-19.md";
+const liveEvidence = read(liveEvidencePath);
 const generatedTypes = read("src/integrations/supabase/types.ts");
 
 for (const [needle, message] of [
@@ -68,9 +70,15 @@ expect(contract.includes('PAYMENT_RECEIVED: "paid"'), "PAYMENT_RECEIVED deixou d
 expect(contract.includes('PAYMENT_OVERDUE: "past_due"'), "Atraso Asaas perdeu o mapeamento canônico.");
 expect(contract.includes('PAYMENT_CHARGEBACK_REQUESTED: "reversed"'), "Chargeback perdeu o mapeamento de reversão.");
 expect(mapping.includes("Evento desconhecido") && mapping.includes("nunca concede acesso"), "Fail-closed para evento desconhecido não está documentado.");
-expect(stage.includes("aplicação e auditoria no Lovable Cloud pendentes"), "Etapa 01 foi marcada pronta sem evidência viva.");
+expect(stage.includes("schema vivo e auditoria aprovados; tipos e restauração limpa pendentes"), "Status da Etapa 01 não reflete a evidência viva e as pendências restantes.");
 expect(audit.includes("begin transaction read only;") && audit.includes("rollback;"), "Auditoria Stage 01 deve permanecer somente leitura.");
 expect(audit.includes("stage_01_audit_report"), "Auditoria Stage 01 não gera relatório único sanitizado.");
+expect(
+  liveEvidence.includes("12292cc25e6f87464967de22b74456d9999bb753b92b8df156424fe7df11225f"),
+  "Checksum da evidência viva Stage 01 divergiu.",
+);
+expect(liveEvidence.includes("A aplicação viva e a auditoria da Etapa 01 estão aprovadas"), "Evidência viva não aprova formalmente a Etapa 01.");
+expect(liveEvidence.includes("não foi versionado"), "Evidência deve registrar que o CSV bruto não foi versionado.");
 
 const sourceFiles = [];
 function collect(root) {
@@ -91,5 +99,5 @@ const typesReady = generatedTypes.includes("company_billing_profiles:")
 
 console.log("DentalFlow SaaS Stage 01 repository contract: OK");
 console.log(`${typesReady ? "READY" : "PENDING_LIVE_SCHEMA"}: generated_supabase_types`);
-console.log("PENDING_LIVE_AUDIT: lovable_cloud_stage_01");
+console.log("READY: lovable_cloud_stage_01");
 console.log("PENDING_RESTORE_REHEARSAL: clean_database");
