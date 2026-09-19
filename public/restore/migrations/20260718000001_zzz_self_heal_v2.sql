@@ -218,3 +218,63 @@ DO $$ DECLARE r record; BEGIN
     EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated, service_role', r.sig);
   END LOOP;
 END $$;
+
+-- Financial and fiscal boundaries must be restored after the legacy blanket
+-- grants above. Client roles may read/update only through explicitly validated
+-- RPCs; provider identities and authoritative state changes remain backend-only.
+REVOKE ALL ON TABLE public.company_billing_profiles
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.billing_provider_customers
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.billing_test_access
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.billing_test_tokens
+  FROM PUBLIC, anon, authenticated;
+
+GRANT ALL ON TABLE public.company_billing_profiles TO service_role;
+GRANT ALL ON TABLE public.billing_provider_customers TO service_role;
+GRANT ALL ON TABLE public.billing_test_access TO service_role;
+GRANT ALL ON TABLE public.billing_test_tokens TO service_role;
+
+REVOKE ALL ON FUNCTION public.billing_apply_checkout_paid(
+  uuid,text,text,text,text,timestamptz,timestamptz
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_subscription_state(
+  uuid,text,timestamptz,timestamptz,timestamptz,text,text,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_bind_asaas_customer(uuid,text,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_valid_br_tax_id(text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.set_clinic_storage_entitlement(
+  uuid,text,text,bigint,text,text,text,text,boolean
+) FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION public.billing_apply_checkout_paid(
+  uuid,text,text,text,text,timestamptz,timestamptz
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_subscription_state(
+  uuid,text,timestamptz,timestamptz,timestamptz,text,text,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_bind_asaas_customer(uuid,text,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_valid_br_tax_id(text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.set_clinic_storage_entitlement(
+  uuid,text,text,bigint,text,text,text,text,boolean
+) TO service_role;
+
+REVOKE ALL ON FUNCTION public.billing_get_company_profile(uuid)
+  FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.billing_upsert_company_profile(
+  uuid,text,text,text,text,text,text,text,text,text,text,text
+) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.billing_get_company_profile(uuid)
+  TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.billing_upsert_company_profile(
+  uuid,text,text,text,text,text,text,text,text,text,text,text
+) TO authenticated, service_role;

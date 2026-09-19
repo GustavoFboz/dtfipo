@@ -90,10 +90,17 @@ for (const [needle, message] of [
 const apiFiles = filesUnder("src/routes/api").map((file) => file.replaceAll("\\", "/"));
 const sourceFiles = filesUnder("src").filter((file) => /\.(ts|tsx)$/.test(file));
 const sourceText = sourceFiles.map(read).join("\n");
+const providerAdapterReady = sourceFiles.some((file) => {
+  const body = read(file);
+  return /(asaas.*(adapter|client)|(adapter|client).*asaas)/i.test(file)
+    && body.includes("/v3/customers")
+    && body.includes("/v3/subscriptions")
+    && /\bfetch\s*\(/.test(body);
+});
 const gaps = [
   ["restore_parity", !restoreManifest.includes("20260909033000_enterprise_hub_subscriptions_032.sql")],
   ["billing_webhook_endpoint", !apiFiles.some((file) => /(billing|asaas).*(webhook)|webhook.*(billing|asaas)/i.test(file))],
-  ["provider_adapter", !sourceText.match(/\bAsaas\b/)],
+  ["provider_adapter", !providerAdapterReady],
   ["platform_master_role", !sourceText.match(/platform_admin|master_admin/i)],
   ["customer_billing_history_ui", !sourceFiles.filter((file) => !file.endsWith("types.ts")).some((file) => read(file).includes("billing_payments"))],
   ["android_entitlement_adapter", !filesUnder("src/lib").some((file) => /subscriptions\.mobile\.(ts|tsx)$/.test(file))],
