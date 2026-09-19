@@ -226,7 +226,7 @@ projeto continua disponível em código-fonte / GitHub.
 8. Reenviar arquivos de Storage manualmente.
 9. Reconfigurar os Secrets do projeto. Para o SaaS, Sandbox e Produção do
    Asaas usam chaves e tokens de webhook independentes; nunca use prefixo
-   `VITE_` para esses valores.
+   \`VITE_\` para esses valores.
 
 ## Ordem cronológica das migrations
 
