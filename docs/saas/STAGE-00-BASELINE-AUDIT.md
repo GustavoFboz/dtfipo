@@ -15,6 +15,12 @@ O produto ainda não consegue cobrar um cliente real: não há adapter de
 provedor, endpoint de webhook, URL de checkout, processador/retry,
 reconciliação, painel Master ou centro de cobrança para uma empresa ativa.
 
+Após a revisão do proprietário do produto, ficou formalizado que a meta é
+receber assinaturas mensais reais pelo Asaas. A estrutura existente não será
+aceita como solução final nem como sandbox substituto do provedor. A decisão e
+o teste ponta a ponta obrigatório estão em
+`ADR-001-ASAAS-RECURRING-BILLING.md`.
+
 O bloqueio mais urgente é de recuperabilidade. A documentação operacional diz
 que `public/restore/migrations.json` reconstrói o backend, mas esse manifesto
 termina em 202607 e não inclui a fundação SaaS criada nas migrations de 202609.
@@ -29,6 +35,7 @@ Uma restauração seguindo o runbook atual não recria a camada de cobrança.
 | Limites | Implementado | 1 sessão/8 membros/25 GB; 2/20/100 GB; 3/50/500 GB |
 | Ciclo de assinatura | Implementado | pending, trial, active, atraso, carência, suspensão e cancelamento |
 | Checkout interno | Parcial | cria intent, mas não cria checkout externo nem URL |
+| Cliente/assinatura Asaas | Ausente | não cria `/v3/customers` nem `/v3/subscriptions` |
 | Ledger | Implementado | `billing_payments` com unicidade por pagamento do provedor |
 | Inbox de webhook | Fundação | `billing_events` existe, sem endpoint/processador |
 | Mutação financeira | Protegida | RPCs de aplicação de estado são `service_role` only |
@@ -102,6 +109,10 @@ O checkout atual encerra em `checkout_intent_id`. Falta criar/reutilizar o
 cliente no provedor, criar checkout/assinatura, guardar IDs externos e devolver
 uma URL pagável.
 
+O caminho aceito é específico: cliente e assinatura mensal no Asaas, cobrança
+pagável do Asaas e ativação somente após evento financeiro autenticado. Intent,
+redirect, token de QA e mutação manual não substituem esse fluxo.
+
 ### P1 — Webhook e reconciliação ausentes
 
 `billing_events` fornece uma boa chave idempotente, porém não há receptor,
@@ -164,6 +175,8 @@ O build completo não foi repetido localmente porque este ambiente não possui
 - [x] inventário estático versionado;
 - [x] lacunas priorizadas;
 - [x] protocolo e sequência definidos;
+- [x] Asaas formalizado como provedor financeiro obrigatório para lançamento;
+- [x] aceite ponta a ponta formalizado no ADR-001;
 - [x] check automatizado do baseline;
 - [x] SQL vivo somente leitura preparado;
 - [ ] SQL executado no Lovable Cloud e evidência anexada;

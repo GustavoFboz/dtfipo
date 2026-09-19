@@ -27,12 +27,16 @@ const desktopSubscriptions = read("src/lib/subscriptions.desktop.ts");
 const gate = read("src/components/SubscriptionGate.tsx");
 const restoreManifest = read("public/restore/migrations.json");
 const generatedTypes = read("src/integrations/supabase/types.ts");
+const protocol = read("docs/saas/PROTOCOL.md");
+const asaasDecisionPath = "docs/saas/ADR-001-ASAAS-RECURRING-BILLING.md";
+const asaasDecision = read(asaasDecisionPath);
 
 for (const file of [
   foundationPath,
   billingPath,
   invitePath,
   ipoPath,
+  asaasDecisionPath,
   "docs/saas/PROTOCOL.md",
   "docs/saas/STAGE-00-BASELINE-AUDIT.md",
   "docs/saas/sql/stage-00-live-audit.sql",
@@ -57,6 +61,22 @@ expect(subscriptions.includes("fetchMySubscriptionContext"), "Contrato cliente d
 expect(gate.includes('effective_access === "full"'), "Gate não exige acesso integral.");
 expect(desktopSubscriptions.includes("fetchVerifiedCloudContext") && desktopSubscriptions.includes("SUBSCRIPTION_CACHE_NAMESPACE"), "Snapshot offline verificado do Windows ausente.");
 expect(generatedTypes.includes("billing_events:") && generatedTypes.includes("billing_payments:"), "Tipos gerados não incluem o domínio SaaS.");
+
+for (const [needle, message] of [
+  ["Provedor financeiro obrigatório para lançamento: Asaas", "O protocolo deixou de fixar o Asaas como provedor de lançamento."],
+  ["ADR-001-ASAAS-RECURRING-BILLING.md", "O protocolo deixou de vincular a decisão arquitetural Asaas."],
+  ["ciclo `MONTHLY`", "O protocolo deixou de exigir assinatura mensal real no Asaas."],
+  ["redirect nunca confirma pagamento", "O protocolo passou a permitir ativação por redirect."],
+]) expect(protocol.includes(needle), message);
+
+for (const [needle, message] of [
+  ["POST /v3/customers", "O ADR deixou de exigir cliente real no Asaas."],
+  ["POST /v3/subscriptions", "O ADR deixou de exigir assinatura real no Asaas."],
+  ["`asaas-access-token`", "O ADR deixou de exigir autenticação do webhook Asaas."],
+  ["`PAYMENT_RECEIVED`", "O ADR deixou de exigir evento financeiro do Asaas."],
+  ["não confirma pagamento", "O ADR passou a aceitar criação/redirect como confirmação de pagamento."],
+  ["acesso coerente na Web, no Windows e no Android", "O ADR deixou de exigir paridade multiplataforma."],
+]) expect(asaasDecision.includes(needle), message);
 
 const apiFiles = filesUnder("src/routes/api").map((file) => file.replaceAll("\\", "/"));
 const sourceFiles = filesUnder("src").filter((file) => /\.(ts|tsx)$/.test(file));
