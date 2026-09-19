@@ -13,6 +13,7 @@
     "desktop:build": "bunx @tauri-apps/cli@2 build",
     "mobile:sync": "bunx cap sync android",
     "mobile:android": "bun run build:mobile && bunx cap sync android",
+    "check:saas:stage-00": "node scripts/check-saas-stage-00.mjs",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
