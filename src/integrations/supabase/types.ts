@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       account_subscriptions: {
         Row: {
+          billing_cycle: string
           billing_day: number | null
           billing_provider: string | null
           canceled_at: string | null
@@ -29,12 +30,14 @@ export type Database = {
           id: string
           metadata: Json
           plan_code: string
+          provider_environment: string | null
           scope_type: string
           status: string
           updated_at: string
           user_id: string | null
         }
         Insert: {
+          billing_cycle?: string
           billing_day?: number | null
           billing_provider?: string | null
           canceled_at?: string | null
@@ -48,12 +51,14 @@ export type Database = {
           id?: string
           metadata?: Json
           plan_code: string
+          provider_environment?: string | null
           scope_type: string
           status?: string
           updated_at?: string
           user_id?: string | null
         }
         Update: {
+          billing_cycle?: string
           billing_day?: number | null
           billing_provider?: string | null
           canceled_at?: string | null
@@ -67,6 +72,7 @@ export type Database = {
           id?: string
           metadata?: Json
           plan_code?: string
+          provider_environment?: string | null
           scope_type?: string
           status?: string
           updated_at?: string
@@ -154,6 +160,7 @@ export type Database = {
           payload: Json
           processed_at: string | null
           provider: string
+          provider_environment: string
           provider_event_id: string
           received_at: string
           status: string
@@ -165,6 +172,7 @@ export type Database = {
           payload?: Json
           processed_at?: string | null
           provider: string
+          provider_environment: string
           provider_event_id: string
           received_at?: string
           status?: string
@@ -176,6 +184,7 @@ export type Database = {
           payload?: Json
           processed_at?: string | null
           provider?: string
+          provider_environment?: string
           provider_event_id?: string
           received_at?: string
           status?: string
@@ -195,6 +204,7 @@ export type Database = {
           period_end: string | null
           period_start: string | null
           provider: string | null
+          provider_environment: string | null
           provider_payment_id: string | null
           status: string
           subscription_id: string
@@ -211,6 +221,7 @@ export type Database = {
           period_end?: string | null
           period_start?: string | null
           provider?: string | null
+          provider_environment?: string | null
           provider_payment_id?: string | null
           status: string
           subscription_id: string
@@ -227,6 +238,7 @@ export type Database = {
           period_end?: string | null
           period_start?: string | null
           provider?: string | null
+          provider_environment?: string | null
           provider_payment_id?: string | null
           status?: string
           subscription_id?: string
@@ -308,6 +320,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      billing_provider_customers: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          profile_synced_at: string | null
+          provider: string
+          provider_customer_id: string
+          provider_environment: string
+          updated_at: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          profile_synced_at?: string | null
+          provider: string
+          provider_customer_id: string
+          provider_environment: string
+          updated_at?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          profile_synced_at?: string | null
+          provider?: string
+          provider_customer_id?: string
+          provider_environment?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_provider_customers_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       billing_test_access: {
         Row: {
@@ -1260,6 +1310,9 @@ export type Database = {
           metadata: Json
           plan_code: string
           provider_checkout_id: string | null
+          provider_environment: string | null
+          provider_payment_id: string | null
+          provider_payment_url: string | null
           status: string
           subscription_id: string
           success_url: string | null
@@ -1278,6 +1331,9 @@ export type Database = {
           metadata?: Json
           plan_code: string
           provider_checkout_id?: string | null
+          provider_environment?: string | null
+          provider_payment_id?: string | null
+          provider_payment_url?: string | null
           status?: string
           subscription_id: string
           success_url?: string | null
@@ -1296,6 +1352,9 @@ export type Database = {
           metadata?: Json
           plan_code?: string
           provider_checkout_id?: string | null
+          provider_environment?: string | null
+          provider_payment_id?: string | null
+          provider_payment_url?: string | null
           status?: string
           subscription_id?: string
           success_url?: string | null
@@ -1739,6 +1798,71 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      company_billing_profiles: {
+        Row: {
+          address_complement: string | null
+          address_line: string
+          address_number: string
+          billing_email: string
+          billing_phone_digits: string
+          city: string
+          clinic_id: string
+          country_code: string
+          created_at: string
+          district: string
+          legal_name: string
+          postal_code_digits: string
+          state: string
+          tax_id_digits: string
+          tax_id_type: string
+          updated_at: string
+        }
+        Insert: {
+          address_complement?: string | null
+          address_line: string
+          address_number: string
+          billing_email: string
+          billing_phone_digits: string
+          city: string
+          clinic_id: string
+          country_code?: string
+          created_at?: string
+          district: string
+          legal_name: string
+          postal_code_digits: string
+          state: string
+          tax_id_digits: string
+          tax_id_type: string
+          updated_at?: string
+        }
+        Update: {
+          address_complement?: string | null
+          address_line?: string
+          address_number?: string
+          billing_email?: string
+          billing_phone_digits?: string
+          city?: string
+          clinic_id?: string
+          country_code?: string
+          created_at?: string
+          district?: string
+          legal_name?: string
+          postal_code_digits?: string
+          state?: string
+          tax_id_digits?: string
+          tax_id_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_billing_profiles_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: true
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       company_sessions: {
         Row: {
@@ -3319,6 +3443,18 @@ export type Database = {
         }
         Returns: Json
       }
+      billing_bind_asaas_customer: {
+        Args: {
+          p_clinic_id: string
+          p_provider_customer_id: string
+          p_provider_environment: string
+        }
+        Returns: undefined
+      }
+      billing_get_company_profile: {
+        Args: { p_clinic_id: string }
+        Returns: Json
+      }
       billing_test_capability: { Args: never; Returns: Json }
       billing_test_mark_checkout_paid: {
         Args: { p_checkout_intent_id: string }
@@ -3329,6 +3465,28 @@ export type Database = {
         Args: { p_clinic_id: string }
         Returns: Json
       }
+      billing_upsert_company_profile: {
+        Args: {
+          p_address_complement: string
+          p_address_line: string
+          p_address_number: string
+          p_billing_email: string
+          p_billing_phone: string
+          p_city: string
+          p_clinic_id: string
+          p_district: string
+          p_legal_name: string
+          p_postal_code: string
+          p_state: string
+          p_tax_id: string
+        }
+        Returns: Json
+      }
+      billing_user_can_manage_company: {
+        Args: { p_clinic_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      billing_valid_br_tax_id: { Args: { p_value: string }; Returns: boolean }
       can_access_case: { Args: { _case_id: string }; Returns: boolean }
       can_access_patient: { Args: { _patient_id: string }; Returns: boolean }
       can_manage_clinic_permissions: {
@@ -3340,9 +3498,23 @@ export type Database = {
         Returns: boolean
       }
       cancel_storage_upload: { Args: { _file_id: string }; Returns: undefined }
+      case_activity_visible_to_user: {
+        Args: { _case_id: string; _created_at: string; _user_id?: string }
+        Returns: boolean
+      }
+      case_cadista_assignment_started_at: {
+        Args: { _case_id: string; _user_id?: string }
+        Returns: string
+      }
       case_flow_key: {
         Args: { _has_mockup: boolean; _has_provisional: boolean }
         Returns: string
+      }
+      case_notification_recipients_v040: {
+        Args: { _actor?: string; _case_id: string }
+        Returns: {
+          user_id: string
+        }[]
       }
       case_requires_sintering: { Args: { _case_id: string }; Returns: boolean }
       clinic_module_enabled: {
@@ -3476,6 +3648,18 @@ export type Database = {
         }[]
       }
       my_subscription_context: { Args: never; Returns: Json }
+      notify_case_stakeholders_v040: {
+        Args: {
+          _activity_id?: string
+          _case_id: string
+          _content: string
+          _event_key?: string
+          _extra_recipient_ids?: string[]
+          _title: string
+          _type?: string
+        }
+        Returns: number
+      }
       patient_id_from_storage_path: { Args: { _name: string }; Returns: string }
       recalculate_clinic_storage_limit: {
         Args: { _clinic_id: string }
