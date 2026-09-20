@@ -20,6 +20,7 @@ grant all on public.proteticos to service_role;
 
 alter table public.doctors add column if not exists user_id uuid references auth.users(id) on delete set null;
 alter table public.cadistas add column if not exists user_id uuid references auth.users(id) on delete set null;
+alter table public.cases add column if not exists requested_by uuid references auth.users(id) on delete set null;
 
 create unique index if not exists doctors_user_id_uidx
   on public.doctors(user_id) where user_id is not null;

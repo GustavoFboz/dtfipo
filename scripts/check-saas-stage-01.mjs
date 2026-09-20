@@ -41,6 +41,7 @@ for (const [needle, message] of [
 
 expect(prerequisites.includes("create table if not exists public.proteticos"), "Pré-requisito neutro de especialistas ausente.");
 expect(prerequisites.includes("public.is_clinic_member"), "Helper de associação empresarial ausente no restore.");
+expect(prerequisites.includes("requested_by"), "Pré-requisito de solicitante ausente antes da gestão de storage.");
 expect(restoreMigration === migration, "Cópia da migration Stage 01 divergiu do schema canônico.");
 expect(restorePrerequisites === prerequisites, "Cópia dos pré-requisitos Stage 01 divergiu do schema canônico.");
 
