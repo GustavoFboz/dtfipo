@@ -53,4 +53,3 @@ if (!finalMigration?.includes("self_heal")) {
 console.log(
   `DentalFlow restore bundle ${checkOnly ? "verified" : "generated"}: ${manifest.length} migrations, final=${finalMigration}`,
 );
-

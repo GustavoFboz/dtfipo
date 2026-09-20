@@ -2,13 +2,17 @@
 
 Status: aprovada
 
-Execução: 2026-09-20 06:17:19 UTC  
-Workflow: [DentalFlow SaaS Restore Rehearsal — execução 35493807420](https://github.com/GustavoFboz/dtfipo/actions/runs/35493807420)  
-Branch: `saas/stage-01-contract-recovery`  
+Execução: 2026-09-20 06:17:19 UTC
+
+Workflow: [DentalFlow SaaS Restore Rehearsal — execução 35493807420](https://github.com/GustavoFboz/dtfipo/actions/runs/35493807420)
+
+Branch: `saas/stage-01-contract-recovery`
+
 Commit ensaiado: `7e62fa397c87902277bbb405c04f015ba855299b`
 
 Artefato: `saas-stage-01-clean-restore-35493807420` (ID `10599657735`,
-4.479 bytes)  
+4.479 bytes)
+
 SHA-256 do artefato ZIP:
 `0efd2898131b18fec309b1aad6d71c46a449d037b2bd5c68b224781ed2d93df0`
 

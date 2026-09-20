@@ -1,6 +1,7 @@
 # Contrato de eventos e estados Asaas
 
-Status: congelado para implementação nas Etapas 02–05  
+Status: congelado para implementação nas Etapas 02–05
+
 Versão: 1 — 2026-09-19
 
 ## Princípios vinculantes
@@ -67,4 +68,3 @@ Referência oficial: <https://docs.asaas.com/docs/subscription-events>.
 
 O objeto de cobrança de assinatura possui o campo `subscription`; esse vínculo,
 somado ao cliente e ao ambiente, é obrigatório para aceitar o evento.
-

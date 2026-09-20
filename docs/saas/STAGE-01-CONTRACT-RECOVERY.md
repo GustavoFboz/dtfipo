@@ -1,7 +1,8 @@
 # Etapa 01 — Contrato canônico e recuperação
 
 Status: concluída — schema vivo, tipos e restauração limpa validados; auditorias aprovadas
-Branch: `saas/stage-01-contract-recovery`  
+Branch: `saas/stage-01-contract-recovery`
+
 Migration: `20260919213000_saas_contract_recovery_stage01.sql`
 
 Evidências:
