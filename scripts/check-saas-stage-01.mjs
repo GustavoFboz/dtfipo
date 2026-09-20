@@ -69,6 +69,11 @@ expect(
     && restoreSelfHeal.includes("REVOKE ALL ON FUNCTION public.billing_apply_subscription_state"),
   "Self-heal não restaura a fronteira service_role das mutações financeiras.",
 );
+expect(
+  restoreSelfHeal.includes("DROP FUNCTION IF EXISTS _restore.exec_sql(text)")
+    && restoreSelfHeal.includes("DROP SCHEMA IF EXISTS _restore"),
+  "Self-heal preserva um executor SQL privilegiado de uso exclusivo do restore.",
+);
 expect(contract.includes('PAYMENT_CONFIRMED: "paid"'), "PAYMENT_CONFIRMED deixou de ativar período pago.");
 expect(contract.includes('PAYMENT_RECEIVED: "paid"'), "PAYMENT_RECEIVED deixou de ativar período pago.");
 expect(contract.includes('PAYMENT_OVERDUE: "past_due"'), "Atraso Asaas perdeu o mapeamento canônico.");

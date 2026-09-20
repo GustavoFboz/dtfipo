@@ -135,6 +135,12 @@ begin
     raise exception 'A restored financial mutation is not service_role-only';
   end if;
 
+  if to_regprocedure('public.__restore_exec(text)') is not null
+    or to_regprocedure('_restore.exec_sql(text)') is not null
+    or to_regnamespace('_restore') is not null then
+    raise exception 'A privileged restore-only SQL executor survived the restore';
+  end if;
+
   if exists (
     select 1 from public.account_subscriptions where billing_cycle <> 'MONTHLY'
   ) then
@@ -150,7 +156,8 @@ select jsonb_build_object(
   'billing_provider_customers', to_regclass('public.billing_provider_customers') is not null,
   'billing_cycle', 'MONTHLY',
   'restricted_tables', true,
-  'service_role_mutations', true
+  'service_role_mutations', true,
+  'restore_helpers_removed', true
 ) as stage_01_restore_report;
 
 rollback;

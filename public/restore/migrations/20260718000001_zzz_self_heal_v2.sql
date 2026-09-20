@@ -219,6 +219,12 @@ DO $$ DECLARE r record; BEGIN
   END LOOP;
 END $$;
 
+-- Restore-only SQL executors are intentionally available while historical
+-- migrations are replayed, but must never survive in the restored database.
+DROP FUNCTION IF EXISTS public.__restore_exec(text);
+DROP FUNCTION IF EXISTS _restore.exec_sql(text);
+DROP SCHEMA IF EXISTS _restore;
+
 -- Financial and fiscal boundaries must be restored after the legacy blanket
 -- grants above. Client roles may read/update only through explicitly validated
 -- RPCs; provider identities and authoritative state changes remain backend-only.
