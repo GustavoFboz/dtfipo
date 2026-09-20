@@ -89,19 +89,25 @@ expect(
 expect(liveEvidence.includes("A aplicação viva e a auditoria da Etapa 01 estão aprovadas"), "Evidência viva não aprova formalmente a Etapa 01.");
 expect(liveEvidence.includes("não foi versionado"), "Evidência deve registrar que o CSV bruto não foi versionado.");
 expect(
-  restoreEvidence.includes("https://github.com/GustavoFboz/dtfipo/actions/runs/35493807420"),
+  restoreEvidence.includes("https://github.com/GustavoFboz/dtfipo/actions/runs/35494463885"),
   "Evidência da restauração limpa não referencia a execução aprovada.",
 );
 expect(
-  restoreEvidence.includes("7e62fa397c87902277bbb405c04f015ba855299b"),
+  restoreEvidence.includes("94f9fd4f399c63c03df18ed8ad7ae5cef2afacab"),
   "Evidência da restauração limpa divergiu do commit ensaiado.",
 );
 expect(
-  restoreEvidence.includes("0efd2898131b18fec309b1aad6d71c46a449d037b2bd5c68b224781ed2d93df0"),
+  restoreEvidence.includes("443231b17e578eae2c875e89b7531e2b8ef188077d0a5be5399e5fd4e74d6bc4"),
   "Digest do artefato da restauração limpa divergiu.",
 );
 expect(restoreEvidence.includes('"result": "passed"'), "Asserções da restauração limpa não estão aprovadas.");
 expect(restoreEvidence.includes("12/12 colunas") && restoreEvidence.includes("6/6 índices"), "Resumo da auditoria restaurada está incompleto.");
+expect(
+  restoreEvidence.includes('"restore_helpers_removed": true')
+    && restoreEvidence.includes("helpers SQL privilegiados")
+    && restoreEvidence.includes("SECURITY DEFINER"),
+  "Evidência não registra a remoção dos helpers privilegiados de restore.",
+);
 
 const sourceFiles = [];
 function collect(root) {

@@ -2,19 +2,19 @@
 
 Status: aprovada
 
-Execução: 2026-09-20 06:17:19 UTC
+Execução: 2026-09-20 06:32:31 UTC
 
-Workflow: [DentalFlow SaaS Restore Rehearsal — execução 35493807420](https://github.com/GustavoFboz/dtfipo/actions/runs/35493807420)
+Workflow: [DentalFlow SaaS Restore Rehearsal — execução 35494463885](https://github.com/GustavoFboz/dtfipo/actions/runs/35494463885)
 
 Branch: `saas/stage-01-contract-recovery`
 
-Commit ensaiado: `7e62fa397c87902277bbb405c04f015ba855299b`
+Commit ensaiado: `94f9fd4f399c63c03df18ed8ad7ae5cef2afacab`
 
-Artefato: `saas-stage-01-clean-restore-35493807420` (ID `10599657735`,
-4.479 bytes)
+Artefato: `saas-stage-01-clean-restore-35494463885` (ID `10600417256`,
+4.515 bytes)
 
 SHA-256 do artefato ZIP:
-`0efd2898131b18fec309b1aad6d71c46a449d037b2bd5c68b224781ed2d93df0`
+`443231b17e578eae2c875e89b7531e2b8ef188077d0a5be5399e5fd4e74d6bc4`
 
 ## Escopo do ensaio
 
@@ -27,12 +27,15 @@ dados vivos não foram acessados nem modificados pelo ensaio.
 
 - pacote determinístico de 152 migrations verificado;
 - `public/restore.sql` aplicado integralmente sem erro;
-- asserções do contrato concluídas com `"result": "passed"`;
+- asserções do contrato concluídas com `"result": "passed"` e
+  `"restore_helpers_removed": true`;
 - 12/12 colunas e 6/6 índices canônicos presentes;
 - ciclo de cobrança restaurado como `MONTHLY`;
 - tabelas fiscais protegidas por RLS, sem leitura de `anon` ou
   `authenticated`;
 - mutações financeiras e vínculo Asaas restritos a `service_role`;
+- helpers SQL privilegiados de uso exclusivo do restore removidos do estado
+  final;
 - zero duplicidades de clientes, assinaturas, pagamentos ou eventos externos;
 - zero tuplas inválidas de provedor e ambiente;
 - auditoria e encerramento da instância concluídos com sucesso.
@@ -51,7 +54,8 @@ migrado não mostrava:
 3. policy `INSERT` de Storage com cláusula `USING` inválida;
 4. criação tardia de `cases.requested_by` em relação às funções de Storage;
 5. reconciliação IPO incompatível com UUID, banco vazio e ordem de atribuição;
-6. valor `SOLICITANTE` ausente do enum no snapshot histórico.
+6. valor `SOLICITANTE` ausente do enum no snapshot histórico;
+7. executor SQL `SECURITY DEFINER` de uso temporário preservado após o restore.
 
 As correções são idempotentes, permanecem no schema canônico e na cópia de
 restore e foram incorporadas novamente ao SQL consolidado.
