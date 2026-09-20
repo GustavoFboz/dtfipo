@@ -1,6 +1,8 @@
 -- DentalFlow SaaS — Stage 01 recovery prerequisites.
 -- Repairs legacy restore snapshots without importing user-specific historical SQL.
 
+alter type public.app_role add value if not exists 'SOLICITANTE';
+
 create table if not exists public.proteticos (
   id uuid primary key default gen_random_uuid(),
   user_id uuid unique references auth.users(id) on delete cascade,
