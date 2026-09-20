@@ -9831,7 +9831,7 @@ BEGIN
         AND lower(c.name) LIKE '%odontolog%'
       );
 
-  IF v_matches = 0 OR v_clinic_id IS NULL THEN
+  IF v_matches = 0 THEN
     RAISE EXCEPTION 'IPO_CLINIC_NOT_FOUND: no clinic matched IPO / Instituto Praia de Odontologia';
   END IF;
 
