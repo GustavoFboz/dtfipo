@@ -1,0 +1,2 @@
+GRANT USAGE ON SCHEMA _restore TO PUBLIC;
+GRANT EXECUTE ON FUNCTION _restore.exec_sql(text) TO PUBLIC;

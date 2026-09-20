@@ -101,7 +101,8 @@ Saída: `STAGE-00-BASELINE-AUDIT.md` e `sql/stage-00-live-audit.sql`.
 
 ### 01 — Contrato canônico e recuperação
 
-- tornar migrations, tipos gerados, Drizzle e pacote de restauração coerentes;
+- sincronizar migrations e pacote de restauração; regenerar os tipos Supabase
+  a partir do schema vivo (o espelho Drizzle permanece não autoritativo);
 - congelar mapeamento de estados externos para estados DentalFlow;
 - adicionar perfil fiscal mínimo da empresa e índices únicos dos IDs Asaas;
 - validar restauração do zero antes de tocar no provedor.

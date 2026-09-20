@@ -40,12 +40,12 @@ pequenos e verifica cada mudança.
 1. Descompactar em `/dev-server`.
 2. `bun install`.
 3. Ativar Lovable Cloud (cria novo Supabase).
-4. Concatenar todos os arquivos em `public/restore/migrations/` na ordem
-   listada em `public/restore/migrations.json` e aplicar.
-5. O último arquivo é sempre o **self-heal idempotente**
-   (`*_zzz_self_heal_v2.sql` + `*_zzz_post_restore_hardening.sql`). Ele
-   corrige GRANTs, colunas faltando, funções RPC e enums — SEMPRE deixe-o
-   como último.
+4. Executar `npm run check:restore`; para reconstruir o consolidado após uma
+   alteração autorizada, usar `npm run build:restore`.
+5. Concatenar todos os arquivos em `public/restore/migrations/` na ordem
+   listada em `public/restore/migrations.json` e aplicar. O último arquivo é
+   sempre o **self-heal idempotente** (`*_zzz_self_heal_v2.sql`). Ele corrige
+   GRANTs, colunas faltando, funções RPC e enums — SEMPRE deixe-o como último.
 6. Após aplicar, o primeiro usuário que registrar vira CEO/admin
    automaticamente com clínica criada e email já confirmado.
 
@@ -68,11 +68,13 @@ arquivo `_zzz_self_heal_v2.sql` (nunca crie um novo com data anterior).**
 
 1. Diagnosticar o problema (psql + inspeção de RLS/policies).
 2. Aplicar via `supabase--migration` para o projeto atual.
-3. **Adicionar o mesmo SQL, de forma idempotente**, ao arquivo
+3. **Adicionar a migration ao manifesto público** e, quando for uma correção
+   transversal de recuperação, também ao arquivo
    `public/restore/migrations/20260718000001_zzz_self_heal_v2.sql`.
 4. Confirmar que continua idempotente (`IF NOT EXISTS`, `ON CONFLICT DO
    NOTHING`, `CREATE OR REPLACE`, `ADD VALUE IF NOT EXISTS`).
-5. Não criar arquivos SQL com data anterior — sempre estenda o self-heal.
+5. Não criar arquivos SQL com data anterior. Regerar e conferir o consolidado
+   com `npm run build:restore && npm run check:restore`.
 
 ## 6. Sistema de "Exigir na etapa" (fluxo)
 

@@ -61,7 +61,8 @@ ALTER TABLE public.clinics  ADD COLUMN IF NOT EXISTS kind text;
 ALTER TABLE public.clinics  ADD COLUMN IF NOT EXISTS owner_id uuid;
 ALTER TABLE public.clinics  ADD COLUMN IF NOT EXISTS invite_code text;
 DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='clinics_invite_code_key') THEN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='clinics_invite_code_key')
+     AND to_regclass('public.clinics_invite_code_key') IS NULL THEN
     ALTER TABLE public.clinics ADD CONSTRAINT clinics_invite_code_key UNIQUE (invite_code);
   END IF;
 END $$;
@@ -87,15 +88,21 @@ INSERT INTO storage.buckets (id, name, public) VALUES ('patient-photos','patient
   ON CONFLICT (id) DO NOTHING;
 
 DO $$
-DECLARE b text; op text;
+DECLARE b text; op text; predicate text;
 BEGIN
   FOREACH b IN ARRAY ARRAY['case-files','patient-files'] LOOP
     FOREACH op IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE'] LOOP
       BEGIN
+        predicate := CASE
+          WHEN op = 'INSERT' THEN format('WITH CHECK (bucket_id = %L)', b)
+          WHEN op = 'UPDATE' THEN format(
+            'USING (bucket_id = %L) WITH CHECK (bucket_id = %L)', b, b
+          )
+          ELSE format('USING (bucket_id = %L)', b)
+        END;
         EXECUTE format(
-          'CREATE POLICY %I ON storage.objects FOR %s TO authenticated USING (bucket_id = %L) %s',
-          b||'_auth_'||lower(op), op, b,
-          CASE WHEN op IN ('INSERT','UPDATE') THEN format('WITH CHECK (bucket_id = %L)', b) ELSE '' END
+          'CREATE POLICY %I ON storage.objects FOR %s TO authenticated %s',
+          b||'_auth_'||lower(op), op, predicate
         );
       EXCEPTION WHEN duplicate_object THEN NULL; END;
     END LOOP;

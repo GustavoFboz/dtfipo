@@ -123,8 +123,8 @@ INSERT INTO public.doctors (name) VALUES ('Dr. Leandro');
 
 INSERT INTO public.patients (name) VALUES ('Ieda Queiroz'), ('Abidon');
 
-
 -- ===== 20260430230404_3685564c-19ae-43ec-a958-ce10f7931fa8.sql =====
+
 -- Add folder fields to cases
 ALTER TABLE public.cases
   ADD COLUMN IF NOT EXISTS folder_url text,
@@ -151,6 +151,7 @@ DROP POLICY IF EXISTS "patient_photos_delete" ON storage.objects;
 CREATE POLICY "patient_photos_delete" ON storage.objects FOR DELETE USING (bucket_id = 'patient-photos');
 
 -- ===== 20260502132746_9fbd5723-3eaf-4124-8087-d1c006219120.sql =====
+
 -- 1. PHASES (fases do fluxo: entrada, escaneamento, modelo, CAD, aprovação, produção, forno, caracterização, checkup, entrega)
 CREATE TABLE public.phases (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -239,8 +240,8 @@ INSERT INTO public.phases (name, color, position) VALUES
   ('Checkup', '#14b8a6', 9),
   ('Entrega', '#10b981', 10);
 
-
 -- ===== 20260502134602_559379df-94e0-4ab3-8c8d-d136836b3949.sql =====
+
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'cases_current_stage_id_fkey') THEN
@@ -262,6 +263,7 @@ BEGIN
 END $$;
 
 -- ===== 20260503025055_a7af8e5c-7418-4914-936d-c97af461184f.sql =====
+
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -408,13 +410,14 @@ FROM public.stages s
 WHERE c.current_stage_id = s.id AND c.current_phase_id IS NULL AND s.phase_id IS NOT NULL;
 NOTIFY pgrst, 'reload schema';
 
-
 -- ===== 20260512185558_70a9300d-1b73-428c-8dc4-9703cfeb4597.sql =====
+
 ALTER TABLE public.cases
   ADD COLUMN IF NOT EXISTS reopened_at TIMESTAMP WITH TIME ZONE,
   ADD COLUMN IF NOT EXISTS reopened_count INTEGER NOT NULL DEFAULT 0;
 
 -- ===== 20260513200512_abaf06c2-8599-48a4-b962-7e5493203d04.sql =====
+
 -- Burrs (fresas)
 CREATE TABLE public.burrs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -518,8 +521,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS burrs_one_active_per_holder_material
   ON public.burrs(holder_id, material)
   WHERE removed_at IS NULL AND holder_id IS NOT NULL;
 
-
 -- ===== 20260602192126_5a92ea92-e919-428e-8f4c-4c60aafe9871.sql =====
+
 -- BLOCK 1: AUTH, ROLES, RLS HARDENING
 
 -- 1. Enum de papéis
@@ -773,8 +776,8 @@ CREATE POLICY burr_usages_access ON public.burr_usages FOR ALL TO authenticated 
 -- backups
 CREATE POLICY backups_admin_all ON public.backups FOR ALL TO authenticated USING (public.has_role(auth.uid(),'admin')) WITH CHECK (public.has_role(auth.uid(),'admin'));
 
-
 -- ===== 20260602194220_7a5de7b5-db42-4780-953a-132523437e84.sql =====
+
 -- 1. case_attachments
 CREATE TABLE public.case_attachments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -852,6 +855,7 @@ SELECT cron.schedule(
 );
 
 -- ===== 20260602194936_be56bbc4-8187-4e01-9a98-36f784b4780b.sql =====
+
 -- Stock control (N8)
 CREATE TYPE public.stock_category AS ENUM ('zirconia','dissilicato','component','hygiene');
 CREATE TYPE public.stock_movement_type AS ENUM ('in','out','auto_case','reverse_case','adjust');
@@ -1048,8 +1052,8 @@ CREATE POLICY case_files_delete ON storage.objects
     AND public.can_access_case(((storage.foldername(name))[1])::uuid)
   );
 
-
 -- ===== 20260611032523_c24eb14c-0c1e-40e0-9586-0241992e1b0d.sql =====
+
 -- Add role and subtype to profiles
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'USER';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS account_subtype TEXT;
@@ -1093,8 +1097,8 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
 CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
-
 -- ===== 20260611032647_a49b9a1f-e44b-41d3-9f48-4b134d4c64e5.sql =====
+
 -- Function to handle new user signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
@@ -1125,8 +1129,8 @@ CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
-
 -- ===== 20260611054139_00be783e-1ba5-4a28-8bd7-adb299118f6a.sql =====
+
 -- Grant full access to service_role to ensure background tasks work
 GRANT ALL ON public.profiles TO service_role;
 
@@ -1146,6 +1150,7 @@ WITH CHECK (
 GRANT INSERT ON public.profiles TO authenticated;
 
 -- ===== 20260611054713_daf2d497-12bb-4ccb-8ca5-a75ec3660ff5.sql =====
+
 -- Function to create a user in auth.users and public.profiles simultaneously
 -- This bypasses email confirmation for the new user
 CREATE OR REPLACE FUNCTION public.create_team_member(
@@ -1267,8 +1272,8 @@ GRANT EXECUTE ON FUNCTION public.create_team_member TO authenticated;
 GRANT ALL ON auth.users TO service_role;
 GRANT ALL ON auth.identities TO service_role;
 
-
 -- ===== 20260611055017_ce17c504-52aa-4172-a9de-d17fa5fababf.sql =====
+
 -- Update the create_team_member function to use the fixed default password
 -- This keeps the password consistent and handled only at the database level
 CREATE OR REPLACE FUNCTION public.create_team_member(
@@ -1378,6 +1383,7 @@ END;
 $$;
 
 -- ===== 20260611055512_1e3ac3ca-ba1c-4311-8142-f593f82bb4aa.sql =====
+
 -- Ensure the primary account is CEO
 UPDATE public.profiles SET role = 'CEO' WHERE email = 'gustavovitorfa@gmail.com';
 
@@ -1458,6 +1464,7 @@ END;
 $$;
 
 -- ===== 20260611064412_dcb875dc-9ccf-4652-9451-4a4f4acd111b.sql =====
+
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE OR REPLACE FUNCTION public.create_team_member(
@@ -1543,6 +1550,7 @@ END;
 $$;
 
 -- ===== 20260611064914_33899e2d-39e5-48a5-b486-52d3f14269f0.sql =====
+
 -- Garante que a extensão pgcrypto esteja instalada no esquema public
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 
@@ -1632,6 +1640,7 @@ END;
 $$;
 
 -- ===== 20260611065754_fc8b9650-dc7e-4b21-9ad5-bb11574b355c.sql =====
+
 -- Primeiro, removemos as versões existentes para evitar conflitos de sobrecarga
 DROP FUNCTION IF EXISTS public.create_team_member(TEXT, TEXT, TEXT, TEXT);
 DROP FUNCTION IF EXISTS public.create_team_member(TEXT, TEXT, TEXT, TEXT, TEXT);
@@ -1741,8 +1750,8 @@ $$;
 GRANT EXECUTE ON FUNCTION public.create_team_member TO authenticated;
 GRANT EXECUTE ON FUNCTION public.create_team_member TO service_role;
 
-
 -- ===== 20260611070243_116b1e84-f509-4455-96fc-9b552199d70a.sql =====
+
 -- Tabela de logs administrativos
 CREATE TABLE IF NOT EXISTS public.admin_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -1948,8 +1957,8 @@ BEGIN
   END IF;
 END $$;
 
-
 -- ===== 20260611122304_2d01e1b0-3bc9-412f-bc42-3bd4b0252bb2.sql =====
+
 -- Update is_staff function to include cadista and handle uppercase roles from profiles
 CREATE OR REPLACE FUNCTION public.is_staff(_user_id uuid)
  RETURNS boolean
@@ -2025,8 +2034,8 @@ BEGIN
     END LOOP;
 END $$;
 
-
 -- ===== 20260612061845_0e6b96f8-5764-4390-af6e-827500bf6f97.sql =====
+
 -- Ensure notifications table has Realtime enabled if it already exists
 DO $$ 
 BEGIN
@@ -2041,6 +2050,7 @@ BEGIN
 END $$;
 
 -- ===== 20260612063704_4c71a4e1-3317-4ad2-8f43-68608c9df2f6.sql =====
+
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Recipient can view their own notifications" ON public.notifications;
@@ -2055,6 +2065,7 @@ GRANT ALL ON public.notifications TO service_role;
 GRANT SELECT, INSERT, UPDATE ON public.notifications TO authenticated;
 
 -- ===== 20260612064211_92942208-189c-4ed2-af71-59f2a74c5b54.sql =====
+
 -- Garantir colunas na tabela notifications
 ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'system';
 ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS metadata JSONB DEFAULT '{}'::jsonb;
@@ -2092,6 +2103,7 @@ GRANT ALL ON public.notifications TO service_role;
 GRANT SELECT, UPDATE ON public.profiles TO authenticated;
 
 -- ===== 20260612065618_350cfc5a-c69c-44a6-b8ef-01a30cdca33b.sql =====
+
 -- Permitir que todos os usuários autenticados vejam os perfis básicos
 DROP POLICY IF EXISTS "profiles_self_select" ON public.profiles;
 CREATE POLICY "profiles_read_all" ON public.profiles
@@ -2110,7 +2122,6 @@ FOR SELECT TO authenticated USING (recipient_id = auth.uid() OR recipient_id IS 
 
 GRANT ALL ON public.notifications TO service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.notifications TO authenticated;
-
 
 -- ===== 20260612193941_2f5bfc74-d912-44b5-80d7-df77d62d9cd6.sql =====
 
@@ -2145,7 +2156,6 @@ CREATE POLICY "case_activity_delete_owner" ON public.case_activity
   USING (user_id = auth.uid() OR public.has_role(auth.uid(), 'admin'::app_role));
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.case_activity;
-
 
 -- ===== 20260612202211_6872e8d0-d440-4c6f-a23a-6074816ad6f4.sql =====
 
@@ -2215,7 +2225,6 @@ REVOKE EXECUTE ON FUNCTION public.delete_team_member(uuid,text) FROM PUBLIC, ano
 REVOKE EXECUTE ON FUNCTION public.consume_case_stock(uuid,uuid) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.reverse_case_stock(uuid,uuid) FROM PUBLIC, anon, authenticated;
 
-
 -- ===== 20260612204503_96a97bd7-12c6-4833-b17c-595127080e91.sql =====
 
 -- Backfill missing profiles from auth.users
@@ -2239,7 +2248,6 @@ SELECT p.id, 'admin'::public.app_role
 FROM public.profiles p
 WHERE p.email = 'gustavovitorfa@gmail.com'
 ON CONFLICT (user_id, role) DO NOTHING;
-
 
 -- ===== 20260614041019_2ad27aa3-08fa-4cda-bdca-091c804f7cc1.sql =====
 
@@ -2396,7 +2404,6 @@ WITH CHECK (
   )
 );
 
-
 -- ===== 20260616124202_f196d61a-e682-4db5-b488-a2f4c8ceb814.sql =====
 
 -- Add DR to is_staff and sync profiles → doctors/cadistas
@@ -2464,14 +2471,15 @@ CREATE TRIGGER trg_sync_profile_to_team
 AFTER INSERT OR UPDATE OF role, full_name, email ON public.profiles
 FOR EACH ROW EXECUTE FUNCTION public.sync_profile_to_team();
 
-
 -- ===== 20260616124524_2640d361-92d3-4c2a-931c-d336b5b96999.sql =====
+
 REVOKE ALL ON FUNCTION public.create_team_member(text,text,text,text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.create_team_member(text,text,text,text) TO authenticated;
 REVOKE ALL ON FUNCTION public.delete_team_member(uuid,text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.delete_team_member(uuid,text) TO authenticated;
 
 -- ===== 20260616124926_838537e2-aeb6-48f5-bbef-5e5862e12fa7.sql =====
+
 CREATE OR REPLACE FUNCTION public.create_team_member(p_email text, p_full_name text, p_phone text, p_role text)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -2540,11 +2548,39 @@ ALTER TABLE public.case_attachments REPLICA IDENTITY FULL;
 ALTER TABLE public.case_activity REPLICA IDENTITY FULL;
 ALTER TABLE public.cases REPLICA IDENTITY FULL;
 
-ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.case_attachments;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.case_activity;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.cases;
-
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'notifications'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+  END IF;
+END
+$$;
+DO $$
+DECLARE
+  table_name text;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY['case_attachments', 'case_activity', 'cases'] LOOP
+    IF NOT EXISTS (
+      SELECT 1
+      FROM pg_publication_tables
+      WHERE pubname = 'supabase_realtime'
+        AND schemaname = 'public'
+        AND tablename = table_name
+    ) THEN
+      EXECUTE format(
+        'ALTER PUBLICATION supabase_realtime ADD TABLE public.%I',
+        table_name
+      );
+    END IF;
+  END LOOP;
+END
+$$;
 
 -- ===== 20260616191933_1e4387bf-b6dc-40d3-8896-c336dd6f0673.sql =====
 
@@ -2643,7 +2679,6 @@ DO $$ BEGIN
     CHECK (kind IN ('fabrication','model','exocad_html','other'));
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-
 -- ===== 20260616203953_bdee4b45-6e8b-4882-ae3f-c0e152725088.sql =====
 
 -- Scan jigs catalog per implant system
@@ -2709,7 +2744,6 @@ JOIN LATERAL (
 ) AS j(brand, ln, name, ord) ON j.brand = s.name AND (j.ln IS NOT DISTINCT FROM s.line)
 ON CONFLICT (implant_system_id, name) DO NOTHING;
 
-
 -- ===== 20260616210256_b2acbd1b-c88f-45d7-b17b-52ae3149128c.sql =====
 
 -- 1) Categorias de componentes
@@ -2766,7 +2800,6 @@ WHERE c.category_id IS NULL
 -- 5) Mapa de Ti-Base por dente nos casos
 ALTER TABLE public.cases
   ADD COLUMN IF NOT EXISTS tooth_ti_bases jsonb NOT NULL DEFAULT '{}'::jsonb;
-
 
 -- ===== 20260616211457_1958b420-a07a-446b-acdb-4d5692ba40e8.sql =====
 
@@ -3056,7 +3089,6 @@ EXCEPTION WHEN OTHERS THEN
   RETURN jsonb_build_object('success', false, 'error', SQLERRM);
 END $$;
 
-
 -- ===== 20260616213258_9ca36e15-d50d-4abe-9378-d55456f4aa38.sql =====
 
 CREATE OR REPLACE FUNCTION public.request_join_clinic(p_clinic_id uuid)
@@ -3193,7 +3225,6 @@ BEGIN
   RETURN jsonb_build_object('success', true);
 END $function$;
 
-
 -- ===== 20260616214426_dde5995f-bf83-4d7b-b5af-aa92976a5187.sql =====
 
 -- Attach trigger so every new auth user gets a profile
@@ -3214,7 +3245,6 @@ FROM auth.users u
 LEFT JOIN public.profiles p ON p.id = u.id
 WHERE p.id IS NULL;
 
-
 -- ===== 20260616214711_9e3afbfe-516a-4d34-8b2d-fe99c55fe6fd.sql =====
 
 ALTER TABLE public.notifications DROP CONSTRAINT IF EXISTS notifications_sender_id_fkey;
@@ -3226,7 +3256,6 @@ ALTER TABLE public.notifications DROP CONSTRAINT IF EXISTS notifications_recipie
 ALTER TABLE public.notifications
   ADD CONSTRAINT notifications_recipient_id_fkey
   FOREIGN KEY (recipient_id) REFERENCES public.profiles(id) ON DELETE CASCADE;
-
 
 -- ===== 20260616215043_2ab5da7d-194d-4563-8d14-3e8b0036bf2a.sql =====
 
@@ -3247,12 +3276,13 @@ BEGIN
   RETURN code;
 END $$;
 
-
 -- ===== 20260617205349_64248311-d233-40ea-9d79-b453466e5574.sql =====
+
 ALTER TABLE public.case_attachments DROP CONSTRAINT IF EXISTS case_attachments_kind_check;
 ALTER TABLE public.case_attachments ADD CONSTRAINT case_attachments_kind_check CHECK (kind IN ('fabrication','model','exocad_html','scans','other'));
 
 -- ===== 20260620061735_83efff94-9f4f-4494-b741-ae481f28b2bb.sql =====
+
 ALTER TABLE public.case_attachments DROP CONSTRAINT IF EXISTS case_attachments_kind_check;
 ALTER TABLE public.case_attachments ADD CONSTRAINT case_attachments_kind_check CHECK (kind IN ('fabrication','model','exocad_html','scans','gallery','comment_image','other'));
 
@@ -3302,7 +3332,6 @@ CREATE TRIGGER set_model_annotations_updated_at
 
 ALTER PUBLICATION supabase_realtime ADD TABLE public.model_annotations;
 ALTER TABLE public.model_annotations REPLICA IDENTITY FULL;
-
 
 -- ===== 20260622121105_4fd2c26c-a35f-4864-86af-7f9882c21767.sql =====
 
@@ -3372,7 +3401,6 @@ BEGIN
   ON CONFLICT (user_id, role) DO NOTHING;
 END $$;
 
-
 -- ===== 20260623213059_6ae39ca3-96bf-47a7-b652-d802a4280907.sql =====
 
 DROP POLICY IF EXISTS profiles_insert_self_or_admin ON public.profiles;
@@ -3386,7 +3414,6 @@ WITH CHECK (
   AND COALESCE(role, 'USER') = 'USER'
   AND COALESCE(is_default_admin, false) = false
 );
-
 
 -- ===== 20260625015101_95e3044c-2d2b-429e-9988-a1e11f196ecc.sql =====
 
@@ -3620,7 +3647,6 @@ BEGIN
   );
 END $$;
 
-
 -- ===== 20260625015758_b2f6517e-8b1b-45e1-9187-cc535e443eea.sql =====
 
 -- 1) component_categories used as stock categories
@@ -3686,7 +3712,6 @@ DROP TRIGGER IF EXISTS trg_touch_last_restocked ON public.stock_movements;
 CREATE TRIGGER trg_touch_last_restocked
 AFTER INSERT ON public.stock_movements
 FOR EACH ROW EXECUTE FUNCTION public.touch_last_restocked();
-
 
 -- ===== 20260625053529_20aa0526-9297-49b8-ac03-479b7fc80af4.sql =====
 
@@ -3842,7 +3867,6 @@ END $function$;
 -- 4) Helpers: set assignees (used by /fluxo UI)
 GRANT EXECUTE ON FUNCTION public.user_can_advance(uuid, uuid, uuid) TO authenticated;
 
-
 -- ===== 20260625055407_a1f81a1f-69d4-45fc-b228-81d3f4592b19.sql =====
 
 INSERT INTO public.phase_assignments (phase_id, user_id)
@@ -3856,7 +3880,6 @@ SELECT s.id, pr.id
 FROM public.stages s
 CROSS JOIN public.profiles pr
 ON CONFLICT DO NOTHING;
-
 
 -- ===== 20260625143017_74cf84a5-79eb-4af1-b9a3-9db275e8abe3.sql =====
 
@@ -4146,7 +4169,6 @@ BEGIN
   RETURN jsonb_build_object('success', true);
 END $$;
 
-
 -- ===== 20260625174537_64721fc5-1658-445a-87c6-7db4675e3334.sql =====
 
 -- Restrict workflow advance to assignees only; allow specifying target stage on return; restrict returns to admins
@@ -4304,7 +4326,6 @@ BEGIN
   RETURN jsonb_build_object('success', true, 'phase_id', prev_stage.phase_id, 'stage_id', prev_stage.id, 'reason', v_reason);
 END $function$;
 
-
 -- ===== 20260625203851_3e298910-5691-4b30-b146-9855a4adb527.sql =====
 
 -- 1) Prevent privilege escalation on profiles via trigger comparing OLD vs NEW
@@ -4377,7 +4398,6 @@ USING (
   OR public.has_role(auth.uid(), 'admin'::app_role)
 );
 
-
 -- ===== 20260626213254_1e8591ee-09f1-4e83-9fff-82229f6ad8f4.sql =====
 
 ALTER TABLE public.case_types ADD COLUMN IF NOT EXISTS position integer NOT NULL DEFAULT 100;
@@ -4421,7 +4441,6 @@ INSERT INTO public.case_types (name, position) VALUES
   ('Outro', 9999)
 ON CONFLICT (name) DO UPDATE SET position = EXCLUDED.position;
 
-
 -- ===== 20260626213437_f101c23e-2537-444a-8753-401a7ab8ce2d.sql =====
 
 CREATE TABLE IF NOT EXISTS public.user_stock_access (
@@ -4450,7 +4469,6 @@ CREATE POLICY "Users can view own stock access"
   USING (user_id = auth.uid());
 
 CREATE INDEX IF NOT EXISTS idx_user_stock_access_user ON public.user_stock_access(user_id);
-
 
 -- ===== 20260626213921_94afb7d3-bcaf-4c18-ad5f-f713115f8f84.sql =====
 
@@ -4710,7 +4728,6 @@ BEGIN
   RETURN jsonb_build_object('success', true, 'phase_id', prev_stage.phase_id, 'stage_id', prev_stage.id, 'reason', v_reason);
 END $$;
 
-
 -- ===== 20260626220550_765f3d5e-5182-4274-bffc-7b149719a2f2.sql =====
 
 -- N1+N2: Modos de regra e uso por dente
@@ -4947,7 +4964,6 @@ BEGIN
   END LOOP;
 END $$;
 
-
 -- ===== 20260626222339_bf2e4743-8699-4a72-b2db-0b0f983ade64.sql =====
 
 CREATE OR REPLACE FUNCTION public.validate_tooth_rules_for_stage(_case_id uuid, _stage_id uuid)
@@ -5054,8 +5070,8 @@ BEGIN
   RETURN jsonb_build_object('success', true, 'phase_id', next_stage.phase_id, 'stage_id', next_stage.id);
 END $$;
 
-
 -- ===== 20260626223318_6ff7c676-9bce-4587-a3fc-d6d54befedab.sql =====
+
 CREATE OR REPLACE FUNCTION public.apply_stock_rules_for_stage(_case_id uuid, _stage_id uuid, _user uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -5167,14 +5183,15 @@ BEGIN
   RETURN jsonb_build_object('ok', true);
 END $function$;
 
-
 -- ===== 20260626233226_e32b0f7d-15ce-4e95-86e7-cad929c13356.sql =====
+
 ALTER TYPE public.stock_movement_type ADD VALUE IF NOT EXISTS 'tooth_usage';
 ALTER TYPE public.stock_movement_type ADD VALUE IF NOT EXISTS 'tooth_usage_reverse';
 ALTER TYPE public.stock_movement_type ADD VALUE IF NOT EXISTS 'auto_rule';
 ALTER TYPE public.stock_movement_type ADD VALUE IF NOT EXISTS 'reverse_rule';
 
 -- ===== 20260627185329_07e6bb09-6677-4200-9f53-85d187907be4.sql =====
+
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS print_note_template jsonb;
 
 -- ===== 20260629123949_609a27fa-390e-4ab5-81bb-f59e21039ca8.sql =====
@@ -5282,8 +5299,8 @@ END $$;
 
 GRANT EXECUTE ON FUNCTION public.update_team_member(uuid, text, text, text, text, uuid[]) TO authenticated;
 
-
 -- ===== 20260701021151_43b68059-bedd-4096-8730-850c6631a52f.sql =====
+
 ALTER PUBLICATION supabase_realtime ADD TABLE public.patients;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.doctors;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.case_types_link;
@@ -5472,8 +5489,8 @@ BEGIN
   RETURN jsonb_build_object('success', true, 'invite_code', v_new);
 END $$;
 
-
 -- ===== 20260701025825_0a869bcd-bddb-483a-a5b8-d4edce79b718.sql =====
+
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='case_attachments') THEN
@@ -5518,11 +5535,12 @@ BEGIN
   END LOOP;
 END $$;
 
-
 -- ===== 20260701034558_859b7e07-7eb3-4375-adf7-68ece648806f.sql =====
+
 UPDATE public.clinics SET name = 'IPO - Instituto Praia de Odontologia' WHERE id = '990bbafa-c15b-4845-976e-c457c7821db4';
 
 -- ===== 20260702060158_c949483c-e015-4ac0-b758-36ca10e35b0f.sql =====
+
 ALTER TABLE public.cases ADD COLUMN IF NOT EXISTS gum_info jsonb;
 
 -- ===== 20260704140617_07ba13b3-0fd5-4518-8dea-aea4a66bc5cb.sql =====
@@ -5546,7 +5564,6 @@ CREATE POLICY "avatars_user_delete"
   ON storage.objects FOR DELETE TO authenticated
   USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
 
-
 -- ===== 20260704165711_e9ca81d3-1e79-43d7-b1fa-66aa0d59935b.sql =====
 
 -- Recreate the missing trigger that creates a public.profiles row for every new auth user.
@@ -5567,8 +5584,8 @@ FROM auth.users u
 LEFT JOIN public.profiles p ON p.id = u.id
 WHERE p.id IS NULL;
 
-
 -- ===== 20260704170215_208bdc59-8778-40df-bd03-b26c6a0e8a3e.sql =====
+
 -- Allow profile privilege fields to follow an already-approved active clinic membership
 CREATE OR REPLACE FUNCTION public.prevent_profile_privilege_escalation()
 RETURNS trigger
@@ -5935,7 +5952,6 @@ EXCEPTION WHEN OTHERS THEN
   RETURN jsonb_build_object('success', false, 'error', SQLERRM);
 END $$;
 
-
 -- ===== 20260704220503_2a424759-8043-4cb6-9713-32a5244ea221.sql =====
 
 CREATE OR REPLACE FUNCTION public.create_implant_system_with_stock(
@@ -5997,7 +6013,6 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN
   RETURN jsonb_build_object('success', false, 'error', SQLERRM);
 END $$;
-
 
 -- ===== 20260707171844_c127e59f-840e-49cb-9bfa-b2c0a8b1cef5.sql =====
 
@@ -6107,7 +6122,6 @@ BEGIN
     END LOOP;
   END LOOP;
 END $$;
-
 
 -- ===== 20260709043241_47aea476-cdea-4ce0-bc89-c7de08f22106.sql =====
 
@@ -6317,7 +6331,6 @@ EXCEPTION WHEN OTHERS THEN
   RETURN jsonb_build_object('success', false, 'error', SQLERRM);
 END $$;
 
-
 -- ===== 20260710041701_1285861a-2782-4182-9b78-8631ec409506.sql =====
 
 ALTER TABLE public.stages ADD COLUMN IF NOT EXISTS requires_implant_components boolean NOT NULL DEFAULT false;
@@ -6442,12 +6455,13 @@ BEGIN
   RETURN jsonb_build_object('success', true, 'phase_id', next_stage.phase_id, 'stage_id', next_stage.id);
 END $function$;
 
-
 -- ===== 20260710051953_186428c8-7d0b-416b-a4f1-a005286fed3c.sql =====
+
 ALTER TYPE public.stock_movement_type ADD VALUE IF NOT EXISTS 'implant_usage';
 ALTER TYPE public.stock_movement_type ADD VALUE IF NOT EXISTS 'implant_usage_reverse';
 
 -- ===== 20260711014134_8a54b728-7fcd-4b05-8bee-025a1229d104.sql =====
+
 CREATE OR REPLACE FUNCTION public.reverse_all_case_stock(_case_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -6514,6 +6528,7 @@ BEGIN
 END $$;
 
 -- ===== 20260711040709_41dbc783-20bc-41a4-bfb0-7afca5d79b68.sql =====
+
 -- n5: Múltiplos sistemas de implante por caso
 ALTER TABLE public.cases
   ADD COLUMN IF NOT EXISTS implant_system_ids uuid[] NOT NULL DEFAULT ARRAY[]::uuid[];
@@ -6528,9 +6543,11 @@ CREATE INDEX IF NOT EXISTS cases_implant_system_ids_gin
   ON public.cases USING GIN (implant_system_ids);
 
 -- ===== 20260711062424_fdb1f61b-fc3f-46e7-ba67-15b5d6c2a970.sql =====
+
 ALTER TABLE public.cases ADD COLUMN IF NOT EXISTS tooth_implant_systems jsonb NOT NULL DEFAULT '{}'::jsonb;
 
 -- ===== 20260711072928_f2f319bf-1b0c-4d3f-8b4e-d653471d49fa.sql =====
+
 DO $$
 DECLARE t text;
 BEGIN
@@ -6544,6 +6561,7 @@ BEGIN
 END $$;
 
 -- ===== 20260712173908_3d06b9af-d760-42bb-af43-29feede9ab85.sql =====
+
 DROP POLICY IF EXISTS case_attachments_delete ON public.case_attachments;
 
 CREATE POLICY case_attachments_delete
@@ -6772,8 +6790,8 @@ USING (
   )
 );
 
-
 -- ===== 20260713011856_f68515fa-87cf-4b2f-a77b-9296ba3e6b9f.sql =====
+
 -- Enable realtime for notifications so recipients get INSERT events
 ALTER TABLE public.notifications REPLICA IDENTITY FULL;
 DO $$
@@ -6787,6 +6805,7 @@ BEGIN
 END$$;
 
 -- ===== 20260713022300_8811efaf-f612-4f0f-9684-7096fbb82a73.sql =====
+
 DROP POLICY IF EXISTS case_attachments_delete ON public.case_attachments;
 
 CREATE POLICY case_attachments_delete
@@ -6803,6 +6822,7 @@ USING (
 );
 
 -- ===== 20260713195711_17d4a0f2-ac2f-4d70-990e-ba754f8921ba.sql =====
+
 -- Fix: trigger patients_set_unaccent (executed as invoker on INSERT/UPDATE of patients)
 -- calls public.normalize_text(text), but a previous hardening migration revoked
 -- EXECUTE on that function from authenticated. Result: "permission denied for
@@ -6829,7 +6849,6 @@ ALTER TABLE public.clinics
 ALTER TABLE public.clinics
   ADD CONSTRAINT clinics_company_type_check
   CHECK (company_type IN ('LAB','CLINIC','HYBRID','IPO'));
-
 
 -- ===== 20260717051548_a7eb688b-3184-4b72-94c4-6569dd71e137.sql =====
 
@@ -7183,7 +7202,6 @@ CREATE POLICY fin_rep_manage ON public.financial_reports FOR ALL TO authenticate
 CREATE INDEX idx_fin_rep_clinic ON public.financial_reports(clinic_id);
 CREATE TRIGGER trg_fin_rep_updated BEFORE UPDATE ON public.financial_reports FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
-
 -- ===== 20260717052126_fc59b96d-4170-413e-8397-7c320d42af96.sql =====
 
 -- =========================================================================
@@ -7433,7 +7451,6 @@ BEGIN
   RETURN jsonb_build_object('success', true, 'out_id', v_out, 'in_id', v_in);
 END $$;
 
-
 -- ===== 20260717052444_371c1f3d-f61c-41f9-b981-894fbff5c045.sql =====
 
 CREATE TABLE public.financial_professional_rules (
@@ -7517,7 +7534,6 @@ CREATE TRIGGER trg_fpr_updated
   BEFORE UPDATE ON public.financial_professional_rules
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
-
 -- ===== 20260717053338_7d3e41d0-20d5-4520-a92d-f4305dd98f1a.sql =====
 
 -- Enums
@@ -7594,7 +7610,6 @@ CREATE INDEX IF NOT EXISTS idx_fpel_event ON public.financial_production_event_l
 CREATE INDEX IF NOT EXISTS idx_fpel_level ON public.financial_production_event_logs(level);
 CREATE INDEX IF NOT EXISTS idx_fpel_created ON public.financial_production_event_logs(created_at DESC);
 
-
 -- ===== 20260717055600_d4a9d168-ccf6-4784-8f98-faa94b63f778.sql =====
 
 CREATE TABLE IF NOT EXISTS public.beta_testers (
@@ -7643,8 +7658,8 @@ INSERT INTO public.beta_testers (email, notes)
 VALUES ('gustavovitorfa@gmail.com', 'Primeiro testador beta — acesso completo')
 ON CONFLICT (email) DO UPDATE SET active = true;
 
-
 -- ===== 20260718000000_zzz_post_restore_hardening.sql =====
+
 -- =====================================================================
 -- POST-RESTORE HARDENING
 -- Consolida todos os ajustes que precisaram ser aplicados manualmente
@@ -7708,7 +7723,8 @@ ALTER TABLE public.clinics  ADD COLUMN IF NOT EXISTS kind text;
 ALTER TABLE public.clinics  ADD COLUMN IF NOT EXISTS owner_id uuid;
 ALTER TABLE public.clinics  ADD COLUMN IF NOT EXISTS invite_code text;
 DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='clinics_invite_code_key') THEN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='clinics_invite_code_key')
+     AND to_regclass('public.clinics_invite_code_key') IS NULL THEN
     ALTER TABLE public.clinics ADD CONSTRAINT clinics_invite_code_key UNIQUE (invite_code);
   END IF;
 END $$;
@@ -7734,15 +7750,21 @@ INSERT INTO storage.buckets (id, name, public) VALUES ('patient-photos','patient
   ON CONFLICT (id) DO NOTHING;
 
 DO $$
-DECLARE b text; op text;
+DECLARE b text; op text; predicate text;
 BEGIN
   FOREACH b IN ARRAY ARRAY['case-files','patient-files'] LOOP
     FOREACH op IN ARRAY ARRAY['SELECT','INSERT','UPDATE','DELETE'] LOOP
       BEGIN
+        predicate := CASE
+          WHEN op = 'INSERT' THEN format('WITH CHECK (bucket_id = %L)', b)
+          WHEN op = 'UPDATE' THEN format(
+            'USING (bucket_id = %L) WITH CHECK (bucket_id = %L)', b, b
+          )
+          ELSE format('USING (bucket_id = %L)', b)
+        END;
         EXECUTE format(
-          'CREATE POLICY %I ON storage.objects FOR %s TO authenticated USING (bucket_id = %L) %s',
-          b||'_auth_'||lower(op), op, b,
-          CASE WHEN op IN ('INSERT','UPDATE') THEN format('WITH CHECK (bucket_id = %L)', b) ELSE '' END
+          'CREATE POLICY %I ON storage.objects FOR %s TO authenticated %s',
+          b||'_auth_'||lower(op), op, predicate
         );
       EXCEPTION WHEN duplicate_object THEN NULL; END;
     END LOOP;
@@ -7752,10 +7774,12 @@ END $$;
 -- Fim -------------------------------------------------------------------
 
 -- ===== 20260720135142_3760c256-2d86-4da1-8acd-a6fc4e9f78a8.sql =====
+
 CREATE OR REPLACE FUNCTION public.__restore_exec(sql text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$ BEGIN EXECUTE sql; END; $$;
 GRANT EXECUTE ON FUNCTION public.__restore_exec(text) TO PUBLIC;
 
 -- ===== 20260720135454_489eb04c-d7cb-4b36-b197-ea5fd5855be8.sql =====
+
 CREATE SCHEMA IF NOT EXISTS _restore;
 GRANT USAGE ON SCHEMA _restore TO PUBLIC;
 CREATE OR REPLACE FUNCTION _restore.exec_sql(sql text) RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $$ BEGIN EXECUTE sql; END; $$;
@@ -7763,6 +7787,7 @@ GRANT EXECUTE ON FUNCTION _restore.exec_sql(text) TO PUBLIC;
 DROP FUNCTION IF EXISTS public.__restore_exec(text);
 
 -- ===== 20260720144051_1db55e21-d037-48ca-80af-d2a74fd8e1a1.sql =====
+
 -- Recreate _restore.exec_sql with search_path including public + extensions
 DROP FUNCTION IF EXISTS _restore.exec_sql(text) CASCADE;
 CREATE OR REPLACE FUNCTION _restore.exec_sql(sql text)
@@ -7781,13 +7806,16 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA public;
 
 -- ===== 20260720144128_1464ff01-fe86-4aff-88b0-eb75c6a764bd.sql =====
+
 GRANT USAGE ON SCHEMA _restore TO PUBLIC;
 GRANT EXECUTE ON FUNCTION _restore.exec_sql(text) TO PUBLIC;
 
 -- ===== 20260720151033_1b593deb-c2ea-4cff-9da4-9429ccf8cbdf.sql =====
+
 GRANT EXECUTE ON FUNCTION public.create_company_account(text,text,text) TO authenticated;
 
 -- ===== 20260720152221_8835b9d0-87a1-4277-8153-c7086c3f2e2a.sql =====
+
 CREATE OR REPLACE FUNCTION public.current_user_has_clinic()
 RETURNS boolean
 LANGUAGE sql
@@ -7839,6 +7867,7 @@ $$;
 GRANT EXECUTE ON FUNCTION public.heal_current_user_clinic_link() TO authenticated;
 
 -- ===== 20260720152720_01f72ba4-1ee8-4dca-8aee-e1743ed84454.sql =====
+
 DO $$
 DECLARE r record;
 BEGIN
@@ -8357,7 +8386,6 @@ BEGIN
 END $$;
 GRANT EXECUTE ON FUNCTION public.export_backup() TO authenticated;
 
-
 -- ===== 20260720153448_f603ae24-52c5-4ab6-82a1-89b545f0767b.sql =====
 
 -- Add missing columns
@@ -8430,8 +8458,8 @@ EXCEPTION WHEN OTHERS THEN RETURN jsonb_build_object('success', false, 'error', 
 END $$;
 GRANT EXECUTE ON FUNCTION public.wallet_transfer(uuid, uuid, numeric, text) TO authenticated;
 
-
 -- ===== 20260720162528_8fb6b8ad-d2e6-4e3b-851b-c01f886ed84f.sql =====
+
 CREATE OR REPLACE FUNCTION public.create_company_account(p_name text, p_kind text, p_full_name text)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -8641,73 +8669,96 @@ ON CONFLICT (clinic_id, user_id) DO UPDATE
   SET status = 'active', role = EXCLUDED.role, decided_at = now(), updated_at = now();
 
 -- ===== 20260720162551_41ce01ed-7e74-47b9-8a25-64284c05ca5b.sql =====
+
 DROP FUNCTION IF EXISTS public.create_team_member(text, text, text, text);
 GRANT EXECUTE ON FUNCTION public.create_team_member(text, text, text, text, text) TO authenticated;
 
 -- ===== 20260720162606_ca6513c3-4c5a-4b4a-b101-a2d7fea3a326.sql =====
+
 select 1;
 
 -- ===== 20260720162646_f99a4a6d-0a04-40ab-bcf6-736698b496c5.sql =====
+
 select 1;
 
 -- ===== 20260720162659_fcba146c-d0b3-4c02-89e7-af36b82edb15.sql =====
+
 select 2;
 
 -- ===== 20260720162730_9632a3b1-766e-4bd6-bfb9-501a2ab7900e.sql =====
+
 select 3;
 
 -- ===== 20260720162749_48ef5555-0bf7-4702-922a-7f9bd344e8ce.sql =====
+
 select 4;
 
 -- ===== 20260720162806_949862c5-4f9f-4b5f-b747-5c1244e83617.sql =====
+
 select 5;
 
 -- ===== 20260720162827_a30ea404-664c-4ed8-bcec-0ce6b668b179.sql =====
+
 select 6;
 
 -- ===== 20260720162852_4a31f280-4813-4e2b-912e-1dd3fc67d785.sql =====
+
 select 7;
 
 -- ===== 20260720162927_e3aa7aa9-8702-4cfc-9317-1a95075796f8.sql =====
+
 select 8;
 
 -- ===== 20260720162947_4f0d0254-2350-4f8a-8b2a-5650fef8a9a3.sql =====
+
 select 9;
 
 -- ===== 20260720163003_2e73061f-c587-4223-8da8-c8fe9258c771.sql =====
+
 select 10;
 
 -- ===== 20260720163025_37b36704-1af5-4514-b767-a97f89b1f435.sql =====
+
 select 11;
 
 -- ===== 20260720163134_4987720a-d40a-4b48-9dcf-ac6e645fbc4b.sql =====
+
 select 12;
 
 -- ===== 20260720163150_90da5e21-e3fc-4bf4-a56c-84d10aafa09c.sql =====
+
 select 13;
 
 -- ===== 20260720163210_0e41bf8b-f9a5-4f59-a147-9968b17c2063.sql =====
+
 select 14;
 
 -- ===== 20260720163242_8a22337d-046a-414c-97bc-b21dd1f54212.sql =====
+
 select 15;
 
 -- ===== 20260720163258_754061e7-f3be-43c4-97f2-2740eb5a302c.sql =====
+
 select 16;
 
 -- ===== 20260720163319_7e2c7041-beeb-4f40-88b7-f0b890255275.sql =====
+
 select 17;
 
 -- ===== 20260720163343_dc1ba1e5-4463-46db-afdb-e93e3557f607.sql =====
+
 select 18;
 
 -- ===== 20260720163401_19be22db-6dca-4449-9311-1d76d6329798.sql =====
+
 select 19;
 
 -- ===== 20260720163421_b9adb650-0902-4d6a-bb7a-7cbc4cfb20fc.sql =====
+
 select 20;
 
 -- ===== 20260720194203_e0a036e6-953e-4723-9919-56ba9297fdba.sql =====
+
 GRANT EXECUTE ON FUNCTION public.is_staff(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.can_access_case(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.current_user_is_admin() TO authenticated;
@@ -8720,9 +8771,4908 @@ GRANT EXECUTE ON FUNCTION public.current_user_has_clinic() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.heal_current_user_clinic_link() TO authenticated;
 
 -- ===== 20260720194259_cd057e44-f227-49ec-a182-bb5250a392e3.sql =====
+
 GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_cadista(uuid) TO authenticated;
 
 -- ===== 20260720194414_65ee412c-4d3c-49ec-ad90-4ad1ff57ce17.sql =====
+
 GRANT EXECUTE ON FUNCTION public.current_user_clinic_id() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.has_any_role(uuid, public.app_role[]) TO authenticated;
+
+-- ===== 20260919212500_saas_restore_prerequisites_stage01.sql =====
+
+-- DentalFlow SaaS — Stage 01 recovery prerequisites.
+-- Repairs legacy restore snapshots without importing user-specific historical SQL.
+
+alter type public.app_role add value if not exists 'SOLICITANTE';
+
+create table if not exists public.proteticos (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid unique references auth.users(id) on delete cascade,
+  name text not null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.proteticos enable row level security;
+
+drop policy if exists proteticos_authenticated_read on public.proteticos;
+create policy proteticos_authenticated_read
+on public.proteticos for select to authenticated
+using (true);
+
+grant select, insert, update, delete on public.proteticos to authenticated;
+grant all on public.proteticos to service_role;
+
+alter table public.doctors add column if not exists user_id uuid references auth.users(id) on delete set null;
+alter table public.cadistas add column if not exists user_id uuid references auth.users(id) on delete set null;
+alter table public.cases add column if not exists requested_by uuid references auth.users(id) on delete set null;
+
+create unique index if not exists doctors_user_id_uidx
+  on public.doctors(user_id) where user_id is not null;
+create unique index if not exists cadistas_user_id_uidx
+  on public.cadistas(user_id) where user_id is not null;
+
+create or replace function public.is_clinic_member(_clinic_id uuid, _user_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select _user_id is not null and (
+    exists (
+      select 1 from public.clinics c
+      where c.id = _clinic_id and c.owner_id = _user_id
+    )
+    or exists (
+      select 1 from public.clinic_members m
+      where m.clinic_id = _clinic_id
+        and m.user_id = _user_id
+        and m.status in ('active','accepted')
+    )
+  )
+$$;
+
+revoke all on function public.is_clinic_member(uuid,uuid) from public, anon;
+grant execute on function public.is_clinic_member(uuid,uuid) to authenticated, service_role;
+
+notify pgrst, 'reload schema';
+
+-- ===== 20260905005000_lovable_patient_access_helper_recovery.sql =====
+
+-- Lovable Cloud recovery for partially-applied case/patient access migrations.
+--
+-- Some older Lovable Cloud databases can have the current frontend/schema but
+-- miss the can_access_patient(uuid) helper. Patient attachment/storage RLS uses
+-- that helper, so recreate it without widening patient visibility.
+
+CREATE OR REPLACE FUNCTION public.can_access_patient(_patient_id uuid)
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user uuid := auth.uid();
+  v_type text := '';
+  v_is_default_admin boolean := false;
+BEGIN
+  IF v_user IS NULL THEN
+    RETURN false;
+  END IF;
+
+  SELECT
+    upper(
+      COALESCE(
+        NULLIF(trim(p.account_subtype), ''),
+        NULLIF(trim(p.role), ''),
+        ''
+      )
+    ),
+    COALESCE(p.is_default_admin, false)
+  INTO v_type, v_is_default_admin
+  FROM public.profiles p
+  WHERE p.id = v_user;
+
+  -- Existing Dental Flow global patient access roles.
+  IF v_is_default_admin OR v_type IN ('CEO', 'ADMIN', 'PROTETICO') THEN
+    RETURN true;
+  END IF;
+
+  -- In a partially migrated database, fail closed for non-global users until
+  -- can_access_case(uuid) is available rather than exposing unrelated patients.
+  IF to_regprocedure('public.can_access_case(uuid)') IS NULL THEN
+    RETURN false;
+  END IF;
+
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.cases c
+    WHERE c.patient_id = _patient_id
+      AND public.can_access_case(c.id)
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.can_access_patient(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.can_access_patient(uuid) TO authenticated, service_role;
+
+NOTIFY pgrst, 'reload schema';
+
+-- ===== 20260904224400_patient_attachments_prerequisite.sql =====
+
+-- Lovable Cloud compatibility prerequisite for unified storage.
+--
+-- The frontend already has patient attachment upload/list/delete support, but
+-- some Lovable Cloud databases were created without the patient_attachments
+-- table/bucket. The unified storage migration depends on both, so create them
+-- idempotently before 20260904224500_clinic_storage_management.sql.
+
+CREATE TABLE IF NOT EXISTS public.patient_attachments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  patient_id uuid NOT NULL REFERENCES public.patients(id) ON DELETE CASCADE,
+  title text NOT NULL,
+  description text,
+  kind text NOT NULL DEFAULT 'other',
+  file_url text NOT NULL DEFAULT '',
+  file_path text NOT NULL,
+  thumbnail_url text,
+  mime_type text,
+  size_bytes bigint NOT NULL DEFAULT 0 CHECK (size_bytes >= 0),
+  clinic_id uuid REFERENCES public.clinics(id) ON DELETE SET NULL,
+  uploaded_by uuid REFERENCES auth.users(id) ON DELETE SET NULL DEFAULT auth.uid(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (file_path)
+);
+
+-- Bring partially-created versions of the table up to the shape used by the app.
+ALTER TABLE public.patient_attachments
+  ADD COLUMN IF NOT EXISTS title text,
+  ADD COLUMN IF NOT EXISTS description text,
+  ADD COLUMN IF NOT EXISTS kind text DEFAULT 'other',
+  ADD COLUMN IF NOT EXISTS file_url text DEFAULT '',
+  ADD COLUMN IF NOT EXISTS file_path text,
+  ADD COLUMN IF NOT EXISTS thumbnail_url text,
+  ADD COLUMN IF NOT EXISTS mime_type text,
+  ADD COLUMN IF NOT EXISTS size_bytes bigint DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS clinic_id uuid REFERENCES public.clinics(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS uploaded_by uuid REFERENCES auth.users(id) ON DELETE SET NULL DEFAULT auth.uid(),
+  ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
+
+CREATE INDEX IF NOT EXISTS patient_attachments_patient_created_idx
+  ON public.patient_attachments(patient_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS patient_attachments_clinic_idx
+  ON public.patient_attachments(clinic_id) WHERE clinic_id IS NOT NULL;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.patient_attachments TO authenticated;
+GRANT ALL ON public.patient_attachments TO service_role;
+ALTER TABLE public.patient_attachments ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS patient_attachments_select_by_patient_access ON public.patient_attachments;
+CREATE POLICY patient_attachments_select_by_patient_access
+  ON public.patient_attachments
+  FOR SELECT TO authenticated
+  USING (public.can_access_patient(patient_id));
+
+DROP POLICY IF EXISTS patient_attachments_insert_by_patient_access ON public.patient_attachments;
+CREATE POLICY patient_attachments_insert_by_patient_access
+  ON public.patient_attachments
+  FOR INSERT TO authenticated
+  WITH CHECK (public.can_access_patient(patient_id));
+
+DROP POLICY IF EXISTS patient_attachments_update_by_patient_access ON public.patient_attachments;
+CREATE POLICY patient_attachments_update_by_patient_access
+  ON public.patient_attachments
+  FOR UPDATE TO authenticated
+  USING (public.can_access_patient(patient_id))
+  WITH CHECK (public.can_access_patient(patient_id));
+
+DROP POLICY IF EXISTS patient_attachments_delete_by_patient_access ON public.patient_attachments;
+CREATE POLICY patient_attachments_delete_by_patient_access
+  ON public.patient_attachments
+  FOR DELETE TO authenticated
+  USING (public.can_access_patient(patient_id));
+
+-- Private bucket used by src/lib/api.ts for patient clinical files.
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('patient-files', 'patient-files', false)
+ON CONFLICT (id) DO UPDATE SET public = false;
+
+-- Safely resolve the patient UUID encoded as the first folder in
+-- patient-files/<patient-id>/<filename>.
+CREATE OR REPLACE FUNCTION public.patient_id_from_storage_path(_name text)
+RETURNS uuid
+LANGUAGE plpgsql
+IMMUTABLE
+SET search_path = public
+AS $$
+DECLARE
+  v_part text;
+BEGIN
+  v_part := split_part(COALESCE(_name, ''), '/', 1);
+  IF v_part = '' THEN RETURN NULL; END IF;
+  BEGIN
+    RETURN v_part::uuid;
+  EXCEPTION WHEN invalid_text_representation THEN
+    RETURN NULL;
+  END;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.patient_id_from_storage_path(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.patient_id_from_storage_path(text) TO authenticated, service_role;
+
+DROP POLICY IF EXISTS patient_files_select ON storage.objects;
+CREATE POLICY patient_files_select
+  ON storage.objects FOR SELECT TO authenticated
+  USING (
+    bucket_id = 'patient-files'
+    AND public.can_access_patient(public.patient_id_from_storage_path(name))
+  );
+
+DROP POLICY IF EXISTS patient_files_insert ON storage.objects;
+CREATE POLICY patient_files_insert
+  ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id = 'patient-files'
+    AND public.can_access_patient(public.patient_id_from_storage_path(name))
+  );
+
+DROP POLICY IF EXISTS patient_files_delete ON storage.objects;
+CREATE POLICY patient_files_delete
+  ON storage.objects FOR DELETE TO authenticated
+  USING (
+    bucket_id = 'patient-files'
+    AND public.can_access_patient(public.patient_id_from_storage_path(name))
+  );
+
+NOTIFY pgrst, 'reload schema';
+
+-- ===== 20260904224500_clinic_storage_management.sql =====
+
+-- Unified per-clinic storage management.
+-- Each clinic starts with 1 GiB. Quota reservations are atomic so concurrent
+-- uploads cannot oversubscribe the account.
+
+ALTER TABLE public.clinics
+  ADD COLUMN IF NOT EXISTS storage_limit_bytes bigint NOT NULL DEFAULT 1073741824;
+
+ALTER TABLE public.patient_attachments
+  ADD COLUMN IF NOT EXISTS clinic_id uuid REFERENCES public.clinics(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS uploaded_by uuid REFERENCES auth.users(id) ON DELETE SET NULL;
+
+-- File retention is now controlled by clinic storage management, not a timer.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'case_attachments' AND column_name = 'expires_at'
+  ) THEN
+    ALTER TABLE public.case_attachments ALTER COLUMN expires_at DROP NOT NULL;
+    ALTER TABLE public.case_attachments ALTER COLUMN expires_at DROP DEFAULT;
+    UPDATE public.case_attachments SET expires_at = NULL WHERE expired_at IS NULL;
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS public.storage_files (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  clinic_id uuid NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+  bucket text NOT NULL,
+  object_path text NOT NULL,
+  source_type text NOT NULL DEFAULT 'other',
+  source_id text,
+  case_id uuid REFERENCES public.cases(id) ON DELETE SET NULL,
+  patient_id uuid REFERENCES public.patients(id) ON DELETE SET NULL,
+  original_name text NOT NULL,
+  mime_type text,
+  size_bytes bigint NOT NULL DEFAULT 0 CHECK (size_bytes >= 0),
+  uploaded_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  status text NOT NULL DEFAULT 'ready' CHECK (status IN ('reserved', 'ready')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (bucket, object_path)
+);
+
+CREATE INDEX IF NOT EXISTS storage_files_clinic_created_idx
+  ON public.storage_files (clinic_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS storage_files_clinic_status_idx
+  ON public.storage_files (clinic_id, status);
+CREATE INDEX IF NOT EXISTS storage_files_case_idx
+  ON public.storage_files (case_id) WHERE case_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS storage_files_patient_idx
+  ON public.storage_files (patient_id) WHERE patient_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS storage_files_source_idx
+  ON public.storage_files (source_type, source_id) WHERE source_id IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION public.storage_current_clinic_id()
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT clinic_id FROM public.profiles WHERE id = auth.uid() LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.can_manage_clinic_storage(_clinic_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+      FROM public.profiles p
+     WHERE p.id = auth.uid()
+       AND p.clinic_id = _clinic_id
+       AND (
+         COALESCE(p.is_default_admin, false)
+         OR upper(COALESCE(NULLIF(p.account_subtype, ''), p.role::text, '')) IN ('CEO', 'ADMIN')
+       )
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.resolve_case_clinic_id(_case_id uuid)
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT COALESCE(requester.clinic_id, cad_profile.clinic_id, doctor_profile.clinic_id)
+    FROM public.cases c
+    LEFT JOIN public.profiles requester ON requester.id = c.requested_by
+    LEFT JOIN public.cadistas cad ON cad.id = c.cadista_id
+    LEFT JOIN public.profiles cad_profile ON cad_profile.id = cad.user_id
+    LEFT JOIN public.doctors doc ON doc.id = c.doctor_id
+    LEFT JOIN public.profiles doctor_profile ON doctor_profile.id = doc.user_id
+   WHERE c.id = _case_id
+   LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.resolve_patient_clinic_id(_patient_id uuid)
+RETURNS uuid
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_clinic uuid;
+  v_case_id uuid;
+BEGIN
+  SELECT c.id INTO v_case_id
+    FROM public.cases c
+   WHERE c.patient_id = _patient_id
+   ORDER BY c.created_at DESC NULLS LAST, c.id
+   LIMIT 1;
+  IF v_case_id IS NOT NULL THEN
+    v_clinic := public.resolve_case_clinic_id(v_case_id);
+  END IF;
+  RETURN v_clinic;
+END;
+$$;
+
+ALTER TABLE public.storage_files ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS storage_files_admin_select ON public.storage_files;
+CREATE POLICY storage_files_admin_select
+  ON public.storage_files FOR SELECT TO authenticated
+  USING (public.can_manage_clinic_storage(clinic_id));
+
+DROP POLICY IF EXISTS storage_files_admin_delete ON public.storage_files;
+CREATE POLICY storage_files_admin_delete
+  ON public.storage_files FOR DELETE TO authenticated
+  USING (public.can_manage_clinic_storage(clinic_id));
+
+-- Inserts/updates are intentionally only performed by the SECURITY DEFINER RPCs
+-- and catalog triggers below. This prevents clients from forging their usage.
+
+CREATE OR REPLACE FUNCTION public.get_storage_usage()
+RETURNS TABLE (
+  clinic_id uuid,
+  clinic_name text,
+  used_bytes bigint,
+  limit_bytes bigint,
+  available_bytes bigint,
+  usage_ratio double precision,
+  file_count bigint,
+  almost_full boolean,
+  full boolean
+)
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_clinic uuid;
+  v_name text;
+  v_limit bigint;
+  v_used bigint;
+  v_count bigint;
+BEGIN
+  v_clinic := public.storage_current_clinic_id();
+  IF v_clinic IS NULL THEN
+    RAISE EXCEPTION 'STORAGE_CLINIC_NOT_FOUND';
+  END IF;
+
+  SELECT c.name, c.storage_limit_bytes
+    INTO v_name, v_limit
+    FROM public.clinics c
+   WHERE c.id = v_clinic;
+
+  SELECT COALESCE(sum(sf.size_bytes), 0), count(*)
+    INTO v_used, v_count
+    FROM public.storage_files sf
+   WHERE sf.clinic_id = v_clinic
+     AND sf.status IN ('reserved', 'ready');
+
+  RETURN QUERY SELECT
+    v_clinic,
+    v_name,
+    v_used,
+    v_limit,
+    GREATEST(v_limit - v_used, 0::bigint),
+    CASE WHEN v_limit > 0 THEN v_used::double precision / v_limit::double precision ELSE 1::double precision END,
+    v_count,
+    CASE WHEN v_limit > 0 THEN v_used::double precision / v_limit::double precision >= 0.85 ELSE true END,
+    v_used >= v_limit;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.reserve_storage_upload(
+  _size_bytes bigint,
+  _bucket text,
+  _object_path text,
+  _source_type text,
+  _case_id uuid DEFAULT NULL,
+  _patient_id uuid DEFAULT NULL,
+  _original_name text DEFAULT 'arquivo',
+  _mime_type text DEFAULT NULL
+)
+RETURNS TABLE (file_id uuid, used_bytes bigint, limit_bytes bigint)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_clinic uuid;
+  v_limit bigint;
+  v_used bigint;
+  v_file uuid;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'NOT_AUTHENTICATED'; END IF;
+  IF COALESCE(_size_bytes, 0) < 0 THEN RAISE EXCEPTION 'INVALID_FILE_SIZE'; END IF;
+
+  v_clinic := public.storage_current_clinic_id();
+  IF v_clinic IS NULL THEN RAISE EXCEPTION 'STORAGE_CLINIC_NOT_FOUND'; END IF;
+
+  -- Lock the clinic row: all reservations for a clinic serialize here.
+  SELECT c.storage_limit_bytes INTO v_limit
+    FROM public.clinics c
+   WHERE c.id = v_clinic
+   FOR UPDATE;
+
+  SELECT COALESCE(sum(sf.size_bytes), 0) INTO v_used
+    FROM public.storage_files sf
+   WHERE sf.clinic_id = v_clinic
+     AND sf.status IN ('reserved', 'ready');
+
+  IF v_used + COALESCE(_size_bytes, 0) > v_limit THEN
+    RAISE EXCEPTION 'STORAGE_QUOTA_EXCEEDED';
+  END IF;
+
+  INSERT INTO public.storage_files (
+    clinic_id, bucket, object_path, source_type, case_id, patient_id,
+    original_name, mime_type, size_bytes, uploaded_by, status
+  ) VALUES (
+    v_clinic, _bucket, _object_path, COALESCE(NULLIF(_source_type, ''), 'other'), _case_id, _patient_id,
+    COALESCE(NULLIF(_original_name, ''), 'arquivo'), _mime_type, COALESCE(_size_bytes, 0), auth.uid(), 'reserved'
+  )
+  ON CONFLICT (bucket, object_path) DO UPDATE SET
+    size_bytes = EXCLUDED.size_bytes,
+    original_name = EXCLUDED.original_name,
+    mime_type = EXCLUDED.mime_type,
+    uploaded_by = EXCLUDED.uploaded_by,
+    status = 'reserved',
+    updated_at = now()
+  RETURNING id INTO v_file;
+
+  RETURN QUERY SELECT v_file, v_used + COALESCE(_size_bytes, 0), v_limit;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.complete_storage_upload(_file_id uuid, _source_id text DEFAULT NULL)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE public.storage_files sf
+     SET status = 'ready',
+         source_id = COALESCE(_source_id, sf.source_id),
+         updated_at = now()
+   WHERE sf.id = _file_id
+     AND (sf.uploaded_by = auth.uid() OR public.can_manage_clinic_storage(sf.clinic_id));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.cancel_storage_upload(_file_id uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  DELETE FROM public.storage_files sf
+   WHERE sf.id = _file_id
+     AND sf.status = 'reserved'
+     AND (sf.uploaded_by = auth.uid() OR public.can_manage_clinic_storage(sf.clinic_id));
+END;
+$$;
+
+-- Keep the catalog synchronized even when an older client inserts/deletes an
+-- attachment without calling the new quota client first.
+CREATE OR REPLACE FUNCTION public.sync_case_attachment_storage_catalog()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_clinic uuid;
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    DELETE FROM public.storage_files
+     WHERE source_type = 'case_attachment' AND source_id = OLD.id::text;
+    RETURN OLD;
+  END IF;
+
+  SELECT clinic_id INTO v_clinic FROM public.profiles WHERE id = NEW.uploaded_by;
+  v_clinic := COALESCE(v_clinic, public.resolve_case_clinic_id(NEW.case_id));
+  IF v_clinic IS NULL THEN RETURN NEW; END IF;
+
+  INSERT INTO public.storage_files (
+    clinic_id, bucket, object_path, source_type, source_id, case_id,
+    original_name, mime_type, size_bytes, uploaded_by, status, created_at
+  ) VALUES (
+    v_clinic, 'case-files', NEW.storage_path, 'case_attachment', NEW.id::text, NEW.case_id,
+    NEW.file_name, NEW.mime_type, COALESCE(NEW.size_bytes, 0), NEW.uploaded_by, 'ready', COALESCE(NEW.uploaded_at, now())
+  )
+  ON CONFLICT (bucket, object_path) DO UPDATE SET
+    clinic_id = EXCLUDED.clinic_id,
+    source_type = 'case_attachment',
+    source_id = EXCLUDED.source_id,
+    case_id = EXCLUDED.case_id,
+    original_name = EXCLUDED.original_name,
+    mime_type = EXCLUDED.mime_type,
+    size_bytes = EXCLUDED.size_bytes,
+    uploaded_by = EXCLUDED.uploaded_by,
+    status = 'ready',
+    updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_case_attachment_storage_catalog ON public.case_attachments;
+CREATE TRIGGER trg_case_attachment_storage_catalog
+AFTER INSERT OR DELETE ON public.case_attachments
+FOR EACH ROW EXECUTE FUNCTION public.sync_case_attachment_storage_catalog();
+
+CREATE OR REPLACE FUNCTION public.sync_patient_attachment_storage_catalog()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_clinic uuid;
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    DELETE FROM public.storage_files
+     WHERE source_type = 'patient_attachment' AND source_id = OLD.id::text;
+    RETURN OLD;
+  END IF;
+
+  v_clinic := NEW.clinic_id;
+  IF v_clinic IS NULL AND NEW.uploaded_by IS NOT NULL THEN
+    SELECT clinic_id INTO v_clinic FROM public.profiles WHERE id = NEW.uploaded_by;
+  END IF;
+  v_clinic := COALESCE(v_clinic, public.resolve_patient_clinic_id(NEW.patient_id));
+  IF v_clinic IS NULL THEN RETURN NEW; END IF;
+
+  INSERT INTO public.storage_files (
+    clinic_id, bucket, object_path, source_type, source_id, patient_id,
+    original_name, mime_type, size_bytes, uploaded_by, status, created_at
+  ) VALUES (
+    v_clinic, 'patient-files', NEW.file_path, 'patient_attachment', NEW.id::text, NEW.patient_id,
+    COALESCE(NULLIF(NEW.title, ''), split_part(NEW.file_path, '/', 2), 'arquivo'), NEW.mime_type,
+    COALESCE(NEW.size_bytes, 0), NEW.uploaded_by, 'ready', COALESCE(NEW.created_at, now())
+  )
+  ON CONFLICT (bucket, object_path) DO UPDATE SET
+    clinic_id = EXCLUDED.clinic_id,
+    source_type = 'patient_attachment',
+    source_id = EXCLUDED.source_id,
+    patient_id = EXCLUDED.patient_id,
+    original_name = EXCLUDED.original_name,
+    mime_type = EXCLUDED.mime_type,
+    size_bytes = EXCLUDED.size_bytes,
+    uploaded_by = EXCLUDED.uploaded_by,
+    status = 'ready',
+    updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_patient_attachment_storage_catalog ON public.patient_attachments;
+CREATE TRIGGER trg_patient_attachment_storage_catalog
+AFTER INSERT OR DELETE ON public.patient_attachments
+FOR EACH ROW EXECUTE FUNCTION public.sync_patient_attachment_storage_catalog();
+
+-- Reliable case-dialog deletion path. It fixes environments where legacy RLS
+-- allowed viewing/uploading an attachment but inadvertently rejected DELETE.
+CREATE OR REPLACE FUNCTION public.delete_case_attachment_managed(_attachment_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_att public.case_attachments%ROWTYPE;
+  v_profile public.profiles%ROWTYPE;
+  v_clinic uuid;
+  v_effective text;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'NOT_AUTHENTICATED'; END IF;
+  SELECT * INTO v_att FROM public.case_attachments WHERE id = _attachment_id;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+
+  SELECT * INTO v_profile FROM public.profiles WHERE id = auth.uid();
+  v_clinic := COALESCE(
+    (SELECT p.clinic_id FROM public.profiles p WHERE p.id = v_att.uploaded_by),
+    public.resolve_case_clinic_id(v_att.case_id)
+  );
+  v_effective := upper(COALESCE(NULLIF(v_profile.account_subtype, ''), v_profile.role::text, ''));
+
+  IF NOT (
+    v_att.uploaded_by = auth.uid()
+    OR (
+      v_profile.clinic_id IS NOT DISTINCT FROM v_clinic
+      AND (COALESCE(v_profile.is_default_admin, false) OR v_effective IN ('CEO','ADMIN','PROTETICO','ATENDIMENTO','DR','DENTISTA','CADISTA'))
+    )
+  ) THEN
+    RAISE EXCEPTION 'ATTACHMENT_DELETE_NOT_ALLOWED';
+  END IF;
+
+  DELETE FROM public.case_attachments WHERE id = v_att.id;
+  RETURN jsonb_build_object(
+    'id', v_att.id,
+    'bucket', 'case-files',
+    'object_path', v_att.storage_path,
+    'size_bytes', COALESCE(v_att.size_bytes, 0)
+  );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.delete_managed_storage_file(_file_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_file public.storage_files%ROWTYPE;
+BEGIN
+  SELECT * INTO v_file FROM public.storage_files WHERE id = _file_id;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  IF NOT public.can_manage_clinic_storage(v_file.clinic_id) THEN
+    RAISE EXCEPTION 'STORAGE_MANAGEMENT_NOT_ALLOWED';
+  END IF;
+
+  IF v_file.source_type = 'case_attachment' AND v_file.source_id IS NOT NULL THEN
+    DELETE FROM public.case_attachments WHERE id::text = v_file.source_id;
+  ELSIF v_file.source_type = 'patient_attachment' AND v_file.source_id IS NOT NULL THEN
+    DELETE FROM public.patient_attachments WHERE id::text = v_file.source_id;
+  ELSIF v_file.source_type = 'patient_photo' AND v_file.source_id IS NOT NULL THEN
+    UPDATE public.patients SET photo_url = NULL WHERE id::text = v_file.source_id;
+  ELSIF v_file.source_type = 'user_avatar' AND v_file.source_id IS NOT NULL THEN
+    UPDATE public.profiles SET avatar_url = NULL WHERE id::text = v_file.source_id;
+  END IF;
+
+  DELETE FROM public.storage_files WHERE id = _file_id;
+  RETURN jsonb_build_object(
+    'id', v_file.id,
+    'bucket', v_file.bucket,
+    'object_path', v_file.object_path,
+    'size_bytes', v_file.size_bytes,
+    'source_type', v_file.source_type,
+    'source_id', v_file.source_id
+  );
+END;
+$$;
+
+-- Backfill existing active case attachments.
+INSERT INTO public.storage_files (
+  clinic_id, bucket, object_path, source_type, source_id, case_id,
+  original_name, mime_type, size_bytes, uploaded_by, status, created_at
+)
+SELECT
+  COALESCE(up.clinic_id, public.resolve_case_clinic_id(ca.case_id)),
+  'case-files', ca.storage_path, 'case_attachment', ca.id::text, ca.case_id,
+  ca.file_name, ca.mime_type, COALESCE(ca.size_bytes, 0), ca.uploaded_by, 'ready', COALESCE(ca.uploaded_at, now())
+FROM public.case_attachments ca
+LEFT JOIN public.profiles up ON up.id = ca.uploaded_by
+WHERE ca.storage_path IS NOT NULL
+  AND ca.expired_at IS NULL
+  AND COALESCE(up.clinic_id, public.resolve_case_clinic_id(ca.case_id)) IS NOT NULL
+ON CONFLICT (bucket, object_path) DO NOTHING;
+
+-- Backfill patient attachments and persist the inferred clinic for future use.
+UPDATE public.patient_attachments pa
+   SET clinic_id = public.resolve_patient_clinic_id(pa.patient_id)
+ WHERE pa.clinic_id IS NULL;
+
+INSERT INTO public.storage_files (
+  clinic_id, bucket, object_path, source_type, source_id, patient_id,
+  original_name, mime_type, size_bytes, uploaded_by, status, created_at
+)
+SELECT
+  pa.clinic_id, 'patient-files', pa.file_path, 'patient_attachment', pa.id::text, pa.patient_id,
+  COALESCE(NULLIF(pa.title, ''), split_part(pa.file_path, '/', 2), 'arquivo'), pa.mime_type,
+  COALESCE(pa.size_bytes, 0), pa.uploaded_by, 'ready', COALESCE(pa.created_at, now())
+FROM public.patient_attachments pa
+WHERE pa.clinic_id IS NOT NULL AND pa.file_path IS NOT NULL
+ON CONFLICT (bucket, object_path) DO NOTHING;
+
+-- Include existing avatars from Storage using the user id encoded in the path.
+INSERT INTO public.storage_files (
+  clinic_id, bucket, object_path, source_type, source_id,
+  original_name, mime_type, size_bytes, uploaded_by, status, created_at
+)
+SELECT
+  p.clinic_id, o.bucket_id, o.name, 'user_avatar', p.id::text,
+  COALESCE(NULLIF(split_part(o.name, '/', 2), ''), 'avatar'),
+  o.metadata->>'mimetype',
+  CASE WHEN COALESCE(o.metadata->>'size', '') ~ '^\d+$' THEN (o.metadata->>'size')::bigint ELSE 0 END,
+  p.id, 'ready', COALESCE(o.created_at, now())
+FROM storage.objects o
+JOIN public.profiles p ON p.id::text = split_part(o.name, '/', 1)
+WHERE o.bucket_id = 'avatars' AND p.clinic_id IS NOT NULL
+ON CONFLICT (bucket, object_path) DO NOTHING;
+
+-- Include existing patient photos where the patient can be resolved to a clinic.
+INSERT INTO public.storage_files (
+  clinic_id, bucket, object_path, source_type, source_id, patient_id,
+  original_name, mime_type, size_bytes, status, created_at
+)
+SELECT
+  public.resolve_patient_clinic_id(p.id), o.bucket_id, o.name, 'patient_photo', p.id::text, p.id,
+  COALESCE(NULLIF(split_part(o.name, '/', 2), ''), 'foto do paciente'),
+  o.metadata->>'mimetype',
+  CASE WHEN COALESCE(o.metadata->>'size', '') ~ '^\d+$' THEN (o.metadata->>'size')::bigint ELSE 0 END,
+  'ready', COALESCE(o.created_at, now())
+FROM storage.objects o
+JOIN public.patients p ON p.id::text = split_part(o.name, '/', 1)
+WHERE o.bucket_id = 'patient-photos'
+  AND public.resolve_patient_clinic_id(p.id) IS NOT NULL
+ON CONFLICT (bucket, object_path) DO NOTHING;
+
+GRANT EXECUTE ON FUNCTION public.get_storage_usage() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.reserve_storage_upload(bigint,text,text,text,uuid,uuid,text,text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.complete_storage_upload(uuid,text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.cancel_storage_upload(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_case_attachment_managed(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_managed_storage_file(uuid) TO authenticated;
+
+NOTIFY pgrst, 'reload schema';
+
+-- ===== 20260905014000_storage_entitlements_and_ipo_courtesy.sql =====
+
+-- Variable storage quotas per clinic, ready for future paid add-ons.
+-- Existing Dental Flow storage enforcement continues reading clinics.storage_limit_bytes;
+-- this migration makes that value the materialized sum of active entitlements.
+
+CREATE TABLE IF NOT EXISTS public.storage_products (
+  code text PRIMARY KEY,
+  name text NOT NULL,
+  product_type text NOT NULL CHECK (product_type IN ('base', 'addon')),
+  bytes bigint NOT NULL CHECK (bytes > 0),
+  active boolean NOT NULL DEFAULT true,
+  sort_order integer NOT NULL DEFAULT 0,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO public.storage_products (code, name, product_type, bytes, sort_order)
+VALUES
+  ('base_1gb', 'Armazenamento incluído — 1 GB', 'base', 1073741824, 10),
+  ('addon_10gb', 'Adicional — 10 GB', 'addon', 10737418240, 20),
+  ('addon_25gb', 'Adicional — 25 GB', 'addon', 26843545600, 30),
+  ('addon_50gb', 'Adicional — 50 GB', 'addon', 53687091200, 40),
+  ('addon_100gb', 'Adicional — 100 GB', 'addon', 107374182400, 50)
+ON CONFLICT (code) DO UPDATE SET
+  name = EXCLUDED.name,
+  product_type = EXCLUDED.product_type,
+  bytes = EXCLUDED.bytes,
+  sort_order = EXCLUDED.sort_order,
+  active = true,
+  updated_at = now();
+
+CREATE TABLE IF NOT EXISTS public.clinic_storage_entitlements (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  clinic_id uuid NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+  entitlement_key text NOT NULL,
+  entitlement_type text NOT NULL CHECK (entitlement_type IN ('base', 'purchase', 'courtesy', 'manual')),
+  product_code text REFERENCES public.storage_products(code) ON DELETE SET NULL,
+  bytes bigint NOT NULL CHECK (bytes > 0),
+  status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'cancelled')),
+  billing_provider text,
+  external_reference text,
+  notes text,
+  starts_at timestamptz NOT NULL DEFAULT now(),
+  ends_at timestamptz,
+  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (clinic_id, entitlement_key)
+);
+
+CREATE INDEX IF NOT EXISTS clinic_storage_entitlements_clinic_idx
+  ON public.clinic_storage_entitlements (clinic_id, status);
+CREATE INDEX IF NOT EXISTS clinic_storage_entitlements_external_idx
+  ON public.clinic_storage_entitlements (billing_provider, external_reference)
+  WHERE external_reference IS NOT NULL;
+
+ALTER TABLE public.storage_products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.clinic_storage_entitlements ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS storage_products_authenticated_select ON public.storage_products;
+CREATE POLICY storage_products_authenticated_select
+  ON public.storage_products FOR SELECT TO authenticated
+  USING (active = true);
+
+DROP POLICY IF EXISTS clinic_storage_entitlements_admin_select ON public.clinic_storage_entitlements;
+CREATE POLICY clinic_storage_entitlements_admin_select
+  ON public.clinic_storage_entitlements FOR SELECT TO authenticated
+  USING (public.can_manage_clinic_storage(clinic_id));
+
+GRANT SELECT ON public.storage_products TO authenticated;
+GRANT SELECT ON public.clinic_storage_entitlements TO authenticated;
+GRANT ALL ON public.storage_products, public.clinic_storage_entitlements TO service_role;
+
+CREATE OR REPLACE FUNCTION public.recalculate_clinic_storage_limit(_clinic_id uuid)
+RETURNS bigint
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_limit bigint;
+BEGIN
+  SELECT COALESCE(sum(e.bytes), 1073741824::bigint)
+    INTO v_limit
+    FROM public.clinic_storage_entitlements e
+   WHERE e.clinic_id = _clinic_id
+     AND e.status = 'active'
+     AND e.starts_at <= now()
+     AND (e.ends_at IS NULL OR e.ends_at > now());
+
+  v_limit := GREATEST(COALESCE(v_limit, 1073741824::bigint), 1073741824::bigint);
+
+  UPDATE public.clinics
+     SET storage_limit_bytes = v_limit
+   WHERE id = _clinic_id
+     AND storage_limit_bytes IS DISTINCT FROM v_limit;
+
+  RETURN v_limit;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.sync_clinic_storage_limit_from_entitlements()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    PERFORM public.recalculate_clinic_storage_limit(OLD.clinic_id);
+    RETURN OLD;
+  END IF;
+
+  PERFORM public.recalculate_clinic_storage_limit(NEW.clinic_id);
+  IF TG_OP = 'UPDATE' AND OLD.clinic_id IS DISTINCT FROM NEW.clinic_id THEN
+    PERFORM public.recalculate_clinic_storage_limit(OLD.clinic_id);
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_clinic_storage_entitlements_sync ON public.clinic_storage_entitlements;
+CREATE TRIGGER trg_clinic_storage_entitlements_sync
+AFTER INSERT OR UPDATE OR DELETE ON public.clinic_storage_entitlements
+FOR EACH ROW EXECUTE FUNCTION public.sync_clinic_storage_limit_from_entitlements();
+
+-- Future billing/administration entry point. Client users cannot call it directly;
+-- a future Stripe/Mercado Pago webhook or platform-admin service can use service_role.
+CREATE OR REPLACE FUNCTION public.set_clinic_storage_entitlement(
+  _clinic_id uuid,
+  _entitlement_key text,
+  _entitlement_type text,
+  _bytes bigint,
+  _product_code text DEFAULT NULL,
+  _billing_provider text DEFAULT NULL,
+  _external_reference text DEFAULT NULL,
+  _notes text DEFAULT NULL,
+  _active boolean DEFAULT true
+)
+RETURNS bigint
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF _clinic_id IS NULL OR COALESCE(trim(_entitlement_key), '') = '' THEN
+    RAISE EXCEPTION 'INVALID_STORAGE_ENTITLEMENT';
+  END IF;
+  IF _entitlement_type NOT IN ('base', 'purchase', 'courtesy', 'manual') THEN
+    RAISE EXCEPTION 'INVALID_STORAGE_ENTITLEMENT_TYPE';
+  END IF;
+  IF COALESCE(_bytes, 0) <= 0 THEN
+    RAISE EXCEPTION 'INVALID_STORAGE_ENTITLEMENT_BYTES';
+  END IF;
+
+  INSERT INTO public.clinic_storage_entitlements (
+    clinic_id, entitlement_key, entitlement_type, product_code, bytes, status,
+    billing_provider, external_reference, notes, created_by, updated_at
+  ) VALUES (
+    _clinic_id, trim(_entitlement_key), _entitlement_type, _product_code, _bytes,
+    CASE WHEN _active THEN 'active' ELSE 'cancelled' END,
+    _billing_provider, _external_reference, _notes, auth.uid(), now()
+  )
+  ON CONFLICT (clinic_id, entitlement_key) DO UPDATE SET
+    entitlement_type = EXCLUDED.entitlement_type,
+    product_code = EXCLUDED.product_code,
+    bytes = EXCLUDED.bytes,
+    status = EXCLUDED.status,
+    billing_provider = EXCLUDED.billing_provider,
+    external_reference = EXCLUDED.external_reference,
+    notes = EXCLUDED.notes,
+    updated_at = now();
+
+  RETURN public.recalculate_clinic_storage_limit(_clinic_id);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.set_clinic_storage_entitlement(uuid, text, text, bigint, text, text, text, text, boolean) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.set_clinic_storage_entitlement(uuid, text, text, bigint, text, text, text, text, boolean) FROM authenticated;
+GRANT EXECUTE ON FUNCTION public.set_clinic_storage_entitlement(uuid, text, text, bigint, text, text, text, text, boolean) TO service_role;
+
+-- Every existing clinic keeps the included 1 GB as its base entitlement.
+INSERT INTO public.clinic_storage_entitlements (
+  clinic_id, entitlement_key, entitlement_type, product_code, bytes, notes
+)
+SELECT c.id, 'base_included', 'base', 'base_1gb', 1073741824,
+       'Cota base incluída no Dental Flow.'
+  FROM public.clinics c
+ON CONFLICT (clinic_id, entitlement_key) DO UPDATE SET
+  entitlement_type = 'base',
+  product_code = 'base_1gb',
+  bytes = 1073741824,
+  status = 'active',
+  ends_at = NULL,
+  notes = 'Cota base incluída no Dental Flow.',
+  updated_at = now();
+
+-- IPO — Instituto Praia de Odontologia: 10 GB TOTAL, indefinitely as a courtesy.
+-- Since 1 GB is already included, this entitlement adds 9 GB.
+INSERT INTO public.clinic_storage_entitlements (
+  clinic_id, entitlement_key, entitlement_type, bytes, notes
+)
+SELECT c.id, 'courtesy_ipo_10gb_total', 'courtesy', 9663676416,
+       'Cortesia permanente: eleva a cota total da IPO para 10 GB. Alterar somente por decisão administrativa da plataforma.'
+  FROM public.clinics c
+ WHERE lower(c.name) LIKE '%instituto praia de odontologia%'
+    OR lower(trim(c.name)) = 'ipo'
+ON CONFLICT (clinic_id, entitlement_key) DO UPDATE SET
+  entitlement_type = 'courtesy',
+  bytes = 9663676416,
+  status = 'active',
+  ends_at = NULL,
+  notes = 'Cortesia permanente: eleva a cota total da IPO para 10 GB. Alterar somente por decisão administrativa da plataforma.',
+  updated_at = now();
+
+-- Materialize the effective quota for every clinic so the existing quota enforcement
+-- and UI immediately use the new value without any frontend compatibility break.
+DO $$
+DECLARE
+  r record;
+BEGIN
+  FOR r IN SELECT id FROM public.clinics LOOP
+    PERFORM public.recalculate_clinic_storage_limit(r.id);
+  END LOOP;
+END $$;
+
+NOTIFY pgrst, 'reload schema';
+
+-- ===== 20260905023000_ipo_storage_quota_reconcile.sql =====
+
+-- Lovable Cloud reconciliation for IPO storage quota.
+-- Run AFTER 20260905014000_storage_entitlements_and_ipo_courtesy.sql.
+-- This script is intentionally idempotent and fails loudly if the IPO clinic
+-- cannot be identified uniquely, preventing an accidental quota change on
+-- another company.
+
+DO $$
+DECLARE
+  v_clinic_id uuid;
+  v_matches integer;
+BEGIN
+  IF to_regclass('public.clinic_storage_entitlements') IS NULL THEN
+    RAISE EXCEPTION 'STORAGE_ENTITLEMENTS_NOT_INSTALLED: execute 20260905014000_storage_entitlements_and_ipo_courtesy.sql first';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM public.clinics) THEN
+    RAISE NOTICE 'IPO_STORAGE_RECONCILE_SKIPPED: clean restore has no clinics';
+    RETURN;
+  END IF;
+
+  SELECT count(*)
+    INTO v_matches
+    FROM public.clinics c
+   WHERE lower(trim(c.name)) = 'ipo'
+      OR lower(c.name) LIKE '%instituto praia de odontologia%'
+      OR (
+        lower(c.name) LIKE '%instituto%'
+        AND lower(c.name) LIKE '%praia%'
+        AND lower(c.name) LIKE '%odontolog%'
+      );
+
+  IF v_matches = 0 THEN
+    RAISE EXCEPTION 'IPO_CLINIC_NOT_FOUND: no clinic matched IPO / Instituto Praia de Odontologia';
+  END IF;
+
+  IF v_matches > 1 THEN
+    RAISE EXCEPTION 'IPO_CLINIC_AMBIGUOUS: % clinics matched; no quota was changed', v_matches;
+  END IF;
+
+  SELECT c.id
+    INTO v_clinic_id
+    FROM public.clinics c
+   WHERE lower(trim(c.name)) = 'ipo'
+      OR lower(c.name) LIKE '%instituto praia de odontologia%'
+      OR (
+        lower(c.name) LIKE '%instituto%'
+        AND lower(c.name) LIKE '%praia%'
+        AND lower(c.name) LIKE '%odontolog%'
+      )
+   ORDER BY c.id
+   LIMIT 1;
+
+  INSERT INTO public.clinic_storage_entitlements (
+    clinic_id,
+    entitlement_key,
+    entitlement_type,
+    product_code,
+    bytes,
+    status,
+    notes,
+    starts_at,
+    ends_at,
+    updated_at
+  ) VALUES (
+    v_clinic_id,
+    'base_included',
+    'base',
+    'base_1gb',
+    1073741824,
+    'active',
+    'Cota base incluída no Dental Flow.',
+    now(),
+    NULL,
+    now()
+  )
+  ON CONFLICT (clinic_id, entitlement_key) DO UPDATE SET
+    entitlement_type = 'base',
+    product_code = 'base_1gb',
+    bytes = 1073741824,
+    status = 'active',
+    ends_at = NULL,
+    notes = 'Cota base incluída no Dental Flow.',
+    updated_at = now();
+
+  INSERT INTO public.clinic_storage_entitlements (
+    clinic_id,
+    entitlement_key,
+    entitlement_type,
+    product_code,
+    bytes,
+    status,
+    notes,
+    starts_at,
+    ends_at,
+    updated_at
+  ) VALUES (
+    v_clinic_id,
+    'courtesy_ipo_10gb_total',
+    'courtesy',
+    NULL,
+    9663676416,
+    'active',
+    'Cortesia permanente: cota total da IPO em 10 GB.',
+    now(),
+    NULL,
+    now()
+  )
+  ON CONFLICT (clinic_id, entitlement_key) DO UPDATE SET
+    entitlement_type = 'courtesy',
+    product_code = NULL,
+    bytes = 9663676416,
+    status = 'active',
+    ends_at = NULL,
+    notes = 'Cortesia permanente: cota total da IPO em 10 GB.',
+    updated_at = now();
+
+  PERFORM public.recalculate_clinic_storage_limit(v_clinic_id);
+END $$;
+
+-- Expected result: storage_limit_bytes = 10737418240 (10 GiB).
+SELECT
+  c.id,
+  c.name,
+  c.storage_limit_bytes,
+  round(c.storage_limit_bytes::numeric / 1073741824, 2) AS storage_limit_gib
+FROM public.clinics c
+WHERE lower(trim(c.name)) = 'ipo'
+   OR lower(c.name) LIKE '%instituto praia de odontologia%'
+   OR (
+     lower(c.name) LIKE '%instituto%'
+     AND lower(c.name) LIKE '%praia%'
+     AND lower(c.name) LIKE '%odontolog%'
+   );
+
+NOTIFY pgrst, 'reload schema';
+
+-- ===== 20260905023100_ipo_storage_quota_reconcile_uuid_fix.sql =====
+
+-- Lovable Cloud hotfix for IPO storage quota reconciliation.
+-- Fixes PostgreSQL environments where min(uuid) is not available.
+-- Safe to run after 20260905014000_storage_entitlements_and_ipo_courtesy.sql.
+
+DO $$
+DECLARE
+  v_clinic_id uuid;
+  v_matches integer;
+BEGIN
+  IF to_regclass('public.clinic_storage_entitlements') IS NULL THEN
+    RAISE EXCEPTION 'STORAGE_ENTITLEMENTS_NOT_INSTALLED: execute 20260905014000_storage_entitlements_and_ipo_courtesy.sql first';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM public.clinics) THEN
+    RAISE NOTICE 'IPO_STORAGE_RECONCILE_SKIPPED: clean restore has no clinics';
+    RETURN;
+  END IF;
+
+  SELECT count(*)
+    INTO v_matches
+    FROM public.clinics c
+   WHERE lower(trim(c.name)) = 'ipo'
+      OR lower(c.name) LIKE '%instituto praia de odontologia%'
+      OR (
+        lower(c.name) LIKE '%instituto%'
+        AND lower(c.name) LIKE '%praia%'
+        AND lower(c.name) LIKE '%odontolog%'
+      );
+
+  IF v_matches = 0 THEN
+    RAISE EXCEPTION 'IPO_CLINIC_NOT_FOUND: no clinic matched IPO / Instituto Praia de Odontologia';
+  END IF;
+
+  IF v_matches > 1 THEN
+    RAISE EXCEPTION 'IPO_CLINIC_AMBIGUOUS: % clinics matched; no quota was changed', v_matches;
+  END IF;
+
+  SELECT c.id
+    INTO v_clinic_id
+    FROM public.clinics c
+   WHERE lower(trim(c.name)) = 'ipo'
+      OR lower(c.name) LIKE '%instituto praia de odontologia%'
+      OR (
+        lower(c.name) LIKE '%instituto%'
+        AND lower(c.name) LIKE '%praia%'
+        AND lower(c.name) LIKE '%odontolog%'
+      )
+   ORDER BY c.id
+   LIMIT 1;
+
+  INSERT INTO public.clinic_storage_entitlements (
+    clinic_id, entitlement_key, entitlement_type, product_code, bytes, status,
+    notes, starts_at, ends_at, updated_at
+  ) VALUES (
+    v_clinic_id, 'base_included', 'base', 'base_1gb', 1073741824, 'active',
+    'Cota base incluída no Dental Flow.', now(), NULL, now()
+  )
+  ON CONFLICT (clinic_id, entitlement_key) DO UPDATE SET
+    entitlement_type = 'base',
+    product_code = 'base_1gb',
+    bytes = 1073741824,
+    status = 'active',
+    ends_at = NULL,
+    notes = 'Cota base incluída no Dental Flow.',
+    updated_at = now();
+
+  INSERT INTO public.clinic_storage_entitlements (
+    clinic_id, entitlement_key, entitlement_type, product_code, bytes, status,
+    notes, starts_at, ends_at, updated_at
+  ) VALUES (
+    v_clinic_id, 'courtesy_ipo_10gb_total', 'courtesy', NULL, 9663676416, 'active',
+    'Cortesia permanente: cota total da IPO em 10 GB.', now(), NULL, now()
+  )
+  ON CONFLICT (clinic_id, entitlement_key) DO UPDATE SET
+    entitlement_type = 'courtesy',
+    product_code = NULL,
+    bytes = 9663676416,
+    status = 'active',
+    ends_at = NULL,
+    notes = 'Cortesia permanente: cota total da IPO em 10 GB.',
+    updated_at = now();
+
+  PERFORM public.recalculate_clinic_storage_limit(v_clinic_id);
+END $$;
+
+SELECT
+  c.id,
+  c.name,
+  c.storage_limit_bytes,
+  round(c.storage_limit_bytes::numeric / 1073741824, 2) AS storage_limit_gib
+FROM public.clinics c
+WHERE lower(trim(c.name)) = 'ipo'
+   OR lower(c.name) LIKE '%instituto praia de odontologia%'
+   OR (
+     lower(c.name) LIKE '%instituto%'
+     AND lower(c.name) LIKE '%praia%'
+     AND lower(c.name) LIKE '%odontolog%'
+   );
+
+NOTIFY pgrst, 'reload schema';
+
+-- ===== 20260905180000_clinical_management.sql =====
+
+-- Dental Flow / Lovable Cloud — módulo Clínica
+-- Cria agenda clínica, financeiro clínico e permissões por perfil.
+-- Idempotente e separado do financeiro legado do laboratório.
+
+CREATE TABLE IF NOT EXISTS public.clinic_role_permissions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  clinic_id uuid NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+  role text NOT NULL,
+  permission text NOT NULL,
+  allowed boolean NOT NULL DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (clinic_id, role, permission)
+);
+
+CREATE TABLE IF NOT EXISTS public.clinic_appointments (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  clinic_id uuid NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+  patient_id uuid NOT NULL REFERENCES public.patients(id) ON DELETE RESTRICT,
+  doctor_id uuid REFERENCES public.doctors(id) ON DELETE SET NULL,
+  title text,
+  starts_at timestamptz NOT NULL,
+  ends_at timestamptz NOT NULL,
+  status text NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled','confirmed','completed','cancelled','no_show')),
+  notes text,
+  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (ends_at > starts_at)
+);
+
+CREATE TABLE IF NOT EXISTS public.clinic_financial_entries (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  clinic_id uuid NOT NULL REFERENCES public.clinics(id) ON DELETE CASCADE,
+  kind text NOT NULL CHECK (kind IN ('revenue','expense')),
+  category text,
+  description text NOT NULL,
+  amount_cents bigint NOT NULL CHECK (amount_cents >= 0),
+  due_date date,
+  paid_at timestamptz,
+  status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','paid','cancelled')),
+  patient_id uuid REFERENCES public.patients(id) ON DELETE SET NULL,
+  appointment_id uuid REFERENCES public.clinic_appointments(id) ON DELETE SET NULL,
+  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS clinic_role_permissions_clinic_role_idx
+  ON public.clinic_role_permissions (clinic_id, role);
+CREATE INDEX IF NOT EXISTS clinic_appointments_clinic_starts_idx
+  ON public.clinic_appointments (clinic_id, starts_at);
+CREATE INDEX IF NOT EXISTS clinic_appointments_patient_idx
+  ON public.clinic_appointments (patient_id, starts_at DESC);
+CREATE INDEX IF NOT EXISTS clinic_appointments_doctor_idx
+  ON public.clinic_appointments (doctor_id, starts_at);
+CREATE INDEX IF NOT EXISTS clinic_financial_entries_clinic_due_idx
+  ON public.clinic_financial_entries (clinic_id, due_date);
+CREATE INDEX IF NOT EXISTS clinic_financial_entries_patient_idx
+  ON public.clinic_financial_entries (patient_id);
+
+CREATE OR REPLACE FUNCTION public.touch_clinical_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_clinic_role_permissions_touch ON public.clinic_role_permissions;
+CREATE TRIGGER trg_clinic_role_permissions_touch
+BEFORE UPDATE ON public.clinic_role_permissions
+FOR EACH ROW EXECUTE FUNCTION public.touch_clinical_updated_at();
+
+DROP TRIGGER IF EXISTS trg_clinic_appointments_touch ON public.clinic_appointments;
+CREATE TRIGGER trg_clinic_appointments_touch
+BEFORE UPDATE ON public.clinic_appointments
+FOR EACH ROW EXECUTE FUNCTION public.touch_clinical_updated_at();
+
+DROP TRIGGER IF EXISTS trg_clinic_financial_entries_touch ON public.clinic_financial_entries;
+CREATE TRIGGER trg_clinic_financial_entries_touch
+BEFORE UPDATE ON public.clinic_financial_entries
+FOR EACH ROW EXECUTE FUNCTION public.touch_clinical_updated_at();
+
+CREATE OR REPLACE FUNCTION public.clinic_module_enabled(_clinic_id uuid, _module text)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.clinics c
+    WHERE c.id = _clinic_id
+      AND lower(trim(_module)) = ANY (
+        SELECT lower(trim(x)) FROM unnest(c.modules_enabled) AS x
+      )
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.current_clinic_role(_clinic_id uuid)
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT upper(COALESCE(NULLIF(trim(p.account_subtype), ''), NULLIF(trim(cm.role), ''), NULLIF(trim(p.role), ''), 'USER'))
+  FROM public.profiles p
+  LEFT JOIN public.clinic_members cm
+    ON cm.user_id = p.id
+   AND cm.clinic_id = _clinic_id
+   AND cm.status = 'active'
+  WHERE p.id = auth.uid()
+    AND p.clinic_id = _clinic_id
+  LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.can_manage_clinic_permissions(_clinic_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles p
+    WHERE p.id = auth.uid()
+      AND p.clinic_id = _clinic_id
+      AND (
+        p.is_default_admin = true
+        OR upper(COALESCE(NULLIF(trim(p.account_subtype), ''), NULLIF(trim(p.role), ''), 'USER')) IN ('CEO','ADMIN')
+      )
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.clinical_permission_allowed(_clinic_id uuid, _permission text)
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_role text;
+BEGIN
+  IF auth.uid() IS NULL THEN RETURN false; END IF;
+  IF NOT public.is_clinic_member(_clinic_id, auth.uid()) THEN RETURN false; END IF;
+  IF NOT public.clinic_module_enabled(_clinic_id, 'clinical') THEN RETURN false; END IF;
+  IF public.can_manage_clinic_permissions(_clinic_id) THEN RETURN true; END IF;
+
+  v_role := public.current_clinic_role(_clinic_id);
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.clinic_role_permissions p
+    WHERE p.clinic_id = _clinic_id
+      AND upper(p.role) = upper(COALESCE(v_role, 'USER'))
+      AND p.permission = _permission
+      AND p.allowed = true
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.clinic_module_enabled(uuid, text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.current_clinic_role(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.can_manage_clinic_permissions(uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.clinical_permission_allowed(uuid, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.clinic_module_enabled(uuid, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.current_clinic_role(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.can_manage_clinic_permissions(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.clinical_permission_allowed(uuid, text) TO authenticated;
+
+ALTER TABLE public.clinic_role_permissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.clinic_appointments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.clinic_financial_entries ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS clinic_role_permissions_select ON public.clinic_role_permissions;
+CREATE POLICY clinic_role_permissions_select
+ON public.clinic_role_permissions FOR SELECT TO authenticated
+USING (
+  public.is_clinic_member(clinic_id, auth.uid())
+  AND public.clinic_module_enabled(clinic_id, 'clinical')
+);
+
+DROP POLICY IF EXISTS clinic_role_permissions_write ON public.clinic_role_permissions;
+CREATE POLICY clinic_role_permissions_write
+ON public.clinic_role_permissions FOR ALL TO authenticated
+USING (public.can_manage_clinic_permissions(clinic_id))
+WITH CHECK (public.can_manage_clinic_permissions(clinic_id));
+
+DROP POLICY IF EXISTS clinic_appointments_select ON public.clinic_appointments;
+CREATE POLICY clinic_appointments_select
+ON public.clinic_appointments FOR SELECT TO authenticated
+USING (public.clinical_permission_allowed(clinic_id, 'clinical.appointments'));
+
+DROP POLICY IF EXISTS clinic_appointments_insert ON public.clinic_appointments;
+CREATE POLICY clinic_appointments_insert
+ON public.clinic_appointments FOR INSERT TO authenticated
+WITH CHECK (
+  public.clinical_permission_allowed(clinic_id, 'clinical.appointments')
+  AND (created_by IS NULL OR created_by = auth.uid())
+);
+
+DROP POLICY IF EXISTS clinic_appointments_update ON public.clinic_appointments;
+CREATE POLICY clinic_appointments_update
+ON public.clinic_appointments FOR UPDATE TO authenticated
+USING (public.clinical_permission_allowed(clinic_id, 'clinical.appointments'))
+WITH CHECK (public.clinical_permission_allowed(clinic_id, 'clinical.appointments'));
+
+DROP POLICY IF EXISTS clinic_appointments_delete ON public.clinic_appointments;
+CREATE POLICY clinic_appointments_delete
+ON public.clinic_appointments FOR DELETE TO authenticated
+USING (public.clinical_permission_allowed(clinic_id, 'clinical.appointments'));
+
+DROP POLICY IF EXISTS clinic_financial_entries_select ON public.clinic_financial_entries;
+CREATE POLICY clinic_financial_entries_select
+ON public.clinic_financial_entries FOR SELECT TO authenticated
+USING (public.clinical_permission_allowed(clinic_id, 'clinical.financial'));
+
+DROP POLICY IF EXISTS clinic_financial_entries_insert ON public.clinic_financial_entries;
+CREATE POLICY clinic_financial_entries_insert
+ON public.clinic_financial_entries FOR INSERT TO authenticated
+WITH CHECK (
+  public.clinical_permission_allowed(clinic_id, 'clinical.financial')
+  AND (created_by IS NULL OR created_by = auth.uid())
+);
+
+DROP POLICY IF EXISTS clinic_financial_entries_update ON public.clinic_financial_entries;
+CREATE POLICY clinic_financial_entries_update
+ON public.clinic_financial_entries FOR UPDATE TO authenticated
+USING (public.clinical_permission_allowed(clinic_id, 'clinical.financial'))
+WITH CHECK (public.clinical_permission_allowed(clinic_id, 'clinical.financial'));
+
+DROP POLICY IF EXISTS clinic_financial_entries_delete ON public.clinic_financial_entries;
+CREATE POLICY clinic_financial_entries_delete
+ON public.clinic_financial_entries FOR DELETE TO authenticated
+USING (public.clinical_permission_allowed(clinic_id, 'clinical.financial'));
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.clinic_appointments TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.clinic_financial_entries TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.clinic_role_permissions TO authenticated;
+GRANT ALL ON public.clinic_appointments, public.clinic_financial_entries, public.clinic_role_permissions TO service_role;
+
+-- Defaults conservadores. Administradores sempre têm acesso total via função acima;
+-- estas linhas controlam os demais perfis e podem ser editadas na gestão da Clínica.
+INSERT INTO public.clinic_role_permissions (clinic_id, role, permission, allowed)
+SELECT c.id, r.role, p.permission, p.allowed
+FROM public.clinics c
+CROSS JOIN (VALUES
+  ('CEO'), ('ADMIN'), ('DR'), ('DENTISTA'), ('ATENDIMENTO'), ('CADISTA'), ('PROTETICO'), ('SOLICITANTE'), ('USER')
+) AS r(role)
+CROSS JOIN LATERAL (
+  VALUES
+    ('clinical.dashboard', CASE WHEN r.role IN ('CEO','ADMIN','DR','DENTISTA','ATENDIMENTO') THEN true ELSE false END),
+    ('clinical.appointments', CASE WHEN r.role IN ('CEO','ADMIN','DR','DENTISTA','ATENDIMENTO') THEN true ELSE false END),
+    ('clinical.patients', CASE WHEN r.role IN ('CEO','ADMIN','DR','DENTISTA','ATENDIMENTO') THEN true ELSE false END),
+    ('clinical.financial', CASE WHEN r.role IN ('CEO','ADMIN') THEN true ELSE false END),
+    ('clinical.team', CASE WHEN r.role IN ('CEO','ADMIN') THEN true ELSE false END),
+    ('clinical.settings', CASE WHEN r.role IN ('CEO','ADMIN') THEN true ELSE false END)
+) AS p(permission, allowed)
+WHERE public.clinic_module_enabled(c.id, 'clinical')
+ON CONFLICT (clinic_id, role, permission) DO NOTHING;
+
+NOTIFY pgrst, 'reload schema';
+
+-- ===== 20260905180100_clinical_role_membership_fix.sql =====
+
+-- Compatibilidade idempotente para instalações que tenham aplicado a primeira
+-- versão da migration clínica antes do ajuste de status de membership.
+CREATE OR REPLACE FUNCTION public.current_clinic_role(_clinic_id uuid)
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT upper(COALESCE(NULLIF(trim(p.account_subtype), ''), NULLIF(trim(cm.role), ''), NULLIF(trim(p.role), ''), 'USER'))
+  FROM public.profiles p
+  LEFT JOIN public.clinic_members cm
+    ON cm.user_id = p.id
+   AND cm.clinic_id = _clinic_id
+   AND cm.status = 'active'
+  WHERE p.id = auth.uid()
+    AND p.clinic_id = _clinic_id
+  LIMIT 1;
+$$;
+
+REVOKE ALL ON FUNCTION public.current_clinic_role(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.current_clinic_role(uuid) TO authenticated;
+NOTIFY pgrst, 'reload schema';
+
+-- ===== 20260909033000_enterprise_hub_subscriptions_032.sql =====
+
+-- DentalFlow 0.3.2 — Enterprise Hub / subscription foundation
+-- Payment-provider agnostic by design. Billing state is authoritative on the server.
+
+create table if not exists public.billing_plans (
+  code text primary key,
+  account_scope text not null check (account_scope in ('professional','company')),
+  name text not null,
+  description text,
+  monthly_price_cents integer not null check (monthly_price_cents >= 0),
+  currency text not null default 'BRL',
+  max_sessions integer not null default 0 check (max_sessions between 0 and 3),
+  max_members integer not null default 0 check (max_members >= 0),
+  max_company_links integer not null default 0 check (max_company_links >= 0),
+  storage_bytes bigint not null default 0 check (storage_bytes >= 0),
+  features jsonb not null default '{}'::jsonb,
+  is_active boolean not null default true,
+  display_order integer not null default 0,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+insert into public.billing_plans
+  (code, account_scope, name, description, monthly_price_cents, max_sessions, max_members, max_company_links, storage_bytes, features, display_order)
+values
+  (
+    'professional', 'professional', 'Profissional',
+    'Para dentistas, CADISTAs, protéticos e outros profissionais que trabalham vinculados a empresas DentalFlow.',
+    8900, 0, 0, 2, 0,
+    '{"independent_workspace":false,"cross_company_dashboard":true,"notifications":true,"professional_profile":true}'::jsonb,
+    10
+  ),
+  (
+    'company_initial', 'company', 'Empresa Inicial',
+    'Uma sessão empresarial completa para começar com operação, equipe e dados centralizados.',
+    24900, 1, 8, 0, 26843545600,
+    '{"cross_session_sharing":false,"advanced_audit":false,"priority_support":false,"dicom":true,"full_session_features":true}'::jsonb,
+    20
+  ),
+  (
+    'company_growth', 'company', 'Empresa Crescimento',
+    'Duas sessões integradas, mais equipe e capacidade para operações em expansão.',
+    44900, 2, 20, 0, 107374182400,
+    '{"cross_session_sharing":true,"advanced_audit":true,"priority_support":false,"dicom":true,"full_session_features":true}'::jsonb,
+    30
+  ),
+  (
+    'company_advanced', 'company', 'Empresa Avançado',
+    'Hub empresarial completo com Clínica, Laboratório e Radiologia integrados.',
+    74900, 3, 50, 0, 536870912000,
+    '{"cross_session_sharing":true,"advanced_audit":true,"priority_support":true,"dicom":true,"full_session_features":true,"all_sessions":true}'::jsonb,
+    40
+  )
+on conflict (code) do update set
+  account_scope = excluded.account_scope,
+  name = excluded.name,
+  description = excluded.description,
+  monthly_price_cents = excluded.monthly_price_cents,
+  max_sessions = excluded.max_sessions,
+  max_members = excluded.max_members,
+  max_company_links = excluded.max_company_links,
+  storage_bytes = excluded.storage_bytes,
+  features = excluded.features,
+  is_active = true,
+  display_order = excluded.display_order,
+  updated_at = now();
+
+alter table public.profiles add column if not exists account_type text;
+alter table public.profiles add column if not exists profession_type text;
+alter table public.clinic_members add column if not exists access_source text not null default 'company_seat';
+
+create table if not exists public.professional_accounts (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  profession_type text not null,
+  status text not null default 'pending_checkout' check (status in ('pending_checkout','active','suspended','closed')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.company_sessions (
+  id uuid primary key default gen_random_uuid(),
+  clinic_id uuid not null references public.clinics(id) on delete cascade,
+  session_type text not null check (session_type in ('laboratory','clinic','radiology')),
+  status text not null default 'active' check (status in ('active','disabled')),
+  sharing_mode text not null default 'company' check (sharing_mode in ('isolated','company')),
+  settings jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (clinic_id, session_type)
+);
+
+create table if not exists public.account_subscriptions (
+  id uuid primary key default gen_random_uuid(),
+  scope_type text not null check (scope_type in ('professional','company')),
+  user_id uuid references auth.users(id) on delete cascade,
+  clinic_id uuid references public.clinics(id) on delete cascade,
+  plan_code text not null references public.billing_plans(code),
+  status text not null default 'pending_checkout' check (status in ('pending_checkout','trialing','active','past_due','grace','suspended','canceled')),
+  billing_day smallint check (billing_day between 1 and 28),
+  current_period_start timestamptz,
+  current_period_end timestamptz,
+  grace_until timestamptz,
+  canceled_at timestamptz,
+  billing_provider text,
+  external_customer_id text,
+  external_subscription_id text,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  check (
+    (scope_type = 'professional' and user_id is not null and clinic_id is null)
+    or (scope_type = 'company' and clinic_id is not null and user_id is null)
+  )
+);
+
+create unique index if not exists account_subscriptions_company_one_current
+  on public.account_subscriptions(clinic_id)
+  where clinic_id is not null and status <> 'canceled';
+create unique index if not exists account_subscriptions_professional_one_current
+  on public.account_subscriptions(user_id)
+  where user_id is not null and status <> 'canceled';
+create index if not exists account_subscriptions_status_idx on public.account_subscriptions(status, current_period_end);
+
+create table if not exists public.checkout_intents (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  clinic_id uuid references public.clinics(id) on delete cascade,
+  subscription_id uuid not null references public.account_subscriptions(id) on delete cascade,
+  plan_code text not null references public.billing_plans(code),
+  amount_cents integer not null check (amount_cents >= 0),
+  currency text not null default 'BRL',
+  status text not null default 'pending' check (status in ('pending','provider_created','paid','expired','canceled','failed')),
+  billing_provider text,
+  provider_checkout_id text,
+  success_url text,
+  cancel_url text,
+  expires_at timestamptz not null default (now() + interval '2 hours'),
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists checkout_intents_user_idx on public.checkout_intents(user_id, created_at desc);
+
+create table if not exists public.billing_events (
+  id uuid primary key default gen_random_uuid(),
+  provider text not null,
+  provider_event_id text not null,
+  event_type text not null,
+  payload jsonb not null default '{}'::jsonb,
+  status text not null default 'received' check (status in ('received','processed','ignored','failed')),
+  error_message text,
+  received_at timestamptz not null default now(),
+  processed_at timestamptz,
+  unique(provider, provider_event_id)
+);
+
+-- Radiology metadata: patient-linked DICOM studies. Binary objects remain in private storage.
+create table if not exists public.radiology_studies (
+  id uuid primary key default gen_random_uuid(),
+  clinic_id uuid not null references public.clinics(id) on delete cascade,
+  patient_id uuid references public.patients(id) on delete set null,
+  requested_by uuid references auth.users(id) on delete set null,
+  study_instance_uid text not null,
+  accession_number text,
+  modality text,
+  study_description text,
+  study_date date,
+  patient_external_id text,
+  status text not null default 'received' check (status in ('received','processing','ready','reported','archived','error')),
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(clinic_id, study_instance_uid)
+);
+
+create table if not exists public.radiology_series (
+  id uuid primary key default gen_random_uuid(),
+  study_id uuid not null references public.radiology_studies(id) on delete cascade,
+  series_instance_uid text not null,
+  modality text,
+  series_number integer,
+  description text,
+  instance_count integer not null default 0,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  unique(study_id, series_instance_uid)
+);
+
+create table if not exists public.radiology_instances (
+  id uuid primary key default gen_random_uuid(),
+  series_id uuid not null references public.radiology_series(id) on delete cascade,
+  sop_instance_uid text not null,
+  sop_class_uid text,
+  instance_number integer,
+  storage_path text not null,
+  byte_size bigint not null default 0,
+  checksum_sha256 text,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  unique(series_id, sop_instance_uid)
+);
+
+create or replace function public.df_touch_updated_at()
+returns trigger language plpgsql as $$
+begin new.updated_at = now(); return new; end; $$;
+
+do $$
+begin
+  if not exists (select 1 from pg_trigger where tgname='trg_billing_plans_touch') then
+    create trigger trg_billing_plans_touch before update on public.billing_plans for each row execute function public.df_touch_updated_at();
+  end if;
+  if not exists (select 1 from pg_trigger where tgname='trg_professional_accounts_touch') then
+    create trigger trg_professional_accounts_touch before update on public.professional_accounts for each row execute function public.df_touch_updated_at();
+  end if;
+  if not exists (select 1 from pg_trigger where tgname='trg_company_sessions_touch') then
+    create trigger trg_company_sessions_touch before update on public.company_sessions for each row execute function public.df_touch_updated_at();
+  end if;
+  if not exists (select 1 from pg_trigger where tgname='trg_account_subscriptions_touch') then
+    create trigger trg_account_subscriptions_touch before update on public.account_subscriptions for each row execute function public.df_touch_updated_at();
+  end if;
+  if not exists (select 1 from pg_trigger where tgname='trg_checkout_intents_touch') then
+    create trigger trg_checkout_intents_touch before update on public.checkout_intents for each row execute function public.df_touch_updated_at();
+  end if;
+  if not exists (select 1 from pg_trigger where tgname='trg_radiology_studies_touch') then
+    create trigger trg_radiology_studies_touch before update on public.radiology_studies for each row execute function public.df_touch_updated_at();
+  end if;
+end $$;
+
+create or replace function public.subscription_access_mode(
+  _status text,
+  _period_end timestamptz,
+  _grace_until timestamptz
+) returns text
+language sql stable as $$
+  select case
+    when _status in ('active','trialing') then 'full'
+    when _status in ('past_due','grace') and coalesce(_grace_until, now()) >= now() then 'full'
+    when _status = 'canceled' and coalesce(_period_end, now() - interval '1 second') >= now() then 'full'
+    when _status in ('suspended','canceled','past_due','grace') then 'read_only'
+    else 'billing_only'
+  end
+$$;
+
+create or replace function public.company_subscription_snapshot(_clinic_id uuid)
+returns jsonb
+language plpgsql stable security definer set search_path=public as $$
+declare
+  s public.account_subscriptions%rowtype;
+  p public.billing_plans%rowtype;
+  allowed boolean;
+begin
+  select exists (
+    select 1 from public.clinics c where c.id=_clinic_id and c.owner_id=auth.uid()
+  ) or exists (
+    select 1 from public.clinic_members m where m.clinic_id=_clinic_id and m.user_id=auth.uid() and m.status='accepted'
+  ) or exists (
+    select 1 from public.profiles pr where pr.id=auth.uid() and pr.clinic_id=_clinic_id
+  ) into allowed;
+  if not allowed then return null; end if;
+
+  select * into s from public.account_subscriptions
+   where clinic_id=_clinic_id and status <> 'canceled'
+   order by created_at desc limit 1;
+  if s.id is null then
+    select * into s from public.account_subscriptions
+     where clinic_id=_clinic_id order by created_at desc limit 1;
+  end if;
+  if s.id is null then return null; end if;
+  select * into p from public.billing_plans where code=s.plan_code;
+
+  return jsonb_build_object(
+    'subscription_id',s.id,'scope','company','plan_code',p.code,'plan_name',p.name,
+    'status',s.status,'access_mode',public.subscription_access_mode(s.status,s.current_period_end,s.grace_until),
+    'billing_day',s.billing_day,'current_period_end',s.current_period_end,'grace_until',s.grace_until,
+    'monthly_price_cents',p.monthly_price_cents,'currency',p.currency,
+    'max_sessions',p.max_sessions,'max_members',p.max_members,'storage_bytes',p.storage_bytes,'features',p.features,
+    'sessions',coalesce((select jsonb_agg(cs.session_type order by cs.session_type) from public.company_sessions cs where cs.clinic_id=_clinic_id and cs.status='active'),'[]'::jsonb)
+  );
+end $$;
+
+create or replace function public.my_subscription_context()
+returns jsonb
+language plpgsql stable security definer set search_path=public as $$
+declare
+  pr public.profiles%rowtype;
+  pa public.professional_accounts%rowtype;
+  ps public.account_subscriptions%rowtype;
+  pp public.billing_plans%rowtype;
+  company_ctx jsonb;
+  professional_ctx jsonb;
+  effective text;
+begin
+  if auth.uid() is null then return null; end if;
+  select * into pr from public.profiles where id=auth.uid();
+
+  if coalesce(pr.account_type,'')='professional' then
+    select * into pa from public.professional_accounts where user_id=auth.uid();
+    select * into ps from public.account_subscriptions where user_id=auth.uid() order by created_at desc limit 1;
+    if ps.id is not null then
+      select * into pp from public.billing_plans where code=ps.plan_code;
+      professional_ctx := jsonb_build_object(
+        'subscription_id',ps.id,'plan_code',pp.code,'plan_name',pp.name,'status',ps.status,
+        'access_mode',public.subscription_access_mode(ps.status,ps.current_period_end,ps.grace_until),
+        'monthly_price_cents',pp.monthly_price_cents,'max_company_links',pp.max_company_links,
+        'profession_type',pa.profession_type
+      );
+    end if;
+    if pr.clinic_id is not null then company_ctx := public.company_subscription_snapshot(pr.clinic_id); end if;
+    effective := coalesce(professional_ctx->>'access_mode','billing_only');
+    if pr.clinic_id is null and effective='full' then effective := 'needs_company_link'; end if;
+    if company_ctx is not null and (company_ctx->>'access_mode') <> 'full' then effective := company_ctx->>'access_mode'; end if;
+    return jsonb_build_object('account_type','professional','effective_access',effective,'professional',professional_ctx,'company',company_ctx,'active_clinic_id',pr.clinic_id);
+  end if;
+
+  if pr.clinic_id is not null then
+    company_ctx := public.company_subscription_snapshot(pr.clinic_id);
+    return jsonb_build_object('account_type',coalesce(pr.account_type,'company_member'),'effective_access',coalesce(company_ctx->>'access_mode','billing_only'),'company',company_ctx,'active_clinic_id',pr.clinic_id);
+  end if;
+  return jsonb_build_object('account_type',coalesce(pr.account_type,'unclassified'),'effective_access','billing_only');
+end $$;
+
+create or replace function public.sync_company_session_modules()
+returns trigger language plpgsql security definer set search_path=public as $$
+declare cid uuid;
+begin
+  cid := coalesce(new.clinic_id, old.clinic_id);
+  update public.clinics c
+  set modules_enabled = (
+    select array(
+      select distinct x from (
+        select unnest(coalesce(c.modules_enabled,'{}'::text[])) x
+        union all select 'laboratory' where exists(select 1 from public.company_sessions s where s.clinic_id=cid and s.session_type='laboratory' and s.status='active')
+        union all select 'clinical' where exists(select 1 from public.company_sessions s where s.clinic_id=cid and s.session_type='clinic' and s.status='active')
+        union all select 'radiology' where exists(select 1 from public.company_sessions s where s.clinic_id=cid and s.session_type='radiology' and s.status='active')
+      ) q where x not in ('laboratory','clinical','radiology')
+         or (x='laboratory' and exists(select 1 from public.company_sessions s where s.clinic_id=cid and s.session_type='laboratory' and s.status='active'))
+         or (x='clinical' and exists(select 1 from public.company_sessions s where s.clinic_id=cid and s.session_type='clinic' and s.status='active'))
+         or (x='radiology' and exists(select 1 from public.company_sessions s where s.clinic_id=cid and s.session_type='radiology' and s.status='active'))
+    )
+  ), updated_at=now()
+  where c.id=cid;
+  return coalesce(new,old);
+end $$;
+
+drop trigger if exists trg_sync_company_session_modules on public.company_sessions;
+create trigger trg_sync_company_session_modules after insert or update or delete on public.company_sessions
+for each row execute function public.sync_company_session_modules();
+
+create or replace function public.configure_company_sessions(p_clinic_id uuid, p_session_types text[])
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare
+  max_allowed integer;
+  normalized text[];
+  is_manager boolean;
+begin
+  select exists(select 1 from public.clinics c where c.id=p_clinic_id and c.owner_id=auth.uid())
+      or exists(select 1 from public.clinic_members m where m.clinic_id=p_clinic_id and m.user_id=auth.uid() and m.status='accepted' and upper(m.role) in ('CEO','ADMIN'))
+    into is_manager;
+  if not is_manager then raise exception 'Sem permissão para configurar os ambientes.'; end if;
+
+  select bp.max_sessions into max_allowed
+  from public.account_subscriptions s join public.billing_plans bp on bp.code=s.plan_code
+  where s.clinic_id=p_clinic_id and s.status <> 'canceled'
+  order by s.created_at desc limit 1;
+  if max_allowed is null then raise exception 'Plano empresarial não encontrado.'; end if;
+
+  select coalesce(array_agg(distinct lower(x)),'{}'::text[]) into normalized from unnest(coalesce(p_session_types,'{}'::text[])) x where lower(x) in ('laboratory','clinic','radiology');
+  if cardinality(normalized)=0 then raise exception 'Selecione ao menos um ambiente.'; end if;
+  if cardinality(normalized)>max_allowed then raise exception 'Seu plano permite no máximo % ambiente(s).',max_allowed; end if;
+
+  update public.company_sessions set status='disabled' where clinic_id=p_clinic_id and not(session_type=any(normalized));
+  insert into public.company_sessions(clinic_id,session_type,status,sharing_mode)
+  select p_clinic_id,x,'active',case when max_allowed>1 then 'company' else 'isolated' end from unnest(normalized) x
+  on conflict(clinic_id,session_type) do update set status='active',sharing_mode=excluded.sharing_mode,updated_at=now();
+  return public.company_subscription_snapshot(p_clinic_id);
+end $$;
+
+create or replace function public.create_checkout_intent(p_plan_code text, p_clinic_id uuid default null)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare
+  plan public.billing_plans%rowtype;
+  sub public.account_subscriptions%rowtype;
+  intent public.checkout_intents%rowtype;
+  scope text;
+begin
+  if auth.uid() is null then raise exception 'Sessão inválida.'; end if;
+  select * into plan from public.billing_plans where code=p_plan_code and is_active;
+  if plan.code is null then raise exception 'Plano inválido.'; end if;
+  scope := plan.account_scope;
+
+  if scope='company' then
+    if p_clinic_id is null or not exists(select 1 from public.clinics c where c.id=p_clinic_id and c.owner_id=auth.uid()) then raise exception 'Empresa inválida.'; end if;
+    select * into sub from public.account_subscriptions where clinic_id=p_clinic_id and status <> 'canceled' order by created_at desc limit 1;
+    if sub.id is null then
+      insert into public.account_subscriptions(scope_type,clinic_id,plan_code,status,billing_day)
+      values('company',p_clinic_id,p_plan_code,'pending_checkout',least(28,extract(day from now())::int)) returning * into sub;
+    else
+      update public.account_subscriptions set plan_code=p_plan_code,status=case when status='pending_checkout' then status else status end where id=sub.id returning * into sub;
+    end if;
+  else
+    if p_clinic_id is not null then raise exception 'Plano profissional não pertence a empresa.'; end if;
+    select * into sub from public.account_subscriptions where user_id=auth.uid() and status <> 'canceled' order by created_at desc limit 1;
+    if sub.id is null then
+      insert into public.account_subscriptions(scope_type,user_id,plan_code,status,billing_day)
+      values('professional',auth.uid(),p_plan_code,'pending_checkout',least(28,extract(day from now())::int)) returning * into sub;
+    else
+      update public.account_subscriptions set plan_code=p_plan_code where id=sub.id returning * into sub;
+    end if;
+  end if;
+
+  insert into public.checkout_intents(user_id,clinic_id,subscription_id,plan_code,amount_cents,currency,status)
+  values(auth.uid(),p_clinic_id,sub.id,p_plan_code,plan.monthly_price_cents,plan.currency,'pending') returning * into intent;
+  return jsonb_build_object('checkout_intent_id',intent.id,'subscription_id',sub.id,'plan_code',plan.code,'plan_name',plan.name,'amount_cents',plan.monthly_price_cents,'currency',plan.currency,'status',intent.status);
+end $$;
+
+create or replace function public.create_company_account(
+  p_name text,
+  p_kind text,
+  p_full_name text,
+  p_plan_code text default 'company_initial',
+  p_session_types text[] default null
+) returns jsonb language plpgsql security definer set search_path=public as $$
+declare
+  uid uuid := auth.uid();
+  cid uuid;
+  plan public.billing_plans%rowtype;
+  sessions text[];
+  sub_id uuid;
+  checkout jsonb;
+begin
+  if uid is null then return jsonb_build_object('success',false,'error','Sessão inválida.'); end if;
+  if length(trim(coalesce(p_name,'')))<2 then return jsonb_build_object('success',false,'error','Informe o nome da empresa.'); end if;
+  select * into plan from public.billing_plans where code=p_plan_code and account_scope='company' and is_active;
+  if plan.code is null then return jsonb_build_object('success',false,'error','Plano empresarial inválido.'); end if;
+  if exists(select 1 from public.clinics where owner_id=uid) then return jsonb_build_object('success',false,'error','Esta conta já possui uma empresa.'); end if;
+
+  sessions := coalesce(p_session_types, array[case when lower(coalesce(p_kind,'')) in ('consultorio','clinica','clinic') then 'clinic' when lower(coalesce(p_kind,'')) in ('radiologia','radiology') then 'radiology' else 'laboratory' end]);
+  select array_agg(distinct lower(x)) into sessions from unnest(sessions) x where lower(x) in ('laboratory','clinic','radiology');
+  if cardinality(sessions)=0 or cardinality(sessions)>plan.max_sessions then return jsonb_build_object('success',false,'error','Quantidade de ambientes incompatível com o plano.'); end if;
+
+  insert into public.clinics(name,kind,company_type,owner_id,modules_enabled)
+  values(trim(p_name),lower(coalesce(p_kind,'empresa')),'IPO',uid,'{}'::text[]) returning id into cid;
+
+  insert into public.profiles(id,full_name,role,account_subtype,account_type,is_default_admin,clinic_id)
+  values(uid,nullif(trim(p_full_name),''),'CEO','CEO','company_admin',true,cid)
+  on conflict(id) do update set full_name=coalesce(excluded.full_name,profiles.full_name),role='CEO',account_subtype='CEO',account_type='company_admin',is_default_admin=true,clinic_id=cid,updated_at=now();
+
+  insert into public.clinic_members(clinic_id,user_id,role,status,decided_by,decided_at,access_source)
+  values(cid,uid,'CEO','accepted',uid,now(),'company_seat')
+  on conflict do nothing;
+
+  insert into public.account_subscriptions(scope_type,clinic_id,plan_code,status,billing_day)
+  values('company',cid,plan.code,'pending_checkout',least(28,extract(day from now())::int)) returning id into sub_id;
+
+  insert into public.company_sessions(clinic_id,session_type,status,sharing_mode)
+  select cid,x,'active',case when plan.max_sessions>1 then 'company' else 'isolated' end from unnest(sessions) x;
+
+  checkout := public.create_checkout_intent(plan.code,cid);
+  return jsonb_build_object('success',true,'clinic_id',cid,'plan_code',plan.code,'checkout',checkout);
+exception when others then
+  return jsonb_build_object('success',false,'error',sqlerrm);
+end $$;
+
+create or replace function public.create_professional_account(p_full_name text, p_profession_type text)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare
+  uid uuid:=auth.uid();
+  checkout jsonb;
+  allowed text[]:=array['DENTISTA','CADISTA','PROTETICO','ATENDIMENTO','RADIOLOGISTA','OUTRO'];
+  profession text:=upper(trim(coalesce(p_profession_type,'OUTRO')));
+begin
+  if uid is null then return jsonb_build_object('success',false,'error','Sessão inválida.'); end if;
+  if not(profession=any(allowed)) then profession:='OUTRO'; end if;
+  insert into public.profiles(id,full_name,role,account_subtype,account_type,profession_type,is_default_admin)
+  values(uid,nullif(trim(p_full_name),''),profession,profession,'professional',profession,false)
+  on conflict(id) do update set full_name=coalesce(excluded.full_name,profiles.full_name),role=profession,account_subtype=profession,account_type='professional',profession_type=profession,is_default_admin=false,updated_at=now();
+  insert into public.professional_accounts(user_id,profession_type,status) values(uid,profession,'pending_checkout')
+  on conflict(user_id) do update set profession_type=excluded.profession_type,updated_at=now();
+  checkout:=public.create_checkout_intent('professional',null);
+  return jsonb_build_object('success',true,'plan_code','professional','checkout',checkout);
+exception when others then return jsonb_build_object('success',false,'error',sqlerrm);
+end $$;
+
+create or replace function public.switch_company_context(p_clinic_id uuid)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare acc text;
+begin
+  if auth.uid() is null then raise exception 'Sessão inválida.'; end if;
+  if not exists(select 1 from public.clinic_members where clinic_id=p_clinic_id and user_id=auth.uid() and status='accepted')
+     and not exists(select 1 from public.clinics where id=p_clinic_id and owner_id=auth.uid()) then raise exception 'Você não pertence a esta empresa.'; end if;
+  update public.profiles set clinic_id=p_clinic_id,updated_at=now() where id=auth.uid();
+  return public.my_subscription_context();
+end $$;
+
+create or replace function public.enforce_membership_plan_limits()
+returns trigger language plpgsql security definer set search_path=public as $$
+declare
+  company_limit integer;
+  company_count integer;
+  link_limit integer;
+  link_count integer;
+  acct_type text;
+begin
+  if new.status <> 'accepted' then return new; end if;
+  select bp.max_members into company_limit
+  from public.account_subscriptions s join public.billing_plans bp on bp.code=s.plan_code
+  where s.clinic_id=new.clinic_id and s.status <> 'canceled' order by s.created_at desc limit 1;
+  if company_limit is not null and company_limit>0 then
+    select count(*) into company_count from public.clinic_members m where m.clinic_id=new.clinic_id and m.status='accepted' and m.id<>new.id;
+    if company_count>=company_limit then raise exception 'Limite de membros do plano atingido (%).',company_limit; end if;
+  end if;
+
+  select account_type into acct_type from public.profiles where id=new.user_id;
+  if acct_type='professional' and new.access_source='professional_subscription' then
+    select bp.max_company_links into link_limit
+    from public.account_subscriptions s join public.billing_plans bp on bp.code=s.plan_code
+    where s.user_id=new.user_id and s.status <> 'canceled' order by s.created_at desc limit 1;
+    if link_limit is null or link_limit=0 then raise exception 'Plano profissional inativo ou sem vínculos disponíveis.'; end if;
+    select count(*) into link_count from public.clinic_members m where m.user_id=new.user_id and m.status='accepted' and m.access_source='professional_subscription' and m.id<>new.id;
+    if link_count>=link_limit then raise exception 'Seu plano profissional permite vínculo com até % empresas.',link_limit; end if;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists trg_enforce_membership_plan_limits on public.clinic_members;
+create trigger trg_enforce_membership_plan_limits before insert or update of status,access_source on public.clinic_members
+for each row execute function public.enforce_membership_plan_limits();
+
+-- Future payment provider/edge-function entry point. Never callable from the client.
+create or replace function public.billing_apply_subscription_state(
+  p_subscription_id uuid,
+  p_status text,
+  p_period_start timestamptz default null,
+  p_period_end timestamptz default null,
+  p_grace_until timestamptz default null,
+  p_provider text default null,
+  p_external_customer_id text default null,
+  p_external_subscription_id text default null
+) returns jsonb language plpgsql security definer set search_path=public as $$
+declare s public.account_subscriptions%rowtype;
+begin
+  if p_status not in ('pending_checkout','trialing','active','past_due','grace','suspended','canceled') then raise exception 'Status de cobrança inválido.'; end if;
+  update public.account_subscriptions set
+    status=p_status,current_period_start=coalesce(p_period_start,current_period_start),current_period_end=coalesce(p_period_end,current_period_end),
+    grace_until=p_grace_until,billing_provider=coalesce(p_provider,billing_provider),external_customer_id=coalesce(p_external_customer_id,external_customer_id),
+    external_subscription_id=coalesce(p_external_subscription_id,external_subscription_id),canceled_at=case when p_status='canceled' then now() else canceled_at end
+  where id=p_subscription_id returning * into s;
+  if s.id is null then raise exception 'Assinatura não encontrada.'; end if;
+  if s.scope_type='professional' then update public.professional_accounts set status=case when p_status in ('active','trialing','past_due','grace') then 'active' when p_status='pending_checkout' then 'pending_checkout' else 'suspended' end where user_id=s.user_id; end if;
+  if s.scope_type='company' and p_status in ('active','trialing','past_due','grace') then
+    update public.clinics c set storage_limit_bytes=(select storage_bytes from public.billing_plans where code=s.plan_code) where c.id=s.clinic_id;
+  end if;
+  return jsonb_build_object('subscription_id',s.id,'status',s.status,'access_mode',public.subscription_access_mode(s.status,s.current_period_end,s.grace_until));
+end $$;
+
+revoke all on function public.billing_apply_subscription_state(uuid,text,timestamptz,timestamptz,timestamptz,text,text,text) from public, anon, authenticated;
+grant execute on function public.billing_apply_subscription_state(uuid,text,timestamptz,timestamptz,timestamptz,text,text,text) to service_role;
+
+-- Seed existing accounts without disrupting production. IPO is permanently internal Advanced.
+update public.profiles set account_type=case when is_default_admin or upper(coalesce(role,'')) in ('CEO','ADMIN') then 'company_admin' else 'company_member' end
+where clinic_id is not null and account_type is null;
+
+insert into public.company_sessions(clinic_id,session_type,status,sharing_mode)
+select c.id,x,'active','company'
+from public.clinics c cross join lateral unnest(array[
+  case when 'laboratory'=any(c.modules_enabled) then 'laboratory' end,
+  case when 'clinical'=any(c.modules_enabled) then 'clinic' end,
+  case when 'radiology'=any(c.modules_enabled) then 'radiology' end
+]) x
+where x is not null
+on conflict(clinic_id,session_type) do update set status='active';
+
+insert into public.account_subscriptions(scope_type,clinic_id,plan_code,status,billing_day,current_period_start,current_period_end,billing_provider,metadata)
+select 'company',c.id,
+  case when c.company_type='IPO' or c.name ilike '%Instituto Praia%' then 'company_advanced' else 'company_advanced' end,
+  'active',least(28,extract(day from c.created_at)::int),now(),
+  case when c.company_type='IPO' or c.name ilike '%Instituto Praia%' then '2099-12-31 23:59:59+00'::timestamptz else now()+interval '30 days' end,
+  case when c.company_type='IPO' or c.name ilike '%Instituto Praia%' then 'internal_override' else 'migration_grace' end,
+  jsonb_build_object('migrated_in','0.3.2','grandfathered',true)
+from public.clinics c
+where not exists(select 1 from public.account_subscriptions s where s.clinic_id=c.id and s.status<>'canceled');
+
+-- IPO always has the complete three-session plan.
+insert into public.company_sessions(clinic_id,session_type,status,sharing_mode)
+select c.id,s,'active','company' from public.clinics c cross join unnest(array['laboratory','clinic','radiology']) s
+where c.company_type='IPO' or c.name ilike '%Instituto Praia%'
+on conflict(clinic_id,session_type) do update set status='active',sharing_mode='company';
+
+update public.clinics c set storage_limit_bytes=536870912000
+where c.company_type='IPO' or c.name ilike '%Instituto Praia%';
+
+-- RLS for new billing/session/DICOM structures.
+alter table public.billing_plans enable row level security;
+alter table public.professional_accounts enable row level security;
+alter table public.company_sessions enable row level security;
+alter table public.account_subscriptions enable row level security;
+alter table public.checkout_intents enable row level security;
+alter table public.billing_events enable row level security;
+alter table public.radiology_studies enable row level security;
+alter table public.radiology_series enable row level security;
+alter table public.radiology_instances enable row level security;
+
+drop policy if exists billing_plans_public_read on public.billing_plans;
+create policy billing_plans_public_read on public.billing_plans for select using (is_active=true);
+
+drop policy if exists professional_accounts_self_read on public.professional_accounts;
+create policy professional_accounts_self_read on public.professional_accounts for select to authenticated using (user_id=auth.uid());
+
+drop policy if exists company_sessions_member_read on public.company_sessions;
+create policy company_sessions_member_read on public.company_sessions for select to authenticated using (
+  exists(select 1 from public.clinics c where c.id=clinic_id and c.owner_id=auth.uid()) or
+  exists(select 1 from public.clinic_members m where m.clinic_id=company_sessions.clinic_id and m.user_id=auth.uid() and m.status='accepted') or
+  exists(select 1 from public.profiles p where p.id=auth.uid() and p.clinic_id=company_sessions.clinic_id)
+);
+
+drop policy if exists subscriptions_scope_read on public.account_subscriptions;
+create policy subscriptions_scope_read on public.account_subscriptions for select to authenticated using (
+  user_id=auth.uid() or
+  (clinic_id is not null and (
+    exists(select 1 from public.clinics c where c.id=account_subscriptions.clinic_id and c.owner_id=auth.uid()) or
+    exists(select 1 from public.clinic_members m where m.clinic_id=account_subscriptions.clinic_id and m.user_id=auth.uid() and m.status='accepted')
+  ))
+);
+
+drop policy if exists checkout_intents_self_read on public.checkout_intents;
+create policy checkout_intents_self_read on public.checkout_intents for select to authenticated using (user_id=auth.uid());
+
+-- billing_events intentionally has no client policies.
+
+drop policy if exists radiology_studies_member_read on public.radiology_studies;
+create policy radiology_studies_member_read on public.radiology_studies for select to authenticated using (
+  exists(select 1 from public.clinics c where c.id=clinic_id and c.owner_id=auth.uid()) or
+  exists(select 1 from public.clinic_members m where m.clinic_id=radiology_studies.clinic_id and m.user_id=auth.uid() and m.status='accepted')
+);
+drop policy if exists radiology_studies_member_write on public.radiology_studies;
+create policy radiology_studies_member_write on public.radiology_studies for all to authenticated using (
+  exists(select 1 from public.company_sessions s where s.clinic_id=radiology_studies.clinic_id and s.session_type='radiology' and s.status='active') and
+  (exists(select 1 from public.clinics c where c.id=clinic_id and c.owner_id=auth.uid()) or exists(select 1 from public.clinic_members m where m.clinic_id=radiology_studies.clinic_id and m.user_id=auth.uid() and m.status='accepted'))
+) with check (
+  exists(select 1 from public.company_sessions s where s.clinic_id=radiology_studies.clinic_id and s.session_type='radiology' and s.status='active') and
+  (exists(select 1 from public.clinics c where c.id=clinic_id and c.owner_id=auth.uid()) or exists(select 1 from public.clinic_members m where m.clinic_id=radiology_studies.clinic_id and m.user_id=auth.uid() and m.status='accepted'))
+);
+
+drop policy if exists radiology_series_member_read on public.radiology_series;
+create policy radiology_series_member_read on public.radiology_series for select to authenticated using (exists(select 1 from public.radiology_studies st where st.id=study_id));
+drop policy if exists radiology_instances_member_read on public.radiology_instances;
+create policy radiology_instances_member_read on public.radiology_instances for select to authenticated using (exists(select 1 from public.radiology_series se join public.radiology_studies st on st.id=se.study_id where se.id=series_id));
+
+grant select on public.billing_plans to anon, authenticated;
+grant select on public.professional_accounts,public.company_sessions,public.account_subscriptions,public.checkout_intents,public.radiology_studies,public.radiology_series,public.radiology_instances to authenticated;
+grant execute on function public.company_subscription_snapshot(uuid),public.my_subscription_context(),public.configure_company_sessions(uuid,text[]),public.create_checkout_intent(text,uuid),public.create_company_account(text,text,text,text,text[]),public.create_professional_account(text,text),public.switch_company_context(uuid) to authenticated;
+
+-- ===== 20260909034500_radiology_storage_and_access_032.sql =====
+
+-- DentalFlow 0.3.2 — private DICOM storage and subscription-aware access
+
+create or replace function public.company_has_operational_access(_clinic_id uuid)
+returns boolean
+language sql stable security definer set search_path=public as $$
+  select coalesce((
+    select public.subscription_access_mode(s.status,s.current_period_end,s.grace_until)='full'
+    from public.account_subscriptions s
+    where s.clinic_id=_clinic_id
+    order by (s.status<>'canceled') desc, s.created_at desc
+    limit 1
+  ), false)
+$$;
+
+create or replace function public.user_can_use_company_session(_clinic_id uuid, _session_type text)
+returns boolean
+language sql stable security definer set search_path=public as $$
+  select
+    public.company_has_operational_access(_clinic_id)
+    and exists(select 1 from public.company_sessions s where s.clinic_id=_clinic_id and s.session_type=_session_type and s.status='active')
+    and (
+      exists(select 1 from public.clinics c where c.id=_clinic_id and c.owner_id=auth.uid())
+      or exists(select 1 from public.clinic_members m where m.clinic_id=_clinic_id and m.user_id=auth.uid() and m.status='accepted')
+      or exists(select 1 from public.profiles p where p.id=auth.uid() and p.clinic_id=_clinic_id)
+    )
+$$;
+
+insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
+values(
+  'dicom-files',
+  'dicom-files',
+  false,
+  1073741824,
+  array['application/dicom','application/octet-stream']::text[]
+)
+on conflict(id) do update set
+  public=false,
+  file_size_limit=excluded.file_size_limit,
+  allowed_mime_types=excluded.allowed_mime_types,
+  updated_at=now();
+
+-- Object names are always: <clinic_uuid>/<study_uuid>/<series_uuid>/<filename>
+drop policy if exists dicom_objects_read on storage.objects;
+create policy dicom_objects_read on storage.objects
+for select to authenticated
+using (
+  bucket_id='dicom-files'
+  and exists(
+    select 1 from public.clinics c
+    where c.id::text=split_part(name,'/',1)
+      and (
+        c.owner_id=auth.uid()
+        or exists(select 1 from public.clinic_members m where m.clinic_id=c.id and m.user_id=auth.uid() and m.status='accepted')
+        or exists(select 1 from public.profiles p where p.id=auth.uid() and p.clinic_id=c.id)
+      )
+  )
+);
+
+drop policy if exists dicom_objects_insert on storage.objects;
+create policy dicom_objects_insert on storage.objects
+for insert to authenticated
+with check (
+  bucket_id='dicom-files'
+  and exists(
+    select 1 from public.clinics c
+    where c.id::text=split_part(name,'/',1)
+      and public.user_can_use_company_session(c.id,'radiology')
+  )
+);
+
+drop policy if exists dicom_objects_update on storage.objects;
+create policy dicom_objects_update on storage.objects
+for update to authenticated
+using (
+  bucket_id='dicom-files'
+  and exists(select 1 from public.clinics c where c.id::text=split_part(name,'/',1) and public.user_can_use_company_session(c.id,'radiology'))
+)
+with check (
+  bucket_id='dicom-files'
+  and exists(select 1 from public.clinics c where c.id::text=split_part(name,'/',1) and public.user_can_use_company_session(c.id,'radiology'))
+);
+
+drop policy if exists dicom_objects_delete on storage.objects;
+create policy dicom_objects_delete on storage.objects
+for delete to authenticated
+using (
+  bucket_id='dicom-files'
+  and exists(select 1 from public.clinics c where c.id::text=split_part(name,'/',1) and public.user_can_use_company_session(c.id,'radiology'))
+);
+
+-- Replace broad study write policy with subscription/session-aware policies.
+drop policy if exists radiology_studies_member_write on public.radiology_studies;
+drop policy if exists radiology_studies_write on public.radiology_studies;
+create policy radiology_studies_write on public.radiology_studies
+for all to authenticated
+using (public.user_can_use_company_session(clinic_id,'radiology'))
+with check (public.user_can_use_company_session(clinic_id,'radiology'));
+
+drop policy if exists radiology_series_write on public.radiology_series;
+create policy radiology_series_write on public.radiology_series
+for all to authenticated
+using (
+  exists(select 1 from public.radiology_studies st where st.id=study_id and public.user_can_use_company_session(st.clinic_id,'radiology'))
+)
+with check (
+  exists(select 1 from public.radiology_studies st where st.id=study_id and public.user_can_use_company_session(st.clinic_id,'radiology'))
+);
+
+drop policy if exists radiology_instances_write on public.radiology_instances;
+create policy radiology_instances_write on public.radiology_instances
+for all to authenticated
+using (
+  exists(
+    select 1 from public.radiology_series se
+    join public.radiology_studies st on st.id=se.study_id
+    where se.id=series_id and public.user_can_use_company_session(st.clinic_id,'radiology')
+  )
+)
+with check (
+  exists(
+    select 1 from public.radiology_series se
+    join public.radiology_studies st on st.id=se.study_id
+    where se.id=series_id and public.user_can_use_company_session(st.clinic_id,'radiology')
+  )
+);
+
+grant insert,update,delete on public.radiology_studies,public.radiology_series,public.radiology_instances to authenticated;
+grant execute on function public.company_has_operational_access(uuid),public.user_can_use_company_session(uuid,text) to authenticated;
+
+-- ===== 20260909035000_membership_status_compat_032.sql =====
+
+-- DentalFlow 0.3.2 — compatibility with the existing membership lifecycle.
+-- Production uses `active` for accepted members; older/newer flows may also use `accepted`.
+
+create or replace function public.active_company_member(_clinic_id uuid, _user_id uuid default auth.uid())
+returns boolean
+language sql stable security definer set search_path=public as $$
+  select exists(
+    select 1 from public.clinic_members m
+    where m.clinic_id=_clinic_id and m.user_id=_user_id and m.status in ('active','accepted')
+  )
+$$;
+
+create or replace function public.company_subscription_snapshot(_clinic_id uuid)
+returns jsonb
+language plpgsql stable security definer set search_path=public as $$
+declare
+  s public.account_subscriptions%rowtype;
+  p public.billing_plans%rowtype;
+  allowed boolean;
+begin
+  select exists(select 1 from public.clinics c where c.id=_clinic_id and c.owner_id=auth.uid())
+      or public.active_company_member(_clinic_id,auth.uid())
+      or exists(select 1 from public.profiles pr where pr.id=auth.uid() and pr.clinic_id=_clinic_id)
+    into allowed;
+  if not allowed then return null; end if;
+
+  select * into s from public.account_subscriptions where clinic_id=_clinic_id and status <> 'canceled' order by created_at desc limit 1;
+  if s.id is null then select * into s from public.account_subscriptions where clinic_id=_clinic_id order by created_at desc limit 1; end if;
+  if s.id is null then return null; end if;
+  select * into p from public.billing_plans where code=s.plan_code;
+
+  return jsonb_build_object(
+    'subscription_id',s.id,'scope','company','plan_code',p.code,'plan_name',p.name,
+    'status',s.status,'access_mode',public.subscription_access_mode(s.status,s.current_period_end,s.grace_until),
+    'billing_day',s.billing_day,'current_period_end',s.current_period_end,'grace_until',s.grace_until,
+    'monthly_price_cents',p.monthly_price_cents,'currency',p.currency,
+    'max_sessions',p.max_sessions,'max_members',p.max_members,'storage_bytes',p.storage_bytes,'features',p.features,
+    'sessions',coalesce((select jsonb_agg(cs.session_type order by cs.session_type) from public.company_sessions cs where cs.clinic_id=_clinic_id and cs.status='active'),'[]'::jsonb)
+  );
+end $$;
+
+create or replace function public.configure_company_sessions(p_clinic_id uuid, p_session_types text[])
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare
+  max_allowed integer;
+  normalized text[];
+  is_manager boolean;
+begin
+  select exists(select 1 from public.clinics c where c.id=p_clinic_id and c.owner_id=auth.uid())
+      or exists(select 1 from public.clinic_members m where m.clinic_id=p_clinic_id and m.user_id=auth.uid() and m.status in ('active','accepted') and upper(m.role) in ('CEO','ADMIN'))
+    into is_manager;
+  if not is_manager then raise exception 'Sem permissão para configurar os ambientes.'; end if;
+
+  select bp.max_sessions into max_allowed
+  from public.account_subscriptions s join public.billing_plans bp on bp.code=s.plan_code
+  where s.clinic_id=p_clinic_id and s.status <> 'canceled'
+  order by s.created_at desc limit 1;
+  if max_allowed is null then raise exception 'Plano empresarial não encontrado.'; end if;
+
+  select coalesce(array_agg(distinct lower(x)),'{}'::text[]) into normalized
+  from unnest(coalesce(p_session_types,'{}'::text[])) x
+  where lower(x) in ('laboratory','clinic','radiology');
+  if cardinality(normalized)=0 then raise exception 'Selecione ao menos um ambiente.'; end if;
+  if cardinality(normalized)>max_allowed then raise exception 'Seu plano permite no máximo % ambiente(s).',max_allowed; end if;
+
+  update public.company_sessions set status='disabled' where clinic_id=p_clinic_id and not(session_type=any(normalized));
+  insert into public.company_sessions(clinic_id,session_type,status,sharing_mode)
+  select p_clinic_id,x,'active',case when max_allowed>1 then 'company' else 'isolated' end from unnest(normalized) x
+  on conflict(clinic_id,session_type) do update set status='active',sharing_mode=excluded.sharing_mode,updated_at=now();
+  return public.company_subscription_snapshot(p_clinic_id);
+end $$;
+
+create or replace function public.switch_company_context(p_clinic_id uuid)
+returns jsonb language plpgsql security definer set search_path=public as $$
+begin
+  if auth.uid() is null then raise exception 'Sessão inválida.'; end if;
+  if not public.active_company_member(p_clinic_id,auth.uid())
+     and not exists(select 1 from public.clinics where id=p_clinic_id and owner_id=auth.uid()) then
+    raise exception 'Você não pertence a esta empresa.';
+  end if;
+  update public.profiles set clinic_id=p_clinic_id,updated_at=now() where id=auth.uid();
+  return public.my_subscription_context();
+end $$;
+
+create or replace function public.enforce_membership_plan_limits()
+returns trigger language plpgsql security definer set search_path=public as $$
+declare
+  company_limit integer;
+  company_count integer;
+  link_limit integer;
+  link_count integer;
+  acct_type text;
+begin
+  if new.status not in ('active','accepted') then return new; end if;
+
+  select bp.max_members into company_limit
+  from public.account_subscriptions s join public.billing_plans bp on bp.code=s.plan_code
+  where s.clinic_id=new.clinic_id and s.status <> 'canceled' order by s.created_at desc limit 1;
+  if company_limit is not null and company_limit>0 then
+    select count(*) into company_count
+    from public.clinic_members m
+    where m.clinic_id=new.clinic_id and m.status in ('active','accepted') and m.id<>new.id;
+    if company_count>=company_limit then raise exception 'Limite de membros do plano atingido (%).',company_limit; end if;
+  end if;
+
+  select account_type into acct_type from public.profiles where id=new.user_id;
+  if acct_type='professional' and new.access_source='professional_subscription' then
+    select bp.max_company_links into link_limit
+    from public.account_subscriptions s join public.billing_plans bp on bp.code=s.plan_code
+    where s.user_id=new.user_id and s.status <> 'canceled' order by s.created_at desc limit 1;
+    if link_limit is null or link_limit=0 then raise exception 'Plano profissional inativo ou sem vínculos disponíveis.'; end if;
+    select count(*) into link_count
+    from public.clinic_members m
+    where m.user_id=new.user_id and m.status in ('active','accepted') and m.access_source='professional_subscription' and m.id<>new.id;
+    if link_count>=link_limit then raise exception 'Seu plano profissional permite vínculo com até % empresas.',link_limit; end if;
+  end if;
+  return new;
+end $$;
+
+create or replace function public.user_can_use_company_session(_clinic_id uuid, _session_type text)
+returns boolean
+language sql stable security definer set search_path=public as $$
+  select
+    public.company_has_operational_access(_clinic_id)
+    and exists(select 1 from public.company_sessions s where s.clinic_id=_clinic_id and s.session_type=_session_type and s.status='active')
+    and (
+      exists(select 1 from public.clinics c where c.id=_clinic_id and c.owner_id=auth.uid())
+      or public.active_company_member(_clinic_id,auth.uid())
+      or exists(select 1 from public.profiles p where p.id=auth.uid() and p.clinic_id=_clinic_id)
+    )
+$$;
+
+-- Company creation now follows the status value already used by the product.
+create or replace function public.create_company_account(
+  p_name text,
+  p_kind text,
+  p_full_name text,
+  p_plan_code text default 'company_initial',
+  p_session_types text[] default null
+) returns jsonb language plpgsql security definer set search_path=public as $$
+declare
+  uid uuid := auth.uid();
+  cid uuid;
+  plan public.billing_plans%rowtype;
+  sessions text[];
+  sub_id uuid;
+  checkout jsonb;
+begin
+  if uid is null then return jsonb_build_object('success',false,'error','Sessão inválida.'); end if;
+  if length(trim(coalesce(p_name,'')))<2 then return jsonb_build_object('success',false,'error','Informe o nome da empresa.'); end if;
+  select * into plan from public.billing_plans where code=p_plan_code and account_scope='company' and is_active;
+  if plan.code is null then return jsonb_build_object('success',false,'error','Plano empresarial inválido.'); end if;
+  if exists(select 1 from public.clinics where owner_id=uid) then return jsonb_build_object('success',false,'error','Esta conta já possui uma empresa.'); end if;
+
+  sessions := coalesce(p_session_types,array[case when lower(coalesce(p_kind,'')) in ('consultorio','clinica','clinic') then 'clinic' when lower(coalesce(p_kind,'')) in ('radiologia','radiology') then 'radiology' else 'laboratory' end]);
+  select array_agg(distinct lower(x)) into sessions from unnest(sessions) x where lower(x) in ('laboratory','clinic','radiology');
+  if cardinality(sessions)=0 or cardinality(sessions)>plan.max_sessions then return jsonb_build_object('success',false,'error','Quantidade de ambientes incompatível com o plano.'); end if;
+
+  insert into public.clinics(name,kind,company_type,owner_id,modules_enabled)
+  values(trim(p_name),lower(coalesce(p_kind,'empresa')),'IPO',uid,'{}'::text[]) returning id into cid;
+
+  insert into public.profiles(id,full_name,role,account_subtype,account_type,is_default_admin,clinic_id)
+  values(uid,nullif(trim(p_full_name),''),'CEO','CEO','company_admin',true,cid)
+  on conflict(id) do update set full_name=coalesce(excluded.full_name,profiles.full_name),role='CEO',account_subtype='CEO',account_type='company_admin',is_default_admin=true,clinic_id=cid,updated_at=now();
+
+  insert into public.clinic_members(clinic_id,user_id,role,status,decided_by,decided_at,access_source)
+  values(cid,uid,'CEO','active',uid,now(),'company_seat')
+  on conflict do nothing;
+
+  insert into public.account_subscriptions(scope_type,clinic_id,plan_code,status,billing_day)
+  values('company',cid,plan.code,'pending_checkout',least(28,extract(day from now())::int)) returning id into sub_id;
+
+  insert into public.company_sessions(clinic_id,session_type,status,sharing_mode)
+  select cid,x,'active',case when plan.max_sessions>1 then 'company' else 'isolated' end from unnest(sessions) x;
+
+  checkout := public.create_checkout_intent(plan.code,cid);
+  return jsonb_build_object('success',true,'clinic_id',cid,'plan_code',plan.code,'checkout',checkout);
+exception when others then
+  return jsonb_build_object('success',false,'error',sqlerrm);
+end $$;
+
+-- Refresh new-table read policies to recognize both membership states.
+drop policy if exists company_sessions_member_read on public.company_sessions;
+create policy company_sessions_member_read on public.company_sessions for select to authenticated using (
+  exists(select 1 from public.clinics c where c.id=clinic_id and c.owner_id=auth.uid())
+  or public.active_company_member(company_sessions.clinic_id,auth.uid())
+  or exists(select 1 from public.profiles p where p.id=auth.uid() and p.clinic_id=company_sessions.clinic_id)
+);
+
+drop policy if exists subscriptions_scope_read on public.account_subscriptions;
+create policy subscriptions_scope_read on public.account_subscriptions for select to authenticated using (
+  user_id=auth.uid() or
+  (clinic_id is not null and (
+    exists(select 1 from public.clinics c where c.id=account_subscriptions.clinic_id and c.owner_id=auth.uid())
+    or public.active_company_member(account_subscriptions.clinic_id,auth.uid())
+  ))
+);
+
+drop policy if exists radiology_studies_member_read on public.radiology_studies;
+create policy radiology_studies_member_read on public.radiology_studies for select to authenticated using (
+  exists(select 1 from public.clinics c where c.id=clinic_id and c.owner_id=auth.uid())
+  or public.active_company_member(radiology_studies.clinic_id,auth.uid())
+);
+
+grant execute on function public.active_company_member(uuid,uuid) to authenticated;
+
+-- ===== 20260909040500_professional_company_links_032.sql =====
+
+-- DentalFlow 0.3.2 — Professional accounts join companies through a private invite code.
+-- A professional subscription pays for mobility (max company links); the company plan pays for seats/sessions.
+
+create or replace function public.my_professional_company_links()
+returns table(
+  clinic_id uuid,
+  clinic_name text,
+  membership_role text,
+  membership_status text,
+  access_source text,
+  is_current boolean,
+  company_plan_code text,
+  company_plan_name text,
+  company_access_mode text,
+  sessions text[]
+)
+language sql stable security definer set search_path=public as $$
+  select
+    c.id,
+    c.name,
+    m.role,
+    m.status,
+    m.access_source,
+    (p.clinic_id=c.id),
+    bp.code,
+    bp.name,
+    public.subscription_access_mode(s.status,s.current_period_end,s.grace_until),
+    coalesce(array(
+      select cs.session_type
+      from public.company_sessions cs
+      where cs.clinic_id=c.id and cs.status='active'
+      order by cs.session_type
+    ),'{}'::text[])
+  from public.clinic_members m
+  join public.clinics c on c.id=m.clinic_id
+  join public.profiles p on p.id=auth.uid()
+  left join lateral (
+    select sx.* from public.account_subscriptions sx
+    where sx.clinic_id=c.id order by (sx.status<>'canceled') desc,sx.created_at desc limit 1
+  ) s on true
+  left join public.billing_plans bp on bp.code=s.plan_code
+  where m.user_id=auth.uid()
+    and m.access_source='professional_subscription'
+  order by (m.status in ('active','accepted')) desc,c.name
+$$;
+
+create or replace function public.link_professional_company(p_invite_code text)
+returns jsonb
+language plpgsql security definer set search_path=public as $$
+declare
+  uid uuid:=auth.uid();
+  target public.clinics%rowtype;
+  profession text;
+  member_role text;
+  prof_sub public.account_subscriptions%rowtype;
+  prof_plan public.billing_plans%rowtype;
+  company_sub public.account_subscriptions%rowtype;
+  company_plan public.billing_plans%rowtype;
+  existing public.clinic_members%rowtype;
+  current_links integer;
+  current_members integer;
+begin
+  if uid is null then return jsonb_build_object('success',false,'error','Sessão inválida.'); end if;
+  if length(trim(coalesce(p_invite_code,'')))<4 then return jsonb_build_object('success',false,'error','Informe um código de empresa válido.'); end if;
+
+  select coalesce(pa.profession_type,p.profession_type,p.account_subtype,p.role,'OUTRO')
+  into profession
+  from public.profiles p left join public.professional_accounts pa on pa.user_id=p.id
+  where p.id=uid and p.account_type='professional';
+  if profession is null then return jsonb_build_object('success',false,'error','Esta conta não é uma conta profissional.'); end if;
+
+  select * into prof_sub from public.account_subscriptions
+  where user_id=uid and status<>'canceled' order by created_at desc limit 1;
+  if prof_sub.id is null then return jsonb_build_object('success',false,'error','Ative o plano Profissional antes de vincular uma empresa.'); end if;
+  select * into prof_plan from public.billing_plans where code=prof_sub.plan_code and account_scope='professional';
+  if public.subscription_access_mode(prof_sub.status,prof_sub.current_period_end,prof_sub.grace_until)<>'full' then
+    return jsonb_build_object('success',false,'error','Seu plano Profissional precisa estar ativo para criar novos vínculos.');
+  end if;
+
+  select * into target from public.clinics
+  where upper(trim(invite_code))=upper(trim(p_invite_code)) limit 1;
+  if target.id is null then return jsonb_build_object('success',false,'error','Código de empresa não encontrado.'); end if;
+
+  select * into company_sub from public.account_subscriptions
+  where clinic_id=target.id and status<>'canceled' order by created_at desc limit 1;
+  if company_sub.id is null then return jsonb_build_object('success',false,'error','A empresa ainda não possui um plano DentalFlow ativo.'); end if;
+  select * into company_plan from public.billing_plans where code=company_sub.plan_code;
+  if public.subscription_access_mode(company_sub.status,company_sub.current_period_end,company_sub.grace_until)<>'full' then
+    return jsonb_build_object('success',false,'error','A assinatura desta empresa precisa ser regularizada antes de aceitar novos vínculos.');
+  end if;
+
+  select * into existing from public.clinic_members where clinic_id=target.id and user_id=uid;
+  if existing.id is not null and existing.status in ('active','accepted') then
+    update public.profiles set clinic_id=target.id,updated_at=now() where id=uid;
+    return jsonb_build_object('success',true,'clinic_id',target.id,'clinic_name',target.name,'already_linked',true,'context',public.my_subscription_context());
+  end if;
+
+  select count(*) into current_links from public.clinic_members
+  where user_id=uid and access_source='professional_subscription' and status in ('active','accepted');
+  if current_links>=coalesce(prof_plan.max_company_links,0) then
+    return jsonb_build_object('success',false,'error',format('Seu plano Profissional permite vínculo com até %s empresas.',prof_plan.max_company_links));
+  end if;
+
+  select count(*) into current_members from public.clinic_members
+  where clinic_id=target.id and status in ('active','accepted');
+  if coalesce(company_plan.max_members,0)>0 and current_members>=company_plan.max_members then
+    return jsonb_build_object('success',false,'error','A empresa atingiu o limite de membros do plano atual.');
+  end if;
+
+  member_role:=case upper(profession)
+    when 'DENTISTA' then 'DR'
+    when 'CADISTA' then 'CADISTA'
+    when 'PROTETICO' then 'PROTETICO'
+    when 'ATENDIMENTO' then 'ATENDIMENTO'
+    when 'RADIOLOGISTA' then 'USER'
+    else 'USER'
+  end;
+
+  insert into public.clinic_members(clinic_id,user_id,role,status,decided_by,decided_at,invited_by,access_source)
+  values(target.id,uid,member_role,'active',uid,now(),null,'professional_subscription')
+  on conflict(clinic_id,user_id) do update set
+    role=excluded.role,status='active',decided_by=uid,decided_at=now(),access_source='professional_subscription';
+
+  update public.profiles set clinic_id=target.id,updated_at=now() where id=uid;
+  return jsonb_build_object('success',true,'clinic_id',target.id,'clinic_name',target.name,'already_linked',false,'context',public.my_subscription_context());
+exception when others then
+  return jsonb_build_object('success',false,'error',sqlerrm);
+end $$;
+
+create or replace function public.unlink_professional_company(p_clinic_id uuid)
+returns jsonb
+language plpgsql security definer set search_path=public as $$
+declare uid uuid:=auth.uid(); next_clinic uuid;
+begin
+  if uid is null then raise exception 'Sessão inválida.'; end if;
+  if not exists(select 1 from public.profiles where id=uid and account_type='professional') then raise exception 'Conta profissional necessária.'; end if;
+  delete from public.clinic_members where clinic_id=p_clinic_id and user_id=uid and access_source='professional_subscription';
+  select m.clinic_id into next_clinic from public.clinic_members m
+  where m.user_id=uid and m.access_source='professional_subscription' and m.status in ('active','accepted')
+  order by m.created_at limit 1;
+  update public.profiles set clinic_id=next_clinic,updated_at=now() where id=uid;
+  return public.my_subscription_context();
+end $$;
+
+grant execute on function public.my_professional_company_links(),public.link_professional_company(text),public.unlink_professional_company(uuid) to authenticated;
+
+-- ===== 20260909043000_company_only_billing_sandbox_032.sql =====
+
+-- DentalFlow 0.3.2 — company-only billing and controlled subscription sandbox.
+-- Company accounts are the only billable accounts. Professional accounts are company seats.
+
+update public.billing_plans
+set is_active = false,
+    updated_at = now()
+where code = 'professional';
+
+create table if not exists public.billing_payments (
+  id uuid primary key default gen_random_uuid(),
+  subscription_id uuid not null references public.account_subscriptions(id) on delete cascade,
+  checkout_intent_id uuid references public.checkout_intents(id) on delete set null,
+  clinic_id uuid not null references public.clinics(id) on delete cascade,
+  amount_cents integer not null check (amount_cents >= 0),
+  currency text not null default 'BRL',
+  status text not null check (status in ('pending','paid','failed','refunded','canceled')),
+  provider text,
+  provider_payment_id text,
+  paid_at timestamptz,
+  period_start timestamptz,
+  period_end timestamptz,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  unique(provider, provider_payment_id)
+);
+
+create index if not exists billing_payments_subscription_idx
+  on public.billing_payments(subscription_id, created_at desc);
+
+-- Test-mode capability is server-managed. No browser can enable itself.
+create table if not exists public.billing_test_access (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  enabled_until timestamptz not null,
+  created_at timestamptz not null default now(),
+  created_by text not null default 'manual'
+);
+
+alter table public.billing_payments enable row level security;
+alter table public.billing_test_access enable row level security;
+
+drop policy if exists billing_payments_company_read on public.billing_payments;
+create policy billing_payments_company_read on public.billing_payments
+for select to authenticated using (
+  exists(select 1 from public.clinics c where c.id=billing_payments.clinic_id and c.owner_id=auth.uid())
+  or public.active_company_member(billing_payments.clinic_id,auth.uid())
+);
+-- billing_test_access intentionally has no client table policy.
+
+grant select on public.billing_payments to authenticated;
+
+create or replace function public.subscription_access_mode(
+  _status text,
+  _period_end timestamptz,
+  _grace_until timestamptz
+) returns text
+language sql stable as $$
+  select case
+    when _status='trialing' and (_period_end is null or _period_end >= now()) then 'full'
+    when _status='active' and _period_end is not null and _period_end >= now() then 'full'
+    when _status in ('past_due','grace') and _grace_until is not null and _grace_until >= now() then 'full'
+    when _status='canceled' and _period_end is not null and _period_end >= now() then 'full'
+    else 'billing_only'
+  end
+$$;
+
+create or replace function public.my_subscription_context()
+returns jsonb
+language plpgsql stable security definer set search_path=public as $$
+declare
+  pr public.profiles%rowtype;
+  company_ctx jsonb;
+  profession text;
+begin
+  if auth.uid() is null then return null; end if;
+  select * into pr from public.profiles where id=auth.uid();
+  if pr.id is null then return jsonb_build_object('account_type','unclassified','effective_access','billing_only'); end if;
+
+  profession := coalesce(pr.profession_type,pr.account_subtype,pr.role);
+
+  if pr.clinic_id is null then
+    return jsonb_build_object(
+      'account_type',coalesce(pr.account_type,'unclassified'),
+      'effective_access',case when coalesce(pr.account_type,'')='professional' then 'needs_company_link' else 'billing_only' end,
+      'active_clinic_id',null,
+      'professional_profile',jsonb_build_object('profession_type',profession)
+    );
+  end if;
+
+  company_ctx := public.company_subscription_snapshot(pr.clinic_id);
+  return jsonb_build_object(
+    'account_type',coalesce(pr.account_type,'company_member'),
+    'effective_access',coalesce(company_ctx->>'access_mode','billing_only'),
+    'active_clinic_id',pr.clinic_id,
+    'company',company_ctx,
+    'professional_profile',case when coalesce(pr.account_type,'')='professional'
+      then jsonb_build_object('profession_type',profession) else null end
+  );
+end $$;
+
+-- Only company plans can create checkout intents. A pending upgrade never changes live entitlements.
+create or replace function public.create_checkout_intent(
+  p_plan_code text,
+  p_clinic_id uuid,
+  p_session_types text[] default null
+) returns jsonb
+language plpgsql security definer set search_path=public as $$
+declare
+  plan public.billing_plans%rowtype;
+  sub public.account_subscriptions%rowtype;
+  intent public.checkout_intents%rowtype;
+  is_manager boolean;
+  requested text[];
+begin
+  if auth.uid() is null then raise exception 'Sessão inválida.'; end if;
+  if p_clinic_id is null then raise exception 'Empresa inválida.'; end if;
+
+  select * into plan from public.billing_plans
+  where code=p_plan_code and account_scope='company' and is_active;
+  if plan.code is null then raise exception 'Plano empresarial inválido.'; end if;
+
+  select exists(select 1 from public.clinics c where c.id=p_clinic_id and c.owner_id=auth.uid())
+      or exists(select 1 from public.clinic_members m where m.clinic_id=p_clinic_id and m.user_id=auth.uid() and m.status in ('active','accepted') and upper(m.role) in ('CEO','ADMIN'))
+  into is_manager;
+  if not is_manager then raise exception 'Sem permissão para alterar a assinatura.'; end if;
+
+  select coalesce(array_agg(distinct lower(x)),'{}'::text[]) into requested
+  from unnest(coalesce(p_session_types,'{}'::text[])) x
+  where lower(x) in ('laboratory','clinic','radiology');
+  if cardinality(requested)>plan.max_sessions then raise exception 'O plano selecionado permite no máximo % ambiente(s).',plan.max_sessions; end if;
+
+  select * into sub from public.account_subscriptions
+  where clinic_id=p_clinic_id and status<>'canceled'
+  order by created_at desc limit 1;
+
+  if sub.id is null then
+    insert into public.account_subscriptions(scope_type,clinic_id,plan_code,status,billing_day)
+    values('company',p_clinic_id,p_plan_code,'pending_checkout',least(28,extract(day from now())::int))
+    returning * into sub;
+  elsif sub.status='pending_checkout' then
+    update public.account_subscriptions set plan_code=p_plan_code,updated_at=now() where id=sub.id returning * into sub;
+  end if;
+
+  update public.checkout_intents
+  set status='expired',updated_at=now()
+  where user_id=auth.uid() and clinic_id=p_clinic_id and status='pending' and expires_at<now();
+
+  insert into public.checkout_intents(
+    user_id,clinic_id,subscription_id,plan_code,amount_cents,currency,status,metadata
+  ) values(
+    auth.uid(),p_clinic_id,sub.id,p_plan_code,plan.monthly_price_cents,plan.currency,'pending',
+    jsonb_build_object('requested_sessions',coalesce(to_jsonb(requested),'[]'::jsonb),'billing_version','0.3.2')
+  ) returning * into intent;
+
+  return jsonb_build_object(
+    'checkout_intent_id',intent.id,
+    'subscription_id',sub.id,
+    'plan_code',plan.code,
+    'plan_name',plan.name,
+    'amount_cents',plan.monthly_price_cents,
+    'currency',plan.currency,
+    'status',intent.status,
+    'billing_mode','live'
+  );
+end $$;
+
+-- Provider/webhook entrypoint for a successful checkout. This is the only place that applies a paid upgrade.
+create or replace function public.billing_apply_checkout_paid(
+  p_checkout_intent_id uuid,
+  p_provider text,
+  p_provider_payment_id text,
+  p_provider_customer_id text default null,
+  p_provider_subscription_id text default null,
+  p_period_start timestamptz default now(),
+  p_period_end timestamptz default (now()+interval '1 month')
+) returns jsonb
+language plpgsql security definer set search_path=public as $$
+declare
+  intent public.checkout_intents%rowtype;
+  sub public.account_subscriptions%rowtype;
+  plan public.billing_plans%rowtype;
+  requested text[];
+begin
+  select * into intent from public.checkout_intents where id=p_checkout_intent_id for update;
+  if intent.id is null then raise exception 'Checkout não encontrado.'; end if;
+  if intent.status='paid' then
+    select * into sub from public.account_subscriptions where id=intent.subscription_id;
+    return jsonb_build_object('subscription_id',sub.id,'status',sub.status,'idempotent',true);
+  end if;
+  if intent.status not in ('pending','provider_created') then raise exception 'Checkout não está disponível para pagamento.'; end if;
+
+  select * into plan from public.billing_plans where code=intent.plan_code and account_scope='company';
+  if plan.code is null then raise exception 'Plano do checkout não existe.'; end if;
+  if p_period_end<=p_period_start then raise exception 'Período de assinatura inválido.'; end if;
+
+  update public.account_subscriptions set
+    plan_code=intent.plan_code,
+    status='active',
+    current_period_start=p_period_start,
+    current_period_end=p_period_end,
+    grace_until=null,
+    billing_provider=p_provider,
+    external_customer_id=coalesce(p_provider_customer_id,external_customer_id),
+    external_subscription_id=coalesce(p_provider_subscription_id,external_subscription_id),
+    updated_at=now()
+  where id=intent.subscription_id returning * into sub;
+
+  update public.checkout_intents set
+    status='paid',billing_provider=p_provider,provider_checkout_id=coalesce(provider_checkout_id,p_provider_payment_id),updated_at=now()
+  where id=intent.id;
+
+  insert into public.billing_payments(
+    subscription_id,checkout_intent_id,clinic_id,amount_cents,currency,status,provider,provider_payment_id,paid_at,period_start,period_end
+  ) values(
+    sub.id,intent.id,intent.clinic_id,intent.amount_cents,intent.currency,'paid',p_provider,p_provider_payment_id,now(),p_period_start,p_period_end
+  ) on conflict(provider,provider_payment_id) do nothing;
+
+  update public.clinics set storage_limit_bytes=plan.storage_bytes where id=intent.clinic_id;
+
+  select coalesce(array_agg(value::text),'{}'::text[]) into requested
+  from jsonb_array_elements_text(coalesce(intent.metadata->'requested_sessions','[]'::jsonb));
+  if cardinality(requested)>0 then
+    update public.company_sessions set status='disabled' where clinic_id=intent.clinic_id and not(session_type=any(requested));
+    insert into public.company_sessions(clinic_id,session_type,status,sharing_mode)
+    select intent.clinic_id,x,'active',case when plan.max_sessions>1 then 'company' else 'isolated' end
+    from unnest(requested) x
+    on conflict(clinic_id,session_type) do update set status='active',sharing_mode=excluded.sharing_mode,updated_at=now();
+  end if;
+
+  return jsonb_build_object(
+    'subscription_id',sub.id,
+    'status','active',
+    'current_period_end',sub.current_period_end,
+    'context',public.company_subscription_snapshot(intent.clinic_id)
+  );
+end $$;
+
+revoke all on function public.billing_apply_checkout_paid(uuid,text,text,text,text,timestamptz,timestamptz) from public,anon,authenticated;
+grant execute on function public.billing_apply_checkout_paid(uuid,text,text,text,text,timestamptz,timestamptz) to service_role;
+
+-- Renewal/failure state entrypoint remains service-role only.
+create or replace function public.billing_apply_subscription_state(
+  p_subscription_id uuid,
+  p_status text,
+  p_period_start timestamptz default null,
+  p_period_end timestamptz default null,
+  p_grace_until timestamptz default null,
+  p_provider text default null,
+  p_external_customer_id text default null,
+  p_external_subscription_id text default null
+) returns jsonb language plpgsql security definer set search_path=public as $$
+declare s public.account_subscriptions%rowtype;
+begin
+  if p_status not in ('pending_checkout','trialing','active','past_due','grace','suspended','canceled') then raise exception 'Status de cobrança inválido.'; end if;
+  update public.account_subscriptions set
+    status=p_status,
+    current_period_start=coalesce(p_period_start,current_period_start),
+    current_period_end=coalesce(p_period_end,current_period_end),
+    grace_until=p_grace_until,
+    billing_provider=coalesce(p_provider,billing_provider),
+    external_customer_id=coalesce(p_external_customer_id,external_customer_id),
+    external_subscription_id=coalesce(p_external_subscription_id,external_subscription_id),
+    canceled_at=case when p_status='canceled' then now() else canceled_at end,
+    updated_at=now()
+  where id=p_subscription_id returning * into s;
+  if s.id is null then raise exception 'Assinatura não encontrada.'; end if;
+  return jsonb_build_object('subscription_id',s.id,'status',s.status,'access_mode',public.subscription_access_mode(s.status,s.current_period_end,s.grace_until));
+end $$;
+revoke all on function public.billing_apply_subscription_state(uuid,text,timestamptz,timestamptz,timestamptz,text,text,text) from public,anon,authenticated;
+grant execute on function public.billing_apply_subscription_state(uuid,text,timestamptz,timestamptz,timestamptz,text,text,text) to service_role;
+
+create or replace function public.create_professional_account(
+  p_full_name text,
+  p_profession_type text,
+  p_invite_code text
+) returns jsonb
+language plpgsql security definer set search_path=public as $$
+declare
+  uid uuid:=auth.uid();
+  target public.clinics%rowtype;
+  company_sub public.account_subscriptions%rowtype;
+  company_plan public.billing_plans%rowtype;
+  profession text:=upper(trim(coalesce(p_profession_type,'OUTRO')));
+  profile_role text;
+  app_role_value text;
+  member_count integer;
+  other_company_count integer;
+begin
+  if uid is null then return jsonb_build_object('success',false,'error','Sessão inválida.'); end if;
+  if length(trim(coalesce(p_invite_code,'')))<4 then return jsonb_build_object('success',false,'error','Informe o código da empresa.'); end if;
+  if profession not in ('DENTISTA','CADISTA','PROTETICO','ATENDIMENTO','RADIOLOGISTA','OUTRO') then profession:='OUTRO'; end if;
+
+  select * into target from public.clinics where upper(trim(invite_code))=upper(trim(p_invite_code)) limit 1;
+  if target.id is null then return jsonb_build_object('success',false,'error','Código de empresa inválido.'); end if;
+
+  select * into company_sub from public.account_subscriptions
+  where clinic_id=target.id and status<>'canceled' order by created_at desc limit 1;
+  if company_sub.id is null then return jsonb_build_object('success',false,'error','A empresa não possui assinatura configurada.'); end if;
+  select * into company_plan from public.billing_plans where code=company_sub.plan_code and account_scope='company';
+  if public.subscription_access_mode(company_sub.status,company_sub.current_period_end,company_sub.grace_until)<>'full' then
+    return jsonb_build_object('success',false,'error','A assinatura desta empresa precisa estar ativa.');
+  end if;
+
+  select count(*) into other_company_count from public.clinic_members
+  where user_id=uid and status in ('active','accepted') and clinic_id<>target.id;
+  if other_company_count>0 then return jsonb_build_object('success',false,'error','Uma conta profissional só pode pertencer a uma empresa.'); end if;
+
+  select count(*) into member_count from public.clinic_members where clinic_id=target.id and status in ('active','accepted') and user_id<>uid;
+  if company_plan.max_members>0 and member_count>=company_plan.max_members then
+    return jsonb_build_object('success',false,'error','A empresa atingiu o limite de membros do plano.');
+  end if;
+
+  profile_role:=case profession when 'DENTISTA' then 'DR' when 'CADISTA' then 'CADISTA' when 'PROTETICO' then 'PROTETICO' when 'ATENDIMENTO' then 'ATENDIMENTO' when 'RADIOLOGISTA' then 'USER' else 'USER' end;
+  app_role_value:=case profession when 'DENTISTA' then 'dentista' when 'CADISTA' then 'cadista' when 'PROTETICO' then 'protetico' when 'ATENDIMENTO' then 'recepcionista' else 'auxiliar' end;
+
+  insert into public.profiles(id,full_name,role,account_subtype,account_type,profession_type,is_default_admin,clinic_id)
+  values(uid,nullif(trim(p_full_name),''),profile_role,profile_role,'professional',profession,false,target.id)
+  on conflict(id) do update set
+    full_name=coalesce(excluded.full_name,profiles.full_name),role=profile_role,account_subtype=profile_role,
+    account_type='professional',profession_type=profession,is_default_admin=false,clinic_id=target.id,updated_at=now();
+
+  insert into public.clinic_members(clinic_id,user_id,role,status,decided_by,decided_at,access_source)
+  values(target.id,uid,profile_role,'active',target.owner_id,now(),'company_seat')
+  on conflict(clinic_id,user_id) do update set role=excluded.role,status='active',decided_by=excluded.decided_by,decided_at=now(),access_source='company_seat';
+
+  delete from public.user_roles where user_id=uid;
+  insert into public.user_roles(user_id,role) values(uid,app_role_value::public.app_role) on conflict(user_id,role) do nothing;
+
+  if profession='CADISTA' then
+    insert into public.cadistas(name,user_id) values(coalesce(nullif(trim(p_full_name),''),'Cadista'),uid)
+    on conflict(user_id) do update set name=excluded.name;
+  elsif profession='DENTISTA' then
+    insert into public.doctors(name,user_id) values(coalesce(nullif(trim(p_full_name),''),'Dentista'),uid)
+    on conflict(user_id) do update set name=excluded.name;
+  elsif profession='PROTETICO' then
+    insert into public.proteticos(name,user_id) values(coalesce(nullif(trim(p_full_name),''),'Protético'),uid)
+    on conflict(user_id) do update set name=excluded.name;
+  end if;
+
+  return jsonb_build_object('success',true,'clinic_id',target.id,'clinic_name',target.name,'role',profile_role,'profession_type',profession,'context',public.my_subscription_context());
+exception when others then
+  return jsonb_build_object('success',false,'error',sqlerrm);
+end $$;
+
+drop function if exists public.create_professional_account(text,text);
+grant execute on function public.create_professional_account(text,text,text) to authenticated;
+
+-- Existing recovery link is now one-company-only and has no professional billing dependency.
+create or replace function public.link_professional_company(p_invite_code text)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare
+  uid uuid:=auth.uid();
+  pr public.profiles%rowtype;
+  result jsonb;
+begin
+  select * into pr from public.profiles where id=uid;
+  if pr.id is null or coalesce(pr.account_type,'')<>'professional' then return jsonb_build_object('success',false,'error','Conta profissional necessária.'); end if;
+  if pr.clinic_id is not null then return jsonb_build_object('success',false,'error','Sua conta profissional já está vinculada a uma empresa.'); end if;
+  result:=public.create_professional_account(pr.full_name,coalesce(pr.profession_type,pr.account_subtype,pr.role,'OUTRO'),p_invite_code);
+  return result;
+end $$;
+grant execute on function public.link_professional_company(text) to authenticated;
+
+create or replace function public.billing_test_capability()
+returns jsonb language sql stable security definer set search_path=public as $$
+  select jsonb_build_object(
+    'enabled',exists(select 1 from public.billing_test_access t where t.user_id=auth.uid() and t.enabled_until>now()),
+    'until',(select t.enabled_until from public.billing_test_access t where t.user_id=auth.uid() and t.enabled_until>now() limit 1)
+  )
+$$;
+grant execute on function public.billing_test_capability() to authenticated;
+
+create or replace function public.billing_test_mark_checkout_paid(p_checkout_intent_id uuid)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare allowed boolean; intent public.checkout_intents%rowtype; result jsonb;
+begin
+  select exists(select 1 from public.billing_test_access t where t.user_id=auth.uid() and t.enabled_until>now()) into allowed;
+  if not allowed then return jsonb_build_object('success',false,'error','Modo de teste não autorizado.'); end if;
+  select * into intent from public.checkout_intents where id=p_checkout_intent_id and user_id=auth.uid();
+  if intent.id is null then return jsonb_build_object('success',false,'error','Checkout não encontrado.'); end if;
+  result:=public.billing_apply_checkout_paid(intent.id,'sandbox','sandbox-'||intent.id::text,null,'sandbox-sub-'||intent.subscription_id::text,now(),now()+interval '30 days');
+  return jsonb_build_object('success',true,'subscription_id',intent.subscription_id,'current_period_end',result->>'current_period_end','context',public.my_subscription_context());
+exception when others then return jsonb_build_object('success',false,'error',sqlerrm); end $$;
+grant execute on function public.billing_test_mark_checkout_paid(uuid) to authenticated;
+
+create or replace function public.billing_test_simulate_nonpayment(p_clinic_id uuid)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare allowed boolean; sub_id uuid;
+begin
+  select exists(select 1 from public.billing_test_access t where t.user_id=auth.uid() and t.enabled_until>now()) into allowed;
+  if not allowed then return jsonb_build_object('success',false,'error','Modo de teste não autorizado.'); end if;
+  if not exists(select 1 from public.clinics c where c.id=p_clinic_id and c.owner_id=auth.uid()) then return jsonb_build_object('success',false,'error','Somente o administrador da empresa pode simular cobrança.'); end if;
+  select id into sub_id from public.account_subscriptions where clinic_id=p_clinic_id and status<>'canceled' order by created_at desc limit 1;
+  if sub_id is null then return jsonb_build_object('success',false,'error','Assinatura não encontrada.'); end if;
+  update public.account_subscriptions set status='past_due',current_period_end=now()-interval '1 second',grace_until=null,updated_at=now() where id=sub_id;
+  return jsonb_build_object('success',true,'context',public.my_subscription_context());
+exception when others then return jsonb_build_object('success',false,'error',sqlerrm); end $$;
+grant execute on function public.billing_test_simulate_nonpayment(uuid) to authenticated;
+
+-- ===== 20260909044000_company_invites_and_entitlement_guards_032.sql =====
+
+-- DentalFlow 0.3.2 — company invite onboarding, one-company professional accounts,
+-- billing QA enrollment, and server-side entitlement enforcement.
+
+-- Neutralize the legacy two-argument checkout overload so every checkout follows
+-- the company-only implementation created in the previous migration.
+drop function if exists public.create_checkout_intent(text,uuid);
+create function public.create_checkout_intent(p_plan_code text, p_clinic_id uuid)
+returns jsonb
+language sql security definer set search_path=public as $$
+  select public.create_checkout_intent(p_plan_code,p_clinic_id,null::text[])
+$$;
+grant execute on function public.create_checkout_intent(text,uuid) to authenticated;
+
+-- A professional code is validated before auth signup so an invalid/expired code
+-- cannot leave behind a login account with no company.
+create or replace function public.validate_company_invite_code(p_invite_code text)
+returns jsonb
+language plpgsql stable security definer set search_path=public as $$
+declare
+  c public.clinics%rowtype;
+  s public.account_subscriptions%rowtype;
+  p public.billing_plans%rowtype;
+  member_count integer;
+begin
+  if length(trim(coalesce(p_invite_code,'')))<4 then
+    return jsonb_build_object('valid',false,'reason','invalid_code');
+  end if;
+
+  select * into c from public.clinics
+  where upper(trim(invite_code))=upper(trim(p_invite_code)) limit 1;
+  if c.id is null then return jsonb_build_object('valid',false,'reason','invalid_code'); end if;
+
+  select * into s from public.account_subscriptions
+  where clinic_id=c.id and status<>'canceled' order by created_at desc limit 1;
+  if s.id is null or public.subscription_access_mode(s.status,s.current_period_end,s.grace_until)<>'full' then
+    return jsonb_build_object('valid',false,'reason','company_inactive','clinic_name',c.name);
+  end if;
+
+  select * into p from public.billing_plans where code=s.plan_code and account_scope='company' and is_active;
+  select count(*) into member_count from public.clinic_members
+  where clinic_id=c.id and status in ('active','accepted');
+
+  if p.max_members>0 and member_count>=p.max_members then
+    return jsonb_build_object('valid',false,'reason','seat_limit','clinic_name',c.name);
+  end if;
+
+  return jsonb_build_object(
+    'valid',true,'clinic_name',c.name,'plan_name',p.name,
+    'members_used',member_count,'members_limit',p.max_members
+  );
+end $$;
+grant execute on function public.validate_company_invite_code(text) to anon,authenticated;
+
+-- Company admins can retrieve the private invite code and current seat usage,
+-- without exposing the company directory publicly.
+create or replace function public.company_team_invite_info()
+returns jsonb
+language plpgsql security definer set search_path=public as $$
+declare
+  uid uuid:=auth.uid();
+  cid uuid;
+  c public.clinics%rowtype;
+  s public.account_subscriptions%rowtype;
+  p public.billing_plans%rowtype;
+  member_count integer;
+  code text;
+  allowed boolean;
+begin
+  if uid is null then raise exception 'Sessão inválida.'; end if;
+  select clinic_id into cid from public.profiles where id=uid;
+  if cid is null then raise exception 'Empresa não encontrada.'; end if;
+
+  select exists(select 1 from public.clinics x where x.id=cid and x.owner_id=uid)
+    or exists(select 1 from public.clinic_members m where m.clinic_id=cid and m.user_id=uid and m.status in ('active','accepted') and upper(m.role) in ('CEO','ADMIN'))
+  into allowed;
+  if not allowed then raise exception 'Somente o administrador pode convidar membros.'; end if;
+
+  select * into c from public.clinics where id=cid;
+  code:=nullif(trim(c.invite_code),'');
+  if code is null then
+    loop
+      code:=upper(encode(gen_random_bytes(6),'hex'));
+      exit when not exists(select 1 from public.clinics x where upper(coalesce(x.invite_code,''))=code);
+    end loop;
+    update public.clinics set invite_code=code,updated_at=now() where id=cid;
+  end if;
+
+  select * into s from public.account_subscriptions
+  where clinic_id=cid and status<>'canceled' order by created_at desc limit 1;
+  if s.id is not null then select * into p from public.billing_plans where code=s.plan_code; end if;
+  select count(*) into member_count from public.clinic_members where clinic_id=cid and status in ('active','accepted');
+
+  return jsonb_build_object(
+    'clinic_id',cid,'clinic_name',c.name,'invite_code',code,
+    'plan_code',p.code,'plan_name',p.name,'members_used',member_count,'members_limit',coalesce(p.max_members,0),
+    'access_mode',case when s.id is null then 'billing_only' else public.subscription_access_mode(s.status,s.current_period_end,s.grace_until) end
+  );
+end $$;
+grant execute on function public.company_team_invite_info() to authenticated;
+
+-- Professional accounts are company seats, never multi-company identities.
+create or replace function public.enforce_professional_single_company()
+returns trigger language plpgsql security definer set search_path=public as $$
+declare acct text;
+begin
+  if new.status not in ('active','accepted') then return new; end if;
+  select account_type into acct from public.profiles where id=new.user_id;
+  if acct='professional' and exists(
+    select 1 from public.clinic_members m
+    where m.user_id=new.user_id and m.clinic_id<>new.clinic_id
+      and m.status in ('active','accepted') and m.id<>new.id
+  ) then
+    raise exception 'Uma conta profissional só pode pertencer a uma empresa.';
+  end if;
+  return new;
+end $$;
+drop trigger if exists trg_professional_single_company on public.clinic_members;
+create trigger trg_professional_single_company
+before insert or update of clinic_id,user_id,status on public.clinic_members
+for each row execute function public.enforce_professional_single_company();
+
+drop function if exists public.unlink_professional_company(uuid);
+
+-- One-time QA codes let a fresh test company exercise the paid lifecycle without
+-- opening a client-controlled "mark as paid" backdoor.
+create table if not exists public.billing_test_tokens (
+  id uuid primary key default gen_random_uuid(),
+  token_hash text not null unique,
+  label text,
+  expires_at timestamptz not null,
+  max_redemptions integer not null default 1 check(max_redemptions between 1 and 20),
+  redemption_count integer not null default 0 check(redemption_count>=0),
+  created_at timestamptz not null default now()
+);
+alter table public.billing_test_tokens enable row level security;
+-- No table policies: codes are only consumed through the SECURITY DEFINER RPC.
+
+create or replace function public.billing_test_redeem_token(p_token text)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare t public.billing_test_tokens%rowtype; until_at timestamptz;
+begin
+  if auth.uid() is null then return jsonb_build_object('success',false,'error','Sessão inválida.'); end if;
+  if length(trim(coalesce(p_token,'')))<8 then return jsonb_build_object('success',false,'error','Código de teste inválido.'); end if;
+
+  select * into t from public.billing_test_tokens
+  where token_hash=encode(digest(upper(trim(p_token)),'sha256'),'hex')
+    and expires_at>now() and redemption_count<max_redemptions
+  for update;
+  if t.id is null then return jsonb_build_object('success',false,'error','Código de teste inválido, usado ou expirado.'); end if;
+
+  update public.billing_test_tokens set redemption_count=redemption_count+1 where id=t.id;
+  until_at:=least(t.expires_at,now()+interval '48 hours');
+  insert into public.billing_test_access(user_id,enabled_until,created_by)
+  values(auth.uid(),until_at,'one_time_token')
+  on conflict(user_id) do update set enabled_until=greatest(billing_test_access.enabled_until,excluded.enabled_until),created_by='one_time_token';
+
+  return jsonb_build_object('success',true,'enabled',true,'until',until_at);
+end $$;
+grant execute on function public.billing_test_redeem_token(text) to authenticated;
+
+-- Email-confirmation-safe onboarding. Signup metadata is user supplied but every
+-- field is revalidated by the authoritative company/professional creation RPCs.
+create or replace function public.finalize_pending_onboarding()
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare
+  uid uuid:=auth.uid();
+  claims jsonb:=auth.jwt();
+  meta jsonb;
+  mode text;
+  sessions text[];
+  existing_profile public.profiles%rowtype;
+  cid uuid;
+begin
+  if uid is null then return jsonb_build_object('success',false,'error','Sessão inválida.'); end if;
+  select * into existing_profile from public.profiles where id=uid;
+  if existing_profile.clinic_id is not null then return jsonb_build_object('success',true,'already_finalized',true); end if;
+  if exists(select 1 from public.clinics where owner_id=uid) then return jsonb_build_object('success',true,'already_finalized',true); end if;
+
+  meta:=coalesce(claims->'user_metadata','{}'::jsonb);
+  mode:=coalesce(meta->>'pending_account_mode','');
+  if mode='professional' then
+    return public.create_professional_account(
+      coalesce(meta->>'full_name',''),
+      coalesce(meta->>'pending_profession_type','OUTRO'),
+      coalesce(meta->>'pending_invite_code','')
+    );
+  elsif mode='company' then
+    select coalesce(array_agg(value),'{}'::text[]) into sessions
+    from jsonb_array_elements_text(coalesce(meta->'pending_company_sessions','[]'::jsonb));
+    return public.create_company_account(
+      coalesce(meta->>'pending_company_name',''),
+      case when sessions[1]='clinic' then 'consultorio' when sessions[1]='radiology' then 'radiologia' else 'laboratorio' end,
+      coalesce(meta->>'full_name',''),
+      coalesce(meta->>'pending_company_plan','company_initial'),
+      sessions
+    );
+  end if;
+  return jsonb_build_object('success',true,'nothing_pending',true);
+end $$;
+grant execute on function public.finalize_pending_onboarding() to authenticated;
+
+-- Paid state must be authoritative below the UI as well. These role helpers are
+-- used throughout legacy RLS policies, so expired companies lose operational
+-- REST/storage access even if a client attempts to bypass SubscriptionGate.
+create or replace function public.has_role(_user_id uuid, _role public.app_role)
+returns boolean language sql stable security definer set search_path=public as $$
+  select exists(
+    select 1 from public.user_roles ur
+    join public.profiles p on p.id=ur.user_id
+    where ur.user_id=_user_id and ur.role=_role and p.clinic_id is not null
+      and public.company_has_operational_access(p.clinic_id)
+  )
+$$;
+
+create or replace function public.has_any_role(_user_id uuid, _roles public.app_role[])
+returns boolean language sql stable security definer set search_path=public as $$
+  select exists(
+    select 1 from public.user_roles ur
+    join public.profiles p on p.id=ur.user_id
+    where ur.user_id=_user_id and ur.role=any(_roles) and p.clinic_id is not null
+      and public.company_has_operational_access(p.clinic_id)
+  )
+$$;
+
+create or replace function public.is_cadista(_user_id uuid)
+returns boolean language sql stable security definer set search_path=public as $$
+  select public.has_role(_user_id,'cadista'::public.app_role)
+$$;
+
+create or replace function public.is_staff(_user_id uuid)
+returns boolean language sql stable security definer set search_path=public as $$
+  select exists(
+    select 1 from public.user_roles ur
+    join public.profiles p on p.id=ur.user_id
+    where ur.user_id=_user_id
+      and ur.role in ('admin','dentista','recepcionista','auxiliar','protetico','SOLICITANTE')
+      and p.clinic_id is not null and public.company_has_operational_access(p.clinic_id)
+  )
+$$;
+
+create or replace function public.current_user_is_admin()
+returns boolean language sql stable security definer set search_path=public as $$
+  select exists(
+    select 1 from public.profiles p
+    where p.id=auth.uid() and p.role in ('CEO','DR') and p.clinic_id is not null
+      and public.company_has_operational_access(p.clinic_id)
+  )
+$$;
+
+create or replace function public.can_access_case(_case_id uuid)
+returns boolean language sql stable security definer set search_path=public as $$
+  select exists(
+    select 1 from public.profiles p
+    where p.id=auth.uid() and p.clinic_id is not null and public.company_has_operational_access(p.clinic_id)
+  ) and (
+    public.is_staff(auth.uid()) or public.current_user_is_admin() or exists(
+      select 1 from public.cases c where c.id=_case_id and (
+        c.requested_by=auth.uid() or exists(select 1 from public.cadistas cd where cd.id=c.cadista_id and cd.user_id=auth.uid())
+      )
+    )
+  )
+$$;
+
+create or replace function public.can_access_patient(_patient_id uuid)
+returns boolean language plpgsql stable security definer set search_path=public as $$
+declare v_user uuid:=auth.uid(); v_type text:=''; v_admin boolean:=false; v_clinic uuid;
+begin
+  if v_user is null then return false; end if;
+  select upper(coalesce(nullif(trim(p.account_subtype),''),nullif(trim(p.role),''),'')),coalesce(p.is_default_admin,false),p.clinic_id
+    into v_type,v_admin,v_clinic from public.profiles p where p.id=v_user;
+  if v_clinic is null or not public.company_has_operational_access(v_clinic) then return false; end if;
+  if v_admin or v_type in ('CEO','ADMIN','PROTETICO') then return true; end if;
+  return exists(select 1 from public.cases c where c.patient_id=_patient_id and public.can_access_case(c.id));
+end $$;
+
+-- Clinical permission checks also fail closed when the company period expires.
+create or replace function public.clinical_permission_allowed(_clinic_id uuid, _permission text)
+returns boolean language plpgsql stable security definer set search_path=public as $$
+declare v_role text;
+begin
+  if auth.uid() is null then return false; end if;
+  if not public.company_has_operational_access(_clinic_id) then return false; end if;
+  if not public.is_clinic_member(_clinic_id,auth.uid()) then return false; end if;
+  if not public.clinic_module_enabled(_clinic_id,'clinical') then return false; end if;
+  if public.can_manage_clinic_permissions(_clinic_id) then return true; end if;
+  v_role:=public.current_clinic_role(_clinic_id);
+  return exists(select 1 from public.clinic_role_permissions p where p.clinic_id=_clinic_id and upper(p.role)=upper(coalesce(v_role,'USER')) and p.permission=_permission and p.allowed=true);
+end $$;
+
+-- DICOM read access follows the same paid entitlement as write access.
+drop policy if exists dicom_objects_read on storage.objects;
+create policy dicom_objects_read on storage.objects for select to authenticated using (
+  bucket_id='dicom-files' and exists(
+    select 1 from public.clinics c
+    where c.id::text=split_part(name,'/',1) and public.user_can_use_company_session(c.id,'radiology')
+  )
+);
+
+drop policy if exists radiology_studies_member_read on public.radiology_studies;
+create policy radiology_studies_member_read on public.radiology_studies for select to authenticated using (
+  public.user_can_use_company_session(clinic_id,'radiology')
+);
+
+grant execute on function public.has_role(uuid,public.app_role),public.has_any_role(uuid,public.app_role[]),public.is_cadista(uuid),public.is_staff(uuid),public.current_user_is_admin(),public.can_access_case(uuid),public.can_access_patient(uuid),public.clinical_permission_allowed(uuid,text) to authenticated;
+
+-- ===== 20260909144500_ipo_internal_full_access_032.sql =====
+
+-- DentalFlow 0.3.2 — IPO internal account compatibility and full-access invariants.
+--
+-- Goals:
+-- 1. Preserve the existing IPO company, users, roles and operational data.
+-- 2. Make IPO permanently equivalent to the most complete company plan.
+-- 3. Ensure ordinary companies can never inherit the internal IPO entitlement.
+-- 4. Keep legacy modules_enabled in sync with the new company_sessions model.
+
+alter table public.clinics
+  add column if not exists billing_exempt boolean not null default false;
+
+-- Only the pre-existing Instituto Praia account is promoted to internal full access.
+-- New companies must never receive this flag automatically.
+update public.clinics
+set billing_exempt = true,
+    company_type = 'IPO'
+where company_type = 'IPO'
+  and name ilike '%Instituto Praia%';
+
+-- Defensive cleanup for any ordinary company accidentally created as IPO by an
+-- intermediate 0.3.2 function before this migration is applied.
+update public.clinics
+set company_type = 'COMPANY'
+where company_type = 'IPO'
+  and billing_exempt = false;
+
+create or replace function public.is_internal_full_access_company(_clinic_id uuid)
+returns boolean
+language sql stable security definer set search_path=public as $$
+  select exists(
+    select 1 from public.clinics c
+    where c.id=_clinic_id and c.billing_exempt=true
+  )
+$$;
+
+create or replace function public.company_has_operational_access(_clinic_id uuid)
+returns boolean
+language sql stable security definer set search_path=public as $$
+  select public.is_internal_full_access_company(_clinic_id)
+    or coalesce((
+      select public.subscription_access_mode(s.status,s.current_period_end,s.grace_until)='full'
+      from public.account_subscriptions s
+      where s.clinic_id=_clinic_id
+      order by (s.status<>'canceled') desc,s.created_at desc
+      limit 1
+    ),false)
+$$;
+
+-- Compatibility bridge: company_sessions is authoritative for the new Hub, but
+-- existing routes still read clinics.modules_enabled. Preserve unrelated legacy
+-- modules (e.g. financial) while mirroring Laboratory/Clinic/Radiology sessions.
+create or replace function public.sync_company_legacy_modules(_clinic_id uuid)
+returns void
+language plpgsql security definer set search_path=public as $$
+declare
+  extras text[];
+  session_modules text[];
+begin
+  select coalesce(array_agg(distinct lower(m)),'{}'::text[])
+    into extras
+  from public.clinics c
+  cross join lateral unnest(coalesce(c.modules_enabled,'{}'::text[])) m
+  where c.id=_clinic_id
+    and lower(m) not in ('laboratory','laboratorio','laboratório','lab','clinical','clinic','clinica','clínica','radiology','radiologia','imaging','image');
+
+  select coalesce(array_agg(distinct case s.session_type
+      when 'laboratory' then 'laboratory'
+      when 'clinic' then 'clinical'
+      when 'radiology' then 'radiology'
+      else null end) filter (where s.status='active'),'{}'::text[])
+    into session_modules
+  from public.company_sessions s
+  where s.clinic_id=_clinic_id;
+
+  update public.clinics
+  set modules_enabled=(
+    select coalesce(array_agg(distinct x order by x),'{}'::text[])
+    from unnest(coalesce(extras,'{}'::text[]) || coalesce(session_modules,'{}'::text[])) x
+    where x is not null and x<>''
+  )
+  where id=_clinic_id;
+end $$;
+
+-- Preserve the legacy IPO member identities. No password/account is recreated;
+-- missing company membership rows are simply backfilled around the existing users.
+update public.profiles p
+set account_type=case
+      when coalesce(p.is_default_admin,false) or upper(coalesce(p.role,'')) in ('CEO','ADMIN') then 'company_admin'
+      else 'company_member'
+    end,
+    profession_type=coalesce(p.profession_type,p.account_subtype,p.role),
+    updated_at=now()
+from public.clinics c
+where p.clinic_id=c.id and c.billing_exempt=true;
+
+insert into public.clinic_members(
+  clinic_id,user_id,role,status,invited_by,decided_by,decided_at,access_source
+)
+select p.clinic_id,p.id,coalesce(p.role,'USER'),'active',c.owner_id,c.owner_id,now(),'company_seat'
+from public.profiles p
+join public.clinics c on c.id=p.clinic_id
+where c.billing_exempt=true
+on conflict(clinic_id,user_id) do update set
+  access_source='company_seat';
+
+-- IPO always owns the complete session set. Existing non-session modules stay intact.
+insert into public.company_sessions(clinic_id,session_type,status,sharing_mode)
+select c.id,s,'active','company'
+from public.clinics c
+cross join unnest(array['laboratory','clinic','radiology']::text[]) s
+where c.billing_exempt=true
+on conflict(clinic_id,session_type) do update set
+  status='active',sharing_mode='company',updated_at=now();
+
+-- Normalize/create the IPO subscription without touching patient/case/file data.
+update public.account_subscriptions s
+set scope_type='company',
+    user_id=null,
+    plan_code='company_advanced',
+    status='active',
+    current_period_start=coalesce(s.current_period_start,now()),
+    current_period_end='9999-12-31 23:59:59+00'::timestamptz,
+    grace_until=null,
+    canceled_at=null,
+    billing_provider='internal_override',
+    metadata=coalesce(s.metadata,'{}'::jsonb) || jsonb_build_object('internal_full_access',true,'account','IPO','version','0.3.2'),
+    updated_at=now()
+from public.clinics c
+where s.clinic_id=c.id and c.billing_exempt=true and s.status<>'canceled';
+
+insert into public.account_subscriptions(
+  scope_type,clinic_id,plan_code,status,billing_day,current_period_start,current_period_end,billing_provider,metadata
+)
+select 'company',c.id,'company_advanced','active',1,now(),'9999-12-31 23:59:59+00'::timestamptz,'internal_override',
+       jsonb_build_object('internal_full_access',true,'account','IPO','version','0.3.2')
+from public.clinics c
+where c.billing_exempt=true
+  and not exists(select 1 from public.account_subscriptions s where s.clinic_id=c.id and s.status<>'canceled');
+
+update public.clinics
+set storage_limit_bytes=greatest(storage_limit_bytes,536870912000)
+where billing_exempt=true;
+
+select public.sync_company_legacy_modules(c.id)
+from public.clinics c
+where c.billing_exempt=true;
+
+-- Even service-side billing state updates cannot accidentally downgrade an
+-- internal account. This trigger is intentionally narrow: it only acts when the
+-- company has billing_exempt=true.
+create or replace function public.protect_internal_subscription()
+returns trigger language plpgsql security definer set search_path=public as $$
+declare
+  protected_clinic uuid;
+begin
+  protected_clinic:=coalesce(new.clinic_id,old.clinic_id);
+  if public.is_internal_full_access_company(protected_clinic) then
+    if tg_op='UPDATE' then new.clinic_id:=old.clinic_id; end if;
+    new.scope_type:='company';
+    new.user_id:=null;
+    new.plan_code:='company_advanced';
+    new.status:='active';
+    new.current_period_start:=coalesce(old.current_period_start,new.current_period_start,now());
+    new.current_period_end:='9999-12-31 23:59:59+00'::timestamptz;
+    new.grace_until:=null;
+    new.canceled_at:=null;
+    new.billing_provider:='internal_override';
+    new.metadata:=coalesce(new.metadata,'{}'::jsonb) || jsonb_build_object('internal_full_access',true,'account','IPO');
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists trg_protect_internal_subscription on public.account_subscriptions;
+create trigger trg_protect_internal_subscription
+before insert or update on public.account_subscriptions
+for each row execute function public.protect_internal_subscription();
+
+create or replace function public.prevent_internal_subscription_delete()
+returns trigger language plpgsql security definer set search_path=public as $$
+begin
+  if public.is_internal_full_access_company(old.clinic_id) then return null; end if;
+  return old;
+end $$;
+
+drop trigger if exists trg_prevent_internal_subscription_delete on public.account_subscriptions;
+create trigger trg_prevent_internal_subscription_delete
+before delete on public.account_subscriptions
+for each row execute function public.prevent_internal_subscription_delete();
+
+-- Protect the internal company marker, complete modules and minimum storage from
+-- ordinary clinic updates. Existing name/kind/settings remain editable.
+create or replace function public.protect_internal_company_entitlements()
+returns trigger language plpgsql security definer set search_path=public as $$
+begin
+  if old.billing_exempt=true then
+    new.billing_exempt:=true;
+    new.company_type:='IPO';
+    new.storage_limit_bytes:=greatest(coalesce(new.storage_limit_bytes,0),536870912000);
+    new.modules_enabled:=(
+      select array_agg(distinct x order by x)
+      from unnest(coalesce(new.modules_enabled,'{}'::text[]) || array['laboratory','clinical','radiology']::text[]) x
+    );
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists trg_protect_internal_company_entitlements on public.clinics;
+create trigger trg_protect_internal_company_entitlements
+before update on public.clinics
+for each row execute function public.protect_internal_company_entitlements();
+
+-- Snapshot reports the permanent full entitlement for IPO but keeps the exact
+-- same JSON shape consumed by Web/Desktop clients.
+create or replace function public.company_subscription_snapshot(_clinic_id uuid)
+returns jsonb
+language plpgsql stable security definer set search_path=public as $$
+declare
+  s public.account_subscriptions%rowtype;
+  p public.billing_plans%rowtype;
+  allowed boolean;
+  internal boolean;
+begin
+  select exists(select 1 from public.clinics c where c.id=_clinic_id and c.owner_id=auth.uid())
+      or public.active_company_member(_clinic_id,auth.uid())
+      or exists(select 1 from public.profiles pr where pr.id=auth.uid() and pr.clinic_id=_clinic_id)
+    into allowed;
+  if not allowed then return null; end if;
+
+  internal:=public.is_internal_full_access_company(_clinic_id);
+  select * into s from public.account_subscriptions
+   where clinic_id=_clinic_id and status<>'canceled' order by created_at desc limit 1;
+  if s.id is null then
+    select * into s from public.account_subscriptions where clinic_id=_clinic_id order by created_at desc limit 1;
+  end if;
+  if s.id is null then return null; end if;
+  select * into p from public.billing_plans where code=case when internal then 'company_advanced' else s.plan_code end;
+
+  return jsonb_build_object(
+    'subscription_id',s.id,'scope','company','plan_code',p.code,'plan_name',p.name,
+    'status',case when internal then 'active' else s.status end,
+    'access_mode',case when internal then 'full' else public.subscription_access_mode(s.status,s.current_period_end,s.grace_until) end,
+    'billing_day',s.billing_day,
+    'current_period_end',case when internal then '9999-12-31 23:59:59+00'::timestamptz else s.current_period_end end,
+    'grace_until',case when internal then null else s.grace_until end,
+    'monthly_price_cents',p.monthly_price_cents,'currency',p.currency,
+    'max_sessions',p.max_sessions,'max_members',p.max_members,'storage_bytes',p.storage_bytes,'features',p.features,
+    'internal_full_access',internal,
+    'sessions',coalesce((select jsonb_agg(cs.session_type order by cs.session_type) from public.company_sessions cs where cs.clinic_id=_clinic_id and cs.status='active'),'[]'::jsonb)
+  );
+end $$;
+
+-- IPO session selection is immutable/full; ordinary companies keep plan limits.
+create or replace function public.configure_company_sessions(p_clinic_id uuid,p_session_types text[])
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare
+  max_allowed integer;
+  normalized text[];
+  is_manager boolean;
+begin
+  select exists(select 1 from public.clinics c where c.id=p_clinic_id and c.owner_id=auth.uid())
+      or exists(select 1 from public.clinic_members m where m.clinic_id=p_clinic_id and m.user_id=auth.uid() and m.status in ('active','accepted') and upper(m.role) in ('CEO','ADMIN'))
+    into is_manager;
+  if not is_manager then raise exception 'Sem permissão para configurar os ambientes.'; end if;
+
+  if public.is_internal_full_access_company(p_clinic_id) then
+    insert into public.company_sessions(clinic_id,session_type,status,sharing_mode)
+    select p_clinic_id,x,'active','company' from unnest(array['laboratory','clinic','radiology']::text[]) x
+    on conflict(clinic_id,session_type) do update set status='active',sharing_mode='company',updated_at=now();
+    perform public.sync_company_legacy_modules(p_clinic_id);
+    return public.company_subscription_snapshot(p_clinic_id);
+  end if;
+
+  select bp.max_sessions into max_allowed
+  from public.account_subscriptions s join public.billing_plans bp on bp.code=s.plan_code
+  where s.clinic_id=p_clinic_id and s.status<>'canceled'
+  order by s.created_at desc limit 1;
+  if max_allowed is null then raise exception 'Plano empresarial não encontrado.'; end if;
+
+  select coalesce(array_agg(distinct lower(x)),'{}'::text[]) into normalized
+  from unnest(coalesce(p_session_types,'{}'::text[])) x
+  where lower(x) in ('laboratory','clinic','radiology');
+  if cardinality(normalized)=0 then raise exception 'Selecione ao menos um ambiente.'; end if;
+  if cardinality(normalized)>max_allowed then raise exception 'Seu plano permite no máximo % ambiente(s).',max_allowed; end if;
+
+  update public.company_sessions set status='disabled' where clinic_id=p_clinic_id and not(session_type=any(normalized));
+  insert into public.company_sessions(clinic_id,session_type,status,sharing_mode)
+  select p_clinic_id,x,'active',case when max_allowed>1 then 'company' else 'isolated' end from unnest(normalized) x
+  on conflict(clinic_id,session_type) do update set status='active',sharing_mode=excluded.sharing_mode,updated_at=now();
+  perform public.sync_company_legacy_modules(p_clinic_id);
+  return public.company_subscription_snapshot(p_clinic_id);
+end $$;
+
+-- Correct the intermediate function that tagged every new company as IPO.
+create or replace function public.create_company_account(
+  p_name text,
+  p_kind text,
+  p_full_name text,
+  p_plan_code text default 'company_initial',
+  p_session_types text[] default null
+) returns jsonb language plpgsql security definer set search_path=public as $$
+declare
+  uid uuid:=auth.uid();
+  cid uuid;
+  plan public.billing_plans%rowtype;
+  sessions text[];
+  sub_id uuid;
+  checkout jsonb;
+begin
+  if uid is null then return jsonb_build_object('success',false,'error','Sessão inválida.'); end if;
+  if length(trim(coalesce(p_name,'')))<2 then return jsonb_build_object('success',false,'error','Informe o nome da empresa.'); end if;
+  select * into plan from public.billing_plans where code=p_plan_code and account_scope='company' and is_active;
+  if plan.code is null then return jsonb_build_object('success',false,'error','Plano empresarial inválido.'); end if;
+  if exists(select 1 from public.clinics where owner_id=uid) then return jsonb_build_object('success',false,'error','Esta conta já possui uma empresa.'); end if;
+
+  sessions:=coalesce(p_session_types,array[case when lower(coalesce(p_kind,'')) in ('consultorio','clinica','clinic') then 'clinic' when lower(coalesce(p_kind,'')) in ('radiologia','radiology') then 'radiology' else 'laboratory' end]);
+  select coalesce(array_agg(distinct lower(x)),'{}'::text[]) into sessions
+  from unnest(sessions) x where lower(x) in ('laboratory','clinic','radiology');
+  if cardinality(sessions)=0 or cardinality(sessions)>plan.max_sessions then
+    return jsonb_build_object('success',false,'error','Quantidade de ambientes incompatível com o plano.');
+  end if;
+
+  insert into public.clinics(name,kind,company_type,owner_id,modules_enabled,billing_exempt)
+  values(trim(p_name),lower(coalesce(p_kind,'empresa')),'COMPANY',uid,'{}'::text[],false)
+  returning id into cid;
+
+  insert into public.profiles(id,full_name,role,account_subtype,account_type,is_default_admin,clinic_id)
+  values(uid,nullif(trim(p_full_name),''),'CEO','CEO','company_admin',true,cid)
+  on conflict(id) do update set full_name=coalesce(excluded.full_name,profiles.full_name),role='CEO',account_subtype='CEO',account_type='company_admin',is_default_admin=true,clinic_id=cid,updated_at=now();
+
+  insert into public.clinic_members(clinic_id,user_id,role,status,invited_by,decided_by,decided_at,access_source)
+  values(cid,uid,'CEO','active',uid,uid,now(),'company_seat')
+  on conflict(clinic_id,user_id) do nothing;
+
+  insert into public.account_subscriptions(scope_type,clinic_id,plan_code,status,billing_day)
+  values('company',cid,plan.code,'pending_checkout',least(28,extract(day from now())::int)) returning id into sub_id;
+
+  insert into public.company_sessions(clinic_id,session_type,status,sharing_mode)
+  select cid,x,'active',case when plan.max_sessions>1 then 'company' else 'isolated' end from unnest(sessions) x;
+  perform public.sync_company_legacy_modules(cid);
+
+  checkout:=public.create_checkout_intent(plan.code,cid,sessions);
+  return jsonb_build_object('success',true,'clinic_id',cid,'plan_code',plan.code,'checkout',checkout);
+exception when others then
+  return jsonb_build_object('success',false,'error',sqlerrm);
+end $$;
+
+-- Sandbox non-payment must never suspend IPO.
+create or replace function public.billing_test_simulate_nonpayment(p_clinic_id uuid)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare allowed boolean; sub_id uuid;
+begin
+  select exists(select 1 from public.billing_test_access t where t.user_id=auth.uid() and t.enabled_until>now()) into allowed;
+  if not allowed then return jsonb_build_object('success',false,'error','Modo de teste não autorizado.'); end if;
+  if not exists(select 1 from public.clinics c where c.id=p_clinic_id and c.owner_id=auth.uid()) then
+    return jsonb_build_object('success',false,'error','Somente o administrador da empresa pode simular cobrança.');
+  end if;
+  if public.is_internal_full_access_company(p_clinic_id) then
+    return jsonb_build_object('success',false,'error','A conta interna IPO possui acesso permanente e não pode ser suspensa pelo sandbox.');
+  end if;
+  select id into sub_id from public.account_subscriptions where clinic_id=p_clinic_id and status<>'canceled' order by created_at desc limit 1;
+  if sub_id is null then return jsonb_build_object('success',false,'error','Assinatura não encontrada.'); end if;
+  update public.account_subscriptions set status='past_due',current_period_end=now()-interval '1 second',grace_until=null,updated_at=now() where id=sub_id;
+  return jsonb_build_object('success',true,'context',public.my_subscription_context());
+exception when others then return jsonb_build_object('success',false,'error',sqlerrm); end $$;
+
+grant execute on function public.is_internal_full_access_company(uuid),public.company_has_operational_access(uuid),public.sync_company_legacy_modules(uuid),public.configure_company_sessions(uuid,text[]),public.create_company_account(text,text,text,text,text[]),public.billing_test_simulate_nonpayment(uuid) to authenticated;
+
+-- ===== 20260909145500_ipo_entitlement_hardening_032.sql =====
+
+-- DentalFlow 0.3.2 — harden the permanent IPO entitlement against every billing path.
+
+-- Safe for both INSERT and UPDATE; never dereference OLD during INSERT.
+create or replace function public.protect_internal_subscription()
+returns trigger language plpgsql security definer set search_path=public as $$
+declare
+  protected_clinic uuid;
+  previous_start timestamptz;
+begin
+  if tg_op='INSERT' then
+    protected_clinic:=new.clinic_id;
+    previous_start:=null;
+  else
+    protected_clinic:=coalesce(new.clinic_id,old.clinic_id);
+    previous_start:=old.current_period_start;
+  end if;
+
+  if public.is_internal_full_access_company(protected_clinic) then
+    if tg_op='UPDATE' then new.clinic_id:=old.clinic_id; end if;
+    new.scope_type:='company';
+    new.user_id:=null;
+    new.plan_code:='company_advanced';
+    new.status:='active';
+    new.current_period_start:=coalesce(previous_start,new.current_period_start,now());
+    new.current_period_end:='9999-12-31 23:59:59+00'::timestamptz;
+    new.grace_until:=null;
+    new.canceled_at:=null;
+    new.billing_provider:='internal_override';
+    new.metadata:=coalesce(new.metadata,'{}'::jsonb) || jsonb_build_object('internal_full_access',true,'account','IPO');
+  end if;
+  return new;
+end $$;
+
+-- Billing-provider code updates company_sessions directly after payment. These
+-- triggers ensure no checkout, downgrade or sandbox call can disable an IPO area.
+create or replace function public.protect_internal_company_session()
+returns trigger language plpgsql security definer set search_path=public as $$
+declare
+  target_clinic uuid;
+begin
+  if tg_op='INSERT' then target_clinic:=new.clinic_id;
+  else target_clinic:=coalesce(new.clinic_id,old.clinic_id);
+  end if;
+
+  if public.is_internal_full_access_company(target_clinic) then
+    if tg_op='UPDATE' then
+      new.clinic_id:=old.clinic_id;
+      new.session_type:=old.session_type;
+    end if;
+    new.status:='active';
+    new.sharing_mode:='company';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists trg_protect_internal_company_session on public.company_sessions;
+create trigger trg_protect_internal_company_session
+before insert or update on public.company_sessions
+for each row execute function public.protect_internal_company_session();
+
+create or replace function public.prevent_internal_company_session_delete()
+returns trigger language plpgsql security definer set search_path=public as $$
+begin
+  if public.is_internal_full_access_company(old.clinic_id) then return null; end if;
+  return old;
+end $$;
+
+drop trigger if exists trg_prevent_internal_company_session_delete on public.company_sessions;
+create trigger trg_prevent_internal_company_session_delete
+before delete on public.company_sessions
+for each row execute function public.prevent_internal_company_session_delete();
+
+-- Re-assert all three sessions after trigger installation.
+insert into public.company_sessions(clinic_id,session_type,status,sharing_mode)
+select c.id,s,'active','company'
+from public.clinics c
+cross join unnest(array['laboratory','clinic','radiology']::text[]) s
+where c.billing_exempt=true
+on conflict(clinic_id,session_type) do update set
+  status='active',sharing_mode='company',updated_at=now();
+
+-- Test checkout approval is explicitly denied for internal accounts. The normal
+-- product never shows the checkout to IPO, but this closes the direct RPC path too.
+create or replace function public.billing_test_mark_checkout_paid(p_checkout_intent_id uuid)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare
+  allowed boolean;
+  intent public.checkout_intents%rowtype;
+  result jsonb;
+begin
+  select exists(select 1 from public.billing_test_access t where t.user_id=auth.uid() and t.enabled_until>now()) into allowed;
+  if not allowed then return jsonb_build_object('success',false,'error','Modo de teste não autorizado.'); end if;
+
+  select * into intent from public.checkout_intents where id=p_checkout_intent_id and user_id=auth.uid();
+  if intent.id is null then return jsonb_build_object('success',false,'error','Checkout não encontrado.'); end if;
+  if public.is_internal_full_access_company(intent.clinic_id) then
+    return jsonb_build_object('success',false,'error','A conta interna IPO já possui acesso completo permanente e não participa da cobrança.');
+  end if;
+
+  result:=public.billing_apply_checkout_paid(
+    intent.id,'sandbox','sandbox-'||intent.id::text,null,'sandbox-sub-'||intent.subscription_id::text,
+    now(),now()+interval '30 days'
+  );
+  return jsonb_build_object(
+    'success',true,
+    'subscription_id',intent.subscription_id,
+    'current_period_end',result->>'current_period_end',
+    'context',public.my_subscription_context()
+  );
+exception when others then
+  return jsonb_build_object('success',false,'error',sqlerrm);
+end $$;
+
+grant execute on function public.billing_test_mark_checkout_paid(uuid) to authenticated;
+
+-- Diagnostic used during rollout and future migrations. It never mutates data.
+create or replace function public.ipo_internal_invariant_report()
+returns jsonb language sql stable security definer set search_path=public as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'clinic_id',c.id,
+    'name',c.name,
+    'billing_exempt',c.billing_exempt,
+    'storage_ok',c.storage_limit_bytes>=536870912000,
+    'subscription_ok',exists(
+      select 1 from public.account_subscriptions s
+      where s.clinic_id=c.id and s.status='active' and s.plan_code='company_advanced'
+        and s.current_period_end>now()+interval '10 years'
+    ),
+    'sessions_ok',(select count(*) from public.company_sessions cs where cs.clinic_id=c.id and cs.status='active' and cs.session_type in ('laboratory','clinic','radiology'))=3,
+    'legacy_modules_ok',c.modules_enabled@>array['laboratory','clinical','radiology']::text[],
+    'profiles',(select count(*) from public.profiles p where p.clinic_id=c.id),
+    'members',(select count(*) from public.clinic_members m where m.clinic_id=c.id and m.status in ('active','accepted'))
+  )),'[]'::jsonb)
+  from public.clinics c
+  where c.billing_exempt=true
+$$;
+
+revoke all on function public.ipo_internal_invariant_report() from public,anon,authenticated;
+grant execute on function public.ipo_internal_invariant_report() to service_role;
+
+-- ===== 20260909150000_ipo_billing_exclusion_032.sql =====
+
+-- DentalFlow 0.3.2 — IPO never enters a commercial checkout lifecycle.
+-- Ordinary companies keep the same provider-agnostic checkout contract.
+
+create or replace function public.create_checkout_intent(
+  p_plan_code text,
+  p_clinic_id uuid,
+  p_session_types text[] default null
+) returns jsonb
+language plpgsql security definer set search_path=public as $$
+declare
+  plan public.billing_plans%rowtype;
+  sub public.account_subscriptions%rowtype;
+  intent public.checkout_intents%rowtype;
+  is_manager boolean;
+  requested text[];
+begin
+  if auth.uid() is null then raise exception 'Sessão inválida.'; end if;
+  if p_clinic_id is null then raise exception 'Empresa inválida.'; end if;
+  if public.is_internal_full_access_company(p_clinic_id) then
+    raise exception 'A conta interna IPO possui acesso completo permanente e não participa da cobrança.';
+  end if;
+
+  select * into plan from public.billing_plans
+  where code=p_plan_code and account_scope='company' and is_active;
+  if plan.code is null then raise exception 'Plano empresarial inválido.'; end if;
+
+  select exists(select 1 from public.clinics c where c.id=p_clinic_id and c.owner_id=auth.uid())
+      or exists(select 1 from public.clinic_members m where m.clinic_id=p_clinic_id and m.user_id=auth.uid() and m.status in ('active','accepted') and upper(m.role) in ('CEO','ADMIN'))
+  into is_manager;
+  if not is_manager then raise exception 'Sem permissão para alterar a assinatura.'; end if;
+
+  select coalesce(array_agg(distinct lower(x)),'{}'::text[]) into requested
+  from unnest(coalesce(p_session_types,'{}'::text[])) x
+  where lower(x) in ('laboratory','clinic','radiology');
+  if cardinality(requested)>plan.max_sessions then
+    raise exception 'O plano selecionado permite no máximo % ambiente(s).',plan.max_sessions;
+  end if;
+
+  select * into sub from public.account_subscriptions
+  where clinic_id=p_clinic_id and status<>'canceled'
+  order by created_at desc limit 1;
+
+  if sub.id is null then
+    insert into public.account_subscriptions(scope_type,clinic_id,plan_code,status,billing_day)
+    values('company',p_clinic_id,p_plan_code,'pending_checkout',least(28,extract(day from now())::int))
+    returning * into sub;
+  elsif sub.status='pending_checkout' then
+    update public.account_subscriptions set plan_code=p_plan_code,updated_at=now()
+    where id=sub.id returning * into sub;
+  end if;
+
+  update public.checkout_intents
+  set status='expired',updated_at=now()
+  where user_id=auth.uid() and clinic_id=p_clinic_id and status='pending' and expires_at<now();
+
+  insert into public.checkout_intents(
+    user_id,clinic_id,subscription_id,plan_code,amount_cents,currency,status,metadata
+  ) values(
+    auth.uid(),p_clinic_id,sub.id,p_plan_code,plan.monthly_price_cents,plan.currency,'pending',
+    jsonb_build_object('requested_sessions',coalesce(to_jsonb(requested),'[]'::jsonb),'billing_version','0.3.2')
+  ) returning * into intent;
+
+  return jsonb_build_object(
+    'checkout_intent_id',intent.id,
+    'subscription_id',sub.id,
+    'plan_code',plan.code,
+    'plan_name',plan.name,
+    'amount_cents',plan.monthly_price_cents,
+    'currency',plan.currency,
+    'status',intent.status,
+    'billing_mode','live'
+  );
+end $$;
+
+drop function if exists public.create_checkout_intent(text,uuid);
+create function public.create_checkout_intent(p_plan_code text,p_clinic_id uuid)
+returns jsonb language sql security definer set search_path=public as $$
+  select public.create_checkout_intent(p_plan_code,p_clinic_id,null::text[])
+$$;
+
+grant execute on function public.create_checkout_intent(text,uuid,text[]) to authenticated;
+grant execute on function public.create_checkout_intent(text,uuid) to authenticated;
+
+-- ===== 20260919213000_saas_contract_recovery_stage01.sql =====
+
+-- DentalFlow SaaS — Stage 01: canonical billing contract and provider identity.
+--
+-- This migration does not contact Asaas and does not activate subscriptions.
+-- It prepares an environment-aware, idempotent contract for the provider adapter.
+
+alter table public.account_subscriptions
+  add column if not exists provider_environment text,
+  add column if not exists billing_cycle text not null default 'MONTHLY';
+
+alter table public.checkout_intents
+  add column if not exists provider_environment text,
+  add column if not exists provider_payment_id text,
+  add column if not exists provider_payment_url text;
+
+alter table public.billing_payments
+  add column if not exists provider_environment text;
+
+alter table public.billing_events
+  add column if not exists provider_environment text;
+
+-- Existing records predate the environment namespace. The only provider-backed
+-- flow before this migration was the controlled sandbox; IPO uses an internal
+-- override. No record is promoted to Production by inference.
+update public.account_subscriptions
+set provider_environment = case
+  when billing_provider = 'internal_override' then 'internal'
+  else 'sandbox'
+end
+where provider_environment is null
+  and billing_provider is not null
+  and (external_customer_id is not null or external_subscription_id is not null);
+
+update public.checkout_intents
+set provider_environment = case
+  when billing_provider = 'internal_override' then 'internal'
+  else 'sandbox'
+end
+where provider_environment is null
+  and billing_provider is not null
+  and (provider_checkout_id is not null or provider_payment_id is not null);
+
+update public.billing_payments
+set provider_environment = case
+  when provider = 'internal_override' then 'internal'
+  else 'sandbox'
+end
+where provider_environment is null
+  and provider is not null
+  and provider_payment_id is not null;
+
+update public.billing_events
+set provider_environment = case
+  when provider = 'internal_override' then 'internal'
+  else 'sandbox'
+end
+where provider_environment is null;
+
+alter table public.billing_events
+  alter column provider_environment drop default,
+  alter column provider_environment set not null;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.account_subscriptions'::regclass
+      and conname = 'account_subscriptions_provider_environment_check'
+  ) then
+    alter table public.account_subscriptions
+      add constraint account_subscriptions_provider_environment_check
+      check (provider_environment is null or provider_environment in ('sandbox','production','internal'));
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.account_subscriptions'::regclass
+      and conname = 'account_subscriptions_billing_cycle_check'
+  ) then
+    alter table public.account_subscriptions
+      add constraint account_subscriptions_billing_cycle_check
+      check (billing_cycle = 'MONTHLY');
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.account_subscriptions'::regclass
+      and conname = 'account_subscriptions_external_identity_check'
+  ) then
+    alter table public.account_subscriptions
+      add constraint account_subscriptions_external_identity_check
+      check (
+        (external_customer_id is null and external_subscription_id is null)
+        or (billing_provider is not null and provider_environment is not null)
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.checkout_intents'::regclass
+      and conname = 'checkout_intents_provider_environment_check'
+  ) then
+    alter table public.checkout_intents
+      add constraint checkout_intents_provider_environment_check
+      check (provider_environment is null or provider_environment in ('sandbox','production','internal'));
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.checkout_intents'::regclass
+      and conname = 'checkout_intents_external_identity_check'
+  ) then
+    alter table public.checkout_intents
+      add constraint checkout_intents_external_identity_check
+      check (
+        (provider_checkout_id is null and provider_payment_id is null and provider_payment_url is null)
+        or (billing_provider is not null and provider_environment is not null)
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.billing_payments'::regclass
+      and conname = 'billing_payments_provider_environment_check'
+  ) then
+    alter table public.billing_payments
+      add constraint billing_payments_provider_environment_check
+      check (provider_environment is null or provider_environment in ('sandbox','production','internal'));
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.billing_payments'::regclass
+      and conname = 'billing_payments_external_identity_check'
+  ) then
+    alter table public.billing_payments
+      add constraint billing_payments_external_identity_check
+      check (
+        provider_payment_id is null
+        or (provider is not null and provider_environment is not null)
+      );
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.billing_events'::regclass
+      and conname = 'billing_events_provider_environment_check'
+  ) then
+    alter table public.billing_events
+      add constraint billing_events_provider_environment_check
+      check (provider_environment in ('sandbox','production','internal'));
+  end if;
+end $$;
+
+-- Provider IDs are namespaced by provider + environment. Customer IDs are not
+-- unique on subscriptions because a company may have multiple historical
+-- subscriptions attached to the same canonical Asaas customer.
+alter table public.billing_events
+  drop constraint if exists billing_events_provider_provider_event_id_key;
+
+alter table public.billing_payments
+  drop constraint if exists billing_payments_provider_provider_payment_id_key;
+
+create unique index if not exists account_subscriptions_provider_subscription_uidx
+  on public.account_subscriptions (billing_provider, provider_environment, external_subscription_id)
+  where external_subscription_id is not null;
+
+create unique index if not exists checkout_intents_provider_checkout_uidx
+  on public.checkout_intents (billing_provider, provider_environment, provider_checkout_id)
+  where provider_checkout_id is not null;
+
+create unique index if not exists checkout_intents_provider_payment_uidx
+  on public.checkout_intents (billing_provider, provider_environment, provider_payment_id)
+  where provider_payment_id is not null;
+
+create unique index if not exists billing_payments_provider_payment_uidx
+  on public.billing_payments (provider, provider_environment, provider_payment_id)
+  where provider_payment_id is not null;
+
+create unique index if not exists billing_events_provider_event_uidx
+  on public.billing_events (provider, provider_environment, provider_event_id);
+
+create or replace function public.billing_valid_br_tax_id(p_value text)
+returns boolean
+language plpgsql
+immutable
+strict
+set search_path = public
+as $$
+declare
+  v_digits text := regexp_replace(p_value, '[^0-9]', '', 'g');
+  v_sum integer := 0;
+  v_first integer;
+  v_second integer;
+  v_weights integer[];
+  i integer;
+begin
+  if char_length(v_digits) not in (11, 14)
+     or v_digits = repeat(substr(v_digits, 1, 1), char_length(v_digits)) then
+    return false;
+  end if;
+
+  if char_length(v_digits) = 11 then
+    for i in 1..9 loop
+      v_sum := v_sum + substr(v_digits, i, 1)::integer * (11 - i);
+    end loop;
+    v_first := case when (v_sum % 11) < 2 then 0 else 11 - (v_sum % 11) end;
+
+    v_sum := 0;
+    for i in 1..10 loop
+      v_sum := v_sum + substr(v_digits, i, 1)::integer * (12 - i);
+    end loop;
+    v_second := case when (v_sum % 11) < 2 then 0 else 11 - (v_sum % 11) end;
+  else
+    v_weights := array[5,4,3,2,9,8,7,6,5,4,3,2];
+    for i in 1..12 loop
+      v_sum := v_sum + substr(v_digits, i, 1)::integer * v_weights[i];
+    end loop;
+    v_first := case when (v_sum % 11) < 2 then 0 else 11 - (v_sum % 11) end;
+
+    v_sum := 0;
+    v_weights := array[6,5,4,3,2,9,8,7,6,5,4,3,2];
+    for i in 1..13 loop
+      v_sum := v_sum + substr(v_digits, i, 1)::integer * v_weights[i];
+    end loop;
+    v_second := case when (v_sum % 11) < 2 then 0 else 11 - (v_sum % 11) end;
+  end if;
+
+  return substr(v_digits, char_length(v_digits) - 1, 1)::integer = v_first
+     and substr(v_digits, char_length(v_digits), 1)::integer = v_second;
+end;
+$$;
+
+revoke all on function public.billing_valid_br_tax_id(text)
+  from public, anon, authenticated;
+grant execute on function public.billing_valid_br_tax_id(text)
+  to service_role;
+
+create table if not exists public.company_billing_profiles (
+  clinic_id uuid primary key references public.clinics(id) on delete cascade,
+  legal_name text not null,
+  tax_id_type text not null,
+  tax_id_digits text not null,
+  billing_email text not null,
+  billing_phone_digits text not null,
+  postal_code_digits text not null,
+  address_line text not null,
+  address_number text not null,
+  address_complement text,
+  district text not null,
+  city text not null,
+  state text not null,
+  country_code text not null default 'BR',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint company_billing_profiles_legal_name_check
+    check (char_length(trim(legal_name)) between 2 and 160),
+  constraint company_billing_profiles_tax_id_type_check
+    check (tax_id_type in ('CPF','CNPJ')),
+  constraint company_billing_profiles_tax_id_digits_check
+    check (
+      tax_id_digits ~ '^[0-9]+$'
+      and ((tax_id_type = 'CPF' and char_length(tax_id_digits) = 11)
+        or (tax_id_type = 'CNPJ' and char_length(tax_id_digits) = 14))
+      and public.billing_valid_br_tax_id(tax_id_digits)
+    ),
+  constraint company_billing_profiles_email_check
+    check (
+      billing_email = lower(trim(billing_email))
+      and billing_email ~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'
+    ),
+  constraint company_billing_profiles_phone_check
+    check (billing_phone_digits ~ '^[0-9]{10,13}$'),
+  constraint company_billing_profiles_postal_code_check
+    check (postal_code_digits ~ '^[0-9]{8}$'),
+  constraint company_billing_profiles_address_check
+    check (
+      char_length(trim(address_line)) between 2 and 160
+      and char_length(trim(address_number)) between 1 and 30
+      and char_length(trim(district)) between 2 and 100
+      and char_length(trim(city)) between 2 and 100
+    ),
+  constraint company_billing_profiles_state_check
+    check (state ~ '^[A-Z]{2}$'),
+  constraint company_billing_profiles_country_check
+    check (country_code = 'BR')
+);
+
+create table if not exists public.billing_provider_customers (
+  clinic_id uuid not null references public.clinics(id) on delete cascade,
+  provider text not null check (provider = 'asaas'),
+  provider_environment text not null check (provider_environment in ('sandbox','production')),
+  provider_customer_id text not null check (provider_customer_id ~ '^cus_[A-Za-z0-9]+$'),
+  profile_synced_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (clinic_id, provider, provider_environment)
+);
+
+create unique index if not exists billing_provider_customers_provider_customer_uidx
+  on public.billing_provider_customers (provider, provider_environment, provider_customer_id);
+
+alter table public.company_billing_profiles enable row level security;
+alter table public.billing_provider_customers enable row level security;
+
+-- Deliberately no client table policy. Fiscal identifiers are available only
+-- through the masked manager RPC below; the provider adapter uses service_role.
+revoke all on table public.company_billing_profiles from public, anon, authenticated;
+revoke all on table public.billing_provider_customers from public, anon, authenticated;
+grant all on table public.company_billing_profiles to service_role;
+grant all on table public.billing_provider_customers to service_role;
+
+create or replace function public.billing_touch_company_profile_updated_at()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_company_billing_profiles_touch on public.company_billing_profiles;
+create trigger trg_company_billing_profiles_touch
+before update on public.company_billing_profiles
+for each row execute function public.billing_touch_company_profile_updated_at();
+
+drop trigger if exists trg_billing_provider_customers_touch on public.billing_provider_customers;
+create trigger trg_billing_provider_customers_touch
+before update on public.billing_provider_customers
+for each row execute function public.billing_touch_company_profile_updated_at();
+
+create or replace function public.billing_user_can_manage_company(
+  p_clinic_id uuid,
+  p_user_id uuid
+) returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select p_user_id is not null and exists (
+    select 1
+    from public.clinics c
+    where c.id = p_clinic_id
+      and (
+        c.owner_id = p_user_id
+        or exists (
+          select 1
+          from public.clinic_members m
+          where m.clinic_id = c.id
+            and m.user_id = p_user_id
+            and m.status in ('active','accepted')
+            and upper(m.role) in ('CEO','ADMIN')
+        )
+      )
+  )
+$$;
+
+revoke all on function public.billing_user_can_manage_company(uuid,uuid)
+  from public, anon, authenticated;
+grant execute on function public.billing_user_can_manage_company(uuid,uuid)
+  to service_role;
+
+create or replace function public.billing_get_company_profile(p_clinic_id uuid)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_profile public.company_billing_profiles%rowtype;
+begin
+  if auth.uid() is null
+     or not public.billing_user_can_manage_company(p_clinic_id, auth.uid()) then
+    raise exception 'BILLING_PROFILE_FORBIDDEN';
+  end if;
+
+  select * into v_profile
+  from public.company_billing_profiles
+  where clinic_id = p_clinic_id;
+
+  if v_profile.clinic_id is null then
+    return jsonb_build_object('configured', false, 'clinic_id', p_clinic_id);
+  end if;
+
+  return jsonb_build_object(
+    'configured', true,
+    'clinic_id', v_profile.clinic_id,
+    'legal_name', v_profile.legal_name,
+    'tax_id_type', v_profile.tax_id_type,
+    'tax_id_masked', case
+      when v_profile.tax_id_type = 'CPF' then '***.***.***-' || right(v_profile.tax_id_digits, 2)
+      else '**.***.***/****-' || right(v_profile.tax_id_digits, 2)
+    end,
+    'billing_email', v_profile.billing_email,
+    'billing_phone_digits', v_profile.billing_phone_digits,
+    'postal_code_digits', v_profile.postal_code_digits,
+    'address_line', v_profile.address_line,
+    'address_number', v_profile.address_number,
+    'address_complement', v_profile.address_complement,
+    'district', v_profile.district,
+    'city', v_profile.city,
+    'state', v_profile.state,
+    'country_code', v_profile.country_code,
+    'provider_bound_sandbox', exists (
+      select 1 from public.billing_provider_customers pc
+      where pc.clinic_id = p_clinic_id
+        and pc.provider = 'asaas'
+        and pc.provider_environment = 'sandbox'
+    ),
+    'provider_bound_production', exists (
+      select 1 from public.billing_provider_customers pc
+      where pc.clinic_id = p_clinic_id
+        and pc.provider = 'asaas'
+        and pc.provider_environment = 'production'
+    ),
+    'updated_at', v_profile.updated_at
+  );
+end;
+$$;
+
+create or replace function public.billing_upsert_company_profile(
+  p_clinic_id uuid,
+  p_legal_name text,
+  p_tax_id text,
+  p_billing_email text,
+  p_billing_phone text,
+  p_postal_code text,
+  p_address_line text,
+  p_address_number text,
+  p_address_complement text,
+  p_district text,
+  p_city text,
+  p_state text
+) returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_tax_id text := regexp_replace(coalesce(p_tax_id, ''), '[^0-9]', '', 'g');
+  v_phone text := regexp_replace(coalesce(p_billing_phone, ''), '[^0-9]', '', 'g');
+  v_postal_code text := regexp_replace(coalesce(p_postal_code, ''), '[^0-9]', '', 'g');
+  v_email text := lower(trim(coalesce(p_billing_email, '')));
+  v_state text := upper(trim(coalesce(p_state, '')));
+  v_tax_id_type text;
+begin
+  if auth.uid() is null
+     or not public.billing_user_can_manage_company(p_clinic_id, auth.uid()) then
+    raise exception 'BILLING_PROFILE_FORBIDDEN';
+  end if;
+
+  if char_length(v_tax_id) = 11 then
+    v_tax_id_type := 'CPF';
+  elsif char_length(v_tax_id) = 14 then
+    v_tax_id_type := 'CNPJ';
+  else
+    raise exception 'BILLING_PROFILE_INVALID_TAX_ID';
+  end if;
+  if not public.billing_valid_br_tax_id(v_tax_id) then
+    raise exception 'BILLING_PROFILE_INVALID_TAX_ID';
+  end if;
+
+  if char_length(trim(coalesce(p_legal_name, ''))) not between 2 and 160 then
+    raise exception 'BILLING_PROFILE_INVALID_LEGAL_NAME';
+  end if;
+  if v_email !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$' then
+    raise exception 'BILLING_PROFILE_INVALID_EMAIL';
+  end if;
+  if v_phone !~ '^[0-9]{10,13}$' then
+    raise exception 'BILLING_PROFILE_INVALID_PHONE';
+  end if;
+  if v_postal_code !~ '^[0-9]{8}$' then
+    raise exception 'BILLING_PROFILE_INVALID_POSTAL_CODE';
+  end if;
+  if v_state !~ '^[A-Z]{2}$' then
+    raise exception 'BILLING_PROFILE_INVALID_STATE';
+  end if;
+
+  insert into public.company_billing_profiles (
+    clinic_id, legal_name, tax_id_type, tax_id_digits, billing_email,
+    billing_phone_digits, postal_code_digits, address_line, address_number,
+    address_complement, district, city, state, country_code
+  ) values (
+    p_clinic_id, trim(p_legal_name), v_tax_id_type, v_tax_id, v_email,
+    v_phone, v_postal_code, trim(p_address_line), trim(p_address_number),
+    nullif(trim(coalesce(p_address_complement, '')), ''), trim(p_district),
+    trim(p_city), v_state, 'BR'
+  )
+  on conflict (clinic_id) do update set
+    legal_name = excluded.legal_name,
+    tax_id_type = excluded.tax_id_type,
+    tax_id_digits = excluded.tax_id_digits,
+    billing_email = excluded.billing_email,
+    billing_phone_digits = excluded.billing_phone_digits,
+    postal_code_digits = excluded.postal_code_digits,
+    address_line = excluded.address_line,
+    address_number = excluded.address_number,
+    address_complement = excluded.address_complement,
+    district = excluded.district,
+    city = excluded.city,
+    state = excluded.state,
+    country_code = excluded.country_code,
+    updated_at = now();
+
+  update public.billing_provider_customers
+  set profile_synced_at = null,
+      updated_at = now()
+  where clinic_id = p_clinic_id;
+
+  return public.billing_get_company_profile(p_clinic_id);
+end;
+$$;
+
+create or replace function public.billing_bind_asaas_customer(
+  p_clinic_id uuid,
+  p_provider_environment text,
+  p_provider_customer_id text
+) returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_provider_environment not in ('sandbox','production') then
+    raise exception 'BILLING_PROVIDER_INVALID_ENVIRONMENT';
+  end if;
+  if trim(coalesce(p_provider_customer_id, '')) !~ '^cus_[A-Za-z0-9]+$' then
+    raise exception 'BILLING_PROVIDER_INVALID_CUSTOMER_ID';
+  end if;
+
+  if not exists (
+    select 1 from public.company_billing_profiles where clinic_id = p_clinic_id
+  ) then
+    raise exception 'BILLING_PROFILE_REQUIRED';
+  end if;
+
+  insert into public.billing_provider_customers (
+    clinic_id, provider, provider_environment, provider_customer_id,
+    profile_synced_at
+  ) values (
+    p_clinic_id, 'asaas', p_provider_environment,
+    trim(p_provider_customer_id), now()
+  )
+  on conflict (clinic_id, provider, provider_environment) do update set
+    provider_customer_id = excluded.provider_customer_id,
+    profile_synced_at = now(),
+    updated_at = now();
+end;
+$$;
+
+revoke all on function public.billing_get_company_profile(uuid)
+  from public, anon;
+revoke all on function public.billing_upsert_company_profile(
+  uuid,text,text,text,text,text,text,text,text,text,text,text
+) from public, anon;
+revoke all on function public.billing_bind_asaas_customer(uuid,text,text)
+  from public, anon, authenticated;
+
+grant execute on function public.billing_get_company_profile(uuid)
+  to authenticated;
+grant execute on function public.billing_upsert_company_profile(
+  uuid,text,text,text,text,text,text,text,text,text,text,text
+) to authenticated;
+grant execute on function public.billing_bind_asaas_customer(uuid,text,text)
+  to service_role;
+
+comment on table public.company_billing_profiles is
+  'Restricted fiscal profile for a billable company.';
+comment on table public.billing_provider_customers is
+  'Canonical provider customer identity, separated by company and Sandbox/Production environment.';
+comment on column public.company_billing_profiles.tax_id_digits is
+  'CPF/CNPJ digits. Never expose directly to browser clients; use the masked RPC.';
+comment on column public.account_subscriptions.provider_environment is
+  'Provider namespace: sandbox, production, or internal. Sandbox IDs must never be reused in Production.';
+
+-- Compare enum roles as text so restored databases remain compatible with both
+-- legacy lowercase and current uppercase specialist labels.
+create or replace function public.is_staff(_user_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.user_roles ur
+    join public.profiles p on p.id = ur.user_id
+    where ur.user_id = _user_id
+      and upper(ur.role::text) in (
+        'ADMIN','DENTISTA','RECEPCIONISTA','AUXILIAR','PROTETICO','SOLICITANTE'
+      )
+      and p.clinic_id is not null
+      and public.company_has_operational_access(p.clinic_id)
+  )
+$$;
+
+revoke all on function public.is_staff(uuid) from public, anon;
+grant execute on function public.is_staff(uuid) to authenticated, service_role;
+
+notify pgrst, 'reload schema';
+
+-- ===== 20260718000001_zzz_self_heal_v2.sql =====
+
+-- =====================================================================
+-- SELF-HEAL v2 — idempotente. Roda depois de todo o restore.
+-- Consolida ajustes recorrentes descobertos em restaurações reais para
+-- não precisar corrigir manualmente após reconstruir o projeto do zip.
+--
+-- Cobre:
+--   1. Coluna requirements (jsonb) em public.stages (novo sistema de
+--      "exigir na etapa" com dropdown de tipos).
+--   2. RPCs advance_case_workflow / return_case_workflow /
+--      case_stage_requirement_blockers (fluxo com bloqueio por requisito).
+--   3. Função export_backup + backend_schema_hash (botão "Backup Backend").
+--   4. Coluna stock_items.type (texto livre) usada pelo dialog de estoque.
+--   5. Tabela stock_item_custom_fields (campos personalizados dos itens).
+--   6. Backfill: garantir clinic_id em profiles CEO/DR + criar clinics.
+--   7. Skip email confirmation para o primeiro CEO cadastrado.
+-- =====================================================================
+
+-- 1) requirements em stages ---------------------------------------------
+ALTER TABLE public.stages ADD COLUMN IF NOT EXISTS requirements jsonb NOT NULL DEFAULT '[]'::jsonb;
+
+-- Migra flag legada para o novo formato quando ainda não houver requisitos
+UPDATE public.stages
+   SET requirements = jsonb_build_array(jsonb_build_object(
+         'type', 'implant_components',
+         'blocks_advance', 'true'))
+ WHERE COALESCE(requires_implant_components, false) = true
+   AND (requirements IS NULL OR jsonb_typeof(requirements) <> 'array' OR jsonb_array_length(requirements) = 0);
+
+-- 2) stock_items.type + stock_item_custom_fields ------------------------
+ALTER TABLE public.stock_items ADD COLUMN IF NOT EXISTS type text;
+
+CREATE TABLE IF NOT EXISTS public.stock_item_custom_fields (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  stock_item_id uuid NOT NULL REFERENCES public.stock_items(id) ON DELETE CASCADE,
+  key text NOT NULL,
+  value text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_sicf_item ON public.stock_item_custom_fields(stock_item_id);
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.stock_item_custom_fields TO authenticated;
+GRANT ALL ON public.stock_item_custom_fields TO service_role;
+ALTER TABLE public.stock_item_custom_fields ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid='public.stock_item_custom_fields'::regclass AND polname='sicf_staff_all') THEN
+    CREATE POLICY sicf_staff_all ON public.stock_item_custom_fields
+      FOR ALL TO authenticated
+      USING (public.is_staff(auth.uid()))
+      WITH CHECK (public.is_staff(auth.uid()));
+  END IF;
+END $$;
+
+-- 3) RPCs de fluxo -------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.case_stage_requirement_blockers(_case_id uuid)
+RETURNS text[]
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public
+AS $$
+DECLARE
+  v_case public.cases%ROWTYPE;
+  v_requirements jsonb := '[]'::jsonb;
+  v_req jsonb;
+  v_type text;
+  v_blocks boolean;
+  v_blockers text[] := ARRAY[]::text[];
+  v_implant_teeth integer[];
+  v_missing_implants integer[];
+BEGIN
+  SELECT * INTO v_case FROM public.cases WHERE id = _case_id;
+  IF NOT FOUND THEN RETURN ARRAY['Caso não encontrado']; END IF;
+
+  SELECT COALESCE(s.requirements,'[]'::jsonb) INTO v_requirements FROM public.stages s WHERE s.id = v_case.current_stage_id;
+  IF v_requirements IS NULL OR jsonb_typeof(v_requirements) <> 'array' THEN RETURN ARRAY[]::text[]; END IF;
+
+  FOR v_req IN SELECT value FROM jsonb_array_elements(v_requirements) LOOP
+    v_blocks := lower(COALESCE(v_req->>'blocks_advance','false')) = 'true';
+    IF NOT v_blocks THEN CONTINUE; END IF;
+    v_type := v_req->>'type';
+
+    IF v_type = 'implant_components' THEN
+      v_implant_teeth := COALESCE(v_case.implant_teeth, ARRAY[]::integer[]);
+      IF COALESCE(array_length(v_implant_teeth,1),0) = 0 THEN CONTINUE; END IF;
+      SELECT array_agg(t ORDER BY t) INTO v_missing_implants
+        FROM unnest(v_implant_teeth) AS t
+        WHERE NOT EXISTS (SELECT 1 FROM public.case_implant_teeth cit
+                          WHERE cit.case_id=_case_id AND cit.tooth_fdi=t AND cit.reversed_at IS NULL);
+      IF COALESCE(array_length(v_missing_implants,1),0) > 0 THEN
+        v_blockers := array_append(v_blockers,
+          'Apontar componente para dentes com implantes (' || array_to_string(v_missing_implants, ', ') || ')');
+      END IF;
+    ELSIF v_type = 'download_scans' THEN
+      IF NOT EXISTS (SELECT 1 FROM public.case_activity ca
+        WHERE ca.case_id=_case_id AND ca.kind='download' AND ca.metadata->>'kind'='scans')
+      THEN v_blockers := array_append(v_blockers, 'Baixar arquivos da aba "Escaneamentos"'); END IF;
+    ELSIF v_type = 'upload_models' THEN
+      IF NOT EXISTS (SELECT 1 FROM public.case_attachments a
+        WHERE a.case_id=_case_id AND a.kind='model' AND a.expired_at IS NULL)
+      THEN v_blockers := array_append(v_blockers, 'Enviar arquivo na aba "Modelos"'); END IF;
+    ELSIF v_type = 'upload_fabrication' THEN
+      IF NOT EXISTS (SELECT 1 FROM public.case_attachments a
+        WHERE a.case_id=_case_id AND a.kind='fabrication' AND a.expired_at IS NULL)
+      THEN v_blockers := array_append(v_blockers, 'Enviar arquivo na aba "Confecção"'); END IF;
+    ELSIF v_type = 'upload_html' THEN
+      IF NOT EXISTS (SELECT 1 FROM public.case_attachments a
+        WHERE a.case_id=_case_id AND a.kind='exocad_html' AND a.expired_at IS NULL)
+      THEN v_blockers := array_append(v_blockers, 'Enviar arquivo na aba "Html"'); END IF;
+    ELSIF v_type = 'upload_gallery' THEN
+      IF NOT EXISTS (SELECT 1 FROM public.case_attachments a
+        WHERE a.case_id=_case_id AND a.kind='gallery' AND a.expired_at IS NULL)
+      THEN v_blockers := array_append(v_blockers, 'Enviar imagem na aba "Galeria"'); END IF;
+    END IF;
+  END LOOP;
+  RETURN v_blockers;
+END $$;
+
+-- 4) Backfill de clinic_id para CEO/DR ----------------------------------
+DO $$
+DECLARE r record; new_clinic uuid;
+BEGIN
+  FOR r IN SELECT id, role FROM public.profiles WHERE clinic_id IS NULL AND role IN ('CEO','DR') LOOP
+    new_clinic := gen_random_uuid();
+    UPDATE public.profiles SET clinic_id = new_clinic WHERE id = r.id;
+  END LOOP;
+END $$;
+
+-- 5) handle_new_user cria clinic para o primeiro usuário ---------------
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public
+AS $$
+DECLARE v_role text; v_full_name text; is_first boolean; v_clinic uuid;
+BEGIN
+  SELECT NOT EXISTS (SELECT 1 FROM public.profiles) INTO is_first;
+  v_role := COALESCE(new.raw_user_meta_data->>'role', CASE WHEN is_first THEN 'CEO' ELSE 'USER' END);
+  v_full_name := COALESCE(new.raw_user_meta_data->>'full_name', new.email);
+  v_clinic := CASE WHEN is_first OR v_role IN ('CEO','DR') THEN gen_random_uuid() ELSE NULL END;
+  INSERT INTO public.profiles (id, full_name, email, role, is_default_admin, clinic_id)
+    VALUES (new.id, v_full_name, new.email, v_role, is_first, v_clinic)
+    ON CONFLICT (id) DO NOTHING;
+  IF is_first THEN
+    INSERT INTO public.user_roles (user_id, role) VALUES (new.id, 'admin') ON CONFLICT DO NOTHING;
+    -- Skip email confirmation para o primeiro CEO
+    UPDATE auth.users SET email_confirmed_at = COALESCE(email_confirmed_at, now()),
+                          confirmed_at = COALESCE(confirmed_at, now())
+      WHERE id = new.id;
+  END IF;
+  IF v_role = 'CADISTA' THEN INSERT INTO public.cadistas (name, user_id) VALUES (v_full_name, new.id); END IF;
+  RETURN new;
+END $$;
+
+-- 6) Re-executa hardening geral: GRANTs, EXECUTE em funções ------------
+-- 6a) case_implant_teeth + RPCs register/remove ------------------------
+CREATE TABLE IF NOT EXISTS public.case_implant_teeth (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id uuid NOT NULL REFERENCES public.cases(id) ON DELETE CASCADE,
+  tooth_fdi integer NOT NULL,
+  implant_system_id uuid REFERENCES public.implant_systems(id) ON DELETE SET NULL,
+  stock_item_id uuid NOT NULL REFERENCES public.stock_items(id) ON DELETE RESTRICT,
+  qty numeric NOT NULL DEFAULT 1,
+  reversed_at timestamptz,
+  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_cit_case ON public.case_implant_teeth(case_id) WHERE reversed_at IS NULL;
+ALTER TABLE public.case_implant_teeth ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid='public.case_implant_teeth'::regclass AND polname='cit_select') THEN
+    CREATE POLICY cit_select ON public.case_implant_teeth FOR SELECT TO authenticated USING (public.can_access_case(case_id));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid='public.case_implant_teeth'::regclass AND polname='cit_write') THEN
+    CREATE POLICY cit_write ON public.case_implant_teeth FOR ALL TO authenticated
+      USING (public.can_access_case(case_id)) WITH CHECK (public.can_access_case(case_id));
+  END IF;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.register_case_implant_tooth(_case_id uuid, _tooth_fdi integer, _stock_item_id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $fn$
+DECLARE v_system uuid; v_id uuid; v_qty numeric;
+BEGIN
+  IF NOT public.can_access_case(_case_id) THEN RETURN jsonb_build_object('success', false, 'error', 'Sem permissão'); END IF;
+  SELECT isc.implant_system_id INTO v_system FROM public.stock_items si
+    LEFT JOIN public.implant_system_components isc ON isc.id = si.implant_system_component_id
+   WHERE si.id = _stock_item_id;
+  SELECT qty_on_hand INTO v_qty FROM public.stock_items WHERE id = _stock_item_id FOR UPDATE;
+  IF v_qty IS NULL THEN RETURN jsonb_build_object('success', false, 'error', 'Item de estoque não encontrado'); END IF;
+  IF v_qty < 1 THEN RETURN jsonb_build_object('success', false, 'error', 'Estoque insuficiente'); END IF;
+  UPDATE public.case_implant_teeth SET reversed_at = now()
+   WHERE case_id = _case_id AND tooth_fdi = _tooth_fdi AND reversed_at IS NULL;
+  INSERT INTO public.case_implant_teeth (case_id, tooth_fdi, implant_system_id, stock_item_id, qty, created_by)
+    VALUES (_case_id, _tooth_fdi, v_system, _stock_item_id, 1, auth.uid()) RETURNING id INTO v_id;
+  INSERT INTO public.stock_movements (stock_item_id, type, qty, case_id, user_id, notes)
+    VALUES (_stock_item_id, 'auto_case'::stock_movement_type, -1, _case_id, auth.uid(),
+            'Apontamento implante · dente ' || _tooth_fdi::text);
+  RETURN jsonb_build_object('success', true, 'id', v_id);
+EXCEPTION WHEN OTHERS THEN RETURN jsonb_build_object('success', false, 'error', SQLERRM);
+END $fn$;
+
+CREATE OR REPLACE FUNCTION public.remove_case_implant_tooth(_id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $fn$
+DECLARE v_row public.case_implant_teeth%ROWTYPE;
+BEGIN
+  SELECT * INTO v_row FROM public.case_implant_teeth WHERE id = _id;
+  IF NOT FOUND THEN RETURN jsonb_build_object('success', false, 'error', 'Registro não encontrado'); END IF;
+  IF NOT public.can_access_case(v_row.case_id) THEN RETURN jsonb_build_object('success', false, 'error', 'Sem permissão'); END IF;
+  IF v_row.reversed_at IS NOT NULL THEN RETURN jsonb_build_object('success', true); END IF;
+  UPDATE public.case_implant_teeth SET reversed_at = now() WHERE id = _id;
+  INSERT INTO public.stock_movements (stock_item_id, type, qty, case_id, user_id, notes)
+    VALUES (v_row.stock_item_id, 'reverse_case'::stock_movement_type, v_row.qty, v_row.case_id, auth.uid(),
+            'Reversão implante · dente ' || v_row.tooth_fdi::text);
+  RETURN jsonb_build_object('success', true);
+EXCEPTION WHEN OTHERS THEN RETURN jsonb_build_object('success', false, 'error', SQLERRM);
+END $fn$;
+
+DO $$ DECLARE r record; BEGIN
+  FOR r IN SELECT tablename FROM pg_tables WHERE schemaname='public' LOOP
+    EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO authenticated', r.tablename);
+    EXECUTE format('GRANT ALL ON public.%I TO service_role', r.tablename);
+  END LOOP;
+  FOR r IN SELECT p.oid::regprocedure AS sig FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' LOOP
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated, service_role', r.sig);
+  END LOOP;
+END $$;
+
+-- Restore-only SQL executors are intentionally available while historical
+-- migrations are replayed, but must never survive in the restored database.
+DROP FUNCTION IF EXISTS public.__restore_exec(text);
+DROP FUNCTION IF EXISTS _restore.exec_sql(text);
+DROP SCHEMA IF EXISTS _restore;
+
+-- Financial and fiscal boundaries must be restored after the legacy blanket
+-- grants above. Client roles may read/update only through explicitly validated
+-- RPCs; provider identities and authoritative state changes remain backend-only.
+REVOKE ALL ON TABLE public.company_billing_profiles
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.billing_provider_customers
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.billing_test_access
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.billing_test_tokens
+  FROM PUBLIC, anon, authenticated;
+
+GRANT ALL ON TABLE public.company_billing_profiles TO service_role;
+GRANT ALL ON TABLE public.billing_provider_customers TO service_role;
+GRANT ALL ON TABLE public.billing_test_access TO service_role;
+GRANT ALL ON TABLE public.billing_test_tokens TO service_role;
+
+REVOKE ALL ON FUNCTION public.billing_apply_checkout_paid(
+  uuid,text,text,text,text,timestamptz,timestamptz
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_subscription_state(
+  uuid,text,timestamptz,timestamptz,timestamptz,text,text,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_bind_asaas_customer(uuid,text,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_valid_br_tax_id(text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.set_clinic_storage_entitlement(
+  uuid,text,text,bigint,text,text,text,text,boolean
+) FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION public.billing_apply_checkout_paid(
+  uuid,text,text,text,text,timestamptz,timestamptz
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_subscription_state(
+  uuid,text,timestamptz,timestamptz,timestamptz,text,text,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_bind_asaas_customer(uuid,text,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_valid_br_tax_id(text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.set_clinic_storage_entitlement(
+  uuid,text,text,bigint,text,text,text,text,boolean
+) TO service_role;
+
+REVOKE ALL ON FUNCTION public.billing_get_company_profile(uuid)
+  FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.billing_upsert_company_profile(
+  uuid,text,text,text,text,text,text,text,text,text,text,text
+) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.billing_get_company_profile(uuid)
+  TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.billing_upsert_company_profile(
+  uuid,text,text,text,text,text,text,text,text,text,text,text
+) TO authenticated, service_role;

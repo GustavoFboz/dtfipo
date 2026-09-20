@@ -18,8 +18,8 @@ O front-end já está completo neste projeto. Faça o seguinte, em ordem:
    ou os arquivos individuais listados em /restore/migrations.json (pasta /restore/migrations/).
 3. Execute a migration consolidada como UMA ÚNICA migration no Lovable Cloud
    (ou execute cada arquivo individual em ordem alfabética — o nome já é cronológico).
-4. IMPORTANTE: o ÚLTIMO arquivo (\`20260718000000_zzz_post_restore_hardening.sql\`)
-   é uma migration de "endurecimento" idempotente que corrige lacunas conhecidas
+4. IMPORTANTE: o ÚLTIMO arquivo (\`20260718000001_zzz_self_heal_v2.sql\`)
+   é uma migration de "self-heal" idempotente que corrige lacunas conhecidas
    do restore (GRANTs em tabelas/sequences public, EXECUTE em todas as funções
    public, colunas que ficaram para trás — stages.requires_implant_components,
    cases.gum_info / implant_system_ids / tooth_implant_systems,
@@ -160,7 +160,7 @@ function RestauracaoPage() {
         <h2 className="font-semibold">Escopo do back-end</h2>
         <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
           <li><strong>{migs.length} migrations</strong> cronológicas em <code>/restore/migrations/</code>.</li>
-          <li>~60 tabelas no schema <code>public</code> (casos, pacientes, financeiro, estoque, workflow, permissões).</li>
+          <li>Schema atual completo (casos, pacientes, financeiro, estoque, workflow, permissões, assinaturas e entitlements).</li>
           <li>Funções SECURITY DEFINER (workflow, financeiro, estoque, permissões, beta testers).</li>
           <li>Triggers de <code>updated_at</code>, sync de perfil→equipe, movimentações de estoque/carteira.</li>
           <li>RLS + GRANTs em todas as tabelas <code>public</code>.</li>
@@ -224,7 +224,9 @@ projeto continua disponível em código-fonte / GitHub.
    - Inserir seed do beta tester (\`gustavovitorfa@gmail.com\`).
 7. Restaurar dados operacionais via **Admin › Backup › Importar** (arquivo JSON).
 8. Reenviar arquivos de Storage manualmente.
-9. Reconfigurar Secrets do projeto (Stripe, etc, se aplicável).
+9. Reconfigurar os Secrets do projeto. Para o SaaS, Sandbox e Produção do
+   Asaas usam chaves e tokens de webhook independentes; nunca use prefixo
+   \`VITE_\` para esses valores.
 
 ## Ordem cronológica das migrations
 
@@ -239,7 +241,7 @@ ${LOVABLE_PROMPT}
 ## Verificação pós-restauração
 
 - [ ] Login funciona (Email + Google).
-- [ ] \`SELECT count(*) FROM information_schema.tables WHERE table_schema='public'\` retorna ~60.
+- [ ] O relatório de auditoria pós-restore confirma todos os objetos esperados.
 - [ ] RLS ativa em todas as tabelas: \`SELECT tablename FROM pg_tables WHERE schemaname='public' AND rowsecurity=false;\` deve retornar vazio.
 - [ ] Criar caso e avançar workflow sem erros.
 - [ ] Beta tester tem acesso ao módulo Financeiro.

@@ -1,0 +1,105 @@
+name: DentalFlow SaaS Restore Rehearsal
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "public/restore.sql"
+      - "public/restore/**"
+      - "supabase/migrations/**"
+      - "docs/saas/**"
+      - "scripts/build-restore-bundle.mjs"
+      - "scripts/check-saas-stage-01.mjs"
+      - ".github/workflows/saas-restore-rehearsal.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dentalflow-saas-restore-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clean-database:
+    name: Restore into clean Supabase database
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SUPABASE_PROJECT_ID: dtfipo_restore_rehearsal
+      SUPABASE_DB_PORT: "54324"
+      SUPABASE_USE_SLIM_IMAGES: "true"
+      RESTORE_DB_CONTAINER: supabase_db_dtfipo_restore_rehearsal
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify deterministic restore bundle
+        run: node scripts/build-restore-bundle.mjs --check
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start isolated clean Supabase database
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/dentalflow-restore/supabase"
+          cp supabase/config.toml "$RUNNER_TEMP/dentalflow-restore/supabase/config.toml"
+          cd "$RUNNER_TEMP/dentalflow-restore"
+          supabase db start
+          docker inspect --format '{{.State.Health.Status}}' "$RESTORE_DB_CONTAINER" | grep -qx healthy
+
+      - name: Apply consolidated restore
+        id: restore
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < public/restore.sql > restore-apply.log 2>&1; then
+            tail -n 200 restore-apply.log
+            exit 1
+          fi
+          printf 'Applied public/restore.sql successfully.\n' | tee -a restore-apply.log
+
+      - name: Verify Stage 01 restored contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-01-restore-assertions.sql \
+            | tee restore-assertions.log
+
+      - name: Record sanitized restored-schema audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-01-live-audit.sql \
+            | tee restore-audit.log
+
+      - name: Upload rehearsal evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: saas-stage-01-clean-restore-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            restore-apply.log
+            restore-assertions.log
+            restore-audit.log
+
+      - name: Stop isolated database
+        if: always()
+        shell: bash
+        run: |
+          cd "$RUNNER_TEMP/dentalflow-restore"
+          supabase stop --no-backup || true
