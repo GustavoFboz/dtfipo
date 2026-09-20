@@ -21,6 +21,8 @@ const stage = read("docs/saas/STAGE-01-CONTRACT-RECOVERY.md");
 const audit = read("docs/saas/sql/stage-01-live-audit.sql");
 const liveEvidencePath = "docs/saas/evidence/STAGE-01-LIVE-AUDIT-2026-09-19.md";
 const liveEvidence = read(liveEvidencePath);
+const restoreEvidencePath = "docs/saas/evidence/STAGE-01-CLEAN-RESTORE-2026-09-20.md";
+const restoreEvidence = read(restoreEvidencePath);
 const generatedTypes = read("src/integrations/supabase/types.ts");
 
 for (const [needle, message] of [
@@ -42,6 +44,7 @@ for (const [needle, message] of [
 expect(prerequisites.includes("create table if not exists public.proteticos"), "Pré-requisito neutro de especialistas ausente.");
 expect(prerequisites.includes("public.is_clinic_member"), "Helper de associação empresarial ausente no restore.");
 expect(prerequisites.includes("requested_by"), "Pré-requisito de solicitante ausente antes da gestão de storage.");
+expect(prerequisites.includes("alter type public.app_role add value if not exists 'SOLICITANTE'"), "Papel solicitante ausente dos pré-requisitos do restore.");
 expect(restoreMigration === migration, "Cópia da migration Stage 01 divergiu do schema canônico.");
 expect(restorePrerequisites === prerequisites, "Cópia dos pré-requisitos Stage 01 divergiu do schema canônico.");
 
@@ -71,7 +74,7 @@ expect(contract.includes('PAYMENT_RECEIVED: "paid"'), "PAYMENT_RECEIVED deixou d
 expect(contract.includes('PAYMENT_OVERDUE: "past_due"'), "Atraso Asaas perdeu o mapeamento canônico.");
 expect(contract.includes('PAYMENT_CHARGEBACK_REQUESTED: "reversed"'), "Chargeback perdeu o mapeamento de reversão.");
 expect(mapping.includes("Evento desconhecido") && mapping.includes("nunca concede acesso"), "Fail-closed para evento desconhecido não está documentado.");
-expect(stage.includes("schema vivo e auditoria aprovados; tipos e restauração limpa pendentes"), "Status da Etapa 01 não reflete a evidência viva e as pendências restantes.");
+expect(stage.includes("concluída — schema vivo, tipos e restauração limpa validados; auditorias aprovadas"), "Status da Etapa 01 não registra sua conclusão.");
 expect(audit.includes("begin transaction read only;") && audit.includes("rollback;"), "Auditoria Stage 01 deve permanecer somente leitura.");
 expect(audit.includes("stage_01_audit_report"), "Auditoria Stage 01 não gera relatório único sanitizado.");
 expect(
@@ -80,6 +83,20 @@ expect(
 );
 expect(liveEvidence.includes("A aplicação viva e a auditoria da Etapa 01 estão aprovadas"), "Evidência viva não aprova formalmente a Etapa 01.");
 expect(liveEvidence.includes("não foi versionado"), "Evidência deve registrar que o CSV bruto não foi versionado.");
+expect(
+  restoreEvidence.includes("https://github.com/GustavoFboz/dtfipo/actions/runs/35493807420"),
+  "Evidência da restauração limpa não referencia a execução aprovada.",
+);
+expect(
+  restoreEvidence.includes("7e62fa397c87902277bbb405c04f015ba855299b"),
+  "Evidência da restauração limpa divergiu do commit ensaiado.",
+);
+expect(
+  restoreEvidence.includes("0efd2898131b18fec309b1aad6d71c46a449d037b2bd5c68b224781ed2d93df0"),
+  "Digest do artefato da restauração limpa divergiu.",
+);
+expect(restoreEvidence.includes('"result": "passed"'), "Asserções da restauração limpa não estão aprovadas.");
+expect(restoreEvidence.includes("12/12 colunas") && restoreEvidence.includes("6/6 índices"), "Resumo da auditoria restaurada está incompleto.");
 
 const sourceFiles = [];
 function collect(root) {
@@ -101,4 +118,4 @@ const typesReady = generatedTypes.includes("company_billing_profiles:")
 console.log("DentalFlow SaaS Stage 01 repository contract: OK");
 console.log(`${typesReady ? "READY" : "PENDING_LIVE_SCHEMA"}: generated_supabase_types`);
 console.log("READY: lovable_cloud_stage_01");
-console.log("PENDING_RESTORE_REHEARSAL: clean_database");
+console.log("READY: clean_database_restore");

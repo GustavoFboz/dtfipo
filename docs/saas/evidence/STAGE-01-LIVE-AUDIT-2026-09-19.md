@@ -54,8 +54,7 @@ A aplicação viva e a auditoria da Etapa 01 estão aprovadas. O schema oficial
 possui as fronteiras necessárias para cliente Asaas, perfil fiscal, ambiente e
 idempotência sem expor dados fiscais ao navegador.
 
-A Etapa 01 permanece aberta somente para:
-
-1. regenerar os tipos Supabase a partir do schema vivo;
-2. ensaiar o pacote consolidado em um banco limpo;
-3. anexar a evidência do ensaio e concluir a revisão da PR.
+Os tipos Supabase foram regenerados a partir do schema vivo. O pacote
+consolidado também foi aplicado e auditado em banco limpo; a evidência está em
+`STAGE-01-CLEAN-RESTORE-2026-09-20.md`. Com as duas provas, não há pendência
+técnica remanescente na Etapa 01.

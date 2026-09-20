@@ -1,11 +1,13 @@
 # Etapa 01 — Contrato canônico e recuperação
 
-Status: schema vivo e auditoria aprovados; tipos e restauração limpa pendentes
+Status: concluída — schema vivo, tipos e restauração limpa validados; auditorias aprovadas
 Branch: `saas/stage-01-contract-recovery`  
 Migration: `20260919213000_saas_contract_recovery_stage01.sql`
 
-Evidência viva:
-`evidence/STAGE-01-LIVE-AUDIT-2026-09-19.md`
+Evidências:
+
+- `evidence/STAGE-01-LIVE-AUDIT-2026-09-19.md`;
+- `evidence/STAGE-01-CLEAN-RESTORE-2026-09-20.md`.
 
 ## Resultado esperado
 
@@ -56,9 +58,8 @@ Critérios antes de concluir a etapa:
 - a auditoria pós-aplicação não retorna IDs, CPF/CNPJ, e-mails ou nomes.
 
 O arquivo `drizzle/schema.ts` permanece intencionalmente vazio e não é fonte de
-schema. Os tipos Supabase continuam sendo gerados pelo Lovable Cloud; não são
-editados manualmente. Eles deverão ser regenerados após a aplicação viva desta
-migration.
+schema. Os tipos Supabase foram regenerados pelo Lovable Cloud a partir do
+schema vivo e não foram editados manualmente.
 
 ## Aplicação segura
 
@@ -84,5 +85,5 @@ remoção exige exportação, validação de retenção e migration específica.
 - [x] pacote de restauração sincronizado;
 - [x] migration aplicada no Lovable Cloud;
 - [x] auditoria viva aprovada;
-- [ ] tipos Supabase regenerados;
-- [ ] restauração limpa ensaiada.
+- [x] tipos Supabase regenerados;
+- [x] restauração limpa ensaiada e auditada.
