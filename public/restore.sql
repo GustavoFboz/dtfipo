@@ -9815,8 +9815,13 @@ BEGIN
     RAISE EXCEPTION 'STORAGE_ENTITLEMENTS_NOT_INSTALLED: execute 20260905014000_storage_entitlements_and_ipo_courtesy.sql first';
   END IF;
 
-  SELECT count(*), min(c.id)
-    INTO v_matches, v_clinic_id
+  IF NOT EXISTS (SELECT 1 FROM public.clinics) THEN
+    RAISE NOTICE 'IPO_STORAGE_RECONCILE_SKIPPED: clean restore has no clinics';
+    RETURN;
+  END IF;
+
+  SELECT count(*)
+    INTO v_matches
     FROM public.clinics c
    WHERE lower(trim(c.name)) = 'ipo'
       OR lower(c.name) LIKE '%instituto praia de odontologia%'
@@ -9833,6 +9838,19 @@ BEGIN
   IF v_matches > 1 THEN
     RAISE EXCEPTION 'IPO_CLINIC_AMBIGUOUS: % clinics matched; no quota was changed', v_matches;
   END IF;
+
+  SELECT c.id
+    INTO v_clinic_id
+    FROM public.clinics c
+   WHERE lower(trim(c.name)) = 'ipo'
+      OR lower(c.name) LIKE '%instituto praia de odontologia%'
+      OR (
+        lower(c.name) LIKE '%instituto%'
+        AND lower(c.name) LIKE '%praia%'
+        AND lower(c.name) LIKE '%odontolog%'
+      )
+   ORDER BY c.id
+   LIMIT 1;
 
   INSERT INTO public.clinic_storage_entitlements (
     clinic_id,
@@ -9933,6 +9951,11 @@ BEGIN
     RAISE EXCEPTION 'STORAGE_ENTITLEMENTS_NOT_INSTALLED: execute 20260905014000_storage_entitlements_and_ipo_courtesy.sql first';
   END IF;
 
+  IF NOT EXISTS (SELECT 1 FROM public.clinics) THEN
+    RAISE NOTICE 'IPO_STORAGE_RECONCILE_SKIPPED: clean restore has no clinics';
+    RETURN;
+  END IF;
+
   SELECT count(*)
     INTO v_matches
     FROM public.clinics c
@@ -9962,6 +9985,7 @@ BEGIN
         AND lower(c.name) LIKE '%praia%'
         AND lower(c.name) LIKE '%odontolog%'
       )
+   ORDER BY c.id
    LIMIT 1;
 
   INSERT INTO public.clinic_storage_entitlements (

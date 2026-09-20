@@ -11,6 +11,11 @@ BEGIN
     RAISE EXCEPTION 'STORAGE_ENTITLEMENTS_NOT_INSTALLED: execute 20260905014000_storage_entitlements_and_ipo_courtesy.sql first';
   END IF;
 
+  IF NOT EXISTS (SELECT 1 FROM public.clinics) THEN
+    RAISE NOTICE 'IPO_STORAGE_RECONCILE_SKIPPED: clean restore has no clinics';
+    RETURN;
+  END IF;
+
   SELECT count(*)
     INTO v_matches
     FROM public.clinics c
@@ -40,6 +45,7 @@ BEGIN
         AND lower(c.name) LIKE '%praia%'
         AND lower(c.name) LIKE '%odontolog%'
       )
+   ORDER BY c.id
    LIMIT 1;
 
   INSERT INTO public.clinic_storage_entitlements (
