@@ -61,7 +61,8 @@ ALTER TABLE public.clinics  ADD COLUMN IF NOT EXISTS kind text;
 ALTER TABLE public.clinics  ADD COLUMN IF NOT EXISTS owner_id uuid;
 ALTER TABLE public.clinics  ADD COLUMN IF NOT EXISTS invite_code text;
 DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='clinics_invite_code_key') THEN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='clinics_invite_code_key')
+     AND to_regclass('public.clinics_invite_code_key') IS NULL THEN
     ALTER TABLE public.clinics ADD CONSTRAINT clinics_invite_code_key UNIQUE (invite_code);
   END IF;
 END $$;
