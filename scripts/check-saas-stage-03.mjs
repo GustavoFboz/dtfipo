@@ -22,6 +22,25 @@ const generatedTypes = read("src/integrations/supabase/types.ts");
 const stage = read("docs/saas/STAGE-03-REAL-CHECKOUT.md");
 const restoreAssertions = read("docs/saas/sql/stage-03-restore-assertions.sql");
 const liveVerification = read("docs/saas/sql/stage-03-live-verification.sql");
+const packageJson = JSON.parse(read("package.json"));
+const bunLock = read("bun.lock");
+
+const pinnedTanStackRuntime = {
+  "@tanstack/react-router": "1.170.16",
+  "@tanstack/react-start": "1.168.26",
+  "@tanstack/router-plugin": "1.168.18",
+};
+
+for (const [dependency, version] of Object.entries(pinnedTanStackRuntime)) {
+  expect(
+    packageJson.dependencies?.[dependency] === version,
+    `${dependency} precisa permanecer fixado em ${version}; intervalos de versão quebram as rotas server do checkout.`,
+  );
+  expect(
+    bunLock.includes(`"${dependency}": "${version}"`),
+    `bun.lock não preserva a versão homologada de ${dependency}.`,
+  );
+}
 
 expect(restoreMigration === migration, "Cópia da migration Stage 03 divergiu do schema canônico.");
 expect(
