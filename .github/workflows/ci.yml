@@ -56,6 +56,11 @@ jobs:
           bun test src/lib/native-updates.test.ts
           bun scripts/check-native-update-center.mjs
 
+      - name: Verify SaaS Asaas adapter contract
+        run: |
+          bun run check:saas:stage-02
+          bun test src/lib/billing/asaas.server.test.ts src/lib/billing/asaas-provisioning.server.test.ts
+
       # The repository has substantial pre-existing formatting/lint debt.
       # A repo-wide lint gate currently reports thousands of legacy findings,
       # so enabling it here would make unrelated historical debt block this
