@@ -12,6 +12,7 @@ const ipoHardening = read("supabase/migrations/20260909145500_ipo_entitlement_ha
 const ipoBillingExclusion = read("supabase/migrations/20260909150000_ipo_billing_exclusion_032.sql");
 const subscriptions = read("src/lib/subscriptions.ts");
 const gate = read("src/components/SubscriptionGate.tsx");
+const checkoutPanel = read("src/components/billing/BillingCheckoutPanel.tsx");
 const hub = read("src/routes/_authenticated/hub.tsx");
 const auth = read("src/routes/auth.tsx");
 const lp = read("src/routes/lp.tsx");
@@ -70,7 +71,12 @@ expect(ipoBillingExclusion.includes("is_internal_full_access_company(p_clinic_id
 expect(subscriptions.includes("fetchMySubscriptionContext"), "Subscription context client is missing.");
 expect(subscriptions.includes("validateCompanyInviteCode"), "Professional invite validation client is missing.");
 expect(gate.includes('effective_access === "full"') && gate.includes("return <BillingRequired"), "Subscription gate must allow only full access and route every other paid state to billing.");
-expect(gate.includes("Gerar checkout"), "Checkout preparation UI is missing.");
+expect(gate.includes("BillingCheckoutPanel"), "Subscription gate is not connected to the real checkout panel.");
+expect(
+  checkoutPanel.includes("Assinatura mensal pelo Asaas") &&
+    checkoutPanel.includes("Continuar para o pagamento"),
+  "Real Asaas checkout UI is missing.",
+);
 expect(hub.includes("subscription_context") && hub.includes("paidSessions"), "Hub environments must come from paid company sessions.");
 expect(!hub.includes("if (!hasClinic || laboratory)"), "Users must not receive a synthetic laboratory workspace.");
 expect(auth.includes("validateProfessionalInvite"), "Professional signup must validate the company before sign-up.");
