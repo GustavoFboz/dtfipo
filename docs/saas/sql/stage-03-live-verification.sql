@@ -3,84 +3,90 @@
 
 begin transaction read only;
 
-with checks(check_name, passed) as (
-  values
+with function_oids as (
+  select
+    to_regprocedure(
+      'public.billing_get_checkout_provisioning_context(uuid,uuid,text)'
+    ) as checkout_context,
+    to_regprocedure(
+      'public.billing_mark_asaas_checkout_ready(uuid,uuid,text,text,text,text,text)'
+    ) as checkout_ready,
+    to_regprocedure(
+      'public.billing_apply_checkout_paid(uuid,text,text,text,text,timestamptz,timestamptz)'
+    ) as payment_confirmation,
+    to_regprocedure(
+      'public.create_checkout_intent(text,uuid,text[])'
+    ) as checkout_intent
+), checks(check_name, passed) as (
+  select check_name, passed
+  from function_oids
+  cross join lateral (
+    values
     (
       'checkout_context_exists',
-      to_regprocedure(
-        'public.billing_get_checkout_provisioning_context(uuid,uuid,text)'
-      ) is not null
+      checkout_context is not null
     ),
     (
       'checkout_ready_exists',
-      to_regprocedure(
-        'public.billing_mark_asaas_checkout_ready(uuid,uuid,text,text,text,text,text)'
-      ) is not null
+      checkout_ready is not null
     ),
     (
       'checkout_context_blocked_for_anon',
-      not has_function_privilege(
-        'anon',
-        'public.billing_get_checkout_provisioning_context(uuid,uuid,text)',
-        'execute'
+      not coalesce(
+        has_function_privilege('anon', checkout_context, 'execute'),
+        false
       )
     ),
     (
       'checkout_context_blocked_for_authenticated',
-      not has_function_privilege(
-        'authenticated',
-        'public.billing_get_checkout_provisioning_context(uuid,uuid,text)',
-        'execute'
+      not coalesce(
+        has_function_privilege('authenticated', checkout_context, 'execute'),
+        false
       )
     ),
     (
       'checkout_context_allowed_for_service_role',
-      has_function_privilege(
-        'service_role',
-        'public.billing_get_checkout_provisioning_context(uuid,uuid,text)',
-        'execute'
+      coalesce(
+        has_function_privilege('service_role', checkout_context, 'execute'),
+        false
       )
     ),
     (
       'checkout_ready_blocked_for_anon',
-      not has_function_privilege(
-        'anon',
-        'public.billing_mark_asaas_checkout_ready(uuid,uuid,text,text,text,text,text)',
-        'execute'
+      not coalesce(
+        has_function_privilege('anon', checkout_ready, 'execute'),
+        false
       )
     ),
     (
       'checkout_ready_blocked_for_authenticated',
-      not has_function_privilege(
-        'authenticated',
-        'public.billing_mark_asaas_checkout_ready(uuid,uuid,text,text,text,text,text)',
-        'execute'
+      not coalesce(
+        has_function_privilege('authenticated', checkout_ready, 'execute'),
+        false
       )
     ),
     (
       'checkout_ready_allowed_for_service_role',
-      has_function_privilege(
-        'service_role',
-        'public.billing_mark_asaas_checkout_ready(uuid,uuid,text,text,text,text,text)',
-        'execute'
+      coalesce(
+        has_function_privilege('service_role', checkout_ready, 'execute'),
+        false
       )
     ),
     (
       'payment_confirmation_blocked_for_authenticated',
-      not has_function_privilege(
-        'authenticated',
-        'public.billing_apply_checkout_paid(uuid,text,text,text,text,timestamptz,timestamptz)',
-        'execute'
+      not coalesce(
+        has_function_privilege('authenticated', payment_confirmation, 'execute'),
+        false
       )
     ),
     (
       'intent_available_to_authenticated',
-      has_function_privilege(
-        'authenticated',
-        'public.create_checkout_intent(text,uuid,text[])',
-        'execute'
+      coalesce(
+        has_function_privilege('authenticated', checkout_intent, 'execute'),
+        false
       )
     )
+  ) as verification(check_name, passed)
 ), summary as (
   select
     count(*)::integer as checks_total,

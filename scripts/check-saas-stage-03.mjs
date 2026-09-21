@@ -127,6 +127,11 @@ expect(
   liveVerification.includes("begin transaction read only;"),
   "Verificação live deve ser somente leitura.",
 );
+expect(
+  liveVerification.includes("with function_oids as") &&
+    liveVerification.includes("has_function_privilege('anon', checkout_context, 'execute')"),
+  "Verificação live deve tolerar funções ausentes e retornar checks falsos sem abortar.",
+);
 
 const sourceFiles = [];
 function collect(root) {
