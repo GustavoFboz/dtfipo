@@ -124,4 +124,46 @@ describe("AsaasClient", () => {
       /não corresponde/i,
     );
   });
+
+  it("lista somente cobranças pertencentes à assinatura solicitada", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      expect(String(input)).toBe(
+        "https://api-sandbox.asaas.com/v3/subscriptions/sub_SAFE123/payments",
+      );
+      return Response.json({
+        data: [
+          {
+            id: "pay_FIRST123",
+            customer: "cus_SAFE123",
+            subscription: "sub_SAFE123",
+            invoiceUrl: "https://sandbox.asaas.com/i/safe-token",
+          },
+          {
+            id: "pay_OTHER123",
+            customer: "cus_SAFE123",
+            subscription: "sub_OTHER123",
+          },
+        ],
+      });
+    });
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+
+    await expect(client.listSubscriptionPayments("sub_SAFE123")).resolves.toEqual([
+      expect.objectContaining({ id: "pay_FIRST123" }),
+    ]);
+  });
+
+  it("aceita somente a URL de fatura do mesmo ambiente", () => {
+    const client = new AsaasClient(config());
+
+    expect(client.validatePaymentUrl("https://sandbox.asaas.com/i/safe-token")).toBe(
+      "https://sandbox.asaas.com/i/safe-token",
+    );
+    expect(() => client.validatePaymentUrl("https://www.asaas.com/i/prod-token")).toThrow(
+      /fora do ambiente/i,
+    );
+    expect(() => client.validatePaymentUrl("https://example.test/i/fake")).toThrow(
+      /fora do ambiente/i,
+    );
+  });
 });

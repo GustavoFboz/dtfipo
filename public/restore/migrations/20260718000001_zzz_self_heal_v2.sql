@@ -261,6 +261,11 @@ REVOKE ALL ON FUNCTION public.billing_finish_provider_operation(uuid,uuid,text,t
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_get_asaas_provisioning_context(uuid,uuid,text)
   FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_get_checkout_provisioning_context(uuid,uuid,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_mark_asaas_checkout_ready(
+  uuid,uuid,text,text,text,text,text
+) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_valid_br_tax_id(text)
@@ -285,6 +290,11 @@ GRANT EXECUTE ON FUNCTION public.billing_finish_provider_operation(uuid,uuid,tex
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_get_asaas_provisioning_context(uuid,uuid,text)
   TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_get_checkout_provisioning_context(uuid,uuid,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_mark_asaas_checkout_ready(
+  uuid,uuid,text,text,text,text,text
+) TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_valid_br_tax_id(text)

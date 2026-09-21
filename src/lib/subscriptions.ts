@@ -1,15 +1,17 @@
+import { Capacitor } from "@capacitor/core";
+
 import { supabase } from "@/integrations/supabase/client";
-import { isDentalFlowDesktop, localCacheGet, localCachePut } from "@/lib/desktop-local";
+import {
+  isDentalFlowDesktop,
+  isDentalFlowWindowsDesktop,
+  localCacheGet,
+  localCachePut,
+  openDesktopExternalUrl,
+} from "@/lib/desktop-local";
 
 export type CompanySessionType = "laboratory" | "clinic" | "radiology";
 export type SubscriptionStatus =
-  | "pending_checkout"
-  | "trialing"
-  | "active"
-  | "past_due"
-  | "grace"
-  | "suspended"
-  | "canceled";
+  "pending_checkout" | "trialing" | "active" | "past_due" | "grace" | "suspended" | "canceled";
 export type SubscriptionAccessMode = "full" | "billing_only" | "needs_company_link";
 
 export type BillingPlan = {
@@ -64,6 +66,55 @@ export type CheckoutIntent = {
   billing_mode?: "sandbox" | "live";
 };
 
+export type CompanyBillingProfile = {
+  configured: boolean;
+  clinic_id: string;
+  legal_name?: string;
+  tax_id_type?: "CPF" | "CNPJ";
+  tax_id_masked?: string;
+  billing_email?: string;
+  billing_phone_digits?: string;
+  postal_code_digits?: string;
+  address_line?: string;
+  address_number?: string;
+  address_complement?: string | null;
+  district?: string;
+  city?: string;
+  state?: string;
+  country_code?: "BR";
+  provider_bound_sandbox?: boolean;
+  provider_bound_production?: boolean;
+  updated_at?: string;
+};
+
+export type CompanyBillingProfileInput = {
+  legalName: string;
+  taxId: string;
+  billingEmail: string;
+  billingPhone: string;
+  postalCode: string;
+  addressLine: string;
+  addressNumber: string;
+  addressComplement: string;
+  district: string;
+  city: string;
+  state: string;
+};
+
+export type AsaasCheckout = {
+  checkoutIntentId: string;
+  subscriptionId: string;
+  paymentId: string;
+  paymentUrl: string;
+  dueDate: string;
+  amountCents: number;
+  currency: "BRL";
+  environment: "sandbox" | "production";
+  customerReused: boolean;
+  subscriptionReused: boolean;
+  paymentConfirmed: false;
+};
+
 export type BillingTestCapability = {
   enabled: boolean;
   until: string | null;
@@ -106,14 +157,18 @@ function normalizeOfflineContext(context: MySubscriptionContext): MySubscription
   return {
     ...context,
     effective_access: "billing_only",
-    company: context.company ? { ...context.company, access_mode: "billing_only" } : context.company,
+    company: context.company
+      ? { ...context.company, access_mode: "billing_only" }
+      : context.company,
   };
 }
 
 export async function fetchBillingPlans(): Promise<BillingPlan[]> {
   const { data, error } = await (supabase as any)
     .from("billing_plans")
-    .select("code,account_scope,name,description,monthly_price_cents,currency,max_sessions,max_members,storage_bytes,features,display_order")
+    .select(
+      "code,account_scope,name,description,monthly_price_cents,currency,max_sessions,max_members,storage_bytes,features,display_order",
+    )
     .eq("is_active", true)
     .eq("account_scope", "company")
     .order("display_order", { ascending: true });
@@ -137,12 +192,21 @@ export async function fetchMySubscriptionContext(): Promise<MySubscriptionContex
     if (error) throw error;
     const context = (data ?? null) as MySubscriptionContext | null;
     if (context && ownerId && isDentalFlowDesktop()) {
-      void localCachePut(ownerId, SUBSCRIPTION_CACHE_NAMESPACE, SUBSCRIPTION_CACHE_KEY, context).catch(() => undefined);
+      void localCachePut(
+        ownerId,
+        SUBSCRIPTION_CACHE_NAMESPACE,
+        SUBSCRIPTION_CACHE_KEY,
+        context,
+      ).catch(() => undefined);
     }
     return context;
   } catch (error) {
     if (ownerId && isDentalFlowDesktop()) {
-      const cached = await localCacheGet<MySubscriptionContext>(ownerId, SUBSCRIPTION_CACHE_NAMESPACE, SUBSCRIPTION_CACHE_KEY).catch(() => null);
+      const cached = await localCacheGet<MySubscriptionContext>(
+        ownerId,
+        SUBSCRIPTION_CACHE_NAMESPACE,
+        SUBSCRIPTION_CACHE_KEY,
+      ).catch(() => null);
       if (cached?.payload) return normalizeOfflineContext(cached.payload);
     }
     throw error;
@@ -154,13 +218,166 @@ export async function createCheckoutIntent(
   clinicId: string,
   sessions: CompanySessionType[] = [],
 ): Promise<CheckoutIntent> {
-  const { data, error } = await (supabase as any).rpc("create_checkout_intent", {
+  const { data, error } = await supabase.rpc("create_checkout_intent", {
     p_plan_code: planCode,
     p_clinic_id: clinicId,
     p_session_types: sessions,
   });
   if (error) throw error;
   return data as CheckoutIntent;
+}
+
+export async function fetchCompanyBillingProfile(clinicId: string): Promise<CompanyBillingProfile> {
+  const { data, error } = await supabase.rpc("billing_get_company_profile", {
+    p_clinic_id: clinicId,
+  });
+  if (error) throw error;
+  return (data ?? { configured: false, clinic_id: clinicId }) as CompanyBillingProfile;
+}
+
+export async function upsertCompanyBillingProfile(
+  clinicId: string,
+  input: CompanyBillingProfileInput,
+): Promise<CompanyBillingProfile> {
+  const { data, error } = await supabase.rpc("billing_upsert_company_profile", {
+    p_clinic_id: clinicId,
+    p_legal_name: input.legalName.trim(),
+    p_tax_id: input.taxId.trim(),
+    p_billing_email: input.billingEmail.trim(),
+    p_billing_phone: input.billingPhone.trim(),
+    p_postal_code: input.postalCode.trim(),
+    p_address_line: input.addressLine.trim(),
+    p_address_number: input.addressNumber.trim(),
+    p_address_complement: input.addressComplement.trim(),
+    p_district: input.district.trim(),
+    p_city: input.city.trim(),
+    p_state: input.state.trim().toUpperCase(),
+  });
+  if (error) throw error;
+  return data as CompanyBillingProfile;
+}
+
+function checkoutApiUrl(): string {
+  const canonical = "https://dtfipo.lovable.app/api/billing/asaas-checkout";
+  if (typeof window === "undefined" || isDentalFlowDesktop()) return canonical;
+  try {
+    const current = new URL(window.location.href);
+    if (current.protocol === "http:" || current.protocol === "https:") {
+      return new URL("/api/billing/asaas-checkout", current.origin).toString();
+    }
+  } catch {
+    // Native and malformed origins always fall back to the canonical backend.
+  }
+  return canonical;
+}
+
+function validateAsaasPaymentUrl(value: unknown, environment: "sandbox" | "production"): string {
+  let url: URL;
+  try {
+    url = new URL(String(value ?? ""));
+  } catch {
+    throw new Error("O checkout retornou um endereço de pagamento inválido.");
+  }
+  const expectedHost = environment === "sandbox" ? "sandbox.asaas.com" : "www.asaas.com";
+  if (
+    url.protocol !== "https:" ||
+    url.hostname !== expectedHost ||
+    !/^\/i\/[A-Za-z0-9_-]+(?:[/?#].*)?$/.test(`${url.pathname}${url.search}${url.hash}`)
+  ) {
+    throw new Error("O checkout retornou um endereço fora do ambiente Asaas permitido.");
+  }
+  return url.toString();
+}
+
+function parseAsaasCheckout(value: unknown): AsaasCheckout {
+  if (!value || typeof value !== "object") {
+    throw new Error("O backend retornou um checkout inválido.");
+  }
+  const result = value as Partial<AsaasCheckout>;
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      result.checkoutIntentId ?? "",
+    ) ||
+    !/^sub_[A-Za-z0-9]+$/.test(result.subscriptionId ?? "") ||
+    !/^pay_[A-Za-z0-9]+$/.test(result.paymentId ?? "") ||
+    !Number.isSafeInteger(result.amountCents) ||
+    Number(result.amountCents) <= 0 ||
+    result.currency !== "BRL" ||
+    !["sandbox", "production"].includes(result.environment ?? "") ||
+    result.paymentConfirmed !== false
+  ) {
+    throw new Error("O backend retornou um checkout incompleto.");
+  }
+  const environment = result.environment as "sandbox" | "production";
+  return {
+    ...(result as AsaasCheckout),
+    paymentUrl: validateAsaasPaymentUrl(result.paymentUrl, environment),
+  };
+}
+
+export async function createAsaasCheckout(checkoutIntentId: string): Promise<AsaasCheckout> {
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+  if (!accessToken) throw new Error("Sua sessão expirou. Entre novamente para continuar.");
+
+  const response = await fetch(checkoutApiUrl(), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ checkoutIntentId }),
+    cache: "no-store",
+    credentials: "omit",
+    referrerPolicy: "no-referrer",
+  });
+  const payload = (await response.json().catch(() => null)) as {
+    error?: unknown;
+    code?: unknown;
+  } | null;
+  if (!response.ok) {
+    const message =
+      typeof payload?.error === "string" ? payload.error : "Não foi possível preparar o pagamento.";
+    throw new Error(message);
+  }
+  return parseAsaasCheckout(payload);
+}
+
+export async function openAsaasCheckoutPayment(checkout: AsaasCheckout): Promise<void> {
+  const url = validateAsaasPaymentUrl(checkout.paymentUrl, checkout.environment);
+
+  if (Capacitor.isNativePlatform()) {
+    const { Browser } = await import("@capacitor/browser");
+    await Browser.open({ url });
+    return;
+  }
+  if (isDentalFlowWindowsDesktop()) {
+    await openDesktopExternalUrl(url);
+    return;
+  }
+  if (typeof window === "undefined") throw new Error("O navegador não está disponível.");
+  const opened = window.open(url, "_blank", "noopener,noreferrer");
+  if (!opened) window.location.assign(url);
+}
+
+export function friendlyBillingError(error: unknown, fallback: string): string {
+  const raw = error instanceof Error ? error.message : String(error ?? "");
+  const code = /\b(BILLING_[A-Z0-9_]+)\b/.exec(raw)?.[1];
+  const messages: Record<string, string> = {
+    BILLING_PROFILE_INVALID_TAX_ID: "Informe um CPF ou CNPJ válido.",
+    BILLING_PROFILE_INVALID_LEGAL_NAME: "Informe o nome ou a razão social.",
+    BILLING_PROFILE_INVALID_EMAIL: "Informe um e-mail de cobrança válido.",
+    BILLING_PROFILE_INVALID_PHONE: "Informe um telefone com DDD.",
+    BILLING_PROFILE_INVALID_POSTAL_CODE: "Informe um CEP com 8 números.",
+    BILLING_PROFILE_INVALID_STATE: "Informe a sigla do estado com 2 letras.",
+    BILLING_PROFILE_FORBIDDEN: "Somente o administrador pode alterar os dados de cobrança.",
+    BILLING_PROVIDER_CHECKOUT_LOCKED:
+      "Já existe uma cobrança Asaas para esta assinatura. Conclua a cobrança atual antes de alterar a seleção.",
+    BILLING_PROVIDER_SUBSCRIPTION_PLAN_LOCKED:
+      "Este plano já possui uma assinatura Asaas vinculada e não pode ser trocado neste checkout.",
+  };
+  if (code && messages[code]) return messages[code];
+  return raw && !raw.toLowerCase().includes("failed to fetch") ? raw : fallback;
 }
 
 export async function configureCompanySessions(clinicId: string, sessions: CompanySessionType[]) {
@@ -172,7 +389,9 @@ export async function configureCompanySessions(clinicId: string, sessions: Compa
   return data as CompanySubscriptionSnapshot;
 }
 
-export async function validateCompanyInviteCode(inviteCode: string): Promise<CompanyInviteValidation> {
+export async function validateCompanyInviteCode(
+  inviteCode: string,
+): Promise<CompanyInviteValidation> {
   const { data, error } = await (supabase as any).rpc("validate_company_invite_code", {
     p_invite_code: inviteCode.trim(),
   });
@@ -192,13 +411,19 @@ export async function linkProfessionalCompany(inviteCode: string) {
   });
   if (error) throw error;
   if (!data?.success) throw new Error(data?.error ?? "Não foi possível vincular a empresa.");
-  return data as { success: true; clinic_id: string; clinic_name: string; context: MySubscriptionContext };
+  return data as {
+    success: true;
+    clinic_id: string;
+    clinic_name: string;
+    context: MySubscriptionContext;
+  };
 }
 
 export async function finalizePendingOnboarding() {
   const { data, error } = await (supabase as any).rpc("finalize_pending_onboarding");
   if (error) throw error;
-  if (data?.success === false) throw new Error(data?.error ?? "Não foi possível concluir o cadastro.");
+  if (data?.success === false)
+    throw new Error(data?.error ?? "Não foi possível concluir o cadastro.");
   return data as { success: true; already_finalized?: boolean; nothing_pending?: boolean };
 }
 
@@ -222,8 +447,14 @@ export async function confirmSandboxPayment(checkoutIntentId: string) {
     p_checkout_intent_id: checkoutIntentId,
   });
   if (error) throw error;
-  if (!data?.success) throw new Error(data?.error ?? "Não foi possível confirmar o pagamento de teste.");
-  return data as { success: true; subscription_id: string; current_period_end: string; context: MySubscriptionContext };
+  if (!data?.success)
+    throw new Error(data?.error ?? "Não foi possível confirmar o pagamento de teste.");
+  return data as {
+    success: true;
+    subscription_id: string;
+    current_period_end: string;
+    context: MySubscriptionContext;
+  };
 }
 
 export async function simulateSandboxNonpayment(clinicId: string) {

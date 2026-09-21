@@ -5,6 +5,7 @@ on:
     branches: [main]
   push:
     branches:
+      - "saas/**"
       - "stabilization/**"
       - "feature/**"
       - "feat/**"
@@ -56,10 +57,10 @@ jobs:
           bun test src/lib/native-updates.test.ts
           bun scripts/check-native-update-center.mjs
 
-      - name: Verify SaaS Asaas adapter contract
+      - name: Verify SaaS Asaas checkout contract
         run: |
-          bun run check:saas:stage-02
-          bun test src/lib/billing/asaas.server.test.ts src/lib/billing/asaas-provisioning.server.test.ts
+          bun run check:saas:stage-03
+          bun test src/lib/billing/asaas.server.test.ts src/lib/billing/asaas-provisioning.server.test.ts src/lib/billing/asaas-checkout.server.test.ts
 
       # The repository has substantial pre-existing formatting/lint debt.
       # A repo-wide lint gate currently reports thousands of legacy findings,

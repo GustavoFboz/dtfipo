@@ -2,7 +2,7 @@
 
 Status: iniciado em 2026-09-19
 
-Etapa atual: 02 — adapter Asaas Sandbox em homologação
+Etapa atual: 03 — checkout real do Asaas em homologação Sandbox
 
 Provedor financeiro obrigatório para lançamento: Asaas
 
@@ -126,6 +126,9 @@ oficial atual define `https://api-sandbox.asaas.com/v3` para Sandbox e
 <https://docs.asaas.com/reference/comece-por-aqui>.
 
 ### 03 — Checkout real
+
+Status: implementação concluída; homologação real no Asaas Sandbox pendente.
+Consulte `STAGE-03-REAL-CHECKOUT.md`.
 
 - transformar intent interno em assinatura e cobrança reais do Asaas;
 - devolver URL de pagamento do Asaas de forma segura;

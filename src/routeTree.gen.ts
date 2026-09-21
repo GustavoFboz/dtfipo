@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthResetRouteImport } from './routes/auth.reset'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
 import { Route as ApiTranscribeRouteImport } from './routes/api/transcribe'
+import { Route as ApiBillingAsaasCheckoutRouteImport } from './routes/api/billing/asaas-checkout'
 import { Route as AuthenticatedTarefasRouteImport } from './routes/_authenticated/tarefas'
 import { Route as AuthenticatedPatientsRouteImport } from './routes/_authenticated/patients'
 import { Route as AuthenticatedMeuFinanceiroRouteImport } from './routes/_authenticated/meu-financeiro'
@@ -109,6 +110,11 @@ const AuthForgotRoute = AuthForgotRouteImport.update({
 const ApiTranscribeRoute = ApiTranscribeRouteImport.update({
   id: '/api/transcribe',
   path: '/api/transcribe',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBillingAsaasCheckoutRoute = ApiBillingAsaasCheckoutRouteImport.update({
+  id: '/api/billing/asaas-checkout',
+  path: '/api/billing/asaas-checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedTarefasRoute = AuthenticatedTarefasRouteImport.update({
@@ -410,6 +416,7 @@ export interface FileRoutesByFullPath {
   '/patients': typeof AuthenticatedPatientsRouteWithChildren
   '/tarefas': typeof AuthenticatedTarefasRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/api/billing/asaas-checkout': typeof ApiBillingAsaasCheckoutRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/reset': typeof AuthResetRoute
   '/admin/backup': typeof AuthenticatedAdminBackupRoute
@@ -468,6 +475,7 @@ export interface FileRoutesByTo {
   '/patients': typeof AuthenticatedPatientsRouteWithChildren
   '/tarefas': typeof AuthenticatedTarefasRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/api/billing/asaas-checkout': typeof ApiBillingAsaasCheckoutRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/reset': typeof AuthResetRoute
   '/admin/backup': typeof AuthenticatedAdminBackupRoute
@@ -528,6 +536,7 @@ export interface FileRoutesById {
   '/_authenticated/patients': typeof AuthenticatedPatientsRouteWithChildren
   '/_authenticated/tarefas': typeof AuthenticatedTarefasRoute
   '/api/transcribe': typeof ApiTranscribeRoute
+  '/api/billing/asaas-checkout': typeof ApiBillingAsaasCheckoutRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/reset': typeof AuthResetRoute
   '/_authenticated/admin/backup': typeof AuthenticatedAdminBackupRoute
@@ -588,6 +597,7 @@ export interface FileRouteTypes {
     | '/patients'
     | '/tarefas'
     | '/api/transcribe'
+    | '/api/billing/asaas-checkout'
     | '/auth/forgot'
     | '/auth/reset'
     | '/admin/backup'
@@ -646,6 +656,7 @@ export interface FileRouteTypes {
     | '/patients'
     | '/tarefas'
     | '/api/transcribe'
+    | '/api/billing/asaas-checkout'
     | '/auth/forgot'
     | '/auth/reset'
     | '/admin/backup'
@@ -705,6 +716,7 @@ export interface FileRouteTypes {
     | '/_authenticated/patients'
     | '/_authenticated/tarefas'
     | '/api/transcribe'
+    | '/api/billing/asaas-checkout'
     | '/auth/forgot'
     | '/auth/reset'
     | '/_authenticated/admin/backup'
@@ -746,6 +758,7 @@ export interface RootRouteChildren {
   LpRoute: typeof LpRoute
   ReauthRoute: typeof ReauthRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  ApiBillingAsaasCheckoutRoute: typeof ApiBillingAsaasCheckoutRoute
   ApiPublicHooksCleanupCaseFilesRoute: typeof ApiPublicHooksCleanupCaseFilesRoute
 }
 
@@ -812,6 +825,13 @@ declare module '@tanstack/react-router' {
       path: '/api/transcribe'
       fullPath: '/api/transcribe'
       preLoaderRoute: typeof ApiTranscribeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/billing/asaas-checkout': {
+      id: '/api/billing/asaas-checkout'
+      path: '/api/billing/asaas-checkout'
+      fullPath: '/api/billing/asaas-checkout'
+      preLoaderRoute: typeof ApiBillingAsaasCheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/tarefas': {
@@ -1356,6 +1376,7 @@ const rootRouteChildren: RootRouteChildren = {
   LpRoute: LpRoute,
   ReauthRoute: ReauthRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  ApiBillingAsaasCheckoutRoute: ApiBillingAsaasCheckoutRoute,
   ApiPublicHooksCleanupCaseFilesRoute: ApiPublicHooksCleanupCaseFilesRoute,
 }
 export const routeTree = rootRouteImport
