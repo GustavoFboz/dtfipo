@@ -3485,6 +3485,47 @@ export type Database = {
         }
         Returns: Json
       }
+      billing_apply_asaas_payment_lifecycle: {
+        Args: {
+          p_event_id: string
+          p_lease_token: string
+          p_payment_id: string
+          p_customer_id: string
+          p_subscription_id: string
+          p_amount_cents: number
+          p_due_date: string
+          p_payment_status: string
+        }
+        Returns: Json
+      }
+      billing_apply_asaas_subscription_lifecycle: {
+        Args: {
+          p_event_id: string
+          p_lease_token: string
+          p_subscription_id: string
+          p_customer_id: string
+          p_external_reference: string
+          p_amount_cents: number
+          p_cycle: string
+          p_provider_status: string
+        }
+        Returns: Json
+      }
+      billing_list_asaas_expired_grace: {
+        Args: { p_environment: string; p_limit?: number }
+        Returns: { subscription_id: string; payment_id: string }[]
+      }
+      billing_suspend_asaas_expired_grace: {
+        Args: {
+          p_subscription_id: string
+          p_environment: string
+          p_payment_id: string
+          p_customer_id: string
+          p_provider_subscription_id: string
+          p_provider_status: string
+        }
+        Returns: boolean
+      }
       active_company_member: {
         Args: { _clinic_id: string; _user_id?: string }
         Returns: boolean

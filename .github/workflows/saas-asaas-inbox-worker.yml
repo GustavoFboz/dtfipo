@@ -31,7 +31,7 @@ jobs:
               --header "Content-Type: application/json" \
               https://dtfipo.lovable.app/api/billing/asaas-worker)
             echo "$response"
-            if [[ "$response" == '{"processed":0,"ignored":0,"failed":0}' ]]; then
+            if [[ "$(jq -r '[.processed,.ignored,.failed,.suspended,.recoveryQueued] | add' <<< "$response")" == "0" ]]; then
               break
             fi
           done

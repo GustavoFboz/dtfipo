@@ -48,6 +48,22 @@ describe("loadAsaasConfig", () => {
 });
 
 describe("AsaasClient", () => {
+  it("busca assinatura por ID sem enviar corpo ou URL fornecida pelo webhook", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe("https://api-sandbox.asaas.com/v3/subscriptions/sub_ABC123");
+      expect(init?.method).toBe("GET");
+      expect(init?.body).toBeUndefined();
+      return Response.json({ id: "sub_ABC123", customer: "cus_ABC123", status: "INACTIVE" });
+    });
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+    await expect(client.getSubscription("sub_ABC123")).resolves.toMatchObject({
+      id: "sub_ABC123",
+      status: "INACTIVE",
+    });
+    await expect(client.getSubscription("../payment")).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("envia os headers obrigatórios e filtra pela referência exata", async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const headers = new Headers(init?.headers);
