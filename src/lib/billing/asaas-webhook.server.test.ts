@@ -68,6 +68,25 @@ describe("Asaas webhook inbox", () => {
     });
   });
 
+  it("persists only the subscription ID for an authenticated lifecycle event", async () => {
+    const receive = vi.fn().mockResolvedValue(undefined);
+    const result = await receiveAsaasWebhook(
+      webhook({
+        id: eventId,
+        event: "SUBSCRIPTION_INACTIVATED",
+        subscription: { id: "sub_ABC123", customer: "private", cpfCnpj: "sensitive" },
+      }),
+      { environment: "sandbox", webhookToken, receive },
+    );
+    expect(result.status).toBe(200);
+    expect(receive).toHaveBeenCalledWith({
+      environment: "sandbox",
+      eventId,
+      eventType: "SUBSCRIPTION_INACTIVATED",
+      payload: { subscriptionId: "sub_ABC123" },
+    });
+  });
+
   it("returns a retryable error when the inbox is unavailable", async () => {
     const result = await receiveAsaasWebhook(
       webhook({
@@ -105,7 +124,12 @@ describe("Asaas inbox worker", () => {
     workerToken,
     claim: vi.fn().mockResolvedValue([received]),
     getPayment: vi.fn().mockResolvedValue(confirmed),
-    apply: vi.fn().mockResolvedValue(undefined),
+    getSubscription: vi.fn(),
+    applyPayment: vi.fn().mockResolvedValue(undefined),
+    applySubscription: vi.fn().mockResolvedValue(undefined),
+    listExpiredGrace: vi.fn().mockResolvedValue([]),
+    suspendGrace: vi.fn().mockResolvedValue(true),
+    enqueueRecovery: vi.fn().mockResolvedValue(undefined),
     finish: vi.fn().mockResolvedValue(undefined),
   });
 
@@ -121,7 +145,7 @@ describe("Asaas inbox worker", () => {
     const result = await processAsaasInbox(worker(), dependencies);
     expect(result.status).toBe(200);
     expect(dependencies.getPayment).toHaveBeenCalledWith(paymentId);
-    expect(dependencies.apply).toHaveBeenCalledWith(received, confirmed, 9_990);
+    expect(dependencies.applyPayment).toHaveBeenCalledWith(received, confirmed, 9_990);
     expect(dependencies.finish).not.toHaveBeenCalled();
   });
 
@@ -129,7 +153,7 @@ describe("Asaas inbox worker", () => {
     const dependencies = deps();
     dependencies.getPayment.mockResolvedValue({ ...confirmed, status: "PENDING" });
     await processAsaasInbox(worker(), dependencies);
-    expect(dependencies.apply).not.toHaveBeenCalled();
+    expect(dependencies.applyPayment).not.toHaveBeenCalled();
     expect(dependencies.finish).toHaveBeenCalledWith(
       received,
       "failed",
@@ -137,16 +161,99 @@ describe("Asaas inbox worker", () => {
     );
   });
 
-  it("holds refunds for review instead of silently discarding them", async () => {
+  it("reconciles a full refund against the authoritative Asaas payment", async () => {
+    const dependencies = deps();
+    dependencies.claim.mockResolvedValue([{ ...received, event_type: "PAYMENT_REFUNDED" }]);
+    dependencies.getPayment.mockResolvedValue({ ...confirmed, status: "REFUNDED" });
+    await processAsaasInbox(worker(), dependencies);
+    expect(dependencies.getPayment).toHaveBeenCalledWith(paymentId);
+    expect(dependencies.applyPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ event_type: "PAYMENT_REFUNDED" }),
+      expect.objectContaining({ status: "REFUNDED" }),
+      9_990,
+    );
+  });
+
+  it("holds a stale refund when the live payment is still confirmed", async () => {
     const dependencies = deps();
     dependencies.claim.mockResolvedValue([{ ...received, event_type: "PAYMENT_REFUNDED" }]);
     await processAsaasInbox(worker(), dependencies);
-    expect(dependencies.getPayment).not.toHaveBeenCalled();
-    expect(dependencies.apply).not.toHaveBeenCalled();
+    expect(dependencies.applyPayment).not.toHaveBeenCalled();
     expect(dependencies.finish).toHaveBeenCalledWith(
       expect.anything(),
       "failed",
-      "LIFECYCLE_REVIEW_REQUIRED",
+      "PAYMENT_NOT_CONFIRMED_OR_INVALID",
     );
+  });
+
+  it("reconciles an overdue payment without granting a paid entitlement", async () => {
+    const dependencies = deps();
+    dependencies.claim.mockResolvedValue([{ ...received, event_type: "PAYMENT_OVERDUE" }]);
+    dependencies.getPayment.mockResolvedValue({ ...confirmed, status: "OVERDUE" });
+    await processAsaasInbox(worker(), dependencies);
+    expect(dependencies.applyPayment).toHaveBeenCalledWith(
+      expect.objectContaining({ event_type: "PAYMENT_OVERDUE" }),
+      expect.objectContaining({ status: "OVERDUE" }),
+      9_990,
+    );
+  });
+
+  it("reconciles an inactivated subscription only after fetching it", async () => {
+    const dependencies = deps();
+    dependencies.claim.mockResolvedValue([
+      {
+        ...received,
+        event_type: "SUBSCRIPTION_INACTIVATED",
+        payload: { subscriptionId: "sub_ABC123" },
+      },
+    ]);
+    const inactive = {
+      id: "sub_ABC123",
+      customer: "cus_ABC123",
+      value: 99.9,
+      cycle: "MONTHLY",
+      status: "INACTIVE",
+      externalReference: "dentalflow:subscription:123e4567-e89b-42d3-a456-426614174000",
+    };
+    dependencies.getSubscription.mockResolvedValue(inactive);
+    await processAsaasInbox(worker(), dependencies);
+    expect(dependencies.applySubscription).toHaveBeenCalledWith(
+      expect.objectContaining({ event_type: "SUBSCRIPTION_INACTIVATED" }),
+      inactive,
+      9_990,
+    );
+    expect(dependencies.getPayment).not.toHaveBeenCalled();
+  });
+
+  it("checks an expired grace invoice before suspension", async () => {
+    const dependencies = deps();
+    dependencies.claim.mockResolvedValue([]);
+    const candidate = {
+      subscription_id: "123e4567-e89b-42d3-a456-426614174000",
+      payment_id: paymentId,
+    };
+    dependencies.listExpiredGrace.mockResolvedValue([candidate]);
+    const overdue = { ...confirmed, status: "OVERDUE" };
+    dependencies.getPayment.mockResolvedValue(overdue);
+    const result = await processAsaasInbox(worker(), dependencies);
+    expect(result.status).toBe(200);
+    expect(dependencies.suspendGrace).toHaveBeenCalledWith(candidate, overdue);
+    expect(await result.json()).toMatchObject({ suspended: 1, recoveryQueued: 0 });
+  });
+
+  it("enqueues recovery if Asaas shows an invoice paid before the grace sweep", async () => {
+    const dependencies = deps();
+    dependencies.claim.mockResolvedValue([]);
+    dependencies.listExpiredGrace.mockResolvedValue([
+      { subscription_id: "123e4567-e89b-42d3-a456-426614174000", payment_id: paymentId },
+    ]);
+    const result = await processAsaasInbox(worker(), dependencies);
+    expect(dependencies.suspendGrace).not.toHaveBeenCalled();
+    expect(dependencies.enqueueRecovery).toHaveBeenCalledWith(
+      "evt_reconcile_pay_080225913252_CONFIRMED",
+      "PAYMENT_CONFIRMED",
+      paymentId,
+    );
+    expect(await result.json()).toMatchObject({ recoveryQueued: 1 });
   });
 });

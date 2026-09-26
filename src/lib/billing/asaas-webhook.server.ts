@@ -1,18 +1,35 @@
 import { timingSafeEqual } from "node:crypto";
-import { AsaasClient, loadAsaasConfig, type AsaasPayment } from "./asaas.server";
+import {
+  AsaasClient,
+  loadAsaasConfig,
+  type AsaasPayment,
+  type AsaasSubscription,
+} from "./asaas.server";
 import { classifyAsaasPaymentEvent, type AsaasProviderEnvironment } from "./asaas-contract";
 
 const MAX_BODY_BYTES = 32_768;
 const EVENT_ID = /^evt_[A-Za-z0-9&_-]{1,150}$/;
 const EVENT_TYPE = /^[A-Z_]{3,100}$/;
 const PAYMENT_ID = /^pay_[A-Za-z0-9]+$/;
+const SUBSCRIPTION_ID = /^sub_[A-Za-z0-9]+$/;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const CONFIRMATION_EVENTS = new Set(["PAYMENT_CONFIRMED", "PAYMENT_RECEIVED"]);
+const LIFECYCLE_PAYMENT_EVENTS = new Set([
+  "PAYMENT_CONFIRMED",
+  "PAYMENT_RECEIVED",
+  "PAYMENT_OVERDUE",
+  "PAYMENT_REFUNDED",
+]);
+const SUBSCRIPTION_EVENTS = new Set([
+  "SUBSCRIPTION_CREATED",
+  "SUBSCRIPTION_UPDATED",
+  "SUBSCRIPTION_INACTIVATED",
+]);
 
 type InboxEvent = {
   id: string;
   event_type: string;
-  payload: { paymentId?: string };
+  payload: { paymentId?: string; subscriptionId?: string };
   lease_token: string;
   attempt_count: number;
 };
@@ -24,7 +41,7 @@ type WebhookDependencies = {
     environment: AsaasProviderEnvironment;
     eventId: string;
     eventType: string;
-    payload: { paymentId?: string };
+    payload: { paymentId?: string; subscriptionId?: string };
   }) => Promise<void>;
 };
 
@@ -33,7 +50,22 @@ type WorkerDependencies = {
   workerToken: string;
   claim: () => Promise<InboxEvent[]>;
   getPayment: (id: string) => Promise<AsaasPayment>;
-  apply: (event: InboxEvent, payment: AsaasPayment, cents: number) => Promise<void>;
+  getSubscription: (id: string) => Promise<AsaasSubscription>;
+  applyPayment: (event: InboxEvent, payment: AsaasPayment, cents: number) => Promise<void>;
+  applySubscription: (
+    event: InboxEvent,
+    subscription: AsaasSubscription,
+    cents: number,
+  ) => Promise<void>;
+  listExpiredGrace: () => Promise<{ subscription_id: string; payment_id: string }[]>;
+  suspendGrace: (
+    candidate: {
+      subscription_id: string;
+      payment_id: string;
+    },
+    payment: AsaasPayment,
+  ) => Promise<boolean>;
+  enqueueRecovery: (eventId: string, eventType: string, paymentId: string) => Promise<void>;
   finish: (event: InboxEvent, outcome: "ignored" | "failed", code?: string) => Promise<void>;
 };
 
@@ -133,8 +165,18 @@ export async function receiveAsaasWebhook(
       payment && typeof payment === "object" && !Array.isArray(payment)
         ? (payment as { id?: unknown }).id
         : undefined;
-    const payload =
-      typeof paymentId === "string" && PAYMENT_ID.test(paymentId) ? { paymentId } : {};
+    const subscription = event.subscription;
+    const subscriptionId =
+      subscription && typeof subscription === "object" && !Array.isArray(subscription)
+        ? (subscription as { id?: unknown }).id
+        : undefined;
+    const payload: { paymentId?: string; subscriptionId?: string } = {};
+    if (typeof paymentId === "string" && PAYMENT_ID.test(paymentId)) {
+      payload.paymentId = paymentId;
+    }
+    if (typeof subscriptionId === "string" && SUBSCRIPTION_ID.test(subscriptionId)) {
+      payload.subscriptionId = subscriptionId;
+    }
     await deps.receive({
       environment: deps.environment,
       eventId: event.id,
@@ -152,7 +194,7 @@ export async function receiveAsaasWebhook(
   }
 }
 
-function paymentAmountCents(payment: AsaasPayment): number | null {
+function paymentAmountCents(payment: { value?: number }): number | null {
   if (typeof payment.value !== "number" || !Number.isFinite(payment.value)) return null;
   const cents = Math.round(payment.value * 100);
   return cents > 0 &&
@@ -166,7 +208,36 @@ async function processEvent(
   event: InboxEvent,
   deps: WorkerDependencies,
 ): Promise<"processed" | "ignored" | "failed"> {
-  if (!CONFIRMATION_EVENTS.has(event.event_type)) {
+  if (SUBSCRIPTION_EVENTS.has(event.event_type)) {
+    const subscriptionId = event.payload?.subscriptionId;
+    if (!subscriptionId || !SUBSCRIPTION_ID.test(subscriptionId)) {
+      await deps.finish(event, "failed", "MISSING_SUBSCRIPTION_ID");
+      return "failed";
+    }
+    try {
+      const subscription = await deps.getSubscription(subscriptionId);
+      const cents = paymentAmountCents(subscription);
+      if (
+        subscription.id !== subscriptionId ||
+        !cents ||
+        !SUBSCRIPTION_ID.test(subscription.id) ||
+        !/^cus_[A-Za-z0-9]+$/.test(subscription.customer) ||
+        subscription.cycle !== "MONTHLY" ||
+        !["ACTIVE", "INACTIVE"].includes(subscription.status ?? "") ||
+        !subscription.externalReference ||
+        subscription.deleted
+      ) {
+        await deps.finish(event, "failed", "SUBSCRIPTION_NOT_VERIFIED");
+        return "failed";
+      }
+      await deps.applySubscription(event, subscription, cents);
+      return "processed";
+    } catch {
+      await deps.finish(event, "failed", "SUBSCRIPTION_RECONCILIATION_FAILED");
+      return "failed";
+    }
+  }
+  if (!LIFECYCLE_PAYMENT_EVENTS.has(event.event_type)) {
     const informational = classifyAsaasPaymentEvent(event.event_type) === "informational";
     await deps.finish(
       event,
@@ -187,18 +258,52 @@ async function processEvent(
       payment.id !== paymentId ||
       !cents ||
       !ISO_DATE.test(payment.dueDate ?? "") ||
-      !["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"].includes(payment.status ?? "") ||
+      !(CONFIRMATION_EVENTS.has(event.event_type)
+        ? ["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"].includes(payment.status ?? "")
+        : event.event_type === "PAYMENT_OVERDUE"
+          ? payment.status === "OVERDUE"
+          : payment.status === "REFUNDED") ||
       !payment.subscription
     ) {
       await deps.finish(event, "failed", "PAYMENT_NOT_CONFIRMED_OR_INVALID");
       return "failed";
     }
-    await deps.apply(event, payment, cents);
+    await deps.applyPayment(event, payment, cents);
     return "processed";
   } catch {
     await deps.finish(event, "failed", "PROVIDER_RECONCILIATION_FAILED");
     return "failed";
   }
+}
+
+async function reconcileExpiredGrace(
+  deps: WorkerDependencies,
+): Promise<{ suspended: number; recoveryQueued: number }> {
+  const counts = { suspended: 0, recoveryQueued: 0 };
+  for (const candidate of await deps.listExpiredGrace()) {
+    const payment = await deps.getPayment(candidate.payment_id);
+    if (
+      payment.id !== candidate.payment_id ||
+      !payment.subscription ||
+      !/^cus_[A-Za-z0-9]+$/.test(payment.customer)
+    ) {
+      throw new Error("GRACE_PAYMENT_NOT_VERIFIED");
+    }
+    if (payment.status === "OVERDUE") {
+      if (await deps.suspendGrace(candidate, payment)) counts.suspended += 1;
+    } else if (["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"].includes(payment.status ?? "")) {
+      const eventType = payment.status === "CONFIRMED" ? "PAYMENT_CONFIRMED" : "PAYMENT_RECEIVED";
+      await deps.enqueueRecovery(
+        "evt_reconcile_" + payment.id + "_" + payment.status,
+        eventType,
+        payment.id,
+      );
+      counts.recoveryQueued += 1;
+    } else {
+      throw new Error("GRACE_PROVIDER_STATUS_REVIEW_REQUIRED");
+    }
+  }
+  return counts;
 }
 
 /** Invoked by a trusted scheduler; never sends the worker credential to a client. */
@@ -231,10 +336,11 @@ export async function processAsaasInbox(
           return (data ?? []) as InboxEvent[];
         },
         getPayment: (id) => client.getPayment(id),
-        apply: async (event, payment, cents) => {
+        getSubscription: (id) => client.getSubscription(id),
+        applyPayment: async (event, payment, cents) => {
           const { error } = await (
             await admin()
-          ).rpc("billing_apply_asaas_initial_payment", {
+          ).rpc("billing_apply_asaas_payment_lifecycle", {
             p_event_id: event.id,
             p_lease_token: event.lease_token,
             p_payment_id: payment.id,
@@ -243,6 +349,56 @@ export async function processAsaasInbox(
             p_amount_cents: cents,
             p_due_date: payment.dueDate!,
             p_payment_status: payment.status!,
+          });
+          if (error) throw error;
+        },
+        applySubscription: async (event, subscription, cents) => {
+          const { error } = await (
+            await admin()
+          ).rpc("billing_apply_asaas_subscription_lifecycle", {
+            p_event_id: event.id,
+            p_lease_token: event.lease_token,
+            p_subscription_id: subscription.id,
+            p_customer_id: subscription.customer,
+            p_external_reference: subscription.externalReference!,
+            p_amount_cents: cents,
+            p_cycle: subscription.cycle!,
+            p_provider_status: subscription.status!,
+          });
+          if (error) throw error;
+        },
+        listExpiredGrace: async () => {
+          const { data, error } = await (
+            await admin()
+          ).rpc("billing_list_asaas_expired_grace", {
+            p_environment: config.environment,
+            p_limit: 10,
+          });
+          if (error) throw error;
+          return data ?? [];
+        },
+        suspendGrace: async (candidate, payment) => {
+          const { data, error } = await (
+            await admin()
+          ).rpc("billing_suspend_asaas_expired_grace", {
+            p_subscription_id: candidate.subscription_id,
+            p_environment: config.environment,
+            p_payment_id: payment.id,
+            p_customer_id: payment.customer,
+            p_provider_subscription_id: payment.subscription!,
+            p_provider_status: payment.status!,
+          });
+          if (error) throw error;
+          return data ?? false;
+        },
+        enqueueRecovery: async (eventId, eventType, paymentId) => {
+          const { error } = await (
+            await admin()
+          ).rpc("billing_receive_asaas_event", {
+            p_environment: config.environment,
+            p_event_id: eventId,
+            p_event_type: eventType,
+            p_payload: { paymentId },
           });
           if (error) throw error;
         },
@@ -275,7 +431,8 @@ export async function processAsaasInbox(
     const events = await deps.claim();
     const counts = { processed: 0, ignored: 0, failed: 0 };
     for (const event of events) counts[await processEvent(event, deps)] += 1;
-    return json(counts, 200);
+    const grace = await reconcileExpiredGrace(deps);
+    return json({ ...counts, ...grace }, 200);
   } catch {
     console.error("[Asaas worker] WORKER_FAILED");
     return json({ processed: 0 }, 503);

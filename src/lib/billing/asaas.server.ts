@@ -532,6 +532,15 @@ export class AsaasClient {
     );
   }
 
+  async getSubscription(subscriptionId: string): Promise<AsaasSubscription> {
+    if (!SUBSCRIPTION_ID_PATTERN.test(subscriptionId)) {
+      throw new Error("Assinatura Asaas inválida.");
+    }
+    return validateSubscription(
+      await this.request<unknown>("GET", "/subscriptions/" + encodeURIComponent(subscriptionId)),
+    );
+  }
+
   validatePaymentUrl(value: string): string {
     let url: URL;
     try {
