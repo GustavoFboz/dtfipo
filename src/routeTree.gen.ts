@@ -37,6 +37,7 @@ import { Route as AuthenticatedCadistaRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedBurrsRouteImport } from './routes/_authenticated/burrs'
 import { Route as AuthenticatedArmazenamentoRouteImport } from './routes/_authenticated/armazenamento'
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
+import { Route as ApiBillingAsaasCheckoutRouteImport } from './routes/api/billing/asaas-checkout'
 import { Route as AuthenticatedPatientsIdRouteImport } from './routes/_authenticated/patients.$id'
 import { Route as AuthenticatedFinanceiroRelatoriosRouteImport } from './routes/_authenticated/financeiro.relatorios'
 import { Route as AuthenticatedFinanceiroProducaoRouteImport } from './routes/_authenticated/financeiro.producao'
@@ -209,6 +210,11 @@ const AuthenticatedAgendaRoute = AuthenticatedAgendaRouteImport.update({
   id: '/agenda',
   path: '/agenda',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiBillingAsaasCheckoutRoute = ApiBillingAsaasCheckoutRouteImport.update({
+  id: '/api/billing/asaas-checkout',
+  path: '/api/billing/asaas-checkout',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedPatientsIdRoute = AuthenticatedPatientsIdRouteImport.update({
   id: '/$id',
@@ -439,6 +445,7 @@ export interface FileRoutesByFullPath {
   '/financeiro/producao': typeof AuthenticatedFinanceiroProducaoRoute
   '/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/patients/$id': typeof AuthenticatedPatientsIdRoute
+  '/api/billing/asaas-checkout': typeof ApiBillingAsaasCheckoutRoute
   '/clinica/pacientes/$patientId': typeof AuthenticatedClinicaPacientesPatientIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
 }
@@ -497,6 +504,7 @@ export interface FileRoutesByTo {
   '/financeiro/producao': typeof AuthenticatedFinanceiroProducaoRoute
   '/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/patients/$id': typeof AuthenticatedPatientsIdRoute
+  '/api/billing/asaas-checkout': typeof ApiBillingAsaasCheckoutRoute
   '/clinica/pacientes/$patientId': typeof AuthenticatedClinicaPacientesPatientIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
 }
@@ -557,6 +565,7 @@ export interface FileRoutesById {
   '/_authenticated/financeiro/producao': typeof AuthenticatedFinanceiroProducaoRoute
   '/_authenticated/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/_authenticated/patients/$id': typeof AuthenticatedPatientsIdRoute
+  '/api/billing/asaas-checkout': typeof ApiBillingAsaasCheckoutRoute
   '/_authenticated/clinica/pacientes/$patientId': typeof AuthenticatedClinicaPacientesPatientIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
 }
@@ -617,6 +626,7 @@ export interface FileRouteTypes {
     | '/financeiro/producao'
     | '/financeiro/relatorios'
     | '/patients/$id'
+    | '/api/billing/asaas-checkout'
     | '/clinica/pacientes/$patientId'
     | '/api/public/hooks/cleanup-case-files'
   fileRoutesByTo: FileRoutesByTo
@@ -675,6 +685,7 @@ export interface FileRouteTypes {
     | '/financeiro/producao'
     | '/financeiro/relatorios'
     | '/patients/$id'
+    | '/api/billing/asaas-checkout'
     | '/clinica/pacientes/$patientId'
     | '/api/public/hooks/cleanup-case-files'
   id:
@@ -734,6 +745,7 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro/producao'
     | '/_authenticated/financeiro/relatorios'
     | '/_authenticated/patients/$id'
+    | '/api/billing/asaas-checkout'
     | '/_authenticated/clinica/pacientes/$patientId'
     | '/api/public/hooks/cleanup-case-files'
   fileRoutesById: FileRoutesById
@@ -746,6 +758,7 @@ export interface RootRouteChildren {
   LpRoute: typeof LpRoute
   ReauthRoute: typeof ReauthRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  ApiBillingAsaasCheckoutRoute: typeof ApiBillingAsaasCheckoutRoute
   ApiPublicHooksCleanupCaseFilesRoute: typeof ApiPublicHooksCleanupCaseFilesRoute
 }
 
@@ -946,6 +959,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/agenda'
       preLoaderRoute: typeof AuthenticatedAgendaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/billing/asaas-checkout': {
+      id: '/api/billing/asaas-checkout'
+      path: '/api/billing/asaas-checkout'
+      fullPath: '/api/billing/asaas-checkout'
+      preLoaderRoute: typeof ApiBillingAsaasCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/patients/$id': {
       id: '/_authenticated/patients/$id'
@@ -1356,6 +1376,7 @@ const rootRouteChildren: RootRouteChildren = {
   LpRoute: LpRoute,
   ReauthRoute: ReauthRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  ApiBillingAsaasCheckoutRoute: ApiBillingAsaasCheckoutRoute,
   ApiPublicHooksCleanupCaseFilesRoute: ApiPublicHooksCleanupCaseFilesRoute,
 }
 export const routeTree = rootRouteImport

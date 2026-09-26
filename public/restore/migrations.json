@@ -151,5 +151,6 @@
   "20260909150000_ipo_billing_exclusion_032.sql",
   "20260919213000_saas_contract_recovery_stage01.sql",
   "20260920203000_saas_asaas_adapter_stage02.sql",
+  "20260921210000_saas_asaas_checkout_stage03.sql",
   "20260718000001_zzz_self_heal_v2.sql"
 ]

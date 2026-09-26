@@ -11,6 +11,7 @@ const ASAAS_BASE_URL: Record<AsaasProviderEnvironment, string> = {
 
 const CUSTOMER_ID_PATTERN = /^cus_[A-Za-z0-9]+$/;
 const SUBSCRIPTION_ID_PATTERN = /^sub_[A-Za-z0-9]+$/;
+const PAYMENT_ID_PATTERN = /^pay_[A-Za-z0-9]+$/;
 
 export type AsaasBillingType = "UNDEFINED" | "BOLETO" | "CREDIT_CARD" | "PIX";
 
@@ -41,6 +42,19 @@ export type AsaasSubscription = {
   nextDueDate?: string;
   cycle?: string;
   status?: string;
+  externalReference?: string | null;
+  deleted?: boolean;
+};
+
+export type AsaasPayment = {
+  id: string;
+  customer: string;
+  subscription?: string | null;
+  billingType?: AsaasBillingType;
+  value?: number;
+  dueDate?: string;
+  status?: string;
+  invoiceUrl?: string;
   externalReference?: string | null;
   deleted?: boolean;
 };
@@ -267,6 +281,28 @@ function validateSubscription(value: unknown): AsaasSubscription {
   return value as AsaasSubscription;
 }
 
+function validatePayment(value: unknown): AsaasPayment {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !PAYMENT_ID_PATTERN.test(String((value as { id?: unknown }).id ?? "")) ||
+    !CUSTOMER_ID_PATTERN.test(String((value as { customer?: unknown }).customer ?? ""))
+  ) {
+    throw new AsaasApiError({
+      code: "ASAAS_INVALID_RESPONSE",
+      message: "Resposta de cobrança inválida.",
+    });
+  }
+  const subscription = (value as { subscription?: unknown }).subscription;
+  if (subscription != null && !SUBSCRIPTION_ID_PATTERN.test(String(subscription))) {
+    throw new AsaasApiError({
+      code: "ASAAS_INVALID_RESPONSE",
+      message: "Assinatura da cobrança inválida.",
+    });
+  }
+  return value as AsaasPayment;
+}
+
 export class AsaasClient {
   readonly environment: AsaasProviderEnvironment;
   private readonly config: AsaasConfig;
@@ -468,5 +504,49 @@ export class AsaasClient {
     }
     const response = await this.request<unknown>("POST", "/subscriptions", { body: input });
     return validateSubscription(response);
+  }
+
+  async listSubscriptionPayments(subscriptionId: string): Promise<AsaasPayment[]> {
+    if (!SUBSCRIPTION_ID_PATTERN.test(subscriptionId)) {
+      throw new Error("Assinatura Asaas inválida.");
+    }
+    const response = await this.request<AsaasListResponse<unknown>>(
+      "GET",
+      `/subscriptions/${encodeURIComponent(subscriptionId)}/payments`,
+    );
+    if (!Array.isArray(response.data)) {
+      throw new AsaasApiError({
+        code: "ASAAS_INVALID_RESPONSE",
+        message: "Lista de cobranças inválida.",
+      });
+    }
+    return response.data
+      .map(validatePayment)
+      .filter((payment) => !payment.deleted && payment.subscription === subscriptionId);
+  }
+
+  validatePaymentUrl(value: string): string {
+    let url: URL;
+    try {
+      url = new URL(value);
+    } catch {
+      throw new AsaasApiError({
+        code: "ASAAS_INVALID_PAYMENT_URL",
+        message: "URL de pagamento inválida.",
+      });
+    }
+
+    const expectedHost = this.environment === "sandbox" ? "sandbox.asaas.com" : "www.asaas.com";
+    if (
+      url.protocol !== "https:" ||
+      url.hostname !== expectedHost ||
+      !/^\/i\/[A-Za-z0-9_-]+(?:[/?#].*)?$/.test(`${url.pathname}${url.search}${url.hash}`)
+    ) {
+      throw new AsaasApiError({
+        code: "ASAAS_INVALID_PAYMENT_URL",
+        message: "URL de pagamento fora do ambiente permitido.",
+      });
+    }
+    return url.toString();
   }
 }

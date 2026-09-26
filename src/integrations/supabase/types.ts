@@ -3540,6 +3540,14 @@ export type Database = {
         }
         Returns: Json
       }
+      billing_get_checkout_provisioning_context: {
+        Args: {
+          p_actor_user_id: string
+          p_checkout_intent_id: string
+          p_provider_environment: string
+        }
+        Returns: Json
+      }
       billing_get_company_profile: {
         Args: { p_clinic_id: string }
         Returns: Json
@@ -3552,6 +3560,18 @@ export type Database = {
       billing_test_redeem_token: { Args: { p_token: string }; Returns: Json }
       billing_test_simulate_nonpayment: {
         Args: { p_clinic_id: string }
+        Returns: Json
+      }
+      billing_mark_asaas_checkout_ready: {
+        Args: {
+          p_actor_user_id: string
+          p_checkout_intent_id: string
+          p_provider_customer_id: string
+          p_provider_environment: string
+          p_provider_payment_id: string
+          p_provider_payment_url: string
+          p_provider_subscription_id: string
+        }
         Returns: Json
       }
       billing_upsert_company_profile: {
