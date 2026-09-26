@@ -8,6 +8,7 @@ declare
   v_start date := current_date - 1;
   v_end timestamptz := (current_date - 1 + interval '1 month')::timestamptz;
   v_result jsonb;
+  v_suspended boolean;
 begin
   insert into public.clinics (name, slug)
   values ('Stage05 test only', 'stage05-rehearsal-only')
@@ -58,10 +59,17 @@ begin
   ) then
     raise exception 'Wrong customer suspended a company';
   end if;
-  if not public.billing_suspend_asaas_expired_grace(
+  v_suspended := public.billing_suspend_asaas_expired_grace(
     v_sub,'sandbox','pay_Stage05Next','cus_Stage05','sub_Stage05','OVERDUE'
-  ) or (select status from public.account_subscriptions where id = v_sub) <> 'suspended' then
-    raise exception 'Verified overdue invoice did not suspend after grace';
+  );
+  if not v_suspended
+    or (select status from public.account_subscriptions where id = v_sub) <> 'suspended' then
+    raise exception 'Verified overdue invoice did not suspend after grace: returned %, state %, grace %, pending %, paid %',
+      v_suspended,
+      (select status from public.account_subscriptions where id = v_sub),
+      (select grace_until from public.account_subscriptions where id = v_sub),
+      (select count(*) from public.billing_payments where subscription_id = v_sub and status = 'pending'),
+      (select count(*) from public.billing_payments where subscription_id = v_sub and status = 'paid');
   end if;
 
   perform public.billing_receive_asaas_event(
