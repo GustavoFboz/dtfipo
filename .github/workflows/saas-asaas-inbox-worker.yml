@@ -1,0 +1,37 @@
+name: SaaS Asaas inbox worker
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saas-asaas-inbox-worker
+  cancel-in-progress: false
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      BILLING_WORKER_TOKEN: ${{ secrets.BILLING_WORKER_TOKEN }}
+    steps:
+      - name: Process persisted Sandbox events
+        if: env.BILLING_WORKER_TOKEN != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in {1..10}; do
+            response=$(curl --silent --show-error --fail-with-body --max-time 20 \
+              --request POST \
+              --header "Authorization: Bearer $BILLING_WORKER_TOKEN" \
+              --header "Content-Type: application/json" \
+              https://dtfipo.lovable.app/api/billing/asaas-worker)
+            echo "$response"
+            if [[ "$response" == '{"processed":0,"ignored":0,"failed":0}' ]]; then
+              break
+            fi
+          done

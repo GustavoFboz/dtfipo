@@ -2,7 +2,7 @@
 
 Status: iniciado em 2026-09-19
 
-Etapa atual: 03 — checkout real do Asaas em homologação Sandbox
+Etapa atual: 04 — webhook e confirmação inicial em implementação Sandbox
 
 Provedor financeiro obrigatório para lançamento: Asaas
 
@@ -136,6 +136,10 @@ Consulte `STAGE-03-REAL-CHECKOUT.md`.
 - nunca ativar assinatura pelo redirect síncrono.
 
 ### 04 — Webhook, inbox e reconciliação
+
+Status: receptor, inbox, processador de pagamento inicial e execução agendada
+implementados em branch isolada; validação no Sandbox e ativação do agendador
+pendentes. Consulte `STAGE-04-ASAAS-WEBHOOK.md`.
 
 - endpoint público com validação de `asaas-access-token`;
 - persistência única por `(provider, provider_event_id)` antes do `200`;
