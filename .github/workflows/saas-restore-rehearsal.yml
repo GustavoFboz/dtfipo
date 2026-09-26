@@ -2,6 +2,17 @@ name: DentalFlow SaaS Restore Rehearsal
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - "saas/**"
+    paths:
+      - "public/restore.sql"
+      - "public/restore/**"
+      - "supabase/migrations/**"
+      - "docs/saas/**"
+      - "scripts/build-restore-bundle.mjs"
+      - "scripts/check-saas-stage-04.mjs"
+      - ".github/workflows/saas-restore-rehearsal.yml"
   pull_request:
     branches:
       - main
