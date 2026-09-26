@@ -154,9 +154,13 @@ export type Database = {
       }
       billing_events: {
         Row: {
+          attempt_count: number
           error_message: string | null
           event_type: string
           id: string
+          lease_token: string | null
+          lease_until: string | null
+          next_attempt_at: string
           payload: Json
           processed_at: string | null
           provider: string
@@ -166,9 +170,13 @@ export type Database = {
           status: string
         }
         Insert: {
+          attempt_count?: number
           error_message?: string | null
           event_type: string
           id?: string
+          lease_token?: string | null
+          lease_until?: string | null
+          next_attempt_at?: string
           payload?: Json
           processed_at?: string | null
           provider: string
@@ -178,9 +186,13 @@ export type Database = {
           status?: string
         }
         Update: {
+          attempt_count?: number
           error_message?: string | null
           event_type?: string
           id?: string
+          lease_token?: string | null
+          lease_until?: string | null
+          next_attempt_at?: string
           payload?: Json
           processed_at?: string | null
           provider?: string
@@ -3448,6 +3460,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      billing_receive_asaas_event: {
+        Args: { p_environment: string; p_event_id: string; p_event_type: string; p_payload: Json }
+        Returns: boolean
+      }
+      billing_claim_asaas_events: {
+        Args: { p_environment: string; p_limit?: number }
+        Returns: { id: string; event_type: string; payload: Json; lease_token: string; attempt_count: number }[]
+      }
+      billing_finish_asaas_event: {
+        Args: { p_id: string; p_lease_token: string; p_outcome: string; p_error_code?: string | null }
+        Returns: boolean
+      }
+      billing_apply_asaas_initial_payment: {
+        Args: {
+          p_event_id: string
+          p_lease_token: string
+          p_payment_id: string
+          p_customer_id: string
+          p_subscription_id: string
+          p_amount_cents: number
+          p_due_date: string
+          p_payment_status: string
+        }
+        Returns: Json
+      }
       active_company_member: {
         Args: { _clinic_id: string; _user_id?: string }
         Returns: boolean

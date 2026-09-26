@@ -2,6 +2,17 @@ name: DentalFlow SaaS Restore Rehearsal
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - "saas/**"
+    paths:
+      - "public/restore.sql"
+      - "public/restore/**"
+      - "supabase/migrations/**"
+      - "docs/saas/**"
+      - "scripts/build-restore-bundle.mjs"
+      - "scripts/check-saas-stage-04.mjs"
+      - ".github/workflows/saas-restore-rehearsal.yml"
   pull_request:
     branches:
       - main
@@ -13,6 +24,7 @@ on:
       - "scripts/build-restore-bundle.mjs"
       - "scripts/check-saas-stage-01.mjs"
       - "scripts/check-saas-stage-02.mjs"
+      - "scripts/check-saas-stage-04.mjs"
       - ".github/workflows/saas-restore-rehearsal.yml"
 
 permissions:
@@ -86,6 +98,15 @@ jobs:
             < docs/saas/sql/stage-02-restore-assertions.sql \
             | tee restore-stage-02-assertions.log
 
+      - name: Verify Stage 04 restored webhook boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-04-restore-assertions.sql \
+            | tee restore-stage-04-assertions.log
+
       - name: Record sanitized restored-schema audit
         shell: bash
         run: |
@@ -106,6 +127,7 @@ jobs:
             restore-apply.log
             restore-assertions.log
             restore-stage-02-assertions.log
+            restore-stage-04-assertions.log
             restore-audit.log
 
       - name: Stop isolated database

@@ -37,6 +37,8 @@ import { Route as AuthenticatedCadistaRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedBurrsRouteImport } from './routes/_authenticated/burrs'
 import { Route as AuthenticatedArmazenamentoRouteImport } from './routes/_authenticated/armazenamento'
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
+import { Route as ApiBillingAsaasWorkerRouteImport } from './routes/api/billing/asaas-worker'
+import { Route as ApiBillingAsaasWebhookRouteImport } from './routes/api/billing/asaas-webhook'
 import { Route as ApiBillingAsaasCheckoutRouteImport } from './routes/api/billing/asaas-checkout'
 import { Route as AuthenticatedPatientsIdRouteImport } from './routes/_authenticated/patients.$id'
 import { Route as AuthenticatedFinanceiroRelatoriosRouteImport } from './routes/_authenticated/financeiro.relatorios'
@@ -210,6 +212,16 @@ const AuthenticatedAgendaRoute = AuthenticatedAgendaRouteImport.update({
   id: '/agenda',
   path: '/agenda',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ApiBillingAsaasWorkerRoute = ApiBillingAsaasWorkerRouteImport.update({
+  id: '/api/billing/asaas-worker',
+  path: '/api/billing/asaas-worker',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBillingAsaasWebhookRoute = ApiBillingAsaasWebhookRouteImport.update({
+  id: '/api/billing/asaas-webhook',
+  path: '/api/billing/asaas-webhook',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBillingAsaasCheckoutRoute = ApiBillingAsaasCheckoutRouteImport.update({
   id: '/api/billing/asaas-checkout',
@@ -446,6 +458,8 @@ export interface FileRoutesByFullPath {
   '/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/patients/$id': typeof AuthenticatedPatientsIdRoute
   '/api/billing/asaas-checkout': typeof ApiBillingAsaasCheckoutRoute
+  '/api/billing/asaas-webhook': typeof ApiBillingAsaasWebhookRoute
+  '/api/billing/asaas-worker': typeof ApiBillingAsaasWorkerRoute
   '/clinica/pacientes/$patientId': typeof AuthenticatedClinicaPacientesPatientIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
 }
@@ -505,6 +519,8 @@ export interface FileRoutesByTo {
   '/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/patients/$id': typeof AuthenticatedPatientsIdRoute
   '/api/billing/asaas-checkout': typeof ApiBillingAsaasCheckoutRoute
+  '/api/billing/asaas-webhook': typeof ApiBillingAsaasWebhookRoute
+  '/api/billing/asaas-worker': typeof ApiBillingAsaasWorkerRoute
   '/clinica/pacientes/$patientId': typeof AuthenticatedClinicaPacientesPatientIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
 }
@@ -566,6 +582,8 @@ export interface FileRoutesById {
   '/_authenticated/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/_authenticated/patients/$id': typeof AuthenticatedPatientsIdRoute
   '/api/billing/asaas-checkout': typeof ApiBillingAsaasCheckoutRoute
+  '/api/billing/asaas-webhook': typeof ApiBillingAsaasWebhookRoute
+  '/api/billing/asaas-worker': typeof ApiBillingAsaasWorkerRoute
   '/_authenticated/clinica/pacientes/$patientId': typeof AuthenticatedClinicaPacientesPatientIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
 }
@@ -627,6 +645,8 @@ export interface FileRouteTypes {
     | '/financeiro/relatorios'
     | '/patients/$id'
     | '/api/billing/asaas-checkout'
+    | '/api/billing/asaas-webhook'
+    | '/api/billing/asaas-worker'
     | '/clinica/pacientes/$patientId'
     | '/api/public/hooks/cleanup-case-files'
   fileRoutesByTo: FileRoutesByTo
@@ -686,6 +706,8 @@ export interface FileRouteTypes {
     | '/financeiro/relatorios'
     | '/patients/$id'
     | '/api/billing/asaas-checkout'
+    | '/api/billing/asaas-webhook'
+    | '/api/billing/asaas-worker'
     | '/clinica/pacientes/$patientId'
     | '/api/public/hooks/cleanup-case-files'
   id:
@@ -746,6 +768,8 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro/relatorios'
     | '/_authenticated/patients/$id'
     | '/api/billing/asaas-checkout'
+    | '/api/billing/asaas-webhook'
+    | '/api/billing/asaas-worker'
     | '/_authenticated/clinica/pacientes/$patientId'
     | '/api/public/hooks/cleanup-case-files'
   fileRoutesById: FileRoutesById
@@ -759,6 +783,8 @@ export interface RootRouteChildren {
   ReauthRoute: typeof ReauthRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiBillingAsaasCheckoutRoute: typeof ApiBillingAsaasCheckoutRoute
+  ApiBillingAsaasWebhookRoute: typeof ApiBillingAsaasWebhookRoute
+  ApiBillingAsaasWorkerRoute: typeof ApiBillingAsaasWorkerRoute
   ApiPublicHooksCleanupCaseFilesRoute: typeof ApiPublicHooksCleanupCaseFilesRoute
 }
 
@@ -959,6 +985,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/agenda'
       preLoaderRoute: typeof AuthenticatedAgendaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/billing/asaas-worker': {
+      id: '/api/billing/asaas-worker'
+      path: '/api/billing/asaas-worker'
+      fullPath: '/api/billing/asaas-worker'
+      preLoaderRoute: typeof ApiBillingAsaasWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/billing/asaas-webhook': {
+      id: '/api/billing/asaas-webhook'
+      path: '/api/billing/asaas-webhook'
+      fullPath: '/api/billing/asaas-webhook'
+      preLoaderRoute: typeof ApiBillingAsaasWebhookRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/billing/asaas-checkout': {
       id: '/api/billing/asaas-checkout'
@@ -1377,6 +1417,8 @@ const rootRouteChildren: RootRouteChildren = {
   ReauthRoute: ReauthRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   ApiBillingAsaasCheckoutRoute: ApiBillingAsaasCheckoutRoute,
+  ApiBillingAsaasWebhookRoute: ApiBillingAsaasWebhookRoute,
+  ApiBillingAsaasWorkerRoute: ApiBillingAsaasWorkerRoute,
   ApiPublicHooksCleanupCaseFilesRoute: ApiPublicHooksCleanupCaseFilesRoute,
 }
 export const routeTree = rootRouteImport

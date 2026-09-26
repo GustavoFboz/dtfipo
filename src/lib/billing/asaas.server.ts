@@ -525,6 +525,13 @@ export class AsaasClient {
       .filter((payment) => !payment.deleted && payment.subscription === subscriptionId);
   }
 
+  async getPayment(paymentId: string): Promise<AsaasPayment> {
+    if (!PAYMENT_ID_PATTERN.test(paymentId)) throw new Error("Cobrança Asaas inválida.");
+    return validatePayment(
+      await this.request<unknown>("GET", `/payments/${encodeURIComponent(paymentId)}`),
+    );
+  }
+
   validatePaymentUrl(value: string): string {
     let url: URL;
     try {

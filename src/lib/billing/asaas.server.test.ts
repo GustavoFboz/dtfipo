@@ -153,6 +153,23 @@ describe("AsaasClient", () => {
     ]);
   });
 
+  it("consulta uma cobrança individual por GET antes de conciliar o webhook", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe("https://api-sandbox.asaas.com/v3/payments/pay_SAFE123");
+      expect(init?.method).toBe("GET");
+      expect(init?.body).toBeUndefined();
+      return Response.json({
+        id: "pay_SAFE123",
+        customer: "cus_SAFE123",
+        subscription: "sub_SAFE123",
+      });
+    });
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+    await expect(client.getPayment("pay_SAFE123")).resolves.toMatchObject({ id: "pay_SAFE123" });
+    await expect(client.getPayment("../../customers")).rejects.toThrow(/inválida/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("aceita somente a URL de fatura do mesmo ambiente", () => {
     const client = new AsaasClient(config());
 
