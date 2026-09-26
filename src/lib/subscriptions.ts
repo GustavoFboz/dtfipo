@@ -120,6 +120,22 @@ export type BillingTestCapability = {
   until: string | null;
 };
 
+type AsaasCheckoutTransportResult =
+  | { ok: true; checkout: AsaasCheckout }
+  | { ok: false; error: string; code: string; status: number };
+
+class BillingCheckoutClientError extends Error {
+  readonly code: string;
+  readonly status: number;
+
+  constructor(error: string, code: string, status: number) {
+    super(error);
+    this.name = "BillingCheckoutClientError";
+    this.code = code;
+    this.status = status;
+  }
+}
+
 export type CompanyInviteValidation = {
   valid: boolean;
   reason?: "invalid_code" | "company_inactive" | "seat_limit" | string;
@@ -320,6 +336,21 @@ export async function createAsaasCheckout(checkoutIntentId: string): Promise<Asa
   const accessToken = data.session?.access_token;
   if (!accessToken) throw new Error("Sua sessão expirou. Entre novamente para continuar.");
 
+  // Lovable's authenticated preview proxies the application through its own
+  // runtime. Server functions are the platform-native transport there and do
+  // not depend on a file-route request surviving that proxy. Installed shells
+  // keep using the stable public HTTPS endpoint below.
+  if (!isDentalFlowDesktop() && !Capacitor.isNativePlatform()) {
+    const { createAsaasCheckoutServerFn } = await import("@/lib/billing/asaas-checkout.functions");
+    const result = (await createAsaasCheckoutServerFn({
+      data: { checkoutIntentId },
+    })) as AsaasCheckoutTransportResult;
+    if (!result.ok) {
+      throw new BillingCheckoutClientError(result.error, result.code, result.status);
+    }
+    return parseAsaasCheckout(result.checkout);
+  }
+
   const response = await fetch(checkoutApiUrl(), {
     method: "POST",
     headers: {
@@ -338,7 +369,9 @@ export async function createAsaasCheckout(checkoutIntentId: string): Promise<Asa
   if (!response.ok) {
     const message =
       typeof payload?.error === "string" ? payload.error : "Não foi possível preparar o pagamento.";
-    throw new Error(message);
+    const code =
+      typeof payload?.code === "string" ? payload.code : "ASAAS_CHECKOUT_TRANSPORT_FAILED";
+    throw new BillingCheckoutClientError(message, code, response.status);
   }
   return parseAsaasCheckout(payload);
 }
@@ -362,7 +395,11 @@ export async function openAsaasCheckoutPayment(checkout: AsaasCheckout): Promise
 
 export function friendlyBillingError(error: unknown, fallback: string): string {
   const raw = error instanceof Error ? error.message : String(error ?? "");
-  const code = /\b(BILLING_[A-Z0-9_]+)\b/.exec(raw)?.[1];
+  const explicitCode =
+    error && typeof error === "object" && "code" in error
+      ? String((error as { code?: unknown }).code ?? "")
+      : "";
+  const code = explicitCode || /\b(BILLING_[A-Z0-9_]+)\b/.exec(raw)?.[1];
   const messages: Record<string, string> = {
     BILLING_PROFILE_INVALID_TAX_ID: "Informe um CPF ou CNPJ válido.",
     BILLING_PROFILE_INVALID_LEGAL_NAME: "Informe o nome ou a razão social.",

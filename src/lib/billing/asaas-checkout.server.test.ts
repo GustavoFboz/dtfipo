@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { selectInitialSubscriptionPayment } from "./asaas-checkout.server";
+import {
+  executeAsaasCheckoutRequest,
+  selectInitialSubscriptionPayment,
+} from "./asaas-checkout.server";
 import type { AsaasClient, AsaasPayment } from "./asaas.server";
 
 const client = {
@@ -88,5 +91,41 @@ describe("Asaas checkout payment selection", () => {
         amountCents: 19_900,
       }),
     ).toBeNull();
+  });
+});
+
+describe("Asaas checkout transport boundary", () => {
+  it("retorna erro JSON serializável quando a sessão não envia bearer token", async () => {
+    const result = await executeAsaasCheckoutRequest(
+      new Request("https://dtfipo.lovable.app/api/billing/asaas-checkout", {
+        method: "POST",
+        headers: { origin: "https://dtfipo.lovable.app" },
+      }),
+      "85c18580-3fa7-4fb0-8101-e0625f1fd875",
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: "Sua sessão não permite gerenciar esta assinatura.",
+      code: "BILLING_CHECKOUT_FORBIDDEN",
+      status: 403,
+    });
+  });
+
+  it("bloqueia origem externa antes de executar qualquer operação financeira", async () => {
+    const result = await executeAsaasCheckoutRequest(
+      new Request("https://dtfipo.lovable.app/api/billing/asaas-checkout", {
+        method: "POST",
+        headers: { origin: "https://malicious.example" },
+      }),
+      "85c18580-3fa7-4fb0-8101-e0625f1fd875",
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: "Origem inválida.",
+      code: "INVALID_REQUEST_ORIGIN",
+      status: 403,
+    });
   });
 });

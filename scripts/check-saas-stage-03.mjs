@@ -12,6 +12,7 @@ const restoreMigration = read(path.join("public/restore/migrations", migrationNa
 const restoreManifest = JSON.parse(read("public/restore/migrations.json"));
 const restoreSelfHeal = read("public/restore/migrations/20260718000001_zzz_self_heal_v2.sql");
 const server = read("src/lib/billing/asaas-checkout.server.ts");
+const serverFunction = read("src/lib/billing/asaas-checkout.functions.ts");
 const route = read("src/routes/api/billing/asaas-checkout.ts");
 const client = read("src/lib/subscriptions.ts");
 const screen = read("src/components/SubscriptionGate.tsx");
@@ -97,11 +98,24 @@ expect(
   "Código financeiro do servidor pode entrar no bundle do navegador.",
 );
 expect(route.includes("OPTIONS") && route.includes("POST"), "Rota não possui preflight e POST.");
+expect(
+  serverFunction.includes('createServerFn({ method: "POST" })') &&
+    serverFunction.includes(".validator(") &&
+    serverFunction.includes("executeAsaasCheckoutRequest") &&
+    serverFunction.includes("getRequest()"),
+  "Preview web não usa o transporte server-side nativo sobre a fronteira financeira compartilhada.",
+);
+expect(
+  server.includes("AsaasCheckoutTransportResult") && server.includes("executeAsaasCheckoutRequest"),
+  "Rota nativa e server function não compartilham a mesma fronteira financeira.",
+);
 
 for (const [needle, message] of [
   ["fetchCompanyBillingProfile", "Cliente do perfil fiscal ausente."],
   ["upsertCompanyBillingProfile", "Gravação protegida do perfil fiscal ausente."],
   ["createAsaasCheckout", "Cliente do endpoint Asaas ausente."],
+  ["createAsaasCheckoutServerFn", "Checkout web não usa server function autenticada."],
+  ["!Capacitor.isNativePlatform()", "Android não preserva o endpoint HTTPS canônico."],
   ["openAsaasCheckoutPayment", "Abertura multiplataforma do pagamento ausente."],
   ["Capacitor.isNativePlatform()", "Android não usa o navegador externo."],
   ["openDesktopExternalUrl", "Windows não usa o navegador externo seguro."],

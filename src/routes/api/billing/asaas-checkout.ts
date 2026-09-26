@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/api/billing/asaas-checkout")({
-  // @ts-expect-error TanStack Start server handlers are transformed by the router plugin.
   server: {
     handlers: {
       OPTIONS: async ({ request }: { request: Request }) => {

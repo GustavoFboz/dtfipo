@@ -42,6 +42,10 @@ export type AsaasCheckoutResult = {
   paymentConfirmed: false;
 };
 
+export type AsaasCheckoutTransportResult =
+  | { ok: true; checkout: AsaasCheckoutResult }
+  | { ok: false; error: string; code: string; status: number };
+
 type CheckoutPaymentSelection = {
   paymentId: string;
   paymentUrl: string;
@@ -118,6 +122,14 @@ function jsonResponse(request: Request, body: unknown, status = 200): Response {
 function requestOriginAllowed(request: Request): boolean {
   const origin = request.headers.get("origin");
   return origin === null || isAllowedRequestOrigin(origin);
+}
+
+function transportFailure(
+  error: string,
+  code: string,
+  status: number,
+): Extract<AsaasCheckoutTransportResult, { ok: false }> {
+  return { ok: false, error, code, status };
 }
 
 function bearerToken(request: Request): string | null {
@@ -458,13 +470,52 @@ async function provisionCheckout(
 
 export async function handleAsaasCheckoutOptions(request: Request): Promise<Response> {
   if (!requestOriginAllowed(request))
-    return jsonResponse(request, { error: "Origem inválida." }, 403);
+    return jsonResponse(
+      request,
+      { error: "Origem inválida.", code: "INVALID_REQUEST_ORIGIN" },
+      403,
+    );
   return new Response(null, { status: 204, headers: corsHeaders(request) });
+}
+
+/**
+ * Shared financial boundary used by both the explicit HTTPS endpoint (native
+ * apps) and TanStack's server-function transport (Lovable web preview).
+ *
+ * The result is always serializable and never lets framework-level HTML error
+ * pages hide a safe billing error from the client.
+ */
+export async function executeAsaasCheckoutRequest(
+  request: Request,
+  checkoutIntentId: string,
+): Promise<AsaasCheckoutTransportResult> {
+  if (!requestOriginAllowed(request)) {
+    return transportFailure("Origem inválida.", "INVALID_REQUEST_ORIGIN", 403);
+  }
+
+  try {
+    const actorUserId = await loadAuthenticatedUserId(request);
+    if (!UUID_PATTERN.test(checkoutIntentId)) {
+      return transportFailure("Checkout inválido.", "INVALID_CHECKOUT_INTENT", 400);
+    }
+    return {
+      ok: true,
+      checkout: await provisionCheckout(checkoutIntentId, actorUserId),
+    };
+  } catch (error) {
+    const normalized = checkoutError(error);
+    if (normalized.status >= 500) console.error("[Asaas checkout]", normalized.body.code);
+    return transportFailure(normalized.body.error, normalized.body.code, normalized.status);
+  }
 }
 
 export async function handleAsaasCheckoutRequest(request: Request): Promise<Response> {
   if (!requestOriginAllowed(request))
-    return jsonResponse(request, { error: "Origem inválida." }, 403);
+    return jsonResponse(
+      request,
+      { error: "Origem inválida.", code: "INVALID_REQUEST_ORIGIN" },
+      403,
+    );
   const contentLength = Number(request.headers.get("content-length") ?? "0");
   if (Number.isFinite(contentLength) && contentLength > MAX_REQUEST_BYTES) {
     return jsonResponse(
@@ -475,17 +526,13 @@ export async function handleAsaasCheckoutRequest(request: Request): Promise<Resp
   }
 
   try {
-    const actorUserId = await loadAuthenticatedUserId(request);
     const body = await readCheckoutBody(request);
     const checkoutIntentId = String(body?.checkoutIntentId ?? "");
-    if (!UUID_PATTERN.test(checkoutIntentId)) {
-      return jsonResponse(
-        request,
-        { error: "Checkout inválido.", code: "INVALID_CHECKOUT_INTENT" },
-        400,
-      );
+    const result = await executeAsaasCheckoutRequest(request, checkoutIntentId);
+    if (!result.ok) {
+      return jsonResponse(request, { error: result.error, code: result.code }, result.status);
     }
-    return jsonResponse(request, await provisionCheckout(checkoutIntentId, actorUserId));
+    return jsonResponse(request, result.checkout);
   } catch (error) {
     const normalized = checkoutError(error);
     if (normalized.status >= 500) console.error("[Asaas checkout]", normalized.body.code);
