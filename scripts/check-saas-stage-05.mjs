@@ -3,6 +3,8 @@ import fs from "node:fs";
 const read = (path) => fs.readFileSync(path, "utf8");
 const migrationName = "20260926210000_saas_asaas_lifecycle_stage05.sql";
 const migration = read("supabase/migrations/" + migrationName);
+const replayName = "20260926220000_saas_asaas_replay_stage05.sql";
+const replayMigration = read("supabase/migrations/" + replayName);
 const manifest = JSON.parse(read("public/restore/migrations.json"));
 const backend = read("src/lib/billing/asaas-webhook.server.ts");
 const types = read("src/integrations/supabase/types.ts");
@@ -10,8 +12,26 @@ const hardening = read("public/restore/migrations/20260718000001_zzz_self_heal_v
 if (read("public/restore/migrations/" + migrationName) !== migration) {
   throw new Error("Stage 05 restore copy diverged.");
 }
-if (manifest.indexOf(migrationName) <= manifest.indexOf("20260926190000_saas_asaas_webhook_stage04.sql")) {
+if (
+  read("public/restore/migrations/" + replayName) !== replayMigration ||
+  manifest.indexOf(replayName) <= manifest.indexOf(migrationName)
+) {
+  throw new Error("Stage 05 replay migration missing from the restore bundle.");
+}
+if (
+  manifest.indexOf(migrationName) <=
+  manifest.indexOf("20260926190000_saas_asaas_webhook_stage04.sql")
+) {
   throw new Error("Stage 05 must follow the webhook inbox.");
+}
+if (
+  ![replayMigration, backend, types, hardening].every((source) =>
+    source.includes("billing_replay_asaas_event"),
+  ) ||
+  !replayMigration.includes("billing_event_replays") ||
+  !read("src/routes/api/billing/asaas-replay.ts").includes("replayAsaasEvent")
+) {
+  throw new Error("Incomplete private Stage 05 replay contract.");
 }
 if (!manifest.at(-1)?.includes("self_heal")) {
   throw new Error("Restore hardening must remain last.");

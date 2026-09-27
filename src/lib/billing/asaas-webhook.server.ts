@@ -69,6 +69,17 @@ type WorkerDependencies = {
   finish: (event: InboxEvent, outcome: "ignored" | "failed", code?: string) => Promise<void>;
 };
 
+type ReplayDependencies = {
+  environment: AsaasProviderEnvironment;
+  replayToken: string;
+  requeue: (input: {
+    environment: AsaasProviderEnvironment;
+    eventId: string;
+    operatorRef: string;
+    reason: string;
+  }) => Promise<boolean>;
+};
+
 function equalSecret(provided: string | null, expected: string): boolean {
   if (!provided || expected.length < 32) return false;
   const left = Buffer.from(provided);
@@ -83,7 +94,10 @@ function json(body: unknown, status: number): Response {
   });
 }
 
-async function readBoundedJson(request: Request): Promise<Record<string, unknown>> {
+async function readBoundedJson(
+  request: Request,
+  maxBytes = MAX_BODY_BYTES,
+): Promise<Record<string, unknown>> {
   if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
     throw new Error("INVALID_CONTENT_TYPE");
   }
@@ -95,7 +109,7 @@ async function readBoundedJson(request: Request): Promise<Record<string, unknown
     const { done, value } = await reader.read();
     if (done) break;
     size += value.byteLength;
-    if (size > MAX_BODY_BYTES) {
+    if (size > maxBytes) {
       await reader.cancel().catch(() => undefined);
       throw new Error("BODY_TOO_LARGE");
     }
@@ -113,6 +127,84 @@ async function readBoundedJson(request: Request): Promise<Record<string, unknown
     return value as Record<string, unknown>;
   } catch {
     throw new Error("INVALID_BODY");
+  }
+}
+
+/** A separate operator credential queues a dead letter for the normal worker. */
+export async function replayAsaasEvent(
+  request: Request,
+  dependencies?: ReplayDependencies,
+): Promise<Response> {
+  if (request.method !== "POST") return json({ queued: false }, 405);
+  let deps: ReplayDependencies;
+  try {
+    if (dependencies) {
+      deps = dependencies;
+    } else {
+      const config = loadAsaasConfig();
+      const replayToken = process.env.BILLING_REPLAY_TOKEN ?? "";
+      if (replayToken === process.env.BILLING_WORKER_TOKEN || replayToken === config.webhookToken)
+        throw new Error("REPLAY_TOKEN_REUSED");
+      deps = {
+        environment: config.environment,
+        replayToken,
+        requeue: async ({ environment, eventId, operatorRef, reason }) => {
+          const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+          const { data, error } = await supabaseAdmin.rpc("billing_replay_asaas_event", {
+            p_environment: environment,
+            p_event_id: eventId,
+            p_operator_ref: operatorRef,
+            p_reason: reason,
+          });
+          if (error) throw error;
+          return data === true;
+        },
+      };
+    }
+  } catch {
+    console.error("[Asaas replay] CONFIGURATION_FAILED");
+    return json({ queued: false }, 503);
+  }
+  if (
+    !equalSecret(
+      request.headers.get("authorization")?.replace(/^Bearer /, "") ?? null,
+      deps.replayToken,
+    )
+  ) {
+    return json({ queued: false }, 401);
+  }
+  let body: Record<string, unknown>;
+  try {
+    body = await readBoundedJson(request, 2_048);
+  } catch (error) {
+    return json(
+      { queued: false },
+      error instanceof Error && error.message === "BODY_TOO_LARGE" ? 413 : 400,
+    );
+  }
+  const { eventId, operatorRef, reason } = body;
+  if (
+    typeof eventId !== "string" ||
+    !EVENT_ID.test(eventId) ||
+    typeof operatorRef !== "string" ||
+    !/^[A-Za-z0-9_.-]{3,64}$/.test(operatorRef) ||
+    typeof reason !== "string" ||
+    reason.trim().length < 16 ||
+    reason.trim().length > 300 ||
+    /[\x00-\x1f\x7f]/.test(reason)
+  )
+    return json({ queued: false }, 400);
+  try {
+    const queued = await deps.requeue({
+      environment: deps.environment,
+      eventId,
+      operatorRef,
+      reason: reason.trim(),
+    });
+    return json({ queued }, queued ? 202 : 409);
+  } catch {
+    console.error("[Asaas replay] REQUEUE_FAILED");
+    return json({ queued: false }, 503);
   }
 }
 

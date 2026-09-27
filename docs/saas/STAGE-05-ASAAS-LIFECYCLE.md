@@ -1,7 +1,8 @@
 # Etapa 05 — projeção do ciclo financeiro Asaas
 
-Status: código isolado na branch saas/stage-05-lifecycle. Migration ainda não
-aplicada ao banco vivo; sem homologação de cobranças reais Sandbox.
+Status: código isolado na branch saas/stage-05-lifecycle. Migrations desta etapa
+ainda não aplicadas ao banco vivo; ensaio inicial da restauração aprovado na CI.
+Sem homologação de cobranças reais Sandbox.
 
 ## Contrato implementado
 
@@ -19,6 +20,22 @@ idempotentes; eventos antigos, preço divergente e assinaturas sem vínculo fica
 para revisão. O cancelamento não altera o Asaas: projeta apenas a inativação
 observada e validada. Não existe troca de plano automática nesta etapa.
 
+## Replay de uma falha investigada
+
+`POST /api/billing/asaas-replay` recebe um `evt_*`, uma referência do operador e
+uma justificativa. Exige `BILLING_REPLAY_TOKEN` (32 caracteres ou mais),
+independente do token do webhook e do agendador, somente no backend. A RPC
+restrita a `service_role` só aceita um evento `dead_letter` do ambiente
+configurado; uma transação grava `billing_event_replays` e volta o evento a
+`received`. O corpo financeiro e o ID original não são modificados. Repetir
+o pedido, processar um evento já concluído ou usar outro ambiente não enfileira
+nada. O worker terá de consultar novamente o Asaas e validar todos os vínculos.
+
+Antes do replay, investigue o código de erro e o recurso no Asaas. Não use
+replay para forçar um chargeback, status desconhecido ou preço divergente a
+conceder acesso. A rota é uma ferramenta privada de operação; a futura tela
+Master exigirá identidade, reautenticação e autorização próprias.
+
 ## Limites explícitos
 
 - PAYMENT_CHARGEBACK_REQUESTED, recebimento em espécie desfeito, estorno
@@ -29,8 +46,8 @@ observada e validada. Não existe troca de plano automática nesta etapa.
   deploy do backend e configuração do segredo BILLING_WORKER_TOKEN nos dois
   destinos. Sem o agendador, não há expiração automática da carência.
 - A varredura atual reconcilia o pagamento que entrou em carência. Uma
-  varredura mais ampla para webhooks totalmente perdidos e replay administrativo
-  ainda é necessária antes do Beta. Não há evidência real no Asaas Sandbox.
+  varredura mais ampla para webhooks totalmente perdidos ainda é necessária
+  antes do Beta. Não há evidência real no Asaas Sandbox.
 - Reativação após cancelamento depende de novo ciclo de contratação; o código
   somente reativa atraso e suspensão pela cobrança verificada.
 

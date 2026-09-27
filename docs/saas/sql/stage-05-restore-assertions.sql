@@ -7,7 +7,8 @@ begin
     'billing_apply_asaas_payment_lifecycle(uuid,uuid,text,text,text,integer,date,text)',
     'billing_apply_asaas_subscription_lifecycle(uuid,uuid,text,text,text,integer,text,text)',
     'billing_list_asaas_expired_grace(text,integer)',
-    'billing_suspend_asaas_expired_grace(uuid,text,text,text,text,text)'
+    'billing_suspend_asaas_expired_grace(uuid,text,text,text,text,text)',
+    'billing_replay_asaas_event(text,text,text,text)'
   ] loop
     v_oid := to_regprocedure('public.' || v_name);
     if v_oid is null then raise exception 'Missing Stage 05 function: %', v_name; end if;
@@ -17,6 +18,13 @@ begin
       raise exception 'Unsafe Stage 05 grant: %', v_name;
     end if;
   end loop;
+  if not (select relrowsecurity from pg_class where oid = 'public.billing_event_replays'::regclass)
+    or has_table_privilege('anon', 'public.billing_event_replays', 'select')
+    or has_table_privilege('authenticated', 'public.billing_event_replays', 'select')
+    or has_table_privilege('service_role', 'public.billing_event_replays', 'insert')
+    or not has_table_privilege('service_role', 'public.billing_event_replays', 'select') then
+    raise exception 'Unsafe billing replay audit grants';
+  end if;
 end $$;
 select 'passed' as stage_05_restore_contract;
 rollback;

@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { processAsaasInbox, receiveAsaasWebhook } from "./asaas-webhook.server";
+import { processAsaasInbox, receiveAsaasWebhook, replayAsaasEvent } from "./asaas-webhook.server";
 
 const webhookToken = "webhook-test-token-0123456789-0123456789";
 const workerToken = "worker-test-token-0123456789-0123456789";
+const replayToken = "replay-test-token-0123456789-0123456789";
 const eventId = "evt_05b708f961d739ea7eba7e4db318f621&368604920";
 const paymentId = "pay_080225913252";
 
@@ -18,6 +19,14 @@ function worker(token = workerToken) {
   return new Request("https://dtfipo.lovable.app/api/billing/asaas-worker", {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+function replay(body: unknown, token = replayToken) {
+  return new Request("https://dtfipo.lovable.app/api/billing/asaas-replay", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
   });
 }
 
@@ -255,5 +264,62 @@ describe("Asaas inbox worker", () => {
       paymentId,
     );
     expect(await result.json()).toMatchObject({ recoveryQueued: 1 });
+  });
+});
+
+describe("Asaas manual dead-letter replay", () => {
+  const body = {
+    eventId,
+    operatorRef: "platform-operator",
+    reason: "Investigated the failed provider response in Sandbox.",
+  };
+  const deps = () => ({
+    environment: "sandbox" as const,
+    replayToken,
+    requeue: vi.fn().mockResolvedValue(true),
+  });
+
+  it("rejects the scheduler credential before reading the request", async () => {
+    const dependencies = deps();
+    const response = await replayAsaasEvent(replay(body, workerToken), dependencies);
+    expect(response.status).toBe(401);
+    expect(dependencies.requeue).not.toHaveBeenCalled();
+  });
+
+  it("queues only a reviewed event in the configured environment", async () => {
+    const dependencies = deps();
+    const response = await replayAsaasEvent(replay(body), dependencies);
+    expect(response.status).toBe(202);
+    expect(dependencies.requeue).toHaveBeenCalledWith({ environment: "sandbox", ...body });
+  });
+
+  it("rejects malformed requests and oversized bodies before requeueing", async () => {
+    const dependencies = deps();
+    expect(
+      (await replayAsaasEvent(replay({ ...body, reason: "retry" }), dependencies)).status,
+    ).toBe(400);
+    expect(
+      (await replayAsaasEvent(replay({ ...body, operatorRef: "a/b" }), dependencies)).status,
+    ).toBe(400);
+    expect(
+      (await replayAsaasEvent(replay({ ...body, reason: "x".repeat(2_050) }), dependencies)).status,
+    ).toBe(413);
+    expect(dependencies.requeue).not.toHaveBeenCalled();
+  });
+
+  it("does not requeue a processed or in-flight event", async () => {
+    const dependencies = deps();
+    dependencies.requeue.mockResolvedValue(false);
+    const response = await replayAsaasEvent(replay(body), dependencies);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ queued: false });
+  });
+
+  it("reports storage failure without claiming the event was queued", async () => {
+    const dependencies = deps();
+    dependencies.requeue.mockRejectedValue(new Error("DB unavailable"));
+    const response = await replayAsaasEvent(replay(body), dependencies);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ queued: false });
   });
 });

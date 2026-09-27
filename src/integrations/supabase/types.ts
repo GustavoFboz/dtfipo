@@ -203,6 +203,47 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_event_replays: {
+        Row: {
+          event_id: string
+          id: string
+          operator_ref: string
+          previous_attempt_count: number
+          provider_environment: string
+          provider_event_id: string
+          reason: string
+          requested_at: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          operator_ref: string
+          previous_attempt_count: number
+          provider_environment: string
+          provider_event_id: string
+          reason: string
+          requested_at?: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          operator_ref?: string
+          previous_attempt_count?: number
+          provider_environment?: string
+          provider_event_id?: string
+          reason?: string
+          requested_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_event_replays_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "billing_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_payments: {
         Row: {
           amount_cents: number
@@ -3514,6 +3555,15 @@ export type Database = {
       billing_list_asaas_expired_grace: {
         Args: { p_environment: string; p_limit?: number }
         Returns: { subscription_id: string; payment_id: string }[]
+      }
+      billing_replay_asaas_event: {
+        Args: {
+          p_environment: string
+          p_event_id: string
+          p_operator_ref: string
+          p_reason: string
+        }
+        Returns: boolean
       }
       billing_suspend_asaas_expired_grace: {
         Args: {

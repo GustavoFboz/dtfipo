@@ -238,12 +238,15 @@ REVOKE ALL ON TABLE public.billing_test_access
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON TABLE public.billing_test_tokens
   FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.billing_event_replays
+  FROM PUBLIC, anon, authenticated, service_role;
 
 GRANT ALL ON TABLE public.company_billing_profiles TO service_role;
 GRANT ALL ON TABLE public.billing_provider_customers TO service_role;
 GRANT ALL ON TABLE public.billing_provider_operations TO service_role;
 GRANT ALL ON TABLE public.billing_test_access TO service_role;
 GRANT ALL ON TABLE public.billing_test_tokens TO service_role;
+GRANT SELECT ON TABLE public.billing_event_replays TO service_role;
 
 REVOKE ALL ON FUNCTION public.billing_apply_checkout_paid(
   uuid,text,text,text,text,timestamptz,timestamptz
@@ -286,6 +289,8 @@ REVOKE ALL ON FUNCTION public.billing_list_asaas_expired_grace(text,integer)
 REVOKE ALL ON FUNCTION public.billing_suspend_asaas_expired_grace(
   uuid,text,text,text,text,text
 ) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_replay_asaas_event(text,text,text,text)
+  FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_valid_br_tax_id(text)
@@ -335,6 +340,8 @@ GRANT EXECUTE ON FUNCTION public.billing_list_asaas_expired_grace(text,integer)
 GRANT EXECUTE ON FUNCTION public.billing_suspend_asaas_expired_grace(
   uuid,text,text,text,text,text
 ) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_replay_asaas_event(text,text,text,text)
+  TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_valid_br_tax_id(text)

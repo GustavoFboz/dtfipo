@@ -9,6 +9,7 @@ declare
   v_end timestamptz := (current_date - 1 + interval '1 month')::timestamptz;
   v_result jsonb;
   v_suspended boolean;
+  v_replayed boolean;
 begin
   insert into public.clinics (name, slug)
   values ('Stage05 test only', 'stage05-rehearsal-only')
@@ -160,6 +161,47 @@ begin
       status, current_period_end, grace_until
     ) from public.account_subscriptions where id = v_sub) <> 'billing_only' then
     raise exception 'Refund must revoke the reversed period without deleting data';
+  end if;
+
+  -- A reviewed dead letter keeps its provider identity and payload. The next
+  -- worker claim still has to reconcile the resource with the provider.
+  perform public.billing_receive_asaas_event(
+    'sandbox','evt_Stage05ManualReplay','PAYMENT_CHARGEBACK_REQUESTED',
+    '{"paymentId":"pay_Stage05Next"}'::jsonb
+  );
+  update public.billing_events set status = 'dead_letter', attempt_count = 6,
+    error_message = 'LIFECYCLE_REVIEW_REQUIRED'
+  where provider_event_id = 'evt_Stage05ManualReplay';
+  if public.billing_replay_asaas_event(
+    'production','evt_Stage05ManualReplay','stage05-operator',
+    'Provider status investigated; retry approved.'
+  ) then raise exception 'Cross-environment replay unexpectedly succeeded'; end if;
+  if public.billing_replay_asaas_event(
+    'sandbox','evt_Stage05Paid','stage05-operator',
+    'Provider status investigated; retry approved.'
+  ) then raise exception 'Processed event was requeued'; end if;
+  v_replayed := public.billing_replay_asaas_event(
+    'sandbox','evt_Stage05ManualReplay','stage05-operator',
+    'Provider status investigated; retry approved.'
+  );
+  if not v_replayed
+    or (select status from public.billing_events
+        where provider_event_id = 'evt_Stage05ManualReplay') <> 'received'
+    or (select attempt_count from public.billing_events
+        where provider_event_id = 'evt_Stage05ManualReplay') <> 0
+    or (select payload->>'paymentId' from public.billing_events
+        where provider_event_id = 'evt_Stage05ManualReplay') <> 'pay_Stage05Next'
+    or (select count(*) from public.billing_event_replays
+        where provider_event_id = 'evt_Stage05ManualReplay'
+        and previous_attempt_count = 6 and operator_ref = 'stage05-operator') <> 1 then
+    raise exception 'Dead-letter replay lost its audit or provider identity';
+  end if;
+  if public.billing_replay_asaas_event(
+    'sandbox','evt_Stage05ManualReplay','stage05-operator',
+    'A second replay must be rejected until investigated.'
+  ) or (select count(*) from public.billing_event_replays
+        where provider_event_id = 'evt_Stage05ManualReplay') <> 1 then
+    raise exception 'Concurrent or duplicate replay was not blocked';
   end if;
 end $$;
 select 'passed' as stage_05_lifecycle_rehearsal;
