@@ -31,6 +31,7 @@ export type Database = {
           metadata: Json
           plan_code: string
           provider_environment: string | null
+          reconciliation_checked_at: string | null
           scope_type: string
           status: string
           updated_at: string
@@ -52,6 +53,7 @@ export type Database = {
           metadata?: Json
           plan_code: string
           provider_environment?: string | null
+          reconciliation_checked_at?: string | null
           scope_type: string
           status?: string
           updated_at?: string
@@ -73,6 +75,7 @@ export type Database = {
           metadata?: Json
           plan_code?: string
           provider_environment?: string | null
+          reconciliation_checked_at?: string | null
           scope_type?: string
           status?: string
           updated_at?: string
@@ -3501,6 +3504,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      billing_claim_asaas_reconciliation_candidates: {
+        Args: { p_environment: string; p_limit?: number }
+        Returns: {
+          subscription_id: string
+          provider_subscription_id: string
+          customer_id: string
+        }[]
+      }
       billing_receive_asaas_event: {
         Args: { p_environment: string; p_event_id: string; p_event_type: string; p_payload: Json }
         Returns: boolean

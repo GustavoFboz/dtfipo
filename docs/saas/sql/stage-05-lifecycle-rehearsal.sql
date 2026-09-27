@@ -10,6 +10,7 @@ declare
   v_result jsonb;
   v_suspended boolean;
   v_replayed boolean;
+  v_candidate record;
 begin
   insert into public.clinics (name, slug)
   values ('Stage05 test only', 'stage05-rehearsal-only')
@@ -33,6 +34,25 @@ begin
     'asaas', 'sandbox', 'pay_Stage05First',
     now(), (v_start - interval '1 month')::timestamptz, v_start::timestamptz
   );
+
+  -- A claim schedules a bounded provider lookup, without changing access.
+  update public.account_subscriptions set created_at = now() - interval '1 day'
+  where id = v_sub;
+  if exists (select 1 from public.billing_claim_asaas_reconciliation_candidates('production', 1)
+             where subscription_id = v_sub) then
+    raise exception 'Cross-environment reconciliation candidate leaked';
+  end if;
+  select * into v_candidate from public.billing_claim_asaas_reconciliation_candidates('sandbox', 1);
+  if v_candidate.subscription_id is distinct from v_sub
+    or v_candidate.provider_subscription_id is distinct from 'sub_Stage05'
+    or v_candidate.customer_id is distinct from 'cus_Stage05'
+    or (select status from public.account_subscriptions where id = v_sub) <> 'active' then
+    raise exception 'Reconciliation claim changed access or lost provider identity';
+  end if;
+  if exists (select 1 from public.billing_claim_asaas_reconciliation_candidates('sandbox', 1)
+             where subscription_id = v_sub) then
+    raise exception 'Reconciliation rate limit did not retain the first claim';
+  end if;
 
   perform public.billing_receive_asaas_event(
     'sandbox','evt_Stage05Overdue','PAYMENT_OVERDUE',

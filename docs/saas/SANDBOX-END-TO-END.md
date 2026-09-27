@@ -65,5 +65,6 @@ criando outra por tentativa. O teste só passa com recurso financeiro real do
   permanecem fora dele.
 - Tokens e configuração do webhook/agenda não foram verificados com teste de
   entrega do Asaas; não há `evt_*` real processado.
-- Varredura geral de webhooks totalmente perdidos e eventos de risco como
-  chargeback ainda não estão implementados.
+- Varredura limitada para webhooks perdidos está na branch isolada da Etapa 05,
+  ainda sem implantação e sem evidência real. Ela não cobre eventos antigos,
+  páginas de cobrança além de 100 registros ou eventos de risco como chargeback.

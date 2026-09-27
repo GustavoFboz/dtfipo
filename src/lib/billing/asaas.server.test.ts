@@ -169,6 +169,36 @@ describe("AsaasClient", () => {
     ]);
   });
 
+  it("limita a conciliação a uma página recente da assinatura correta", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      expect(url.pathname).toBe("/v3/payments");
+      expect(url.searchParams.get("subscription")).toBe("sub_SAFE123");
+      expect(url.searchParams.get("dueDate[ge]")).toBe("2026-06-01");
+      expect(url.searchParams.get("limit")).toBe("100");
+      expect(url.searchParams.get("offset")).toBe("0");
+      return Response.json({ hasMore: false, data: [
+        { id: "pay_SAFE123", customer: "cus_SAFE123", subscription: "sub_SAFE123" },
+      ] });
+    });
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+    await expect(client.listPaymentsForReconciliation("sub_SAFE123", "2026-06-01"))
+      .resolves.toMatchObject([{ id: "pay_SAFE123" }]);
+  });
+
+  it("falha fechado quando a resposta da conciliação tem mais páginas ou outra assinatura", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(Response.json({
+      hasMore: true, data: [{ id: "pay_SAFE123", customer: "cus_SAFE123", subscription: "sub_SAFE123" }],
+    })).mockResolvedValueOnce(Response.json({
+      hasMore: false, data: [{ id: "pay_OTHER123", customer: "cus_SAFE123", subscription: "sub_OTHER123" }],
+    }));
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+    await expect(client.listPaymentsForReconciliation("sub_SAFE123", "2026-06-01"))
+      .rejects.toMatchObject({ code: "ASAAS_RECONCILIATION_PAGE_INCOMPLETE" });
+    await expect(client.listPaymentsForReconciliation("sub_SAFE123", "2026-06-01"))
+      .rejects.toMatchObject({ code: "ASAAS_RECONCILIATION_OWNERSHIP_MISMATCH" });
+  });
+
   it("consulta uma cobrança individual por GET antes de conciliar o webhook", async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(String(input)).toBe("https://api-sandbox.asaas.com/v3/payments/pay_SAFE123");

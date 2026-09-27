@@ -11,6 +11,7 @@ Sem homologação de cobranças reais Sandbox.
 | PAYMENT_CONFIRMED / PAYMENT_RECEIVED | GET /v3/payments/{id} e status pago | Primeira cobrança delegada à RPC da Etapa 04; demais ciclos atualizam uma única linha do ledger e estendem o período somente se empresa, valor, ambiente e sequência mensal conferirem. |
 | PAYMENT_OVERDUE | Cobrança OVERDUE | Somente ciclo vencido e ainda não pago entra em past_due; sete dias de carência a partir do vencimento. |
 | Carência encerrada | Nova consulta da cobrança vencida | OVERDUE confirmado suspende; cobrança já paga cria evento interno auditável e segue pelo mesmo fluxo de pagamento. |
+| Webhook ausente | GET /v3/subscriptions/{id} e GET /v3/payments com filtro de assinatura e vencimento | Uma candidata por execução é verificada; pagamentos conhecidos e inativação geram eventos de recuperação na inbox. O worker reconcilia novamente cada recurso antes de qualquer efeito. |
 | PAYMENT_REFUNDED | Cobrança REFUNDED | Revoga o período correspondente e recalcula o último período pago. Histórico financeiro e dados operacionais permanecem. |
 | SUBSCRIPTION_INACTIVATED / SUBSCRIPTION_UPDATED | GET /v3/subscriptions/{id} | Se INACTIVE, cancela novas renovações mantendo período pago; ACTIVE apenas observa, sem conceder acesso. |
 
@@ -45,9 +46,15 @@ Master exigirá identidade, reautenticação e autorização próprias.
 - O agendador de cinco minutos existe no repositório, mas depende do merge,
   deploy do backend e configuração do segredo BILLING_WORKER_TOKEN nos dois
   destinos. Sem o agendador, não há expiração automática da carência.
-- A varredura atual reconcilia o pagamento que entrou em carência. Uma
-  varredura mais ampla para webhooks totalmente perdidos ainda é necessária
-  antes do Beta. Não há evidência real no Asaas Sandbox.
+- A varredura busca no máximo uma assinatura por execução, com intervalo
+  mínimo de uma hora por assinatura, limitada a contas criadas ou com período
+  pago nos últimos 120 dias e cobranças com vencimento nos últimos 90 dias.
+  Paginação adicional, status desconhecido, identidade divergente e assinatura
+  excluída exigem revisão manual (HTTP 503 do worker); nenhuma cobrança é
+  criada e nenhum acesso é concedido pela varredura. Eventos recuperados usam
+  IDs sintéticos distintos dos `evt_*` recebidos do Asaas e são deduplicados
+  na inbox. Casos antigos e falhas contínuas precisam de operação assistida.
+  Não há evidência real no Asaas Sandbox.
 - Reativação após cancelamento depende de novo ciclo de contratação; o código
   somente reativa atraso e suspensão pela cobrança verificada.
 

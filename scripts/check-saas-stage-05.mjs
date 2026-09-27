@@ -5,6 +5,8 @@ const migrationName = "20260926210000_saas_asaas_lifecycle_stage05.sql";
 const migration = read("supabase/migrations/" + migrationName);
 const replayName = "20260926220000_saas_asaas_replay_stage05.sql";
 const replayMigration = read("supabase/migrations/" + replayName);
+const reconciliationName = "20260926230000_saas_asaas_reconciliation_stage05.sql";
+const reconciliationMigration = read("supabase/migrations/" + reconciliationName);
 const manifest = JSON.parse(read("public/restore/migrations.json"));
 const backend = read("src/lib/billing/asaas-webhook.server.ts");
 const types = read("src/integrations/supabase/types.ts");
@@ -17,6 +19,12 @@ if (
   manifest.indexOf(replayName) <= manifest.indexOf(migrationName)
 ) {
   throw new Error("Stage 05 replay migration missing from the restore bundle.");
+}
+if (
+  read("public/restore/migrations/" + reconciliationName) !== reconciliationMigration ||
+  manifest.indexOf(reconciliationName) <= manifest.indexOf(replayName)
+) {
+  throw new Error("Stage 05 reconciliation migration missing from the restore bundle.");
 }
 if (
   manifest.indexOf(migrationName) <=
@@ -48,6 +56,11 @@ for (const name of [
 }
 if (!backend.includes("getSubscription") || !backend.includes("getPayment")) {
   throw new Error("Lifecycle events must be reconciled with Asaas.");
+}
+if (![reconciliationMigration, backend, types, hardening].every((source) =>
+  source.includes("billing_claim_asaas_reconciliation_candidates")
+) || !backend.includes("listPaymentsForReconciliation")) {
+  throw new Error("Missing bounded reconciliation for lost Asaas webhooks.");
 }
 for (const name of ["stage-05-restore-assertions.sql", "stage-05-lifecycle-rehearsal.sql"]) {
   if (!fs.existsSync("docs/saas/sql/" + name)) {

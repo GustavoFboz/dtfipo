@@ -138,6 +138,8 @@ describe("Asaas inbox worker", () => {
     applySubscription: vi.fn().mockResolvedValue(undefined),
     listExpiredGrace: vi.fn().mockResolvedValue([]),
     suspendGrace: vi.fn().mockResolvedValue(true),
+    claimReconciliation: vi.fn().mockResolvedValue([]),
+    listPaymentsForReconciliation: vi.fn().mockResolvedValue([]),
     enqueueRecovery: vi.fn().mockResolvedValue(undefined),
     finish: vi.fn().mockResolvedValue(undefined),
   });
@@ -261,9 +263,77 @@ describe("Asaas inbox worker", () => {
     expect(dependencies.enqueueRecovery).toHaveBeenCalledWith(
       "evt_reconcile_pay_080225913252_CONFIRMED",
       "PAYMENT_CONFIRMED",
-      paymentId,
+      { paymentId, source: "reconciliation" },
     );
     expect(await result.json()).toMatchObject({ recoveryQueued: 1 });
+  });
+
+  it("recovers a lost payment webhook through the existing inbox, without activating access", async () => {
+    const dependencies = deps();
+    dependencies.claim.mockResolvedValue([]);
+    dependencies.claimReconciliation.mockResolvedValue([{
+      subscription_id: "123e4567-e89b-42d3-a456-426614174000",
+      provider_subscription_id: "sub_ABC123",
+      customer_id: "cus_ABC123",
+    }]);
+    dependencies.getSubscription.mockResolvedValue({
+      id: "sub_ABC123", customer: "cus_ABC123", cycle: "MONTHLY", status: "ACTIVE",
+      externalReference: "dentalflow:subscription:123e4567-e89b-42d3-a456-426614174000",
+    });
+    dependencies.listPaymentsForReconciliation.mockResolvedValue([
+      { ...confirmed, status: "PENDING" },
+      { ...confirmed, id: "pay_Second123", status: "RECEIVED" },
+    ]);
+    const response = await processAsaasInbox(worker(), dependencies);
+    expect(response.status).toBe(200);
+    expect(dependencies.enqueueRecovery).toHaveBeenCalledTimes(1);
+    expect(dependencies.enqueueRecovery).toHaveBeenCalledWith(
+      "evt_reconcile_pay_Second123_RECEIVED", "PAYMENT_RECEIVED",
+      { paymentId: "pay_Second123", source: "reconciliation" },
+    );
+    expect(dependencies.applyPayment).not.toHaveBeenCalled();
+    expect(await response.json()).toMatchObject({ reconciliationScanned: 1, reconciliationQueued: 1 });
+  });
+
+  it("holds every candidate payment for review if ownership or status is inconsistent", async () => {
+    const dependencies = deps();
+    dependencies.claim.mockResolvedValue([]);
+    dependencies.claimReconciliation.mockResolvedValue([{
+      subscription_id: "123e4567-e89b-42d3-a456-426614174000",
+      provider_subscription_id: "sub_ABC123", customer_id: "cus_ABC123",
+    }]);
+    dependencies.getSubscription.mockResolvedValue({
+      id: "sub_ABC123", customer: "cus_ABC123", cycle: "MONTHLY", status: "ACTIVE",
+      externalReference: "dentalflow:subscription:123e4567-e89b-42d3-a456-426614174000",
+    });
+    dependencies.listPaymentsForReconciliation.mockResolvedValue([
+      confirmed, { ...confirmed, id: "pay_Other123", customer: "cus_Other" },
+    ]);
+    const response = await processAsaasInbox(worker(), dependencies);
+    expect(response.status).toBe(503);
+    expect(dependencies.enqueueRecovery).not.toHaveBeenCalled();
+    expect(dependencies.applyPayment).not.toHaveBeenCalled();
+    expect(await response.json()).toMatchObject({ reconciliationReview: 1, reconciliationQueued: 0 });
+  });
+
+  it("recovers a lost subscription inactivation without granting access", async () => {
+    const dependencies = deps();
+    dependencies.claim.mockResolvedValue([]);
+    dependencies.claimReconciliation.mockResolvedValue([{
+      subscription_id: "123e4567-e89b-42d3-a456-426614174000",
+      provider_subscription_id: "sub_ABC123", customer_id: "cus_ABC123",
+    }]);
+    dependencies.getSubscription.mockResolvedValue({
+      id: "sub_ABC123", customer: "cus_ABC123", cycle: "MONTHLY", status: "INACTIVE",
+      externalReference: "dentalflow:subscription:123e4567-e89b-42d3-a456-426614174000",
+    });
+    const response = await processAsaasInbox(worker(), dependencies);
+    expect(response.status).toBe(200);
+    expect(dependencies.enqueueRecovery).toHaveBeenCalledWith(
+      "evt_reconcile_sub_ABC123_INACTIVE", "SUBSCRIPTION_INACTIVATED",
+      { subscriptionId: "sub_ABC123", source: "reconciliation" },
+    );
+    expect(dependencies.applySubscription).not.toHaveBeenCalled();
   });
 });
 

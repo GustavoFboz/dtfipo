@@ -153,9 +153,9 @@ chave única e responder somente após persistir:
 
 ### 05 — Ciclo de vida e reativação
 
-Status: renovação, atraso, carência, estorno integral, inativação e replay
-privado auditado implementados em branch isolada; nova restauração limpa e
-Sandbox real pendentes. Os demais eventos
+Status: renovação, atraso, carência, estorno integral, inativação, recuperação
+limitada de webhooks perdidos e replay privado auditado implementados em branch
+isolada; restauração limpa desta revisão e Sandbox real pendentes. Os demais eventos
 de risco continuam em revisão. Consulte STAGE-05-ASAAS-LIFECYCLE.md.
 
 - mapear aprovação, vencimento, atraso, estorno, chargeback e cancelamento;

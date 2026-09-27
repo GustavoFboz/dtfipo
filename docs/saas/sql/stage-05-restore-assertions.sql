@@ -8,7 +8,8 @@ begin
     'billing_apply_asaas_subscription_lifecycle(uuid,uuid,text,text,text,integer,text,text)',
     'billing_list_asaas_expired_grace(text,integer)',
     'billing_suspend_asaas_expired_grace(uuid,text,text,text,text,text)',
-    'billing_replay_asaas_event(text,text,text,text)'
+    'billing_replay_asaas_event(text,text,text,text)',
+    'billing_claim_asaas_reconciliation_candidates(text,integer)'
   ] loop
     v_oid := to_regprocedure('public.' || v_name);
     if v_oid is null then raise exception 'Missing Stage 05 function: %', v_name; end if;

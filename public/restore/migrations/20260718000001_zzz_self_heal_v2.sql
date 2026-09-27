@@ -291,6 +291,8 @@ REVOKE ALL ON FUNCTION public.billing_suspend_asaas_expired_grace(
 ) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_replay_asaas_event(text,text,text,text)
   FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_claim_asaas_reconciliation_candidates(text,integer)
+  FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_valid_br_tax_id(text)
@@ -341,6 +343,8 @@ GRANT EXECUTE ON FUNCTION public.billing_suspend_asaas_expired_grace(
   uuid,text,text,text,text,text
 ) TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_replay_asaas_event(text,text,text,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_claim_asaas_reconciliation_candidates(text,integer)
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
   TO service_role;

@@ -65,7 +65,17 @@ type WorkerDependencies = {
     },
     payment: AsaasPayment,
   ) => Promise<boolean>;
-  enqueueRecovery: (eventId: string, eventType: string, paymentId: string) => Promise<void>;
+  claimReconciliation: () => Promise<{
+    subscription_id: string;
+    provider_subscription_id: string;
+    customer_id: string;
+  }[]>;
+  listPaymentsForReconciliation: (subscriptionId: string, sinceDueDate: string) => Promise<AsaasPayment[]>;
+  enqueueRecovery: (
+    eventId: string,
+    eventType: string,
+    payload: { paymentId?: string; subscriptionId?: string; source: "reconciliation" },
+  ) => Promise<void>;
   finish: (event: InboxEvent, outcome: "ignored" | "failed", code?: string) => Promise<void>;
 };
 
@@ -388,11 +398,85 @@ async function reconcileExpiredGrace(
       await deps.enqueueRecovery(
         "evt_reconcile_" + payment.id + "_" + payment.status,
         eventType,
-        payment.id,
+        { paymentId: payment.id, source: "reconciliation" },
       );
       counts.recoveryQueued += 1;
     } else {
       throw new Error("GRACE_PROVIDER_STATUS_REVIEW_REQUIRED");
+    }
+  }
+  return counts;
+}
+
+/** Rebuilds missing inbox events, without modifying an entitlement directly. */
+async function reconcileMissingWebhooks(
+  deps: WorkerDependencies,
+): Promise<{ reconciliationScanned: number; reconciliationQueued: number; reconciliationReview: number }> {
+  const counts = { reconciliationScanned: 0, reconciliationQueued: 0, reconciliationReview: 0 };
+  const sinceDueDate = new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10);
+  for (const candidate of await deps.claimReconciliation()) {
+    counts.reconciliationScanned += 1;
+    try {
+      const subscription = await deps.getSubscription(candidate.provider_subscription_id);
+      if (
+        subscription.id !== candidate.provider_subscription_id ||
+        subscription.customer !== candidate.customer_id ||
+        subscription.cycle !== "MONTHLY" ||
+        subscription.externalReference !== `dentalflow:subscription:${candidate.subscription_id}` ||
+        subscription.deleted ||
+        !["ACTIVE", "INACTIVE"].includes(subscription.status ?? "")
+      ) throw new Error("RECONCILIATION_SUBSCRIPTION_REVIEW_REQUIRED");
+
+      const inactiveEventId = `evt_reconcile_${subscription.id}_INACTIVE`;
+      if (subscription.status === "INACTIVE" && !EVENT_ID.test(inactiveEventId)) {
+        throw new Error("RECONCILIATION_EVENT_ID_INVALID");
+      }
+
+      const payments = await deps.listPaymentsForReconciliation(subscription.id, sinceDueDate);
+      const pending: { eventId: string; type: string; paymentId: string; dueDate: string }[] = [];
+      for (const payment of payments) {
+        if (
+          !PAYMENT_ID.test(payment.id) || payment.customer !== candidate.customer_id ||
+          payment.subscription !== subscription.id || !paymentAmountCents(payment) ||
+          !ISO_DATE.test(payment.dueDate ?? "")
+        ) throw new Error("RECONCILIATION_PAYMENT_REVIEW_REQUIRED");
+        const type = payment.status === "CONFIRMED" ? "PAYMENT_CONFIRMED" :
+          ["RECEIVED", "RECEIVED_IN_CASH"].includes(payment.status ?? "") ? "PAYMENT_RECEIVED" :
+          payment.status === "OVERDUE" ? "PAYMENT_OVERDUE" :
+          payment.status === "REFUNDED" ? "PAYMENT_REFUNDED" : null;
+        if (!type && payment.status !== "PENDING") {
+          throw new Error("RECONCILIATION_STATUS_REVIEW_REQUIRED");
+        }
+        if (type) pending.push({
+          eventId: `evt_reconcile_${payment.id}_${payment.status}`,
+          type,
+          paymentId: payment.id,
+          dueDate: payment.dueDate!,
+        });
+      }
+      // Validate the whole page before enqueuing any resource. The existing
+      // leased processor will GET each one again and check plan/owner/period.
+      for (const event of pending) {
+        if (!EVENT_ID.test(event.eventId)) throw new Error("RECONCILIATION_EVENT_ID_INVALID");
+      }
+      pending.sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.paymentId.localeCompare(b.paymentId));
+      for (const event of pending) {
+        await deps.enqueueRecovery(event.eventId, event.type, {
+          paymentId: event.paymentId,
+          source: "reconciliation",
+        });
+        counts.reconciliationQueued += 1;
+      }
+      if (subscription.status === "INACTIVE") {
+        await deps.enqueueRecovery(inactiveEventId, "SUBSCRIPTION_INACTIVATED", {
+          subscriptionId: subscription.id,
+          source: "reconciliation",
+        });
+        counts.reconciliationQueued += 1;
+      }
+    } catch {
+      counts.reconciliationReview += 1;
+      console.error("[Asaas worker] RECONCILIATION_CANDIDATE_FAILED");
     }
   }
   return counts;
@@ -483,14 +567,26 @@ export async function processAsaasInbox(
           if (error) throw error;
           return data ?? false;
         },
-        enqueueRecovery: async (eventId, eventType, paymentId) => {
+        claimReconciliation: async () => {
+          const { data, error } = await (
+            await admin()
+          ).rpc("billing_claim_asaas_reconciliation_candidates", {
+            p_environment: config.environment,
+            p_limit: 1,
+          });
+          if (error) throw error;
+          return data ?? [];
+        },
+        listPaymentsForReconciliation: (subscriptionId, sinceDueDate) =>
+          client.listPaymentsForReconciliation(subscriptionId, sinceDueDate),
+        enqueueRecovery: async (eventId, eventType, payload) => {
           const { error } = await (
             await admin()
           ).rpc("billing_receive_asaas_event", {
             p_environment: config.environment,
             p_event_id: eventId,
             p_event_type: eventType,
-            p_payload: { paymentId },
+            p_payload: payload,
           });
           if (error) throw error;
         },
@@ -524,7 +620,9 @@ export async function processAsaasInbox(
     const counts = { processed: 0, ignored: 0, failed: 0 };
     for (const event of events) counts[await processEvent(event, deps)] += 1;
     const grace = await reconcileExpiredGrace(deps);
-    return json({ ...counts, ...grace }, 200);
+    const reconciliation = await reconcileMissingWebhooks(deps);
+    return json({ ...counts, ...grace, ...reconciliation },
+      reconciliation.reconciliationReview > 0 ? 503 : 200);
   } catch {
     console.error("[Asaas worker] WORKER_FAILED");
     return json({ processed: 0 }, 503);
