@@ -154,13 +154,9 @@ export type Database = {
       }
       billing_events: {
         Row: {
-          attempt_count: number
           error_message: string | null
           event_type: string
           id: string
-          lease_token: string | null
-          lease_until: string | null
-          next_attempt_at: string
           payload: Json
           processed_at: string | null
           provider: string
@@ -170,13 +166,9 @@ export type Database = {
           status: string
         }
         Insert: {
-          attempt_count?: number
           error_message?: string | null
           event_type: string
           id?: string
-          lease_token?: string | null
-          lease_until?: string | null
-          next_attempt_at?: string
           payload?: Json
           processed_at?: string | null
           provider: string
@@ -186,13 +178,9 @@ export type Database = {
           status?: string
         }
         Update: {
-          attempt_count?: number
           error_message?: string | null
           event_type?: string
           id?: string
-          lease_token?: string | null
-          lease_until?: string | null
-          next_attempt_at?: string
           payload?: Json
           processed_at?: string | null
           provider?: string
@@ -3481,19 +3469,6 @@ export type Database = {
         Returns: Json
       }
       backend_schema_hash: { Args: never; Returns: string }
-      billing_apply_asaas_initial_payment: {
-        Args: {
-          p_amount_cents: number
-          p_customer_id: string
-          p_due_date: string
-          p_event_id: string
-          p_lease_token: string
-          p_payment_id: string
-          p_payment_status: string
-          p_subscription_id: string
-        }
-        Returns: Json
-      }
       billing_apply_checkout_paid: {
         Args: {
           p_checkout_intent_id: string
@@ -3519,14 +3494,6 @@ export type Database = {
         }
         Returns: Json
       }
-      billing_bind_asaas_customer: {
-        Args: {
-          p_clinic_id: string
-          p_provider_customer_id: string
-          p_provider_environment: string
-        }
-        Returns: undefined
-      }
       billing_bind_asaas_subscription: {
         Args: {
           p_provider_customer_id: string
@@ -3536,15 +3503,13 @@ export type Database = {
         }
         Returns: undefined
       }
-      billing_claim_asaas_events: {
-        Args: { p_environment: string; p_limit?: number }
-        Returns: {
-          attempt_count: number
-          event_type: string
-          id: string
-          lease_token: string
-          payload: Json
-        }[]
+      billing_bind_asaas_customer: {
+        Args: {
+          p_clinic_id: string
+          p_provider_customer_id: string
+          p_provider_environment: string
+        }
+        Returns: undefined
       }
       billing_claim_provider_operation: {
         Args: {
@@ -3556,15 +3521,6 @@ export type Database = {
           p_provider_environment: string
         }
         Returns: Json
-      }
-      billing_finish_asaas_event: {
-        Args: {
-          p_error_code?: string
-          p_id: string
-          p_lease_token: string
-          p_outcome: string
-        }
-        Returns: boolean
       }
       billing_finish_provider_operation: {
         Args: {
@@ -3596,6 +3552,16 @@ export type Database = {
         Args: { p_clinic_id: string }
         Returns: Json
       }
+      billing_test_capability: { Args: never; Returns: Json }
+      billing_test_mark_checkout_paid: {
+        Args: { p_checkout_intent_id: string }
+        Returns: Json
+      }
+      billing_test_redeem_token: { Args: { p_token: string }; Returns: Json }
+      billing_test_simulate_nonpayment: {
+        Args: { p_clinic_id: string }
+        Returns: Json
+      }
       billing_mark_asaas_checkout_ready: {
         Args: {
           p_actor_user_id: string
@@ -3606,25 +3572,6 @@ export type Database = {
           p_provider_payment_url: string
           p_provider_subscription_id: string
         }
-        Returns: Json
-      }
-      billing_receive_asaas_event: {
-        Args: {
-          p_environment: string
-          p_event_id: string
-          p_event_type: string
-          p_payload: Json
-        }
-        Returns: boolean
-      }
-      billing_test_capability: { Args: never; Returns: Json }
-      billing_test_mark_checkout_paid: {
-        Args: { p_checkout_intent_id: string }
-        Returns: Json
-      }
-      billing_test_redeem_token: { Args: { p_token: string }; Returns: Json }
-      billing_test_simulate_nonpayment: {
-        Args: { p_clinic_id: string }
         Returns: Json
       }
       billing_upsert_company_profile: {
