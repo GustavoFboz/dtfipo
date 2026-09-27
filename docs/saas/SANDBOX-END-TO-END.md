@@ -55,6 +55,11 @@ criando outra por tentativa. O teste só passa com recurso financeiro real do
 
 ## Pendências atuais
 
+- Inspeção somente leitura em 2026-09-27 UTC: o banco publicado apresentou
+  `0` eventos Asaas, `0` pagamentos Asaas e `0` assinaturas vinculadas ao
+  Asaas. A RPC e a tabela de replay da Etapa 05 não existem nesse banco.
+  O projeto publicado informa o commit `3a2786ab82911659334c7a9c68f9f1eaeef60a84`
+  (Etapa 03). Esses valores não são um teste de entrega do Sandbox.
 - Código das Etapas 04/05 e worker agendado não estão no backend publicado.
 - A migration da Etapa 04 existe no banco vivo, mas as migrations da Etapa 05
   permanecem fora dele.
