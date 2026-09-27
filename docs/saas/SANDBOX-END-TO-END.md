@@ -7,12 +7,12 @@ projetada como acesso pago. Não declarar o SaaS liberado por causa da CI.
 
 ## Preparar a execução
 
-1. Preparar uma implantação controlada que inclua as PRs encadeadas 64, 65,
-   68 e 69 nesta ordem, com migrations correspondentes e backend no mesmo
-   commit. Usar um ambiente de teste isolado ou publicar a integração revista
-   e restrita ao Sandbox. Conferir o commit após o deploy: uma migration
-   instalada sozinha não disponibiliza webhook ou worker. Não liberar Produção
-   por conta dessa implantação.
+1. A integração das Etapas 04/05 foi publicada para teste na branch Lovable
+   `saas/stage-03-asaas-checkout` pelo [PR 72](https://github.com/GustavoFboz/dtfipo/pull/72),
+   commit `70a83dad5bffbee69d46f19b2868f2275ad2fecb`. As migrations
+   correspondentes estão no banco vivo. A `main` e as PRs encadeadas para a
+   liberação comercial permanecem separadas. Não liberar Produção por causa
+   desta publicação de teste.
 2. Conferir `ASAAS_ENVIRONMENT=sandbox`, chave `$aact_hmlg_`, `ASAAS_USER_AGENT`,
    `ASAAS_WEBHOOK_TOKEN` e `BILLING_WORKER_TOKEN` **somente no backend**; o token
    do worker também precisa existir no segredo do GitHub Actions. Para replay,
@@ -60,16 +60,21 @@ criando outra por tentativa. O teste só passa com recurso financeiro real do
   existente tem empresa `AS Lab` e assinatura `pending_checkout`, mas ainda
   não tem perfil fiscal, cliente, assinatura ou cobrança no provedor.
   Estes valores não são um teste de entrega do Sandbox.
-- O projeto publicado informa o commit `6bcf7ad3afdb0116679b831f4b87d70ec7bccb0b`
-  da Etapa 03 com a página de apresentação corrigida. As Etapas 04/05 estão
-  preparadas em uma integração isolada; webhook, worker e agendamento ainda
-  não foram publicados.
+- O projeto Lovable informa o commit
+  `70a83dad5bffbee69d46f19b2868f2275ad2fecb`. O webhook e o worker da
+  integração estão publicados: requisições de teste sem credencial válida
+  retornaram HTTP 401 e não criaram evento. Isto comprova a rota e a barreira
+  de autenticação, não o recebimento de um `evt_*` enviado pelo Asaas.
+- O workflow de cinco minutos não executa agendado nesta branch: GitHub
+  `schedule` depende da branch padrão. O segredo `BILLING_WORKER_TOKEN` ainda
+  não foi verificado nos destinos, e a configuração do webhook na conta Asaas
+  Sandbox não foi comprovada. Não iniciar compra antes de resolver isso.
 - As migrations das Etapas 04/05 estão no banco vivo. Depois da aplicação
   sequencial das três migrations da Etapa 05, a asserção SQL somente leitura
   `stage-05-restore-assertions.sql` retornou `passed`. Isso confirma apenas
   estrutura e privilégios, não uma cobrança ou entrega real.
 - Tokens e configuração do webhook/agenda não foram verificados com teste de
   entrega do Asaas; não há `evt_*` real processado.
-- Varredura limitada para webhooks perdidos está na branch isolada da Etapa 05,
-  ainda sem implantação e sem evidência real. Ela não cobre eventos antigos,
+- Varredura limitada para webhooks perdidos faz parte do backend publicado para
+  teste, mas ainda não rodou contra recursos reais. Ela não cobre eventos antigos,
   páginas de cobrança além de 100 registros ou eventos de risco como chargeback.
