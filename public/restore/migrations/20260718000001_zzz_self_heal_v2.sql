@@ -238,12 +238,15 @@ REVOKE ALL ON TABLE public.billing_test_access
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON TABLE public.billing_test_tokens
   FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.billing_event_replays
+  FROM PUBLIC, anon, authenticated, service_role;
 
 GRANT ALL ON TABLE public.company_billing_profiles TO service_role;
 GRANT ALL ON TABLE public.billing_provider_customers TO service_role;
 GRANT ALL ON TABLE public.billing_provider_operations TO service_role;
 GRANT ALL ON TABLE public.billing_test_access TO service_role;
 GRANT ALL ON TABLE public.billing_test_tokens TO service_role;
+GRANT SELECT ON TABLE public.billing_event_replays TO service_role;
 
 REVOKE ALL ON FUNCTION public.billing_apply_checkout_paid(
   uuid,text,text,text,text,timestamptz,timestamptz
@@ -266,6 +269,30 @@ REVOKE ALL ON FUNCTION public.billing_get_checkout_provisioning_context(uuid,uui
 REVOKE ALL ON FUNCTION public.billing_mark_asaas_checkout_ready(
   uuid,uuid,text,text,text,text,text
 ) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_receive_asaas_event(text,text,text,jsonb)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_claim_asaas_events(text,integer)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_finish_asaas_event(uuid,uuid,text,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_asaas_initial_payment(
+  uuid,uuid,text,text,text,integer,date,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_asaas_payment_lifecycle(
+  uuid,uuid,text,text,text,integer,date,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_asaas_subscription_lifecycle(
+  uuid,uuid,text,text,text,integer,text,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_list_asaas_expired_grace(text,integer)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_suspend_asaas_expired_grace(
+  uuid,text,text,text,text,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_replay_asaas_event(text,text,text,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_claim_asaas_reconciliation_candidates(text,integer)
+  FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_valid_br_tax_id(text)
@@ -295,6 +322,30 @@ GRANT EXECUTE ON FUNCTION public.billing_get_checkout_provisioning_context(uuid,
 GRANT EXECUTE ON FUNCTION public.billing_mark_asaas_checkout_ready(
   uuid,uuid,text,text,text,text,text
 ) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_receive_asaas_event(text,text,text,jsonb)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_claim_asaas_events(text,integer)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_finish_asaas_event(uuid,uuid,text,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_asaas_initial_payment(
+  uuid,uuid,text,text,text,integer,date,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_asaas_payment_lifecycle(
+  uuid,uuid,text,text,text,integer,date,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_asaas_subscription_lifecycle(
+  uuid,uuid,text,text,text,integer,text,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_list_asaas_expired_grace(text,integer)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_suspend_asaas_expired_grace(
+  uuid,text,text,text,text,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_replay_asaas_event(text,text,text,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_claim_asaas_reconciliation_candidates(text,integer)
+  TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_valid_br_tax_id(text)

@@ -525,6 +525,50 @@ export class AsaasClient {
       .filter((payment) => !payment.deleted && payment.subscription === subscriptionId);
   }
 
+  /** A single bounded recovery page. An overflow needs operator review; never skip records. */
+  async listPaymentsForReconciliation(
+    subscriptionId: string,
+    sinceDueDate: string,
+  ): Promise<AsaasPayment[]> {
+    if (!SUBSCRIPTION_ID_PATTERN.test(subscriptionId) || !/^\d{4}-\d{2}-\d{2}$/.test(sinceDueDate)) {
+      throw new Error("Parâmetros de conciliação Asaas inválidos.");
+    }
+    const response = await this.request<AsaasListResponse<unknown>>("GET", "/payments", {
+      query: { subscription: subscriptionId, "dueDate[ge]": sinceDueDate, limit: 100, offset: 0 },
+    });
+    if (!Array.isArray(response.data) || response.data.length > 100 ||
+        typeof response.hasMore !== "boolean" || response.hasMore) {
+      throw new AsaasApiError({
+        code: "ASAAS_RECONCILIATION_PAGE_INCOMPLETE",
+        message: "Lista de conciliação incompleta; revisão necessária.",
+      });
+    }
+    const payments = response.data.map(validatePayment);
+    if (payments.some((payment) => payment.deleted || payment.subscription !== subscriptionId)) {
+      throw new AsaasApiError({
+        code: "ASAAS_RECONCILIATION_OWNERSHIP_MISMATCH",
+        message: "Cobranças de conciliação não correspondem à assinatura.",
+      });
+    }
+    return payments;
+  }
+
+  async getPayment(paymentId: string): Promise<AsaasPayment> {
+    if (!PAYMENT_ID_PATTERN.test(paymentId)) throw new Error("Cobrança Asaas inválida.");
+    return validatePayment(
+      await this.request<unknown>("GET", `/payments/${encodeURIComponent(paymentId)}`),
+    );
+  }
+
+  async getSubscription(subscriptionId: string): Promise<AsaasSubscription> {
+    if (!SUBSCRIPTION_ID_PATTERN.test(subscriptionId)) {
+      throw new Error("Assinatura Asaas inválida.");
+    }
+    return validateSubscription(
+      await this.request<unknown>("GET", "/subscriptions/" + encodeURIComponent(subscriptionId)),
+    );
+  }
+
   validatePaymentUrl(value: string): string {
     let url: URL;
     try {

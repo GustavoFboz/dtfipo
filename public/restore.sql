@@ -14294,6 +14294,707 @@ comment on function public.billing_mark_asaas_checkout_ready(uuid,uuid,text,text
 
 notify pgrst, 'reload schema';
 
+-- ===== 20260926190000_saas_asaas_webhook_stage04.sql =====
+
+-- Stage 04: durable, private Asaas webhook inbox and leased processing.
+-- Applying this migration does not enable the webhook or grant paid access.
+
+alter table public.billing_events
+  add column if not exists attempt_count integer not null default 0,
+  add column if not exists next_attempt_at timestamptz not null default now(),
+  add column if not exists lease_token uuid,
+  add column if not exists lease_until timestamptz;
+
+alter table public.billing_events
+  drop constraint if exists billing_events_status_check;
+alter table public.billing_events
+  add constraint billing_events_status_check
+  check (status in ('received','processing','processed','ignored','failed','dead_letter'));
+
+create index if not exists billing_events_pending_work_idx
+  on public.billing_events (next_attempt_at, received_at)
+  where provider = 'asaas' and status in ('received','processing','failed');
+
+create or replace function public.billing_receive_asaas_event(
+  p_environment text, p_event_id text, p_event_type text, p_payload jsonb
+) returns boolean
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare v_inserted uuid;
+begin
+  if p_environment not in ('sandbox','production')
+    or p_event_id !~ '^evt_[A-Za-z0-9&_-]{1,150}$'
+    or p_event_type !~ '^[A-Z_]{3,100}$'
+    or jsonb_typeof(p_payload) <> 'object'
+    or pg_column_size(p_payload) > 4096 then
+    raise exception 'BILLING_INVALID_ASAAS_EVENT';
+  end if;
+
+  insert into public.billing_events (
+    provider, provider_environment, provider_event_id, event_type, payload, status
+  ) values ('asaas', p_environment, p_event_id, p_event_type, p_payload, 'received')
+  on conflict (provider, provider_environment, provider_event_id) do nothing
+  returning id into v_inserted;
+  return v_inserted is not null;
+end;
+$$;
+
+create or replace function public.billing_claim_asaas_events(
+  p_environment text, p_limit integer default 10
+) returns table (
+  id uuid, event_type text, payload jsonb, lease_token uuid, attempt_count integer
+)
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+begin
+  if p_environment not in ('sandbox','production') or p_limit not between 1 and 20 then
+    raise exception 'BILLING_INVALID_WORKER_REQUEST';
+  end if;
+  return query
+  with claimed as (
+    select e.id
+    from public.billing_events e
+    where e.provider = 'asaas' and e.provider_environment = p_environment
+      and e.next_attempt_at <= now()
+      and (e.status in ('received','failed')
+           or (e.status = 'processing' and e.lease_until < now()))
+    order by e.received_at, e.id
+    limit p_limit for update skip locked
+  )
+  update public.billing_events e
+  set status = 'processing', lease_token = gen_random_uuid(),
+      lease_until = now() + interval '90 seconds',
+      attempt_count = e.attempt_count + 1
+  from claimed c where e.id = c.id
+  returning e.id, e.event_type, e.payload, e.lease_token, e.attempt_count;
+end;
+$$;
+
+create or replace function public.billing_finish_asaas_event(
+  p_id uuid, p_lease_token uuid, p_outcome text, p_error_code text default null
+) returns boolean
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare v_attempts integer;
+begin
+  if p_outcome not in ('processed','ignored','failed')
+    or (p_error_code is not null and p_error_code !~ '^[A-Z0-9_]{1,80}$') then
+    raise exception 'BILLING_INVALID_WORKER_RESULT';
+  end if;
+  select attempt_count into v_attempts from public.billing_events
+  where id = p_id and provider = 'asaas' and status = 'processing'
+    and lease_token = p_lease_token and lease_until > now() for update;
+  if not found then return false; end if;
+
+  update public.billing_events set
+    status = case when p_outcome = 'failed' and v_attempts >= 6
+      then 'dead_letter' else p_outcome end,
+    error_message = p_error_code,
+    processed_at = case when p_outcome = 'failed' then null else now() end,
+    next_attempt_at = case when p_outcome = 'failed'
+      then now() + make_interval(secs => least(3600, 30 * power(2, least(v_attempts, 6)))::integer)
+      else now() end,
+    lease_token = null, lease_until = null
+  where id = p_id;
+  return true;
+end;
+$$;
+
+-- An initial payment is applied in one transaction with its inbox event. A
+-- second event for the same charge is a no-op; a different resource is rejected.
+create or replace function public.billing_apply_asaas_initial_payment(
+  p_event_id uuid, p_lease_token uuid, p_payment_id text,
+  p_customer_id text, p_subscription_id text,
+  p_amount_cents integer, p_due_date date, p_payment_status text
+) returns jsonb
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare
+  v_event public.billing_events%rowtype;
+  v_intent public.checkout_intents%rowtype;
+  v_sub public.account_subscriptions%rowtype;
+  v_plan public.billing_plans%rowtype;
+  v_prior public.billing_payments%rowtype;
+  v_period_end timestamptz;
+  v_requested text[];
+begin
+  select * into v_event from public.billing_events
+  where id = p_event_id and provider = 'asaas' and status = 'processing'
+    and lease_token = p_lease_token and lease_until > now() for update;
+  if v_event.id is null or v_event.event_type not in ('PAYMENT_CONFIRMED','PAYMENT_RECEIVED')
+    or v_event.payload->>'paymentId' is distinct from p_payment_id
+    or p_payment_status not in ('CONFIRMED','RECEIVED','RECEIVED_IN_CASH')
+    or p_payment_id !~ '^pay_[A-Za-z0-9]+$'
+    or p_customer_id !~ '^cus_[A-Za-z0-9]+$'
+    or p_subscription_id !~ '^sub_[A-Za-z0-9]+$'
+    or p_amount_cents <= 0 or p_due_date is null then
+    raise exception 'BILLING_PAYMENT_NOT_VERIFIED';
+  end if;
+
+  select * into v_intent from public.checkout_intents
+  where billing_provider = 'asaas' and provider_environment = v_event.provider_environment
+    and provider_payment_id = p_payment_id for update;
+  if v_intent.id is null or v_intent.status not in ('provider_created','paid')
+    or v_intent.amount_cents <> p_amount_cents or v_intent.currency <> 'BRL' then
+    raise exception 'BILLING_PAYMENT_INTENT_MISMATCH';
+  end if;
+  select * into v_sub from public.account_subscriptions
+  where id = v_intent.subscription_id for update;
+  if v_sub.id is null or v_sub.scope_type <> 'company'
+    or v_sub.clinic_id is distinct from v_intent.clinic_id
+    or v_sub.billing_provider <> 'asaas'
+    or v_sub.provider_environment <> v_event.provider_environment
+    or v_sub.external_customer_id <> p_customer_id
+    or v_sub.external_subscription_id <> p_subscription_id
+    or public.is_internal_full_access_company(v_sub.clinic_id) then
+    raise exception 'BILLING_PAYMENT_OWNERSHIP_MISMATCH';
+  end if;
+
+  select * into v_prior from public.billing_payments
+  where provider = 'asaas' and provider_environment = v_event.provider_environment
+    and provider_payment_id = p_payment_id for update;
+  if v_prior.id is not null then
+    if v_prior.status <> 'paid' or v_prior.subscription_id <> v_sub.id
+      or v_prior.checkout_intent_id <> v_intent.id or v_prior.amount_cents <> p_amount_cents then
+      raise exception 'BILLING_PAYMENT_ALREADY_RECONCILED_DIFFERENTLY';
+    end if;
+    update public.billing_events set status = 'processed', processed_at = now(),
+      error_message = null, lease_token = null, lease_until = null where id = v_event.id;
+    return jsonb_build_object('applied', false, 'idempotent', true);
+  end if;
+
+  if v_intent.status <> 'provider_created' or v_sub.status <> 'pending_checkout' then
+    raise exception 'BILLING_PAYMENT_STATE_MISMATCH';
+  end if;
+  select * into v_plan from public.billing_plans
+  where code = v_intent.plan_code and account_scope = 'company';
+  if v_plan.code is null or v_sub.plan_code <> v_plan.code
+    or v_plan.monthly_price_cents <> p_amount_cents or v_plan.currency <> 'BRL' then
+    raise exception 'BILLING_PAYMENT_PLAN_MISMATCH';
+  end if;
+  v_period_end := (p_due_date + interval '1 month')::timestamptz;
+  if v_period_end <= now() or p_due_date > current_date + 31 then
+    raise exception 'BILLING_PAYMENT_PERIOD_REVIEW_REQUIRED';
+  end if;
+
+  insert into public.billing_payments (
+    subscription_id, checkout_intent_id, clinic_id, amount_cents, currency,
+    status, provider, provider_environment, provider_payment_id,
+    paid_at, period_start, period_end
+  ) values (
+    v_sub.id, v_intent.id, v_sub.clinic_id, p_amount_cents, 'BRL',
+    'paid', 'asaas', v_event.provider_environment, p_payment_id,
+    now(), p_due_date::timestamptz, v_period_end
+  );
+  update public.account_subscriptions set status = 'active',
+    current_period_start = p_due_date::timestamptz,
+    current_period_end = v_period_end, grace_until = null,
+    updated_at = now() where id = v_sub.id;
+  update public.checkout_intents set status = 'paid', updated_at = now()
+    where id = v_intent.id;
+  update public.clinics set storage_limit_bytes = v_plan.storage_bytes
+    where id = v_sub.clinic_id;
+  select coalesce(array_agg(s.value), '{}'::text[]) into v_requested
+  from jsonb_array_elements_text(coalesce(v_intent.metadata->'requested_sessions', '[]'::jsonb)) s(value);
+  if cardinality(v_requested) > 0 then
+    update public.company_sessions set status = 'disabled'
+      where clinic_id = v_sub.clinic_id and not (session_type = any(v_requested));
+    insert into public.company_sessions (clinic_id,session_type,status,sharing_mode)
+    select v_sub.clinic_id, x, 'active',
+      case when v_plan.max_sessions > 1 then 'company' else 'isolated' end
+    from unnest(v_requested) x
+    on conflict (clinic_id,session_type) do update
+      set status = 'active', sharing_mode = excluded.sharing_mode, updated_at = now();
+  end if;
+  update public.billing_events set status = 'processed', processed_at = now(),
+    error_message = null, lease_token = null, lease_until = null where id = v_event.id;
+  return jsonb_build_object('applied', true, 'subscription_id', v_sub.id);
+end;
+$$;
+
+revoke all on function public.billing_receive_asaas_event(text,text,text,jsonb) from public,anon,authenticated;
+revoke all on function public.billing_claim_asaas_events(text,integer) from public,anon,authenticated;
+revoke all on function public.billing_finish_asaas_event(uuid,uuid,text,text) from public,anon,authenticated;
+revoke all on function public.billing_apply_asaas_initial_payment(uuid,uuid,text,text,text,integer,date,text) from public,anon,authenticated;
+grant execute on function public.billing_receive_asaas_event(text,text,text,jsonb) to service_role;
+grant execute on function public.billing_claim_asaas_events(text,integer) to service_role;
+grant execute on function public.billing_finish_asaas_event(uuid,uuid,text,text) to service_role;
+grant execute on function public.billing_apply_asaas_initial_payment(uuid,uuid,text,text,text,integer,date,text) to service_role;
+notify pgrst, 'reload schema';
+
+-- ===== 20260926210000_saas_asaas_lifecycle_stage05.sql =====
+
+-- Stage 05: project verified monthly payment changes without trusting webhook data.
+-- Requires the Stage 04 inbox and keeps provider secrets outside the database.
+
+create or replace function public.billing_apply_asaas_payment_lifecycle(
+  p_event_id uuid, p_lease_token uuid, p_payment_id text,
+  p_customer_id text, p_subscription_id text,
+  p_amount_cents integer, p_due_date date, p_payment_status text
+) returns jsonb
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare
+  v_event public.billing_events%rowtype;
+  v_sub public.account_subscriptions%rowtype;
+  v_intent public.checkout_intents%rowtype;
+  v_plan public.billing_plans%rowtype;
+  v_payment public.billing_payments%rowtype;
+  v_start timestamptz := p_due_date::timestamptz;
+  v_end timestamptz := (p_due_date + interval '1 month')::timestamptz;
+  v_last_paid_end timestamptz;
+  v_last_paid_start timestamptz;
+  v_action text;
+begin
+  select * into v_event from public.billing_events
+  where id = p_event_id and provider = 'asaas' and status = 'processing'
+    and lease_token = p_lease_token and lease_until > now() for update;
+  if v_event.id is null
+    or v_event.payload->>'paymentId' is distinct from p_payment_id
+    or coalesce(p_payment_id, '') !~ '^pay_[A-Za-z0-9]+$'
+    or coalesce(p_customer_id, '') !~ '^cus_[A-Za-z0-9]+$'
+    or coalesce(p_subscription_id, '') !~ '^sub_[A-Za-z0-9]+$'
+    or p_amount_cents is null or p_amount_cents <= 0 or p_due_date is null then
+    raise exception 'BILLING_LIFECYCLE_PAYMENT_NOT_VERIFIED';
+  end if;
+  if v_event.event_type in ('PAYMENT_CONFIRMED','PAYMENT_RECEIVED')
+     and p_payment_status in ('CONFIRMED','RECEIVED','RECEIVED_IN_CASH') then
+    v_action := 'paid';
+  elsif v_event.event_type = 'PAYMENT_OVERDUE' and p_payment_status = 'OVERDUE' then
+    v_action := 'overdue';
+  elsif v_event.event_type = 'PAYMENT_REFUNDED' and p_payment_status = 'REFUNDED' then
+    v_action := 'reversed';
+  else
+    raise exception 'BILLING_LIFECYCLE_PROVIDER_STATUS_CHANGED';
+  end if;
+
+  -- The checkout payment is governed by the stricter Stage 04 first-payment
+  -- contract, including its paid-intent and requested-session checks.
+  if v_action = 'paid' then
+    select * into v_intent from public.checkout_intents
+    where billing_provider = 'asaas'
+      and provider_environment = v_event.provider_environment
+      and provider_payment_id = p_payment_id;
+    if v_intent.id is not null then
+      return public.billing_apply_asaas_initial_payment(
+        p_event_id, p_lease_token, p_payment_id, p_customer_id,
+        p_subscription_id, p_amount_cents, p_due_date, p_payment_status
+      );
+    end if;
+  end if;
+
+  select * into v_sub from public.account_subscriptions
+  where billing_provider = 'asaas'
+    and provider_environment = v_event.provider_environment
+    and external_subscription_id = p_subscription_id for update;
+  if v_sub.id is null or v_sub.scope_type <> 'company'
+    or v_sub.clinic_id is null or v_sub.billing_cycle <> 'MONTHLY'
+    or v_sub.external_customer_id is distinct from p_customer_id
+    or public.is_internal_full_access_company(v_sub.clinic_id) then
+    raise exception 'BILLING_LIFECYCLE_OWNERSHIP_MISMATCH';
+  end if;
+  select * into v_plan from public.billing_plans
+  where code = v_sub.plan_code and account_scope = 'company';
+  if v_plan.code is null or v_plan.currency <> 'BRL'
+    or (v_action <> 'reversed' and v_plan.monthly_price_cents <> p_amount_cents) then
+    raise exception 'BILLING_LIFECYCLE_PLAN_MISMATCH';
+  end if;
+  select * into v_payment from public.billing_payments
+  where provider = 'asaas' and provider_environment = v_event.provider_environment
+    and provider_payment_id = p_payment_id for update;
+  if v_payment.id is not null and (
+    v_payment.subscription_id <> v_sub.id
+    or v_payment.clinic_id <> v_sub.clinic_id
+    or v_payment.amount_cents <> p_amount_cents
+    or v_payment.currency <> 'BRL'
+    or (v_action <> 'reversed' and (
+      v_payment.period_start is distinct from v_start
+      or v_payment.period_end is distinct from v_end
+    ))
+  ) then
+    raise exception 'BILLING_LIFECYCLE_PAYMENT_CONFLICT';
+  end if;
+
+  if v_action = 'paid' then
+    if v_payment.status = 'paid' then
+      -- An older CONFIRMED event may arrive after RECEIVED or vice versa.
+      null;
+    else
+      if v_sub.status = 'canceled' or v_sub.current_period_end is null
+        or v_start < v_sub.current_period_end
+        or v_start > v_sub.current_period_end + interval '31 days'
+        or v_end <= now() or p_due_date > current_date + 31 then
+        raise exception 'BILLING_LIFECYCLE_PERIOD_REVIEW_REQUIRED';
+      end if;
+      if not exists (
+        select 1 from public.billing_payments b
+        where b.subscription_id = v_sub.id and b.provider = 'asaas'
+          and b.provider_environment = v_event.provider_environment
+          and b.status = 'paid'
+      ) then
+        raise exception 'BILLING_LIFECYCLE_INITIAL_PAYMENT_REQUIRED';
+      end if;
+      if v_payment.id is null then
+        insert into public.billing_payments (
+          subscription_id, clinic_id, amount_cents, currency, status,
+          provider, provider_environment, provider_payment_id,
+          paid_at, period_start, period_end
+        ) values (
+          v_sub.id, v_sub.clinic_id, p_amount_cents, 'BRL', 'paid',
+          'asaas', v_event.provider_environment, p_payment_id,
+          now(), v_start, v_end
+        );
+      elsif v_payment.status in ('pending','refunded','failed') then
+        update public.billing_payments
+        set status = 'paid', paid_at = now() where id = v_payment.id;
+      else
+        raise exception 'BILLING_LIFECYCLE_PAYMENT_CONFLICT';
+      end if;
+      update public.account_subscriptions
+      set status = 'active', current_period_start = v_start,
+          current_period_end = v_end, grace_until = null, updated_at = now()
+      where id = v_sub.id;
+    end if;
+  elsif v_action = 'overdue' then
+    -- An overdue invoice for a future or historical cycle cannot reduce an
+    -- already-paid entitlement. Seven days of grace begin at the due date.
+    if v_sub.status <> 'canceled' and v_sub.status <> 'pending_checkout'
+      and v_sub.current_period_end is not null
+      and v_start >= v_sub.current_period_end
+      and v_start <= v_sub.current_period_end + interval '1 day'
+      and v_start <= now() and v_payment.id is null
+      and not exists (
+        select 1 from public.billing_payments b
+        where b.subscription_id = v_sub.id and b.provider = 'asaas'
+          and b.provider_environment = v_event.provider_environment
+          and b.status = 'paid' and b.period_start >= v_start
+      ) then
+      insert into public.billing_payments (
+        subscription_id, clinic_id, amount_cents, currency, status,
+        provider, provider_environment, provider_payment_id,
+        period_start, period_end
+      ) values (
+        v_sub.id, v_sub.clinic_id, p_amount_cents, 'BRL', 'pending',
+        'asaas', v_event.provider_environment, p_payment_id, v_start, v_end
+      );
+      update public.account_subscriptions
+      set status = case when v_start + interval '7 days' > now()
+        then 'past_due' else 'suspended' end,
+        grace_until = case when v_start + interval '7 days' > now()
+          then v_start + interval '7 days' else null end,
+        updated_at = now()
+      where id = v_sub.id;
+    elsif v_payment.id is not null and v_payment.status = 'pending'
+      and v_sub.status in ('past_due','suspended') then
+      null; -- duplicate event, including one received after grace expiration
+    elsif v_payment.id is not null and v_payment.status = 'paid' then
+      null; -- paid already; this event arrived out of order
+    elsif v_sub.status in ('canceled','pending_checkout') then
+      null; -- neither cancellation nor first unpaid checkout gains access
+    else
+      raise exception 'BILLING_LIFECYCLE_OVERDUE_REVIEW_REQUIRED';
+    end if;
+  else
+    if v_payment.id is null or v_payment.status not in ('paid','refunded') then
+      raise exception 'BILLING_LIFECYCLE_REVERSAL_REVIEW_REQUIRED';
+    end if;
+    if v_payment.status = 'paid' then
+      update public.billing_payments set status = 'refunded',
+        metadata = metadata || jsonb_build_object('reversal_event', v_event.event_type)
+      where id = v_payment.id;
+      select b.period_start, b.period_end
+      into v_last_paid_start, v_last_paid_end
+      from public.billing_payments b
+      where b.subscription_id = v_sub.id and b.provider = 'asaas'
+        and b.provider_environment = v_event.provider_environment
+        and b.status = 'paid'
+      order by b.period_end desc limit 1;
+      -- Reversing an older invoice does not shorten a newer paid period.
+      if v_payment.period_end >= v_sub.current_period_end then
+        update public.account_subscriptions
+        set current_period_start = v_last_paid_start,
+          current_period_end = v_last_paid_end,
+          status = case
+            when status = 'canceled' then 'canceled'
+            when v_last_paid_end > now() then 'active'
+            else 'suspended' end,
+          grace_until = null, updated_at = now()
+        where id = v_sub.id;
+      end if;
+    end if;
+  end if;
+
+  update public.billing_events set status = 'processed', processed_at = now(),
+    error_message = null, lease_token = null, lease_until = null
+  where id = v_event.id;
+  return jsonb_build_object('applied', true, 'effect', v_action);
+end;
+$$;
+
+create or replace function public.billing_apply_asaas_subscription_lifecycle(
+  p_event_id uuid, p_lease_token uuid, p_subscription_id text,
+  p_customer_id text, p_external_reference text,
+  p_amount_cents integer, p_cycle text, p_provider_status text
+) returns jsonb
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare
+  v_event public.billing_events%rowtype;
+  v_sub public.account_subscriptions%rowtype;
+  v_plan public.billing_plans%rowtype;
+begin
+  select * into v_event from public.billing_events
+  where id = p_event_id and provider = 'asaas' and status = 'processing'
+    and lease_token = p_lease_token and lease_until > now() for update;
+  if v_event.id is null
+    or v_event.payload->>'subscriptionId' is distinct from p_subscription_id
+    or v_event.event_type not in (
+      'SUBSCRIPTION_CREATED','SUBSCRIPTION_UPDATED','SUBSCRIPTION_INACTIVATED'
+    )
+    or coalesce(p_subscription_id, '') !~ '^sub_[A-Za-z0-9]+$'
+    or coalesce(p_customer_id, '') !~ '^cus_[A-Za-z0-9]+$'
+    or p_cycle is distinct from 'MONTHLY'
+    or p_amount_cents is null or p_amount_cents <= 0 then
+    raise exception 'BILLING_SUBSCRIPTION_NOT_VERIFIED';
+  end if;
+  select * into v_sub from public.account_subscriptions
+  where billing_provider = 'asaas'
+    and provider_environment = v_event.provider_environment
+    and external_subscription_id = p_subscription_id for update;
+  if v_sub.id is null or v_sub.scope_type <> 'company'
+    or v_sub.external_customer_id is distinct from p_customer_id
+    or p_external_reference is distinct from 'dentalflow:subscription:' || v_sub.id::text
+    or public.is_internal_full_access_company(v_sub.clinic_id) then
+    raise exception 'BILLING_SUBSCRIPTION_OWNERSHIP_MISMATCH';
+  end if;
+  select * into v_plan from public.billing_plans
+  where code = v_sub.plan_code and account_scope = 'company';
+  if v_plan.code is null or v_plan.currency <> 'BRL'
+    or (p_provider_status <> 'INACTIVE'
+      and v_plan.monthly_price_cents <> p_amount_cents) then
+    raise exception 'BILLING_SUBSCRIPTION_PLAN_MISMATCH';
+  end if;
+  if p_provider_status = 'INACTIVE'
+     and v_event.event_type in ('SUBSCRIPTION_INACTIVATED','SUBSCRIPTION_UPDATED') then
+    update public.account_subscriptions
+    set status = 'canceled', canceled_at = coalesce(canceled_at, now()),
+      grace_until = null, updated_at = now()
+    where id = v_sub.id;
+  elsif p_provider_status = 'ACTIVE'
+    and v_event.event_type in ('SUBSCRIPTION_CREATED','SUBSCRIPTION_UPDATED')
+    and v_sub.status <> 'canceled' then
+    null; -- provider activity alone never establishes a paid entitlement
+  else
+    raise exception 'BILLING_SUBSCRIPTION_STATE_REVIEW_REQUIRED';
+  end if;
+  update public.billing_events set status = 'processed', processed_at = now(),
+    error_message = null, lease_token = null, lease_until = null
+  where id = v_event.id;
+  return jsonb_build_object('applied', true, 'status', p_provider_status);
+end;
+$$;
+
+-- The scheduler can inspect expired grace candidates. It must check the
+-- current invoice with Asaas before suspending or enqueueing a paid recovery.
+create or replace function public.billing_list_asaas_expired_grace(
+  p_environment text, p_limit integer default 10
+) returns table (
+  subscription_id uuid, payment_id text
+)
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+begin
+  if p_environment not in ('sandbox','production') or p_limit not between 1 and 20 then
+    raise exception 'BILLING_INVALID_WORKER_REQUEST';
+  end if;
+  return query
+  select s.id, b.provider_payment_id
+  from public.account_subscriptions s
+  join lateral (
+    select p.provider_payment_id
+    from public.billing_payments p
+    where p.subscription_id = s.id and p.provider = 'asaas'
+      and p.provider_environment = p_environment
+      and p.status = 'pending' and p.period_start >= s.current_period_end
+    order by p.period_start desc limit 1
+  ) b on true
+  where s.billing_provider = 'asaas' and s.provider_environment = p_environment
+    and s.status = 'past_due' and s.grace_until <= now()
+  order by s.grace_until, s.id limit p_limit;
+end;
+$$;
+
+create or replace function public.billing_suspend_asaas_expired_grace(
+  p_subscription_id uuid, p_environment text, p_payment_id text,
+  p_customer_id text, p_provider_subscription_id text, p_provider_status text
+) returns boolean
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare v_sub public.account_subscriptions%rowtype;
+begin
+  if p_environment not in ('sandbox','production')
+    or p_provider_status is distinct from 'OVERDUE'
+    or coalesce(p_payment_id, '') !~ '^pay_[A-Za-z0-9]+$'
+    or coalesce(p_customer_id, '') !~ '^cus_[A-Za-z0-9]+$'
+    or coalesce(p_provider_subscription_id, '') !~ '^sub_[A-Za-z0-9]+$' then
+    raise exception 'BILLING_SUSPENSION_NOT_VERIFIED';
+  end if;
+  select * into v_sub from public.account_subscriptions
+  where id = p_subscription_id for update;
+  if v_sub.id is null or v_sub.status <> 'past_due'
+    or v_sub.grace_until > now()
+    or v_sub.billing_provider <> 'asaas'
+    or v_sub.provider_environment <> p_environment
+    or v_sub.external_customer_id is distinct from p_customer_id
+    or v_sub.external_subscription_id is distinct from p_provider_subscription_id
+    or public.is_internal_full_access_company(v_sub.clinic_id)
+    or not exists (
+      select 1 from public.billing_payments b
+      where b.subscription_id = v_sub.id and b.provider = 'asaas'
+        and b.provider_environment = p_environment
+        and b.provider_payment_id = p_payment_id
+        and b.status = 'pending' and b.period_start >= v_sub.current_period_end
+    )
+    or exists (
+      select 1 from public.billing_payments b
+      where b.subscription_id = v_sub.id and b.provider = 'asaas'
+        and b.provider_environment = p_environment
+        and b.status = 'paid' and b.period_start >= v_sub.current_period_end
+    ) then return false; end if;
+  update public.account_subscriptions
+  set status = 'suspended', grace_until = null, updated_at = now()
+  where id = v_sub.id;
+  return true;
+end;
+$$;
+
+revoke all on function public.billing_apply_asaas_payment_lifecycle(uuid,uuid,text,text,text,integer,date,text) from public,anon,authenticated;
+revoke all on function public.billing_apply_asaas_subscription_lifecycle(uuid,uuid,text,text,text,integer,text,text) from public,anon,authenticated;
+revoke all on function public.billing_list_asaas_expired_grace(text,integer) from public,anon,authenticated;
+revoke all on function public.billing_suspend_asaas_expired_grace(uuid,text,text,text,text,text) from public,anon,authenticated;
+grant execute on function public.billing_apply_asaas_payment_lifecycle(uuid,uuid,text,text,text,integer,date,text) to service_role;
+grant execute on function public.billing_apply_asaas_subscription_lifecycle(uuid,uuid,text,text,text,integer,text,text) to service_role;
+grant execute on function public.billing_list_asaas_expired_grace(text,integer) to service_role;
+grant execute on function public.billing_suspend_asaas_expired_grace(uuid,text,text,text,text,text) to service_role;
+notify pgrst, 'reload schema';
+
+-- ===== 20260926220000_saas_asaas_replay_stage05.sql =====
+
+-- Stage 05: an operator can retry a reviewed dead letter without replacing
+-- the provider event ID or bypassing the normal Asaas verification worker.
+create table if not exists public.billing_event_replays (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.billing_events(id),
+  provider_environment text not null check (provider_environment in ('sandbox','production')),
+  provider_event_id text not null,
+  previous_attempt_count integer not null,
+  operator_ref text not null,
+  reason text not null,
+  requested_at timestamptz not null default now()
+);
+create index if not exists billing_event_replays_event_idx
+  on public.billing_event_replays (event_id, requested_at);
+alter table public.billing_event_replays enable row level security;
+revoke all on table public.billing_event_replays from public, anon, authenticated, service_role;
+grant select on table public.billing_event_replays to service_role;
+
+create or replace function public.billing_replay_asaas_event(
+  p_environment text, p_event_id text, p_operator_ref text, p_reason text
+) returns boolean
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare v_event public.billing_events%rowtype;
+begin
+  if p_environment is null or p_environment not in ('sandbox','production')
+    or coalesce(p_event_id,'') !~ '^evt_[A-Za-z0-9&_-]{1,150}$'
+    or coalesce(p_operator_ref,'') !~ '^[A-Za-z0-9_.-]{3,64}$'
+    or p_reason is null or char_length(btrim(p_reason)) not between 16 and 300
+    or p_reason ~ '[[:cntrl:]]' then
+    raise exception 'BILLING_INVALID_REPLAY_REQUEST';
+  end if;
+
+  select * into v_event from public.billing_events
+  where provider = 'asaas' and provider_environment = p_environment
+    and provider_event_id = p_event_id for update;
+  if not found or v_event.status <> 'dead_letter' then return false; end if;
+
+  insert into public.billing_event_replays (
+    event_id, provider_environment, provider_event_id,
+    previous_attempt_count, operator_ref, reason
+  ) values (
+    v_event.id, p_environment, p_event_id,
+    v_event.attempt_count, p_operator_ref, btrim(p_reason)
+  );
+  update public.billing_events set status = 'received', attempt_count = 0,
+    next_attempt_at = now(), error_message = null, processed_at = null,
+    lease_token = null, lease_until = null
+  where id = v_event.id;
+  return true;
+end;
+$$;
+revoke all on function public.billing_replay_asaas_event(text,text,text,text)
+  from public, anon, authenticated;
+grant execute on function public.billing_replay_asaas_event(text,text,text,text)
+  to service_role;
+notify pgrst, 'reload schema';
+
+-- ===== 20260926230000_saas_asaas_reconciliation_stage05.sql =====
+
+-- Stage 05: bounded recovery when an Asaas webhook never reaches the inbox.
+-- Claiming a candidate never changes paid access. The worker must consult
+-- Asaas and enqueue a synthetic event for the existing verified processor.
+
+alter table public.account_subscriptions
+  add column if not exists reconciliation_checked_at timestamptz;
+
+create index if not exists account_subscriptions_asaas_reconciliation_idx
+  on public.account_subscriptions (provider_environment, reconciliation_checked_at, id)
+  where billing_provider = 'asaas' and external_subscription_id is not null;
+
+create or replace function public.billing_claim_asaas_reconciliation_candidates(
+  p_environment text, p_limit integer default 1
+) returns table (
+  subscription_id uuid, provider_subscription_id text, customer_id text
+)
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+begin
+  if p_environment not in ('sandbox','production') or p_limit not between 1 and 2 then
+    raise exception 'BILLING_INVALID_WORKER_REQUEST';
+  end if;
+
+  return query
+  with candidates as (
+    select s.id
+    from public.account_subscriptions s
+    where s.scope_type = 'company' and s.clinic_id is not null
+      and s.billing_provider = 'asaas'
+      and s.provider_environment = p_environment
+      and s.external_subscription_id ~ '^sub_[A-Za-z0-9]+$'
+      and s.external_customer_id ~ '^cus_[A-Za-z0-9]+$'
+      and s.status in ('pending_checkout','active','past_due','grace','suspended','canceled')
+      and (s.created_at >= now() - interval '120 days'
+           or s.current_period_end >= now() - interval '120 days')
+      and s.created_at <= now() - interval '5 minutes'
+      and (s.reconciliation_checked_at is null
+           or s.reconciliation_checked_at <= now() - interval '1 hour')
+      and not public.is_internal_full_access_company(s.clinic_id)
+    order by s.reconciliation_checked_at nulls first, s.id
+    limit p_limit for update of s skip locked
+  )
+  update public.account_subscriptions s
+  set reconciliation_checked_at = clock_timestamp()
+  from candidates c where s.id = c.id
+  returning s.id, s.external_subscription_id, s.external_customer_id;
+end;
+$$;
+
+revoke all on function public.billing_claim_asaas_reconciliation_candidates(text,integer)
+  from public,anon,authenticated;
+grant execute on function public.billing_claim_asaas_reconciliation_candidates(text,integer)
+  to service_role;
+notify pgrst, 'reload schema';
+
 -- ===== 20260718000001_zzz_self_heal_v2.sql =====
 
 -- =====================================================================
@@ -14536,12 +15237,15 @@ REVOKE ALL ON TABLE public.billing_test_access
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON TABLE public.billing_test_tokens
   FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.billing_event_replays
+  FROM PUBLIC, anon, authenticated, service_role;
 
 GRANT ALL ON TABLE public.company_billing_profiles TO service_role;
 GRANT ALL ON TABLE public.billing_provider_customers TO service_role;
 GRANT ALL ON TABLE public.billing_provider_operations TO service_role;
 GRANT ALL ON TABLE public.billing_test_access TO service_role;
 GRANT ALL ON TABLE public.billing_test_tokens TO service_role;
+GRANT SELECT ON TABLE public.billing_event_replays TO service_role;
 
 REVOKE ALL ON FUNCTION public.billing_apply_checkout_paid(
   uuid,text,text,text,text,timestamptz,timestamptz
@@ -14564,6 +15268,30 @@ REVOKE ALL ON FUNCTION public.billing_get_checkout_provisioning_context(uuid,uui
 REVOKE ALL ON FUNCTION public.billing_mark_asaas_checkout_ready(
   uuid,uuid,text,text,text,text,text
 ) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_receive_asaas_event(text,text,text,jsonb)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_claim_asaas_events(text,integer)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_finish_asaas_event(uuid,uuid,text,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_asaas_initial_payment(
+  uuid,uuid,text,text,text,integer,date,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_asaas_payment_lifecycle(
+  uuid,uuid,text,text,text,integer,date,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_asaas_subscription_lifecycle(
+  uuid,uuid,text,text,text,integer,text,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_list_asaas_expired_grace(text,integer)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_suspend_asaas_expired_grace(
+  uuid,text,text,text,text,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_replay_asaas_event(text,text,text,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_claim_asaas_reconciliation_candidates(text,integer)
+  FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_valid_br_tax_id(text)
@@ -14593,6 +15321,30 @@ GRANT EXECUTE ON FUNCTION public.billing_get_checkout_provisioning_context(uuid,
 GRANT EXECUTE ON FUNCTION public.billing_mark_asaas_checkout_ready(
   uuid,uuid,text,text,text,text,text
 ) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_receive_asaas_event(text,text,text,jsonb)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_claim_asaas_events(text,integer)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_finish_asaas_event(uuid,uuid,text,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_asaas_initial_payment(
+  uuid,uuid,text,text,text,integer,date,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_asaas_payment_lifecycle(
+  uuid,uuid,text,text,text,integer,date,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_asaas_subscription_lifecycle(
+  uuid,uuid,text,text,text,integer,text,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_list_asaas_expired_grace(text,integer)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_suspend_asaas_expired_grace(
+  uuid,text,text,text,text,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_replay_asaas_event(text,text,text,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_claim_asaas_reconciliation_candidates(text,integer)
+  TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_valid_br_tax_id(text)
