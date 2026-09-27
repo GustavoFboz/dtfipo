@@ -1,8 +1,11 @@
 # Etapa 05 — projeção do ciclo financeiro Asaas
 
-Status: código isolado na branch saas/stage-05-lifecycle. Migrations desta etapa
-ainda não aplicadas ao banco vivo; a restauração limpa com recuperação de
-webhooks passou na [CI de 2026-09-27](https://github.com/GustavoFboz/dtfipo/actions/runs/36293361828).
+Status: código integrado e publicado para teste na branch Lovable
+`saas/stage-03-asaas-checkout` pelo [PR 72](https://github.com/GustavoFboz/dtfipo/pull/72);
+migrations desta etapa aplicadas ao banco vivo e asserção somente leitura
+aprovada. [Build](https://github.com/GustavoFboz/dtfipo/actions/runs/36296012530)
+e [restauração](https://github.com/GustavoFboz/dtfipo/actions/runs/36296012513)
+passaram. A PR 69 rumo à `main` permanece rascunho.
 Sem homologação de cobranças reais Sandbox.
 
 ## Contrato implementado
@@ -44,9 +47,10 @@ Master exigirá identidade, reautenticação e autorização próprias.
   parcial e SUBSCRIPTION_DELETED ainda exigem revisão. O Asaas pode responder
   404 para uma assinatura excluída; não inferimos cancelamento somente do
   webhook. Esses eventos ficam na inbox, sem ser ignorados.
-- O agendador de cinco minutos existe no repositório, mas depende do merge,
-  deploy do backend e configuração do segredo BILLING_WORKER_TOKEN nos dois
-  destinos. Sem o agendador, não há expiração automática da carência.
+- O backend do worker está publicado para teste, mas o agendador de cinco
+  minutos só executa pela branch padrão do GitHub. O segredo
+  `BILLING_WORKER_TOKEN` ainda precisa ser conferido no backend e no GitHub
+  Actions. Sem o agendador, não há expiração automática da carência.
 - A varredura busca no máximo uma assinatura por execução, com intervalo
   mínimo de uma hora por assinatura, limitada a contas criadas ou com período
   pago nos últimos 120 dias e cobranças com vencimento nos últimos 90 dias.
@@ -69,5 +73,5 @@ no banco vivo depois da aplicação.
 
 Para interromper o processamento, desabilite o webhook Sandbox e o agendador.
 Preserve inbox, ledger e IDs externos para replay auditado; não apague
-pagamentos nem reduza o banco de dados do cliente. A Etapa 05 permanece PR
-rascunho até concluir as pendências de homologação.
+pagamentos nem reduza o banco de dados do cliente. A PR 69 permanece rascunho
+para a liberação na `main` até concluir as pendências de homologação.
