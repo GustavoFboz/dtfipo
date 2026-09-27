@@ -18,6 +18,7 @@
     "check:saas:stage-02": "node scripts/check-saas-stage-02.mjs && node scripts/build-restore-bundle.mjs --check",
     "check:saas:stage-03": "node scripts/check-saas-stage-02.mjs && node scripts/check-saas-stage-03.mjs && node scripts/build-restore-bundle.mjs --check",
     "check:saas:stage-04": "node scripts/check-saas-stage-03.mjs && node scripts/check-saas-stage-04.mjs && node scripts/build-restore-bundle.mjs --check",
+    "check:saas:stage-05": "node scripts/check-saas-stage-04.mjs && node scripts/check-saas-stage-05.mjs && node scripts/build-restore-bundle.mjs --check",
     "build:restore": "node scripts/build-restore-bundle.mjs",
     "check:restore": "node scripts/build-restore-bundle.mjs --check",
     "build:dev": "vite build --mode development",

@@ -31,6 +31,7 @@ export type Database = {
           metadata: Json
           plan_code: string
           provider_environment: string | null
+          reconciliation_checked_at: string | null
           scope_type: string
           status: string
           updated_at: string
@@ -52,6 +53,7 @@ export type Database = {
           metadata?: Json
           plan_code: string
           provider_environment?: string | null
+          reconciliation_checked_at?: string | null
           scope_type: string
           status?: string
           updated_at?: string
@@ -73,6 +75,7 @@ export type Database = {
           metadata?: Json
           plan_code?: string
           provider_environment?: string | null
+          reconciliation_checked_at?: string | null
           scope_type?: string
           status?: string
           updated_at?: string
@@ -202,6 +205,47 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      billing_event_replays: {
+        Row: {
+          event_id: string
+          id: string
+          operator_ref: string
+          previous_attempt_count: number
+          provider_environment: string
+          provider_event_id: string
+          reason: string
+          requested_at: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          operator_ref: string
+          previous_attempt_count: number
+          provider_environment: string
+          provider_event_id: string
+          reason: string
+          requested_at?: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          operator_ref?: string
+          previous_attempt_count?: number
+          provider_environment?: string
+          provider_event_id?: string
+          reason?: string
+          requested_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_event_replays_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "billing_events"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       billing_payments: {
         Row: {
@@ -3460,6 +3504,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      billing_claim_asaas_reconciliation_candidates: {
+        Args: { p_environment: string; p_limit?: number }
+        Returns: {
+          subscription_id: string
+          provider_subscription_id: string
+          customer_id: string
+        }[]
+      }
       billing_receive_asaas_event: {
         Args: { p_environment: string; p_event_id: string; p_event_type: string; p_payload: Json }
         Returns: boolean
@@ -3484,6 +3536,56 @@ export type Database = {
           p_payment_status: string
         }
         Returns: Json
+      }
+      billing_apply_asaas_payment_lifecycle: {
+        Args: {
+          p_event_id: string
+          p_lease_token: string
+          p_payment_id: string
+          p_customer_id: string
+          p_subscription_id: string
+          p_amount_cents: number
+          p_due_date: string
+          p_payment_status: string
+        }
+        Returns: Json
+      }
+      billing_apply_asaas_subscription_lifecycle: {
+        Args: {
+          p_event_id: string
+          p_lease_token: string
+          p_subscription_id: string
+          p_customer_id: string
+          p_external_reference: string
+          p_amount_cents: number
+          p_cycle: string
+          p_provider_status: string
+        }
+        Returns: Json
+      }
+      billing_list_asaas_expired_grace: {
+        Args: { p_environment: string; p_limit?: number }
+        Returns: { subscription_id: string; payment_id: string }[]
+      }
+      billing_replay_asaas_event: {
+        Args: {
+          p_environment: string
+          p_event_id: string
+          p_operator_ref: string
+          p_reason: string
+        }
+        Returns: boolean
+      }
+      billing_suspend_asaas_expired_grace: {
+        Args: {
+          p_subscription_id: string
+          p_environment: string
+          p_payment_id: string
+          p_customer_id: string
+          p_provider_subscription_id: string
+          p_provider_status: string
+        }
+        Returns: boolean
       }
       active_company_member: {
         Args: { _clinic_id: string; _user_id?: string }

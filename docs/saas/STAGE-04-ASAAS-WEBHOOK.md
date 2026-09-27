@@ -1,6 +1,8 @@
 # Etapa 04 — webhook Asaas e confirmação inicial
 
-Status: código em homologação; sem webhook, scheduler ou pagamento vivo comprovado.
+Status: migration aplicada ao banco vivo em 2026-09-26 e verificada; código
+da branch ainda não publicado. Sem webhook, scheduler ou pagamento real
+comprovado. Consulte evidence/STAGE-04-LIVE-AUDIT-2026-09-26.md.
 
 ## O que foi implementado
 
