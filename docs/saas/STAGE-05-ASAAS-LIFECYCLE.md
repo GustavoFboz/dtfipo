@@ -47,10 +47,12 @@ Master exigirá identidade, reautenticação e autorização próprias.
   parcial e SUBSCRIPTION_DELETED ainda exigem revisão. O Asaas pode responder
   404 para uma assinatura excluída; não inferimos cancelamento somente do
   webhook. Esses eventos ficam na inbox, sem ser ignorados.
-- O backend do worker está publicado para teste, mas o agendador de cinco
-  minutos só executa pela branch padrão do GitHub. O segredo
-  `BILLING_WORKER_TOKEN` ainda precisa ser conferido no backend e no GitHub
-  Actions. Sem o agendador, não há expiração automática da carência.
+- O backend do worker está publicado para teste e o agendador de cinco minutos
+  foi integrado à branch padrão do GitHub pelo
+  [PR 74](https://github.com/GustavoFboz/dtfipo/pull/74). A chamada é ignorada
+  sem `BILLING_WORKER_TOKEN` no GitHub; o mesmo segredo ainda precisa ser
+  conferido no backend. Sem execução autorizada do worker, não há expiração
+  automática da carência.
 - A varredura busca no máximo uma assinatura por execução, com intervalo
   mínimo de uma hora por assinatura, limitada a contas criadas ou com período
   pago nos últimos 120 dias e cobranças com vencimento nos últimos 90 dias.
