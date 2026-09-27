@@ -140,7 +140,7 @@ describe("Asaas inbox worker", () => {
     suspendGrace: vi.fn().mockResolvedValue(true),
     claimReconciliation: vi.fn().mockResolvedValue([]),
     listPaymentsForReconciliation: vi.fn().mockResolvedValue([]),
-    enqueueRecovery: vi.fn().mockResolvedValue(undefined),
+    enqueueRecovery: vi.fn().mockResolvedValue(true),
     finish: vi.fn().mockResolvedValue(undefined),
   });
 
@@ -334,6 +334,23 @@ describe("Asaas inbox worker", () => {
       { subscriptionId: "sub_ABC123", source: "reconciliation" },
     );
     expect(dependencies.applySubscription).not.toHaveBeenCalled();
+  });
+
+  it("does not count a synthetic event already present in the inbox twice", async () => {
+    const dependencies = deps();
+    dependencies.claim.mockResolvedValue([]);
+    dependencies.enqueueRecovery.mockResolvedValue(false);
+    dependencies.claimReconciliation.mockResolvedValue([{
+      subscription_id: "123e4567-e89b-42d3-a456-426614174000",
+      provider_subscription_id: "sub_ABC123", customer_id: "cus_ABC123",
+    }]);
+    dependencies.getSubscription.mockResolvedValue({
+      id: "sub_ABC123", customer: "cus_ABC123", cycle: "MONTHLY", status: "INACTIVE",
+      externalReference: "dentalflow:subscription:123e4567-e89b-42d3-a456-426614174000",
+    });
+    const response = await processAsaasInbox(worker(), dependencies);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ reconciliationQueued: 0 });
   });
 });
 

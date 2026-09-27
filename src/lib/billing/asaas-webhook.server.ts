@@ -75,7 +75,7 @@ type WorkerDependencies = {
     eventId: string,
     eventType: string,
     payload: { paymentId?: string; subscriptionId?: string; source: "reconciliation" },
-  ) => Promise<void>;
+  ) => Promise<boolean>;
   finish: (event: InboxEvent, outcome: "ignored" | "failed", code?: string) => Promise<void>;
 };
 
@@ -395,12 +395,12 @@ async function reconcileExpiredGrace(
       if (await deps.suspendGrace(candidate, payment)) counts.suspended += 1;
     } else if (["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"].includes(payment.status ?? "")) {
       const eventType = payment.status === "CONFIRMED" ? "PAYMENT_CONFIRMED" : "PAYMENT_RECEIVED";
-      await deps.enqueueRecovery(
+      const inserted = await deps.enqueueRecovery(
         "evt_reconcile_" + payment.id + "_" + payment.status,
         eventType,
         { paymentId: payment.id, source: "reconciliation" },
       );
-      counts.recoveryQueued += 1;
+      if (inserted) counts.recoveryQueued += 1;
     } else {
       throw new Error("GRACE_PROVIDER_STATUS_REVIEW_REQUIRED");
     }
@@ -461,18 +461,18 @@ async function reconcileMissingWebhooks(
       }
       pending.sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.paymentId.localeCompare(b.paymentId));
       for (const event of pending) {
-        await deps.enqueueRecovery(event.eventId, event.type, {
+        const inserted = await deps.enqueueRecovery(event.eventId, event.type, {
           paymentId: event.paymentId,
           source: "reconciliation",
         });
-        counts.reconciliationQueued += 1;
+        if (inserted) counts.reconciliationQueued += 1;
       }
       if (subscription.status === "INACTIVE") {
-        await deps.enqueueRecovery(inactiveEventId, "SUBSCRIPTION_INACTIVATED", {
+        const inserted = await deps.enqueueRecovery(inactiveEventId, "SUBSCRIPTION_INACTIVATED", {
           subscriptionId: subscription.id,
           source: "reconciliation",
         });
-        counts.reconciliationQueued += 1;
+        if (inserted) counts.reconciliationQueued += 1;
       }
     } catch {
       counts.reconciliationReview += 1;
@@ -580,7 +580,7 @@ export async function processAsaasInbox(
         listPaymentsForReconciliation: (subscriptionId, sinceDueDate) =>
           client.listPaymentsForReconciliation(subscriptionId, sinceDueDate),
         enqueueRecovery: async (eventId, eventType, payload) => {
-          const { error } = await (
+          const { data, error } = await (
             await admin()
           ).rpc("billing_receive_asaas_event", {
             p_environment: config.environment,
@@ -589,6 +589,7 @@ export async function processAsaasInbox(
             p_payload: payload,
           });
           if (error) throw error;
+          return data === true;
         },
         finish: async (event, outcome, code) => {
           const { data, error } = await (
