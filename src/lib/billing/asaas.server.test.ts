@@ -48,6 +48,22 @@ describe("loadAsaasConfig", () => {
 });
 
 describe("AsaasClient", () => {
+  it("busca assinatura por ID sem enviar corpo ou URL fornecida pelo webhook", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe("https://api-sandbox.asaas.com/v3/subscriptions/sub_ABC123");
+      expect(init?.method).toBe("GET");
+      expect(init?.body).toBeUndefined();
+      return Response.json({ id: "sub_ABC123", customer: "cus_ABC123", status: "INACTIVE" });
+    });
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+    await expect(client.getSubscription("sub_ABC123")).resolves.toMatchObject({
+      id: "sub_ABC123",
+      status: "INACTIVE",
+    });
+    await expect(client.getSubscription("../payment")).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("envia os headers obrigatórios e filtra pela referência exata", async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const headers = new Headers(init?.headers);
@@ -151,6 +167,53 @@ describe("AsaasClient", () => {
     await expect(client.listSubscriptionPayments("sub_SAFE123")).resolves.toEqual([
       expect.objectContaining({ id: "pay_FIRST123" }),
     ]);
+  });
+
+  it("limita a conciliação a uma página recente da assinatura correta", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      expect(url.pathname).toBe("/v3/payments");
+      expect(url.searchParams.get("subscription")).toBe("sub_SAFE123");
+      expect(url.searchParams.get("dueDate[ge]")).toBe("2026-06-01");
+      expect(url.searchParams.get("limit")).toBe("100");
+      expect(url.searchParams.get("offset")).toBe("0");
+      return Response.json({ hasMore: false, data: [
+        { id: "pay_SAFE123", customer: "cus_SAFE123", subscription: "sub_SAFE123" },
+      ] });
+    });
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+    await expect(client.listPaymentsForReconciliation("sub_SAFE123", "2026-06-01"))
+      .resolves.toMatchObject([{ id: "pay_SAFE123" }]);
+  });
+
+  it("falha fechado quando a resposta da conciliação tem mais páginas ou outra assinatura", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(Response.json({
+      hasMore: true, data: [{ id: "pay_SAFE123", customer: "cus_SAFE123", subscription: "sub_SAFE123" }],
+    })).mockResolvedValueOnce(Response.json({
+      hasMore: false, data: [{ id: "pay_OTHER123", customer: "cus_SAFE123", subscription: "sub_OTHER123" }],
+    }));
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+    await expect(client.listPaymentsForReconciliation("sub_SAFE123", "2026-06-01"))
+      .rejects.toMatchObject({ code: "ASAAS_RECONCILIATION_PAGE_INCOMPLETE" });
+    await expect(client.listPaymentsForReconciliation("sub_SAFE123", "2026-06-01"))
+      .rejects.toMatchObject({ code: "ASAAS_RECONCILIATION_OWNERSHIP_MISMATCH" });
+  });
+
+  it("consulta uma cobrança individual por GET antes de conciliar o webhook", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe("https://api-sandbox.asaas.com/v3/payments/pay_SAFE123");
+      expect(init?.method).toBe("GET");
+      expect(init?.body).toBeUndefined();
+      return Response.json({
+        id: "pay_SAFE123",
+        customer: "cus_SAFE123",
+        subscription: "sub_SAFE123",
+      });
+    });
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+    await expect(client.getPayment("pay_SAFE123")).resolves.toMatchObject({ id: "pay_SAFE123" });
+    await expect(client.getPayment("../../customers")).rejects.toThrow(/inválida/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("aceita somente a URL de fatura do mesmo ambiente", () => {

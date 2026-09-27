@@ -2,7 +2,7 @@
 
 Status: iniciado em 2026-09-19
 
-Etapa atual: 03 — checkout real do Asaas em homologação Sandbox
+Etapa atual: 05 — ciclo financeiro em branch isolada; homologação Sandbox pendente
 
 Provedor financeiro obrigatório para lançamento: Asaas
 
@@ -137,6 +137,11 @@ Consulte `STAGE-03-REAL-CHECKOUT.md`.
 
 ### 04 — Webhook, inbox e reconciliação
 
+Status: receptor, inbox, processador de pagamento inicial e execução agendada
+implementados em branch isolada; migration aplicada ao banco vivo em 2026-09-26,
+mas endpoints e agendador ainda não publicados. Validação no Sandbox pendente.
+Consulte STAGE-04-ASAAS-WEBHOOK.md.
+
 - endpoint público com validação de `asaas-access-token`;
 - persistência única por `(provider, provider_event_id)` antes do `200`;
 - processador assíncrono, tentativas, dead-letter e replay administrativo;
@@ -147,6 +152,12 @@ chave única e responder somente após persistir:
 <https://docs.asaas.com/docs/receba-eventos-do-asaas-no-seu-endpoint-de-webhook>.
 
 ### 05 — Ciclo de vida e reativação
+
+Status: renovação, atraso, carência, estorno integral, inativação, recuperação
+limitada de webhooks perdidos e replay privado auditado implementados em branch
+isolada; restauração limpa desta revisão aprovada na CI, Sandbox real pendente.
+Os demais eventos
+de risco continuam em revisão. Consulte STAGE-05-ASAAS-LIFECYCLE.md.
 
 - mapear aprovação, vencimento, atraso, estorno, chargeback e cancelamento;
 - testar carência, suspensão, renovação e reativação sem exclusão de dados;
