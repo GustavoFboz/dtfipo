@@ -1,8 +1,12 @@
 # Etapa 04 — webhook Asaas e confirmação inicial
 
-Status: migration aplicada ao banco vivo em 2026-09-26 e verificada; código
-da branch ainda não publicado. Sem webhook, scheduler ou pagamento real
-comprovado. Consulte evidence/STAGE-04-LIVE-AUDIT-2026-09-26.md.
+Status: migration aplicada ao banco vivo em 2026-09-26 e verificada; backend
+publicado para teste na branch Lovable `saas/stage-03-asaas-checkout` pelo
+[PR 72](https://github.com/GustavoFboz/dtfipo/pull/72). O agendador foi
+integrado à `main` pelo [PR 74](https://github.com/GustavoFboz/dtfipo/pull/74),
+mas faltam a validação dos segredos, a configuração do webhook no Asaas e a
+homologação real de compra. Consulte evidence/STAGE-04-LIVE-AUDIT-2026-09-26.md
+para a inspeção anterior à publicação.
 
 ## O que foi implementado
 
@@ -30,11 +34,12 @@ comprovado. Consulte evidence/STAGE-04-LIVE-AUDIT-2026-09-26.md.
 2. Crie outro segredo aleatório, `BILLING_WORKER_TOKEN` (32 caracteres ou mais),
    no backend **e** como segredo do GitHub Actions. O endpoint do worker não
    aceita o token do webhook.
-3. Depois que as PRs 64 e 65 e esta etapa forem integradas e a migration tiver
-   sido aplicada ao banco correto, configure no Asaas o endpoint público
+3. Com o backend de teste publicado e a migration aplicada, configure no Asaas
+   Sandbox o endpoint público
    `https://dtfipo.lovable.app/api/billing/asaas-webhook` com os eventos de
-   pagamento necessários. Use entrega sequencial. O agendador do GitHub só
-   executa na branch padrão após o merge e chama o worker a cada cinco minutos.
+   pagamento e assinatura necessários. Use entrega sequencial. O agendador do
+   GitHub está na branch padrão e chama o worker a cada cinco minutos quando
+   o segredo de Actions está configurado.
 4. Compare no Sandbox, sem dados fiscais no relatório, o `pay_*`, `sub_*`,
    `cus_*`, valor, período, um evento repetido, um evento falso e a transição
    `pending_checkout` → `active`. Depois verifique RLS e acesso Web/Windows/
@@ -46,10 +51,10 @@ comprovado. Consulte evidence/STAGE-04-LIVE-AUDIT-2026-09-26.md.
 - O primeiro pagamento não será aplicado até um worker autorizado rodar;
   atualmente o agendador previsto tem intervalo de cinco minutos. A latência
   real ainda precisa ser medida no Sandbox.
-- Renovações, estornos, inadimplência e reativação ainda exigem a Etapa 05.
-  Os eventos ficam em `dead_letter` para revisão e não podem ser ignorados em
-  produção. Desenvolver projeção desses eventos e rotina de replay autenticada
-  antes de declarar o SaaS pronto.
+- A Etapa 05 já implementa projeção de parte das renovações, estornos,
+  inadimplência e reativação no backend de teste. Ainda há eventos de risco e
+  casos parciais que exigem revisão. Eventos não resolvidos ficam na inbox
+  para investigação; não declarar o SaaS pronto antes da homologação real.
 - Não ligue o webhook em Produção nem libere `ASAAS_PRODUCTION_ENABLED` nesta
   etapa. Falta testar cobrança real controlada e o ciclo completo.
 - Nenhum secret, documento fiscal ou URL de fatura deve entrar em logs/PR.

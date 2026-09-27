@@ -21,7 +21,9 @@ projetada como acesso pago. Não declarar o SaaS liberado por causa da CI.
 3. Configurar no Asaas Sandbox o webhook HTTPS publicado
    `/api/billing/asaas-webhook`, com o `authToken` correspondente e eventos de
    pagamento e assinatura necessários. Verificar no painel Asaas se a entrega
-   está ativa. A agenda do worker deve estar ativa na branch padrão.
+   está ativa. O agendador está na `main` pelo
+   [PR 74](https://github.com/GustavoFboz/dtfipo/pull/74), mas só processa
+   eventos depois de configurar e validar `BILLING_WORKER_TOKEN` nos dois lados.
 4. Usar uma empresa de teste separada da IPO, com identidade fiscal fictícia
    aceita pelo Sandbox, plano e usuário financeiro autorizados. Conferir no
    banco que seu checkout inicia em `pending_checkout` e sem pagamento marcado
@@ -65,10 +67,11 @@ criando outra por tentativa. O teste só passa com recurso financeiro real do
   integração estão publicados: requisições de teste sem credencial válida
   retornaram HTTP 401 e não criaram evento. Isto comprova a rota e a barreira
   de autenticação, não o recebimento de um `evt_*` enviado pelo Asaas.
-- O workflow de cinco minutos não executa agendado nesta branch: GitHub
-  `schedule` depende da branch padrão. O segredo `BILLING_WORKER_TOKEN` ainda
-  não foi verificado nos destinos, e a configuração do webhook na conta Asaas
-  Sandbox não foi comprovada. Não iniciar compra antes de resolver isso.
+- O workflow de cinco minutos foi integrado à branch padrão do GitHub pelo
+  [PR 74](https://github.com/GustavoFboz/dtfipo/pull/74). A etapa que chama
+  o worker é ignorada quando falta o segredo do GitHub. Ainda não se verificou
+  `BILLING_WORKER_TOKEN` nos dois destinos nem a configuração do webhook na
+  conta Asaas Sandbox. Não iniciar compra antes de resolver isso.
 - As migrations das Etapas 04/05 estão no banco vivo. Depois da aplicação
   sequencial das três migrations da Etapa 05, a asserção SQL somente leitura
   `stage-05-restore-assertions.sql` retornou `passed`. Isso confirma apenas
