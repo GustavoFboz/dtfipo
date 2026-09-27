@@ -155,7 +155,8 @@ chave única e responder somente após persistir:
 
 Status: renovação, atraso, carência, estorno integral, inativação, recuperação
 limitada de webhooks perdidos e replay privado auditado implementados em branch
-isolada; restauração limpa desta revisão e Sandbox real pendentes. Os demais eventos
+isolada; restauração limpa desta revisão aprovada na CI, Sandbox real pendente.
+Os demais eventos
 de risco continuam em revisão. Consulte STAGE-05-ASAAS-LIFECYCLE.md.
 
 - mapear aprovação, vencimento, atraso, estorno, chargeback e cancelamento;

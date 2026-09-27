@@ -1,7 +1,8 @@
 # Etapa 05 — projeção do ciclo financeiro Asaas
 
 Status: código isolado na branch saas/stage-05-lifecycle. Migrations desta etapa
-ainda não aplicadas ao banco vivo; ensaio inicial da restauração aprovado na CI.
+ainda não aplicadas ao banco vivo; a restauração limpa com recuperação de
+webhooks passou na [CI de 2026-09-27](https://github.com/GustavoFboz/dtfipo/actions/runs/36293361828).
 Sem homologação de cobranças reais Sandbox.
 
 ## Contrato implementado
