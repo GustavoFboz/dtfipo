@@ -236,6 +236,7 @@ export class AsaasApiError extends Error {
   readonly retryAfterMs: number | null;
   readonly transportCode: string | null;
   readonly transportErrorName: string | null;
+  readonly transportHint: string | null;
 
   constructor(input: {
     code: string;
@@ -246,6 +247,7 @@ export class AsaasApiError extends Error {
     retryAfterMs?: number | null;
     transportCode?: string | null;
     transportErrorName?: string | null;
+    transportHint?: string | null;
   }) {
     super(input.message);
     this.name = "AsaasApiError";
@@ -256,6 +258,7 @@ export class AsaasApiError extends Error {
     this.retryAfterMs = input.retryAfterMs ?? null;
     this.transportCode = input.transportCode ?? null;
     this.transportErrorName = input.transportErrorName ?? null;
+    this.transportHint = input.transportHint ?? null;
   }
 }
 
@@ -398,6 +401,18 @@ export class AsaasClient {
           ? cause.code
           : nested && typeof nested === "object" && "code" in nested ? nested.code : null;
         const rawName = error instanceof Error ? error.name : "Unknown";
+        const rawMessage = error instanceof Error ? error.message : "";
+        const transportHint = /illegal invocation|receiver|\bthis\b|brand/i.test(rawMessage)
+          ? "RECEIVER"
+          : /header|bytestring/i.test(rawMessage)
+            ? "HEADER"
+            : /invalid url|url parse/i.test(rawMessage)
+              ? "URL"
+              : /abort/i.test(rawMessage)
+                ? "ABORT"
+                : /fetch failed|failed to fetch/i.test(rawMessage)
+                  ? "FETCH"
+                  : "OTHER";
         throw new AsaasApiError({
           code: timedOut ? "ASAAS_TIMEOUT" : "ASAAS_NETWORK_ERROR",
           message: timedOut
@@ -408,6 +423,7 @@ export class AsaasClient {
           transportCode: typeof rawCode === "string" && /^[A-Z0-9_]{2,64}$/.test(rawCode)
             ? rawCode : "UNKNOWN",
           transportErrorName: /^[A-Za-z]{1,32}$/.test(rawName) ? rawName : "Unknown",
+          transportHint,
         });
       } finally {
         clearTimeout(timeout);
