@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import {
+  AsaasApiError,
   AsaasClient,
   loadAsaasConfig,
   type AsaasPayment,
@@ -483,6 +484,46 @@ async function reconcileMissingWebhooks(
 }
 
 /** Invoked by a trusted scheduler; never sends the worker credential to a client. */
+async function diagnoseFailedCustomerLookup(): Promise<
+  | { state: "matched"; count: number }
+  | { state: "error"; code: string; transportCode: string | null; errorName: string | null; status: number | null }
+  | { state: "disabled" | "unavailable" }
+> {
+  const config = loadAsaasConfig();
+  if (config.environment !== "sandbox") return { state: "disabled" };
+
+  // Select only the latest failed customer operation; never return the tenant reference.
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
+    .from("billing_provider_operations")
+    .select("external_reference")
+    .eq("provider", "asaas")
+    .eq("provider_environment", "sandbox")
+    .eq("operation_type", "customer_ensure")
+    .eq("status", "failed")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data || !/^dentalflow:company:[0-9a-f-]{36}$/.test(data.external_reference)) {
+    return { state: "unavailable" };
+  }
+
+  const client = new AsaasClient({ ...config, timeoutMs: 8_000, maxGetRetries: 0 });
+  try {
+    const customers = await client.findCustomersByExternalReference(data.external_reference);
+    return { state: "matched", count: customers.length };
+  } catch (lookupError) {
+    if (!(lookupError instanceof AsaasApiError)) return { state: "unavailable" };
+    return {
+      state: "error",
+      code: /^[A-Z0-9_]{1,80}$/.test(lookupError.code) ? lookupError.code : "UNKNOWN",
+      transportCode: lookupError.transportCode,
+      errorName: lookupError.transportErrorName,
+      status: lookupError.status,
+    };
+  }
+}
+
 export async function processAsaasInbox(
   request: Request,
   dependencies?: WorkerDependencies,
@@ -622,7 +663,9 @@ export async function processAsaasInbox(
     for (const event of events) counts[await processEvent(event, deps)] += 1;
     const grace = await reconcileExpiredGrace(deps);
     const reconciliation = await reconcileMissingWebhooks(deps);
-    return json({ ...counts, ...grace, ...reconciliation },
+    // Temporary Sandbox diagnosis after worker authentication. This performs only one GET.
+    const exactCustomerLookup = dependencies ? { state: "disabled" as const } : await diagnoseFailedCustomerLookup();
+    return json({ ...counts, ...grace, ...reconciliation, exactCustomerLookup },
       reconciliation.reconciliationReview > 0 ? 503 : 200);
   } catch {
     console.error("[Asaas worker] WORKER_FAILED");
