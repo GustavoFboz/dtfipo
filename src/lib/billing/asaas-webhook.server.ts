@@ -483,7 +483,7 @@ async function reconcileMissingWebhooks(
 }
 
 /** Invoked by a trusted scheduler; never sends the worker credential to a client. */
-async function probeSandboxConnection(): Promise<
+async function probeSandboxConnection(method: "GET" | "POST"): Promise<
   | { state: "http"; status: number }
   | { state: "network" | "timeout"; errorName: string; causeCode: string }
   | { state: "disabled" }
@@ -492,19 +492,23 @@ async function probeSandboxConnection(): Promise<
   if (config.environment !== "sandbox") return { state: "disabled" };
 
   const url = new URL(`${config.baseUrl}/customers`);
-  url.searchParams.set("limit", "1");
-  url.searchParams.set("externalReference", "dentalflow_connectivity_probe");
+  if (method === "GET") {
+    url.searchParams.set("limit", "1");
+    url.searchParams.set("externalReference", "dentalflow_connectivity_probe");
+  }
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), Math.min(config.timeoutMs, 8_000));
   try {
     const response = await fetch(url, {
-      method: "GET",
+      method,
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
         "User-Agent": config.userAgent,
         access_token: config.apiKey,
       },
+      // Malformed JSON cannot create a customer. Confirms outbound POST connectivity only.
+      body: method === "POST" ? "{" : undefined,
       signal: controller.signal,
     });
     return { state: "http", status: response.status };
@@ -662,8 +666,9 @@ export async function processAsaasInbox(
     const grace = await reconcileExpiredGrace(deps);
     const reconciliation = await reconcileMissingWebhooks(deps);
     // Temporary read-only Sandbox probe. Runs only after the worker secret is checked.
-    const sandboxConnection = dependencies ? { state: "disabled" as const } : await probeSandboxConnection();
-    return json({ ...counts, ...grace, ...reconciliation, sandboxConnection },
+    const sandboxConnection = dependencies ? { state: "disabled" as const } : await probeSandboxConnection("GET");
+    const sandboxPost = dependencies ? { state: "disabled" as const } : await probeSandboxConnection("POST");
+    return json({ ...counts, ...grace, ...reconciliation, sandboxConnection, sandboxPost },
       reconciliation.reconciliationReview > 0 ? 503 : 200);
   } catch {
     console.error("[Asaas worker] WORKER_FAILED");
