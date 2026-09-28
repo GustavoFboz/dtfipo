@@ -94,13 +94,14 @@ describe("AsaasClient", () => {
       expect(String(input)).toContain("externalReference=dentalflow%3Acompany%3Atest");
       return Promise.resolve(Response.json({ data: [] }));
     });
-    vi.stubGlobal("fetch", runtimeFetch);
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = runtimeFetch as typeof fetch;
     try {
       client = new AsaasClient(config({ maxGetRetries: 0 }));
       await expect(client.findCustomersByExternalReference("dentalflow:company:test")).resolves.toEqual([]);
       expect(runtimeFetch).toHaveBeenCalledTimes(1);
     } finally {
-      vi.unstubAllGlobals();
+      globalThis.fetch = originalFetch;
     }
   });
 
