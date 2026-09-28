@@ -486,7 +486,7 @@ async function reconcileMissingWebhooks(
 /** Invoked by a trusted scheduler; never sends the worker credential to a client. */
 async function diagnoseFailedCustomerLookup(): Promise<
   | { state: "matched"; count: number }
-  | { state: "error"; code: string; transportCode: string | null; errorName: string | null; status: number | null }
+  | { state: "error"; code: string; transportCode: string | null; errorName: string | null; hint: string | null; status: number | null; rebound: { state: "matched"; count: number } | { state: "error"; code: string; transportCode: string | null; hint: string | null } }
   | { state: "disabled" | "unavailable" }
 > {
   const config = loadAsaasConfig();
@@ -514,12 +514,33 @@ async function diagnoseFailedCustomerLookup(): Promise<
     return { state: "matched", count: customers.length };
   } catch (lookupError) {
     if (!(lookupError instanceof AsaasApiError)) return { state: "unavailable" };
+    // A free-function fetch worked in the earlier probe. Compare the same
+    // lookup with a wrapper so the runtime fetch is not called as a class method.
+    const reboundClient = new AsaasClient(
+      { ...config, timeoutMs: 8_000, maxGetRetries: 0 },
+      { fetch: (input, init) => fetch(input, init) },
+    );
+    let rebound: { state: "matched"; count: number } |
+      { state: "error"; code: string; transportCode: string | null; hint: string | null };
+    try {
+      const customers = await reboundClient.findCustomersByExternalReference(data.external_reference);
+      rebound = { state: "matched", count: customers.length };
+    } catch (reboundError) {
+      rebound = {
+        state: "error",
+        code: reboundError instanceof AsaasApiError ? reboundError.code : "UNKNOWN",
+        transportCode: reboundError instanceof AsaasApiError ? reboundError.transportCode : null,
+        hint: reboundError instanceof AsaasApiError ? reboundError.transportHint : null,
+      };
+    }
     return {
       state: "error",
       code: /^[A-Z0-9_]{1,80}$/.test(lookupError.code) ? lookupError.code : "UNKNOWN",
       transportCode: lookupError.transportCode,
       errorName: lookupError.transportErrorName,
+      hint: lookupError.transportHint,
       status: lookupError.status,
+      rebound,
     };
   }
 }
