@@ -483,49 +483,6 @@ async function reconcileMissingWebhooks(
 }
 
 /** Invoked by a trusted scheduler; never sends the worker credential to a client. */
-async function probeSandboxConnection(method: "GET" | "POST"): Promise<
-  | { state: "http"; status: number }
-  | { state: "network" | "timeout"; errorName: string; causeCode: string }
-  | { state: "disabled" }
-> {
-  const config = loadAsaasConfig();
-  if (config.environment !== "sandbox") return { state: "disabled" };
-
-  const url = new URL(`${config.baseUrl}/customers`);
-  if (method === "GET") {
-    url.searchParams.set("limit", "1");
-    url.searchParams.set("externalReference", "dentalflow_connectivity_probe");
-  }
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), Math.min(config.timeoutMs, 8_000));
-  try {
-    const response = await fetch(url, {
-      method,
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        "User-Agent": config.userAgent,
-        access_token: config.apiKey,
-      },
-      // Malformed JSON cannot create a customer. Confirms outbound POST connectivity only.
-      body: method === "POST" ? "{" : undefined,
-      signal: controller.signal,
-    });
-    return { state: "http", status: response.status };
-  } catch (error) {
-    const name = error instanceof Error ? error.name : "Unknown";
-    const cause = error && typeof error === "object" && "cause" in error ? error.cause : null;
-    const code = cause && typeof cause === "object" && "code" in cause ? cause.code : null;
-    return {
-      state: controller.signal.aborted ? "timeout" : "network",
-      errorName: /^[A-Za-z]{1,32}$/.test(name) ? name : "Unknown",
-      causeCode: typeof code === "string" && /^[A-Z0-9_]{2,64}$/.test(code) ? code : "UNKNOWN",
-    };
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 export async function processAsaasInbox(
   request: Request,
   dependencies?: WorkerDependencies,
@@ -665,10 +622,7 @@ export async function processAsaasInbox(
     for (const event of events) counts[await processEvent(event, deps)] += 1;
     const grace = await reconcileExpiredGrace(deps);
     const reconciliation = await reconcileMissingWebhooks(deps);
-    // Temporary read-only Sandbox probe. Runs only after the worker secret is checked.
-    const sandboxConnection = dependencies ? { state: "disabled" as const } : await probeSandboxConnection("GET");
-    const sandboxPost = dependencies ? { state: "disabled" as const } : await probeSandboxConnection("POST");
-    return json({ ...counts, ...grace, ...reconciliation, sandboxConnection, sandboxPost },
+    return json({ ...counts, ...grace, ...reconciliation },
       reconciliation.reconciliationReview > 0 ? 503 : 200);
   } catch {
     console.error("[Asaas worker] WORKER_FAILED");
