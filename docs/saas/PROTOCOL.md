@@ -2,7 +2,7 @@
 
 Status: iniciado em 2026-09-19
 
-Etapa atual: 05 — ciclo financeiro em branch isolada; homologação Sandbox pendente
+Etapa atual: 06 — primeiro ciclo Sandbox pago e acesso aberto; cotas em implantação
 
 Provedor financeiro obrigatório para lançamento: Asaas
 
@@ -111,8 +111,8 @@ Status: concluída em 2026-09-20.
 
 ### 02 — Adapter Asaas Sandbox
 
-Status: implementação concluída; aguardando configuração dos secrets e
-evidência real no Asaas Sandbox. Consulte `STAGE-02-ASAAS-SANDBOX.md`.
+Status: criação real do cliente e assinatura no Asaas Sandbox comprovada em
+28/09/2026. Consulte `evidence/SANDBOX-FIRST-PAID-CYCLE-2026-09-28.md`.
 
 - configurar `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN`, ambiente e `User-Agent`
   somente no backend;
@@ -127,8 +127,8 @@ oficial atual define `https://api-sandbox.asaas.com/v3` para Sandbox e
 
 ### 03 — Checkout real
 
-Status: implementação concluída; homologação real no Asaas Sandbox pendente.
-Consulte `STAGE-03-REAL-CHECKOUT.md`.
+Status: primeiro checkout e pagamento real no Asaas Sandbox comprovados em
+28/09/2026. Consulte `STAGE-03-REAL-CHECKOUT.md` e a evidência do primeiro ciclo.
 
 - transformar intent interno em assinatura e cobrança reais do Asaas;
 - devolver URL de pagamento do Asaas de forma segura;
@@ -137,9 +137,9 @@ Consulte `STAGE-03-REAL-CHECKOUT.md`.
 
 ### 04 — Webhook, inbox e reconciliação
 
-Status: receptor, inbox, processador de pagamento inicial e execução agendada
-implementados em branch isolada; migration aplicada ao banco vivo em 2026-09-26,
-mas endpoints e agendador ainda não publicados. Validação no Sandbox pendente.
+Status: receptor, inbox e worker publicados; primeiro `PAYMENT_CONFIRMED`
+processado no Sandbox em 28/09/2026. Repetição, perda de webhook e erros do
+provedor ainda exigem homologação específica.
 Consulte STAGE-04-ASAAS-WEBHOOK.md.
 
 - endpoint público com validação de `asaas-access-token`;
@@ -153,11 +153,9 @@ chave única e responder somente após persistir:
 
 ### 05 — Ciclo de vida e reativação
 
-Status: renovação, atraso, carência, estorno integral, inativação, recuperação
-limitada de webhooks perdidos e replay privado auditado implementados em branch
-isolada; restauração limpa desta revisão aprovada na CI, Sandbox real pendente.
-Os demais eventos
-de risco continuam em revisão. Consulte STAGE-05-ASAAS-LIFECYCLE.md.
+Status: ciclo inicial pago comprovado no Sandbox; renovação, atraso, carência,
+estorno, inativação e replay ainda aguardam provas reais individuais. Os eventos
+de risco restantes continuam em revisão. Consulte STAGE-05-ASAAS-LIFECYCLE.md.
 
 - mapear aprovação, vencimento, atraso, estorno, chargeback e cancelamento;
 - testar carência, suspensão, renovação e reativação sem exclusão de dados;
@@ -165,6 +163,10 @@ de risco continuam em revisão. Consulte STAGE-05-ASAAS-LIFECYCLE.md.
   política explícita.
 
 ### 06 — Cotas e armazenamento
+
+Status: composição da cota do plano e adicionais preparada em branch isolada;
+consulte `STAGE-06-STORAGE-QUOTAS.md`. Bloqueio de todos os caminhos de upload
+ainda não foi homologado.
 
 - aplicar limites do plano e adicionais por entitlement;
 - bloquear novos uploads antes de exceder a cota;

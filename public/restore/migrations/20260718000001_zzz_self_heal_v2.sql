@@ -300,6 +300,8 @@ REVOKE ALL ON FUNCTION public.billing_valid_br_tax_id(text)
 REVOKE ALL ON FUNCTION public.set_clinic_storage_entitlement(
   uuid,text,text,bigint,text,text,text,text,boolean
 ) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.recalculate_clinic_storage_limit(uuid)
+  FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.billing_apply_checkout_paid(
   uuid,text,text,text,text,timestamptz,timestamptz
@@ -353,6 +355,8 @@ GRANT EXECUTE ON FUNCTION public.billing_valid_br_tax_id(text)
 GRANT EXECUTE ON FUNCTION public.set_clinic_storage_entitlement(
   uuid,text,text,bigint,text,text,text,text,boolean
 ) TO service_role;
+GRANT EXECUTE ON FUNCTION public.recalculate_clinic_storage_limit(uuid)
+  TO service_role;
 
 REVOKE ALL ON FUNCTION public.billing_get_company_profile(uuid)
   FROM PUBLIC, anon;

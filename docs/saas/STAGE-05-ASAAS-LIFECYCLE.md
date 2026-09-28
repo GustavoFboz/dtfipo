@@ -6,7 +6,9 @@ migrations desta etapa aplicadas ao banco vivo e asserção somente leitura
 aprovada. [Build](https://github.com/GustavoFboz/dtfipo/actions/runs/36296012530)
 e [restauração](https://github.com/GustavoFboz/dtfipo/actions/runs/36296012513)
 passaram. A PR 69 rumo à `main` permanece rascunho.
-Sem homologação de cobranças reais Sandbox.
+O primeiro ciclo pago no Sandbox passou em 28/09/2026; renovação, atraso,
+estorno e cancelamento ainda não foram comprovados no provedor. Consulte
+`evidence/SANDBOX-FIRST-PAID-CYCLE-2026-09-28.md`.
 
 ## Contrato implementado
 
@@ -61,7 +63,8 @@ Master exigirá identidade, reautenticação e autorização próprias.
   criada e nenhum acesso é concedido pela varredura. Eventos recuperados usam
   IDs sintéticos distintos dos `evt_*` recebidos do Asaas e são deduplicados
   na inbox. Casos antigos e falhas contínuas precisam de operação assistida.
-  Não há evidência real no Asaas Sandbox.
+  A recuperação específica de um webhook perdido ainda não foi exercitada no
+  Asaas Sandbox.
 - Reativação após cancelamento depende de novo ciclo de contratação; o código
   somente reativa atraso e suspensão pela cobrança verificada.
 

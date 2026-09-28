@@ -57,9 +57,9 @@ jobs:
           bun test src/lib/native-updates.test.ts
           bun scripts/check-native-update-center.mjs
 
-      - name: Verify SaaS Asaas lifecycle contract
+      - name: Verify SaaS Asaas lifecycle and plan quota contracts
         run: |
-          bun run check:saas:stage-05
+          bun run check:saas:stage-06
           bun test src/lib/billing/asaas.server.test.ts src/lib/billing/asaas-provisioning.server.test.ts src/lib/billing/asaas-checkout.server.test.ts src/lib/billing/asaas-webhook.server.test.ts
 
       # The repository has substantial pre-existing formatting/lint debt.
