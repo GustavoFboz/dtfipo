@@ -155,6 +155,47 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_event_replays: {
+        Row: {
+          event_id: string
+          id: string
+          operator_ref: string
+          previous_attempt_count: number
+          provider_environment: string
+          provider_event_id: string
+          reason: string
+          requested_at: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          operator_ref: string
+          previous_attempt_count: number
+          provider_environment: string
+          provider_event_id: string
+          reason: string
+          requested_at?: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          operator_ref?: string
+          previous_attempt_count?: number
+          provider_environment?: string
+          provider_event_id?: string
+          reason?: string
+          requested_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_event_replays_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "billing_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_events: {
         Row: {
           attempt_count: number
@@ -205,47 +246,6 @@ export type Database = {
           status?: string
         }
         Relationships: []
-      }
-      billing_event_replays: {
-        Row: {
-          event_id: string
-          id: string
-          operator_ref: string
-          previous_attempt_count: number
-          provider_environment: string
-          provider_event_id: string
-          reason: string
-          requested_at: string
-        }
-        Insert: {
-          event_id: string
-          id?: string
-          operator_ref: string
-          previous_attempt_count: number
-          provider_environment: string
-          provider_event_id: string
-          reason: string
-          requested_at?: string
-        }
-        Update: {
-          event_id?: string
-          id?: string
-          operator_ref?: string
-          previous_attempt_count?: number
-          provider_environment?: string
-          provider_event_id?: string
-          reason?: string
-          requested_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "billing_event_replays_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "billing_events"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       billing_payments: {
         Row: {
@@ -3504,89 +3504,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      billing_claim_asaas_reconciliation_candidates: {
-        Args: { p_environment: string; p_limit?: number }
-        Returns: {
-          subscription_id: string
-          provider_subscription_id: string
-          customer_id: string
-        }[]
-      }
-      billing_receive_asaas_event: {
-        Args: { p_environment: string; p_event_id: string; p_event_type: string; p_payload: Json }
-        Returns: boolean
-      }
-      billing_claim_asaas_events: {
-        Args: { p_environment: string; p_limit?: number }
-        Returns: { id: string; event_type: string; payload: Json; lease_token: string; attempt_count: number }[]
-      }
-      billing_finish_asaas_event: {
-        Args: { p_id: string; p_lease_token: string; p_outcome: string; p_error_code?: string | null }
-        Returns: boolean
-      }
-      billing_apply_asaas_initial_payment: {
-        Args: {
-          p_event_id: string
-          p_lease_token: string
-          p_payment_id: string
-          p_customer_id: string
-          p_subscription_id: string
-          p_amount_cents: number
-          p_due_date: string
-          p_payment_status: string
-        }
-        Returns: Json
-      }
-      billing_apply_asaas_payment_lifecycle: {
-        Args: {
-          p_event_id: string
-          p_lease_token: string
-          p_payment_id: string
-          p_customer_id: string
-          p_subscription_id: string
-          p_amount_cents: number
-          p_due_date: string
-          p_payment_status: string
-        }
-        Returns: Json
-      }
-      billing_apply_asaas_subscription_lifecycle: {
-        Args: {
-          p_event_id: string
-          p_lease_token: string
-          p_subscription_id: string
-          p_customer_id: string
-          p_external_reference: string
-          p_amount_cents: number
-          p_cycle: string
-          p_provider_status: string
-        }
-        Returns: Json
-      }
-      billing_list_asaas_expired_grace: {
-        Args: { p_environment: string; p_limit?: number }
-        Returns: { subscription_id: string; payment_id: string }[]
-      }
-      billing_replay_asaas_event: {
-        Args: {
-          p_environment: string
-          p_event_id: string
-          p_operator_ref: string
-          p_reason: string
-        }
-        Returns: boolean
-      }
-      billing_suspend_asaas_expired_grace: {
-        Args: {
-          p_subscription_id: string
-          p_environment: string
-          p_payment_id: string
-          p_customer_id: string
-          p_provider_subscription_id: string
-          p_provider_status: string
-        }
-        Returns: boolean
-      }
       active_company_member: {
         Args: { _clinic_id: string; _user_id?: string }
         Returns: boolean
@@ -3608,6 +3525,45 @@ export type Database = {
         Returns: Json
       }
       backend_schema_hash: { Args: never; Returns: string }
+      billing_apply_asaas_initial_payment: {
+        Args: {
+          p_amount_cents: number
+          p_customer_id: string
+          p_due_date: string
+          p_event_id: string
+          p_lease_token: string
+          p_payment_id: string
+          p_payment_status: string
+          p_subscription_id: string
+        }
+        Returns: Json
+      }
+      billing_apply_asaas_payment_lifecycle: {
+        Args: {
+          p_amount_cents: number
+          p_customer_id: string
+          p_due_date: string
+          p_event_id: string
+          p_lease_token: string
+          p_payment_id: string
+          p_payment_status: string
+          p_subscription_id: string
+        }
+        Returns: Json
+      }
+      billing_apply_asaas_subscription_lifecycle: {
+        Args: {
+          p_amount_cents: number
+          p_customer_id: string
+          p_cycle: string
+          p_event_id: string
+          p_external_reference: string
+          p_lease_token: string
+          p_provider_status: string
+          p_subscription_id: string
+        }
+        Returns: Json
+      }
       billing_apply_checkout_paid: {
         Args: {
           p_checkout_intent_id: string
@@ -3633,6 +3589,14 @@ export type Database = {
         }
         Returns: Json
       }
+      billing_bind_asaas_customer: {
+        Args: {
+          p_clinic_id: string
+          p_provider_customer_id: string
+          p_provider_environment: string
+        }
+        Returns: undefined
+      }
       billing_bind_asaas_subscription: {
         Args: {
           p_provider_customer_id: string
@@ -3642,13 +3606,23 @@ export type Database = {
         }
         Returns: undefined
       }
-      billing_bind_asaas_customer: {
-        Args: {
-          p_clinic_id: string
-          p_provider_customer_id: string
-          p_provider_environment: string
-        }
-        Returns: undefined
+      billing_claim_asaas_events: {
+        Args: { p_environment: string; p_limit?: number }
+        Returns: {
+          attempt_count: number
+          event_type: string
+          id: string
+          lease_token: string
+          payload: Json
+        }[]
+      }
+      billing_claim_asaas_reconciliation_candidates: {
+        Args: { p_environment: string; p_limit?: number }
+        Returns: {
+          customer_id: string
+          provider_subscription_id: string
+          subscription_id: string
+        }[]
       }
       billing_claim_provider_operation: {
         Args: {
@@ -3660,6 +3634,15 @@ export type Database = {
           p_provider_environment: string
         }
         Returns: Json
+      }
+      billing_finish_asaas_event: {
+        Args: {
+          p_error_code?: string
+          p_id: string
+          p_lease_token: string
+          p_outcome: string
+        }
+        Returns: boolean
       }
       billing_finish_provider_operation: {
         Args: {
@@ -3691,15 +3674,12 @@ export type Database = {
         Args: { p_clinic_id: string }
         Returns: Json
       }
-      billing_test_capability: { Args: never; Returns: Json }
-      billing_test_mark_checkout_paid: {
-        Args: { p_checkout_intent_id: string }
-        Returns: Json
-      }
-      billing_test_redeem_token: { Args: { p_token: string }; Returns: Json }
-      billing_test_simulate_nonpayment: {
-        Args: { p_clinic_id: string }
-        Returns: Json
+      billing_list_asaas_expired_grace: {
+        Args: { p_environment: string; p_limit?: number }
+        Returns: {
+          payment_id: string
+          subscription_id: string
+        }[]
       }
       billing_mark_asaas_checkout_ready: {
         Args: {
@@ -3711,6 +3691,45 @@ export type Database = {
           p_provider_payment_url: string
           p_provider_subscription_id: string
         }
+        Returns: Json
+      }
+      billing_receive_asaas_event: {
+        Args: {
+          p_environment: string
+          p_event_id: string
+          p_event_type: string
+          p_payload: Json
+        }
+        Returns: boolean
+      }
+      billing_replay_asaas_event: {
+        Args: {
+          p_environment: string
+          p_event_id: string
+          p_operator_ref: string
+          p_reason: string
+        }
+        Returns: boolean
+      }
+      billing_suspend_asaas_expired_grace: {
+        Args: {
+          p_customer_id: string
+          p_environment: string
+          p_payment_id: string
+          p_provider_status: string
+          p_provider_subscription_id: string
+          p_subscription_id: string
+        }
+        Returns: boolean
+      }
+      billing_test_capability: { Args: never; Returns: Json }
+      billing_test_mark_checkout_paid: {
+        Args: { p_checkout_intent_id: string }
+        Returns: Json
+      }
+      billing_test_redeem_token: { Args: { p_token: string }; Returns: Json }
+      billing_test_simulate_nonpayment: {
+        Args: { p_clinic_id: string }
         Returns: Json
       }
       billing_upsert_company_profile: {
