@@ -35,11 +35,13 @@ import { Route as AuthenticatedClinicaRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedCasosRouteImport } from './routes/_authenticated/casos'
 import { Route as AuthenticatedCadistaRouteImport } from './routes/_authenticated/cadista'
 import { Route as AuthenticatedBurrsRouteImport } from './routes/_authenticated/burrs'
+import { Route as AuthenticatedAssinaturaRouteImport } from './routes/_authenticated/assinatura'
 import { Route as AuthenticatedArmazenamentoRouteImport } from './routes/_authenticated/armazenamento'
 import { Route as AuthenticatedAgendaRouteImport } from './routes/_authenticated/agenda'
 import { Route as ApiBillingAsaasWorkerRouteImport } from './routes/api/billing/asaas-worker'
 import { Route as ApiBillingAsaasWebhookRouteImport } from './routes/api/billing/asaas-webhook'
 import { Route as ApiBillingAsaasReplayRouteImport } from './routes/api/billing/asaas-replay'
+import { Route as ApiBillingAsaasRenewalRouteImport } from './routes/api/billing/asaas-renewal'
 import { Route as ApiBillingAsaasCheckoutRouteImport } from './routes/api/billing/asaas-checkout'
 import { Route as AuthenticatedPatientsIdRouteImport } from './routes/_authenticated/patients.$id'
 import { Route as AuthenticatedFinanceiroRelatoriosRouteImport } from './routes/_authenticated/financeiro.relatorios'
@@ -203,6 +205,11 @@ const AuthenticatedBurrsRoute = AuthenticatedBurrsRouteImport.update({
   path: '/burrs',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAssinaturaRoute = AuthenticatedAssinaturaRouteImport.update({
+  id: '/assinatura',
+  path: '/assinatura',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedArmazenamentoRoute =
   AuthenticatedArmazenamentoRouteImport.update({
     id: '/armazenamento',
@@ -227,6 +234,11 @@ const ApiBillingAsaasWebhookRoute = ApiBillingAsaasWebhookRouteImport.update({
 const ApiBillingAsaasReplayRoute = ApiBillingAsaasReplayRouteImport.update({
   id: '/api/billing/asaas-replay',
   path: '/api/billing/asaas-replay',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBillingAsaasRenewalRoute = ApiBillingAsaasRenewalRouteImport.update({
+  id: '/api/billing/asaas-renewal',
+  path: '/api/billing/asaas-renewal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiBillingAsaasCheckoutRoute = ApiBillingAsaasCheckoutRouteImport.update({
@@ -416,6 +428,7 @@ export interface FileRoutesByFullPath {
   '/reauth': typeof ReauthRoute
   '/agenda': typeof AuthenticatedAgendaRoute
   '/armazenamento': typeof AuthenticatedArmazenamentoRoute
+  '/assinatura': typeof AuthenticatedAssinaturaRoute
   '/burrs': typeof AuthenticatedBurrsRoute
   '/cadista': typeof AuthenticatedCadistaRoute
   '/casos': typeof AuthenticatedCasosRoute
@@ -464,6 +477,7 @@ export interface FileRoutesByFullPath {
   '/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/patients/$id': typeof AuthenticatedPatientsIdRoute
   '/api/billing/asaas-checkout': typeof ApiBillingAsaasCheckoutRoute
+  '/api/billing/asaas-renewal': typeof ApiBillingAsaasRenewalRoute
   '/api/billing/asaas-replay': typeof ApiBillingAsaasReplayRoute
   '/api/billing/asaas-webhook': typeof ApiBillingAsaasWebhookRoute
   '/api/billing/asaas-worker': typeof ApiBillingAsaasWorkerRoute
@@ -478,6 +492,7 @@ export interface FileRoutesByTo {
   '/reauth': typeof ReauthRoute
   '/agenda': typeof AuthenticatedAgendaRoute
   '/armazenamento': typeof AuthenticatedArmazenamentoRoute
+  '/assinatura': typeof AuthenticatedAssinaturaRoute
   '/burrs': typeof AuthenticatedBurrsRoute
   '/cadista': typeof AuthenticatedCadistaRoute
   '/casos': typeof AuthenticatedCasosRoute
@@ -526,6 +541,7 @@ export interface FileRoutesByTo {
   '/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/patients/$id': typeof AuthenticatedPatientsIdRoute
   '/api/billing/asaas-checkout': typeof ApiBillingAsaasCheckoutRoute
+  '/api/billing/asaas-renewal': typeof ApiBillingAsaasRenewalRoute
   '/api/billing/asaas-replay': typeof ApiBillingAsaasReplayRoute
   '/api/billing/asaas-webhook': typeof ApiBillingAsaasWebhookRoute
   '/api/billing/asaas-worker': typeof ApiBillingAsaasWorkerRoute
@@ -542,6 +558,7 @@ export interface FileRoutesById {
   '/reauth': typeof ReauthRoute
   '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
   '/_authenticated/armazenamento': typeof AuthenticatedArmazenamentoRoute
+  '/_authenticated/assinatura': typeof AuthenticatedAssinaturaRoute
   '/_authenticated/burrs': typeof AuthenticatedBurrsRoute
   '/_authenticated/cadista': typeof AuthenticatedCadistaRoute
   '/_authenticated/casos': typeof AuthenticatedCasosRoute
@@ -590,6 +607,7 @@ export interface FileRoutesById {
   '/_authenticated/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/_authenticated/patients/$id': typeof AuthenticatedPatientsIdRoute
   '/api/billing/asaas-checkout': typeof ApiBillingAsaasCheckoutRoute
+  '/api/billing/asaas-renewal': typeof ApiBillingAsaasRenewalRoute
   '/api/billing/asaas-replay': typeof ApiBillingAsaasReplayRoute
   '/api/billing/asaas-webhook': typeof ApiBillingAsaasWebhookRoute
   '/api/billing/asaas-worker': typeof ApiBillingAsaasWorkerRoute
@@ -606,6 +624,7 @@ export interface FileRouteTypes {
     | '/reauth'
     | '/agenda'
     | '/armazenamento'
+    | '/assinatura'
     | '/burrs'
     | '/cadista'
     | '/casos'
@@ -654,6 +673,7 @@ export interface FileRouteTypes {
     | '/financeiro/relatorios'
     | '/patients/$id'
     | '/api/billing/asaas-checkout'
+    | '/api/billing/asaas-renewal'
     | '/api/billing/asaas-replay'
     | '/api/billing/asaas-webhook'
     | '/api/billing/asaas-worker'
@@ -668,6 +688,7 @@ export interface FileRouteTypes {
     | '/reauth'
     | '/agenda'
     | '/armazenamento'
+    | '/assinatura'
     | '/burrs'
     | '/cadista'
     | '/casos'
@@ -716,6 +737,7 @@ export interface FileRouteTypes {
     | '/financeiro/relatorios'
     | '/patients/$id'
     | '/api/billing/asaas-checkout'
+    | '/api/billing/asaas-renewal'
     | '/api/billing/asaas-replay'
     | '/api/billing/asaas-webhook'
     | '/api/billing/asaas-worker'
@@ -731,6 +753,7 @@ export interface FileRouteTypes {
     | '/reauth'
     | '/_authenticated/agenda'
     | '/_authenticated/armazenamento'
+    | '/_authenticated/assinatura'
     | '/_authenticated/burrs'
     | '/_authenticated/cadista'
     | '/_authenticated/casos'
@@ -779,6 +802,7 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro/relatorios'
     | '/_authenticated/patients/$id'
     | '/api/billing/asaas-checkout'
+    | '/api/billing/asaas-renewal'
     | '/api/billing/asaas-replay'
     | '/api/billing/asaas-webhook'
     | '/api/billing/asaas-worker'
@@ -795,6 +819,7 @@ export interface RootRouteChildren {
   ReauthRoute: typeof ReauthRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiBillingAsaasCheckoutRoute: typeof ApiBillingAsaasCheckoutRoute
+  ApiBillingAsaasRenewalRoute: typeof ApiBillingAsaasRenewalRoute
   ApiBillingAsaasReplayRoute: typeof ApiBillingAsaasReplayRoute
   ApiBillingAsaasWebhookRoute: typeof ApiBillingAsaasWebhookRoute
   ApiBillingAsaasWorkerRoute: typeof ApiBillingAsaasWorkerRoute
@@ -985,6 +1010,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBurrsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/assinatura': {
+      id: '/_authenticated/assinatura'
+      path: '/assinatura'
+      fullPath: '/assinatura'
+      preLoaderRoute: typeof AuthenticatedAssinaturaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/armazenamento': {
       id: '/_authenticated/armazenamento'
       path: '/armazenamento'
@@ -1018,6 +1050,13 @@ declare module '@tanstack/react-router' {
       path: '/api/billing/asaas-replay'
       fullPath: '/api/billing/asaas-replay'
       preLoaderRoute: typeof ApiBillingAsaasReplayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/billing/asaas-renewal': {
+      id: '/api/billing/asaas-renewal'
+      path: '/api/billing/asaas-renewal'
+      fullPath: '/api/billing/asaas-renewal'
+      preLoaderRoute: typeof ApiBillingAsaasRenewalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/billing/asaas-checkout': {
@@ -1362,6 +1401,7 @@ const AuthenticatedPatientsRouteWithChildren =
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgendaRoute: typeof AuthenticatedAgendaRoute
   AuthenticatedArmazenamentoRoute: typeof AuthenticatedArmazenamentoRoute
+  AuthenticatedAssinaturaRoute: typeof AuthenticatedAssinaturaRoute
   AuthenticatedBurrsRoute: typeof AuthenticatedBurrsRoute
   AuthenticatedCadistaRoute: typeof AuthenticatedCadistaRoute
   AuthenticatedCasosRoute: typeof AuthenticatedCasosRoute
@@ -1389,6 +1429,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgendaRoute: AuthenticatedAgendaRoute,
   AuthenticatedArmazenamentoRoute: AuthenticatedArmazenamentoRoute,
+  AuthenticatedAssinaturaRoute: AuthenticatedAssinaturaRoute,
   AuthenticatedBurrsRoute: AuthenticatedBurrsRoute,
   AuthenticatedCadistaRoute: AuthenticatedCadistaRoute,
   AuthenticatedCasosRoute: AuthenticatedCasosRoute,
@@ -1437,6 +1478,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReauthRoute: ReauthRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   ApiBillingAsaasCheckoutRoute: ApiBillingAsaasCheckoutRoute,
+  ApiBillingAsaasRenewalRoute: ApiBillingAsaasRenewalRoute,
   ApiBillingAsaasReplayRoute: ApiBillingAsaasReplayRoute,
   ApiBillingAsaasWebhookRoute: ApiBillingAsaasWebhookRoute,
   ApiBillingAsaasWorkerRoute: ApiBillingAsaasWorkerRoute,
