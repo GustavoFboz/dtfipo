@@ -1,60 +1,17 @@
-# Auditoria somente leitura — listas vazias no DentalFlow Desktop (Windows)
+# Diagnóstico somente leitura — checkout AS Lab, 28/09/2026 04:39 UTC
 
-Nada foi alterado: nenhuma escrita, nenhuma migration. Só consultas de leitura e uma chamada de teste sem autenticação.
+## Causas verificadas
+- O banco consultado tem a empresa **AS Lab**, mas nenhum perfil de cobrança nem cliente Asaas vinculado a ela. Seus dois checkouts visíveis são antigos (09/09), pendentes e sem cliente, assinatura ou pagamento externo registrados.
+- O perfil fiscal denominado **DentalFlow Homologação Sandbox** existe nesse banco, porém está vinculado a outra empresa com esse nome, não à AS Lab. Portanto, ver o nome do perfil na interface não comprova que a AS Lab tenha um perfil salvo.
+- Há um checkout novo às **04:38:57 UTC** para **DentalFlow Homologação Sandbox**, não para AS Lab. Permanece pendente e sem identificadores externos. Não há operação de provisionamento registrada desde 03:00 UTC; a última operação registrada é de 26/09.
+- Os logs disponíveis mostram uma chamada `POST` de função da aplicação às **04:38:58 UTC** em `preview--dtfipo.lovable.app`, com HTTP **200 do transporte**. Não aparece uma chamada de checkout no endereço publicado no mesmo intervalo. Esse 200 **não é o status do Asaas nem confirma sucesso do checkout**: a função devolve erros de negócio dentro do corpo da resposta.
+- A mensagem “O Asaas não aceitou a preparação da cobrança” é genérica para códigos que começam por `ASAAS_`. O código interno específico, o status HTTP do Asaas e a etapa (customers/subscriptions/payments) **não constam dos logs disponíveis**. A implementação registra no servidor somente erros normalizados com status >= 500; os demais são devolvidos no corpo da chamada. A consulta de logs da API/Cloud não retornou entradas para esse horário.
 
-## 1. Os dados existem no Lovable Cloud
+## Limites e hipóteses
+- A consulta de banco e a interface podem estar apontando para ambientes Test/Live diferentes, mas isso **não foi demonstrado**: no banco acessível há um registro exatamente no horário do clique, ligado à empresa cujo nome coincide com o perfil exibido. A hipótese mais forte é seleção/contexto de empresa diferente de AS Lab; é preciso confirmar o identificador da empresa efetivamente selecionada na interface, sem exibir dados pessoais.
+- A falta de operações e vínculos no banco consultado sugere falha antes de `customer_ensure` **nesse banco**, mas não prova que nenhum recurso foi criado no Asaas ou em outro ambiente. Não repetir a tentativa até confirmar o resultado externo se houver suspeita de escrita ambígua.
 
-| Tabela | Registros |
-| --- | --- |
-| patients | 46 |
-| cases | 37 |
-| case_types | 5 |
-| stages | 46 |
-| phases | 10 |
-| stock_items | 38 |
-| component_categories | 8 |
-| clinics | 1 |
-| profiles | 14 |
-| clinic_members | 12 |
-| cadistas | 4 |
-| doctors | 6 |
+## Próximo ajuste mínimo (não aplicado)
+- Na mesma tentativa, capturar de forma segura o campo `code` e o `status` retornados pela função de checkout e correlacioná-los ao identificador do checkout e à empresa selecionada. Comparar, sem revelar valores privados, a identidade do banco usada pela interface e pela consulta (Test/Live). Se a falha anteceder a operação, corrigir apenas o contexto de empresa/perfil que gera o checkout; se for rejeição do Asaas, tratar o código e a etapa exatos antes de alterar dados ou repetir pagamento.
 
-Clínica principal: "IPO — Instituto Praia de Odontologia", `kind = laboratorio`, `company_type = IPO`, `modules_enabled = {laboratory, financial, clinical}`, dono `gustavovitorfa@gmail.com`, código de convite ativo. Todos os 13 perfis (menos `dentalexample@gmail.com`) estão vinculados a essa clínica.
-
-Conclusão: não há perda de dados. O problema é de leitura/permissão, não de conteúdo.
-
-## 2. Causa principal confirmada: resposta vazia quando a sessão não está autenticada
-
-Todas as políticas de leitura dessas tabelas valem apenas para usuários autenticados. Testei a leitura sem sessão (apenas chave pública) nas sete tabelas:
-
-```text
-patients / cases / case_types / stages / phases / stock_items / component_categories
-→ HTTP 200  []
-```
-
-Ou seja: sem sessão válida o servidor **não devolve erro** — devolve sucesso com lista vazia. Isso reproduz exatamente o sintoma relatado: app "online", sem mensagem de erro, alguns indicadores aparecendo (cache local / contadores locais) e todas as listas vazias.
-
-Reforça essa hipótese o próprio código do desktop: `canUseDentalFlowCloud()` libera a tentativa de leitura na nuvem apenas com um "provisionamento de dispositivo" válido, mesmo sem token de nuvem real. Nesse estado o app tenta a leitura, recebe `200 []` e mostra listas vazias como se fossem dados reais.
-
-## 3. Causa secundária real: perfis sem papel que dê acesso
-
-A leitura de pacientes, etapas e fases exige `is_staff()`, que aceita apenas: admin, dentista, recepcionista, auxiliar, protetico, SOLICITANTE. **"cadista" não está nessa lista** e, em estoque, cadista é explicitamente excluído.
-
-Papéis atuais:
-
-- `gustavovitorfa@gmail.com`: admin + protetico — acesso completo, OK.
-- Também admin: `leandrocarvalhobmf@gmail.com`, `flaviaalbuquerque015@icloud.com`.
-- Somente "cadista": `naiaramatrix@gmail.com`, `vanessaprovencemarques@gmail.com` → para essas contas pacientes, etapas, fases e estoque voltam legitimamente vazios, mesmo autenticadas.
-- `dentalexample@gmail.com`: sem papel algum e sem clínica → tudo vazio.
-
-## 4. Diagnóstico final
-
-1. Dados íntegros no Cloud; clínica IPO e módulos corretos.
-2. Se a conta usada no Windows for admin (ex.: Gustavo), o cenário compatível é **sessão de nuvem ausente/expirada no aplicativo instalado**, com o app se apresentando como online por causa do provisionamento local — leituras retornam `200 []` e a interface trata isso como "sem dados".
-3. Se a conta usada for "cadista" ou sem papel, o vazio é consequência das políticas de permissão atuais.
-
-## 5. Próximos passos sugeridos (nenhum aplicado)
-
-- Confirmar qual e-mail está logado no Windows e se há token de nuvem persistido válido.
-- Corrigir a interface para distinguir "sem permissão / sem sessão" de "sem dados", em vez de mostrar lista vazia silenciosa.
-- Decidir, como regra de produto, se "cadista" deve ler pacientes/etapas/fases/estoque — hoje não pode.
+Nenhum código, banco ou configuração foi alterado; nenhum pagamento foi executado. Não houve publicação.
