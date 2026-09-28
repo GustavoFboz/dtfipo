@@ -234,6 +234,8 @@ export class AsaasApiError extends Error {
   readonly retryable: boolean;
   readonly ambiguous: boolean;
   readonly retryAfterMs: number | null;
+  readonly transportCode: string | null;
+  readonly transportErrorName: string | null;
 
   constructor(input: {
     code: string;
@@ -242,6 +244,8 @@ export class AsaasApiError extends Error {
     retryable?: boolean;
     ambiguous?: boolean;
     retryAfterMs?: number | null;
+    transportCode?: string | null;
+    transportErrorName?: string | null;
   }) {
     super(input.message);
     this.name = "AsaasApiError";
@@ -250,6 +254,8 @@ export class AsaasApiError extends Error {
     this.retryable = input.retryable ?? false;
     this.ambiguous = input.ambiguous ?? false;
     this.retryAfterMs = input.retryAfterMs ?? null;
+    this.transportCode = input.transportCode ?? null;
+    this.transportErrorName = input.transportErrorName ?? null;
   }
 }
 
@@ -385,6 +391,13 @@ export class AsaasClient {
         });
       } catch (error) {
         const timedOut = controller.signal.aborted;
+        const cause = error && typeof error === "object" && "cause" in error ? error.cause : null;
+        const nested = cause && typeof cause === "object" && "errors" in cause &&
+          Array.isArray(cause.errors) ? cause.errors[0] : null;
+        const rawCode = cause && typeof cause === "object" && "code" in cause
+          ? cause.code
+          : nested && typeof nested === "object" && "code" in nested ? nested.code : null;
+        const rawName = error instanceof Error ? error.name : "Unknown";
         throw new AsaasApiError({
           code: timedOut ? "ASAAS_TIMEOUT" : "ASAAS_NETWORK_ERROR",
           message: timedOut
@@ -392,6 +405,9 @@ export class AsaasClient {
             : "Falha de rede ao acessar a API Asaas.",
           retryable: true,
           ambiguous: method === "POST",
+          transportCode: typeof rawCode === "string" && /^[A-Z0-9_]{2,64}$/.test(rawCode)
+            ? rawCode : "UNKNOWN",
+          transportErrorName: /^[A-Za-z]{1,32}$/.test(rawName) ? rawName : "Unknown",
         });
       } finally {
         clearTimeout(timeout);
