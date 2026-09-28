@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Home, LogIn, Moon, Sun } from "lucide-react";
+import { CreditCard, Home, LogIn, Moon, Sun } from "lucide-react";
 
 import { startEnvironmentTransition, type EnvironmentName } from "@/components/EnvironmentTransition";
 import { fetchProfile } from "@/lib/api";
@@ -152,6 +152,12 @@ function HubPage() {
       </Link>
 
       <div className="absolute right-5 top-5 z-50 flex items-center gap-2 sm:right-8 sm:top-8">
+        {subscription.data?.account_type === "company_admin" && subscription.data.company ? (
+          <Link to="/assinatura" data-no-window-drag
+            className="inline-flex h-10 items-center gap-1.5 rounded-full bg-white/60 px-3 text-[11px] text-slate-700 backdrop-blur-2xl dark:bg-white/[0.06] dark:text-white/70">
+            <CreditCard className="h-4 w-4" /> Assinatura
+          </Link>
+        ) : null}
         <NativeUpdateCenterButton className="rounded-full bg-card/50 text-muted-foreground backdrop-blur-2xl hover:bg-card hover:text-foreground" />
         <button
           type="button"

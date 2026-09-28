@@ -115,6 +115,18 @@ export type AsaasCheckout = {
   paymentConfirmed: false;
 };
 
+export type AsaasRenewal = {
+  paymentId: string;
+  paymentUrl: string;
+  dueDate: string;
+  amountCents: number;
+  environment: "sandbox" | "production";
+};
+
+type RenewalResult =
+  | { ok: true; invoice: AsaasRenewal | null; nextPeriodDate: string }
+  | { ok: false; error: string; code: string; status: number };
+
 export type BillingTestCapability = {
   enabled: boolean;
   until: string | null;
@@ -377,7 +389,13 @@ export async function createAsaasCheckout(checkoutIntentId: string): Promise<Asa
 }
 
 export async function openAsaasCheckoutPayment(checkout: AsaasCheckout): Promise<void> {
-  const url = validateAsaasPaymentUrl(checkout.paymentUrl, checkout.environment);
+  return openAsaasPaymentUrl(checkout.paymentUrl, checkout.environment);
+}
+
+export async function openAsaasPaymentUrl(
+  paymentUrl: string, environment: "sandbox" | "production",
+): Promise<void> {
+  const url = validateAsaasPaymentUrl(paymentUrl, environment);
 
   if (Capacitor.isNativePlatform()) {
     const { Browser } = await import("@capacitor/browser");
@@ -391,6 +409,40 @@ export async function openAsaasCheckoutPayment(checkout: AsaasCheckout): Promise
   if (typeof window === "undefined") throw new Error("O navegador não está disponível.");
   const opened = window.open(url, "_blank", "noopener,noreferrer");
   if (!opened) window.location.assign(url);
+}
+
+export async function fetchAsaasRenewal(subscriptionId: string): Promise<Extract<RenewalResult, {ok: true}>> {
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+  if (!accessToken) throw new Error("Sua sessão expirou. Entre novamente para continuar.");
+
+  let result: RenewalResult;
+  if (!isDentalFlowDesktop() && !Capacitor.isNativePlatform()) {
+    const { getAsaasRenewalServerFn } = await import("@/lib/billing/asaas-renewal.functions");
+    result = await getAsaasRenewalServerFn({ data: { subscriptionId } });
+  } else {
+    const response = await fetch("https://dtfipo.lovable.app/api/billing/asaas-renewal", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ subscriptionId }),
+      cache: "no-store",
+      credentials: "omit",
+      referrerPolicy: "no-referrer",
+    });
+    result = (await response.json()) as RenewalResult;
+  }
+  if (!result.ok) throw new BillingCheckoutClientError(result.error, result.code, result.status);
+  if (result.invoice) {
+    const invoice = result.invoice;
+    if (!/^pay_[A-Za-z0-9]+$/.test(invoice.paymentId) ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(invoice.dueDate) ||
+      !Number.isSafeInteger(invoice.amountCents) || invoice.amountCents <= 0 ||
+      !["sandbox", "production"].includes(invoice.environment)) {
+      throw new Error("A cobrança retornada é inválida.");
+    }
+    invoice.paymentUrl = validateAsaasPaymentUrl(invoice.paymentUrl, invoice.environment);
+  }
+  return result;
 }
 
 export function friendlyBillingError(error: unknown, fallback: string): string {

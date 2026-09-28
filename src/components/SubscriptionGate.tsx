@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import {
   Building2,
@@ -11,16 +11,20 @@ import {
   RefreshCw,
   ShieldCheck,
   Stethoscope,
+  ExternalLink,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { BillingCheckoutPanel } from "@/components/billing/BillingCheckoutPanel";
 
 import {
   COMPANY_SESSION_LABEL,
   fetchBillingPlans,
+  fetchAsaasRenewal,
   fetchMySubscriptionContext,
   formatPlanPrice,
   formatStorage,
+  openAsaasPaymentUrl,
   type BillingPlan,
   type CompanySessionType,
   type MySubscriptionContext,
@@ -152,6 +156,10 @@ function BillingRequired({ context }: { context: MySubscriptionContext }) {
         </div>
       </div>
     );
+  }
+
+  if (context.company && context.company.status !== "pending_checkout") {
+    return <RenewalPaymentPanel context={context} />;
   }
 
   return (
@@ -293,6 +301,78 @@ function BillingRequired({ context }: { context: MySubscriptionContext }) {
       </div>
     </div>
   );
+}
+
+export function RenewalPaymentPanel({ context }: { context: MySubscriptionContext }) {
+  const subscriptionId = context.company?.subscription_id;
+  const queryClient = useQueryClient();
+  const renewal = useQuery({
+    queryKey: ["asaas_renewal", subscriptionId],
+    queryFn: () => fetchAsaasRenewal(subscriptionId!),
+    enabled: Boolean(subscriptionId),
+    staleTime: 30_000,
+    retry: 1,
+  });
+  const [opening, setOpening] = useState(false);
+
+  const openInvoice = async () => {
+    const invoice = renewal.data?.invoice;
+    if (!invoice) return;
+    setOpening(true);
+    try {
+      await openAsaasPaymentUrl(invoice.paymentUrl, invoice.environment);
+    } catch {
+      toast.error("Não foi possível abrir a cobrança no Asaas.");
+    } finally {
+      setOpening(false);
+    }
+  };
+
+  return (
+    <div className="grid min-h-[100dvh] place-items-center bg-[#f4f8f7] px-5 py-10 text-slate-950 dark:bg-[#080b10] dark:text-white">
+      <section className="w-full max-w-xl rounded-[28px] border border-slate-200 bg-white p-8 dark:border-white/[0.07] dark:bg-[#0d1218]">
+        <ShieldCheck className="h-6 w-6 text-[#15988f]" />
+        <h1 className="mt-5 text-[30px] font-light tracking-[-0.04em]">
+          {context.effective_access === "full" ? "Assinatura da empresa" : "Regularize a mensalidade da empresa"}
+        </h1>
+        <p className="mt-4 text-[13px] font-light leading-6 text-slate-500 dark:text-white/45">
+          {context.effective_access === "full"
+            ? "Seu plano está ativo. Quando a próxima cobrança estiver disponível, você poderá pagá-la no Asaas."
+            : "A cobrança pertence à assinatura já existente. Seus dados permanecem preservados; o acesso volta depois que o Asaas confirmar o pagamento ao DentalFlow."}
+        </p>
+        <div className="mt-6 text-[13px] text-slate-600 dark:text-white/60">
+          {context.company?.plan_name} · {context.company
+            ? formatPlanPrice(context.company.monthly_price_cents, context.company.currency)
+            : ""}/mês
+        </div>
+        {renewal.isLoading ? <p className="mt-5 text-[13px]">Conferindo cobrança no Asaas…</p> : null}
+        {renewal.data?.invoice ? (
+          <button type="button" onClick={openInvoice} disabled={opening}
+            className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-[#15988f] px-5 text-[12px] font-medium text-white disabled:opacity-50">
+            <ExternalLink className="h-4 w-4" /> {opening ? "Abrindo…" : "Abrir cobrança no Asaas"}
+          </button>
+        ) : null}
+        {renewal.data && !renewal.data.invoice ? (
+          <p className="mt-5 text-[13px] leading-6 text-slate-500 dark:text-white/45">
+            O Asaas ainda não disponibilizou uma cobrança pendente para o próximo período.
+          </p>
+        ) : null}
+        {renewal.isError ? (
+          <p className="mt-5 text-[13px] leading-6 text-slate-500 dark:text-white/45">
+            Não foi possível conferir a cobrança agora. Tente novamente em instantes.
+          </p>
+        ) : null}
+        <button type="button" onClick={() => {
+          void renewal.refetch();
+          void queryClient.invalidateQueries({ queryKey: ["subscription_context"] });
+        }}
+          className="mt-6 flex items-center gap-2 text-[12px] text-[#15988f]">
+          <RefreshCw className="h-4 w-4" /> Atualizar situação
+        </button>
+      </section>
+    </div>
+  );
+
 }
 
 function PlanCard({

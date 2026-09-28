@@ -10,6 +10,26 @@ O primeiro ciclo pago no Sandbox passou em 28/09/2026; renovação, atraso,
 estorno e cancelamento ainda não foram comprovados no provedor. Consulte
 `evidence/SANDBOX-FIRST-PAID-CYCLE-2026-09-28.md`.
 
+### Acesso à cobrança de renovação
+
+Depois do primeiro pagamento, `create_checkout_intent` rejeita uma nova
+contratação na mesma empresa. A tela de regularização e a entrada “Assinatura”
+no hub consultam a cobrança pendente do período seguinte na assinatura Asaas
+existente, apenas para o administrador financeiro autenticado. O backend confere o vínculo da empresa,
+assinatura, cliente, ambiente, valor, vencimento e URL antes de retornar o link;
+se a fatura ainda não existir ou já estiver paga, não exibe link. A tela não
+cria outra assinatura e abrir a fatura não confirma pagamento.
+
+Esta mudança de interface ainda requer publicação e prova no Sandbox:
+antecipar somente a próxima fatura pela geração de carnê, conferir que ela
+aparece no caminho de regularização, pagá-la no Sandbox e validar evento,
+ledger e avanço de um mês sem duplicar assinatura. O endpoint de carnê é
+`GET /v3/subscriptions/{id}/paymentBook?month=10&year=2026`; ele gera
+cobranças futuras no Sandbox e não as marca como pagas. Não o invocar em
+Produção para teste. Antes da venda, verificar também a forma de cobrança da
+assinatura: o checkout atual usa `UNDEFINED`, portanto a primeira compra paga
+não comprova débito automático do cartão nos meses seguintes.
+
 ## Contrato implementado
 
 | Evento recebido | Consulta atual | Efeito interno |
