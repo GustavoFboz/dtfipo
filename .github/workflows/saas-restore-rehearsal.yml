@@ -13,6 +13,7 @@ on:
       - "scripts/build-restore-bundle.mjs"
       - "scripts/check-saas-stage-04.mjs"
       - "scripts/check-saas-stage-05.mjs"
+      - "scripts/check-saas-stage-06.mjs"
       - ".github/workflows/saas-restore-rehearsal.yml"
   pull_request:
     branches:
@@ -27,6 +28,7 @@ on:
       - "scripts/check-saas-stage-02.mjs"
       - "scripts/check-saas-stage-04.mjs"
       - "scripts/check-saas-stage-05.mjs"
+      - "scripts/check-saas-stage-06.mjs"
       - ".github/workflows/saas-restore-rehearsal.yml"
 
 permissions:
@@ -127,6 +129,24 @@ jobs:
             < docs/saas/sql/stage-05-lifecycle-rehearsal.sql \
             | tee restore-stage-05-lifecycle.log
 
+      - name: Verify Stage 06 storage quota boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-quota-assertions.sql \
+            | tee restore-stage-06-assertions.log
+
+      - name: Rehearse Stage 06 paid and pending storage allowances
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-quota-rehearsal.sql \
+            | tee restore-stage-06-quota.log
+
       - name: Record sanitized restored-schema audit
         shell: bash
         run: |
@@ -150,6 +170,8 @@ jobs:
             restore-stage-04-assertions.log
             restore-stage-05-assertions.log
             restore-stage-05-lifecycle.log
+            restore-stage-06-assertions.log
+            restore-stage-06-quota.log
             restore-audit.log
 
       - name: Stop isolated database
