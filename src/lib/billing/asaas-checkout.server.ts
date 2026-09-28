@@ -197,6 +197,9 @@ function publicCheckoutErrorMessage(code: string): string {
   if (code === "ASAAS_PAYMENT_NOT_READY") {
     return "A assinatura foi criada e o Asaas ainda está preparando a cobrança. Tente novamente em instantes.";
   }
+  if (code === "ASAAS_NETWORK_ERROR" || code === "ASAAS_TIMEOUT") {
+    return "Falha de conexão com o Asaas. Seus dados de cobrança foram salvos; aguarde e tente novamente.";
+  }
   if (code.includes("FORBIDDEN")) return "Sua sessão não permite gerenciar esta assinatura.";
   if (code.includes("NOT_FOUND"))
     return "O checkout não foi encontrado ou não está mais disponível.";
@@ -234,7 +237,9 @@ function checkoutError(error: unknown): { body: CheckoutErrorBody; status: numbe
             ? 404
             : error.code.includes("UNCERTAIN") || error.code.includes("REVIEW_REQUIRED")
               ? 409
-              : error.code === "ASAAS_PAYMENT_NOT_READY"
+              : error.code === "ASAAS_PAYMENT_NOT_READY" ||
+                  error.code === "ASAAS_NETWORK_ERROR" ||
+                  error.code === "ASAAS_TIMEOUT"
                 ? 503
                 : error instanceof AsaasApiError &&
                     error.status &&
