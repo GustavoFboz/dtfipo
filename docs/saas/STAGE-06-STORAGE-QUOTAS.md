@@ -1,7 +1,9 @@
 # Etapa 06 — cota do plano e adicionais (parte 1)
 
-Status: correção preparada em branch separada; exige restauração em CI e
-aplicação controlada no banco antes de considerá-la ativa.
+Status: cotas e reservas obrigatórias implantadas na base ativa em 29/09/2026.
+Restauração, uploads autenticados e concorrência passaram em CI; a asserção
+somente leitura do banco ativo retornou `passed`. O ensaio pela interface real
+de upload, inclusive DICOM, ainda precisa de homologação.
 
 ## Problema comprovado em 28/09/2026
 
@@ -30,8 +32,8 @@ executar o ensaio de escrita no banco vivo.
 
 ## Parte 2 — reservas obrigatórias para uploads
 
-Preparada em `saas/stage-06-upload-guards`, ainda depende do ensaio de
-restauração em CI e de implantação controlada. Uma política restritiva exige
+Integrada via PR #88 ao ramo conectado ao Lovable após ensaio de restauração em
+CI e implantação controlada. Uma política restritiva exige
 uma reserva da mesma empresa, usuário, caminho e tamanho para todas as cinco
 buckets (`avatars`, `patient-photos`, `patient-files`, `case-files`,
 `dicom-files`). O código DICOM também reserva e conclui cada instância.
@@ -57,6 +59,6 @@ não tinham lançamento; 8 lançamentos de `case-files` apontavam para objetos
 ausentes. A migração contabiliza objetos históricos de casos identificáveis,
 mas preserva os demais e não apaga nenhum arquivo. Após aplicar, conferir
 resíduos sem empresa identificável, o tamanho real por empresa e o fluxo real
-de upload DICOM. A aprovação do ensaio de concorrência no CI e o teste de
-ponta a ponta pela Storage API ainda são portas para declarar prontidão de
-produção.
+de upload DICOM. A concorrência e uploads autenticados foram ensaiados na base
+descartável do CI. O teste de ponta a ponta na conta publicada ainda é
+necessário para declarar prontidão de produção.
