@@ -31,6 +31,7 @@ export type BillingPlan = {
 export type CompanySubscriptionSnapshot = {
   subscription_id: string;
   scope: "company";
+  internal_full_access?: boolean;
   plan_code: string;
   plan_name: string;
   status: SubscriptionStatus;
