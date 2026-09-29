@@ -90,15 +90,17 @@ begin
   exception when others then v_rejected := true; end;
   if not v_rejected then raise exception 'Direct ledger delete was allowed'; end if;
 
-  v_rejected := false;
   begin update public.clinics set storage_limit_bytes = 1000000
     where id = '60000000-0000-4000-8000-000000000060';
-  exception when others then v_rejected := true; end;
-  if not v_rejected then raise exception 'Company directly inflated its storage limit'; end if;
+  exception when others then null; end;
+  if (select limit_bytes from public.get_storage_usage()) is distinct from 100 then
+    raise exception 'Company directly inflated its storage limit';
+  end if;
 
-  v_rejected := false;
   begin update public.profiles set role = 'admin' where id = v_user;
-  exception when others then v_rejected := true; end;
-  if not v_rejected then raise exception 'User directly promoted their profile'; end if;
+  exception when others then null; end;
+  if (select role from public.profiles where id = v_user) is distinct from 'CEO' then
+    raise exception 'User directly promoted their profile';
+  end if;
 end $$;
 rollback;
