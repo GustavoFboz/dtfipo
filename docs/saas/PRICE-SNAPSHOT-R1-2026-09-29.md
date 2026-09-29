@@ -24,3 +24,16 @@ continua protegida por `ASAAS_ENVIRONMENT`, chave exclusiva e
 Critérios de implantação: restauração limpa, ensaio de contrato antigo e novo,
 asserções somente leitura no banco ativo e verificação visual do valor exibido.
 Não executar pagamento real até o operador decidir iniciar o teste.
+
+## Alterações futuras por pedido no chat
+
+Quando o operador informar plano e novo valor, comparar primeiro o catálogo
+vivo e executar `node scripts/prepare-saas-plan-price.mjs --plan company_initial
+--from 1,00 --to 249,00 --dry-run` com os valores atuais. Sem `--dry-run`, o
+comando gera migration e pacote de restauração, mas não chama Asaas nem altera
+o banco. Depois de ensaio e revisão, aplicar a migration em transação, verificar
+o preço no catálogo e publicar a versão correspondente. Isso permite pedidos
+como “coloque Empresa Crescimento a R$ 499” sem editar código da interface.
+O valor informado vale para **novas contratações**; mudar a mensalidade de uma
+assinatura existente exige uma decisão separada e atualização controlada no
+Asaas, pois cobranças já geradas não mudam automaticamente.
