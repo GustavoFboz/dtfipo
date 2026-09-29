@@ -45,7 +45,9 @@ cadastro, permitindo enviar foto antes de abrir o primeiro caso.
 
 O ensaio `stage-06-upload-rehearsal.sql` roda somente em banco descartável e
 simula usuário autenticado, objeto sem reserva, tamanho divergente, cota cheia,
-tentativa de apagar o catálogo e alteração direta da cota. No banco em uso,
+tentativa de apagar o catálogo e alteração direta da cota. O ensaio
+`stage-06-concurrency-rehearsal.sh` usa duas conexões e verifica que somente a
+primeira reserva passa quando a soma ultrapassaria o limite. No banco em uso,
 executar somente `stage-06-upload-assertions.sql` após a migração.
 
 Auditoria prévia do banco: 30 objetos de `case-files` e 2 de `patient-photos`
@@ -53,5 +55,6 @@ não tinham lançamento; 8 lançamentos de `case-files` apontavam para objetos
 ausentes. A migração contabiliza objetos históricos de casos identificáveis,
 mas preserva os demais e não apaga nenhum arquivo. Após aplicar, conferir
 resíduos sem empresa identificável, o tamanho real por empresa e o fluxo real
-de upload DICOM. Ensaio de concorrência com duas sessões e teste de ponta a
-ponta pela Storage API ainda são portas para declarar prontidão de produção.
+de upload DICOM. A aprovação do ensaio de concorrência no CI e o teste de
+ponta a ponta pela Storage API ainda são portas para declarar prontidão de
+produção.

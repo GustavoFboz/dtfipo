@@ -166,6 +166,13 @@ jobs:
             < docs/saas/sql/stage-06-upload-rehearsal.sql \
             | tee restore-stage-06-upload-rehearsal.log
 
+      - name: Rehearse Stage 06 concurrent reservations
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash docs/saas/sql/stage-06-concurrency-rehearsal.sh \
+            | tee restore-stage-06-concurrency.log
+
       - name: Record sanitized restored-schema audit
         shell: bash
         run: |
@@ -193,6 +200,7 @@ jobs:
             restore-stage-06-quota.log
             restore-stage-06-upload-assertions.log
             restore-stage-06-upload-rehearsal.log
+            restore-stage-06-concurrency.log
             restore-audit.log
 
       - name: Stop isolated database
