@@ -28,12 +28,30 @@ e cancela 10 GiB, verifica os limites e desfaz todas as alterações. No banco v
 usar apenas `stage-06-quota-assertions.sql` após aplicar a migration. Não
 executar o ensaio de escrita no banco vivo.
 
-## Próxima parte da Etapa 06
+## Parte 2 — reservas obrigatórias para uploads
 
-O catálogo de reservas já contabiliza muitos uploads, mas as políticas de
-`storage.objects` ainda permitem alguns envios diretos sem uma reserva. O fluxo
-DICOM também precisa entrar no mesmo catálogo. Por isso, esta parte corrige a
-**composição da cota**, mas ainda não certifica o bloqueio de todos os uploads
-no limite. A próxima PR deve fechar essas rotas, conferir permissões por
-empresa e sessão, e testar o limite sob concorrência em banco descartável antes
-de publicar. A interface não deve prometer enforcement completo até essa prova.
+Preparada em `saas/stage-06-upload-guards`, ainda depende do ensaio de
+restauração em CI e de implantação controlada. Uma política restritiva exige
+uma reserva da mesma empresa, usuário, caminho e tamanho para todas as cinco
+buckets (`avatars`, `patient-photos`, `patient-files`, `case-files`,
+`dicom-files`). O código DICOM também reserva e conclui cada instância.
+
+Clientes não podem alterar diretamente o catálogo, o limite, a isenção de
+cobrança nem sua associação à empresa. Sobrescrever um objeto gerenciado é
+bloqueado; remoção só libera o lançamento depois de a Storage API confirmar a
+ausência do objeto. As políticas DICOM deixam de comparar o identificador da
+empresa com o nome da própria empresa. Pacientes novos recebem a empresa no
+cadastro, permitindo enviar foto antes de abrir o primeiro caso.
+
+O ensaio `stage-06-upload-rehearsal.sql` roda somente em banco descartável e
+simula usuário autenticado, objeto sem reserva, tamanho divergente, cota cheia,
+tentativa de apagar o catálogo e alteração direta da cota. No banco em uso,
+executar somente `stage-06-upload-assertions.sql` após a migração.
+
+Auditoria prévia do banco: 30 objetos de `case-files` e 2 de `patient-photos`
+não tinham lançamento; 8 lançamentos de `case-files` apontavam para objetos
+ausentes. A migração contabiliza objetos históricos de casos identificáveis,
+mas preserva os demais e não apaga nenhum arquivo. Após aplicar, conferir
+resíduos sem empresa identificável, o tamanho real por empresa e o fluxo real
+de upload DICOM. Ensaio de concorrência com duas sessões e teste de ponta a
+ponta pela Storage API ainda são portas para declarar prontidão de produção.

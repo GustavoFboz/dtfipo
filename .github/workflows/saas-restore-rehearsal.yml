@@ -147,6 +147,24 @@ jobs:
             < docs/saas/sql/stage-06-quota-rehearsal.sql \
             | tee restore-stage-06-quota.log
 
+      - name: Verify Stage 06 upload reservation boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-upload-assertions.sql \
+            | tee restore-stage-06-upload-assertions.log
+
+      - name: Rehearse Stage 06 authenticated uploads and quota bypass attempts
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-upload-rehearsal.sql \
+            | tee restore-stage-06-upload-rehearsal.log
+
       - name: Record sanitized restored-schema audit
         shell: bash
         run: |
@@ -172,6 +190,8 @@ jobs:
             restore-stage-05-lifecycle.log
             restore-stage-06-assertions.log
             restore-stage-06-quota.log
+            restore-stage-06-upload-assertions.log
+            restore-stage-06-upload-rehearsal.log
             restore-audit.log
 
       - name: Stop isolated database

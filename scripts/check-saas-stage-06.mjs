@@ -21,3 +21,16 @@ for (const filename of ["stage-06-quota-assertions.sql", "stage-06-quota-rehears
   }
 }
 console.log("Stage 06 plan quota package verified.");
+
+const uploadName = "20260929120000_saas_storage_upload_guards_stage06.sql";
+if (manifest.indexOf(uploadName) !== current + 1 ||
+    fs.readFileSync(`supabase/migrations/${uploadName}`, "utf8") !==
+      fs.readFileSync(`public/restore/migrations/${uploadName}`, "utf8")) {
+  throw new Error("Stage 06 upload guards are absent, out of order or diverged from restore.");
+}
+for (const filename of ["stage-06-upload-assertions.sql", "stage-06-upload-rehearsal.sql"]) {
+  if (!fs.existsSync(`docs/saas/sql/${filename}`)) {
+    throw new Error(`Stage 06 upload verification missing: ${filename}`);
+  }
+}
+console.log("Stage 06 upload reservation package verified.");

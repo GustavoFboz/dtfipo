@@ -157,5 +157,6 @@
   "20260926220000_saas_asaas_replay_stage05.sql",
   "20260926230000_saas_asaas_reconciliation_stage05.sql",
   "20260928180000_saas_plan_storage_quota_stage06.sql",
+  "20260929120000_saas_storage_upload_guards_stage06.sql",
   "20260718000001_zzz_self_heal_v2.sql"
 ]
