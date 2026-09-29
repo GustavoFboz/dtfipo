@@ -2,9 +2,10 @@
 
 Status: iniciado em 2026-09-19
 
-Etapa atual: 08 — histórico de cobrança preparado; cancelamento e troca de plano
-pendentes. Etapa 07 aguarda atribuição específica do operador Master; cenários
-reais 04–06 e a etapa 09 também permanecem pendentes.
+Etapa atual: 09 — preparação técnica para Beta/Produção integrada. O código e os
+ensaios reproduzíveis estão preparados; o fechamento financeiro permanece
+deliberadamente bloqueado até as provas externas finais no Asaas/Lovable e a
+compra controlada de Produção autorizada pelo operador.
 
 Provedor financeiro obrigatório para lançamento: Asaas
 
@@ -198,6 +199,8 @@ cancelamento e troca de plano com efeito comprovado no Asaas. Consulte
 - comportamento equivalente na Web, Windows e Android.
 
 ### 09 — Segurança, Beta e produção
+
+Status: preparação técnica integrada; Produção bloqueada até os gates externos descritos em `STAGE-09-SECURITY-BETA-PRODUCTION.md`.
 
 - testes de contrato, RLS, idempotência, concorrência e replay;
 - homologação completa no Sandbox, inclusive falhas e reprocessamentos;
