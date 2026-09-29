@@ -152,7 +152,8 @@ function HubPage() {
       </Link>
 
       <div className="absolute right-5 top-5 z-50 flex items-center gap-2 sm:right-8 sm:top-8">
-        {subscription.data?.account_type === "company_admin" && subscription.data.company ? (
+        {subscription.data?.account_type === "company_admin" && subscription.data.company &&
+          !subscription.data.company.internal_full_access ? (
           <Link to="/assinatura" data-no-window-drag
             className="inline-flex h-10 items-center gap-1.5 rounded-full bg-white/60 px-3 text-[11px] text-slate-700 backdrop-blur-2xl dark:bg-white/[0.06] dark:text-white/70">
             <CreditCard className="h-4 w-4" /> Assinatura

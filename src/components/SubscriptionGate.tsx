@@ -309,7 +309,7 @@ export function RenewalPaymentPanel({ context }: { context: MySubscriptionContex
   const renewal = useQuery({
     queryKey: ["asaas_renewal", subscriptionId],
     queryFn: () => fetchAsaasRenewal(subscriptionId!),
-    enabled: Boolean(subscriptionId),
+    enabled: Boolean(subscriptionId) && !context.company?.internal_full_access,
     staleTime: 30_000,
     retry: 1,
   });
