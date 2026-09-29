@@ -186,6 +186,15 @@ jobs:
             < docs/saas/sql/price-snapshot-rehearsal.sql \
             | tee restore-price-rehearsal.log
 
+      - name: Rehearse Stage 07 Master isolation and audited replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-07-master-rehearsal.sql \
+            | tee restore-stage-07-master.log
+
       - name: Record sanitized restored-schema audit
         shell: bash
         run: |
@@ -216,6 +225,7 @@ jobs:
             restore-stage-06-concurrency.log
             restore-price-assertions.log
             restore-price-rehearsal.log
+            restore-stage-07-master.log
             restore-audit.log
 
       - name: Stop isolated database
