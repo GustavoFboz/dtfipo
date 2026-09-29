@@ -26,7 +26,8 @@ begin
   if not exists (select 1 from pg_policies p
       where p.schemaname = 'storage' and p.tablename = 'objects'
         and p.policyname = 'dicom_objects_insert'
-        and p.with_check like '%objects.name%') then
+        and p.with_check like '%patient_id_from_storage_path%'
+        and p.with_check not like '%c.name%') then
     raise exception 'DICOM path refers to another table';
   end if;
   foreach v_name in array array[
