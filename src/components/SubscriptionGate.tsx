@@ -314,9 +314,9 @@ export function RenewalPaymentPanel({ context }: { context: MySubscriptionContex
     retry: 1,
   });
   const [opening, setOpening] = useState(false);
+  const invoice = renewal.data?.invoice;
 
   const openInvoice = async () => {
-    const invoice = renewal.data?.invoice;
     if (!invoice) return;
     setOpening(true);
     try {
@@ -337,7 +337,9 @@ export function RenewalPaymentPanel({ context }: { context: MySubscriptionContex
         </h1>
         <p className="mt-4 text-[13px] font-light leading-6 text-slate-500 dark:text-white/45">
           {context.effective_access === "full"
-            ? "Seu plano está ativo. Quando a próxima cobrança estiver disponível, você poderá pagá-la no Asaas."
+            ? invoice
+              ? "Seu plano está ativo e a cobrança do próximo ciclo já está disponível no Asaas. A renovação será registrada após a confirmação do pagamento."
+              : "Seu plano está ativo. Quando a próxima cobrança estiver disponível, você poderá pagá-la no Asaas."
             : "A cobrança pertence à assinatura já existente. Seus dados permanecem preservados; o acesso volta depois que o Asaas confirmar o pagamento ao DentalFlow."}
         </p>
         <div className="mt-6 text-[13px] text-slate-600 dark:text-white/60">
@@ -346,11 +348,16 @@ export function RenewalPaymentPanel({ context }: { context: MySubscriptionContex
             : ""}/mês
         </div>
         {renewal.isLoading ? <p className="mt-5 text-[13px]">Conferindo cobrança no Asaas…</p> : null}
-        {renewal.data?.invoice ? (
-          <button type="button" onClick={openInvoice} disabled={opening}
-            className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-[#15988f] px-5 text-[12px] font-medium text-white disabled:opacity-50">
-            <ExternalLink className="h-4 w-4" /> {opening ? "Abrindo…" : "Abrir cobrança no Asaas"}
-          </button>
+        {invoice ? (
+          <div className="mt-6">
+            <p className="mb-3 text-[12px] text-slate-500 dark:text-white/45">
+              Vencimento: {invoice.dueDate.split("-").reverse().join("/")} · {invoice.environment === "sandbox" ? "Ambiente de testes" : "Ambiente de produção"}
+            </p>
+            <button type="button" onClick={openInvoice} disabled={opening}
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#15988f] px-5 text-[12px] font-medium text-white disabled:opacity-50">
+              <ExternalLink className="h-4 w-4" /> {opening ? "Abrindo…" : "Abrir cobrança no Asaas"}
+            </button>
+          </div>
         ) : null}
         {renewal.data && !renewal.data.invoice ? (
           <p className="mt-5 text-[13px] leading-6 text-slate-500 dark:text-white/45">
