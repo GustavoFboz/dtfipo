@@ -211,6 +211,16 @@ CREATE POLICY managed_storage_reserved_insert ON storage.objects AS RESTRICTIVE
     OR public.storage_upload_has_reservation(bucket_id, name, metadata)
   );
 
+-- The case attachment record is created after the Storage API returns from
+-- upload. Let its reserving uploader read that single object during the gap;
+-- the existing attachment policy takes over once the record is written.
+DROP POLICY IF EXISTS case_files_reserved_uploader_read ON storage.objects;
+CREATE POLICY case_files_reserved_uploader_read ON storage.objects
+  FOR SELECT TO authenticated USING (
+    bucket_id = 'case-files'
+    AND public.storage_upload_has_reservation(bucket_id, name, metadata)
+  );
+
 -- New managed objects use unique paths; prevent overwrites and moves that
 -- would change actual bytes without a new, serialized reservation.
 DROP POLICY IF EXISTS managed_storage_no_update ON storage.objects;

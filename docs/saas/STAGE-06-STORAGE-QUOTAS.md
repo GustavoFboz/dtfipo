@@ -35,6 +35,8 @@ restauração em CI e de implantação controlada. Uma política restritiva exig
 uma reserva da mesma empresa, usuário, caminho e tamanho para todas as cinco
 buckets (`avatars`, `patient-photos`, `patient-files`, `case-files`,
 `dicom-files`). O código DICOM também reserva e conclui cada instância.
+No bucket de casos, somente o autor da reserva pode ler o objeto no curto
+intervalo entre o upload e o cadastro do anexo.
 
 Clientes não podem alterar diretamente o catálogo, o limite, a isenção de
 cobrança nem sua associação à empresa. Sobrescrever um objeto gerenciado é

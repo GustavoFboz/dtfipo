@@ -25,6 +25,12 @@ begin
   end if;
   if not exists (select 1 from pg_policies p
       where p.schemaname = 'storage' and p.tablename = 'objects'
+        and p.policyname = 'case_files_reserved_uploader_read' and p.cmd = 'SELECT'
+        and p.qual like '%storage_upload_has_reservation%') then
+    raise exception 'Case uploads cannot return their reserved object';
+  end if;
+  if not exists (select 1 from pg_policies p
+      where p.schemaname = 'storage' and p.tablename = 'objects'
         and p.policyname = 'dicom_objects_insert'
         and p.with_check like '%patient_id_from_storage_path%'
         and p.with_check not like '%c.name%') then
