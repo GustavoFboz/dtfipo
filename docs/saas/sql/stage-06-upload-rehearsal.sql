@@ -8,6 +8,9 @@ insert into auth.users
 values
   ('60000000-0000-4000-8000-000000000061', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'stage06-upload@test.invalid', '', now(), now());
+insert into public.clinic_members (clinic_id, user_id, role, status)
+values ('60000000-0000-4000-8000-000000000060',
+        '60000000-0000-4000-8000-000000000061', 'CEO', 'active');
 insert into public.profiles (id, clinic_id, role, account_subtype, is_default_admin)
 values ('60000000-0000-4000-8000-000000000061',
         '60000000-0000-4000-8000-000000000060', 'CEO', 'CEO', true)
