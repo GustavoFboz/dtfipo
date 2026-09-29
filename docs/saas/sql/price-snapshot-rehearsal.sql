@@ -16,8 +16,10 @@ insert into public.account_subscriptions
    provider_environment, external_customer_id, external_subscription_id)
 values ('70000000-0000-4000-8000-000000000004', 'company',
         '70000000-0000-4000-8000-000000000002', 'company_initial', 'active', 28,
-        now(), now() + interval '1 month', 'asaas', 'sandbox', 'cus_OldPrice', 'sub_OldPrice'),
-       ('70000000-0000-4000-8000-000000000005', 'company',
+        now(), now() + interval '1 month', 'asaas', 'sandbox', 'cus_OldPrice', 'sub_OldPrice');
+insert into public.account_subscriptions
+  (id, scope_type, clinic_id, plan_code, status, billing_day)
+values ('70000000-0000-4000-8000-000000000005', 'company',
         '70000000-0000-4000-8000-000000000003', 'company_initial', 'pending_checkout', 28);
 insert into public.checkout_intents
   (user_id, clinic_id, subscription_id, plan_code, amount_cents, currency,
