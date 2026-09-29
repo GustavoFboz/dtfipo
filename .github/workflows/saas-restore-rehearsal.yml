@@ -173,6 +173,19 @@ jobs:
           bash docs/saas/sql/stage-06-concurrency-rehearsal.sh \
             | tee restore-stage-06-concurrency.log
 
+      - name: Verify existing price contracts and R$1 new checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/price-snapshot-assertions.sql \
+            | tee restore-price-assertions.log
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/price-snapshot-rehearsal.sql \
+            | tee restore-price-rehearsal.log
+
       - name: Record sanitized restored-schema audit
         shell: bash
         run: |
@@ -201,6 +214,8 @@ jobs:
             restore-stage-06-upload-assertions.log
             restore-stage-06-upload-rehearsal.log
             restore-stage-06-concurrency.log
+            restore-price-assertions.log
+            restore-price-rehearsal.log
             restore-audit.log
 
       - name: Stop isolated database
