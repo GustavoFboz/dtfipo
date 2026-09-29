@@ -138,7 +138,7 @@ function bearerToken(request: Request): string | null {
   return match?.[1] ?? null;
 }
 
-export async function readCheckoutBody(request: Request): Promise<{ checkoutIntentId?: unknown; subscriptionId?: unknown }> {
+export async function readCheckoutBody(request: Request): Promise<{ checkoutIntentId?: unknown; subscriptionId?: unknown; paymentId?: unknown }> {
   if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
     throw new CheckoutRequestError(
       "UNSUPPORTED_MEDIA_TYPE",
@@ -177,7 +177,7 @@ export async function readCheckoutBody(request: Request): Promise<{ checkoutInte
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       throw new Error("invalid body");
     }
-    return parsed as { checkoutIntentId?: unknown; subscriptionId?: unknown };
+    return parsed as { checkoutIntentId?: unknown; subscriptionId?: unknown; paymentId?: unknown };
   } catch {
     throw new CheckoutRequestError("INVALID_REQUEST_BODY", "Requisição inválida.", 400);
   }

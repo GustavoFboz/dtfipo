@@ -21,10 +21,12 @@ import {
   COMPANY_SESSION_LABEL,
   fetchBillingPlans,
   fetchAsaasRenewal,
+  fetchCompanyBillingHistory,
   fetchMySubscriptionContext,
   formatPlanPrice,
   formatStorage,
   openAsaasPaymentUrl,
+  openAsaasBillingDocument,
   type BillingPlan,
   type CompanySessionType,
   type MySubscriptionContext,
@@ -347,6 +349,10 @@ export function RenewalPaymentPanel({ context }: { context: MySubscriptionContex
             ? formatPlanPrice(context.company.monthly_price_cents, context.company.currency)
             : ""}/mês
         </div>
+        {renewal.data?.billingType === "UNDEFINED" && <p className="mt-3 text-[12px] text-slate-500">
+          O Asaas gera a cobrança mensal. Esta assinatura não tem débito automático no cartão;
+          confira e pague cada fatura quando ela estiver disponível.
+        </p>}
         {renewal.isLoading ? <p className="mt-5 text-[13px]">Conferindo cobrança no Asaas…</p> : null}
         {invoice ? (
           <div className="mt-6">
@@ -376,10 +382,47 @@ export function RenewalPaymentPanel({ context }: { context: MySubscriptionContex
           className="mt-6 flex items-center gap-2 text-[12px] text-[#15988f]">
           <RefreshCw className="h-4 w-4" /> Atualizar situação
         </button>
+        {context.active_clinic_id && <BillingHistoryPanel clinicId={context.active_clinic_id} />}
       </section>
     </div>
   );
 
+}
+
+function BillingHistoryPanel({ clinicId }: { clinicId: string }) {
+  const history = useQuery({
+    queryKey: ["company_billing_history", clinicId],
+    queryFn: () => fetchCompanyBillingHistory(clinicId),
+    staleTime: 30_000,
+    retry: 1,
+  });
+  const [openingId, setOpeningId] = useState<string | null>(null);
+  const openDocument = async (paymentId: string) => {
+    setOpeningId(paymentId);
+    try { await openAsaasBillingDocument(paymentId); }
+    catch { toast.error("Não foi possível conferir esta cobrança no Asaas."); }
+    finally { setOpeningId(null); }
+  };
+  return <section className="mt-8 border-t pt-6">
+    <h2 className="text-[16px] font-medium">Histórico de cobranças</h2>
+    <p className="mt-2 text-[12px] text-slate-500">Pagamentos confirmados pelo DentalFlow e cobranças vinculadas ao Asaas.</p>
+    {history.isLoading && <p className="mt-3 text-[12px]">Carregando histórico…</p>}
+    {history.isError && <p className="mt-3 text-[12px]">Histórico indisponível no momento. Tente novamente quando estiver online.</p>}
+    {history.data && <ul className="mt-4 space-y-3 text-[12px]">
+      {history.data.payments.length === 0 && <li>Nenhuma cobrança registrada ainda.</li>}
+      {history.data.payments.map((payment) => <li key={payment.id} className="rounded-xl border p-3">
+        <div className="flex flex-wrap justify-between gap-2">
+          <span>{payment.status === "paid" ? "Paga" : payment.status === "refunded" ? "Estornada" : "Pendente"}
+            {" · "}{payment.paid_at ? new Date(payment.paid_at).toLocaleDateString("pt-BR") : new Date(payment.created_at).toLocaleDateString("pt-BR")}</span>
+          <strong>{formatPlanPrice(payment.amount_cents, payment.currency)}</strong>
+        </div>
+        {payment.document_available && <button type="button" disabled={openingId === payment.id}
+          onClick={() => void openDocument(payment.id)} className="mt-2 text-[#15988f] underline disabled:opacity-50">
+          Ver cobrança no Asaas
+        </button>}
+      </li>)}
+    </ul>}
+  </section>;
 }
 
 function PlanCard({
