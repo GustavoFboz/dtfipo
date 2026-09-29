@@ -209,7 +209,7 @@ export async function reserveStorageUpload(input: {
   if (error) {
     if (isMissingStorageBackend(error)) {
       applyOptimisticStorageDelta(-input.sizeBytes);
-      return { reservationId: null, quotaEnforced: false };
+      throw new Error("A reserva de armazenamento está indisponível. Tente enviar o arquivo novamente mais tarde.");
     }
     applyOptimisticStorageDelta(-input.sizeBytes);
     if (String(error.message).includes("STORAGE_QUOTA_EXCEEDED")) {
@@ -218,7 +218,12 @@ export async function reserveStorageUpload(input: {
     throw error;
   }
   const row: any = Array.isArray(data) ? data[0] : data;
-  return { reservationId: row?.file_id ?? row?.id ?? (typeof data === "string" ? data : null), quotaEnforced: true };
+  const reservationId = row?.file_id ?? row?.id ?? (typeof data === "string" ? data : null);
+  if (!reservationId) {
+    applyOptimisticStorageDelta(-input.sizeBytes);
+    throw new Error("Não foi possível confirmar a reserva de armazenamento.");
+  }
+  return { reservationId, quotaEnforced: true };
 }
 
 export async function completeStorageUpload(reservationId: string | null, sourceId?: string | null) {
@@ -230,7 +235,7 @@ export async function completeStorageUpload(reservationId: string | null, source
     _file_id: reservationId,
     _source_id: sourceId ?? null,
   } as never);
-  if (error && !isMissingStorageBackend(error)) throw error;
+  if (error) throw error;
   void refreshStorageUsage().catch(() => undefined);
 }
 
@@ -243,17 +248,11 @@ export async function cancelStorageUpload(reservationId: string | null, sizeByte
 }
 
 export async function deleteManagedStorageFile(file: ManagedStorageFile) {
+  const { error: storageError } = await supabase.storage.from(file.bucket).remove([file.object_path]);
+  if (storageError) throw storageError;
+  const { error } = await supabase.rpc("delete_managed_storage_file" as never, { _file_id: file.id } as never);
+  if (error) throw error;
   applyOptimisticStorageDelta(-Math.max(0, Number(file.size_bytes || 0)));
-  const { data, error } = await supabase.rpc("delete_managed_storage_file" as never, { _file_id: file.id } as never);
-  if (error) {
-    applyOptimisticStorageDelta(Math.max(0, Number(file.size_bytes || 0)));
-    throw error;
-  }
-  const payload: any = Array.isArray(data) ? data[0] : data;
-  const bucket = payload?.bucket ?? file.bucket;
-  const objectPath = payload?.object_path ?? file.object_path;
-  const { error: storageError } = await supabase.storage.from(bucket).remove([objectPath]);
-  if (storageError) console.warn("managed storage object cleanup failed", storageError);
   void refreshStorageUsage().catch(() => undefined);
 }
 
