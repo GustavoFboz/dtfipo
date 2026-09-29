@@ -1,6 +1,9 @@
 -- Disposable clean restore only: test RLS using the authenticated database role.
 -- SQL metadata below is synthetic and is rolled back; live objects use Storage API.
 begin;
+-- A clean schema restore does not create the dashboard-managed avatar bucket.
+insert into storage.buckets (id, name, public)
+values ('avatars', 'avatars', false) on conflict (id) do nothing;
 insert into public.clinics (id, name, slug, storage_limit_bytes)
 values ('60000000-0000-4000-8000-000000000060', 'Storage rehearsal', 'stage06-upload-rehearsal', 100);
 insert into auth.users
