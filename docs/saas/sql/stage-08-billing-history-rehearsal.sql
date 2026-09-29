@@ -60,6 +60,10 @@ do $$ begin
       'public.billing_get_asaas_payment_document_context(uuid,uuid,text)','execute') then
     raise exception 'Browser can call provider document context';
   end if;
+  if has_table_privilege('authenticated','public.platform_operators','select')
+    or has_table_privilege('authenticated','public.platform_operator_audit','select') then
+    raise exception 'Restored Master tables have client grants';
+  end if;
   if (public.billing_get_asaas_payment_document_context(
       '72000000-0000-4000-8000-000000000005',
       '72000000-0000-4000-8000-000000000001','sandbox')->>'payment_id') <> 'pay_History' then
