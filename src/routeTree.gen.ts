@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ReauthRouteImport } from './routes/reauth'
+import { Route as MasterRouteImport } from './routes/master'
 import { Route as LpRouteImport } from './routes/lp'
 import { Route as JoinClinicRouteImport } from './routes/join-clinic'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -76,6 +77,11 @@ import { Route as AuthenticatedClinicaPacientesPatientIdRouteImport } from './ro
 const ReauthRoute = ReauthRouteImport.update({
   id: '/reauth',
   path: '/reauth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MasterRoute = MasterRouteImport.update({
+  id: '/master',
+  path: '/master',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LpRoute = LpRouteImport.update({
@@ -425,6 +431,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/join-clinic': typeof JoinClinicRoute
   '/lp': typeof LpRoute
+  '/master': typeof MasterRoute
   '/reauth': typeof ReauthRoute
   '/agenda': typeof AuthenticatedAgendaRoute
   '/armazenamento': typeof AuthenticatedArmazenamentoRoute
@@ -489,6 +496,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/join-clinic': typeof JoinClinicRoute
   '/lp': typeof LpRoute
+  '/master': typeof MasterRoute
   '/reauth': typeof ReauthRoute
   '/agenda': typeof AuthenticatedAgendaRoute
   '/armazenamento': typeof AuthenticatedArmazenamentoRoute
@@ -555,6 +563,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/join-clinic': typeof JoinClinicRoute
   '/lp': typeof LpRoute
+  '/master': typeof MasterRoute
   '/reauth': typeof ReauthRoute
   '/_authenticated/agenda': typeof AuthenticatedAgendaRoute
   '/_authenticated/armazenamento': typeof AuthenticatedArmazenamentoRoute
@@ -621,6 +630,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/join-clinic'
     | '/lp'
+    | '/master'
     | '/reauth'
     | '/agenda'
     | '/armazenamento'
@@ -685,6 +695,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/join-clinic'
     | '/lp'
+    | '/master'
     | '/reauth'
     | '/agenda'
     | '/armazenamento'
@@ -750,6 +761,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/join-clinic'
     | '/lp'
+    | '/master'
     | '/reauth'
     | '/_authenticated/agenda'
     | '/_authenticated/armazenamento'
@@ -816,6 +828,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   JoinClinicRoute: typeof JoinClinicRoute
   LpRoute: typeof LpRoute
+  MasterRoute: typeof MasterRoute
   ReauthRoute: typeof ReauthRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
   ApiBillingAsaasCheckoutRoute: typeof ApiBillingAsaasCheckoutRoute
@@ -833,6 +846,13 @@ declare module '@tanstack/react-router' {
       path: '/reauth'
       fullPath: '/reauth'
       preLoaderRoute: typeof ReauthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/master': {
+      id: '/master'
+      path: '/master'
+      fullPath: '/master'
+      preLoaderRoute: typeof MasterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lp': {
@@ -1475,6 +1495,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   JoinClinicRoute: JoinClinicRoute,
   LpRoute: LpRoute,
+  MasterRoute: MasterRoute,
   ReauthRoute: ReauthRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
   ApiBillingAsaasCheckoutRoute: ApiBillingAsaasCheckoutRoute,

@@ -2,8 +2,9 @@
 
 Status: iniciado em 2026-09-19
 
-Etapa atual: 06 — cotas implantadas; homologação de uploads no app pendente.
-Etapas 07–09 e cobrança real controlada de Produção ainda não concluídas.
+Etapa atual: 07 — painel Master preparado; homologação de uploads da 06 e
+cenários reais da 04–05 continuam pendentes. Etapas 08–09 e cobrança real
+controlada de Produção ainda não concluídas.
 
 Provedor financeiro obrigatório para lançamento: Asaas
 
@@ -175,6 +176,10 @@ Consulte `STAGE-06-STORAGE-QUOTAS.md`.
 - manter a cortesia e as invariantes internas da IPO.
 
 ### 07 — Administração Master
+
+Status: papel separado e painel de leitura/replay auditado preparados em branch
+isolada. Migração, identidade do operador e segundo fator ainda exigem
+verificação no ambiente ativo. Consulte `STAGE-07-MASTER-ADMIN.md`.
 
 - criar papel de plataforma separado de `admin`/`CEO` da empresa;
 - permitir busca de empresas, assinatura, pagamentos, eventos e saúde da fila;
