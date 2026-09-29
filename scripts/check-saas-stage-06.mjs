@@ -15,6 +15,9 @@ if (!selfHeal.includes("REVOKE ALL ON FUNCTION public.recalculate_clinic_storage
     !selfHeal.includes("GRANT EXECUTE ON FUNCTION public.recalculate_clinic_storage_limit(uuid)")) {
   throw new Error("Restore self-heal reopened the private quota function.");
 }
+if (!selfHeal.includes("REVOKE INSERT, UPDATE, DELETE ON TABLE public.storage_files")) {
+  throw new Error("Restore self-heal reopened direct storage ledger writes.");
+}
 for (const filename of ["stage-06-quota-assertions.sql", "stage-06-quota-rehearsal.sql"]) {
   if (!fs.existsSync(`docs/saas/sql/${filename}`)) {
     throw new Error(`Stage 06 quota verification missing: ${filename}`);

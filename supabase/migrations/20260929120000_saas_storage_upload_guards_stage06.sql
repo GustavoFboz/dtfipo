@@ -60,7 +60,8 @@ BEGIN
       IF NEW.id IS DISTINCT FROM auth.uid() OR NEW.clinic_id IS NOT NULL
         OR COALESCE(NEW.is_default_admin, false)
         OR COALESCE(NEW.role, 'USER') <> 'USER'
-        OR NEW.account_subtype IS NOT NULL THEN
+        OR NEW.account_subtype IS NOT NULL
+        OR NEW.account_type IS NOT NULL THEN
         RAISE EXCEPTION 'PROFILE_COMPANY_MANAGED_BY_BACKEND';
       END IF;
     ELSIF NEW.clinic_id IS DISTINCT FROM OLD.clinic_id

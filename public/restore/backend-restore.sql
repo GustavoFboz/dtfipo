@@ -15120,7 +15120,8 @@ BEGIN
       IF NEW.id IS DISTINCT FROM auth.uid() OR NEW.clinic_id IS NOT NULL
         OR COALESCE(NEW.is_default_admin, false)
         OR COALESCE(NEW.role, 'USER') <> 'USER'
-        OR NEW.account_subtype IS NOT NULL THEN
+        OR NEW.account_subtype IS NOT NULL
+        OR NEW.account_type IS NOT NULL THEN
         RAISE EXCEPTION 'PROFILE_COMPANY_MANAGED_BY_BACKEND';
       END IF;
     ELSIF NEW.clinic_id IS DISTINCT FROM OLD.clinic_id
@@ -15705,6 +15706,15 @@ DROP SCHEMA IF EXISTS _restore;
 -- Financial and fiscal boundaries must be restored after the legacy blanket
 -- grants above. Client roles may read/update only through explicitly validated
 -- RPCs; provider identities and authoritative state changes remain backend-only.
+-- Storage reservations are another authoritative ledger: the old blanket
+-- grant must not allow clients to erase or forge usage after restore.
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.storage_files
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.reserve_storage_upload(
+  bigint,text,text,text,uuid,uuid,text,text
+), public.complete_storage_upload(uuid,text), public.cancel_storage_upload(uuid),
+  public.delete_managed_storage_file(uuid) FROM PUBLIC, anon;
+
 REVOKE ALL ON TABLE public.company_billing_profiles
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON TABLE public.billing_provider_customers
