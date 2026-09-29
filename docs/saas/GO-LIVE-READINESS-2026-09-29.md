@@ -54,8 +54,7 @@ da assinatura existente.
    que o preço exibido corresponde ao preço criado no Asaas.
 
 Esses preparativos **não autorizam** por si só venda geral. Primeiro é preciso
-completar 07–09, fechar as provas restantes no Sandbox e executar uma compra
-real controlada de R$ 1 pelo operador, conferindo pagamento, evento, ledger,
+completar 07–09, fechar as provas restantes no Sandbox e executar uma compra real controlada de R$ 1 pelo operador, conferindo pagamento, evento, ledger,
 acesso, duplicata e cancelamento sem apagar dados. Só depois restaurar o
 preço comercial e liberar o beta para clientes.
 
