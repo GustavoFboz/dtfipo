@@ -195,6 +195,15 @@ jobs:
             < docs/saas/sql/stage-07-master-rehearsal.sql \
             | tee restore-stage-07-master.log
 
+      - name: Rehearse Stage 08 billing manager history boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-08-billing-history-rehearsal.sql \
+            | tee restore-stage-08-history.log
+
       - name: Record sanitized restored-schema audit
         shell: bash
         run: |
@@ -226,6 +235,7 @@ jobs:
             restore-price-assertions.log
             restore-price-rehearsal.log
             restore-stage-07-master.log
+            restore-stage-08-history.log
             restore-audit.log
 
       - name: Stop isolated database

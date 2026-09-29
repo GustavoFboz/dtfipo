@@ -125,7 +125,24 @@ export type AsaasRenewal = {
 };
 
 type RenewalResult =
-  | { ok: true; invoice: AsaasRenewal | null; nextPeriodDate: string }
+  | { ok: true; invoice: AsaasRenewal | null; nextPeriodDate: string; billingType?: string }
+  | { ok: false; error: string; code: string; status: number };
+
+export type CompanyBillingHistory = {
+  payments: {
+    id: string; status: string; amount_cents: number; currency: string;
+    provider_environment: "sandbox" | "production"; document_available: boolean;
+    paid_at: string | null; period_start: string | null; period_end: string | null;
+    created_at: string;
+  }[];
+  subscriptions: {
+    id: string; plan_code: string; status: string; provider_environment: string | null;
+    current_period_end: string | null; canceled_at: string | null; created_at: string;
+  }[];
+};
+
+type DocumentResult =
+  | { ok: true; paymentUrl: string; environment: "sandbox" | "production" }
   | { ok: false; error: string; code: string; status: number };
 
 export type BillingTestCapability = {
@@ -444,6 +461,31 @@ export async function fetchAsaasRenewal(subscriptionId: string): Promise<Extract
     invoice.paymentUrl = validateAsaasPaymentUrl(invoice.paymentUrl, invoice.environment);
   }
   return result;
+}
+
+export async function fetchCompanyBillingHistory(clinicId: string): Promise<CompanyBillingHistory> {
+  const { data, error } = await (supabase as any).rpc("billing_company_history", { p_clinic_id: clinicId });
+  if (error) throw error;
+  return (data ?? { payments: [], subscriptions: [] }) as CompanyBillingHistory;
+}
+
+export async function openAsaasBillingDocument(paymentId: string): Promise<void> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("Sua sessão expirou. Entre novamente para continuar.");
+  let result: DocumentResult;
+  if (!isDentalFlowDesktop() && !Capacitor.isNativePlatform()) {
+    const { getAsaasDocumentServerFn } = await import("@/lib/billing/asaas-document.functions");
+    result = await getAsaasDocumentServerFn({ data: { paymentId } });
+  } else {
+    const response = await fetch("https://dtfipo.lovable.app/api/billing/asaas-document", {
+      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ paymentId }), cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer",
+    });
+    result = (await response.json()) as DocumentResult;
+  }
+  if (!result.ok) throw new BillingCheckoutClientError(result.error, result.code, result.status);
+  await openAsaasPaymentUrl(result.paymentUrl, result.environment);
 }
 
 export function friendlyBillingError(error: unknown, fallback: string): string {

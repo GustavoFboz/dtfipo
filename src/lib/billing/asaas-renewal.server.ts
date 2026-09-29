@@ -30,7 +30,7 @@ export type RenewalInvoice = {
 };
 
 export type RenewalResult =
-  | { ok: true; invoice: RenewalInvoice | null; nextPeriodDate: string }
+  | { ok: true; invoice: RenewalInvoice | null; nextPeriodDate: string; billingType?: string }
   | { ok: false; code: string; error: string; status: number };
 
 const failure = (code: string, error: string, status: number): RenewalResult =>
@@ -132,6 +132,7 @@ export async function executeAsaasRenewalRequest(request: Request, subscriptionI
         validateUrl: (url) => client.validatePaymentUrl(url),
       }),
       nextPeriodDate: context.current_period_end.slice(0, 10),
+      billingType: subscription.billingType,
     };
   } catch (error) {
     const code = error instanceof AsaasProvisioningError ? error.code

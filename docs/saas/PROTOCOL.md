@@ -2,9 +2,9 @@
 
 Status: iniciado em 2026-09-19
 
-Etapa atual: 07 — painel Master preparado; homologação de uploads da 06 e
-cenários reais da 04–05 continuam pendentes. Etapas 08–09 e cobrança real
-controlada de Produção ainda não concluídas.
+Etapa atual: 08 — histórico de cobrança preparado; cancelamento e troca de plano
+pendentes. Etapa 07 aguarda atribuição específica do operador Master; cenários
+reais 04–06 e a etapa 09 também permanecem pendentes.
 
 Provedor financeiro obrigatório para lançamento: Asaas
 
@@ -187,6 +187,10 @@ verificação no ambiente ativo. Consulte `STAGE-07-MASTER-ADMIN.md`.
 - nenhum painel Master é disponibilizado por confiança apenas na UI.
 
 ### 08 — Centro de cobrança do cliente
+
+Status: histórico e consulta segura de cobrança preparados; falta completar
+cancelamento e troca de plano com efeito comprovado no Asaas. Consulte
+`STAGE-08-BILLING-CENTER.md`.
 
 - plano atual, vencimento, forma de pagamento, faturas e recibos;
 - troca/cancelamento com impacto e data efetiva claros;
