@@ -55,7 +55,7 @@ first_pid=$!
 
 ready=false
 for _ in $(seq 1 100); do
-  if rg -q 'FIRST_RESERVED' "$scratch_dir/first.log"; then ready=true; break; fi
+  if grep -q 'FIRST_RESERVED' "$scratch_dir/first.log"; then ready=true; break; fi
   if ! kill -0 "$first_pid" 2>/dev/null; then
     cat "$scratch_dir/first.log"
     exit 1
@@ -79,7 +79,7 @@ then
   echo 'Concurrent reservation exceeded the company quota.' >&2
   exit 1
 fi
-if ! rg -q 'STORAGE_QUOTA_EXCEEDED' "$scratch_dir/second.log"; then
+if ! grep -q 'STORAGE_QUOTA_EXCEEDED' "$scratch_dir/second.log"; then
   cat "$scratch_dir/second.log"
   echo 'Second reservation failed for a reason other than the quota.' >&2
   exit 1
