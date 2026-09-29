@@ -16567,6 +16567,10 @@ DROP SCHEMA IF EXISTS _restore;
 -- Financial and fiscal boundaries must be restored after the legacy blanket
 -- grants above. Client roles may read/update only through explicitly validated
 -- RPCs; provider identities and authoritative state changes remain backend-only.
+REVOKE ALL ON FUNCTION public.billing_subscription_contract_amount(uuid)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.billing_subscription_contract_amount(uuid)
+  TO service_role;
 -- Storage reservations are another authoritative ledger: the old blanket
 -- grant must not allow clients to erase or forge usage after restore.
 REVOKE INSERT, UPDATE, DELETE ON TABLE public.storage_files
