@@ -2,7 +2,8 @@
 
 Status: iniciado em 2026-09-19
 
-Etapa atual: 06 — primeiro ciclo Sandbox pago e acesso aberto; cotas em implantação
+Etapa atual: 06 — cotas implantadas; homologação de uploads no app pendente.
+Etapas 07–09 e cobrança real controlada de Produção ainda não concluídas.
 
 Provedor financeiro obrigatório para lançamento: Asaas
 
@@ -164,9 +165,9 @@ de risco restantes continuam em revisão. Consulte STAGE-05-ASAAS-LIFECYCLE.md.
 
 ### 06 — Cotas e armazenamento
 
-Status: composição da cota do plano e adicionais preparada em branch isolada;
-consulte `STAGE-06-STORAGE-QUOTAS.md`. Bloqueio de todos os caminhos de upload
-ainda não foi homologado.
+Status: cota e reservas obrigatórias implantadas em 29/09/2026; ensaios em
+base descartável passaram. Falta homologar uploads na conta publicada.
+Consulte `STAGE-06-STORAGE-QUOTAS.md`.
 
 - aplicar limites do plano e adicionais por entitlement;
 - bloquear novos uploads antes de exceder a cota;
