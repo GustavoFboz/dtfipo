@@ -60,5 +60,11 @@ ausentes. A migração contabiliza objetos históricos de casos identificáveis,
 mas preserva os demais e não apaga nenhum arquivo. Após aplicar, conferir
 resíduos sem empresa identificável, o tamanho real por empresa e o fluxo real
 de upload DICOM. A concorrência e uploads autenticados foram ensaiados na base
-descartável do CI. O teste de ponta a ponta na conta publicada ainda é
-necessário para declarar prontidão de produção.
+descartável do CI. O teste de ponta a ponta na conta publicada em 29/09/2026 encontrou uma corrida
+de sessão: a reserva válida era criada, mas a política de INSERT do Storage
+re-resolvia a empresa ativa e podia rejeitar o primeiro envio com RLS. A
+migration `20260929143000_fix_reserved_upload_session_race.sql` remove essa
+segunda resolução sem afrouxar a autorização: bucket, caminho, tamanho, autor e
+estado `reserved` continuam tendo de coincidir exatamente com a reserva já
+autorizada. Repetir o teste publicado após a implantação dessa migration para
+declarar a homologação da interface.
