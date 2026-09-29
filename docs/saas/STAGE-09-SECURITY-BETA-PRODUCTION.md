@@ -19,3 +19,24 @@ Desabilitar imediatamente a flag de Produção, manter ledger/eventos para audit
 ## Observabilidade mínima
 
 Antes do piloto: fila/dead-letter, falhas do worker, divergência Asaas↔ledger, falhas de checkout e uso/cota de armazenamento precisam de rotina operacional documentada. Alertas externos e credenciais de Produção dependem da configuração das contas e não são simulados no repositório.
+
+
+## Estado de conclusão técnica
+
+A preparação executável do repositório está concluída quando o CI do candidato
+passar com restauração limpa, ensaios 01–08 e o gate Stage 09. Isso **não**
+equivale a declarar o SaaS financeiramente pronto: provas que exigem o provedor,
+a conta publicada, credenciais de Produção, MFA ou pagamento real não podem ser
+fabricadas por CI e permanecem bloqueadores externos.
+
+### Checklist de handoff externo
+
+- [ ] Autorizar nominalmente o operador Master e concluir MFA AAL2.
+- [ ] Homologar upload comum e DICOM na conta publicada.
+- [ ] Registrar no Sandbox duplicata, perda/reconciliação/replay e os estados
+      financeiros reais ainda pendentes.
+- [ ] Configurar credenciais e webhook exclusivos de Produção sem expor secrets.
+- [ ] Autorizar e executar a compra controlada de R$ 1 somente após os itens
+      anteriores; conferir webhook, ledger, entitlement, idempotência e
+      cancelamento.
+- [ ] Restaurar preço comercial antes de abrir o lote piloto.
