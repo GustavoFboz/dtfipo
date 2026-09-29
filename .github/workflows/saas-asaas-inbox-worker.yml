@@ -25,7 +25,13 @@ jobs:
         run: |
           set -euo pipefail
           for attempt in {1..10}; do
+            # Retry only transient transport/HTTP failures. Persisted inbox events make
+            # retries safe; the worker remains responsible for idempotent processing.
             response=$(curl --silent --show-error --fail-with-body --max-time 20 \
+              --retry 4 \
+              --retry-delay 2 \
+              --retry-max-time 60 \
+              --retry-all-errors \
               --request POST \
               --header "Authorization: Bearer $BILLING_WORKER_TOKEN" \
               --header "Content-Type: application/json" \
