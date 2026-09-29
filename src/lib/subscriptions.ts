@@ -31,7 +31,6 @@ export type BillingPlan = {
 export type CompanySubscriptionSnapshot = {
   subscription_id: string;
   scope: "company";
-  internal_full_access?: boolean;
   plan_code: string;
   plan_name: string;
   status: SubscriptionStatus;
@@ -115,35 +114,6 @@ export type AsaasCheckout = {
   subscriptionReused: boolean;
   paymentConfirmed: false;
 };
-
-export type AsaasRenewal = {
-  paymentId: string;
-  paymentUrl: string;
-  dueDate: string;
-  amountCents: number;
-  environment: "sandbox" | "production";
-};
-
-type RenewalResult =
-  | { ok: true; invoice: AsaasRenewal | null; nextPeriodDate: string; billingType?: string }
-  | { ok: false; error: string; code: string; status: number };
-
-export type CompanyBillingHistory = {
-  payments: {
-    id: string; status: string; amount_cents: number; currency: string;
-    provider_environment: "sandbox" | "production"; document_available: boolean;
-    paid_at: string | null; period_start: string | null; period_end: string | null;
-    created_at: string;
-  }[];
-  subscriptions: {
-    id: string; plan_code: string; status: string; provider_environment: string | null;
-    current_period_end: string | null; canceled_at: string | null; created_at: string;
-  }[];
-};
-
-type DocumentResult =
-  | { ok: true; paymentUrl: string; environment: "sandbox" | "production" }
-  | { ok: false; error: string; code: string; status: number };
 
 export type BillingTestCapability = {
   enabled: boolean;
@@ -407,13 +377,7 @@ export async function createAsaasCheckout(checkoutIntentId: string): Promise<Asa
 }
 
 export async function openAsaasCheckoutPayment(checkout: AsaasCheckout): Promise<void> {
-  return openAsaasPaymentUrl(checkout.paymentUrl, checkout.environment);
-}
-
-export async function openAsaasPaymentUrl(
-  paymentUrl: string, environment: "sandbox" | "production",
-): Promise<void> {
-  const url = validateAsaasPaymentUrl(paymentUrl, environment);
+  const url = validateAsaasPaymentUrl(checkout.paymentUrl, checkout.environment);
 
   if (Capacitor.isNativePlatform()) {
     const { Browser } = await import("@capacitor/browser");
@@ -427,65 +391,6 @@ export async function openAsaasPaymentUrl(
   if (typeof window === "undefined") throw new Error("O navegador não está disponível.");
   const opened = window.open(url, "_blank", "noopener,noreferrer");
   if (!opened) window.location.assign(url);
-}
-
-export async function fetchAsaasRenewal(subscriptionId: string): Promise<Extract<RenewalResult, {ok: true}>> {
-  const { data } = await supabase.auth.getSession();
-  const accessToken = data.session?.access_token;
-  if (!accessToken) throw new Error("Sua sessão expirou. Entre novamente para continuar.");
-
-  let result: RenewalResult;
-  if (!isDentalFlowDesktop() && !Capacitor.isNativePlatform()) {
-    const { getAsaasRenewalServerFn } = await import("@/lib/billing/asaas-renewal.functions");
-    result = await getAsaasRenewalServerFn({ data: { subscriptionId } });
-  } else {
-    const response = await fetch("https://dtfipo.lovable.app/api/billing/asaas-renewal", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ subscriptionId }),
-      cache: "no-store",
-      credentials: "omit",
-      referrerPolicy: "no-referrer",
-    });
-    result = (await response.json()) as RenewalResult;
-  }
-  if (!result.ok) throw new BillingCheckoutClientError(result.error, result.code, result.status);
-  if (result.invoice) {
-    const invoice = result.invoice;
-    if (!/^pay_[A-Za-z0-9]+$/.test(invoice.paymentId) ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(invoice.dueDate) ||
-      !Number.isSafeInteger(invoice.amountCents) || invoice.amountCents <= 0 ||
-      !["sandbox", "production"].includes(invoice.environment)) {
-      throw new Error("A cobrança retornada é inválida.");
-    }
-    invoice.paymentUrl = validateAsaasPaymentUrl(invoice.paymentUrl, invoice.environment);
-  }
-  return result;
-}
-
-export async function fetchCompanyBillingHistory(clinicId: string): Promise<CompanyBillingHistory> {
-  const { data, error } = await (supabase as any).rpc("billing_company_history", { p_clinic_id: clinicId });
-  if (error) throw error;
-  return (data ?? { payments: [], subscriptions: [] }) as CompanyBillingHistory;
-}
-
-export async function openAsaasBillingDocument(paymentId: string): Promise<void> {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (!token) throw new Error("Sua sessão expirou. Entre novamente para continuar.");
-  let result: DocumentResult;
-  if (!isDentalFlowDesktop() && !Capacitor.isNativePlatform()) {
-    const { getAsaasDocumentServerFn } = await import("@/lib/billing/asaas-document.functions");
-    result = await getAsaasDocumentServerFn({ data: { paymentId } });
-  } else {
-    const response = await fetch("https://dtfipo.lovable.app/api/billing/asaas-document", {
-      method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ paymentId }), cache: "no-store", credentials: "omit", referrerPolicy: "no-referrer",
-    });
-    result = (await response.json()) as DocumentResult;
-  }
-  if (!result.ok) throw new BillingCheckoutClientError(result.error, result.code, result.status);
-  await openAsaasPaymentUrl(result.paymentUrl, result.environment);
 }
 
 export function friendlyBillingError(error: unknown, fallback: string): string {

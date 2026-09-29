@@ -1234,9 +1234,9 @@ export const updateCaseStagePending = async (id: string, pending_count: number) 
 
 // Upload de foto do paciente
 export async function uploadPatientPhoto(patientId: string, file: Blob): Promise<string> {
-  const path = `${patientId}/${crypto.randomUUID()}.jpg`;
+  const path = `${patientId}/${Date.now()}.jpg`;
   const reservation = await reserveStorageUpload({ sizeBytes: file.size, bucket: "patient-photos", objectPath: path, sourceType: "patient_photo", patientId, originalName: "Foto do paciente.jpg", mimeType: "image/jpeg" });
-  const { error } = await supabase.storage.from("patient-photos").upload(path, file, { contentType: "image/jpeg", upsert: false });
+  const { error } = await supabase.storage.from("patient-photos").upload(path, file, { contentType: "image/jpeg", upsert: true });
   if (error) { await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
   const { data, error: signErr } = await supabase.storage.from("patient-photos").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
   if (signErr) { await supabase.storage.from("patient-photos").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw signErr; }
@@ -1247,9 +1247,9 @@ export async function uploadPatientPhoto(patientId: string, file: Blob): Promise
 export async function uploadUserAvatar(file: Blob): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Não autenticado");
-  const path = `${user.id}/${crypto.randomUUID()}.jpg`;
+  const path = `${user.id}/${Date.now()}.jpg`;
   const reservation = await reserveStorageUpload({ sizeBytes: file.size, bucket: "avatars", objectPath: path, sourceType: "user_avatar", originalName: "Avatar.jpg", mimeType: "image/jpeg" });
-  const { error } = await supabase.storage.from("avatars").upload(path, file, { contentType: "image/jpeg", upsert: false });
+  const { error } = await supabase.storage.from("avatars").upload(path, file, { contentType: "image/jpeg", upsert: true });
   if (error) { await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
   const { data, error: signErr } = await supabase.storage.from("avatars").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
   if (signErr) { await supabase.storage.from("avatars").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw signErr; }
@@ -1389,8 +1389,6 @@ export async function getCaseAttachmentUrl(path: string, downloadName?: string):
 }
 
 export async function deleteCaseAttachment(att: CaseAttachment) {
-  const { error: storageError } = await supabase.storage.from("case-files").remove([att.storage_path]);
-  if (storageError) throw storageError;
   const managed = await supabase.rpc("delete_case_attachment_managed" as never, { _attachment_id: att.id } as never);
   const missingRpc = managed.error && (managed.error.code === "PGRST202" || managed.error.code === "42883" || String(managed.error.message || "").toLowerCase().includes("schema cache"));
   if (managed.error && !missingRpc) throw managed.error;
@@ -1399,6 +1397,10 @@ export async function deleteCaseAttachment(att: CaseAttachment) {
     if (error) throw error;
   }
   applyOptimisticStorageDelta(-Math.max(0, Number(att.size_bytes || 0)));
+  try {
+    const { error: storageError } = await supabase.storage.from("case-files").remove([att.storage_path]);
+    if (storageError) console.warn("attachment storage cleanup failed", storageError);
+  } catch (storageError) { console.warn("attachment storage cleanup failed", storageError); }
   try { markDeleted(att.id); } catch {}
 }
 

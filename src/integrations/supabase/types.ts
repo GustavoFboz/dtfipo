@@ -2365,6 +2365,7 @@ export type Database = {
           age: number
           allergies: string | null
           birth_date: string | null
+          clinic_id: string | null
           clinical_notes: string | null
           cpf: string | null
           created_at: string
@@ -2386,6 +2387,7 @@ export type Database = {
           age?: number
           allergies?: string | null
           birth_date?: string | null
+          clinic_id?: string | null
           clinical_notes?: string | null
           cpf?: string | null
           created_at?: string
@@ -2407,6 +2409,7 @@ export type Database = {
           age?: number
           allergies?: string | null
           birth_date?: string | null
+          clinic_id?: string | null
           clinical_notes?: string | null
           cpf?: string | null
           created_at?: string
@@ -2423,7 +2426,15 @@ export type Database = {
           photo_url?: string | null
           rg?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "patients_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       phase_assignments: {
         Row: {
@@ -2494,6 +2505,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_operator_audit: {
+        Row: {
+          action: string
+          id: string
+          performed_at: string
+          reason: string
+          target_environment: string
+          target_ref: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          id?: string
+          performed_at?: string
+          reason: string
+          target_environment: string
+          target_ref: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          id?: string
+          performed_at?: string
+          reason?: string
+          target_environment?: string
+          target_ref?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      platform_operators: {
+        Row: {
+          enabled: boolean
+          enrolled_at: string
+          enrolled_by: string
+          user_id: string
+        }
+        Insert: {
+          enabled?: boolean
+          enrolled_at?: string
+          enrolled_by: string
+          user_id: string
+        }
+        Update: {
+          enabled?: boolean
+          enrolled_at?: string
+          enrolled_by?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       professional_accounts: {
         Row: {
@@ -3635,6 +3697,11 @@ export type Database = {
         }
         Returns: Json
       }
+      billing_company_history: { Args: { p_clinic_id: string }; Returns: Json }
+      billing_current_user_can_manage_company: {
+        Args: { p_clinic_id: string }
+        Returns: boolean
+      }
       billing_finish_asaas_event: {
         Args: {
           p_error_code?: string
@@ -3653,6 +3720,14 @@ export type Database = {
           p_status: string
         }
         Returns: boolean
+      }
+      billing_get_asaas_payment_document_context: {
+        Args: {
+          p_actor_user_id: string
+          p_environment: string
+          p_payment_id: string
+        }
+        Returns: Json
       }
       billing_get_asaas_provisioning_context: {
         Args: {
@@ -3710,6 +3785,10 @@ export type Database = {
           p_reason: string
         }
         Returns: boolean
+      }
+      billing_subscription_contract_amount: {
+        Args: { p_subscription_id: string }
+        Returns: number
       }
       billing_suspend_asaas_expired_grace: {
         Args: {
@@ -3928,6 +4007,11 @@ export type Database = {
         Returns: number
       }
       patient_id_from_storage_path: { Args: { _name: string }; Returns: string }
+      platform_master_dashboard: { Args: { p_search?: string }; Returns: Json }
+      platform_master_replay_asaas_event: {
+        Args: { p_environment: string; p_event_id: string; p_reason: string }
+        Returns: boolean
+      }
       recalculate_clinic_storage_limit: {
         Args: { _clinic_id: string }
         Returns: number
@@ -4007,6 +4091,10 @@ export type Database = {
         Returns: number
       }
       storage_current_clinic_id: { Args: never; Returns: string }
+      storage_upload_has_reservation: {
+        Args: { _bucket: string; _metadata: Json; _path: string }
+        Returns: boolean
+      }
       subscription_access_mode: {
         Args: { _grace_until: string; _period_end: string; _status: string }
         Returns: string

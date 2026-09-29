@@ -119,7 +119,7 @@ function jsonResponse(request: Request, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: corsHeaders(request) });
 }
 
-export function requestOriginAllowed(request: Request): boolean {
+function requestOriginAllowed(request: Request): boolean {
   const origin = request.headers.get("origin");
   return origin === null || isAllowedRequestOrigin(origin);
 }
@@ -138,7 +138,7 @@ function bearerToken(request: Request): string | null {
   return match?.[1] ?? null;
 }
 
-export async function readCheckoutBody(request: Request): Promise<{ checkoutIntentId?: unknown; subscriptionId?: unknown; paymentId?: unknown }> {
+async function readCheckoutBody(request: Request): Promise<{ checkoutIntentId?: unknown }> {
   if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
     throw new CheckoutRequestError(
       "UNSUPPORTED_MEDIA_TYPE",
@@ -177,7 +177,7 @@ export async function readCheckoutBody(request: Request): Promise<{ checkoutInte
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       throw new Error("invalid body");
     }
-    return parsed as { checkoutIntentId?: unknown; subscriptionId?: unknown; paymentId?: unknown };
+    return parsed as { checkoutIntentId?: unknown };
   } catch {
     throw new CheckoutRequestError("INVALID_REQUEST_BODY", "Requisição inválida.", 400);
   }
@@ -196,9 +196,6 @@ function publicCheckoutErrorMessage(code: string): string {
   }
   if (code === "ASAAS_PAYMENT_NOT_READY") {
     return "A assinatura foi criada e o Asaas ainda está preparando a cobrança. Tente novamente em instantes.";
-  }
-  if (code === "ASAAS_NETWORK_ERROR" || code === "ASAAS_TIMEOUT") {
-    return "Falha de conexão com o Asaas. Seus dados de cobrança foram salvos; aguarde e tente novamente.";
   }
   if (code.includes("FORBIDDEN")) return "Sua sessão não permite gerenciar esta assinatura.";
   if (code.includes("NOT_FOUND"))
@@ -237,9 +234,7 @@ function checkoutError(error: unknown): { body: CheckoutErrorBody; status: numbe
             ? 404
             : error.code.includes("UNCERTAIN") || error.code.includes("REVIEW_REQUIRED")
               ? 409
-              : error.code === "ASAAS_PAYMENT_NOT_READY" ||
-                  error.code === "ASAAS_NETWORK_ERROR" ||
-                  error.code === "ASAAS_TIMEOUT"
+              : error.code === "ASAAS_PAYMENT_NOT_READY"
                 ? 503
                 : error instanceof AsaasApiError &&
                     error.status &&
@@ -339,7 +334,7 @@ async function waitForInitialPayment(input: {
   );
 }
 
-export async function loadAuthenticatedUserId(request: Request): Promise<string> {
+async function loadAuthenticatedUserId(request: Request): Promise<string> {
   const token = bearerToken(request);
   if (!token) throw new AsaasProvisioningError("BILLING_CHECKOUT_FORBIDDEN", "Sessão inválida.");
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");

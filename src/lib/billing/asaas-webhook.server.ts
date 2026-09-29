@@ -598,7 +598,7 @@ export async function processAsaasInbox(
             p_id: event.id,
             p_lease_token: event.lease_token,
             p_outcome: outcome,
-            p_error_code: code,
+            ...(code === undefined ? {} : { p_error_code: code }),
           });
           if (error || !data) throw error ?? new Error("LEASE_EXPIRED");
         },
