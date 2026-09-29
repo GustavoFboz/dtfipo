@@ -26,7 +26,8 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "sound:prepare": "node scripts/prepare-notification-sound.mjs"
+    "sound:prepare": "node scripts/prepare-notification-sound.mjs",
+    "check:saas:stage-09": "node scripts/check-saas-stage-09.mjs && node scripts/build-restore-bundle.mjs --check"
   },
   "dependencies": {
     "@capacitor/app": "^7.0.0",
