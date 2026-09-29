@@ -18,6 +18,7 @@ on:
   pull_request:
     branches:
       - main
+      - "saas/stage-03-asaas-checkout"
     paths:
       - "public/restore.sql"
       - "public/restore/**"
