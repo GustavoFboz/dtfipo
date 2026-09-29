@@ -14,6 +14,7 @@ on:
       - "scripts/check-saas-stage-04.mjs"
       - "scripts/check-saas-stage-05.mjs"
       - "scripts/check-saas-stage-06.mjs"
+      - "scripts/check-saas-stage-09.mjs"
       - ".github/workflows/saas-restore-rehearsal.yml"
   pull_request:
     branches:
@@ -30,6 +31,7 @@ on:
       - "scripts/check-saas-stage-04.mjs"
       - "scripts/check-saas-stage-05.mjs"
       - "scripts/check-saas-stage-06.mjs"
+      - "scripts/check-saas-stage-09.mjs"
       - ".github/workflows/saas-restore-rehearsal.yml"
 
 permissions:
@@ -203,6 +205,9 @@ jobs:
             psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
             < docs/saas/sql/stage-08-billing-history-rehearsal.sql \
             | tee restore-stage-08-history.log
+
+      - name: Verify Stage 09 production safety gates
+        run: node scripts/check-saas-stage-09.mjs
 
       - name: Record sanitized restored-schema audit
         shell: bash
