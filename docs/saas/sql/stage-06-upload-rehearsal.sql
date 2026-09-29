@@ -28,7 +28,7 @@ insert into public.account_subscriptions
    current_period_start, current_period_end, billing_provider,
    provider_environment, external_customer_id, external_subscription_id)
 values ('company', '60000000-0000-4000-8000-000000000060', 'company_initial',
-        'active', 29, now(), now() + interval '1 month', 'asaas', 'sandbox',
+        'active', 28, now(), now() + interval '1 month', 'asaas', 'sandbox',
         'cus_Stage06Upload', 'sub_Stage06Upload');
 insert into public.patients (id, name, clinic_id)
 values ('60000000-0000-4000-8000-000000000062', 'Rehearsal patient',
