@@ -9,7 +9,11 @@ begin
      or has_function_privilege('anon', 'public.billing_subscription_contract_amount(uuid)', 'execute')
      or has_function_privilege('authenticated', 'public.billing_subscription_contract_amount(uuid)', 'execute')
      or not has_function_privilege('service_role', 'public.billing_subscription_contract_amount(uuid)', 'execute') then
-    raise exception 'Contract amount helper has unsafe grants';
+    raise exception 'Contract amount helper grant diagnostic: exists %, anon %, authenticated %, service %',
+      to_regprocedure('public.billing_subscription_contract_amount(uuid)'),
+      has_function_privilege('anon', 'public.billing_subscription_contract_amount(uuid)', 'execute'),
+      has_function_privilege('authenticated', 'public.billing_subscription_contract_amount(uuid)', 'execute'),
+      has_function_privilege('service_role', 'public.billing_subscription_contract_amount(uuid)', 'execute');
   end if;
   if exists (
     select 1 from public.account_subscriptions s
