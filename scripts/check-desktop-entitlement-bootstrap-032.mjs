@@ -21,8 +21,9 @@ expect(subscriptions.includes("locallySafeContext"), "Cached subscription access
 expect(subscriptions.includes("current_period_end"), "Offline paid access must remain bounded by the server-verified billing period.");
 expect(subscriptions.includes('identity.source !== "cloud"'), "A fresh entitlement snapshot must require a real validated online identity.");
 expect(subscriptions.includes("fetchVerifiedCloudContext"), "Desktop entitlement needs a strict server verification path.");
-expect(subscriptions.includes('cached?.effective_access === "full"'), "A still-valid verified entitlement should render immediately from SQLite.");
-expect(subscriptions.includes("refreshInBackground"), "Cached entitlement must reconcile with the server without blocking the Hub.");
+expect(subscriptions.includes("if (offline)"), "A server-verified entitlement cache must remain available while offline.");
+expect(!subscriptions.includes("refreshInBackground"), "Online Desktop entitlement must not return cache before the canonical server response.");
+expect(subscriptions.indexOf("await fetchVerifiedCloudContext()") > subscriptions.indexOf("if (offline)"), "Connected Desktop reads must consult the canonical server context first.");
 expect(!subscriptions.includes("company_advanced\"" + " as"), "Desktop must never invent a paid plan locally.");
 
 const authIndex = bootstrap.indexOf('"sessão inicial do Desktop"');
