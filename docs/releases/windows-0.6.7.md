@@ -14,4 +14,5 @@ Release oficial de estabilização do Desktop.
 - sem migrations novas;
 - sem alteração em RLS;
 - sem alteração em checkout, billing, webhooks ou regras SaaS/Asaas;
-- build Windows validado por CI antes da publicação.
+- build Windows validado por CI antes da publicação;
+- gates de regressão Desktop, entitlement, Hub e central de atualizações atualizados para 0.6.7.
