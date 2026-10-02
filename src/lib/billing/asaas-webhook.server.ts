@@ -29,7 +29,7 @@ const SUBSCRIPTION_EVENTS = new Set([
 type InboxEvent = {
   id: string;
   event_type: string;
-  payload: { paymentId?: string; subscriptionId?: string };
+  payload: { paymentId?: string; subscriptionId?: string; customerId?: string; externalReference?: string };
   lease_token: string;
   attempt_count: number;
 };
@@ -41,7 +41,7 @@ type WebhookDependencies = {
     environment: AsaasProviderEnvironment;
     eventId: string;
     eventType: string;
-    payload: { paymentId?: string; subscriptionId?: string };
+    payload: { paymentId?: string; subscriptionId?: string; customerId?: string; externalReference?: string };
   }) => Promise<void>;
 };
 
@@ -267,17 +267,28 @@ export async function receiveAsaasWebhook(
       payment && typeof payment === "object" && !Array.isArray(payment)
         ? (payment as { id?: unknown }).id
         : undefined;
+    const paymentObject = payment && typeof payment === "object" && !Array.isArray(payment)
+      ? payment as { customer?: unknown; subscription?: unknown; externalReference?: unknown }
+      : undefined;
     const subscription = event.subscription;
     const subscriptionId =
       subscription && typeof subscription === "object" && !Array.isArray(subscription)
         ? (subscription as { id?: unknown }).id
         : undefined;
-    const payload: { paymentId?: string; subscriptionId?: string } = {};
+    const payload: { paymentId?: string; subscriptionId?: string; customerId?: string; externalReference?: string } = {};
     if (typeof paymentId === "string" && PAYMENT_ID.test(paymentId)) {
       payload.paymentId = paymentId;
     }
     if (typeof subscriptionId === "string" && SUBSCRIPTION_ID.test(subscriptionId)) {
       payload.subscriptionId = subscriptionId;
+    } else if (typeof paymentObject?.subscription === "string" && SUBSCRIPTION_ID.test(paymentObject.subscription)) {
+      payload.subscriptionId = paymentObject.subscription;
+    }
+    if (typeof paymentObject?.customer === "string" && /^cus_[A-Za-z0-9]+$/.test(paymentObject.customer)) {
+      payload.customerId = paymentObject.customer;
+    }
+    if (typeof paymentObject?.externalReference === "string" && paymentObject.externalReference.length <= 200) {
+      payload.externalReference = paymentObject.externalReference;
     }
     await deps.receive({
       environment: deps.environment,

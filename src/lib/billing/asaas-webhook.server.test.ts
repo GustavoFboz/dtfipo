@@ -58,13 +58,19 @@ describe("Asaas webhook inbox", () => {
     expect(receive).not.toHaveBeenCalled();
   });
 
-  it("persists only the resource ID and acknowledges after the write", async () => {
+  it("persists only safe linkage metadata and acknowledges after the write", async () => {
     const receive = vi.fn().mockResolvedValue(undefined);
     const result = await receiveAsaasWebhook(
       webhook({
         id: eventId,
         event: "PAYMENT_CONFIRMED",
-        payment: { id: paymentId, customer: "private", cpfCnpj: "sensitive" },
+        payment: {
+          id: paymentId,
+          customer: "cus_ABC123",
+          subscription: "sub_ABC123",
+          externalReference: "dentalflow:payment:test",
+          cpfCnpj: "sensitive",
+        },
       }),
       { environment: "sandbox", webhookToken, receive },
     );
@@ -73,7 +79,12 @@ describe("Asaas webhook inbox", () => {
       environment: "sandbox",
       eventId,
       eventType: "PAYMENT_CONFIRMED",
-      payload: { paymentId },
+      payload: {
+        paymentId,
+        subscriptionId: "sub_ABC123",
+        customerId: "cus_ABC123",
+        externalReference: "dentalflow:payment:test",
+      },
     });
   });
 
