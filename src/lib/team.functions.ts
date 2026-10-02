@@ -92,10 +92,43 @@ export const setTeamMemberPassword = createServerFn({ method: "POST" })
       return { success: false, error: "Você só pode redefinir a senha de membros da sua própria empresa." };
     }
 
+    const { data: authBefore, error: authLookupErr } = await supabaseAdmin.auth.admin.getUserById(targetUserId);
+    if (authLookupErr || !authBefore?.user) {
+      return { success: false, error: authLookupErr?.message ?? "Usuário de autenticação não encontrado." };
+    }
+    const loginEmail = authBefore.user.email?.trim().toLowerCase() ?? "";
+    if (!loginEmail) return { success: false, error: "O membro não possui e-mail de login no Auth." };
+
     const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, { password });
     if (authErr) return { success: false, error: authErr.message };
 
-    return { success: true };
+    // Verificação end-to-end da credencial recém-definida. Isso impede a UI de
+    // confirmar sucesso se o Auth não aceitar a nova senha de fato.
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+    if (!supabaseUrl || !publishableKey) {
+      return { success: false, error: "Backend de autenticação indisponível para validar a nova senha." };
+    }
+    const verify = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: {
+        apikey: publishableKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email: loginEmail, password }),
+    });
+    if (!verify.ok) {
+      let detail = "A senha foi enviada ao Auth, mas a validação do novo login falhou.";
+      try {
+        const body = await verify.json() as { msg?: string; error_description?: string; message?: string };
+        detail = body.msg || body.error_description || body.message || detail;
+      } catch {
+        // Keep the safe generic message.
+      }
+      return { success: false, error: detail };
+    }
+
+    return { success: true, login_email: loginEmail };
   });
 
 export const createTeamMember = createServerFn({ method: "POST" })
