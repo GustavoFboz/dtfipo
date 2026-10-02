@@ -593,6 +593,9 @@ export function NewCaseDialog({
         );
         setTeeth((items) => items.filter((item) => !temporaryRemoved.has(item)));
       }
+      // Keep the work-parameter target group identical to the complete modifier
+      // selection. This preserves an existing Shift range when Ctrl/Cmd adds
+      // more teeth, so every selected tooth receives the shared parameters.
       setConfigGroup(sortTeeth(modifierSelection.next));
 
       if (modifierSelection.kind === "toggle-add") {
