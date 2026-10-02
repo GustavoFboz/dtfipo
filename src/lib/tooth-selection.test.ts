@@ -4,6 +4,7 @@ import {
   applyPlainWorkToothSelection,
   applyToothModifierSelection,
   formatSelectedTeeth,
+  isToothParameterAppliedToAll,
   sortSelectedTeethForLabel,
 } from "./tooth-selection";
 
@@ -85,5 +86,15 @@ describe("formatSelectedTeeth", () => {
 
   it("remove duplicatas antes de exibir a seleção", () => {
     expect(sortSelectedTeethForLabel([11, 12, 11, 31])).toEqual([11, 12, 31]);
+  });
+});
+
+describe("isToothParameterAppliedToAll", () => {
+  it("mantém a ação aditiva enquanto a seleção possui parâmetros diferentes", () => {
+    expect(isToothParameterAppliedToAll(["zirconia", ""], "zirconia")).toBe(false);
+  });
+
+  it("habilita a ação subtrativa quando todos possuem o mesmo parâmetro", () => {
+    expect(isToothParameterAppliedToAll(["zirconia", "zirconia"], "zirconia")).toBe(true);
   });
 });

@@ -23,6 +23,10 @@ export function formatSelectedTeeth(teeth: readonly number[]): string {
     .join(", ");
 }
 
+export function isToothParameterAppliedToAll<T>(values: readonly T[], value: T): boolean {
+  return values.length > 0 && values.every((item) => item === value);
+}
+
 export type ToothSelectionModifiers = {
   ctrl: boolean;
   shift: boolean;

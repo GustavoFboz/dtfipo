@@ -5,7 +5,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { formatSelectedTeeth, sortSelectedTeethForLabel } from "@/lib/tooth-selection";
+import { formatSelectedTeeth, isToothParameterAppliedToAll, sortSelectedTeethForLabel } from "@/lib/tooth-selection";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export type ToothMilling = "" | "zirconia" | "dissilicato";
@@ -204,7 +204,7 @@ export function ToothWorkPanel({
             <div className="flex flex-wrap gap-2">
               {caseTypes.map((t) => {
                 const values = toothTypeIds?.length ? toothTypeIds : [view.toothTypeId];
-                const active = values.length > 0 && values.every((value) => value === t.id);
+                const active = isToothParameterAppliedToAll(values, t.id);
                 return (
                   <button
                     key={t.id}
@@ -259,7 +259,7 @@ export function ToothWorkPanel({
             <div className="flex flex-wrap items-center gap-2">
               {implantSystemOptions!.map((opt) => {
                 const values = activeImplantSystemIds?.length ? activeImplantSystemIds : [activeImplantSystemId ?? ""];
-                const active = values.length > 0 && values.every((value) => value === opt.id);
+                const active = isToothParameterAppliedToAll(values, opt.id);
                 return (
                   <button
                     key={opt.id}
@@ -296,7 +296,7 @@ export function ToothWorkPanel({
               { id: "dissilicato", label: "Dissilicato", color: "#FF8300" },
             ] as const).map((o) => {
               const values = millingValues?.length ? millingValues : [view.milling];
-              const active = values.length > 0 && values.every((value) => value === o.id);
+              const active = isToothParameterAppliedToAll(values, o.id);
               return (
                 <button
                   key={o.id}
