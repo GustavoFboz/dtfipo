@@ -587,6 +587,12 @@ export function NewCaseDialog({
       if (modifierSelection.added.length > 0) {
         setTeeth((items) => sortTeeth(Array.from(new Set([...items, ...modifierSelection.added]))));
       }
+      if (modifierSelection.removed.length > 0) {
+        const temporaryRemoved = new Set(
+          modifierSelection.removed.filter((item) => !toothHasConfig(item)),
+        );
+        setTeeth((items) => items.filter((item) => !temporaryRemoved.has(item)));
+      }
       setConfigGroup(sortTeeth(modifierSelection.next));
 
       if (modifierSelection.kind === "toggle-add") {
