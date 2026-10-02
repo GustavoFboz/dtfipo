@@ -54,6 +54,50 @@ export const listTeamMembers = createServerFn({ method: "GET" })
     return { success: true, members: (members ?? []) as TeamProfile[] };
   });
 
+export const setTeamMemberPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { user_id: string; password: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const password = String(data.password ?? "");
+    const targetUserId = String(data.user_id ?? "");
+
+    if (!targetUserId) return { success: false, error: "Membro inválido." };
+    if (password.length < 8) return { success: false, error: "A senha deve ter pelo menos 8 caracteres." };
+
+    const { data: caller, error: callerErr } = await supabase
+      .from("profiles")
+      .select("clinic_id, role, account_subtype, is_default_admin")
+      .eq("id", userId)
+      .maybeSingle();
+    if (callerErr) return { success: false, error: callerErr.message };
+    if (!caller) return { success: false, error: "Perfil administrativo não encontrado." };
+
+    const effectiveRole = String(caller.account_subtype || caller.role || "").toUpperCase();
+    const canManage = Boolean(caller.is_default_admin) || effectiveRole === "CEO" || effectiveRole === "ADMIN";
+    if (!canManage) {
+      return { success: false, error: "Apenas CEO ou Administrador Avançado pode redefinir senhas da equipe." };
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: target, error: targetErr } = await supabaseAdmin
+      .from("profiles")
+      .select("id, clinic_id")
+      .eq("id", targetUserId)
+      .maybeSingle();
+    if (targetErr) return { success: false, error: targetErr.message };
+    if (!target) return { success: false, error: "Membro não encontrado." };
+
+    if (caller.clinic_id && target.clinic_id !== caller.clinic_id) {
+      return { success: false, error: "Você só pode redefinir a senha de membros da sua própria empresa." };
+    }
+
+    const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, { password });
+    if (authErr) return { success: false, error: authErr.message };
+
+    return { success: true };
+  });
+
 export const createTeamMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
