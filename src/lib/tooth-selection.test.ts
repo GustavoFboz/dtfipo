@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { applyPlainWorkToothSelection, applyToothModifierSelection } from "./tooth-selection";
+import {
+  applyPlainWorkToothSelection,
+  applyToothModifierSelection,
+  formatSelectedTeeth,
+  sortSelectedTeethForLabel,
+} from "./tooth-selection";
 
 const sorted = (items: number[]) => [...items].sort((a, b) => a - b);
 
@@ -64,5 +69,21 @@ describe("applyPlainWorkToothSelection", () => {
 
   it("ao clicar em um dos dentes da multiseleção, deixa somente ele quando nenhum possui configuração", () => {
     expect(applyPlainWorkToothSelection([11, 12, 13], 12, [])).toEqual([12]);
+  });
+});
+
+describe("formatSelectedTeeth", () => {
+  it("resume intervalos e dentes isolados na ordem odontológica solicitada", () => {
+    expect(formatSelectedTeeth([41, 26, 12, 31, 11, 25, 14, 24, 13])).toBe(
+      "11 → 14, 24 → 26, 31, 41",
+    );
+  });
+
+  it("não une intervalos que cruzam quadrantes", () => {
+    expect(formatSelectedTeeth([18, 21, 22])).toBe("18, 21 → 22");
+  });
+
+  it("remove duplicatas antes de exibir a seleção", () => {
+    expect(sortSelectedTeethForLabel([11, 12, 11, 31])).toEqual([11, 12, 31]);
   });
 });

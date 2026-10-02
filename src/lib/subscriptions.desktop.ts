@@ -2,8 +2,8 @@
 //
 // A fresh Tauri install has no entitlement cache yet. It must verify the real
 // authenticated company context before unlocking the Hub. Once that server-verified
-// snapshot exists, valid paid access can be read immediately from SQLite while a
-// background refresh reconciles billing/session changes.
+// snapshot exists, valid paid access can be read from SQLite while offline. When
+// connected, the same canonical server context used by Web always wins.
 import { supabase } from "@/integrations/supabase/client";
 import {
   isDentalFlowDesktop,
@@ -24,9 +24,7 @@ export * from "./subscriptions";
 
 const SUBSCRIPTION_CACHE_NAMESPACE = "subscription-context:v2";
 const SUBSCRIPTION_CACHE_KEY = "current";
-let backgroundRefresh: Promise<MySubscriptionContext | null> | null = null;
-
-function locallySafeContext(context: MySubscriptionContext): MySubscriptionContext {
+export function locallySafeContext(context: MySubscriptionContext): MySubscriptionContext {
   if (context.effective_access !== "full") return context;
 
   const periodEnd = context.company?.current_period_end ?? null;
@@ -86,27 +84,6 @@ async function fetchVerifiedCloudContext(): Promise<MySubscriptionContext | null
   return context;
 }
 
-function refreshInBackground() {
-  if (backgroundRefresh) return backgroundRefresh;
-  backgroundRefresh = fetchVerifiedCloudContext()
-    .then((context) => {
-      if (context && typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("dentalflow:subscription-context-updated", { detail: context }),
-        );
-      }
-      return context;
-    })
-    .catch((error) => {
-      console.warn("[DentalFlow Desktop] Atualização da assinatura adiada", error);
-      return null;
-    })
-    .finally(() => {
-      backgroundRefresh = null;
-    });
-  return backgroundRefresh;
-}
-
 /**
  * Warm the authoritative entitlement snapshot during the authenticated Desktop
  * preflight. Fresh installs intentionally have no fallback: the first successful
@@ -137,13 +114,6 @@ export async function fetchMySubscriptionContext(): Promise<MySubscriptionContex
     throw new Error(
       "A assinatura desta conta ainda não foi validada neste computador. Conecte-se à internet ao menos uma vez.",
     );
-  }
-
-  // A still-valid paid snapshot can render the Hub immediately. The remote
-  // refresh runs concurrently and RLS remains the final authority for writes.
-  if (cached?.effective_access === "full") {
-    void refreshInBackground();
-    return cached;
   }
 
   try {

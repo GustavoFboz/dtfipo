@@ -577,60 +577,33 @@ export function NewCaseDialog({
   };
 
   const handleWorkToothClick = (tooth: number, mods: { ctrl: boolean; shift: boolean }) => {
-    const current = new Set(teeth);
     const anchor = selectionAnchorRef.current ?? focusedTooth ?? lastConfiguredTooth;
 
-    const clearToothConfig = (target: number) => {
-      setToothTypeMap((map) => {
-        const next = { ...map };
-        delete next[target];
-        return next;
-      });
-      setToothEnceramento((map) => {
-        const next = { ...map };
-        delete next[target];
-        return next;
-      });
-      setZirTeeth((items) => items.filter((item) => item !== target));
-      setDisTeeth((items) => items.filter((item) => item !== target));
-      setImplantTeeth((items) => items.filter((item) => item !== target));
-      setToothImplantSystemMap((map) => {
-        const next = { ...map };
-        delete next[target];
-        return next;
-      });
-      setProsthesisGroups((groups) =>
-        groups
-          .map((group) => ({ ...group, teeth: group.teeth.filter((item) => item !== target) }))
-          .filter((group) => group.teeth.length > 1),
-      );
-    };
-
-    const modifierSelection = applyToothModifierSelection(teeth, tooth, anchor, mods);
+    const modifierSelection = applyToothModifierSelection(configGroup, tooth, anchor, mods);
     if (modifierSelection) {
       // Ctrl/Cmd always makes the clicked tooth the next Shift anchor, even
       // after an earlier range selection. Shift deliberately keeps that anchor.
       selectionAnchorRef.current = modifierSelection.anchor;
-      modifierSelection.removed.forEach(clearToothConfig);
-      setTeeth(sortTeeth(modifierSelection.next));
+      if (modifierSelection.added.length > 0) {
+        setTeeth((items) => sortTeeth(Array.from(new Set([...items, ...modifierSelection.added]))));
+      }
+      setConfigGroup(sortTeeth(modifierSelection.next));
 
       if (modifierSelection.kind === "toggle-add") {
         setFocusedTooth(tooth);
-        setConfigGroup([tooth]);
-        setJustAddedTeeth([tooth]);
+        setJustAddedTeeth(toothHasConfig(tooth) ? [] : [tooth]);
       } else if (modifierSelection.kind === "toggle-remove") {
-        setConfigGroup((group) => group.filter((item) => item !== tooth));
         setJustAddedTeeth((items) => items.filter((item) => item !== tooth));
-        if (focusedTooth === tooth) setFocusedTooth(null);
+        if (focusedTooth === tooth) setFocusedTooth(modifierSelection.next[0] ?? null);
       } else if (modifierSelection.kind === "range-add") {
-        setConfigGroup(modifierSelection.affected);
         setFocusedTooth(tooth);
-        setJustAddedTeeth(modifierSelection.added);
+        setJustAddedTeeth(modifierSelection.added.filter((item) => !toothHasConfig(item)));
       } else {
         const removed = new Set(modifierSelection.removed);
-        setConfigGroup((group) => group.filter((item) => !removed.has(item)));
         setJustAddedTeeth((items) => items.filter((item) => !removed.has(item)));
-        if (focusedTooth != null && removed.has(focusedTooth)) setFocusedTooth(null);
+        if (focusedTooth != null && removed.has(focusedTooth)) {
+          setFocusedTooth(modifierSelection.next[0] ?? null);
+        }
       }
       return;
     }
@@ -1537,6 +1510,7 @@ export function NewCaseDialog({
               open={focusedTooth != null && teeth.includes(focusedTooth)}
               tooth={focusedTooth}
               configuredTeeth={configGroup}
+              toothTypeIds={configGroup.map((tooth) => toothTypeMap[tooth] ?? "")}
               caseTypes={TOOTH_WORK_TYPES}
               toothTypeId={focusedTooth != null ? (toothTypeMap[focusedTooth] ?? "") : ""}
               onToothTypeChange={(id) => {
@@ -1556,15 +1530,15 @@ export function NewCaseDialog({
                   ));
                 }
               }}
-              hasEnceramento={focusedTooth != null && !!toothEnceramento[focusedTooth]}
+              hasEnceramento={configGroup.length > 0 && configGroup.every((tooth) => !!toothEnceramento[tooth])}
               onEnceramentoToggle={() => {
                 if (focusedTooth == null) return;
                 const targets = configGroup.length ? configGroup : [focusedTooth];
-                const anyOn = targets.some((t) => toothEnceramento[t]);
+                const allOn = targets.every((t) => toothEnceramento[t]);
                 setToothEnceramento((m) => {
                   const n = { ...m };
                   targets.forEach((t) => {
-                    if (anyOn) delete n[t];
+                    if (allOn) delete n[t];
                     else n[t] = true;
                   });
                   return n;
@@ -1579,6 +1553,9 @@ export function NewCaseDialog({
                       ? "dissilicato"
                       : ""
               }
+              millingValues={configGroup.map((tooth) =>
+                zirTeeth.includes(tooth) ? "zirconia" : disTeeth.includes(tooth) ? "dissilicato" : ""
+              )}
               onMillingChange={(m) => {
                 if (focusedTooth == null) return;
                 const targets = configGroup.length ? configGroup : [focusedTooth];
@@ -1599,6 +1576,9 @@ export function NewCaseDialog({
                   : ""
               }
               hasImplant={focusedTooth != null && implantTeeth.includes(focusedTooth)}
+              activeImplantSystemIds={configGroup.map((tooth) =>
+                implantTeeth.includes(tooth) ? (toothImplantSystemMap[tooth] ?? implantSystemId) : ""
+              )}
               implantSystemOptions={
                 allSystemIds.length > 0
                   ? allSystemIds
@@ -1624,8 +1604,8 @@ export function NewCaseDialog({
               onImplantToggle={() => {
                 if (focusedTooth == null) return;
                 const targets = configGroup.length ? configGroup : [focusedTooth];
-                const anyOn = targets.some((t) => implantTeeth.includes(t));
-                if (anyOn) {
+                const allOn = targets.every((t) => implantTeeth.includes(t));
+                if (allOn) {
                   setImplantTeeth((s) => s.filter((x) => !targets.includes(x)));
                   setToothImplantSystemMap((m) => {
                     const n = { ...m };

@@ -1,6 +1,28 @@
 export const TOOTH_ARCH_UPPER = [18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28] as const;
 export const TOOTH_ARCH_LOWER = [48, 47, 46, 45, 44, 43, 42, 41, 31, 32, 33, 34, 35, 36, 37, 38] as const;
 
+export function sortSelectedTeethForLabel(teeth: readonly number[]): number[] {
+  return Array.from(new Set(teeth)).sort((a, b) => a - b);
+}
+
+export function formatSelectedTeeth(teeth: readonly number[]): string {
+  const ordered = sortSelectedTeethForLabel(teeth);
+  if (ordered.length === 0) return "—";
+
+  const runs: number[][] = [];
+  for (const tooth of ordered) {
+    const current = runs.at(-1);
+    const previous = current?.at(-1);
+    const sameQuadrant = previous !== undefined && Math.floor(previous / 10) === Math.floor(tooth / 10);
+    if (current && sameQuadrant && tooth === previous + 1) current.push(tooth);
+    else runs.push([tooth]);
+  }
+
+  return runs
+    .map((run) => run.length > 1 ? `${run[0]} → ${run[run.length - 1]}` : String(run[0]))
+    .join(", ");
+}
+
 export type ToothSelectionModifiers = {
   ctrl: boolean;
   shift: boolean;

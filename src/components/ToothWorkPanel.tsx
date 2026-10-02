@@ -5,6 +5,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { formatSelectedTeeth, sortSelectedTeethForLabel } from "@/lib/tooth-selection";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export type ToothMilling = "" | "zirconia" | "dissilicato";
 
@@ -16,14 +18,17 @@ type Props = {
   configuredTeeth: number[];
   caseTypes: { id: string; name: string }[];
   toothTypeId: string;
+  toothTypeIds?: string[];
   onToothTypeChange: (id: string) => void;
   milling: ToothMilling;
+  millingValues?: ToothMilling[];
   onMillingChange: (m: ToothMilling) => void;
   /** Enceramento é um extra cumulativo — pode coexistir com o tipo primário. */
   hasEnceramento?: boolean;
   onEnceramentoToggle?: () => void;
   /** Sistema de implante ativo no dente atual (id). Vazio = dente sem implante. */
   activeImplantSystemId?: string;
+  activeImplantSystemIds?: string[];
   hasImplant: boolean;
   onImplantToggle: () => void;
   /**
@@ -48,8 +53,8 @@ type Props = {
 const EXIT_MS = 220;
 
 export function ToothWorkPanel({
-  open, tooth, configuredTeeth, caseTypes, toothTypeId, onToothTypeChange,
-  milling, onMillingChange, activeImplantSystemId, hasImplant, onImplantToggle,
+  open, tooth, configuredTeeth, caseTypes, toothTypeId, toothTypeIds, onToothTypeChange,
+  milling, millingValues, onMillingChange, activeImplantSystemId, activeImplantSystemIds, hasImplant, onImplantToggle,
   hasEnceramento = false, onEnceramentoToggle,
   implantSystemOptions, onImplantSystemPick,
   onRemoveTooth, groupedAsSingle = false, onGroupedAsSingleChange,
@@ -107,10 +112,11 @@ export function ToothWorkPanel({
     tooth, configuredTeeth, toothTypeId, milling, hasImplant,
   };
 
-  const extraCount = view.configuredTeeth.length - 1;
-  const label = extraCount > 0
-    ? `Dentes ${view.tooth ?? "—"} +${extraCount}`
-    : `Dente ${view.tooth ?? "—"}`;
+  const selected = view.configuredTeeth.length > 0
+    ? view.configuredTeeth
+    : view.tooth == null ? [] : [view.tooth];
+  const label = formatSelectedTeeth(selected);
+  const fullSelection = sortSelectedTeethForLabel(selected).join(", ");
 
   return (
     <div
@@ -130,7 +136,14 @@ export function ToothWorkPanel({
         <div className="flex items-center gap-2 min-w-0">
           <ChevronRight className="h-6 w-6 text-primary shrink-0" strokeWidth={1.5} />
           <h3 className="text-3xl font-extralight tracking-tight leading-none truncate">
-            <span className="text-primary">{label}</span>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-primary cursor-default">{label}</span>
+                </TooltipTrigger>
+                <TooltipContent>{fullSelection}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <span className="text-foreground/80 ml-3 text-2xl">Tipo de Trabalho</span>
           </h3>
         </div>
@@ -190,7 +203,8 @@ export function ToothWorkPanel({
           ) : (
             <div className="flex flex-wrap gap-2">
               {caseTypes.map((t) => {
-                const active = view.toothTypeId === t.id;
+                const values = toothTypeIds?.length ? toothTypeIds : [view.toothTypeId];
+                const active = values.length > 0 && values.every((value) => value === t.id);
                 return (
                   <button
                     key={t.id}
@@ -244,7 +258,8 @@ export function ToothWorkPanel({
           ) : (
             <div className="flex flex-wrap items-center gap-2">
               {implantSystemOptions!.map((opt) => {
-                const active = view.hasImplant && activeImplantSystemId === opt.id;
+                const values = activeImplantSystemIds?.length ? activeImplantSystemIds : [activeImplantSystemId ?? ""];
+                const active = values.length > 0 && values.every((value) => value === opt.id);
                 return (
                   <button
                     key={opt.id}
@@ -280,7 +295,8 @@ export function ToothWorkPanel({
               { id: "zirconia", label: "Zirconia", color: "#0C84FA" },
               { id: "dissilicato", label: "Dissilicato", color: "#FF8300" },
             ] as const).map((o) => {
-              const active = view.milling === o.id;
+              const values = millingValues?.length ? millingValues : [view.milling];
+              const active = values.length > 0 && values.every((value) => value === o.id);
               return (
                 <button
                   key={o.id}
