@@ -56,8 +56,9 @@ Referência oficial: <https://docs.asaas.com/docs/subscription-events>.
 1. `PAYMENT_CONFIRMED` ou `PAYMENT_RECEIVED` válido cria/atualiza
    `billing_payments=paid` e leva a assinatura a `active` até
    `current_period_end`.
-2. `PAYMENT_OVERDUE` leva a `past_due` e define `grace_until` pela política do
-   produto; durante a carência o acesso continua completo.
+2. PAYMENT_OVERDUE do ciclo corrente leva a past_due e define grace_until
+   como sete dias após o vencimento; durante a carência o acesso continua
+   completo. A suspensão exige nova consulta ao Asaas.
 3. Fim da carência sem regularização leva a `suspended`; a área de cobrança
    permanece disponível.
 4. Cancelamento mantém acesso somente até o fim do período já pago.

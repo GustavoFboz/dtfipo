@@ -2,7 +2,24 @@
 
 Status: iniciado em 2026-09-19
 
-Etapa atual: 02 — adapter Asaas Sandbox em homologação
+Continuidade em 03/10/2026: recuperação do código das etapas 06–09 removido
+na edição Lovable de 29/09, antes de continuar a homologação da etapa 05.
+Histórico e renovação estão preparados; cancelamento e troca de plano ainda
+precisam ser implementados. O operador Master foi atribuído no banco ativo por
+autorização explícita, e seu autenticador TOTP foi confirmado em 03/10.
+Consulte `evidence/CONTINUITY-2026-10-03.md` para separar código e provas financeiras.
+
+Retomada de 03/10: etapa financeira **05/09 em espera** por solicitação do
+responsável, até o restabelecimento dos créditos Lovable. Etapa atual de avanço
+independente: **06/09**, com auditoria das cotas e preparação do ensaio de upload
+publicado. O Master **07/09** aguarda os testes com sessões reais e o replay
+auditado. Restam pendências nas seis etapas 04–09: recuperação de
+eventos, ciclo financeiro, uploads publicados, prova do replay auditado Master,
+cancelamento/troca de plano e liberação controlada de produção.
+O tratamento de eventos financeiros fora de ordem e de falhas isoladas do
+worker está registrado em `evidence/STAGE-05-RESUME-2026-10-03.md`.
+A auditoria de armazenamento e o roteiro de homologação estão em
+`evidence/STAGE-06-LIVE-AUDIT-2026-10-03.md`.
 
 Provedor financeiro obrigatório para lançamento: Asaas
 
@@ -111,8 +128,8 @@ Status: concluída em 2026-09-20.
 
 ### 02 — Adapter Asaas Sandbox
 
-Status: implementação concluída; aguardando configuração dos secrets e
-evidência real no Asaas Sandbox. Consulte `STAGE-02-ASAAS-SANDBOX.md`.
+Status: criação real do cliente e assinatura no Asaas Sandbox comprovada em
+28/09/2026. Consulte `evidence/SANDBOX-FIRST-PAID-CYCLE-2026-09-28.md`.
 
 - configurar `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN`, ambiente e `User-Agent`
   somente no backend;
@@ -127,12 +144,20 @@ oficial atual define `https://api-sandbox.asaas.com/v3` para Sandbox e
 
 ### 03 — Checkout real
 
+Status: primeiro checkout e pagamento real no Asaas Sandbox comprovados em
+28/09/2026. Consulte `STAGE-03-REAL-CHECKOUT.md` e a evidência do primeiro ciclo.
+
 - transformar intent interno em assinatura e cobrança reais do Asaas;
 - devolver URL de pagamento do Asaas de forma segura;
 - expirar intents abandonados e reconciliar retorno do navegador;
 - nunca ativar assinatura pelo redirect síncrono.
 
 ### 04 — Webhook, inbox e reconciliação
+
+Status: receptor, inbox e worker publicados; primeiro `PAYMENT_CONFIRMED`
+processado no Sandbox em 28/09/2026. Repetição, perda de webhook e erros do
+provedor ainda exigem homologação específica.
+Consulte STAGE-04-ASAAS-WEBHOOK.md.
 
 - endpoint público com validação de `asaas-access-token`;
 - persistência única por `(provider, provider_event_id)` antes do `200`;
@@ -145,12 +170,22 @@ chave única e responder somente após persistir:
 
 ### 05 — Ciclo de vida e reativação
 
+Status: ciclo inicial pago comprovado no Sandbox; renovação, atraso, carência,
+estorno, inativação e replay ainda aguardam provas reais individuais. Os eventos
+de risco restantes continuam em revisão. Consulte STAGE-05-ASAAS-LIFECYCLE.md.
+
 - mapear aprovação, vencimento, atraso, estorno, chargeback e cancelamento;
 - testar carência, suspensão, renovação e reativação sem exclusão de dados;
 - impedir downgrade que exceda sessões, membros ou armazenamento sem uma
   política explícita.
 
 ### 06 — Cotas e armazenamento
+
+Status: cota e reservas obrigatórias implantadas em 29/09/2026; ensaios em
+base descartável passaram. Um novo anexo de caso foi confirmado na conta
+publicada em 03/10. Falta repetir a exclusão após a correção da confirmação,
+homologar os demais uploads/DICOM e reconciliar os resíduos históricos.
+Consulte `STAGE-06-STORAGE-QUOTAS.md`.
 
 - aplicar limites do plano e adicionais por entitlement;
 - bloquear novos uploads antes de exceder a cota;
@@ -159,12 +194,26 @@ chave única e responder somente após persistir:
 
 ### 07 — Administração Master
 
+Status: papel separado e painel publicados, operador autorizado habilitado no
+banco ativo e um fator TOTP verificado em 03/10/2026. O responsável confirmou o
+autenticador no painel publicado. Testes SQL em transação somente leitura
+confirmaram recusa de acesso/replay a não operador e recusa de replay em `aal1`.
+A prova de replay real com auditoria permanece pendente e depende da revisão
+financeira Sandbox. O painel também passou a isolar cache e confirmações por
+conta/sessão, com testes locais de troca, logout e respostas tardias. Consulte
+`STAGE-07-MASTER-ADMIN.md`, `evidence/STAGE-07-ENROLLMENT-2026-10-03.md` e
+`evidence/STAGE-07-SESSION-ISOLATION-2026-10-03.md`.
+
 - criar papel de plataforma separado de `admin`/`CEO` da empresa;
 - permitir busca de empresas, assinatura, pagamentos, eventos e saúde da fila;
 - ações sensíveis exigem justificativa, auditoria e reautenticação;
 - nenhum painel Master é disponibilizado por confiança apenas na UI.
 
 ### 08 — Centro de cobrança do cliente
+
+Status: histórico e consulta segura de cobrança preparados; falta completar
+cancelamento e troca de plano com efeito comprovado no Asaas. Consulte
+`STAGE-08-BILLING-CENTER.md`.
 
 - plano atual, vencimento, forma de pagamento, faturas e recibos;
 - troca/cancelamento com impacto e data efetiva claros;

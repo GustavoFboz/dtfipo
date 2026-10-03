@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { SkeletonBlock, SkeletonCircle, SkeletonSwap, useListReveal } from "@/components/ui/skeleton-blocks";
 
 import { useState, useMemo, useEffect } from "react";
@@ -48,6 +49,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { CaseRow } from "@/lib/types";
 import { fetchWorkflowStagesV2, getCaseWorkflowStages } from "@/lib/workflow-v2";
+import { reconcileCaseProfessionalAssignments } from "@/lib/case-assignment.functions";
+import { getAuthorizedPatientPhotoUrls } from "@/lib/patient-photo.functions";
 
 const monthAbbr = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 function fmtDayMonth(iso: string) {
@@ -158,6 +161,8 @@ export function CasesTable({
   onDeepLinkClose?: () => void;
 } = {}) {
   const qc = useQueryClient();
+  const reconcileAssignmentsFn = useServerFn(reconcileCaseProfessionalAssignments);
+  const getAuthorizedPatientPhotoUrlsFn = useServerFn(getAuthorizedPatientPhotoUrls);
   const [internalSearch, setSearch] = useState("");
   const navigate = useNavigate();
   const search = hideSearch ? "" : (externalSearch !== undefined ? externalSearch : internalSearch);
@@ -181,6 +186,33 @@ export function CasesTable({
   const canReviewRequests =
     Boolean(profile?.is_default_admin) ||
     hasProfileRole("CEO", "ADMIN", "PROTETICO");
+
+  const assignmentIntegrityQ = useQuery({
+    queryKey: ["case_assignment_integrity", profile?.clinic_id],
+    enabled: canReviewRequests && !!profile?.clinic_id,
+    staleTime: 5 * 60_000,
+    retry: 1,
+    queryFn: async () => {
+      const result = await reconcileAssignmentsFn();
+      return result as {
+        success?: boolean;
+        repaired?: number;
+        cadistas_linked?: number;
+        cadistas_created?: number;
+        doctors_linked?: number;
+        doctors_created?: number;
+        participant_intervals_opened?: number;
+        participant_intervals_closed?: number;
+      };
+    },
+  });
+
+  useEffect(() => {
+    if (!assignmentIntegrityQ.data?.repaired) return;
+    void qc.invalidateQueries({ queryKey: ["cases"], refetchType: "active" });
+    void qc.invalidateQueries({ queryKey: ["cadistas"], refetchType: "active" });
+    void qc.invalidateQueries({ queryKey: ["doctors"], refetchType: "active" });
+  }, [assignmentIntegrityQ.data?.repaired, qc]);
 
   const notificationsQ = useQuery({
     queryKey: ["notifications"],
@@ -216,6 +248,24 @@ export function CasesTable({
     refetchOnWindowFocus: true,
     refetchInterval: 60_000,
   });
+
+  const patientPhotoIds = useMemo(
+    () => Array.from(new Set((cases.data ?? []).map((row) => row.patient_id).filter(Boolean))) as string[],
+    [cases.data],
+  );
+
+  const authorizedPatientPhotosQ = useQuery({
+    queryKey: ["authorized_patient_photos", patientPhotoIds],
+    enabled: patientPhotoIds.length > 0,
+    staleTime: 30 * 60_000,
+    queryFn: async () => {
+      const result = await getAuthorizedPatientPhotoUrlsFn({ data: { patient_ids: patientPhotoIds } });
+      const response = result as { success?: boolean; photos?: Record<string, string> };
+      return response?.photos ?? {};
+    },
+  });
+
+  const authorizedPatientPhotos = authorizedPatientPhotosQ.data ?? {};
 
   const reveal = useListReveal("cases-table", cases.isLoading);
 
@@ -767,7 +817,7 @@ export function CasesTable({
                 </div>
                 {/* Paciente */}
       <PatientCasePopover
-        patient={c.patient}
+        patient={c.patient ? { ...c.patient, photo_url: (c.patient_id ? authorizedPatientPhotos[c.patient_id] : undefined) ?? c.patient.photo_url } : c.patient}
         profile={profile}
         entryDate={c.entry_date}
         lastVisit={(c.patient as any)?.last_visit ?? (c.patient as any)?.last_visit_at ?? null}
@@ -1122,7 +1172,7 @@ export function CasesTable({
                 )}
               </div>
               <PatientCasePopover
-      patient={c.patient}
+      patient={c.patient ? { ...c.patient, photo_url: (c.patient_id ? authorizedPatientPhotos[c.patient_id] : undefined) ?? c.patient.photo_url } : c.patient}
       profile={profile}
       entryDate={c.entry_date}
       lastVisit={(c.patient as any)?.last_visit ?? (c.patient as any)?.last_visit_at ?? null}

@@ -31,6 +31,7 @@ export type Database = {
           metadata: Json
           plan_code: string
           provider_environment: string | null
+          reconciliation_checked_at: string | null
           scope_type: string
           status: string
           updated_at: string
@@ -52,6 +53,7 @@ export type Database = {
           metadata?: Json
           plan_code: string
           provider_environment?: string | null
+          reconciliation_checked_at?: string | null
           scope_type: string
           status?: string
           updated_at?: string
@@ -73,6 +75,7 @@ export type Database = {
           metadata?: Json
           plan_code?: string
           provider_environment?: string | null
+          reconciliation_checked_at?: string | null
           scope_type?: string
           status?: string
           updated_at?: string
@@ -152,11 +155,56 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_event_replays: {
+        Row: {
+          event_id: string
+          id: string
+          operator_ref: string
+          previous_attempt_count: number
+          provider_environment: string
+          provider_event_id: string
+          reason: string
+          requested_at: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          operator_ref: string
+          previous_attempt_count: number
+          provider_environment: string
+          provider_event_id: string
+          reason: string
+          requested_at?: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          operator_ref?: string
+          previous_attempt_count?: number
+          provider_environment?: string
+          provider_event_id?: string
+          reason?: string
+          requested_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_event_replays_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "billing_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_events: {
         Row: {
+          attempt_count: number
           error_message: string | null
           event_type: string
           id: string
+          lease_token: string | null
+          lease_until: string | null
+          next_attempt_at: string
           payload: Json
           processed_at: string | null
           provider: string
@@ -166,9 +214,13 @@ export type Database = {
           status: string
         }
         Insert: {
+          attempt_count?: number
           error_message?: string | null
           event_type: string
           id?: string
+          lease_token?: string | null
+          lease_until?: string | null
+          next_attempt_at?: string
           payload?: Json
           processed_at?: string | null
           provider: string
@@ -178,9 +230,13 @@ export type Database = {
           status?: string
         }
         Update: {
+          attempt_count?: number
           error_message?: string | null
           event_type?: string
           id?: string
+          lease_token?: string | null
+          lease_until?: string | null
+          next_attempt_at?: string
           payload?: Json
           processed_at?: string | null
           provider?: string
@@ -2309,6 +2365,7 @@ export type Database = {
           age: number
           allergies: string | null
           birth_date: string | null
+          clinic_id: string | null
           clinical_notes: string | null
           cpf: string | null
           created_at: string
@@ -2330,6 +2387,7 @@ export type Database = {
           age?: number
           allergies?: string | null
           birth_date?: string | null
+          clinic_id?: string | null
           clinical_notes?: string | null
           cpf?: string | null
           created_at?: string
@@ -2351,6 +2409,7 @@ export type Database = {
           age?: number
           allergies?: string | null
           birth_date?: string | null
+          clinic_id?: string | null
           clinical_notes?: string | null
           cpf?: string | null
           created_at?: string
@@ -2367,7 +2426,15 @@ export type Database = {
           photo_url?: string | null
           rg?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "patients_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       phase_assignments: {
         Row: {
@@ -2438,6 +2505,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_operator_audit: {
+        Row: {
+          action: string
+          id: string
+          performed_at: string
+          reason: string
+          target_environment: string
+          target_ref: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          id?: string
+          performed_at?: string
+          reason: string
+          target_environment: string
+          target_ref: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          id?: string
+          performed_at?: string
+          reason?: string
+          target_environment?: string
+          target_ref?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      platform_operators: {
+        Row: {
+          enabled: boolean
+          enrolled_at: string
+          enrolled_by: string
+          user_id: string
+        }
+        Insert: {
+          enabled?: boolean
+          enrolled_at?: string
+          enrolled_by: string
+          user_id: string
+        }
+        Update: {
+          enabled?: boolean
+          enrolled_at?: string
+          enrolled_by?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       professional_accounts: {
         Row: {
@@ -3469,6 +3587,45 @@ export type Database = {
         Returns: Json
       }
       backend_schema_hash: { Args: never; Returns: string }
+      billing_apply_asaas_initial_payment: {
+        Args: {
+          p_amount_cents: number
+          p_customer_id: string
+          p_due_date: string
+          p_event_id: string
+          p_lease_token: string
+          p_payment_id: string
+          p_payment_status: string
+          p_subscription_id: string
+        }
+        Returns: Json
+      }
+      billing_apply_asaas_payment_lifecycle: {
+        Args: {
+          p_amount_cents: number
+          p_customer_id: string
+          p_due_date: string
+          p_event_id: string
+          p_lease_token: string
+          p_payment_id: string
+          p_payment_status: string
+          p_subscription_id: string
+        }
+        Returns: Json
+      }
+      billing_apply_asaas_subscription_lifecycle: {
+        Args: {
+          p_amount_cents: number
+          p_customer_id: string
+          p_cycle: string
+          p_event_id: string
+          p_external_reference: string
+          p_lease_token: string
+          p_provider_status: string
+          p_subscription_id: string
+        }
+        Returns: Json
+      }
       billing_apply_checkout_paid: {
         Args: {
           p_checkout_intent_id: string
@@ -3494,6 +3651,14 @@ export type Database = {
         }
         Returns: Json
       }
+      billing_bind_asaas_customer: {
+        Args: {
+          p_clinic_id: string
+          p_provider_customer_id: string
+          p_provider_environment: string
+        }
+        Returns: undefined
+      }
       billing_bind_asaas_subscription: {
         Args: {
           p_provider_customer_id: string
@@ -3503,13 +3668,23 @@ export type Database = {
         }
         Returns: undefined
       }
-      billing_bind_asaas_customer: {
-        Args: {
-          p_clinic_id: string
-          p_provider_customer_id: string
-          p_provider_environment: string
-        }
-        Returns: undefined
+      billing_claim_asaas_events: {
+        Args: { p_environment: string; p_limit?: number }
+        Returns: {
+          attempt_count: number
+          event_type: string
+          id: string
+          lease_token: string
+          payload: Json
+        }[]
+      }
+      billing_claim_asaas_reconciliation_candidates: {
+        Args: { p_environment: string; p_limit?: number }
+        Returns: {
+          customer_id: string
+          provider_subscription_id: string
+          subscription_id: string
+        }[]
       }
       billing_claim_provider_operation: {
         Args: {
@@ -3522,6 +3697,20 @@ export type Database = {
         }
         Returns: Json
       }
+      billing_company_history: { Args: { p_clinic_id: string }; Returns: Json }
+      billing_current_user_can_manage_company: {
+        Args: { p_clinic_id: string }
+        Returns: boolean
+      }
+      billing_finish_asaas_event: {
+        Args: {
+          p_error_code?: string
+          p_id: string
+          p_lease_token: string
+          p_outcome: string
+        }
+        Returns: boolean
+      }
       billing_finish_provider_operation: {
         Args: {
           p_error_code?: string
@@ -3532,6 +3721,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      billing_get_asaas_payment_document_context: {
+        Args: {
+          p_actor_user_id: string
+          p_environment: string
+          p_payment_id: string
+        }
+        Returns: Json
+      }
       billing_get_asaas_provisioning_context: {
         Args: {
           p_actor_user_id: string
@@ -3540,9 +3737,69 @@ export type Database = {
         }
         Returns: Json
       }
+      billing_get_checkout_provisioning_context: {
+        Args: {
+          p_actor_user_id: string
+          p_checkout_intent_id: string
+          p_provider_environment: string
+        }
+        Returns: Json
+      }
       billing_get_company_profile: {
         Args: { p_clinic_id: string }
         Returns: Json
+      }
+      billing_list_asaas_expired_grace: {
+        Args: { p_environment: string; p_limit?: number }
+        Returns: {
+          payment_id: string
+          subscription_id: string
+        }[]
+      }
+      billing_mark_asaas_checkout_ready: {
+        Args: {
+          p_actor_user_id: string
+          p_checkout_intent_id: string
+          p_provider_customer_id: string
+          p_provider_environment: string
+          p_provider_payment_id: string
+          p_provider_payment_url: string
+          p_provider_subscription_id: string
+        }
+        Returns: Json
+      }
+      billing_receive_asaas_event: {
+        Args: {
+          p_environment: string
+          p_event_id: string
+          p_event_type: string
+          p_payload: Json
+        }
+        Returns: boolean
+      }
+      billing_replay_asaas_event: {
+        Args: {
+          p_environment: string
+          p_event_id: string
+          p_operator_ref: string
+          p_reason: string
+        }
+        Returns: boolean
+      }
+      billing_subscription_contract_amount: {
+        Args: { p_subscription_id: string }
+        Returns: number
+      }
+      billing_suspend_asaas_expired_grace: {
+        Args: {
+          p_customer_id: string
+          p_environment: string
+          p_payment_id: string
+          p_provider_status: string
+          p_provider_subscription_id: string
+          p_subscription_id: string
+        }
+        Returns: boolean
       }
       billing_test_capability: { Args: never; Returns: Json }
       billing_test_mark_checkout_paid: {
@@ -3750,6 +4007,11 @@ export type Database = {
         Returns: number
       }
       patient_id_from_storage_path: { Args: { _name: string }; Returns: string }
+      platform_master_dashboard: { Args: { p_search?: string }; Returns: Json }
+      platform_master_replay_asaas_event: {
+        Args: { p_environment: string; p_event_id: string; p_reason: string }
+        Returns: boolean
+      }
       recalculate_clinic_storage_limit: {
         Args: { _clinic_id: string }
         Returns: number
@@ -3829,6 +4091,10 @@ export type Database = {
         Returns: number
       }
       storage_current_clinic_id: { Args: never; Returns: string }
+      storage_upload_has_reservation: {
+        Args: { _bucket: string; _metadata: Json; _path: string }
+        Returns: boolean
+      }
       subscription_access_mode: {
         Args: { _grace_until: string; _period_end: string; _status: string }
         Returns: string

@@ -54,6 +54,83 @@ export const listTeamMembers = createServerFn({ method: "GET" })
     return { success: true, members: (members ?? []) as TeamProfile[] };
   });
 
+export const setTeamMemberPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { user_id: string; password: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const password = String(data.password ?? "");
+    const targetUserId = String(data.user_id ?? "");
+
+    if (!targetUserId) return { success: false, error: "Membro inválido." };
+    if (password.length < 8) return { success: false, error: "A senha deve ter pelo menos 8 caracteres." };
+
+    const { data: caller, error: callerErr } = await supabase
+      .from("profiles")
+      .select("clinic_id, role, account_subtype, is_default_admin")
+      .eq("id", userId)
+      .maybeSingle();
+    if (callerErr) return { success: false, error: callerErr.message };
+    if (!caller) return { success: false, error: "Perfil administrativo não encontrado." };
+
+    const effectiveRole = String(caller.account_subtype || caller.role || "").toUpperCase();
+    const canManage = Boolean(caller.is_default_admin) || effectiveRole === "CEO" || effectiveRole === "ADMIN";
+    if (!canManage) {
+      return { success: false, error: "Apenas CEO ou Administrador Avançado pode redefinir senhas da equipe." };
+    }
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: target, error: targetErr } = await supabaseAdmin
+      .from("profiles")
+      .select("id, clinic_id")
+      .eq("id", targetUserId)
+      .maybeSingle();
+    if (targetErr) return { success: false, error: targetErr.message };
+    if (!target) return { success: false, error: "Membro não encontrado." };
+
+    if (caller.clinic_id && target.clinic_id !== caller.clinic_id) {
+      return { success: false, error: "Você só pode redefinir a senha de membros da sua própria empresa." };
+    }
+
+    const { data: authBefore, error: authLookupErr } = await supabaseAdmin.auth.admin.getUserById(targetUserId);
+    if (authLookupErr || !authBefore?.user) {
+      return { success: false, error: authLookupErr?.message ?? "Usuário de autenticação não encontrado." };
+    }
+    const loginEmail = authBefore.user.email?.trim().toLowerCase() ?? "";
+    if (!loginEmail) return { success: false, error: "O membro não possui e-mail de login no Auth." };
+
+    const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, { password });
+    if (authErr) return { success: false, error: authErr.message };
+
+    // Verificação end-to-end da credencial recém-definida. Isso impede a UI de
+    // confirmar sucesso se o Auth não aceitar a nova senha de fato.
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+    if (!supabaseUrl || !publishableKey) {
+      return { success: false, error: "Backend de autenticação indisponível para validar a nova senha." };
+    }
+    const verify = await fetch(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: {
+        apikey: publishableKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email: loginEmail, password }),
+    });
+    if (!verify.ok) {
+      let detail = "A senha foi enviada ao Auth, mas a validação do novo login falhou.";
+      try {
+        const body = await verify.json() as { msg?: string; error_description?: string; message?: string };
+        detail = body.msg || body.error_description || body.message || detail;
+      } catch {
+        // Keep the safe generic message.
+      }
+      return { success: false, error: detail };
+    }
+
+    return { success: true, login_email: loginEmail };
+  });
+
 export const createTeamMember = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(

@@ -48,6 +48,22 @@ describe("loadAsaasConfig", () => {
 });
 
 describe("AsaasClient", () => {
+  it("busca assinatura por ID sem enviar corpo ou URL fornecida pelo webhook", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe("https://api-sandbox.asaas.com/v3/subscriptions/sub_ABC123");
+      expect(init?.method).toBe("GET");
+      expect(init?.body).toBeUndefined();
+      return Response.json({ id: "sub_ABC123", customer: "cus_ABC123", status: "INACTIVE" });
+    });
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+    await expect(client.getSubscription("sub_ABC123")).resolves.toMatchObject({
+      id: "sub_ABC123",
+      status: "INACTIVE",
+    });
+    await expect(client.getSubscription("../payment")).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("envia os headers obrigatórios e filtra pela referência exata", async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
       const headers = new Headers(init?.headers);
@@ -69,6 +85,24 @@ describe("AsaasClient", () => {
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain(
       "externalReference=dentalflow%3Acompany%3Aone",
     );
+  });
+
+  it("não chama o fetch global com AsaasClient como receptor", async () => {
+    let client!: AsaasClient;
+    const runtimeFetch = vi.fn(function (this: unknown, input: RequestInfo | URL) {
+      if (this === client) throw new TypeError("Illegal invocation");
+      expect(String(input)).toContain("externalReference=dentalflow%3Acompany%3Atest");
+      return Promise.resolve(Response.json({ data: [] }));
+    });
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = runtimeFetch as typeof fetch;
+    try {
+      client = new AsaasClient(config({ maxGetRetries: 0 }));
+      await expect(client.findCustomersByExternalReference("dentalflow:company:test")).resolves.toEqual([]);
+      expect(runtimeFetch).toHaveBeenCalledTimes(1);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it("obedece RateLimit-Reset antes do retry de GET", async () => {
@@ -122,6 +156,95 @@ describe("AsaasClient", () => {
   it("recusa URL base injetada", () => {
     expect(() => new AsaasClient(config({ baseUrl: "https://example.test/v3" }))).toThrow(
       /não corresponde/i,
+    );
+  });
+
+  it("lista somente cobranças pertencentes à assinatura solicitada", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      expect(String(input)).toBe(
+        "https://api-sandbox.asaas.com/v3/subscriptions/sub_SAFE123/payments",
+      );
+      return Response.json({
+        data: [
+          {
+            id: "pay_FIRST123",
+            customer: "cus_SAFE123",
+            subscription: "sub_SAFE123",
+            invoiceUrl: "https://sandbox.asaas.com/i/safe-token",
+          },
+          {
+            id: "pay_OTHER123",
+            customer: "cus_SAFE123",
+            subscription: "sub_OTHER123",
+          },
+        ],
+      });
+    });
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+
+    await expect(client.listSubscriptionPayments("sub_SAFE123")).resolves.toEqual([
+      expect.objectContaining({ id: "pay_FIRST123" }),
+    ]);
+  });
+
+  it("limita a conciliação a uma página recente da assinatura correta", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = new URL(String(input));
+      expect(url.pathname).toBe("/v3/payments");
+      expect(url.searchParams.get("subscription")).toBe("sub_SAFE123");
+      expect(url.searchParams.get("dueDate[ge]")).toBe("2026-06-01");
+      expect(url.searchParams.get("limit")).toBe("100");
+      expect(url.searchParams.get("offset")).toBe("0");
+      return Response.json({ hasMore: false, data: [
+        { id: "pay_SAFE123", customer: "cus_SAFE123", subscription: "sub_SAFE123" },
+      ] });
+    });
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+    await expect(client.listPaymentsForReconciliation("sub_SAFE123", "2026-06-01"))
+      .resolves.toMatchObject([{ id: "pay_SAFE123" }]);
+  });
+
+  it("falha fechado quando a resposta da conciliação tem mais páginas ou outra assinatura", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(Response.json({
+      hasMore: true, data: [{ id: "pay_SAFE123", customer: "cus_SAFE123", subscription: "sub_SAFE123" }],
+    })).mockResolvedValueOnce(Response.json({
+      hasMore: false, data: [{ id: "pay_OTHER123", customer: "cus_SAFE123", subscription: "sub_OTHER123" }],
+    }));
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+    await expect(client.listPaymentsForReconciliation("sub_SAFE123", "2026-06-01"))
+      .rejects.toMatchObject({ code: "ASAAS_RECONCILIATION_PAGE_INCOMPLETE" });
+    await expect(client.listPaymentsForReconciliation("sub_SAFE123", "2026-06-01"))
+      .rejects.toMatchObject({ code: "ASAAS_RECONCILIATION_OWNERSHIP_MISMATCH" });
+  });
+
+  it("consulta uma cobrança individual por GET antes de conciliar o webhook", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe("https://api-sandbox.asaas.com/v3/payments/pay_SAFE123");
+      expect(init?.method).toBe("GET");
+      expect(init?.body).toBeUndefined();
+      return Response.json({
+        id: "pay_SAFE123",
+        customer: "cus_SAFE123",
+        subscription: "sub_SAFE123",
+      });
+    });
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+    await expect(client.getPayment("pay_SAFE123")).resolves.toMatchObject({ id: "pay_SAFE123" });
+    await expect(client.getPayment("../../customers")).rejects.toThrow(/inválida/);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("aceita somente a URL de fatura do mesmo ambiente", () => {
+    const client = new AsaasClient(config());
+
+    expect(client.validatePaymentUrl("https://sandbox.asaas.com/i/safe-token")).toBe(
+      "https://sandbox.asaas.com/i/safe-token",
+    );
+    expect(() => client.validatePaymentUrl("https://www.asaas.com/i/prod-token")).toThrow(
+      /fora do ambiente/i,
+    );
+    expect(() => client.validatePaymentUrl("https://example.test/i/fake")).toThrow(
+      /fora do ambiente/i,
     );
   });
 });
