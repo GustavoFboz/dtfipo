@@ -64,24 +64,36 @@ execução de migration no ambiente ativo.
 - Checks das etapas 02, 03, 04, 05, 06 e 09 passaram.
 - Regressões de Clinic, Desktop, Android, notificações, atualização nativa,
   isolamento por usuário e proteção IPO passaram.
-- A restauração em banco descartável será conferida no workflow restaurado.
-  Estes resultados locais não substituem a homologação financeira no Asaas.
+- Os workflows [Dental Flow CI](https://github.com/GustavoFboz/dtfipo/actions/runs/37101421674)
+  e [SaaS Restore Rehearsal](https://github.com/GustavoFboz/dtfipo/actions/runs/37101421590)
+  passaram no commit `4cee246`. O ensaio aplicou as 164 migrations em uma base
+  Supabase limpa e confirmou ciclo de vida, cotas, reservas, concorrência,
+  contratos de preço, isolamento Master e histórico.
+- A [PR #107](https://github.com/GustavoFboz/dtfipo/pull/107) foi integrada na
+  branch conectada `saas/stage-03-asaas-checkout`, com merge `6fda0dc`. Sua árvore
+  é idêntica à árvore validada. O Lovable confirmou a sincronização desse merge.
+- A recuperação foi publicada em `https://dtfipo.lovable.app`. O manifesto
+  público contém 164 migrations. Chamadas sem credenciais às rotas de checkout,
+  renovação e documentos retornaram 403; webhook e worker retornaram 401.
+  As verificações não criaram cobranças nem executaram replay.
+
+Estas provas de código e banco isolado não substituem a homologação financeira
+no Asaas. Os dois eventos Sandbox continuam pendentes.
 
 ## Próxima sequência
 
-1. Conferir esta recuperação no CI e na branch conectada ao Lovable.
-2. Consultar a cobrança dos dois dead letters no Asaas Sandbox pelo backend,
+1. Consultar a cobrança dos dois dead letters no Asaas Sandbox pelo backend,
    verificando `subscription`, cliente, valor, referência e estado atual. Essa
    consulta adicional permaneceu bloqueada pela revisão automática por exigir
    autorização explícita para enviar os identificadores ao serviço Lovable.
-3. Corrigir ou repetir o cenário com uma cobrança efetivamente vinculada à
+2. Corrigir ou repetir o cenário com uma cobrança efetivamente vinculada à
    assinatura e ao preço contratado. Uma cobrança avulsa de R$5 não comprova
    atraso e reativação de um contrato de R$249.
-4. Homologar atraso, carência, suspensão, estorno, cancelamento, reativação e
+3. Homologar atraso, carência, suspensão, estorno, cancelamento, reativação e
    replay, preservando a IPO e os dados clínicos.
-5. Concluir cancelamento/troca de plano e o cadastro Master com MFA; validar
+4. Concluir cancelamento/troca de plano e o cadastro Master com MFA; validar
    uploads/DICOM e paridade com os aplicativos instalados.
-6. Somente após estes preparativos, realizar o teste real controlado de R$1
+5. Somente após estes preparativos, realizar o teste real controlado de R$1
    solicitado pelo operador e decidir a liberação do beta.
 
 O Protocolo SaaS permanece em andamento. Não foi marcado como concluído e
