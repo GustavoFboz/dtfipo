@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 
 import { BillingCheckoutPanel } from "@/components/billing/BillingCheckoutPanel";
+import { BillingChangeRequestsPanel } from "@/components/billing/BillingChangeRequestsPanel";
 
 import {
   COMPANY_SESSION_LABEL,
@@ -383,6 +384,7 @@ export function RenewalPaymentPanel({ context }: { context: MySubscriptionContex
           <RefreshCw className="h-4 w-4" /> Atualizar situação
         </button>
         {context.active_clinic_id && <BillingHistoryPanel clinicId={context.active_clinic_id} />}
+        {context.active_clinic_id && <BillingChangeRequestsPanel clinicId={context.active_clinic_id} />}
       </section>
     </div>
   );

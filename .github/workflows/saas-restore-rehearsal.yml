@@ -14,6 +14,7 @@ on:
       - "scripts/check-saas-stage-04.mjs"
       - "scripts/check-saas-stage-05.mjs"
       - "scripts/check-saas-stage-06.mjs"
+      - "scripts/check-saas-stage-08.mjs"
       - ".github/workflows/saas-restore-rehearsal.yml"
   pull_request:
     branches:
@@ -30,6 +31,7 @@ on:
       - "scripts/check-saas-stage-04.mjs"
       - "scripts/check-saas-stage-05.mjs"
       - "scripts/check-saas-stage-06.mjs"
+      - "scripts/check-saas-stage-08.mjs"
       - ".github/workflows/saas-restore-rehearsal.yml"
 
 permissions:
@@ -214,6 +216,16 @@ jobs:
             < docs/saas/sql/stage-08-billing-history-rehearsal.sql \
             | tee restore-stage-08-history.log
 
+      - name: Verify and rehearse Stage 08 protected billing requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-08-change-request-assertions.sql | tee restore-stage-08-request-assertions.log
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-08-change-request-rehearsal.sql | tee restore-stage-08-requests.log
+          bash docs/saas/sql/stage-08-change-request-concurrency.sh | tee restore-stage-08-request-concurrency.log
+
       - name: Record sanitized restored-schema audit
         shell: bash
         run: |
@@ -249,6 +261,9 @@ jobs:
             restore-price-rehearsal.log
             restore-stage-07-master.log
             restore-stage-08-history.log
+            restore-stage-08-request-assertions.log
+            restore-stage-08-requests.log
+            restore-stage-08-request-concurrency.log
             restore-audit.log
 
       - name: Stop isolated database

@@ -4,15 +4,17 @@ Status: iniciado em 2026-09-19
 
 Continuidade em 03/10/2026: recuperação do código das etapas 06–09 removido
 na edição Lovable de 29/09, antes de continuar a homologação da etapa 05.
-Histórico e renovação estão preparados; cancelamento e troca de plano ainda
-precisam ser implementados. O operador Master foi atribuído no banco ativo por
+Histórico e renovação estão preparados; solicitações auditadas de cancelamento
+e troca de plano foram implementadas, com execução Asaas ainda pendente.
+O operador Master foi atribuído no banco ativo por
 autorização explícita, e seu autenticador TOTP foi confirmado em 03/10.
 Consulte `evidence/CONTINUITY-2026-10-03.md` para separar código e provas financeiras.
 
 Retomada de 03/10: etapa financeira **05/09 em espera** por solicitação do
 responsável, até o restabelecimento dos créditos Lovable. Etapa atual de avanço
-independente: **06/09**, com upload de caso comprovado, correção da confirmação
-de exclusão e recuperação manual de envios pendentes. O Master **07/09** aguarda os testes com sessões reais e o replay
+independente: **08/09**, com registro e acompanhamento das solicitações sem
+execução financeira. Na **06/09**, upload/exclusão de caso estão comprovados
+e a recuperação manual de envios pendentes está preparada. O Master **07/09** aguarda os testes com sessões reais e o replay
 auditado. Restam pendências nas seis etapas 04–09: recuperação de
 eventos, ciclo financeiro, uploads publicados, prova do replay auditado Master,
 cancelamento/troca de plano e liberação controlada de produção.
@@ -222,8 +224,10 @@ conta/sessão, com testes locais de troca, logout e respostas tardias. Consulte
 
 ### 08 — Centro de cobrança do cliente
 
-Status: histórico e consulta segura de cobrança preparados; falta completar
-cancelamento e troca de plano com efeito comprovado no Asaas. Consulte
+Status: histórico, consulta segura de cobrança e solicitações auditadas de
+cancelamento/troca de plano implementados. Gestor e Master acompanham a fila
+pendente; registrar não modifica contrato, quota ou direito de uso. A execução,
+o preço por vigência e a prova no Asaas ainda faltam. Consulte
 `STAGE-08-BILLING-CENTER.md`.
 
 - plano atual, vencimento, forma de pagamento, faturas e recibos;
