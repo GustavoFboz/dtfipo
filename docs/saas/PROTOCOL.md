@@ -8,6 +8,12 @@ Histórico e renovação estão preparados; cancelamento e troca de plano ainda
 precisam ser implementados. O operador Master não foi atribuído no banco ativo.
 Consulte `evidence/CONTINUITY-2026-10-03.md` para separar código e provas financeiras.
 
+Retomada de 03/10: etapa atual **05/09**. Restam pendências nas seis etapas
+04–09: recuperação de eventos, ciclo financeiro, uploads publicados, identidade
+Master/MFA, cancelamento/troca de plano e liberação controlada de produção.
+O tratamento de eventos financeiros fora de ordem e de falhas isoladas do
+worker está registrado em `evidence/STAGE-05-RESUME-2026-10-03.md`.
+
 Provedor financeiro obrigatório para lançamento: Asaas
 
 Homologação: Asaas Sandbox; operação: Asaas Produção

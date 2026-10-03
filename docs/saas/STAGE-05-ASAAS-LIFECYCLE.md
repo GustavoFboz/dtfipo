@@ -6,9 +6,11 @@ migrations desta etapa aplicadas ao banco vivo e asserção somente leitura
 aprovada. [Build](https://github.com/GustavoFboz/dtfipo/actions/runs/36296012530)
 e [restauração](https://github.com/GustavoFboz/dtfipo/actions/runs/36296012513)
 passaram. A PR 69 rumo à `main` permanece rascunho.
-O primeiro ciclo pago no Sandbox passou em 28/09/2026; renovação, atraso,
-estorno e cancelamento ainda não foram comprovados no provedor. Consulte
-`evidence/SANDBOX-FIRST-PAID-CYCLE-2026-09-28.md`.
+O primeiro ciclo pago no Sandbox passou em 28/09/2026. A leitura de 03/10
+confirmou dois pagamentos e período pago até 29/11. Atraso, carência,
+suspensão, estorno, cancelamento e replay ainda requerem provas individuais.
+Consulte `evidence/CONTINUITY-2026-10-03.md` e
+`evidence/STAGE-05-RESUME-2026-10-03.md`.
 
 ### Acesso à cobrança de renovação
 
@@ -36,6 +38,7 @@ não comprova débito automático do cartão nos meses seguintes.
 | --- | --- | --- |
 | PAYMENT_CONFIRMED / PAYMENT_RECEIVED | GET /v3/payments/{id} e status pago | Primeira cobrança delegada à RPC da Etapa 04; demais ciclos atualizam uma única linha do ledger e estendem o período somente se empresa, valor, ambiente e sequência mensal conferirem. |
 | PAYMENT_OVERDUE | Cobrança OVERDUE | Somente ciclo vencido e ainda não pago entra em past_due; sete dias de carência a partir do vencimento. |
+| Aviso antigo de atraso/pagamento | GET mostra pagamento posterior ou estorno completo | Persiste o efeito atual na inbox com ID estável antes de encerrar o aviso antigo como ignorado. O novo evento verifica novamente contrato, empresa e período; não concede acesso diretamente. |
 | Carência encerrada | Nova consulta da cobrança vencida | OVERDUE confirmado suspende; cobrança já paga cria evento interno auditável e segue pelo mesmo fluxo de pagamento. |
 | Webhook ausente | GET /v3/subscriptions/{id} e GET /v3/payments com filtro de assinatura e vencimento | Uma candidata por execução é verificada; pagamentos conhecidos e inativação geram eventos de recuperação na inbox. O worker reconcilia novamente cada recurso antes de qualquer efeito. |
 | PAYMENT_REFUNDED | Cobrança REFUNDED | Revoga o período correspondente e recalcula o último período pago. Histórico financeiro e dados operacionais permanecem. |
@@ -64,6 +67,13 @@ conceder acesso. A rota é uma ferramenta privada de operação; a futura tela
 Master exigirá identidade, reautenticação e autorização próprias.
 
 ## Limites explícitos
+
+- Falhas individuais de evento ou consulta de carência não interrompem o
+  restante do lote. `workerReview` e `graceReview` contam as falhas parciais;
+  um contador positivo retorna HTTP 503 preservando os resultados já obtidos.
+  Falha de persistência do evento de recuperação mantém o aviso original
+  em tentativa com `RECOVERY_INBOX_WRITE_FAILED`. Estornos parciais,
+  chargeback e reversão inesperada de um estorno continuam em revisão.
 
 - PAYMENT_CHARGEBACK_REQUESTED, recebimento em espécie desfeito, estorno
   parcial e SUBSCRIPTION_DELETED ainda exigem revisão. O Asaas pode responder
