@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { SkeletonBlock, SkeletonCircle, SkeletonSwap, useListReveal } from "@/components/ui/skeleton-blocks";
 
 import { useState, useMemo, useEffect } from "react";
@@ -48,6 +49,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { CaseRow } from "@/lib/types";
 import { fetchWorkflowStagesV2, getCaseWorkflowStages } from "@/lib/workflow-v2";
+import { reconcileCaseProfessionalAssignments } from "@/lib/case-assignment.functions";
 
 const monthAbbr = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 function fmtDayMonth(iso: string) {
@@ -158,6 +160,7 @@ export function CasesTable({
   onDeepLinkClose?: () => void;
 } = {}) {
   const qc = useQueryClient();
+  const reconcileAssignmentsFn = useServerFn(reconcileCaseProfessionalAssignments);
   const [internalSearch, setSearch] = useState("");
   const navigate = useNavigate();
   const search = hideSearch ? "" : (externalSearch !== undefined ? externalSearch : internalSearch);
@@ -181,6 +184,33 @@ export function CasesTable({
   const canReviewRequests =
     Boolean(profile?.is_default_admin) ||
     hasProfileRole("CEO", "ADMIN", "PROTETICO");
+
+  const assignmentIntegrityQ = useQuery({
+    queryKey: ["case_assignment_integrity", profile?.clinic_id],
+    enabled: canReviewRequests && !!profile?.clinic_id,
+    staleTime: 5 * 60_000,
+    retry: 1,
+    queryFn: async () => {
+      const result = await reconcileAssignmentsFn();
+      return result as {
+        success?: boolean;
+        repaired?: number;
+        cadistas_linked?: number;
+        cadistas_created?: number;
+        doctors_linked?: number;
+        doctors_created?: number;
+        participant_intervals_opened?: number;
+        participant_intervals_closed?: number;
+      };
+    },
+  });
+
+  useEffect(() => {
+    if (!assignmentIntegrityQ.data?.repaired) return;
+    void qc.invalidateQueries({ queryKey: ["cases"], refetchType: "active" });
+    void qc.invalidateQueries({ queryKey: ["cadistas"], refetchType: "active" });
+    void qc.invalidateQueries({ queryKey: ["doctors"], refetchType: "active" });
+  }, [assignmentIntegrityQ.data?.repaired, qc]);
 
   const notificationsQ = useQuery({
     queryKey: ["notifications"],
