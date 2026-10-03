@@ -298,12 +298,12 @@ const EMPTY_META: Record<UploadKind, { img: string; title: string; hint: string 
     hint: "Arraste imagens para esta aba ou use o botão + para adicionar arquivos à galeria do caso.",
   },
   model: {
-    img: emptyModels.url,
+    img: "/assets/case-empty-models.webp",
     title: "Nenhum modelo por aqui",
     hint: "Arraste arquivos 3D para esta aba ou use o botão + para adicionar modelos ao caso.",
   },
   scans: {
-    img: emptyModels.url,
+    img: "/assets/case-empty-scans.webp",
     title: "Nenhum escaneamento por aqui",
     hint: "Arraste escaneamentos para esta aba ou use o botão + para adicionar arquivos ao caso.",
   },
@@ -325,7 +325,7 @@ function EmptyTabState({ kind }: { kind: UploadKind }) {
     <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-20 min-h-[460px]">
       <img
         src={m.img}
-        alt=""
+        alt={m.title}
         draggable={false}
         className="w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 object-contain mb-6 select-none"
       />
