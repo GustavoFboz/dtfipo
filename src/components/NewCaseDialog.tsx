@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
@@ -54,6 +55,7 @@ import { addCaseActivity, notifyCaseStakeholders } from "@/lib/case-activity";
 import { Paperclip, MessageSquare, PlusCircle } from "lucide-react";
 import { AttachButton, AttachFilesIcon, AttachImagesIcon } from "./AttachButton";
 import { useSessionSnapshot, clearSessionSnapshot } from "@/hooks/use-session-snapshot";
+import { ensureCaseProfessionalDirectoryLinks } from "@/lib/case-assignment.functions";
 import {
   NEW_CASE_OPEN_KEY,
   NEW_CASE_FORM_KEY,
@@ -118,10 +120,13 @@ export function NewCaseDialog({
   onOpenChange?: (o: boolean) => void;
 }) {
   const qc = useQueryClient();
+  const ensureProfessionalLinksFn = useServerFn(ensureCaseProfessionalDirectoryLinks);
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
-  const isCadista = profile?.role === "CADISTA";
+  const effectiveProfileType = String(profile?.account_subtype || profile?.role || "").toUpperCase();
+  const canManageAssignments = Boolean(profile?.is_default_admin) || ["CEO", "ADMIN", "PROTETICO"].includes(effectiveProfileType);
+  const isCadista = effectiveProfileType === "CADISTA";
   const isView = !!viewCase;
-  const isSolicitante = profile?.role === "SOLICITANTE";
+  const isSolicitante = effectiveProfileType === "SOLICITANTE";
   // Solicitantes can create cases and see all fields, but only see their own requests
   const isEdit = !!editCase && !isView;
   const isCreate = !isView && !isEdit;
@@ -684,6 +689,23 @@ export function NewCaseDialog({
         for (const t of cleanImplantTeeth) {
           const sid = toothImplantSystemMap[t] ?? implantSystemId;
           if (sid) tis[String(t)] = sid;
+        }
+      }
+
+      // Before committing an assignment, guarantee that the selected directory
+      // rows are linked to real active team accounts. Legacy name-only CAD/doctor
+      // rows used to make the UI look assigned while RLS had no user identity to
+      // grant the case to.
+      if (canManageAssignments && (cadistaId || doctorId)) {
+        const result = await ensureProfessionalLinksFn({
+          data: {
+            cadista_id: cadistaId || null,
+            doctor_id: doctorId || null,
+          },
+        });
+        const response = result as { success?: boolean; error?: string };
+        if (response?.success === false) {
+          throw new Error(response.error || "Não foi possível validar os profissionais selecionados.");
         }
       }
 
