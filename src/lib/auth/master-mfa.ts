@@ -21,7 +21,7 @@ export async function enrollMasterFactor(auth: Auth): Promise<PendingMasterFacto
   return { ownerId, id: result.data.id, qrCode: result.data.totp.qr_code, secret: result.data.totp.secret };
 }
 
-export async function verifyMasterFactor(auth: Auth, factor: PendingMasterFactor, code: string) {
+export async function verifyMasterFactor(auth: Auth, factor: Pick<PendingMasterFactor, "ownerId" | "id">, code: string) {
   if (!/^\d{6}$/.test(code)) throw new Error("MFA_CODE_INVALID");
   await assertOwner(auth, factor.ownerId);
   const verified = await auth.mfa.challengeAndVerify({ factorId: factor.id, code });

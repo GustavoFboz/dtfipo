@@ -1,52 +1,68 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MasterMfaEnrollment } from "./MasterMfaEnrollment";
+import { verifyMasterFactor } from "@/lib/auth/master-mfa";
+import { requireMasterSession, type MasterSessionCheck, type MasterSessionScope } from "@/lib/auth/master-session";
 import { supabase } from "@/integrations/supabase/client";
 
 /** Online administrative action; the server remains the authorization boundary. */
-export function MasterMfaChallenge({ onVerified }: { onVerified: () => void }) {
+export function MasterMfaChallenge({ scope, isCurrent, onVerified }: {
+  scope: MasterSessionScope; isCurrent: MasterSessionCheck; onVerified: () => void;
+}) {
   const [factors, setFactors] = useState<{ id: string; friendly_name?: string }[]>([]);
   const [factorId, setFactorId] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState("");
+  const generation = useRef(0);
+  const running = useRef(false);
   useEffect(() => {
-    let active = true;
-    void supabase.auth.mfa.listFactors().then(({ data, error }) => {
-      if (!active) return;
-      if (error) setError("Não foi possível consultar o autenticador. Verifique sua conexão e sessão.");
-      else {
-        const verified = data.totp.filter((factor) => factor.status === "verified");
-        setFactors(verified);
-        setFactorId(verified[0]?.id ?? "");
-      }
+    const operation = generation.current;
+    void (async () => {
+      await requireMasterSession(supabase.auth, scope, isCurrent);
+      const { data, error } = await supabase.auth.mfa.listFactors();
+      await requireMasterSession(supabase.auth, scope, isCurrent);
+      if (operation !== generation.current) return;
+      if (error) throw error;
+      const verified = data.totp.filter((factor) => factor.status === "verified");
+      setFactors(verified);
+      setFactorId(verified[0]?.id ?? "");
       setLoaded(true);
-    }).catch(() => {
-      if (active) { setError("Não foi possível consultar o autenticador."); setLoaded(true); }
+    })().catch(() => {
+      if (operation === generation.current && isCurrent(scope)) {
+        setError("Não foi possível consultar o autenticador. Verifique sua conexão e sessão."); setLoaded(true);
+      }
     });
-    return () => { active = false; };
-  }, []);
+    return () => { generation.current++; };
+  }, [scope, isCurrent]);
 
   async function verify() {
-    if (busy || !/^\d{6}$/.test(code) || !factors.some((factor) => factor.id === factorId)) return;
+    if (running.current || !isCurrent(scope) || !/^\d{6}$/.test(code) || !factors.some((factor) => factor.id === factorId)) return;
+    const operation = generation.current;
+    running.current = true;
     setBusy(true); setError("");
     try {
-      const { error } = await supabase.auth.mfa.challengeAndVerify({ factorId, code });
-      if (error) throw error;
-      const assurance = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      if (assurance.error || assurance.data?.currentLevel !== "aal2") throw new Error("MFA_REQUIRED");
+      await requireMasterSession(supabase.auth, scope, isCurrent);
+      await verifyMasterFactor(supabase.auth, { ownerId: scope.ownerId, id: factorId }, code);
+      await requireMasterSession(supabase.auth, scope, isCurrent, undefined, true);
+      if (operation !== generation.current) return;
       setCode("");
       onVerified();
     } catch {
-      setCode("");
-      setError("Não foi possível confirmar. Confira o código atual do autenticador e tente novamente.");
-    } finally { setBusy(false); }
+      if (operation === generation.current && isCurrent(scope)) {
+        setCode("");
+        setError("Não foi possível confirmar. Confira o código atual do autenticador e tente novamente.");
+      }
+    } finally {
+      running.current = false;
+      if (operation === generation.current && isCurrent(scope)) setBusy(false);
+    }
   }
 
   return <section className="mt-3 rounded border p-3" aria-label="Confirmação de dois fatores">
-    <p className="text-sm">Confirme sua identidade com o aplicativo autenticador antes de enviar o evento.</p>
+    <p className="text-sm">Confirme sua identidade com o aplicativo autenticador.</p>
     {!loaded && <p role="status">Consultando autenticadores…</p>}
-    {loaded && !error && factors.length === 0 && <MasterMfaEnrollment onVerified={onVerified} />}
+    {loaded && !error && factors.length === 0 && <MasterMfaEnrollment scope={scope} isCurrent={isCurrent} onVerified={onVerified} />}
     {factors.length > 0 && <form onSubmit={(event) => { event.preventDefault(); void verify(); }}>
       {factors.length > 1 && <label className="mt-2 block text-sm">Autenticador
         <select value={factorId} disabled={busy} onChange={(event) => setFactorId(event.target.value)}

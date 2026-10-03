@@ -1,43 +1,47 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { cancelMasterFactor, enrollMasterFactor, verifyMasterFactor, type PendingMasterFactor } from "@/lib/auth/master-mfa";
+import { requireMasterSession, type MasterSessionCheck, type MasterSessionScope } from "@/lib/auth/master-session";
 
-export function MasterMfaEnrollment({ onVerified }: { onVerified: () => void }) {
+export function MasterMfaEnrollment({ scope, isCurrent, onVerified }: {
+  scope: MasterSessionScope; isCurrent: MasterSessionCheck; onVerified: () => void;
+}) {
   const [pending, setPending] = useState<PendingMasterFactor | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const generation = useRef(0);
+  const running = useRef(false);
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((event) => {
-      // MFA verification emits MFA_CHALLENGE_VERIFIED: keep this operation alive.
-      if (event === "SIGNED_OUT" || event === "SIGNED_IN") {
-        generation.current++; setPending(null); setCode(""); setBusy(false);
-      }
-    });
-    return () => { generation.current++; data.subscription.unsubscribe(); };
-  }, []);
+    // The parent remounts on a different account/session, not on an MFA upgrade.
+    return () => { generation.current++; };
+  }, [scope]);
 
   async function act(action: "start" | "verify" | "cancel") {
-    if (busy) return;
+    if (running.current || !isCurrent(scope)) return;
     const operation = generation.current;
+    running.current = true;
     setBusy(true); setError("");
     try {
+      await requireMasterSession(supabase.auth, scope, isCurrent);
       if (action === "start") {
         const factor = await enrollMasterFactor(supabase.auth);
-        if (operation === generation.current) setPending(factor);
+        await requireMasterSession(supabase.auth, scope, isCurrent);
+        if (operation === generation.current && isCurrent(scope)) setPending(factor);
       } else if (pending) {
         if (action === "cancel") await cancelMasterFactor(supabase.auth, pending);
         else await verifyMasterFactor(supabase.auth, pending, code);
-        if (operation === generation.current) {
+        await requireMasterSession(supabase.auth, scope, isCurrent, undefined, action === "verify");
+        if (operation === generation.current && isCurrent(scope)) {
           setPending(null);
           if (action === "verify") onVerified();
         }
       }
     } catch {
-      if (operation === generation.current) setError("Não foi possível concluir. Confira sua sessão, conexão e o código atual. Se já configurou o autenticador, reabra a confirmação.");
+      if (operation === generation.current && isCurrent(scope)) setError("Não foi possível concluir. Confira sua sessão, conexão e o código atual. Se já configurou o autenticador, reabra a confirmação.");
     } finally {
-      if (operation === generation.current) { setCode(""); setBusy(false); }
+      running.current = false;
+      if (operation === generation.current && isCurrent(scope)) { setCode(""); setBusy(false); }
     }
   }
 

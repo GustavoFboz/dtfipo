@@ -8,6 +8,11 @@ revisão financeira Sandbox. Nenhum CEO, admin de empresa ou perfil IPO ganha
 permissão de plataforma automaticamente. Consulte
 `evidence/STAGE-07-ENROLLMENT-2026-10-03.md`.
 
+O isolamento de cache, MFA e formulários por conta/sessão também foi implementado
+e testado localmente. Consulte `evidence/STAGE-07-SESSION-ISOLATION-2026-10-03.md`.
+Falta repetir os cenários de outra conta/sessão no aplicativo publicado com
+logins reais; os testes simulados não encerram esse aceite operacional.
+
 ## Entrega
 
 - `platform_operators` é uma lista privada de usuários da plataforma, separada
@@ -20,6 +25,8 @@ permissão de plataforma automaticamente. Consulte
   `billing_event_replays` na mesma transação e entrega o evento ao worker já
   existente. O replay não ativa a assinatura por si.
 - Nenhuma alteração manual de entitlement, preço ou pagamento é oferecida.
+- Troca de conta/sessão limpa o painel e as confirmações. Dados/respostas da
+  sessão anterior não são reutilizados e cada ação continua validada no backend.
 
 ## Implantação e prova
 
