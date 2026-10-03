@@ -5,12 +5,15 @@ Status: iniciado em 2026-09-19
 Continuidade em 03/10/2026: recuperação do código das etapas 06–09 removido
 na edição Lovable de 29/09, antes de continuar a homologação da etapa 05.
 Histórico e renovação estão preparados; cancelamento e troca de plano ainda
-precisam ser implementados. O operador Master não foi atribuído no banco ativo.
+precisam ser implementados. O operador Master foi atribuído no banco ativo por
+autorização explícita, e seu autenticador TOTP foi confirmado em 03/10.
 Consulte `evidence/CONTINUITY-2026-10-03.md` para separar código e provas financeiras.
 
-Retomada de 03/10: etapa atual **05/09**. Restam pendências nas seis etapas
-04–09: recuperação de eventos, ciclo financeiro, uploads publicados, identidade
-Master/MFA, cancelamento/troca de plano e liberação controlada de produção.
+Retomada de 03/10: etapa financeira **05/09 em espera** por solicitação do
+responsável, até o restabelecimento dos créditos Lovable. Etapa atual de avanço
+independente: **07/09**. Restam pendências nas seis etapas 04–09: recuperação de
+eventos, ciclo financeiro, uploads publicados, prova do replay auditado Master,
+cancelamento/troca de plano e liberação controlada de produção.
 O tratamento de eventos financeiros fora de ordem e de falhas isoladas do
 worker está registrado em `evidence/STAGE-05-RESUME-2026-10-03.md`.
 
@@ -185,9 +188,13 @@ Consulte `STAGE-06-STORAGE-QUOTAS.md`.
 
 ### 07 — Administração Master
 
-Status: papel separado e painel de leitura/replay auditado preparados em branch
-isolada. Migração, identidade do operador e segundo fator ainda exigem
-verificação no ambiente ativo. Consulte `STAGE-07-MASTER-ADMIN.md`.
+Status: papel separado e painel publicados, operador autorizado habilitado no
+banco ativo e um fator TOTP verificado em 03/10/2026. O responsável confirmou o
+autenticador no painel publicado. Testes SQL em transação somente leitura
+confirmaram recusa de acesso/replay a não operador e recusa de replay em `aal1`.
+A prova de replay real com auditoria permanece pendente e depende da revisão
+financeira Sandbox. Consulte `STAGE-07-MASTER-ADMIN.md` e
+`evidence/STAGE-07-ENROLLMENT-2026-10-03.md`.
 
 - criar papel de plataforma separado de `admin`/`CEO` da empresa;
 - permitir busca de empresas, assinatura, pagamentos, eventos e saúde da fila;
