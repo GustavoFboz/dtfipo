@@ -188,7 +188,7 @@ export function NotificationPanel({ profile: externalProfile }: { profile?: Prof
         </PopoverContent>
       </Popover>
 
-      <div className="df-notification-stack pointer-events-none fixed top-5 z-[1800] flex w-80 flex-col items-end gap-2">
+      <div className="df-notification-stack pointer-events-none fixed left-1/2 top-5 z-[1800] flex w-[calc(100vw-2rem)] max-w-[28rem] -translate-x-1/2 flex-col items-stretch gap-2">
         <AnimatePresence mode="popLayout">
           {popups.map((popup, index) => (
             <NotificationPopup
@@ -213,14 +213,16 @@ function NotificationPopup({ popup, index, onClose, onClick }: { popup: PopupNot
   const meta = popup.metadata || {};
   const sender = meta.sender_name || popup.title || "DentalFlow";
   const isAttachment = popup.type === "attachment";
+  const stackOpacity = index === 0 ? 1 : index === 1 ? 0.78 : 0.56;
+  const stackScale = index === 0 ? 1 : index === 1 ? 0.985 : 0.97;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: -12, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, x: 24, scale: 0.98 }}
-      transition={{ duration: 0.2 }}
-      className="pointer-events-auto relative w-full cursor-pointer overflow-hidden rounded-[20px] border border-slate-200/80 bg-white/95 p-4 shadow-[0_18px_60px_-24px_rgba(15,23,42,.45)] backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/95"
+      animate={{ opacity: stackOpacity, y: 0, scale: stackScale }}
+      exit={{ opacity: 0, y: -8, scale: 0.96 }}
+      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      className="pointer-events-auto relative w-full cursor-pointer overflow-hidden rounded-[20px] border border-white/55 bg-white/70 p-4 shadow-[0_18px_60px_-24px_rgba(15,23,42,.35)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/70"
       onClick={onClick}
     >
       <button type="button" onClick={(e) => { e.stopPropagation(); onClose(); }} className="absolute right-3 top-3 grid h-6 w-6 place-items-center rounded-full text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10" aria-label="Fechar notificação">
@@ -230,9 +232,9 @@ function NotificationPopup({ popup, index, onClose, onClick }: { popup: PopupNot
         <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
           {isAttachment ? <Paperclip className="h-4 w-4" /> : <MessageSquare className="h-4 w-4" />}
         </div>
-        <div className="min-w-0">
-          <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">{sender}</p>
-          <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-slate-500 dark:text-slate-400">{popup.content}</p>
+        <div className="min-w-0 flex-1">
+          <p className="break-words text-xs font-semibold leading-4 text-slate-900 dark:text-white">{sender}</p>
+          <p className="mt-1 whitespace-pre-wrap break-words text-[11px] leading-4 text-slate-500 dark:text-slate-400">{popup.content}</p>
         </div>
       </div>
       <motion.div className="absolute bottom-0 left-0 h-[2px] bg-primary/70" initial={{ width: "100%" }} animate={{ width: "0%" }} transition={{ duration: duration / 1000, ease: "linear" }} onAnimationComplete={onClose} />
