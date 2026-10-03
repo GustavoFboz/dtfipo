@@ -193,8 +193,10 @@ banco ativo e um fator TOTP verificado em 03/10/2026. O responsável confirmou o
 autenticador no painel publicado. Testes SQL em transação somente leitura
 confirmaram recusa de acesso/replay a não operador e recusa de replay em `aal1`.
 A prova de replay real com auditoria permanece pendente e depende da revisão
-financeira Sandbox. Consulte `STAGE-07-MASTER-ADMIN.md` e
-`evidence/STAGE-07-ENROLLMENT-2026-10-03.md`.
+financeira Sandbox. O painel também passou a isolar cache e confirmações por
+conta/sessão, com testes locais de troca, logout e respostas tardias. Consulte
+`STAGE-07-MASTER-ADMIN.md`, `evidence/STAGE-07-ENROLLMENT-2026-10-03.md` e
+`evidence/STAGE-07-SESSION-ISOLATION-2026-10-03.md`.
 
 - criar papel de plataforma separado de `admin`/`CEO` da empresa;
 - permitir busca de empresas, assinatura, pagamentos, eventos e saúde da fila;
