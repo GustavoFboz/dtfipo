@@ -72,9 +72,15 @@ envio foi abandonado; não executar um `DELETE` geral no banco vivo.
    `ready` e a ausência de uma reserva restante para esse envio.
 4. Remover apenas o anexo de homologação pela interface e confirmar que o
    objeto desapareceu e o uso retornou ao valor anterior.
-5. Repetir na Radiologia com uma pequena série DICOM de homologação e validar
-   as instâncias, sua abertura e a contabilização. Nenhum objeto DICOM existente
-   foi encontrado na auditoria; os testes de CI não substituem este ensaio.
+5. **Adiado por decisão do responsável em 03/10:** a Radiologia ainda não
+   funciona. Antes de ativar esse módulo, repetir com uma pequena série DICOM
+   de homologação e validar instâncias, abertura e contabilização. Nenhum objeto
+   DICOM foi encontrado nesta auditoria; o ensaio não bloqueia o SaaS atual.
+
+Atualização posterior do roteiro: upload e exclusão de anexo de caso foram
+comprovados na conta publicada; consulte
+`STAGE-06-DELETE-CONFIRMATION-2026-10-03.md`. A validação DICOM permanece separada
+para a futura ativação da Radiologia.
 
 Interrupção de upload, recuperação de reserva e concorrência já têm testes em
 base descartável. A prova de uma interrupção na interface publicada deve usar

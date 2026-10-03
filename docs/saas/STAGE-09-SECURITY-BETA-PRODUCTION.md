@@ -5,12 +5,18 @@ Status: preparação técnica iniciada. Produção permanece bloqueada e nenhuma
 ## Gates obrigatórios
 
 1. CI de restauração limpa e ensaios das etapas 01–08 devem passar no commit candidato.
-2. As provas reais restantes do Sandbox (duplicata/perda/replay, ciclo de vida e upload/DICOM publicado) devem ser registradas sem mocks como evidência principal.
+2. As provas reais restantes do Sandbox (duplicata/perda/replay, ciclo de vida e uploads dos módulos disponíveis) devem ser registradas sem mocks como evidência principal. Upload e exclusão de anexo de caso já foram comprovados em 03/10.
 3. O operador Master deve ser explicitamente autorizado e usar MFA AAL2 antes de replay administrativo.
 4. Sandbox e Produção devem usar chaves, webhook e dados separados. Segredos nunca entram no repositório.
 5. `ASAAS_PRODUCTION_ENABLED` permanece falso até a compra controlada ser autorizada pelo operador.
 6. A primeira cobrança de Produção será uma única compra controlada de R$ 1. Ela deve comprovar pagamento, webhook, ledger, entitlement, idempotência e cancelamento sem apagar dados.
 7. Só depois desse aceite o catálogo volta ao preço comercial e o beta é liberado em lote piloto.
+
+Escopo de 03/10/2026: o responsável adiou a homologação DICOM porque a
+Radiologia ainda não funciona. Esse ensaio não bloqueia o SaaS dos módulos
+disponíveis; deve ser realizado antes de disponibilizar a Radiologia. As
+proteções de armazenamento existentes continuam vigentes. Os requisitos
+financeiros, de identidade, de segurança e a flag de Produção não mudam.
 
 ## Rollback
 

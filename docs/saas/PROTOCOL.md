@@ -22,6 +22,11 @@ A auditoria de armazenamento e o roteiro de homologação estão em
 `evidence/STAGE-06-LIVE-AUDIT-2026-10-03.md`.
 O contrato de recuperação está em `evidence/STAGE-06-RESERVATION-RECOVERY-2026-10-03.md`.
 
+Escopo confirmado pelo responsável em 03/10: a Radiologia ainda não está
+funcionando. A homologação DICOM fica adiada para a ativação desse módulo e
+não bloqueia a conclusão do SaaS dos módulos atualmente disponíveis. As
+proteções de armazenamento já implementadas para DICOM permanecem vigentes.
+
 Provedor financeiro obrigatório para lançamento: Asaas
 
 Homologação: Asaas Sandbox; operação: Asaas Produção
@@ -184,8 +189,11 @@ de risco restantes continuam em revisão. Consulte STAGE-05-ASAAS-LIFECYCLE.md.
 
 Status: cota e reservas obrigatórias implantadas em 29/09/2026; ensaios em
 base descartável passaram. Um novo anexo de caso foi confirmado na conta
-publicada em 03/10. Falta repetir a exclusão após a correção da confirmação,
-homologar os demais uploads/DICOM e reconciliar os resíduos históricos.
+publicada em 03/10. O responsável confirmou a exclusão funcionando, e a
+consulta somente leitura comprovou ausência do objeto/anexo/catálogo e retorno
+exato da cota ao valor anterior. Restam os demais uploads dos módulos
+disponíveis e a reconciliação dos resíduos históricos. DICOM será homologado
+quando a Radiologia estiver funcional, fora do escopo atual de conclusão.
 O administrador pode revisar reservas antigas por uma ação que não remove
 objetos; a limpeza dos nove registros reais depende de revisão individual.
 Consulte `STAGE-06-STORAGE-QUOTAS.md`.

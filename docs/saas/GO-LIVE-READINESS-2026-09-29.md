@@ -1,4 +1,4 @@
-# Situação para a primeira venda real — 29/09/2026
+# Situação para a primeira venda real — revisão de 03/10/2026
 
 Este registro separa implantação de código, homologação e operação financeira.
 Não há cobrança de Produção concluída. O operador decidiu fazer o pagamento
@@ -10,10 +10,17 @@ real controlado somente depois de concluir os preparativos técnicos.
 | 02–03 Checkout Asaas | Primeira contratação de R$ 249 no Sandbox, webhook, ledger e acesso ativo | Credenciais e webhook exclusivos de Produção |
 | 04 Inbox e reconciliação | Cinco eventos processados e dois dead letters no audit de 03/10 | Diagnosticar os dois eventos; provar replay após verificar a cobrança no Asaas |
 | 05 Ciclo de vida | Dois ciclos pagos no ledger Sandbox, até 29/11; ensaios isolados disponíveis | Atraso, suspensão, estorno e reativação vinculados à assinatura; débito automático não comprovado |
-| 06 Cotas e arquivos | Migração aplicada; asserções live passaram; CI de reservas, quota e concorrência passou; PR #88 integrada e sincronizada no Lovable | Upload e DICOM pela conta publicada; 3 casos e 2 fotos antigos sem empresa identificável permanecem preservados |
-| 07 Master | Código recuperado; estruturas existem no banco ativo | Nenhum operador atribuído; falta cadastrar a identidade correta e verificar MFA |
+| 06 Cotas e arquivos | Reservas e recuperação manual implantadas; CI de quota e concorrência aprovado; upload/exclusão de caso publicados com devolução exata de 26.088.984 bytes | Outros uploads dos módulos disponíveis; revisão das 9 reservas antigas e dos 5 objetos sem origem; DICOM adiado até a Radiologia funcionar |
+| 07 Master | Operador autorizado cadastrado; TOTP confirmado; isolamento de conta/sessão e recusas SQL comprovados | Testes com sessões reais e replay Sandbox com auditoria; revisão financeira em standby |
 | 08 Centro de cobrança | Histórico, documentos e renovação recuperados no código | Confirmar na publicação; implementar troca de plano e cancelamento com efeito no Asaas |
 | 09 Produção | Adapter separa Sandbox e Produção por chave, URL e flag | Credenciais reais, webhook de Produção, alertas, piloto e cobrança real controlada |
+
+Decisão do responsável em 03/10: a Radiologia ainda não está funcional.
+Homologar DICOM fica fora dos requisitos de conclusão do SaaS atual e volta
+a ser necessário antes da ativação desse módulo. A pausa financeira até o
+restabelecimento dos créditos Lovable e a preservação dos registros históricos
+permanecem. A confirmação de exclusão está registrada em
+`evidence/STAGE-06-DELETE-CONFIRMATION-2026-10-03.md`.
 
 ## Preço do catálogo e contratos existentes — revisão de 03/10/2026
 

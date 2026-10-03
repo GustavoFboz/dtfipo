@@ -2,8 +2,9 @@
 
 Status: implementação validada localmente e no CI; migration aplicada ao banco
 ativo em 03/10/2026, com três asserções somente leitura aprovadas. Asaas em standby.
-A exclusão publicada corrigida no PR anterior ainda aguarda repetição pelo
-responsável. Nenhum arquivo de usuário ou reserva histórica foi removido aqui.
+A exclusão publicada corrigida no PR anterior foi confirmada pelo responsável,
+com devolução exata da cota verificada no backend; consulte a evidência de
+confirmação de exclusão. Nenhuma reserva histórica foi removida aqui.
 
 ## Problema confirmado
 
@@ -11,8 +12,9 @@ A auditoria somente leitura encontrou nove reservas antigas sem objeto, todas
 de casos da IPO, somando 1.112.944.862 bytes (cerca de 1,04 GiB). O catálogo
 contabiliza `reserved` e `ready`; a tela administrativa mostrava apenas `ready`.
 Uma nova consulta agregada confirmou 500 entradas `ready` e as mesmas nove
-reservas. O novo anexo de homologação continua com objeto; sua exclusão real
-ainda não foi comprovada.
+reservas. Naquele momento, o novo anexo de homologação continuava com objeto.
+Depois da implantação, o responsável excluiu o anexo e a consulta somente
+leitura confirmou o retorno a 499 entradas `ready` e 7.508.319.238 bytes.
 
 ## Comportamento
 
@@ -94,6 +96,8 @@ confirmado. Para reenviar, iniciar um novo upload. Erros de arquivo existente,
 registro vinculado ou envio recente devem manter a cota.
 
 Os nove registros históricos dependem dessa revisão individual. Os cinco
-objetos antigos sem origem identificável continuam preservados. O novo teste
-de exclusão e os demais uploads, especialmente DICOM, ainda são necessários
-para encerrar a etapa 06. O protocolo continua com pendências nas etapas 04–09.
+objetos antigos sem origem identificável continuam preservados. A exclusão de
+caso já foi validada; os demais uploads dos módulos disponíveis ainda precisam
+de homologação. DICOM foi adiado pelo responsável até a Radiologia funcionar,
+sem bloquear a conclusão do SaaS atual. O protocolo continua com pendências
+nas etapas 04–09.

@@ -2,8 +2,11 @@
 
 Status: cotas e reservas obrigatórias implantadas na base ativa em 29/09/2026.
 Restauração, uploads autenticados e concorrência passaram em CI; a asserção
-somente leitura do banco ativo retornou `passed`. O ensaio pela interface real
-de upload, inclusive DICOM, ainda precisa de homologação.
+somente leitura do banco ativo retornou `passed`. Upload e exclusão de anexo de
+caso foram comprovados pela conta publicada. Restam outros uploads dos módulos
+disponíveis e a revisão dos resíduos históricos. Por decisão do responsável em
+03/10, a homologação DICOM fica para a ativação da Radiologia e não bloqueia
+a conclusão do SaaS atual.
 
 Revalidação de 03/10/2026: ambas as asserções somente leitura retornaram
 `passed`; AS Lab conserva 25 GiB, IPO 500 GiB e isenção, e o checkout pendente
@@ -16,8 +19,10 @@ O primeiro novo anexo pela conta publicada foi confirmado em 03/10: objeto,
 registro de anexo e catálogo `ready` existem e contabilizam 26.088.984 bytes.
 A exclusão pela interface encontrou uma confirmação escondida atrás do detalhe
 do caso. A correção das camadas, da fila de confirmações e da formatação do uso
-está em `evidence/STAGE-06-DELETE-CONFIRMATION-2026-10-03.md`; a remoção publicada
-ainda precisa ser repetida após a atualização.
+está em `evidence/STAGE-06-DELETE-CONFIRMATION-2026-10-03.md`. Em seguida, o
+responsável confirmou a exclusão funcionando corretamente. A verificação
+somente leitura comprovou remoção do objeto, anexo e catálogo, com liberação
+exata dos 26.088.984 bytes e preservação das nove reservas antigas.
 
 Recuperação manual de 03/10: a área de armazenamento passa a mostrar os envios
 pendentes da empresa. Só um administrador pode liberar uma reserva de pelo
@@ -79,7 +84,8 @@ Auditoria prévia do banco: 30 objetos de `case-files` e 2 de `patient-photos`
 não tinham lançamento; 8 lançamentos de `case-files` apontavam para objetos
 ausentes. A migração contabiliza objetos históricos de casos identificáveis,
 mas preserva os demais e não apaga nenhum arquivo. Após aplicar, conferir
-resíduos sem empresa identificável, o tamanho real por empresa e o fluxo real
-de upload DICOM. A concorrência e uploads autenticados foram ensaiados na base
-descartável do CI. O teste de ponta a ponta na conta publicada ainda é
-necessário para declarar prontidão de produção.
+resíduos sem empresa identificável e o tamanho real por empresa. A concorrência
+e uploads autenticados foram ensaiados na base descartável do CI. O teste real
+de caso passou; os demais uploads disponíveis ainda precisam de homologação.
+O fluxo DICOM será validado antes de disponibilizar a Radiologia e não integra
+o bloqueio atual do SaaS. As políticas e reservas desse bucket são preservadas.
