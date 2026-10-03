@@ -8,6 +8,7 @@ upload_first='60000000-0000-4000-8000-000000000122'
 release_first='60000000-0000-4000-8000-000000000123'
 scratch_dir="$(mktemp -d)"
 first_pid=''
+if command -v rg >/dev/null 2>&1; then log_search=(rg -q); else log_search=(grep -q); fi
 psql_restore() { docker exec -i "$db_container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 "$@"; }
 cleanup() {
   if [[ -n "$first_pid" ]] && kill -0 "$first_pid" 2>/dev/null; then
@@ -25,7 +26,7 @@ trap cleanup EXIT
 wait_barrier() {
   local checkpoint="$1" log="$2"
   for _ in $(seq 1 100); do
-    if rg -q "$checkpoint" "$log"; then return; fi
+    if "${log_search[@]}" "$checkpoint" "$log"; then return; fi
     if ! kill -0 "$first_pid" 2>/dev/null; then cat "$log"; exit 1; fi
     sleep 0.1
   done
@@ -68,7 +69,7 @@ set role authenticated;
 select public.release_storage_upload_reservation('$upload_first','$clinic_id');
 SQL
 then cat "$scratch_dir/release-blocked.log"; echo 'Recovery removed a reservation during upload.' >&2; exit 1; fi
-if ! rg -q STORAGE_OBJECT_STILL_EXISTS "$scratch_dir/release-blocked.log"; then cat "$scratch_dir/release-blocked.log"; exit 1; fi
+if ! "${log_search[@]}" STORAGE_OBJECT_STILL_EXISTS "$scratch_dir/release-blocked.log"; then cat "$scratch_dir/release-blocked.log"; exit 1; fi
 wait "$first_pid"; first_pid=''
 
 # Recovery holds the exclusive lock. A late INSERT waits, then fails RLS because
@@ -95,7 +96,7 @@ set role authenticated;
 insert into storage.objects (bucket_id,name,metadata,owner_id) values ('avatars','$user_id/release-first.jpg','{"size":10}','$user_id');
 SQL
 then cat "$scratch_dir/upload-blocked.log"; echo 'Late upload used a released reservation.' >&2; exit 1; fi
-if ! rg -q 'row-level security' "$scratch_dir/upload-blocked.log"; then cat "$scratch_dir/upload-blocked.log"; exit 1; fi
+if ! "${log_search[@]}" 'row-level security' "$scratch_dir/upload-blocked.log"; then cat "$scratch_dir/upload-blocked.log"; exit 1; fi
 wait "$first_pid"; first_pid=''
 result="$(psql_restore -At -c "select (select count(*) from public.storage_files where clinic_id='$clinic_id'), (select coalesce(sum(size_bytes),0) from public.storage_files where clinic_id='$clinic_id'), (select count(*) from storage.objects where bucket_id='avatars' and name in ('$user_id/upload-first.jpg','$user_id/release-first.jpg'))")"
 if [[ "$result" != '1|10|1' ]]; then echo "Recovery race left unexpected quota/objects: $result" >&2; exit 1; fi
