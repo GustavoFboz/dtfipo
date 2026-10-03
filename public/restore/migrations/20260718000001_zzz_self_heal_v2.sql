@@ -240,6 +240,8 @@ REVOKE ALL ON FUNCTION public.reserve_storage_upload(
   bigint,text,text,text,uuid,uuid,text,text
 ), public.complete_storage_upload(uuid,text), public.cancel_storage_upload(uuid),
   public.delete_managed_storage_file(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.storage_upload_has_reservation_for_insert(text,text,jsonb),
+  public.release_storage_upload_reservation(uuid,uuid) FROM PUBLIC, anon;
 
 REVOKE ALL ON TABLE public.company_billing_profiles
   FROM PUBLIC, anon, authenticated;
