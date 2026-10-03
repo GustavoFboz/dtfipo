@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { MasterMfaEnrollment } from "./MasterMfaEnrollment";
 import { supabase } from "@/integrations/supabase/client";
 
 /** Online administrative action; the server remains the authorization boundary. */
@@ -45,9 +46,7 @@ export function MasterMfaChallenge({ onVerified }: { onVerified: () => void }) {
   return <section className="mt-3 rounded border p-3" aria-label="Confirmação de dois fatores">
     <p className="text-sm">Confirme sua identidade com o aplicativo autenticador antes de enviar o evento.</p>
     {!loaded && <p role="status">Consultando autenticadores…</p>}
-    {loaded && !error && factors.length === 0 && <p role="status" className="mt-2 text-sm">
-      Sua conta precisa de um autenticador previamente configurado. A confirmação não concede permissão Master.
-    </p>}
+    {loaded && !error && factors.length === 0 && <MasterMfaEnrollment onVerified={onVerified} />}
     {factors.length > 0 && <form onSubmit={(event) => { event.preventDefault(); void verify(); }}>
       {factors.length > 1 && <label className="mt-2 block text-sm">Autenticador
         <select value={factorId} disabled={busy} onChange={(event) => setFactorId(event.target.value)}
