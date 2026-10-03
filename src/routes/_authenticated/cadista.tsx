@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayoutDashboard, Package, ShieldAlert, Zap } from "lucide-react";
 import { fetchCases } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
+import { useCasesRealtime } from "@/hooks/use-cases-realtime";
 
 export const Route = createFileRoute("/_authenticated/cadista")({
   component: CadistaDashboard,
@@ -15,11 +16,12 @@ export const Route = createFileRoute("/_authenticated/cadista")({
 
 function CadistaDashboard() {
   const navigate = useNavigate();
+  useCasesRealtime();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const { data: cases = [], isLoading: casesLoading } = useQuery({
-    queryKey: ["cadista_cases"],
+    queryKey: ["cases", "active"],
     queryFn: () => fetchCases("active"),
     enabled: !!profile,
   });
@@ -28,7 +30,8 @@ function CadistaDashboard() {
     fetchProfile().then((p) => {
       setProfile(p);
       setLoading(false);
-      if (p && p.role !== "CADISTA" && p.role !== "CEO") {
+      const effectiveType = String(p?.account_subtype || p?.role || "").toUpperCase();
+      if (p && !["CADISTA", "CEO", "ADMIN"].includes(effectiveType) && !p.is_default_admin) {
         navigate({ to: "/" });
       }
     });
