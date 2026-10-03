@@ -36,6 +36,7 @@ insert into storage.buckets (id,name,public) values ('avatars','avatars',false) 
 insert into public.clinics (id,name,slug,storage_limit_bytes) values ('$clinic_id','Recovery race','stage06-recovery-race',1000);
 insert into auth.users (id,instance_id,aud,role,email,encrypted_password,created_at,updated_at)
 values ('$user_id','00000000-0000-0000-0000-000000000000','authenticated','authenticated','recovery-race@test.invalid','',now(),now());
+insert into public.clinic_members (clinic_id,user_id,role,status) values ('$clinic_id','$user_id','CEO','active');
 insert into public.profiles (id,clinic_id,role,account_subtype,is_default_admin) values ('$user_id','$clinic_id','CEO','CEO',true)
 on conflict (id) do update set clinic_id=excluded.clinic_id,role=excluded.role,account_subtype=excluded.account_subtype,is_default_admin=true;
 insert into public.storage_files (id,clinic_id,bucket,object_path,source_type,original_name,size_bytes,status,uploaded_by,created_at)

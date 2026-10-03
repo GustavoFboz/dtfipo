@@ -10,12 +10,20 @@ select id::uuid, '00000000-0000-0000-0000-000000000000'::uuid,
   ('60000000-0000-4000-8000-000000000091','recovery-admin@test.invalid'),
   ('60000000-0000-4000-8000-000000000092','recovery-staff@test.invalid'),
   ('60000000-0000-4000-8000-000000000094','recovery-other@test.invalid')) u(id,email);
+-- Reproduce approved membership before changing the auto-created profiles.
+-- Keep privilege-escalation triggers enabled throughout this rehearsal.
+insert into public.clinic_members (clinic_id,user_id,role,status) values
+  ('60000000-0000-4000-8000-000000000090','60000000-0000-4000-8000-000000000091','CEO','active'),
+  ('60000000-0000-4000-8000-000000000090','60000000-0000-4000-8000-000000000092','DR','active'),
+  ('60000000-0000-4000-8000-000000000093','60000000-0000-4000-8000-000000000094','CEO','active');
 insert into public.profiles (id,clinic_id,role,account_subtype,is_default_admin) values
   ('60000000-0000-4000-8000-000000000091','60000000-0000-4000-8000-000000000090','CEO','CEO',true),
-  ('60000000-0000-4000-8000-000000000092','60000000-0000-4000-8000-000000000090','dentista','dentista',false),
   ('60000000-0000-4000-8000-000000000094','60000000-0000-4000-8000-000000000093','CEO','CEO',true)
 on conflict (id) do update set clinic_id=excluded.clinic_id,role=excluded.role,
   account_subtype=excluded.account_subtype,is_default_admin=excluded.is_default_admin;
+insert into public.profiles (id,clinic_id,role) values
+  ('60000000-0000-4000-8000-000000000092','60000000-0000-4000-8000-000000000090','DR')
+on conflict (id) do update set clinic_id=excluded.clinic_id,role=excluded.role;
 insert into public.storage_files (id,clinic_id,bucket,object_path,source_type,source_id,
   original_name,size_bytes,status,uploaded_by,created_at)
 select ('60000000-0000-4000-8000-'||lpad(n::text,12,'0'))::uuid,
