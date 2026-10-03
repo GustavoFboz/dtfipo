@@ -11,8 +11,8 @@ Consulte `evidence/CONTINUITY-2026-10-03.md` para separar código e provas finan
 
 Retomada de 03/10: etapa financeira **05/09 em espera** por solicitação do
 responsável, até o restabelecimento dos créditos Lovable. Etapa atual de avanço
-independente: **06/09**, com auditoria das cotas e preparação do ensaio de upload
-publicado. O Master **07/09** aguarda os testes com sessões reais e o replay
+independente: **06/09**, com upload de caso comprovado, correção da confirmação
+de exclusão e recuperação manual de envios pendentes. O Master **07/09** aguarda os testes com sessões reais e o replay
 auditado. Restam pendências nas seis etapas 04–09: recuperação de
 eventos, ciclo financeiro, uploads publicados, prova do replay auditado Master,
 cancelamento/troca de plano e liberação controlada de produção.
@@ -20,6 +20,7 @@ O tratamento de eventos financeiros fora de ordem e de falhas isoladas do
 worker está registrado em `evidence/STAGE-05-RESUME-2026-10-03.md`.
 A auditoria de armazenamento e o roteiro de homologação estão em
 `evidence/STAGE-06-LIVE-AUDIT-2026-10-03.md`.
+O contrato de recuperação está em `evidence/STAGE-06-RESERVATION-RECOVERY-2026-10-03.md`.
 
 Provedor financeiro obrigatório para lançamento: Asaas
 
@@ -185,6 +186,8 @@ Status: cota e reservas obrigatórias implantadas em 29/09/2026; ensaios em
 base descartável passaram. Um novo anexo de caso foi confirmado na conta
 publicada em 03/10. Falta repetir a exclusão após a correção da confirmação,
 homologar os demais uploads/DICOM e reconciliar os resíduos históricos.
+O administrador pode revisar reservas antigas por uma ação que não remove
+objetos; a limpeza dos nove registros reais depende de revisão individual.
 Consulte `STAGE-06-STORAGE-QUOTAS.md`.
 
 - aplicar limites do plano e adicionais por entitlement;

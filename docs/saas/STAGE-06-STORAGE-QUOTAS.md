@@ -19,6 +19,13 @@ do caso. A correção das camadas, da fila de confirmações e da formatação d
 está em `evidence/STAGE-06-DELETE-CONFIRMATION-2026-10-03.md`; a remoção publicada
 ainda precisa ser repetida após a atualização.
 
+Recuperação manual de 03/10: a área de armazenamento passa a mostrar os envios
+pendentes da empresa. Só um administrador pode liberar uma reserva de pelo
+menos 24 horas, sem objeto e sem origem vinculada. O INSERT de Storage e a
+liberação agora disputam o bloqueio da mesma reserva. Nenhum dos nove registros
+históricos foi liberado automaticamente. Contrato, testes e limites em
+`evidence/STAGE-06-RESERVATION-RECOVERY-2026-10-03.md`.
+
 ## Problema comprovado em 28/09/2026
 
 A AS Lab pagou o plano `company_initial` e recebeu 25 GiB em

@@ -186,6 +186,16 @@ jobs:
             < docs/saas/sql/price-snapshot-rehearsal.sql \
             | tee restore-price-rehearsal.log
 
+      - name: Verify and rehearse controlled reservation recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-reservation-recovery-assertions.sql | tee restore-stage-06-recovery-assertions.log
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-reservation-recovery-rehearsal.sql | tee restore-stage-06-recovery.log
+          bash docs/saas/sql/stage-06-reservation-recovery-concurrency.sh | tee restore-stage-06-recovery-concurrency.log
+
       - name: Rehearse Stage 07 Master isolation and audited replay
         shell: bash
         run: |
@@ -232,6 +242,9 @@ jobs:
             restore-stage-06-upload-assertions.log
             restore-stage-06-upload-rehearsal.log
             restore-stage-06-concurrency.log
+            restore-stage-06-recovery-assertions.log
+            restore-stage-06-recovery.log
+            restore-stage-06-recovery-concurrency.log
             restore-price-assertions.log
             restore-price-rehearsal.log
             restore-stage-07-master.log

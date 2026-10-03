@@ -162,5 +162,6 @@
   "20260929140000_saas_master_admin_stage07.sql",
   "20260929141000_saas_billing_center_stage08.sql",
   "20260929154000_fix_storage_reservation_insert_rls.sql",
+  "20261003221500_saas_storage_reservation_recovery_stage06.sql",
   "20260718000001_zzz_self_heal_v2.sql"
 ]
