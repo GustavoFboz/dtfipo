@@ -19,8 +19,16 @@ export function CadistaCaseCard({ caseRow }: { caseRow: CaseRow }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-3 p-4 rounded-2xl bg-black/20 border border-white/5 group-hover:bg-black/30 transition-colors">
-          <div className="h-10 w-10 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0 border border-indigo-500/10">
-            <User className="h-5 w-5 text-indigo-400 stroke-[1.2px]" />
+          <div className="h-10 w-10 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0 border border-indigo-500/10 overflow-hidden">
+            {caseRow.patient?.photo_url ? (
+              <img
+                src={caseRow.patient.photo_url}
+                alt={caseRow.patient?.name || "Foto do paciente"}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <User className="h-5 w-5 text-indigo-400 stroke-[1.2px]" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[10px] text-slate-500 uppercase font-bold tracking-[0.1em]">Paciente</p>

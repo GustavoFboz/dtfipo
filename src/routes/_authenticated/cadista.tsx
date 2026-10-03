@@ -8,7 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LayoutDashboard, Package, ShieldAlert, Zap } from "lucide-react";
 import { fetchCases } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useCasesRealtime } from "@/hooks/use-cases-realtime";
+import { getAuthorizedPatientPhotoUrls } from "@/lib/patient-photo.functions";
 
 export const Route = createFileRoute("/_authenticated/cadista")({
   component: CadistaDashboard,
@@ -17,6 +19,7 @@ export const Route = createFileRoute("/_authenticated/cadista")({
 function CadistaDashboard() {
   const navigate = useNavigate();
   useCasesRealtime();
+  const getAuthorizedPatientPhotoUrlsFn = useServerFn(getAuthorizedPatientPhotoUrls);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -24,6 +27,16 @@ function CadistaDashboard() {
     queryKey: ["cases", "active"],
     queryFn: () => fetchCases("active"),
     enabled: !!profile,
+  });
+  const patientPhotoIds = Array.from(new Set(cases.map((row) => row.patient_id).filter(Boolean))) as string[];
+  const { data: authorizedPatientPhotos = {} } = useQuery({
+    queryKey: ["authorized_patient_photos", patientPhotoIds],
+    enabled: patientPhotoIds.length > 0,
+    staleTime: 30 * 60_000,
+    queryFn: async () => {
+      const result = await getAuthorizedPatientPhotoUrlsFn({ data: { patient_ids: patientPhotoIds } });
+      return ((result as { photos?: Record<string, string> })?.photos ?? {});
+    },
   });
 
   useEffect(() => {
@@ -102,7 +115,7 @@ function CadistaDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {cases.map((c, i) => (
                 <div key={c.id} className="animate-in fade-in slide-in-from-bottom-8 duration-700" style={{ animationDelay: `${i * 100}ms` }}>
-                  <CadistaCaseCard caseRow={c} />
+                  <CadistaCaseCard caseRow={c.patient ? { ...c, patient: { ...c.patient, photo_url: (c.patient_id ? authorizedPatientPhotos[c.patient_id] : undefined) ?? c.patient.photo_url } } : c} />
                 </div>
               ))}
             </div>
