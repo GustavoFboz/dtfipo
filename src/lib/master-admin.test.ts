@@ -34,10 +34,10 @@ async function fixture(initial = session()) {
 
 describe("Master RPC request/session isolation", () => {
   it("pins the request to the checked JWT and keeps tokens out of cache keys/data", async () => {
-    const f = await fixture(); const scope = f.scope;
+    const initial = session(); const f = await fixture(initial); const scope = f.scope;
     const result = await loadMasterDashboard(f.client, scope, f.observer.isCurrent, "", new AbortController().signal);
     const headers = new Headers(f.fetcher.mock.calls[0][1]?.headers);
-    expect(headers.get("Authorization")).toBe(`Bearer ${session().access_token}`);
+    expect(headers.get("Authorization")).toBe(`Bearer ${initial.access_token}`);
     expect(result).toEqual(snapshot);
     expect(JSON.stringify(masterDashboardKey(scope, ""))).not.toContain("test.");
     expect(JSON.stringify(result)).not.toContain("test.");

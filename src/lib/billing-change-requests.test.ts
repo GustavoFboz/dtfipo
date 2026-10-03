@@ -13,6 +13,7 @@ const owner = "78000000-0000-4000-8000-000000000001";
 const clinic = "78000000-0000-4000-8000-000000000010";
 const sub = "78000000-0000-4000-8000-000000000011";
 const scope = { ownerId: owner, sessionId: "login-1", generation: 1 };
+let capturedSession: Session;
 const quote: BillingChangeQuote = { subscription_id: sub, kind: "cancel", current_plan_code: "company_advanced",
   current_plan_name: "Avançado", current_amount_cents: 74900, currency: "BRL", paid_period_end: "2040-01-01T00:00:00+00:00",
   provider_environment: "sandbox", target_plan_code: null, target_plan_name: null, target_amount_cents: null,
@@ -36,7 +37,8 @@ function response(value: unknown, error: unknown = null) {
 }
 beforeEach(() => {
   vi.clearAllMocks(); vi.stubGlobal("navigator", { onLine: true });
-  auth.getSession.mockResolvedValue({ data: { session: session() }, error: null });
+  capturedSession = session();
+  auth.getSession.mockResolvedValue({ data: { session: capturedSession }, error: null });
   auth.getUser.mockResolvedValue({ data: { user: { id: owner } }, error: null });
   response({ clinic_id: clinic, cancellation_quote: quote, plan_quotes: [], requests: [] });
 });
@@ -46,8 +48,8 @@ describe("billing request identity and response boundary", () => {
   it("checks the cloud user and pins the captured JWT on every platform", async () => {
     const data = await fetchBillingChangeContext(scope, () => true, clinic);
     expect(data.cancellation_quote?.current_amount_cents).toBe(74900);
-    expect(auth.getUser).toHaveBeenCalledWith(session().access_token);
-    expect(header).toHaveBeenCalledWith("Authorization", `Bearer ${session().access_token}`);
+    expect(auth.getUser).toHaveBeenCalledWith(capturedSession.access_token);
+    expect(header).toHaveBeenCalledWith("Authorization", `Bearer ${capturedSession.access_token}`);
     expect(rpc).toHaveBeenCalledWith("billing_company_change_context", { p_clinic_id: clinic });
   });
   it("refuses financial reads and mutations offline without an outbox", async () => {
