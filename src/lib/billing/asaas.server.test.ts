@@ -87,6 +87,24 @@ describe("AsaasClient", () => {
     );
   });
 
+  it("não chama o fetch global com AsaasClient como receptor", async () => {
+    let client!: AsaasClient;
+    const runtimeFetch = vi.fn(function (this: unknown, input: RequestInfo | URL) {
+      if (this === client) throw new TypeError("Illegal invocation");
+      expect(String(input)).toContain("externalReference=dentalflow%3Acompany%3Atest");
+      return Promise.resolve(Response.json({ data: [] }));
+    });
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = runtimeFetch as typeof fetch;
+    try {
+      client = new AsaasClient(config({ maxGetRetries: 0 }));
+      await expect(client.findCustomersByExternalReference("dentalflow:company:test")).resolves.toEqual([]);
+      expect(runtimeFetch).toHaveBeenCalledTimes(1);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
   it("obedece RateLimit-Reset antes do retry de GET", async () => {
     const wait = vi.fn(async () => undefined);
     const fetchMock = vi

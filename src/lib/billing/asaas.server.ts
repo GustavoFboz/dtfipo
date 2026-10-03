@@ -320,7 +320,9 @@ export class AsaasClient {
     }
     this.config = config;
     this.environment = config.environment;
-    this.fetchImpl = dependencies.fetch ?? fetch;
+    // Some server runtimes require the global fetch receiver. A method call on
+    // AsaasClient changes that receiver and fails before the request is sent.
+    this.fetchImpl = dependencies.fetch ?? ((input, init) => fetch(input, init));
     this.sleepImpl = dependencies.sleep ?? sleep;
     this.random = dependencies.random ?? Math.random;
     this.now = dependencies.now ?? Date.now;

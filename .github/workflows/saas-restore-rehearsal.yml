@@ -13,10 +13,12 @@ on:
       - "scripts/build-restore-bundle.mjs"
       - "scripts/check-saas-stage-04.mjs"
       - "scripts/check-saas-stage-05.mjs"
+      - "scripts/check-saas-stage-06.mjs"
       - ".github/workflows/saas-restore-rehearsal.yml"
   pull_request:
     branches:
       - main
+      - "saas/stage-03-asaas-checkout"
     paths:
       - "public/restore.sql"
       - "public/restore/**"
@@ -27,6 +29,7 @@ on:
       - "scripts/check-saas-stage-02.mjs"
       - "scripts/check-saas-stage-04.mjs"
       - "scripts/check-saas-stage-05.mjs"
+      - "scripts/check-saas-stage-06.mjs"
       - ".github/workflows/saas-restore-rehearsal.yml"
 
 permissions:
@@ -127,6 +130,80 @@ jobs:
             < docs/saas/sql/stage-05-lifecycle-rehearsal.sql \
             | tee restore-stage-05-lifecycle.log
 
+      - name: Verify Stage 06 storage quota boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-quota-assertions.sql \
+            | tee restore-stage-06-assertions.log
+
+      - name: Rehearse Stage 06 paid and pending storage allowances
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-quota-rehearsal.sql \
+            | tee restore-stage-06-quota.log
+
+      - name: Verify Stage 06 upload reservation boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-upload-assertions.sql \
+            | tee restore-stage-06-upload-assertions.log
+
+      - name: Rehearse Stage 06 authenticated uploads and quota bypass attempts
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-upload-rehearsal.sql \
+            | tee restore-stage-06-upload-rehearsal.log
+
+      - name: Rehearse Stage 06 concurrent reservations
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash docs/saas/sql/stage-06-concurrency-rehearsal.sh \
+            | tee restore-stage-06-concurrency.log
+
+      - name: Verify existing price contracts and R$1 new checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/price-snapshot-assertions.sql \
+            | tee restore-price-assertions.log
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/price-snapshot-rehearsal.sql \
+            | tee restore-price-rehearsal.log
+
+      - name: Rehearse Stage 07 Master isolation and audited replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-07-master-rehearsal.sql \
+            | tee restore-stage-07-master.log
+
+      - name: Rehearse Stage 08 billing manager history boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-08-billing-history-rehearsal.sql \
+            | tee restore-stage-08-history.log
+
       - name: Record sanitized restored-schema audit
         shell: bash
         run: |
@@ -150,6 +227,15 @@ jobs:
             restore-stage-04-assertions.log
             restore-stage-05-assertions.log
             restore-stage-05-lifecycle.log
+            restore-stage-06-assertions.log
+            restore-stage-06-quota.log
+            restore-stage-06-upload-assertions.log
+            restore-stage-06-upload-rehearsal.log
+            restore-stage-06-concurrency.log
+            restore-price-assertions.log
+            restore-price-rehearsal.log
+            restore-stage-07-master.log
+            restore-stage-08-history.log
             restore-audit.log
 
       - name: Stop isolated database

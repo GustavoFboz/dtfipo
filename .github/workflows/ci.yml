@@ -41,7 +41,9 @@ jobs:
         run: bun scripts/check-desktop-offline-regressions-040.mjs
 
       - name: Verify Desktop entitlement-first bootstrap
-        run: bun scripts/check-desktop-entitlement-bootstrap-032.mjs
+        run: |
+          bun scripts/check-desktop-entitlement-bootstrap-032.mjs
+          bun test src/lib/subscriptions.desktop.test.ts
 
       - name: Verify Desktop case dialogs and offline case creation
         run: bun scripts/check-desktop-case-dialog-offline.mjs
@@ -57,10 +59,12 @@ jobs:
           bun test src/lib/native-updates.test.ts
           bun scripts/check-native-update-center.mjs
 
-      - name: Verify SaaS Asaas lifecycle contract
+      - name: Verify SaaS Asaas lifecycle and plan quota contracts
         run: |
-          bun run check:saas:stage-05
-          bun test src/lib/billing/asaas.server.test.ts src/lib/billing/asaas-provisioning.server.test.ts src/lib/billing/asaas-checkout.server.test.ts src/lib/billing/asaas-webhook.server.test.ts
+          bun run check:saas:stage-06
+          bun run check:saas:stage-09
+          bun test src/lib/billing/asaas.server.test.ts src/lib/billing/asaas-provisioning.server.test.ts src/lib/billing/asaas-checkout.server.test.ts src/lib/billing/asaas-webhook.server.test.ts src/lib/billing/asaas-renewal.server.test.ts src/lib/billing/asaas-document.server.test.ts
+          bunx vitest run --configLoader runner src/lib/storage.test.ts
 
       # The repository has substantial pre-existing formatting/lint debt.
       # A repo-wide lint gate currently reports thousands of legacy findings,

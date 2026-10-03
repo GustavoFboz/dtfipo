@@ -228,6 +228,19 @@ DROP SCHEMA IF EXISTS _restore;
 -- Financial and fiscal boundaries must be restored after the legacy blanket
 -- grants above. Client roles may read/update only through explicitly validated
 -- RPCs; provider identities and authoritative state changes remain backend-only.
+REVOKE ALL ON FUNCTION public.billing_subscription_contract_amount(uuid)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.billing_subscription_contract_amount(uuid)
+  TO service_role;
+-- Storage reservations are another authoritative ledger: the old blanket
+-- grant must not allow clients to erase or forge usage after restore.
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.storage_files
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.reserve_storage_upload(
+  bigint,text,text,text,uuid,uuid,text,text
+), public.complete_storage_upload(uuid,text), public.cancel_storage_upload(uuid),
+  public.delete_managed_storage_file(uuid) FROM PUBLIC, anon;
+
 REVOKE ALL ON TABLE public.company_billing_profiles
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON TABLE public.billing_provider_customers
@@ -240,6 +253,8 @@ REVOKE ALL ON TABLE public.billing_test_tokens
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON TABLE public.billing_event_replays
   FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON TABLE public.platform_operators, public.platform_operator_audit
+  FROM PUBLIC, anon, authenticated;
 
 GRANT ALL ON TABLE public.company_billing_profiles TO service_role;
 GRANT ALL ON TABLE public.billing_provider_customers TO service_role;
@@ -247,6 +262,8 @@ GRANT ALL ON TABLE public.billing_provider_operations TO service_role;
 GRANT ALL ON TABLE public.billing_test_access TO service_role;
 GRANT ALL ON TABLE public.billing_test_tokens TO service_role;
 GRANT SELECT ON TABLE public.billing_event_replays TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.platform_operators TO service_role;
+GRANT SELECT ON TABLE public.platform_operator_audit TO service_role;
 
 REVOKE ALL ON FUNCTION public.billing_apply_checkout_paid(
   uuid,text,text,text,text,timestamptz,timestamptz
@@ -295,11 +312,15 @@ REVOKE ALL ON FUNCTION public.billing_claim_asaas_reconciliation_candidates(text
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
   FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_get_asaas_payment_document_context(uuid,uuid,text)
+  FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_valid_br_tax_id(text)
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.set_clinic_storage_entitlement(
   uuid,text,text,bigint,text,text,text,text,boolean
 ) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.recalculate_clinic_storage_limit(uuid)
+  FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.billing_apply_checkout_paid(
   uuid,text,text,text,text,timestamptz,timestamptz
@@ -348,11 +369,15 @@ GRANT EXECUTE ON FUNCTION public.billing_claim_asaas_reconciliation_candidates(t
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
   TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_get_asaas_payment_document_context(uuid,uuid,text)
+  TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_valid_br_tax_id(text)
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.set_clinic_storage_entitlement(
   uuid,text,text,bigint,text,text,text,text,boolean
 ) TO service_role;
+GRANT EXECUTE ON FUNCTION public.recalculate_clinic_storage_limit(uuid)
+  TO service_role;
 
 REVOKE ALL ON FUNCTION public.billing_get_company_profile(uuid)
   FROM PUBLIC, anon;
