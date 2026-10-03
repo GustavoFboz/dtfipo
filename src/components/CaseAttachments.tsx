@@ -15,6 +15,8 @@ import {
 import emptyGallery from "@/assets/empty-gallery.png.asset.json";
 import emptyModels from "@/assets/empty-models.png.asset.json";
 import emptyHtml from "@/assets/empty-html.png.asset.json";
+import emptyScansAsset from "@/assets/case-empty-scans.webp";
+import emptyModelsAsset from "@/assets/case-empty-models.webp";
 
 import { toast } from "sonner";
 import {
@@ -298,12 +300,12 @@ const EMPTY_META: Record<UploadKind, { img: string; title: string; hint: string 
     hint: "Arraste imagens para esta aba ou use o botão + para adicionar arquivos à galeria do caso.",
   },
   model: {
-    img: "/assets/case-empty-models.webp",
+    img: emptyModelsAsset,
     title: "Nenhum modelo por aqui",
     hint: "Arraste arquivos 3D para esta aba ou use o botão + para adicionar modelos ao caso.",
   },
   scans: {
-    img: "/assets/case-empty-scans.webp",
+    img: emptyScansAsset,
     title: "Nenhum escaneamento por aqui",
     hint: "Arraste escaneamentos para esta aba ou use o botão + para adicionar arquivos ao caso.",
   },
