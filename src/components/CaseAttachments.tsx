@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import emptyGallery from "@/assets/empty-gallery.png.asset.json";
 import emptyModels from "@/assets/empty-models.png.asset.json";
-import emptyHtml from "@/assets/empty-html.png.asset.json";
+import emptyHtmlAsset from "@/assets/case-empty-html";
 import emptyScansAsset from "@/assets/case-empty-scans.webp";
 import emptyModelsAsset from "@/assets/case-empty-models.webp";
 
@@ -315,7 +315,7 @@ const EMPTY_META: Record<UploadKind, { img: string; title: string; hint: string 
     hint: "Arraste arquivos de elementos para esta aba ou use o botão + para adicioná-los ao caso.",
   },
   exocad_html: {
-    img: emptyHtml.url,
+    img: emptyHtmlAsset,
     title: "Nenhum HTML por aqui",
     hint: "Arraste visualizações exocad (.html) para esta aba ou use o botão + para adicioná-las ao caso.",
   },
