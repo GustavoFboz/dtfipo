@@ -5,6 +5,13 @@ Restauração, uploads autenticados e concorrência passaram em CI; a asserção
 somente leitura do banco ativo retornou `passed`. O ensaio pela interface real
 de upload, inclusive DICOM, ainda precisa de homologação.
 
+Revalidação de 03/10/2026: ambas as asserções somente leitura retornaram
+`passed`; AS Lab conserva 25 GiB, IPO 500 GiB e isenção, e o checkout pendente
+conserva 1 GiB. Foram identificadas nove reservas antigas sem objeto nem anexo
+e cinco objetos históricos sem origem identificável. Esses registros não foram
+alterados. Resultados, limites da prova e próximos testes estão em
+`evidence/STAGE-06-LIVE-AUDIT-2026-10-03.md`.
+
 ## Problema comprovado em 28/09/2026
 
 A AS Lab pagou o plano `company_initial` e recebeu 25 GiB em
