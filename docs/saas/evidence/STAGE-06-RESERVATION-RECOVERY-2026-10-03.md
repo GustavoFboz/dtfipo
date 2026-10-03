@@ -1,7 +1,7 @@
 # Etapa 06 — recuperação manual de envios pendentes
 
-Status: implementação com testes locais; a restauração SQL e a concorrência
-devem passar no CI antes de aplicar a migration no banco ativo. Asaas em standby.
+Status: implementação validada localmente e no CI; migration aplicada ao banco
+ativo em 03/10/2026, com três asserções somente leitura aprovadas. Asaas em standby.
 A exclusão publicada corrigida no PR anterior ainda aguarda repetição pelo
 responsável. Nenhum arquivo de usuário ou reserva histórica foi removido aqui.
 
@@ -66,10 +66,24 @@ React usam happy-dom e não equivalem à homologação em dispositivos instalado
 O pacote de restauração contém 165 migrations;
 o self-heal conserva as revogações a `PUBLIC` e `anon` das funções novas.
 
-O CI passa a executar asserção somente leitura, ensaio com usuários sintéticos
+O CI executa asserção somente leitura, ensaio com usuários sintéticos
 em `ROLLBACK` e dois testes com conexões concorrentes numa base Supabase
 descartável. Esses ensaios não podem ser executados no banco ativo. Só a
 asserção em `stage-06-reservation-recovery-assertions.sql` é somente leitura.
+
+A árvore do código validado (`48c7a6aa05dad886b11c04caa1573456bc47bef8`) é
+idêntica à enviada no commit `95350c9e15a5e786de95a918e3d55b3c2e47d1c4`.
+[CI do aplicativo](https://github.com/GustavoFboz/dtfipo/actions/runs/37159227496)
+e [restauração/concorrência](https://github.com/GustavoFboz/dtfipo/actions/runs/37159231595)
+terminaram com `success`. Ambos os sentidos da corrida upload/liberação
+passaram; os ensaios anteriores de quota, uploads, Master e faturamento também.
+
+Após esse CI, somente o DDL da migration nova foi executado em uma transação
+no banco ativo. As asserções de quota, uploads e recuperação retornaram
+`passed`. A consulta posterior confirmou a IPO com 500 entradas `ready`, nove
+reservas, 7.534.408.222 bytes contabilizados e os mesmos 1.112.944.862 bytes
+reservados. O anexo de homologação continua com objeto. Não houve liberação de
+reserva histórica nem remoção de objeto durante a implantação.
 
 ## Homologação que permanece aberta
 
