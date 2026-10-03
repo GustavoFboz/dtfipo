@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { MasterMfaChallenge } from "@/components/master/MasterMfaChallenge";
 import { supabase } from "@/integrations/supabase/client";
 
 type Company = {
@@ -24,6 +25,7 @@ type MasterSnapshot = {
 export const Route = createFileRoute("/master")({ component: MasterDashboard });
 
 function MasterDashboard() {
+  const [mfaConfirmed, setMfaConfirmed] = useState(false);
   const [search, setSearch] = useState("");
   const [reason, setReason] = useState("");
   const [selected, setSelected] = useState<ReviewEvent | null>(null);
@@ -40,6 +42,7 @@ function MasterDashboard() {
   });
   const replay = useMutation({
     mutationFn: async () => {
+      if (!mfaConfirmed) throw new Error("Confirme sua identidade com o autenticador.");
       if (!selected) throw new Error("Selecione um evento.");
       const { data, error } = await (supabase as any).rpc("platform_master_replay_asaas_event", {
         p_environment: selected.provider_environment,
@@ -50,7 +53,7 @@ function MasterDashboard() {
       if (data !== true) throw new Error("O evento já não está em revisão.");
     },
     onSuccess: () => {
-      setReason(""); setSelected(null);
+      setReason(""); setSelected(null); setMfaConfirmed(false);
       void queryClient.invalidateQueries({ queryKey: ["platform-master-dashboard"] });
     },
   });
@@ -92,7 +95,7 @@ function MasterDashboard() {
               <li key={`${event.provider_environment}:${event.provider_event_id}`} className="border-t pt-2">
                 {event.event_type} · {event.status} · {event.provider_environment} · {event.attempt_count} tentativas
                 {event.status === "dead_letter" && <button className="ml-2 text-teal-700 underline"
-                  onClick={() => setSelected(event)}>Revisar replay</button>}
+                  onClick={() => { setSelected(event); setMfaConfirmed(false); replay.reset(); }}>Revisar replay</button>}
               </li>)}</ul>
           </div>
           <div className="rounded-xl border bg-white p-5 dark:bg-slate-900">
@@ -104,14 +107,16 @@ function MasterDashboard() {
         </section>
         {selected && <section className="rounded-xl border border-amber-400 bg-white p-5 dark:bg-slate-900">
           <h2 className="font-semibold">Reprocessar {selected.provider_event_id}</h2>
-          <p className="mt-2 text-sm">Esta ação exige autenticação de dois fatores recente, justificativa e cria registro de auditoria. O worker validará o evento no Asaas antes de alterar qualquer acesso.</p>
+          <p className="mt-2 text-sm">Esta ação exige confirmação de dois fatores, justificativa e cria registro de auditoria. O worker validará o evento no Asaas antes de alterar qualquer acesso.</p>
+          {!mfaConfirmed && <MasterMfaChallenge key={`${selected.provider_environment}:${selected.provider_event_id}`} onVerified={() => setMfaConfirmed(true)} />}
+          {mfaConfirmed && <p role="status" className="mt-2 text-sm">Identidade confirmada. O servidor verificará sua permissão ao enviar.</p>}
           <label className="mt-3 block text-sm">Justificativa
             <textarea className="mt-1 block w-full rounded border bg-transparent p-2" value={reason}
               maxLength={300} onChange={(event) => setReason(event.target.value)} /></label>
-          <button disabled={reason.trim().length < 16 || replay.isPending}
+          <button disabled={!mfaConfirmed || reason.trim().length < 16 || replay.isPending}
             className="mt-3 rounded bg-teal-700 px-4 py-2 text-white disabled:opacity-50"
             onClick={() => replay.mutate()}>Enviar para revisão</button>
-          <button className="ml-3 text-sm" onClick={() => { setSelected(null); setReason(""); }}>Cancelar</button>
+          <button className="ml-3 text-sm" onClick={() => { setSelected(null); setReason(""); setMfaConfirmed(false); }}>Cancelar</button>
           {replay.isError && <p role="alert" className="mt-2 text-sm text-red-600">{replay.error.message}</p>}
           {replay.isSuccess && <p role="status">Evento encaminhado ao worker.</p>}
         </section>}
