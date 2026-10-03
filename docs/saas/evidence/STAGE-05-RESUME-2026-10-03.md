@@ -71,7 +71,7 @@ indisponível, duplicatas, status de risco e continuidade do lote.
 
 | Etapa | Prova/implementação restante |
 | --- | --- |
-| 04 | Consulta dos dead letters, replay autorizado, perda de webhook e idempotência no Sandbox publicado. |
+| 04 | Dead letters consultados: cobrança avulsa permanece em revisão. Provas de recuperação de webhook e idempotência no Sandbox publicado ainda pendentes. |
 | 05 — atual | Atraso da assinatura correta, carência, suspensão, estorno, cancelamento e reativação. |
 | 06 | Upload comum, fotos e DICOM na conta publicada; limite e liberação de cota verificados. |
 | 07 | Identidade do operador Master autorizada e MFA AAL2 comprovada. |
@@ -82,30 +82,58 @@ O preço de R$1 para novos contratos e a isenção IPO permanecem preservados.
 A assinatura Sandbox existente de R$249 não representa o preço de uma
 nova contratação, e uma cobrança de R$5 não comprova seu ciclo contratual.
 
-## Próximo passo financeiro e autorização pendente
+## Consulta autorizada concluída e próximo teste
 
-Consultar somente para leitura a cobrança dos dois dead letters no Asaas
-Sandbox por meio do backend, conferir vínculo, preço, referência e status
-atual, e registrar apenas o diagnóstico necessário. Na sessão anterior, a
-revisão automática bloqueou a transferência dos identificadores ao serviço
-Lovable e exigiu autorização explícita. A consulta ao provedor permanece
-pendente dessa autorização; esta entrega avança o código e a leitura do
-banco sem contornar o bloqueio anterior.
+Em 03/10, o proprietário autorizou explicitamente a leitura dos registros e
+uso da credencial backend pelo agente Lovable. A revisão automática aceitou
+a delegação; o proprietário aprovou também o plano no Lovable.
 
-Na retomada, tentou-se uma consulta delegada em modo de planejamento,
-solicitando que o agente Lovable resolvesse internamente os identificadores,
-sem incluí-los no pedido. A revisão automática também rejeitou essa ação:
-ela delega acesso a registros privados e credenciais Asaas do backend a
-um agente externo sem autorização explícita, e o modo de planejamento
-não garante que o agente permaneça somente em leitura. Nenhum trabalho
-do agente foi iniciado. A investigação no provedor segue bloqueada;
-essa rejeição não foi contornada por execução indireta.
+O agente executou GET Sandbox e informou HTTP 200: a cobrança dos dois
+eventos é avulsa, sem assinatura vinculada, RECEIVED, R$5/BRL, vencimento
+29/09/2026. SELECT independente confirmou ausência no ledger e dois eventos
+em dead_letter. Não reprocessar para tentar vincular essa cobrança ao SaaS.
+Isso explica a incompatibilidade contratual; não comprova qual erro HTTP
+ocorreu nas seis tentativas antigas, registradas com código genérico.
 
-Depois da consulta: uma cobrança sem vínculo permanece para revisão;
-uma cobrança vinculada precisa conferir o contrato original. Autorizar e
-auditar o replay separadamente, revalidando o recurso atual no worker.
-O caso de atraso deve corresponder ao ciclo devido da assinatura testada.
-Antecipar uma cobrança em um período já pago não deve suspender o acesso.
+SELECT em 03/10 confirmou assinatura local ativa, MONTHLY, contrato R$249,
+dois ciclos pagos, período atual 29/10–29/11 e grace_until nulo. O catálogo
+company_initial continua em 100 centavos. O código de src, supabase e scripts
+permaneceu idêntico ao merge MFA PR109; o agente acrescentou apenas o plano.
+
+A próxima leitura externa da assinatura/lista de cobranças não ocorreu:
+o agente montou SELECT com colunas inexistentes. O schema vivo foi conferido
+pelo Codex e a consulta corrigida foi preparada, mas o Lovable recusou a nova
+mensagem por falta de créditos. Não se trata de divergência de schema nem de
+nova rejeição de autorização. Não houve criação de cobrança ou teste de atraso.
+
+Consulta correta, somente leitura, para resolver internamente o vínculo:
+
+```sql
+select s.id, s.external_subscription_id, s.external_customer_id, s.status,
+       s.current_period_start, s.current_period_end, s.billing_cycle,
+       s.grace_until,
+       public.billing_subscription_contract_amount(s.id) as contract_cents
+from public.account_subscriptions s
+where s.provider_environment = 'sandbox'
+  and s.external_subscription_id is not null;
+
+select bp.provider_payment_id, bp.status, bp.amount_cents, bp.currency,
+       bp.period_start, bp.period_end
+from public.billing_payments bp
+join public.account_subscriptions s on s.id = bp.subscription_id
+where s.provider_environment = 'sandbox'
+  and s.external_subscription_id is not null;
+```
+
+Não publicar IDs ou segredos. Usar o vínculo encontrado em getSubscription
+ e listSubscriptionPayments, ambos GETs Sandbox, para conferir status, preço,
+próximo vencimento e existência de ciclo realmente vencido não pago. Não usar
+paymentBook como leitura: esse GET gera cobranças. Os ciclos já pagos não
+podem ser adulterados para simular inadimplência. Se não houver ciclo apto,
+preparar uma assinatura Sandbox de teste separada e documentar seu vínculo
+com uma empresa descartável antes de qualquer teste externo de escrita.
+A homologação externa de atraso, carência, suspensão, estorno, cancelamento
+ e reativação permanece pendente; não declarar a etapa05 concluída.
 
 ## Reversão
 
