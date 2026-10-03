@@ -264,7 +264,8 @@ export function formatStorageBytes(bytes: number) {
   let i = 0;
   while (n >= 1024 && i < units.length - 1) { n /= 1024; i += 1; }
   const digits = n >= 100 ? 0 : n >= 10 ? 1 : 2;
-  return `${n.toFixed(digits).replace(".00", "").replace(".0", "")} ${units[i]}`;
+  const amount = n.toFixed(digits).replace(/(\.\d*?[1-9])0+$|\.0+$/, "$1");
+  return `${amount} ${units[i]}`;
 }
 
 export function storageSourceLabel(source: string) {

@@ -12,6 +12,13 @@ e cinco objetos históricos sem origem identificável. Esses registros não fora
 alterados. Resultados, limites da prova e próximos testes estão em
 `evidence/STAGE-06-LIVE-AUDIT-2026-10-03.md`.
 
+O primeiro novo anexo pela conta publicada foi confirmado em 03/10: objeto,
+registro de anexo e catálogo `ready` existem e contabilizam 26.088.984 bytes.
+A exclusão pela interface encontrou uma confirmação escondida atrás do detalhe
+do caso. A correção das camadas, da fila de confirmações e da formatação do uso
+está em `evidence/STAGE-06-DELETE-CONFIRMATION-2026-10-03.md`; a remoção publicada
+ainda precisa ser repetida após a atualização.
+
 ## Problema comprovado em 28/09/2026
 
 A AS Lab pagou o plano `company_initial` e recebeu 25 GiB em
