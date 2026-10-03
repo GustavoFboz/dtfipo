@@ -2,7 +2,7 @@
 
 Status: iniciado em 2026-09-19
 
-Etapa atual: 01 — contrato canônico e recuperação
+Etapa atual: 02 — adapter Asaas Sandbox em homologação
 
 Provedor financeiro obrigatório para lançamento: Asaas
 
@@ -101,6 +101,8 @@ Saída: `STAGE-00-BASELINE-AUDIT.md` e `sql/stage-00-live-audit.sql`.
 
 ### 01 — Contrato canônico e recuperação
 
+Status: concluída em 2026-09-20.
+
 - sincronizar migrations e pacote de restauração; regenerar os tipos Supabase
   a partir do schema vivo (o espelho Drizzle permanece não autoritativo);
 - congelar mapeamento de estados externos para estados DentalFlow;
@@ -108,6 +110,9 @@ Saída: `STAGE-00-BASELINE-AUDIT.md` e `sql/stage-00-live-audit.sql`.
 - validar restauração do zero antes de tocar no provedor.
 
 ### 02 — Adapter Asaas Sandbox
+
+Status: implementação concluída; aguardando configuração dos secrets e
+evidência real no Asaas Sandbox. Consulte `STAGE-02-ASAAS-SANDBOX.md`.
 
 - configurar `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN`, ambiente e `User-Agent`
   somente no backend;

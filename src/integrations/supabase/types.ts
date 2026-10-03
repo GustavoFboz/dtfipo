@@ -359,6 +359,57 @@ export type Database = {
           },
         ]
       }
+      billing_provider_operations: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          external_reference: string
+          id: string
+          idempotency_key: string
+          last_error_code: string | null
+          lease_expires_at: string | null
+          lease_token: string | null
+          operation_type: string
+          provider: string
+          provider_environment: string
+          provider_resource_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          external_reference: string
+          id?: string
+          idempotency_key: string
+          last_error_code?: string | null
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          operation_type: string
+          provider: string
+          provider_environment: string
+          provider_resource_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          external_reference?: string
+          id?: string
+          idempotency_key?: string
+          last_error_code?: string | null
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          operation_type?: string
+          provider?: string
+          provider_environment?: string
+          provider_resource_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       billing_test_access: {
         Row: {
           created_at: string
@@ -3443,6 +3494,15 @@ export type Database = {
         }
         Returns: Json
       }
+      billing_bind_asaas_subscription: {
+        Args: {
+          p_provider_customer_id: string
+          p_provider_environment: string
+          p_provider_subscription_id: string
+          p_subscription_id: string
+        }
+        Returns: undefined
+      }
       billing_bind_asaas_customer: {
         Args: {
           p_clinic_id: string
@@ -3450,6 +3510,35 @@ export type Database = {
           p_provider_environment: string
         }
         Returns: undefined
+      }
+      billing_claim_provider_operation: {
+        Args: {
+          p_external_reference: string
+          p_idempotency_key: string
+          p_lease_seconds?: number
+          p_operation_type: string
+          p_provider: string
+          p_provider_environment: string
+        }
+        Returns: Json
+      }
+      billing_finish_provider_operation: {
+        Args: {
+          p_error_code?: string
+          p_lease_token: string
+          p_operation_id: string
+          p_provider_resource_id?: string
+          p_status: string
+        }
+        Returns: boolean
+      }
+      billing_get_asaas_provisioning_context: {
+        Args: {
+          p_actor_user_id: string
+          p_provider_environment: string
+          p_subscription_id: string
+        }
+        Returns: Json
       }
       billing_get_company_profile: {
         Args: { p_clinic_id: string }
