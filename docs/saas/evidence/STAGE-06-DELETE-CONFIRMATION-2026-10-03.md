@@ -1,7 +1,9 @@
 # Etapa 06 — confirmação de exclusão e exibição da cota
 
-Status: upload publicado comprovado no backend; exclusão publicada pendente de
-novo teste após a correção da interface. O Asaas permanece em standby.
+Status: upload e exclusão de anexo de caso pela conta publicada comprovados
+em 03/10/2026. O responsável confirmou a exclusão funcionando corretamente e
+a consulta somente leitura confirmou a remoção e o retorno da cota.
+O Asaas permanece em standby.
 
 ## Problema e reprodução
 
@@ -70,11 +72,33 @@ regressão de bootstrap/entitlement Desktop, pacote de restauração com 164
 migrations e os builds de produção Web, Desktop e Android. A confirmação entra
 no CI para conservar essa cobertura. Nenhum instalador nativo foi gerado aqui.
 São testes React/Radix em `happy-dom`, não uma homologação num Windows ou
-Android instalado. O teste real de exclusão na conta publicada permanece aberto.
+Android instalado. A confirmação abaixo cobre o fluxo real utilizado pelo
+responsável; não representa homologação de todos os clientes instalados.
 
-Após publicar a correção, repetir: abrir o caso de homologação, clicar na
-lixeira, verificar a caixa visível, cancelar e confirmar que o caso continua
-usável; reabrir a confirmação e excluir somente o anexo de homologação. Conferir
-ausência do objeto, do anexo e do lançamento, e retorno do uso ao valor anterior.
-O teste DICOM publicado e a reconciliação dos registros históricos continuam
-necessários para concluir a etapa 06.
+## Confirmação da exclusão publicada
+
+Em 03/10/2026, às 18:55 em Manaus (22:55 UTC), o responsável informou:
+**“Exclusão funcionando corretamente”**. A verificação posterior executou
+somente uma consulta agregada em `READ ONLY` com `ROLLBACK`, sem remover dados.
+
+| Medida | Antes da exclusão | Depois da exclusão |
+| --- | ---: | ---: |
+| Arquivos da IPO no catálogo `ready` | 500 | 499 |
+| Bytes contabilizados | 7.534.408.222 | 7.508.319.238 |
+| Entradas do anexo de homologação no catálogo | 1 | 0 |
+| Objetos correspondentes ao tamanho/horário do envio | 1 | 0 |
+| Anexos correspondentes ao tamanho/horário do envio | 1 | 0 |
+| Reservas antigas | 9 | 9 |
+| Bytes das reservas antigas | 1.112.944.862 | 1.112.944.862 |
+
+Os filtros do anexo usam os 26.088.984 bytes comprovados no envio e horário
+a partir de 20:20 UTC de 03/10. Os resultados não retornam nomes, caminhos ou
+dados clínicos. O uso caiu exatamente 26.088.984 bytes (cerca de 24,9 MiB) e
+voltou ao valor anterior ao upload. Não ficou objeto órfão correspondente ao
+envio. As nove reservas históricas continuam como pendência separada.
+
+Upload e exclusão do anexo de caso estão validados para esse ensaio publicado.
+A revisão dos resíduos históricos e os demais uploads dos módulos disponíveis
+continuam pendentes na etapa 06. O responsável adiou DICOM em 03/10 porque a
+Radiologia ainda não funciona; esse ensaio será necessário para ativar o módulo,
+sem bloquear a conclusão atual do SaaS.
