@@ -21,8 +21,8 @@ do servidor também esconde os dados anteriores. O carregamento aceita o sinal
 de cancelamento e confere o escopo antes e depois da resposta.
 
 Cada RPC usa o JWT conferido para aquela requisição; o token não entra na chave
-de cache, snapshot, estado da interface ou armazenamento da aplicação. A leitura
-local dos identificadores do JWT serve somente para separar a interface. A
+de cache, snapshot, estado da interface ou armazenamento próprio do painel. A sessão continua sendo persistida pelo SDK
+de autenticação existente. A leitura local dos identificadores do JWT serve somente para separar a interface. A
 assinatura do token, permissão Master, segundo fator, justificativa e auditoria
 continuam sob responsabilidade do backend existente.
 
