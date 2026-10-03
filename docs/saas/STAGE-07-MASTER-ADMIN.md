@@ -1,8 +1,12 @@
 # Etapa 07 — administração Master
 
-Status: implementação preparada; a ativação depende de migração e atribuição
-explícita de um usuário verificado. Nenhum CEO, admin de empresa ou perfil IPO
-ganha permissão de plataforma automaticamente.
+Status: painel e configuração de autenticador publicados; operador atribuído
+por autorização explícita e TOTP verificado no ambiente ativo em 03/10/2026.
+As negativas de acesso/replay a não operador e de replay sem MFA passaram em
+testes SQL somente leitura. Falta comprovar replay real e sua auditoria após a
+revisão financeira Sandbox. Nenhum CEO, admin de empresa ou perfil IPO ganha
+permissão de plataforma automaticamente. Consulte
+`evidence/STAGE-07-ENROLLMENT-2026-10-03.md`.
 
 ## Entrega
 
