@@ -25,6 +25,8 @@ type MasterSnapshot = {
 export const Route = createFileRoute("/master")({ component: MasterDashboard });
 
 function MasterDashboard() {
+  const [securityOpen, setSecurityOpen] = useState(false);
+  const [securityConfirmed, setSecurityConfirmed] = useState(false);
   const [mfaConfirmed, setMfaConfirmed] = useState(false);
   const [search, setSearch] = useState("");
   const [reason, setReason] = useState("");
@@ -70,6 +72,16 @@ function MasterDashboard() {
         Acesso Master indisponível. Entre com um operador de plataforma autorizado e conectado à internet.
       </section>}
       {snapshot.data && <>
+        <section className="rounded-xl border bg-white p-5 dark:bg-slate-900">
+          <h2 className="font-semibold">Segurança da conta Master</h2>
+          <p className="mt-2 text-sm">Configure ou confirme seu autenticador para proteger as ações administrativas.</p>
+          <button className="mt-3 text-teal-700 underline" onClick={() => { setSecurityOpen(!securityOpen); setSecurityConfirmed(false); }}>
+            {securityOpen ? "Fechar configuração" : "Configurar ou confirmar autenticador"}
+          </button>
+          {securityOpen && (securityConfirmed
+            ? <p role="status" className="mt-3 text-sm">Autenticador confirmado nesta sessão. As ações financeiras continuam exigindo sua própria confirmação.</p>
+            : <MasterMfaChallenge onVerified={() => setSecurityConfirmed(true)} />)}
+        </section>
         <section className="rounded-xl border bg-white p-5 dark:bg-slate-900">
           <h2 className="font-semibold">Empresas</h2>
           <label className="mt-3 block text-sm">Buscar empresa
