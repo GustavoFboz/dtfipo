@@ -253,6 +253,81 @@ describe("Asaas inbox worker", () => {
     );
   });
 
+  it("recovers the current payment before retiring an older overdue delivery", async () => {
+    const dependencies = deps();
+    const overdueEvent = { ...received, event_type: "PAYMENT_OVERDUE" };
+    dependencies.claim.mockResolvedValue([overdueEvent]);
+    dependencies.getPayment.mockResolvedValue({ ...confirmed, status: "RECEIVED" });
+    const response = await processAsaasInbox(worker(), dependencies);
+    expect(dependencies.enqueueRecovery).toHaveBeenCalledWith(
+      `evt_reconcile_${paymentId}_RECEIVED`, "PAYMENT_RECEIVED",
+      { paymentId, source: "reconciliation" },
+    );
+    expect(dependencies.applyPayment).not.toHaveBeenCalled();
+    expect(dependencies.finish).toHaveBeenCalledWith(overdueEvent, "ignored", "SUPERSEDED_PROVIDER_STATUS");
+    expect(dependencies.enqueueRecovery.mock.invocationCallOrder[0])
+      .toBeLessThan(dependencies.finish.mock.invocationCallOrder[0]);
+    expect(await response.json()).toMatchObject({ ignored: 1, failed: 0 });
+  });
+
+  it("never restores access from a paid delivery after the provider refunded the invoice", async () => {
+    const dependencies = deps();
+    dependencies.getPayment.mockResolvedValue({ ...confirmed, status: "REFUNDED" });
+    await processAsaasInbox(worker(), dependencies);
+    expect(dependencies.enqueueRecovery).toHaveBeenCalledWith(
+      `evt_reconcile_${paymentId}_REFUNDED`, "PAYMENT_REFUNDED",
+      { paymentId, source: "reconciliation" },
+    );
+    expect(dependencies.applyPayment).not.toHaveBeenCalled();
+    expect(dependencies.finish).toHaveBeenCalledWith(received, "ignored", "SUPERSEDED_PROVIDER_STATUS");
+  });
+
+  it("keeps a stale event retryable if the recovery event could not be persisted", async () => {
+    const dependencies = deps();
+    const overdueEvent = { ...received, event_type: "PAYMENT_OVERDUE" };
+    dependencies.claim.mockResolvedValue([overdueEvent]);
+    dependencies.enqueueRecovery.mockRejectedValue(new Error("private database details"));
+    await processAsaasInbox(worker(), dependencies);
+    expect(dependencies.applyPayment).not.toHaveBeenCalled();
+    expect(dependencies.finish).toHaveBeenCalledWith(overdueEvent, "failed", "RECOVERY_INBOX_WRITE_FAILED");
+    expect(dependencies.finish).not.toHaveBeenCalledWith(overdueEvent, "ignored", expect.anything());
+  });
+
+  it("reuses the idempotent recovery identity when the current payment is already queued", async () => {
+    const dependencies = deps();
+    dependencies.claim.mockResolvedValue([{ ...received, event_type: "PAYMENT_OVERDUE" }]);
+    dependencies.enqueueRecovery.mockResolvedValue(false);
+    const response = await processAsaasInbox(worker(), dependencies);
+    expect(dependencies.applyPayment).not.toHaveBeenCalled();
+    expect(dependencies.enqueueRecovery).toHaveBeenCalledTimes(1);
+    expect(await response.json()).toMatchObject({ ignored: 1 });
+  });
+
+  it("holds unknown risk statuses and standalone invoices instead of synthesizing paid events", async () => {
+    for (const extra of [{ status: "CHARGEBACK_REQUESTED" }, { subscription: null }, { deleted: true }]) {
+      const dependencies = deps();
+      dependencies.claim.mockResolvedValue([{ ...received, event_type: "PAYMENT_OVERDUE" }]);
+      dependencies.getPayment.mockResolvedValue({ ...confirmed, ...extra });
+      await processAsaasInbox(worker(), dependencies);
+      expect(dependencies.applyPayment).not.toHaveBeenCalled();
+      expect(dependencies.enqueueRecovery).not.toHaveBeenCalled();
+      expect(dependencies.finish).toHaveBeenCalledWith(expect.anything(), "failed", expect.any(String));
+    }
+  });
+
+  it("continues another claimed payment when the first event loses its processing lease", async () => {
+    const dependencies = deps();
+    const other = { ...received, id: "second-event", payload: { paymentId: "pay_Second123" } };
+    dependencies.claim.mockResolvedValue([received, other]);
+    dependencies.getPayment.mockRejectedValueOnce(new Error("network down"))
+      .mockResolvedValueOnce({ ...confirmed, id: "pay_Second123" });
+    dependencies.finish.mockRejectedValueOnce(new Error("LEASE_EXPIRED"));
+    const response = await processAsaasInbox(worker(), dependencies);
+    expect(response.status).toBe(503);
+    expect(dependencies.applyPayment).toHaveBeenCalledWith(other, expect.objectContaining({ id: "pay_Second123" }), 9_990);
+    expect(await response.json()).toMatchObject({ processed: 1, workerReview: 1 });
+  });
+
   it("reconciles an overdue payment without granting a paid entitlement", async () => {
     const dependencies = deps();
     dependencies.claim.mockResolvedValue([{ ...received, event_type: "PAYMENT_OVERDUE" }]);
@@ -322,6 +397,59 @@ describe("Asaas inbox worker", () => {
       { paymentId, source: "reconciliation" },
     );
     expect(await result.json()).toMatchObject({ recoveryQueued: 1 });
+  });
+
+  it("isolates a failed grace lookup while preserving successful work and the next candidate", async () => {
+    const dependencies = deps();
+    dependencies.listExpiredGrace.mockResolvedValue([
+      { subscription_id: "first-company", payment_id: "pay_Unavailable123" },
+      { subscription_id: "second-company", payment_id: "pay_Overdue123" },
+    ]);
+    dependencies.getPayment.mockResolvedValueOnce(confirmed)
+      .mockRejectedValueOnce(new Error("sensitive provider failure"))
+      .mockResolvedValueOnce({ ...confirmed, id: "pay_Overdue123", status: "OVERDUE" });
+    const response = await processAsaasInbox(worker(), dependencies);
+    expect(response.status).toBe(503);
+    expect(dependencies.suspendGrace).toHaveBeenCalledTimes(1);
+    expect(dependencies.suspendGrace).toHaveBeenCalledWith(
+      { subscription_id: "second-company", payment_id: "pay_Overdue123" },
+      expect.objectContaining({ id: "pay_Overdue123", status: "OVERDUE" }),
+    );
+    expect(await response.json()).toMatchObject({ processed: 1, graceReview: 1, suspended: 1 });
+  });
+
+  it("queues a verified refund during grace instead of suspending as overdue", async () => {
+    const dependencies = deps();
+    dependencies.claim.mockResolvedValue([]);
+    dependencies.listExpiredGrace.mockResolvedValue([{ subscription_id: "test-company", payment_id: paymentId }]);
+    dependencies.getPayment.mockResolvedValue({ ...confirmed, status: "REFUNDED" });
+    const response = await processAsaasInbox(worker(), dependencies);
+    expect(dependencies.suspendGrace).not.toHaveBeenCalled();
+    expect(dependencies.enqueueRecovery).toHaveBeenCalledWith(
+      `evt_reconcile_${paymentId}_REFUNDED`, "PAYMENT_REFUNDED", { paymentId, source: "reconciliation" },
+    );
+    expect(await response.json()).toMatchObject({ recoveryQueued: 1, graceReview: 0 });
+  });
+
+  it("preserves the processed payment if the grace candidate query fails", async () => {
+    const dependencies = deps();
+    dependencies.listExpiredGrace.mockRejectedValue(new Error("database unavailable"));
+    const response = await processAsaasInbox(worker(), dependencies);
+    expect(response.status).toBe(503);
+    expect(dependencies.applyPayment).toHaveBeenCalledTimes(1);
+    expect(dependencies.claimReconciliation).toHaveBeenCalledTimes(1);
+    expect(await response.json()).toMatchObject({ processed: 1, graceReview: 1 });
+  });
+
+  it("preserves paid and suspended results if the missing-webhook candidate query fails", async () => {
+    const dependencies = deps();
+    dependencies.listExpiredGrace.mockResolvedValue([{ subscription_id: "test-company", payment_id: "pay_Overdue123" }]);
+    dependencies.getPayment.mockResolvedValueOnce(confirmed)
+      .mockResolvedValueOnce({ ...confirmed, id: "pay_Overdue123", status: "OVERDUE" });
+    dependencies.claimReconciliation.mockRejectedValue(new Error("database unavailable"));
+    const response = await processAsaasInbox(worker(), dependencies);
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ processed: 1, suspended: 1, reconciliationReview: 1 });
   });
 
   it("recovers a lost payment webhook through the existing inbox, without activating access", async () => {

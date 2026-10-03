@@ -355,6 +355,13 @@ function billingFailureCode(error: unknown): string {
     ? message : "BILLING_APPLY_FAILED";
 }
 
+function recoveryPaymentEvent(status: string | undefined): string | null {
+  return status === "CONFIRMED" ? "PAYMENT_CONFIRMED"
+    : ["RECEIVED", "RECEIVED_IN_CASH"].includes(status ?? "") ? "PAYMENT_RECEIVED"
+    : status === "OVERDUE" ? "PAYMENT_OVERDUE"
+    : status === "REFUNDED" ? "PAYMENT_REFUNDED" : null;
+}
+
 async function processEvent(
   event: InboxEvent,
   deps: WorkerDependencies,
@@ -428,13 +435,40 @@ async function processEvent(
       payment.deleted ||
       !/^cus_[A-Za-z0-9]+$/.test(payment.customer) ||
       !SUBSCRIPTION_ID.test(payment.subscription ?? "") ||
-      !ISO_DATE.test(payment.dueDate ?? "") ||
-      !(CONFIRMATION_EVENTS.has(event.event_type)
+      !ISO_DATE.test(payment.dueDate ?? "")
+  ) {
+    await deps.finish(event, "failed", "PAYMENT_NOT_CONFIRMED_OR_INVALID");
+    return "failed";
+  }
+
+  // Asaas delivers at least once and can deliver an older overdue/paid event
+  // after payment or refund. Persist the CURRENT effect in the normal inbox
+  // before retiring the stale event. The new event must GET the payment again
+  // and pass the existing owner, contract, period and idempotency checks.
+  // A refund followed by a paid status is deliberately held for manual review.
+  const currentEvent = recoveryPaymentEvent(payment.status);
+  const superseded = (event.event_type === "PAYMENT_OVERDUE" &&
+    (CONFIRMATION_EVENTS.has(currentEvent ?? "") || currentEvent === "PAYMENT_REFUNDED")) ||
+    (CONFIRMATION_EVENTS.has(event.event_type) && currentEvent === "PAYMENT_REFUNDED");
+  if (superseded && currentEvent) {
+    try {
+      const recoveryId = `evt_reconcile_${payment.id}_${payment.status}`;
+      if (!EVENT_ID.test(recoveryId)) throw new Error("RECOVERY_EVENT_ID_INVALID");
+      await deps.enqueueRecovery(recoveryId, currentEvent, {
+        paymentId: payment.id, source: "reconciliation",
+      });
+    } catch {
+      await deps.finish(event, "failed", "RECOVERY_INBOX_WRITE_FAILED");
+      return "failed";
+    }
+    await deps.finish(event, "ignored", "SUPERSEDED_PROVIDER_STATUS");
+    return "ignored";
+  }
+  if (!(CONFIRMATION_EVENTS.has(event.event_type)
         ? ["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"].includes(payment.status ?? "")
         : event.event_type === "PAYMENT_OVERDUE"
           ? payment.status === "OVERDUE"
-          : payment.status === "REFUNDED")
-  ) {
+          : payment.status === "REFUNDED")) {
     await deps.finish(event, "failed", "PAYMENT_NOT_CONFIRMED_OR_INVALID");
     return "failed";
   }
@@ -449,29 +483,38 @@ async function processEvent(
 
 async function reconcileExpiredGrace(
   deps: WorkerDependencies,
-): Promise<{ suspended: number; recoveryQueued: number }> {
-  const counts = { suspended: 0, recoveryQueued: 0 };
+): Promise<{ suspended: number; recoveryQueued: number; graceReview: number }> {
+  const counts = { suspended: 0, recoveryQueued: 0, graceReview: 0 };
   for (const candidate of await deps.listExpiredGrace()) {
-    const payment = await deps.getPayment(candidate.payment_id);
-    if (
-      payment.id !== candidate.payment_id ||
-      !payment.subscription ||
-      !/^cus_[A-Za-z0-9]+$/.test(payment.customer)
-    ) {
-      throw new Error("GRACE_PAYMENT_NOT_VERIFIED");
-    }
-    if (payment.status === "OVERDUE") {
-      if (await deps.suspendGrace(candidate, payment)) counts.suspended += 1;
-    } else if (["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"].includes(payment.status ?? "")) {
-      const eventType = payment.status === "CONFIRMED" ? "PAYMENT_CONFIRMED" : "PAYMENT_RECEIVED";
-      const inserted = await deps.enqueueRecovery(
-        "evt_reconcile_" + payment.id + "_" + payment.status,
-        eventType,
-        { paymentId: payment.id, source: "reconciliation" },
-      );
-      if (inserted) counts.recoveryQueued += 1;
-    } else {
-      throw new Error("GRACE_PROVIDER_STATUS_REVIEW_REQUIRED");
+    try {
+      const payment = await deps.getPayment(candidate.payment_id);
+      if (
+        payment.id !== candidate.payment_id ||
+        payment.deleted || !PAYMENT_ID.test(payment.id) ||
+        !SUBSCRIPTION_ID.test(payment.subscription ?? "") ||
+        !/^cus_[A-Za-z0-9]+$/.test(payment.customer) ||
+        !paymentAmountCents(payment) || !ISO_DATE.test(payment.dueDate ?? "")
+      ) {
+        throw new Error("GRACE_PAYMENT_NOT_VERIFIED");
+      }
+      if (payment.status === "OVERDUE") {
+        if (await deps.suspendGrace(candidate, payment)) counts.suspended += 1;
+      } else if (["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH", "REFUNDED"].includes(payment.status ?? "")) {
+        const eventType = recoveryPaymentEvent(payment.status)!;
+        const eventId = "evt_reconcile_" + payment.id + "_" + payment.status;
+        if (!EVENT_ID.test(eventId)) throw new Error("RECOVERY_EVENT_ID_INVALID");
+        const inserted = await deps.enqueueRecovery(
+          eventId,
+          eventType,
+          { paymentId: payment.id, source: "reconciliation" },
+        );
+        if (inserted) counts.recoveryQueued += 1;
+      } else {
+        throw new Error("GRACE_PROVIDER_STATUS_REVIEW_REQUIRED");
+      }
+    } catch {
+      counts.graceReview += 1;
+      console.error("[Asaas worker] GRACE_CANDIDATE_REVIEW_REQUIRED");
     }
   }
   return counts;
@@ -509,10 +552,7 @@ async function reconcileMissingWebhooks(
           payment.subscription !== subscription.id || !paymentAmountCents(payment) ||
           !ISO_DATE.test(payment.dueDate ?? "")
         ) throw new Error("RECONCILIATION_PAYMENT_REVIEW_REQUIRED");
-        const type = payment.status === "CONFIRMED" ? "PAYMENT_CONFIRMED" :
-          ["RECEIVED", "RECEIVED_IN_CASH"].includes(payment.status ?? "") ? "PAYMENT_RECEIVED" :
-          payment.status === "OVERDUE" ? "PAYMENT_OVERDUE" :
-          payment.status === "REFUNDED" ? "PAYMENT_REFUNDED" : null;
+        const type = recoveryPaymentEvent(payment.status);
         if (!type && payment.status !== "PENDING") {
           throw new Error("RECONCILIATION_STATUS_REVIEW_REQUIRED");
         }
@@ -687,12 +727,34 @@ export async function processAsaasInbox(
   }
   try {
     const events = await deps.claim();
-    const counts = { processed: 0, ignored: 0, failed: 0 };
-    for (const event of events) counts[await processEvent(event, deps)] += 1;
-    const grace = await reconcileExpiredGrace(deps);
-    const reconciliation = await reconcileMissingWebhooks(deps);
+    const counts = { processed: 0, ignored: 0, failed: 0, workerReview: 0 };
+    for (const event of events) {
+      try {
+        counts[await processEvent(event, deps)] += 1;
+      } catch {
+        // A lost lease or failed final inbox write remains claimable after its
+        // lease expires. Continue the batch and expose the partial failure.
+        counts.workerReview += 1;
+        console.error("[Asaas worker] EVENT_PROCESSING_INCOMPLETE");
+      }
+    }
+    let grace = { suspended: 0, recoveryQueued: 0, graceReview: 0 };
+    try {
+      grace = await reconcileExpiredGrace(deps);
+    } catch {
+      grace.graceReview += 1;
+      console.error("[Asaas worker] GRACE_SCAN_FAILED");
+    }
+    let reconciliation = { reconciliationScanned: 0, reconciliationQueued: 0, reconciliationReview: 0 };
+    try {
+      reconciliation = await reconcileMissingWebhooks(deps);
+    } catch {
+      reconciliation.reconciliationReview += 1;
+      console.error("[Asaas worker] RECONCILIATION_SCAN_FAILED");
+    }
     return json({ ...counts, ...grace, ...reconciliation },
-      reconciliation.reconciliationReview > 0 ? 503 : 200);
+      reconciliation.reconciliationReview > 0 || grace.graceReview > 0 || counts.workerReview > 0
+        ? 503 : 200);
   } catch {
     console.error("[Asaas worker] WORKER_FAILED");
     return json({ processed: 0 }, 503);
