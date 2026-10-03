@@ -58,3 +58,13 @@ describe("mandatory storage reservations", () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 });
+
+describe("storage amount display", () => {
+  it.each([
+    [7.02, "7.02 GB"], [7.05, "7.05 GB"], [7.2, "7.2 GB"], [7, "7 GB"],
+    [25, "25 GB"], [100, "100 GB"], [500, "500 GB"],
+  ])("keeps significant decimal digits for %s GiB", async (gib, expected) => {
+    const { formatStorageBytes } = await import("./storage");
+    expect(formatStorageBytes(gib * 1024 ** 3)).toBe(expected);
+  });
+});

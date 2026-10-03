@@ -182,7 +182,9 @@ de risco restantes continuam em revisão. Consulte STAGE-05-ASAAS-LIFECYCLE.md.
 ### 06 — Cotas e armazenamento
 
 Status: cota e reservas obrigatórias implantadas em 29/09/2026; ensaios em
-base descartável passaram. Falta homologar uploads na conta publicada.
+base descartável passaram. Um novo anexo de caso foi confirmado na conta
+publicada em 03/10. Falta repetir a exclusão após a correção da confirmação,
+homologar os demais uploads/DICOM e reconciliar os resíduos históricos.
 Consulte `STAGE-06-STORAGE-QUOTAS.md`.
 
 - aplicar limites do plano e adicionais por entitlement;

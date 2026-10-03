@@ -67,6 +67,7 @@ jobs:
           bunx vitest run --configLoader runner src/lib/storage.test.ts
           bunx vitest run --configLoader runner src/lib/auth/master-mfa.test.ts src/lib/auth/master-session.test.ts src/lib/master-admin.test.ts
           bunx vitest run --configLoader runner src/components/master/MasterPage.test.tsx
+          bunx vitest run --configLoader runner src/lib/confirm.test.tsx
 
       # The repository has substantial pre-existing formatting/lint debt.
       # A repo-wide lint gate currently reports thousands of legacy findings,
