@@ -11,11 +11,15 @@ Consulte `evidence/CONTINUITY-2026-10-03.md` para separar código e provas finan
 
 Retomada de 03/10: etapa financeira **05/09 em espera** por solicitação do
 responsável, até o restabelecimento dos créditos Lovable. Etapa atual de avanço
-independente: **07/09**. Restam pendências nas seis etapas 04–09: recuperação de
+independente: **06/09**, com auditoria das cotas e preparação do ensaio de upload
+publicado. O Master **07/09** aguarda os testes com sessões reais e o replay
+auditado. Restam pendências nas seis etapas 04–09: recuperação de
 eventos, ciclo financeiro, uploads publicados, prova do replay auditado Master,
 cancelamento/troca de plano e liberação controlada de produção.
 O tratamento de eventos financeiros fora de ordem e de falhas isoladas do
 worker está registrado em `evidence/STAGE-05-RESUME-2026-10-03.md`.
+A auditoria de armazenamento e o roteiro de homologação estão em
+`evidence/STAGE-06-LIVE-AUDIT-2026-10-03.md`.
 
 Provedor financeiro obrigatório para lançamento: Asaas
 
