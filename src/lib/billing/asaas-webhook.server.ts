@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import {
   AsaasClient,
+  AsaasApiError,
   loadAsaasConfig,
   type AsaasPayment,
   type AsaasSubscription,
@@ -317,6 +318,43 @@ function paymentAmountCents(payment: { value?: number }): number | null {
     : null;
 }
 
+// Store fixed diagnostic codes, never provider response text, SQL detail or PII.
+// A successful provider GET followed by a rejected ledger write is a different
+// failure from an unavailable Asaas API and must remain distinguishable.
+const BILLING_REJECTION_CODES = new Set([
+  "BILLING_LIFECYCLE_PAYMENT_NOT_VERIFIED",
+  "BILLING_LIFECYCLE_PROVIDER_STATUS_CHANGED",
+  "BILLING_LIFECYCLE_OWNERSHIP_MISMATCH",
+  "BILLING_LIFECYCLE_PLAN_MISMATCH",
+  "BILLING_LIFECYCLE_PAYMENT_CONFLICT",
+  "BILLING_LIFECYCLE_PERIOD_REVIEW_REQUIRED",
+  "BILLING_LIFECYCLE_INITIAL_PAYMENT_REQUIRED",
+  "BILLING_LIFECYCLE_OVERDUE_REVIEW_REQUIRED",
+  "BILLING_LIFECYCLE_REVERSAL_REVIEW_REQUIRED",
+  "BILLING_SUBSCRIPTION_NOT_VERIFIED",
+  "BILLING_SUBSCRIPTION_OWNERSHIP_MISMATCH",
+  "BILLING_SUBSCRIPTION_PLAN_MISMATCH",
+  "BILLING_SUBSCRIPTION_STATE_REVIEW_REQUIRED",
+]);
+
+function providerFailureCode(error: unknown): string {
+  if (error instanceof AsaasApiError) {
+    if (Number.isInteger(error.status) && error.status! >= 400 && error.status! <= 599) {
+      return `ASAAS_HTTP_${error.status}`;
+    }
+    if (["ASAAS_TIMEOUT", "ASAAS_NETWORK_ERROR", "ASAAS_INVALID_RESPONSE", "ASAAS_EMPTY_RESPONSE"].includes(error.code)) {
+      return error.code;
+    }
+  }
+  return "ASAAS_LOOKUP_FAILED";
+}
+
+function billingFailureCode(error: unknown): string {
+  const message = error && typeof error === "object" && "message" in error ? error.message : null;
+  return typeof message === "string" && BILLING_REJECTION_CODES.has(message)
+    ? message : "BILLING_APPLY_FAILED";
+}
+
 async function processEvent(
   event: InboxEvent,
   deps: WorkerDependencies,
@@ -327,10 +365,15 @@ async function processEvent(
       await deps.finish(event, "failed", "MISSING_SUBSCRIPTION_ID");
       return "failed";
     }
+    let subscription: AsaasSubscription;
     try {
-      const subscription = await deps.getSubscription(subscriptionId);
-      const cents = paymentAmountCents(subscription);
-      if (
+      subscription = await deps.getSubscription(subscriptionId);
+    } catch (error) {
+      await deps.finish(event, "failed", providerFailureCode(error));
+      return "failed";
+    }
+    const cents = paymentAmountCents(subscription);
+    if (
         subscription.id !== subscriptionId ||
         !cents ||
         !SUBSCRIPTION_ID.test(subscription.id) ||
@@ -339,14 +382,15 @@ async function processEvent(
         !["ACTIVE", "INACTIVE"].includes(subscription.status ?? "") ||
         !subscription.externalReference ||
         subscription.deleted
-      ) {
-        await deps.finish(event, "failed", "SUBSCRIPTION_NOT_VERIFIED");
-        return "failed";
-      }
+    ) {
+      await deps.finish(event, "failed", "SUBSCRIPTION_NOT_VERIFIED");
+      return "failed";
+    }
+    try {
       await deps.applySubscription(event, subscription, cents);
       return "processed";
-    } catch {
-      await deps.finish(event, "failed", "SUBSCRIPTION_RECONCILIATION_FAILED");
+    } catch (error) {
+      await deps.finish(event, "failed", billingFailureCode(error));
       return "failed";
     }
   }
@@ -364,27 +408,41 @@ async function processEvent(
     await deps.finish(event, "failed", "MISSING_PAYMENT_ID");
     return "failed";
   }
+  let payment: AsaasPayment;
   try {
-    const payment = await deps.getPayment(paymentId);
-    const cents = paymentAmountCents(payment);
-    if (
+    payment = await deps.getPayment(paymentId);
+  } catch (error) {
+    await deps.finish(event, "failed", providerFailureCode(error));
+    return "failed";
+  }
+  // A standalone invoice is not a DentalFlow subscription payment. Hold it for
+  // review even when Asaas says paid; never attach it to a company by guessing.
+  if (payment.id === paymentId && !payment.subscription) {
+    await deps.finish(event, "failed", "PAYMENT_SUBSCRIPTION_MISSING");
+    return "failed";
+  }
+  const cents = paymentAmountCents(payment);
+  if (
       payment.id !== paymentId ||
       !cents ||
+      payment.deleted ||
+      !/^cus_[A-Za-z0-9]+$/.test(payment.customer) ||
+      !SUBSCRIPTION_ID.test(payment.subscription ?? "") ||
       !ISO_DATE.test(payment.dueDate ?? "") ||
       !(CONFIRMATION_EVENTS.has(event.event_type)
         ? ["CONFIRMED", "RECEIVED", "RECEIVED_IN_CASH"].includes(payment.status ?? "")
         : event.event_type === "PAYMENT_OVERDUE"
           ? payment.status === "OVERDUE"
-          : payment.status === "REFUNDED") ||
-      !payment.subscription
-    ) {
-      await deps.finish(event, "failed", "PAYMENT_NOT_CONFIRMED_OR_INVALID");
-      return "failed";
-    }
+          : payment.status === "REFUNDED")
+  ) {
+    await deps.finish(event, "failed", "PAYMENT_NOT_CONFIRMED_OR_INVALID");
+    return "failed";
+  }
+  try {
     await deps.applyPayment(event, payment, cents);
     return "processed";
-  } catch {
-    await deps.finish(event, "failed", "PROVIDER_RECONCILIATION_FAILED");
+  } catch (error) {
+    await deps.finish(event, "failed", billingFailureCode(error));
     return "failed";
   }
 }

@@ -27,9 +27,10 @@ const packageJson = JSON.parse(read("package.json"));
 const bunLock = read("bun.lock");
 
 const pinnedTanStackRuntime = {
-  "@tanstack/react-router": "1.170.16",
-  "@tanstack/react-start": "1.168.26",
-  "@tanstack/router-plugin": "1.168.18",
+  // Preserve the security update already applied by Lovable on 30/09.
+  "@tanstack/react-router": "1.170.41",
+  "@tanstack/react-start": "1.168.60",
+  "@tanstack/router-plugin": "1.168.42",
 };
 
 for (const [dependency, version] of Object.entries(pinnedTanStackRuntime)) {

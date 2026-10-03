@@ -1,9 +1,10 @@
 # Homologação real — Asaas Sandbox
 
-Status: **não passou**. Até agora houve testes com mocks, restauração em banco
-descartável e inspeções do banco vivo, mas não há evidência de uma assinatura
-e cobrança criadas pelo DentalFlow no Asaas Sandbox, entregue por webhook e
-projetada como acesso pago. Não declarar o SaaS liberado por causa da CI.
+Status: **primeiro ciclo pago passou em 28/09/2026**. Cliente, assinatura,
+cobrança, webhook, ledger e acesso foram comprovados no Asaas Sandbox.
+Renovação, suspensão, reativação, limites e paridade de plataformas ainda não
+passaram no teste real. Consulte a evidência em
+`evidence/SANDBOX-FIRST-PAID-CYCLE-2026-09-28.md`.
 
 ## Preparar a execução
 
@@ -55,7 +56,7 @@ registrar o passo e o código de erro; não substituir uma cobrança ambígua
 criando outra por tentativa. O teste só passa com recurso financeiro real do
 **Sandbox do Asaas** e efeitos observados no banco e nas plataformas.
 
-## Pendências atuais
+## Registro anterior (antes do primeiro pagamento)
 
 - Inspeção em 2026-09-27 UTC: o banco publicado apresentou `0` eventos Asaas,
   `0` pagamentos Asaas e `0` assinaturas vinculadas ao Asaas. A conta de teste

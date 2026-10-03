@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { AsaasApiError } from "./asaas.server";
 import { processAsaasInbox, receiveAsaasWebhook, replayAsaasEvent } from "./asaas-webhook.server";
 
 const webhookToken = "webhook-test-token-0123456789-0123456789";
@@ -181,6 +182,50 @@ describe("Asaas inbox worker", () => {
       "failed",
       "PAYMENT_NOT_CONFIRMED_OR_INVALID",
     );
+  });
+
+  it("keeps a paid standalone invoice for review without granting any entitlement", async () => {
+    const dependencies = deps();
+    dependencies.getPayment.mockResolvedValue({ ...confirmed, value: 5, subscription: null });
+    const response = await processAsaasInbox(worker(), dependencies);
+    expect(await response.json()).toMatchObject({ failed: 1, processed: 0, ignored: 0 });
+    expect(dependencies.applyPayment).not.toHaveBeenCalled();
+    expect(dependencies.finish).toHaveBeenCalledWith(received, "failed", "PAYMENT_SUBSCRIPTION_MISSING");
+  });
+
+  it("separates a rejected contract amount from an Asaas lookup failure", async () => {
+    const dependencies = deps();
+    dependencies.applyPayment.mockRejectedValue({ message: "BILLING_LIFECYCLE_PLAN_MISMATCH", details: "private" });
+    await processAsaasInbox(worker(), dependencies);
+    expect(dependencies.getPayment).toHaveBeenCalledWith(paymentId);
+    expect(dependencies.finish).toHaveBeenCalledWith(received, "failed", "BILLING_LIFECYCLE_PLAN_MISMATCH");
+  });
+
+  it("reports only the provider HTTP status and never its response text", async () => {
+    const dependencies = deps();
+    dependencies.getPayment.mockRejectedValue(new AsaasApiError({
+      code: "untrusted_provider_code", status: 404, message: "private customer and credential details",
+    }));
+    await processAsaasInbox(worker(), dependencies);
+    expect(dependencies.applyPayment).not.toHaveBeenCalled();
+    expect(dependencies.finish).toHaveBeenCalledWith(received, "failed", "ASAAS_HTTP_404");
+  });
+
+  it("redacts unexpected database errors instead of storing their text", async () => {
+    const dependencies = deps();
+    dependencies.applyPayment.mockRejectedValue({ message: "BILLING_LIFECYCLE_PLAN_MISMATCH private details" });
+    await processAsaasInbox(worker(), dependencies);
+    expect(dependencies.finish).toHaveBeenCalledWith(received, "failed", "BILLING_APPLY_FAILED");
+  });
+
+  it("rejects deleted payments and invalid subscription IDs before the ledger write", async () => {
+    for (const extra of [{ deleted: true }, { subscription: "other_company" }]) {
+      const dependencies = deps();
+      dependencies.getPayment.mockResolvedValue({ ...confirmed, ...extra });
+      await processAsaasInbox(worker(), dependencies);
+      expect(dependencies.applyPayment).not.toHaveBeenCalled();
+      expect(dependencies.finish).toHaveBeenCalledWith(received, "failed", "PAYMENT_NOT_CONFIRMED_OR_INVALID");
+    }
   });
 
   it("reconciles a full refund against the authoritative Asaas payment", async () => {

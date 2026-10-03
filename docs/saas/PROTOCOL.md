@@ -2,7 +2,11 @@
 
 Status: iniciado em 2026-09-19
 
-Etapa atual: 05 — ciclo financeiro em branch isolada; homologação Sandbox pendente
+Continuidade em 03/10/2026: recuperação do código das etapas 06–09 removido
+na edição Lovable de 29/09, antes de continuar a homologação da etapa 05.
+Histórico e renovação estão preparados; cancelamento e troca de plano ainda
+precisam ser implementados. O operador Master não foi atribuído no banco ativo.
+Consulte `evidence/CONTINUITY-2026-10-03.md` para separar código e provas financeiras.
 
 Provedor financeiro obrigatório para lançamento: Asaas
 
@@ -111,8 +115,8 @@ Status: concluída em 2026-09-20.
 
 ### 02 — Adapter Asaas Sandbox
 
-Status: implementação concluída; aguardando configuração dos secrets e
-evidência real no Asaas Sandbox. Consulte `STAGE-02-ASAAS-SANDBOX.md`.
+Status: criação real do cliente e assinatura no Asaas Sandbox comprovada em
+28/09/2026. Consulte `evidence/SANDBOX-FIRST-PAID-CYCLE-2026-09-28.md`.
 
 - configurar `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN`, ambiente e `User-Agent`
   somente no backend;
@@ -127,8 +131,8 @@ oficial atual define `https://api-sandbox.asaas.com/v3` para Sandbox e
 
 ### 03 — Checkout real
 
-Status: implementação concluída; homologação real no Asaas Sandbox pendente.
-Consulte `STAGE-03-REAL-CHECKOUT.md`.
+Status: primeiro checkout e pagamento real no Asaas Sandbox comprovados em
+28/09/2026. Consulte `STAGE-03-REAL-CHECKOUT.md` e a evidência do primeiro ciclo.
 
 - transformar intent interno em assinatura e cobrança reais do Asaas;
 - devolver URL de pagamento do Asaas de forma segura;
@@ -137,9 +141,9 @@ Consulte `STAGE-03-REAL-CHECKOUT.md`.
 
 ### 04 — Webhook, inbox e reconciliação
 
-Status: receptor, inbox, processador de pagamento inicial e execução agendada
-implementados em branch isolada; migration aplicada ao banco vivo em 2026-09-26,
-mas endpoints e agendador ainda não publicados. Validação no Sandbox pendente.
+Status: receptor, inbox e worker publicados; primeiro `PAYMENT_CONFIRMED`
+processado no Sandbox em 28/09/2026. Repetição, perda de webhook e erros do
+provedor ainda exigem homologação específica.
 Consulte STAGE-04-ASAAS-WEBHOOK.md.
 
 - endpoint público com validação de `asaas-access-token`;
@@ -153,11 +157,9 @@ chave única e responder somente após persistir:
 
 ### 05 — Ciclo de vida e reativação
 
-Status: renovação, atraso, carência, estorno integral, inativação, recuperação
-limitada de webhooks perdidos e replay privado auditado implementados em branch
-isolada; restauração limpa desta revisão aprovada na CI, Sandbox real pendente.
-Os demais eventos
-de risco continuam em revisão. Consulte STAGE-05-ASAAS-LIFECYCLE.md.
+Status: ciclo inicial pago comprovado no Sandbox; renovação, atraso, carência,
+estorno, inativação e replay ainda aguardam provas reais individuais. Os eventos
+de risco restantes continuam em revisão. Consulte STAGE-05-ASAAS-LIFECYCLE.md.
 
 - mapear aprovação, vencimento, atraso, estorno, chargeback e cancelamento;
 - testar carência, suspensão, renovação e reativação sem exclusão de dados;
@@ -166,6 +168,10 @@ de risco continuam em revisão. Consulte STAGE-05-ASAAS-LIFECYCLE.md.
 
 ### 06 — Cotas e armazenamento
 
+Status: cota e reservas obrigatórias implantadas em 29/09/2026; ensaios em
+base descartável passaram. Falta homologar uploads na conta publicada.
+Consulte `STAGE-06-STORAGE-QUOTAS.md`.
+
 - aplicar limites do plano e adicionais por entitlement;
 - bloquear novos uploads antes de exceder a cota;
 - preservar download/eliminação controlada durante restrição;
@@ -173,12 +179,20 @@ de risco continuam em revisão. Consulte STAGE-05-ASAAS-LIFECYCLE.md.
 
 ### 07 — Administração Master
 
+Status: papel separado e painel de leitura/replay auditado preparados em branch
+isolada. Migração, identidade do operador e segundo fator ainda exigem
+verificação no ambiente ativo. Consulte `STAGE-07-MASTER-ADMIN.md`.
+
 - criar papel de plataforma separado de `admin`/`CEO` da empresa;
 - permitir busca de empresas, assinatura, pagamentos, eventos e saúde da fila;
 - ações sensíveis exigem justificativa, auditoria e reautenticação;
 - nenhum painel Master é disponibilizado por confiança apenas na UI.
 
 ### 08 — Centro de cobrança do cliente
+
+Status: histórico e consulta segura de cobrança preparados; falta completar
+cancelamento e troca de plano com efeito comprovado no Asaas. Consulte
+`STAGE-08-BILLING-CENTER.md`.
 
 - plano atual, vencimento, forma de pagamento, faturas e recibos;
 - troca/cancelamento com impacto e data efetiva claros;
