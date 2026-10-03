@@ -56,7 +56,16 @@ indisponível, duplicatas, status de risco e continuidade do lote.
   não exige alteração de schema ou migração no banco ativo.
 - Build Desktop passou com `vite build --configLoader runner --config
   vite.desktop.config.ts`; os checks de entitlement Desktop, IPO e contrato
-  Android passaram. A CI do candidato deve passar antes da integração.
+  Android passaram.
+- [Dental Flow CI](https://github.com/GustavoFboz/dtfipo/actions/runs/37117895638)
+  e [restauração limpa](https://github.com/GustavoFboz/dtfipo/actions/runs/37117895628)
+  passaram no candidato `d4757a6`. O ensaio disparado pela
+  [PR](https://github.com/GustavoFboz/dtfipo/actions/runs/37117926695) também passou.
+- A [PR #108](https://github.com/GustavoFboz/dtfipo/pull/108) foi integrada na
+  branch conectada pelo merge `43c2ff9`. A árvore do merge corresponde à
+  árvore validada `81bfd2f99df5c6580911b3cf7352924b14f986a6`, e o conector Lovable
+  confirmou sincronização desse merge. A publicação do código foi solicitada;
+  a chamada retornou `pending`, ainda sem confirmação final de hospedagem.
 
 ## Pendências para fechar o protocolo
 
@@ -82,6 +91,15 @@ revisão automática bloqueou a transferência dos identificadores ao serviço
 Lovable e exigiu autorização explícita. A consulta ao provedor permanece
 pendente dessa autorização; esta entrega avança o código e a leitura do
 banco sem contornar o bloqueio anterior.
+
+Na retomada, tentou-se uma consulta delegada em modo de planejamento,
+solicitando que o agente Lovable resolvesse internamente os identificadores,
+sem incluí-los no pedido. A revisão automática também rejeitou essa ação:
+ela delega acesso a registros privados e credenciais Asaas do backend a
+um agente externo sem autorização explícita, e o modo de planejamento
+não garante que o agente permaneça somente em leitura. Nenhum trabalho
+do agente foi iniciado. A investigação no provedor segue bloqueada;
+essa rejeição não foi contornada por execução indireta.
 
 Depois da consulta: uma cobrança sem vínculo permanece para revisão;
 uma cobrança vinculada precisa conferir o contrato original. Autorizar e
