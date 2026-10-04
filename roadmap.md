@@ -1,0 +1,3 @@
+- [ ] Verificar meios autorizados de criar e limpar duas contas fictícias e seus dados isolados, sem mexer em usuários existentes.
+- [ ] Se viável, executar testes HTTP Auth, MFA, Master e armazenamento com as duas fixtures; interromper cenários sem isolamento ou limpeza segura.
+- [ ] Relatar matriz de resultados reais e resíduos, sem credenciais, identificadores ou dados pessoais.
