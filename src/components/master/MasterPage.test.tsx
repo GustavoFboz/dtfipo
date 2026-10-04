@@ -42,6 +42,11 @@ let host: HTMLDivElement;
 let root: Root;
 let cache: QueryClient;
 let billingRequests: unknown[];
+const operationalHealth = { generated_at: "2026-10-04T01:00:00Z", environments: ["sandbox", "production"].map((environment) => ({
+  environment, worker: null, queue: { waiting: 0, processing: 0, failed: 0, dead_letter: environment === "sandbox" ? 2 : 0,
+    expired_leases: 0, late_due: 0, oldest_due_at: null }, checkout: { failed_24h: 0, uncertain: 0, expired_leases: 0 },
+  subscriptions: { linked: environment === "sandbox" ? 1 : 0, reconciliation_late: 0, expired_grace: 0, paid_period_without_ledger: 0 },
+})), storage: { reserved: 9, reserved_bytes: 1112944862, reserved_over_24h: 9 } };
 function emit(event: AuthChangeEvent, next: Session | null) {
   current = next; listeners.forEach((listener) => listener(event, next));
 }
@@ -98,7 +103,8 @@ beforeEach(() => {
       ownerId = JSON.parse(atob(value.split(".")[1])).sub; return request;
     }, abortSignal() { return request; }, then(resolve: (value: unknown) => void, reject: (reason: unknown) => void) {
       const response = delayed?.promise ?? Promise.resolve(ownerId === "operator"
-        ? { data: name === "platform_master_billing_change_requests" ? billingRequests : dashboard, error: null } : { data: null, error: new Error("PLATFORM_MASTER_FORBIDDEN") });
+        ? { data: name === "platform_master_billing_change_requests" ? billingRequests
+          : name === "platform_master_operational_health" ? operationalHealth : dashboard, error: null } : { data: null, error: new Error("PLATFORM_MASTER_FORBIDDEN") });
       return response.then(resolve, reject);
     } }; return request;
   });
@@ -110,6 +116,16 @@ afterEach(async () => {
 });
 
 describe("Master dashboard UI across accounts and sessions", () => {
+  it("shows private operational alerts, refreshes them and clears them on logout", async () => {
+    await render(); expect(text()).toContain("Acompanhamento operacional");
+    expect(text()).toContain("2 evento(s) aguardando revisão manual");
+    expect(text()).toContain("9 reserva(s) há mais de 24 horas");
+    const calls = client.rpc.mock.calls.filter(([name]) => name === "platform_master_operational_health").length;
+    await click("Atualizar indicadores");
+    expect(client.rpc.mock.calls.filter(([name]) => name === "platform_master_operational_health")).toHaveLength(calls+1);
+    await act(async () => emit("SIGNED_OUT", null)); await settle();
+    expect(text()).not.toContain("9 reserva(s)"); expect(text()).not.toContain("Acompanhamento operacional");
+  });
   it("shows billing instructions as pending review and removes them on logout", async () => {
     billingRequests = [{ id: "78000000-0000-4000-8000-000000000012", subscription_id: "78000000-0000-4000-8000-000000000011",
       kind: "change_plan", status: "awaiting_provider", provider_environment: "sandbox", current_plan_name: "Avançado", current_amount_cents: 74900,

@@ -156,6 +156,57 @@ describe("Asaas inbox worker", () => {
     finish: vi.fn().mockResolvedValue(undefined),
   });
 
+  it("records an authenticated run and only safe counters after processing", async () => {
+    const recordHealth = vi.fn().mockResolvedValue(true);
+    const dependencies = { ...deps(), recordHealth };
+    expect((await processAsaasInbox(worker("wrong"), dependencies)).status).toBe(401);
+    expect(recordHealth).not.toHaveBeenCalled();
+    const result = await processAsaasInbox(worker(), dependencies);
+    expect(await result.json()).toMatchObject({ monitoringRecorded: true, processed: 1 });
+    const runId = recordHealth.mock.calls[0][0];
+    expect(recordHealth).toHaveBeenNthCalledWith(1, runId, "running", {});
+    expect(recordHealth).toHaveBeenNthCalledWith(2, runId, "ok", expect.objectContaining({ processed: 1, failed: 0 }));
+    expect(JSON.stringify(recordHealth.mock.calls)).not.toContain(paymentId);
+    expect(recordHealth.mock.invocationCallOrder[0]).toBeLessThan(dependencies.claim.mock.invocationCallOrder[0]);
+    expect(recordHealth.mock.invocationCallOrder[1]).toBeGreaterThan(dependencies.applyPayment.mock.invocationCallOrder[0]);
+  });
+  it("records reviewed events and fatal claim failures without private error text", async () => {
+    const recordHealth = vi.fn().mockResolvedValue(true);
+    const dependencies = { ...deps(), recordHealth };
+    dependencies.getPayment.mockRejectedValue(new Error("private-provider-detail"));
+    await processAsaasInbox(worker(), dependencies);
+    expect(recordHealth).toHaveBeenLastCalledWith(expect.any(String), "review", expect.objectContaining({ failed: 1 }));
+    dependencies.claim.mockRejectedValue(new Error("private-database-detail"));
+    expect((await processAsaasInbox(worker(), dependencies)).status).toBe(503);
+    expect(recordHealth).toHaveBeenLastCalledWith(expect.any(String), "failed", expect.objectContaining({ processed: 0 }));
+    expect(JSON.stringify(recordHealth.mock.calls)).not.toContain("private-");
+  });
+  it("processes verified payments even when the telemetry store fails", async () => {
+    const dependencies = { ...deps(), recordHealth: vi.fn().mockRejectedValue(new Error("private-detail")) };
+    const result = await processAsaasInbox(worker(), dependencies);
+    expect(result.status).toBe(200);
+    expect(await result.json()).toMatchObject({ monitoringRecorded: false, processed: 1 });
+    expect(dependencies.applyPayment).toHaveBeenCalledOnce();
+  });
+  it("bounds a hung telemetry transport without blocking the financial processor", async () => {
+    vi.useFakeTimers();
+    try {
+      const dependencies = { ...deps(), recordHealth: vi.fn().mockImplementation(() => new Promise(() => {})) };
+      const pending = processAsaasInbox(worker(), dependencies);
+      await vi.advanceTimersByTimeAsync(7_001);
+      const result = await pending;
+      expect(result.status).toBe(200);
+      expect(await result.json()).toMatchObject({ monitoringRecorded: false, processed: 1 });
+      expect(dependencies.applyPayment).toHaveBeenCalledOnce();
+    } finally { vi.useRealTimers(); }
+  });
+  it("refuses a scheduler pointed at the other environment before recording or claiming", async () => {
+    const dependencies = { ...deps(), recordHealth: vi.fn() };
+    const request = worker(); request.headers.set("X-Billing-Environment", "production");
+    expect((await processAsaasInbox(request, dependencies)).status).toBe(409);
+    expect(dependencies.claim).not.toHaveBeenCalled(); expect(dependencies.recordHealth).not.toHaveBeenCalled();
+  });
+
   it("requires an independent worker token before claiming an event", async () => {
     const dependencies = deps();
     const result = await processAsaasInbox(worker("wrong"), dependencies);

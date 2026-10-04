@@ -11,9 +11,10 @@ autorização explícita, e seu autenticador TOTP foi confirmado em 03/10.
 Consulte `evidence/CONTINUITY-2026-10-03.md` para separar código e provas financeiras.
 
 Retomada de 03/10: etapa financeira **05/09 em espera** por solicitação do
-responsável, até o restabelecimento dos créditos Lovable. Etapa atual de avanço
-independente: **08/09**, com registro e acompanhamento das solicitações sem
-execução financeira. Na **06/09**, upload/exclusão de caso estão comprovados
+responsável, até o restabelecimento dos créditos Lovable. Avanço independente
+em 04/10: **09/09**, com acompanhamento operacional privado e roteiro de
+incidentes. Na **08/09**, solicitações e acompanhamento estão implementados,
+com execução financeira pendente. Na **06/09**, upload/exclusão de caso estão comprovados
 e a recuperação manual de envios pendentes está preparada. O Master **07/09** aguarda os testes com sessões reais e o replay
 auditado. Restam pendências nas seis etapas 04–09: recuperação de
 eventos, ciclo financeiro, uploads publicados, prova do replay auditado Master,

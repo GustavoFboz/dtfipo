@@ -7,6 +7,12 @@ const required = [
   "docs/saas/STAGE-08-BILLING-CENTER.md",
   ".github/workflows/saas-asaas-inbox-worker.yml",
   ".github/workflows/saas-restore-rehearsal.yml",
+  "docs/saas/STAGE-09-INCIDENT-RUNBOOK.md",
+  "docs/saas/sql/stage-09-operational-health-assertions.sql",
+  "docs/saas/sql/stage-09-operational-health-rehearsal.sql",
+  "src/lib/master-operational-health.ts",
+  "src/components/master/MasterOperationalHealth.tsx",
+  "supabase/migrations/20261004010000_saas_operational_health_stage09.sql",
 ];
 
 const missing = required.filter((p) => !fs.existsSync(p));
@@ -27,4 +33,15 @@ for (const marker of ["ASAAS_PRODUCTION_ENABLED=true", "compra real controlada d
   if (!readiness.includes(marker)) throw new Error("Stage 09 readiness gate missing: " + marker);
 }
 
-console.log("Stage 09 static production gates: OK");
+const migration = fs.readFileSync("supabase/migrations/20261004010000_saas_operational_health_stage09.sql", "utf8");
+const restoreMigration = fs.readFileSync("public/restore/migrations/20261004010000_saas_operational_health_stage09.sql", "utf8");
+if (migration !== restoreMigration) throw new Error("Stage 09 restore migration differs");
+if (/\b(?:update|insert\s+into|delete\s+from)\s+public\.(?:account_subscriptions|billing_payments|billing_plans|storage_files)\b/i.test(migration))
+  throw new Error("Operational monitoring may not mutate the financial/storage domain");
+const panel = fs.readFileSync("src/components/master/MasterOperationalHealth.tsx", "utf8");
+if (panel.includes("integrations/supabase") || !panel.includes("@/lib/master-operational-health"))
+  throw new Error("Master monitoring must use the public session-aware facade");
+const scheduler = fs.readFileSync(".github/workflows/saas-asaas-inbox-worker.yml", "utf8");
+if (!scheduler.includes("X-Billing-Environment: sandbox") || !scheduler.includes("monitoringRecorded == true"))
+  throw new Error("Stage 09 scheduler must pin Sandbox and check monitoring");
+console.log("Stage 09 static production and operational gates: OK");

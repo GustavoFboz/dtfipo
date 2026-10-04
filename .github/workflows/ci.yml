@@ -64,13 +64,14 @@ jobs:
           bun run check:saas:stage-06
           bun run check:saas:stage-08
           bun run check:saas:stage-09
-          bun test src/lib/billing/asaas.server.test.ts src/lib/billing/asaas-provisioning.server.test.ts src/lib/billing/asaas-checkout.server.test.ts src/lib/billing/asaas-webhook.server.test.ts src/lib/billing/asaas-renewal.server.test.ts src/lib/billing/asaas-document.server.test.ts
+          bunx vitest run --configLoader runner src/lib/billing/asaas.server.test.ts src/lib/billing/asaas-provisioning.server.test.ts src/lib/billing/asaas-checkout.server.test.ts src/lib/billing/asaas-webhook.server.test.ts src/lib/billing/asaas-renewal.server.test.ts src/lib/billing/asaas-document.server.test.ts
           bunx vitest run --configLoader runner src/lib/storage.test.ts
           bunx vitest run --configLoader runner src/lib/auth/master-mfa.test.ts src/lib/auth/master-session.test.ts src/lib/master-admin.test.ts
           bunx vitest run --configLoader runner src/components/master/MasterPage.test.tsx
           bunx vitest run --configLoader runner src/lib/confirm.test.tsx
           bunx vitest run --configLoader runner src/components/StorageUploadReservations.test.tsx
           bunx vitest run --configLoader runner src/lib/billing-change-requests.test.ts src/components/billing/BillingChangeRequestsPanel.test.tsx
+          bunx vitest run --configLoader runner src/lib/master-operational-health.test.ts
 
       # The repository has substantial pre-existing formatting/lint debt.
       # A repo-wide lint gate currently reports thousands of legacy findings,
