@@ -13,7 +13,7 @@ real controlado somente depois de concluir os preparativos técnicos.
 | 06 Cotas e arquivos | Reservas e recuperação manual implantadas; CI de quota e concorrência aprovado; upload/exclusão de caso publicados com devolução exata de 26.088.984 bytes | Outros uploads dos módulos disponíveis; revisão das 9 reservas antigas e dos 5 objetos sem origem; DICOM adiado até a Radiologia funcionar |
 | 07 Master | Operador autorizado cadastrado; TOTP confirmado; isolamento de conta/sessão e recusas SQL comprovados | Testes com sessões reais e replay Sandbox com auditoria; revisão financeira em standby |
 | 08 Centro de cobrança | Histórico, documentos e renovação recuperados; solicitações auditadas com preço/vigência e fila privada Master implementadas | Validar na publicação; implantar execução reconciliável, preço por vigência e comprovar efeito no Asaas |
-| 09 Produção | Adapter separa Sandbox e Produção por chave, URL e flag | Credenciais reais, webhook de Produção, alertas, piloto e cobrança real controlada |
+| 09 Produção | Adapter separa ambientes; monitoramento interno Master, telemetria do worker e runbook preparados | Confirmar publicação/agendamento, entrega de alertas externos, credenciais reais, webhook de Produção, piloto e cobrança real controlada |
 
 Decisão do responsável em 03/10: a Radiologia ainda não está funcional.
 Homologar DICOM fica fora dos requisitos de conclusão do SaaS atual e volta

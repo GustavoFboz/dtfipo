@@ -15,7 +15,7 @@ concurrency:
 jobs:
   process:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 7
     env:
       BILLING_WORKER_TOKEN: ${{ secrets.BILLING_WORKER_TOKEN }}
     steps:
@@ -24,14 +24,43 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          response_file=$(mktemp)
+          trap 'rm -f "$response_file"' EXIT
+          had_review=0
           for attempt in {1..10}; do
-            response=$(curl --silent --show-error --fail-with-body --max-time 20 \
+            if ! http_status=$(curl --silent --show-error --max-time 35 --output "$response_file" --write-out '%{http_code}' \
               --request POST \
               --header "Authorization: Bearer $BILLING_WORKER_TOKEN" \
+              --header "X-Billing-Environment: sandbox" \
               --header "Content-Type: application/json" \
-              https://dtfipo.lovable.app/api/billing/asaas-worker)
-            echo "$response"
-            if [[ "$(jq -r '[.processed,.ignored,.failed,.suspended,.recoveryQueued] | add' <<< "$response")" == "0" ]]; then
+              https://dtfipo.lovable.app/api/billing/asaas-worker); then
+              echo '::error::Worker transport failed; inspect the private Master monitoring panel.'
+              exit 1
+            fi
+            # Print only numeric counters. Never log an arbitrary HTTP error body.
+            if ! jq -e '. as $r | ["processed","ignored","failed","workerReview","suspended","recoveryQueued","graceReview","reconciliationScanned","reconciliationQueued","reconciliationReview"] | all(.[]; ($r[.] | type == "number" and . >= 0 and . <= 9999999 and . == floor))' "$response_file" > /dev/null; then
+              echo "::error::Worker returned an invalid summary (HTTP $http_status)."
+              exit 1
+            fi
+            jq '{processed,ignored,failed,workerReview,suspended,recoveryQueued,graceReview,reconciliationScanned,reconciliationQueued,reconciliationReview}' "$response_file"
+            if [[ "$http_status" != "200" ]] || ! jq -e '.monitoringRecorded == true' "$response_file" > /dev/null; then
+              echo "::error::Worker incomplete or monitoring unavailable (HTTP $http_status)."
+              exit 1
+            fi
+            if [[ "$(jq -r '[.failed,.workerReview,.graceReview,.reconciliationReview] | add' "$response_file")" != "0" ]]; then
+              had_review=1
+              echo '::warning::Worker recorded events requiring review.'
+            fi
+            if [[ "$(jq -r '[.processed,.ignored,.failed,.suspended,.recoveryQueued,.reconciliationQueued] | add' "$response_file")" == "0" ]]; then
               break
             fi
           done
+          if [[ "$had_review" == "1" ]]; then
+            echo '::error::Events require review in Master; automatic replay was not requested.'
+            exit 1
+          fi
+      - name: Require configured worker credential
+        if: env.BILLING_WORKER_TOKEN == ''
+        run: |
+          echo '::error::BILLING_WORKER_TOKEN is missing from the scheduler.'
+          exit 1

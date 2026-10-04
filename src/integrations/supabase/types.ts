@@ -3710,6 +3710,8 @@ export type Database = {
       }
       billing_withdraw_change_request: { Args: { p_clinic_id: string; p_request_id: string }; Returns: Json }
       platform_master_billing_change_requests: { Args: { p_search?: string }; Returns: Json }
+      platform_master_operational_health: { Args: Record<PropertyKey, never>; Returns: Json }
+      billing_record_worker_health: { Args: { p_environment: string; p_run_id: string; p_status: string; p_counters?: Json }; Returns: boolean }
       billing_current_user_can_manage_company: {
         Args: { p_clinic_id: string }
         Returns: boolean

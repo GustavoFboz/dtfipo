@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { MasterMfaChallenge } from "@/components/master/MasterMfaChallenge";
 import { MasterBillingRequests } from "@/components/master/MasterBillingRequests";
+import { MasterOperationalHealth } from "@/components/master/MasterOperationalHealth";
 import { useMasterSession } from "@/hooks/use-master-session";
 import { type MasterSessionCheck, type MasterSessionScope } from "@/lib/auth/master-session";
 import { loadMasterDashboard, masterDashboardKey, replayMasterEvent, type MasterReviewEvent } from "@/lib/master-admin";
@@ -88,6 +89,7 @@ function MasterDashboard({ scope, isCurrent }: { scope: MasterSessionScope; isCu
             </tr>)}</tbody>
           </table></div>
         </section>
+        <MasterOperationalHealth scope={scope} isCurrent={isCurrent} />
         <MasterBillingRequests scope={scope} isCurrent={isCurrent} search={search} />
         <section className="grid gap-5 lg:grid-cols-2">
           <div className="rounded-xl border bg-white p-5 dark:bg-slate-900">

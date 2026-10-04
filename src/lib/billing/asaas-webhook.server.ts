@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import {
   AsaasClient,
   AsaasApiError,
@@ -49,6 +49,7 @@ type WebhookDependencies = {
 type WorkerDependencies = {
   environment: AsaasProviderEnvironment;
   workerToken: string;
+  recordHealth?: (runId: string, status: "running" | "ok" | "review" | "failed", counters: Record<string, number>) => Promise<boolean>;
   claim: () => Promise<InboxEvent[]>;
   getPayment: (id: string) => Promise<AsaasPayment>;
   getSubscription: (id: string) => Promise<AsaasSubscription>;
@@ -610,6 +611,13 @@ export async function processAsaasInbox(
       deps = {
         environment: config.environment,
         workerToken,
+        recordHealth: async (runId, status, counters) => {
+          const { data, error } = await (await admin()).rpc("billing_record_worker_health", {
+            p_environment: config.environment, p_run_id: runId, p_status: status, p_counters: counters,
+          }).abortSignal(AbortSignal.timeout(3_000));
+          if (error) throw error;
+          return data === true;
+        },
         claim: async () => {
           const { data, error } = await (
             await admin()
@@ -725,6 +733,29 @@ export async function processAsaasInbox(
   ) {
     return json({ processed: 0 }, 401);
   }
+  const requestedEnvironment = request.headers.get("x-billing-environment");
+  if (requestedEnvironment !== null && requestedEnvironment !== deps.environment) return json({ processed: 0 }, 409);
+  const runId = randomUUID();
+  // Telemetry is independent of the financial processor. An unavailable monitor
+  // must not prevent a verified event from being applied or expose error text.
+  const record = async (status: "running" | "ok" | "review" | "failed", counters: Record<string, number>) => {
+    if (!deps.recordHealth) return undefined;
+    try {
+      // Bound even a transport/dependency that ignores its abort signal.
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        return await Promise.race([deps.recordHealth(runId, status, counters),
+          new Promise<boolean>((resolve) => { timer = setTimeout(() => resolve(false), 3_500); })]);
+      } finally { if (timer) clearTimeout(timer); }
+    } catch { console.error("[Asaas worker] HEALTH_RECORD_FAILED"); return false; }
+  };
+  const began = await record("running", {});
+  const monitoring = async (status: "ok" | "review" | "failed", counters: Record<string, number>) => {
+    const finished = await record(status, counters);
+    return began === undefined ? {} : { monitoringRecorded: began === true && finished === true };
+  };
+  const totals = { processed: 0, ignored: 0, failed: 0, workerReview: 0, suspended: 0,
+    recoveryQueued: 0, graceReview: 0, reconciliationScanned: 0, reconciliationQueued: 0, reconciliationReview: 0 };
   try {
     const events = await deps.claim();
     const counts = { processed: 0, ignored: 0, failed: 0, workerReview: 0 };
@@ -752,11 +783,11 @@ export async function processAsaasInbox(
       reconciliation.reconciliationReview += 1;
       console.error("[Asaas worker] RECONCILIATION_SCAN_FAILED");
     }
-    return json({ ...counts, ...grace, ...reconciliation },
-      reconciliation.reconciliationReview > 0 || grace.graceReview > 0 || counts.workerReview > 0
-        ? 503 : 200);
+    Object.assign(totals, counts, grace, reconciliation);
+    const incomplete = totals.reconciliationReview > 0 || totals.graceReview > 0 || totals.workerReview > 0;
+    return json({ ...totals, ...await monitoring(incomplete || totals.failed > 0 ? "review" : "ok", totals) }, incomplete ? 503 : 200);
   } catch {
     console.error("[Asaas worker] WORKER_FAILED");
-    return json({ processed: 0 }, 503);
+    return json({ processed: 0, ...await monitoring("failed", totals) }, 503);
   }
 }

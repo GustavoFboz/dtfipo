@@ -71,6 +71,7 @@ jobs:
           bunx vitest run --configLoader runner src/lib/confirm.test.tsx
           bunx vitest run --configLoader runner src/components/StorageUploadReservations.test.tsx
           bunx vitest run --configLoader runner src/lib/billing-change-requests.test.ts src/components/billing/BillingChangeRequestsPanel.test.tsx
+          bunx vitest run --configLoader runner src/lib/master-operational-health.test.ts
 
       # The repository has substantial pre-existing formatting/lint debt.
       # A repo-wide lint gate currently reports thousands of legacy findings,

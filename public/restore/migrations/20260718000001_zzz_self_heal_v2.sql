@@ -408,3 +408,11 @@ GRANT EXECUTE ON FUNCTION public.billing_get_company_profile(uuid)
 GRANT EXECUTE ON FUNCTION public.billing_upsert_company_profile(
   uuid,text,text,text,text,text,text,text,text,text,text,text
 ) TO authenticated, service_role;
+
+-- Stage 09 operational telemetry stays private after generic self-heal grants.
+REVOKE ALL ON TABLE public.billing_worker_health FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.billing_worker_health TO service_role;
+REVOKE ALL ON FUNCTION public.billing_record_worker_health(text,uuid,text,jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.billing_record_worker_health(text,uuid,text,jsonb) TO service_role;
+REVOKE ALL ON FUNCTION public.platform_master_operational_health() FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.platform_master_operational_health() TO authenticated;

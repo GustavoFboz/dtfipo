@@ -25,3 +25,11 @@ Desabilitar imediatamente a flag de Produção, manter ledger/eventos para audit
 ## Observabilidade mínima
 
 Antes do piloto: fila/dead-letter, falhas do worker, divergência Asaas↔ledger, falhas de checkout e uso/cota de armazenamento precisam de rotina operacional documentada. Alertas externos e credenciais de Produção dependem da configuração das contas e não são simulados no repositório.
+
+Preparação de 04/10: painel privado Master com fila/checkout por ambiente,
+telemetria da última execução, atraso de reconciliação, carência, inconsistência
+local de período/ledger e reservas antigas. O worker registra início/conclusão
+sem dados do provedor e o agendador exige resumo válido/telemetria confirmada.
+Consulte `STAGE-09-INCIDENT-RUNBOOK.md`. O painel não comprova conciliação com
+o Asaas, cron efetivo ou entrega de alerta externo. A branch padrão do
+agendamento e a revisão publicada precisam ser conferidas antes do aceite.
