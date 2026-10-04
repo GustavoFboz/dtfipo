@@ -9,7 +9,9 @@ values ('65000000-0000-4000-8000-000000000060','Patient upload rehearsal','stage
        ('65000000-0000-4000-8000-000000000070','Other rehearsal company','stage06-patients-other',100);
 insert into auth.users (id,instance_id,aud,role,email,encrypted_password,created_at,updated_at)
 values ('65000000-0000-4000-8000-000000000061','00000000-0000-0000-0000-000000000000',
-        'authenticated','authenticated','stage06-patients@test.invalid','',now(),now());
+        'authenticated','authenticated','stage06-patients@test.invalid','',now(),now()),
+       ('65000000-0000-4000-8000-000000000074','00000000-0000-0000-0000-000000000000',
+        'authenticated','authenticated','stage06-other-company@test.invalid','',now(),now());
 update public.clinics set owner_id='65000000-0000-4000-8000-000000000061'
 where id='65000000-0000-4000-8000-000000000060';
 insert into public.clinic_members (clinic_id,user_id,role,status)
@@ -18,19 +20,32 @@ insert into public.profiles (id,clinic_id,role,account_subtype,is_default_admin)
 values ('65000000-0000-4000-8000-000000000061','65000000-0000-4000-8000-000000000060','CEO','CEO',true)
 on conflict (id) do update set clinic_id=excluded.clinic_id,role=excluded.role,
   account_subtype=excluded.account_subtype,is_default_admin=excluded.is_default_admin;
+insert into public.profiles (id,clinic_id,role,account_subtype,is_default_admin)
+values ('65000000-0000-4000-8000-000000000074','65000000-0000-4000-8000-000000000070','CEO','CEO',true)
+on conflict (id) do update set clinic_id=excluded.clinic_id,role=excluded.role,
+  account_subtype=excluded.account_subtype,is_default_admin=excluded.is_default_admin;
 insert into public.user_roles (user_id,role)
 values ('65000000-0000-4000-8000-000000000061','admin');
 insert into public.account_subscriptions
   (scope_type,clinic_id,plan_code,status,billing_day,current_period_start,current_period_end,
    billing_provider,provider_environment,external_customer_id,external_subscription_id)
 values ('company','65000000-0000-4000-8000-000000000060','company_initial','active',28,now(),now()+interval '1 month',
-        'asaas','sandbox','cus_Stage06Patients','sub_Stage06Patients');
+        'asaas','sandbox','cus_Stage06Patients','sub_Stage06Patients'),
+       ('company','65000000-0000-4000-8000-000000000070','company_initial','active',28,now(),now()+interval '1 month',
+        'asaas','sandbox','cus_Stage06OtherPatients','sub_Stage06OtherPatients');
 insert into public.patients (id,name,clinic_id)
 values ('65000000-0000-4000-8000-000000000062','Patient fixture','65000000-0000-4000-8000-000000000060'),
        ('65000000-0000-4000-8000-000000000072','Other patient fixture','65000000-0000-4000-8000-000000000070');
 update public.clinics set storage_limit_bytes=100 where id='65000000-0000-4000-8000-000000000060';
 -- Other-company fixtures are created as the trusted restore role, never by
 -- the actor whose RLS boundary is under test.
+select set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000074',true);
+select * from public.reserve_storage_upload(1,'patient-photos',
+  '65000000-0000-4000-8000-000000000072/foreign.jpg','patient_photo',null,
+  '65000000-0000-4000-8000-000000000072');
+select * from public.reserve_storage_upload(1,'patient-files',
+  '65000000-0000-4000-8000-000000000072/foreign.pdf','patient_attachment',null,
+  '65000000-0000-4000-8000-000000000072');
 insert into storage.objects (bucket_id,name,metadata)
 values ('patient-photos','65000000-0000-4000-8000-000000000072/foreign.jpg','{"size":1}'),
        ('patient-files','65000000-0000-4000-8000-000000000072/foreign.pdf','{"size":1}');
