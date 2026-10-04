@@ -14,13 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      billing_worker_health: {
-        Row: { provider_environment: string; run_id: string; started_at: string; finished_at: string | null;
-          last_healthy_at: string | null; status: string; counters: Json }
-        Insert: never
-        Update: never
-        Relationships: []
-      }
       account_subscriptions: {
         Row: {
           billing_cycle: string
@@ -161,6 +154,125 @@ export type Database = {
           notes?: string | null
         }
         Relationships: []
+      }
+      billing_change_request_events: {
+        Row: {
+          action: string
+          actor_user_id: string
+          created_at: string
+          id: string
+          request_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id: string
+          created_at?: string
+          id?: string
+          request_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string
+          created_at?: string
+          id?: string
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_change_request_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "billing_change_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      billing_change_requests: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          currency: string
+          current_amount_cents: number
+          current_plan_code: string
+          current_plan_name: string
+          effective_not_before: string
+          id: string
+          kind: string
+          paid_period_end: string | null
+          provider_environment: string
+          quote_snapshot: Json
+          quote_token: string
+          requested_by: string
+          status: string
+          subscription_id: string
+          target_amount_cents: number | null
+          target_plan_code: string | null
+          target_plan_name: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          currency: string
+          current_amount_cents: number
+          current_plan_code: string
+          current_plan_name: string
+          effective_not_before: string
+          id?: string
+          kind: string
+          paid_period_end?: string | null
+          provider_environment: string
+          quote_snapshot: Json
+          quote_token: string
+          requested_by: string
+          status?: string
+          subscription_id: string
+          target_amount_cents?: number | null
+          target_plan_code?: string | null
+          target_plan_name?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          currency?: string
+          current_amount_cents?: number
+          current_plan_code?: string
+          current_plan_name?: string
+          effective_not_before?: string
+          id?: string
+          kind?: string
+          paid_period_end?: string | null
+          provider_environment?: string
+          quote_snapshot?: Json
+          quote_token?: string
+          requested_by?: string
+          status?: string
+          subscription_id?: string
+          target_amount_cents?: number | null
+          target_plan_code?: string | null
+          target_plan_name?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_change_requests_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billing_change_requests_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "account_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       billing_event_replays: {
         Row: {
@@ -521,6 +633,36 @@ export type Database = {
           max_redemptions?: number
           redemption_count?: number
           token_hash?: string
+        }
+        Relationships: []
+      }
+      billing_worker_health: {
+        Row: {
+          counters: Json
+          finished_at: string | null
+          last_healthy_at: string | null
+          provider_environment: string
+          run_id: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          counters?: Json
+          finished_at?: string | null
+          last_healthy_at?: string | null
+          provider_environment: string
+          run_id: string
+          started_at?: string
+          status: string
+        }
+        Update: {
+          counters?: Json
+          finished_at?: string | null
+          last_healthy_at?: string | null
+          provider_environment?: string
+          run_id?: string
+          started_at?: string
+          status?: string
         }
         Relationships: []
       }
@@ -3675,6 +3817,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      billing_change_request_quote: {
+        Args: {
+          p_kind: string
+          p_subscription_id: string
+          p_target_plan_code: string
+        }
+        Returns: Json
+      }
+      billing_change_request_summary: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
       billing_claim_asaas_events: {
         Args: { p_environment: string; p_limit?: number }
         Returns: {
@@ -3704,21 +3858,11 @@ export type Database = {
         }
         Returns: Json
       }
+      billing_company_change_context: {
+        Args: { p_clinic_id: string }
+        Returns: Json
+      }
       billing_company_history: { Args: { p_clinic_id: string }; Returns: Json }
-      billing_company_change_context: { Args: { p_clinic_id: string }; Returns: Json }
-      billing_change_request_quote: {
-        Args: { p_subscription_id: string; p_kind: string; p_target_plan_code: string | null }
-        Returns: Json
-      }
-      billing_change_request_summary: { Args: { p_request_id: string }; Returns: Json }
-      billing_submit_change_request: {
-        Args: { p_clinic_id: string; p_subscription_id: string; p_kind: string; p_target_plan_code: string | null; p_quote_token: string }
-        Returns: Json
-      }
-      billing_withdraw_change_request: { Args: { p_clinic_id: string; p_request_id: string }; Returns: Json }
-      platform_master_billing_change_requests: { Args: { p_search?: string }; Returns: Json }
-      platform_master_operational_health: { Args: Record<PropertyKey, never>; Returns: Json }
-      billing_record_worker_health: { Args: { p_environment: string; p_run_id: string; p_status: string; p_counters?: Json }; Returns: boolean }
       billing_current_user_can_manage_company: {
         Args: { p_clinic_id: string }
         Returns: boolean
@@ -3798,6 +3942,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      billing_record_worker_health: {
+        Args: {
+          p_counters?: Json
+          p_environment: string
+          p_run_id: string
+          p_status: string
+        }
+        Returns: boolean
+      }
       billing_replay_asaas_event: {
         Args: {
           p_environment: string
@@ -3806,6 +3959,16 @@ export type Database = {
           p_reason: string
         }
         Returns: boolean
+      }
+      billing_submit_change_request: {
+        Args: {
+          p_clinic_id: string
+          p_kind: string
+          p_quote_token: string
+          p_subscription_id: string
+          p_target_plan_code: string
+        }
+        Returns: Json
       }
       billing_subscription_contract_amount: {
         Args: { p_subscription_id: string }
@@ -3854,6 +4017,10 @@ export type Database = {
         Returns: boolean
       }
       billing_valid_br_tax_id: { Args: { p_value: string }; Returns: boolean }
+      billing_withdraw_change_request: {
+        Args: { p_clinic_id: string; p_request_id: string }
+        Returns: Json
+      }
       can_access_case: { Args: { _case_id: string }; Returns: boolean }
       can_access_patient: { Args: { _patient_id: string }; Returns: boolean }
       can_manage_clinic_permissions: {
@@ -4028,7 +4195,12 @@ export type Database = {
         Returns: number
       }
       patient_id_from_storage_path: { Args: { _name: string }; Returns: string }
+      platform_master_billing_change_requests: {
+        Args: { p_search?: string }
+        Returns: Json
+      }
       platform_master_dashboard: { Args: { p_search?: string }; Returns: Json }
+      platform_master_operational_health: { Args: never; Returns: Json }
       platform_master_replay_asaas_event: {
         Args: { p_environment: string; p_event_id: string; p_reason: string }
         Returns: boolean
@@ -4048,6 +4220,10 @@ export type Database = {
           _stock_item_id: string
           _tooth_fdi: number
         }
+        Returns: Json
+      }
+      release_storage_upload_reservation: {
+        Args: { _clinic_id: string; _file_id: string }
         Returns: Json
       }
       remove_case_implant_tooth: { Args: { _id: string }; Returns: Json }
@@ -4113,6 +4289,10 @@ export type Database = {
       }
       storage_current_clinic_id: { Args: never; Returns: string }
       storage_upload_has_reservation: {
+        Args: { _bucket: string; _metadata: Json; _path: string }
+        Returns: boolean
+      }
+      storage_upload_has_reservation_for_insert: {
         Args: { _bucket: string; _metadata: Json; _path: string }
         Returns: boolean
       }
