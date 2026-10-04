@@ -24,8 +24,8 @@ Casos sem requester usam a empresa do paciente antes da empresa do profissional
 atribuído. A alteração não modifica registros clínicos. O ensaio de restore
 cobre staff de empresa alheia, criação de participação falsa, aprovação e remoção
 legítimas e a tentativa do especialista de substituir requester/atribuição.
-A migração precisa passar pelo CI antes de aplicação viva; não encerrar 4/7
-somente com essas políticas.
+O candidato `63fa2ea4033a44812e5702c24d1d89a02bdc336c` passou no CI e nos
+ensaios isolados antes da aplicação viva; não encerrar 4/7 somente com essas políticas.
 
 Contagem agregada: 65 casos, 39 sem requester, nenhum proprietário não resolvido,
 nenhuma diferença entre proprietário resolvido do caso e do paciente. Portanto
@@ -52,3 +52,30 @@ https://docs.asaas.com/reference/atualizar-assinatura-existente
 checks 06/08/09 e regressão de entitlement/bootstrap Desktop. Dez testes novos
 cobrem cleanup, 18 cobrem o transporte de alteração Asaas. Restore determinístico
 regenerado com 169 migrações. A prova SQL entre empresas depende do CI descartável.
+
+## Integração e backend conferidos
+
+PR 123 integrada em `849067eeb019c2492e78b3b8d47f5b58907aff0f`, árvore
+`b1bbd016847f1ba7ed42e9fc2e9699dfc097687b`. CI candidato 37240535117,
+restores 37240535063/37240538513: sucesso. Depois do merge, CI 37240691498
+e restore 37240691488 também passaram.
+
+A primeira tentativa do ensaio encontrou reabertura do grant da função de
+trigger pelo self-heal. A rotina final foi corrigida, preservando a asserção.
+Migração registrada e aplicada no backend em 04/10 às 22:37:34 UTC (18:37 Manaus).
+A asserção viva somente leitura `stage_07_case_boundary` retornou `passed`.
+As contagens posteriores seguem 65 casos, 39 sem requester, zero proprietários
+não resolvidos e zero diferenças de empresa entre caso e paciente.
+
+Web e builds estáticos Windows/Android passaram. Publicação solicitada
+`c9c35d89-35cd-44cc-825f-6a2f24e6e261`, resposta `pending`.
+O GET privado confirmou contrato de diagnóstico disponível, mas não identifica
+SHA: não comprova a revisão servida. O probe 37240691544 falhou por heartbeat
+sem execução saudável recente. O último sucesso registrado era 20:29:33 UTC;
+a regularidade do worker continua em 6/7, que está adiada.
+
+Login no navegador concluído por Google com a conta indicada pelo responsável.
+O Lovable mostrou que essa conta não tem acesso ao projeto privado; a conta do
+conector que possui acesso ao projeto é diferente. O bloqueio atual da interface
+Auth é de permissão de projeto, não de TOTP Master nem prova de falta de créditos.
+É necessário autenticar o navegador com a conta que administra esse projeto.
