@@ -1,6 +1,11 @@
 -- Disposable restored database ONLY. SQL metadata simulates Storage; this is
 -- not a real HTTP upload or device acceptance. All fixture writes roll back.
 begin;
+-- Simulate the Storage service's deletion context for SQL metadata fixtures.
+-- This is transaction-local in the disposable DB; RLS stays enabled and the
+-- real application continues deleting bytes through the Storage API only.
+-- https://github.com/supabase/storage/blob/master/migrations/tenant/0055-prevent-direct-deletes.sql
+set local storage.allow_delete_query = 'true';
 insert into storage.buckets (id,name,public)
 values ('patient-photos','patient-photos',false),('patient-files','patient-files',false)
 on conflict (id) do nothing;
