@@ -17038,7 +17038,9 @@ DECLARE
   v_admin boolean;
 BEGIN
   IF v_user IS NULL OR _patient_id IS NULL THEN RETURN false; END IF;
-  SELECT p.clinic_id, public.effective_user_type(p.id), COALESCE(p.is_default_admin, false)
+  SELECT p.clinic_id,
+    upper(COALESCE(NULLIF(trim(p.account_subtype), ''), NULLIF(trim(p.role), ''), '')),
+    COALESCE(p.is_default_admin, false)
     INTO v_clinic, v_type, v_admin FROM public.profiles p WHERE p.id = v_user;
   IF v_clinic IS NULL OR NOT public.company_has_operational_access(v_clinic) THEN RETURN false; END IF;
   IF public.resolve_patient_clinic_id(_patient_id) = v_clinic THEN
