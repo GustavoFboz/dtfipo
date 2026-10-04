@@ -38,7 +38,30 @@ manifest e bundles de restauração; self-heal reafirma fronteiras privadas.
 As assertivas são somente leitura; ensaio funcional usa dados sintéticos com
 rollback; ensaio de concorrência usa duas conexões em Supabase descartável.
 
-CI de restauração limpa e implantação no banco ativo ainda em verificação.
+Validação do commit `d5b26cbf457397746a29c854d5208bf813de8cab`, PR
+[#118](https://github.com/GustavoFboz/dtfipo/pull/118):
+
+- [CI 37163160917](https://github.com/GustavoFboz/dtfipo/actions/runs/37163160917): aprovado.
+- [Restauração 37163164184](https://github.com/GustavoFboz/dtfipo/actions/runs/37163164184): aprovada.
+- [Ensaio inicial 37163017703](https://github.com/GustavoFboz/dtfipo/actions/runs/37163017703): grants,
+  regras e duas conexões concorrentes aprovados. Duplicata gerou uma solicitação
+  e um evento; seleção concorrente conflitante foi recusada; assinatura intacta.
+- A primeira CI identificou uma asserção antiga que regenerava o token de teste
+  na comparação; a virada do segundo podia alterar a validade. As asserções
+  agora comparam o token capturado, preservando a verificação de identidade.
+
+A migração foi aplicada no **banco ativo**, em transação, depois da aprovação
+das CIs. As assertivas somente leitura de RLS/grants passaram. Comparações
+integrais antes/depois das **3 assinaturas, 2 pagamentos e 4 planos** confirmaram
+registros idênticos. O catálogo inicial continua com **100 centavos**; o contrato
+Sandbox existente continua com **24.900 centavos**. Solicitações e eventos de
+solicitação estavam vazios ao concluir a implantação; nenhum pedido foi criado
+para ensaiar em dados reais.
+
+Checks de claims SQL em transação somente leitura comprovaram contexto do gestor,
+fila vazia para o Master autorizado e recusa de contexto/fila a não autorizado,
+inclusive `aal2`. São checks do backend, sem simular um login real de dispositivo.
+O aceite manual da interface publicada e a prova financeira permanecem separados.
 Não executar fixtures de ensaio no banco de usuários.
 
 ## Pendências financeiras preservadas

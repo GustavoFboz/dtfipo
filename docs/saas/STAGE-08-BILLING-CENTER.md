@@ -88,5 +88,7 @@ execução. Estas operações não são chamadas pelo pacote de solicitações.
 
 Verificação: `check:saas:stage-08`, testes de adapter e UI, assertivas somente
 leitura, ensaio SQL descartável com rollback e concorrência em duas conexões.
+O registro de CI, implantação e limites está em
+`evidence/STAGE-08-CHANGE-REQUESTS-2026-10-03.md`.
 Reversão: retirar a interface e preservar solicitações/auditoria, ledger e
 períodos pagos. Reabrir permissões diretas de tabela não é uma reversão válida.

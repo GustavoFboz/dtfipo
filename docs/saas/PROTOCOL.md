@@ -229,6 +229,8 @@ cancelamento/troca de plano implementados. Gestor e Master acompanham a fila
 pendente; registrar não modifica contrato, quota ou direito de uso. A execução,
 o preço por vigência e a prova no Asaas ainda faltam. Consulte
 `STAGE-08-BILLING-CENTER.md`.
+CI, aplicação no banco e limites desta fase estão em
+`evidence/STAGE-08-CHANGE-REQUESTS-2026-10-03.md`.
 
 - plano atual, vencimento, forma de pagamento, faturas e recibos;
 - troca/cancelamento com impacto e data efetiva claros;

@@ -42,7 +42,7 @@ export function BillingChangeRequests({ clinicId, scope, isCurrent }: {
   });
   const withdraw = useMutation({
     mutationFn: (request: BillingChangeRequest) => withdrawBillingChangeRequest(scope, isCurrent, clinicId, request),
-    onSuccess: () => { if (active()) toast.success("Solicitação retirada. Seu contrato continua vigente."); },
+    onSuccess: () => { if (active()) toast.success("Solicitação retirada."); },
     onError: (error) => { if (active()) toast.error(friendlyBillingChangeError(error)); },
     onSettled: () => { if (active()) void qc.invalidateQueries({ queryKey }); },
   });
@@ -64,7 +64,7 @@ export function BillingChangeRequests({ clinicId, scope, isCurrent }: {
     if (busy || !active()) return;
     setConfirming(true);
     try {
-      const accepted = await confirm({ title: "Retirar solicitação", description: "Retirar esta solicitação que ainda aguarda confirmação. Seu contrato atual continuará vigente.", confirmText: "Retirar solicitação" });
+      const accepted = await confirm({ title: "Retirar solicitação", description: "Retirar esta solicitação que ainda aguarda confirmação no Asaas. A lista será atualizada após a retirada.", confirmText: "Retirar solicitação" });
       if (accepted && active()) withdraw.mutate(request);
     } finally { if (active()) setConfirming(false); }
   }
