@@ -26,22 +26,35 @@ Plano único de conclusão: RELEASE-PLAN.md; 7/7 etapas ainda têm aceites.
   mantendo os nomes públicos e o middleware de autenticação nas três funções.
   Testes executam a lógica dos handlers com dependências falsas, sem alterar
   senhas/identidades reais.
+- A leitura das policies ativas revelou regras legadas de paciente/Storage
+  baseadas apenas em papel geral. A migration
+  20261004183500_saas_patient_company_boundary_stage06.sql limita o helper à
+  empresa proprietária ou participação explícita em caso. Policies RESTRICTIVE
+  impedem bypass pelas regras antigas de leitura/alteração/exclusão de pacientes,
+  anexos e objetos privados. Participação de especialista exige aprovação e
+  termina com a retirada da atribuição; o solicitante conserva sua própria solicitação.
 
 ## Validação
 
 243 testes em 21 arquivos passaram: 209 anteriores e 34 novos.
 TypeScript e checks 06/08/09, workflows com HTTP falso, bootstrap Desktop,
-contrato Android e restore guard de 167 migrations passaram.
-Não houve migration nova ou modificação de schema neste incremento.
+contrato Android passaram. O restore foi atualizado para 168 migrations;
+o novo limite de acesso tem cópia idêntica e antecede o self-heal final.
+Não há atualização de dados clínicos, preços, senhas reais ou secrets na migration.
 
-No backend ativo, os três scripts somente leitura passaram:
+Antes da migration de isolamento, no backend ativo, os três scripts somente leitura passaram:
 stage-06-quota-assertions.sql, stage-06-upload-assertions.sql e
 stage-06-reservation-recovery-assertions.sql.
 O ensaio novo de foto/anexo de paciente testa reserva de 40+60 bytes num
 limite de 100, recusa de um byte adicional, outra empresa, tamanho adulterado,
-cancelamento com objeto presente e liberação exata após limpeza. Ele roda
+cancelamento com objeto presente e liberação exata após limpeza. Também testa
+negação de leitura, alteração e exclusão em outra empresa, acesso do solicitante,
+especialista pendente/aprovado e revogação após retirada da atribuição. Ele roda
 somente no banco descartável do CI; metadata SQL sintética não é upload HTTP.
-CI, compilações finais e recibos de integração/publicação são registrados na PR.
+O primeiro ensaio falhou porque a fixture de fotos não tinha user_roles.admin;
+a fixture agora representa o CEO corretamente. O achado adicional de isolamento
+foi corrigido no schema, sem enfraquecer as proteções de cota. CI, aplicação
+da migration, compilações e recibos de integração/publicação são registrados na PR 122.
 
 ## Limites explícitos
 
@@ -59,6 +72,6 @@ CI, compilações finais e recibos de integração/publicação são registrados
 - Pausa financeira, teste real adiado, DICOM fora desta rodada e cortesia IPO
   permanecem. Nenhum POST financeiro manual ou alteração de flag de Produção.
 
-Rollback do código restaura a revisão validada anterior sem tocar no banco,
-mas reabre os caminhos de falha descritos acima; preferir correção progressiva.
+Rollback do código conserva as policies do banco. Não remover as barreiras
+de isolamento para recuperar uma tela; preferir correção progressiva.
 Manter o snapshot de preço das assinaturas, as filas e os dados clínicos.

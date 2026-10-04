@@ -2,7 +2,8 @@
 
 Contador de conclusão em 04/10: **3/7**, conforme RELEASE-PLAN.md. Correções de
 falha na exclusão de paciente/cancelamento de reserva e ensaio de uploads de
-paciente estão em evidence/READINESS-PASSWORD-STORAGE-2026-10-04.md.
+paciente e isolamento dos dados/objetos privados entre empresas estão em
+evidence/READINESS-PASSWORD-STORAGE-2026-10-04.md.
 Os aceites reais dos módulos disponíveis continuam em aberto.
 
 Status: cotas e reservas obrigatórias implantadas na base ativa em 29/09/2026.

@@ -272,6 +272,7 @@ jobs:
             restore-stage-06-quota.log
             restore-stage-06-upload-assertions.log
             restore-stage-06-upload-rehearsal.log
+            restore-stage-06-patient-uploads.log
             restore-stage-06-concurrency.log
             restore-stage-06-recovery-assertions.log
             restore-stage-06-recovery.log
