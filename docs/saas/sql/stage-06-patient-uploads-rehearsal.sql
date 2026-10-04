@@ -15,7 +15,8 @@ values ('65000000-0000-4000-8000-000000000061','00000000-0000-0000-0000-00000000
 update public.clinics set owner_id='65000000-0000-4000-8000-000000000061'
 where id='65000000-0000-4000-8000-000000000060';
 insert into public.clinic_members (clinic_id,user_id,role,status)
-values ('65000000-0000-4000-8000-000000000060','65000000-0000-4000-8000-000000000061','CEO','active');
+values ('65000000-0000-4000-8000-000000000060','65000000-0000-4000-8000-000000000061','CEO','active'),
+       ('65000000-0000-4000-8000-000000000070','65000000-0000-4000-8000-000000000074','CEO','active');
 insert into public.profiles (id,clinic_id,role,account_subtype,is_default_admin)
 values ('65000000-0000-4000-8000-000000000061','65000000-0000-4000-8000-000000000060','CEO','CEO',true)
 on conflict (id) do update set clinic_id=excluded.clinic_id,role=excluded.role,
