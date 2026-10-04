@@ -21,11 +21,39 @@ Abrir `/master` com a conta Master autorizada e usar **Atualizar indicadores** n
 
 O painel mostra somente agregados e os contadores da execução mais recente por ambiente. `last_healthy_at` significa execução concluída sem erros relatados; não comprova conciliação financeira completa. Uma execução vazia posterior pode substituir a última execução com erro, mas eventos falhos/dead letters continuam na inbox. Conferir também jobs anteriores. O histórico dos incidentes fica nos eventos/auditoria e nos registros do CI; guardar a evidência pertinente antes de expirar a retenção dos artefatos (30 dias).
 
+## Diagnóstico privado de publicação
+
+`GET /api/billing/asaas-worker` é uma inspeção de telemetria protegida pelo token
+do worker. Não compartilhe o token com navegador, cliente ou repositório.
+O GET não consulta o Asaas nem executa claim, suspensão, replay, reconciliação
+ou alteração do ledger. Usa o mesmo ambiente validado do backend e um prazo
+de leitura de 3 segundos.
+
+O contrato `dentalflow-worker-health-v1` com `available=true` comprova que a
+publicação expõe o diagnóstico e consegue ler a telemetria no banco. `worker=null`
+indica que ainda não houve registro de execução; não significa falha de
+publicação. O workflow `SaaS readonly publication probe` guarda apenas a
+projeção sanitizada e avalia separadamente o heartbeat. Falha HTTP 401 exige
+conferir a credencial do agendador; 409 indica ambiente diferente; 404/405
+podem indicar revisão publicada anterior ao GET. Um 503 pode indicar
+configuração, prazo ou banco indisponível. Nunca registrar o corpo arbitrário
+de erro nem copiar credenciais na evidência.
+
+Esse diagnóstico usa GET na aplicação DentalFlow. Não autoriza usar outros
+endpoints GET do provedor como se fossem somente leitura, nem substitui os
+aceites com pagamento/assinatura reais ou o teste de interface no dispositivo.
+
 ## Agendador e indisponibilidade
 
 O workflow `saas-asaas-inbox-worker.yml` solicita explicitamente **Sandbox** com `X-Billing-Environment: sandbox`. Backend configurado para outro ambiente recusa antes de processar. Não mudar esse cabeçalho para Produção durante a pausa financeira. A troca de ambiente e a configuração das credenciais pertencem ao gate de Produção.
 
-O GitHub executa schedules a partir da branch padrão, atualmente `main`; a integração Lovable usa `saas/stage-03-asaas-checkout`. Publicar nessa branch conectada não comprova que o cron em `main` possui o novo workflow. Conferir a versão existente em `main`, a presença do secret `BILLING_WORKER_TOKEN` e as execuções reais antes de considerar o agendamento aceito. Ajustar a branch padrão/sincronização exige decisão do responsável pelo repositório; este incremento não muda essa configuração nem as credenciais. Um workflow sem credencial deve falhar de forma explícita.
+O GitHub executa schedules a partir da branch padrão, atualmente `main`; a integração Lovable usa `saas/stage-03-asaas-checkout`. Publicar nessa branch conectada não atualiza o cron em `main`. Os workflows e seu verificador são alinhados por uma integração isolada na `main`, sem mover a branch padrão ou o código do aplicativo. Conferir a presença do secret `BILLING_WORKER_TOKEN` e as execuções reais antes de considerar o agendamento aceito. Um workflow sem credencial deve falhar de forma explícita.
+
+O processamento mantém a frequência nominal de 5 minutos, nos minutos
+2, 7, 12…; o diagnóstico somente de leitura roda a cada 15 minutos, nos
+minutos 7, 22, 37 e 52, e depois de mudanças de backend na branch conectada.
+Essas frequências são agendamentos solicitados, não garantias de prazo do
+GitHub. Não executar POST manualmente como teste durante a pausa financeira.
 
 Referência: [GitHub — eventos de agendamento](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
 
@@ -47,4 +75,4 @@ Reservas antigas devem ser verificadas com o gestor da empresa. Usar a recupera�
 
 Interromper o rollout e desabilitar a flag `ASAAS_PRODUCTION_ENABLED` caso um incidente ocorra após a liberação controlada; não trocar o ambiente para Sandbox mantendo um webhook de Produção ativo. Manter ledger, eventos, auditoria, arquivos e períodos já pagos. Repor uma revisão de código previamente validada, verificar compatibilidade do schema e conferir indicadores e entitlement antes de retomar. Este incremento não oferece botão financeiro, replay automático ou exclusão de histórico.
 
-Antes do piloto ainda faltam: prova de agendamento na branch padrão e no backend publicado, alertas externos e entrega testada ao operador, testes reais de identidade/replay, provas financeiras Sandbox, credenciais/webhook separados e compra real controlada de R$ 1 feita pelo responsável. As solicitações da etapa 08 não serão executadas automaticamente com o retorno dos créditos.
+Antes do piloto ainda faltam: prova do agendamento atualizado e do heartbeat no backend publicado, alertas externos e entrega testada ao operador, testes reais de identidade/replay, provas financeiras Sandbox, credenciais/webhook separados e compra real controlada de R$ 1 feita pelo responsável. As solicitações da etapa 08 não serão executadas automaticamente com o retorno dos créditos.

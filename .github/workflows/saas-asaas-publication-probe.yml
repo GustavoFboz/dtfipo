@@ -1,0 +1,98 @@
+name: SaaS readonly publication probe
+
+on:
+  push:
+    branches: ["saas/stage-03-asaas-checkout"]
+    paths:
+      - "src/lib/billing/**"
+      - "src/routes/api/billing/asaas-worker.ts"
+      - ".github/workflows/saas-asaas-publication-probe.yml"
+  schedule:
+    - cron: "7-59/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saas-asaas-publication-probe
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      BILLING_WORKER_TOKEN: ${{ secrets.BILLING_WORKER_TOKEN }}
+    steps:
+      - name: Read the published contract without financial processing
+        if: env.BILLING_WORKER_TOKEN != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          response_file=$(mktemp)
+          trap 'rm -f "$response_file"' EXIT
+          for attempt in {1..6}; do
+            http_status=000
+            if http_status=$(curl --silent --show-error --max-time 12 --output "$response_file" --write-out '%{http_code}' \
+              --request GET \
+              --header "Authorization: Bearer $BILLING_WORKER_TOKEN" \
+              --header "X-Billing-Environment: sandbox" \
+              https://dtfipo.lovable.app/api/billing/asaas-worker); then
+              if [[ "$http_status" == "200" ]] && jq -e '
+                def stamp: type == "string" and length <= 40 and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$");
+                .available == true and .contract == "dentalflow-worker-health-v1" and .environment == "sandbox"
+                and (.checked_at | stamp)
+                and (.worker == null or (.worker |
+                  (.status == "running" or .status == "ok" or .status == "review" or .status == "failed")
+                  and (.started_at | stamp)
+                  and (.finished_at == null or (.finished_at | stamp))
+                  and (.last_healthy_at == null or (.last_healthy_at | stamp))
+                  and (.started_age_seconds | type == "number" and . >= 0 and . == floor)
+                  and (.healthy_age_seconds == null or (.healthy_age_seconds | type == "number" and . >= 0 and . == floor))))
+              ' "$response_file" > /dev/null; then
+                # Persist only a fixed projection, never an arbitrary error body.
+                jq '{available,contract,environment,checked_at,worker:(if .worker == null then null else
+                  (.worker | {status,started_at,finished_at,last_healthy_at,started_age_seconds,healthy_age_seconds}) end)}' \
+                  "$response_file" > publication-health.json
+                echo 'Published readonly contract and database access confirmed.'
+                exit 0
+              fi
+              if [[ "$http_status" == "401" || "$http_status" == "409" ]]; then
+                echo "::error::Private probe refused: check scheduler credential/environment (HTTP $http_status)."
+                exit 1
+              fi
+            fi
+            echo "Readonly publication probe attempt $attempt did not confirm the contract (HTTP $http_status)."
+            if [[ "$attempt" != "6" ]]; then sleep 5; fi
+          done
+          echo '::error::Published readonly contract unavailable. Publication/configuration must be checked; no financial processing was invoked.'
+          exit 1
+
+      - name: Assess recorded worker execution
+        if: env.BILLING_WORKER_TOKEN != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! jq -e '.worker != null and .worker.healthy_age_seconds != null
+            and .worker.healthy_age_seconds < 900 and .worker.status != "review" and .worker.status != "failed"
+            and (.worker.status != "running" or .worker.started_age_seconds < 300)' publication-health.json > /dev/null; then
+            echo '::error::Readonly publication verified, but a recent successful worker execution is missing or needs review.'
+            exit 1
+          fi
+          echo 'Recent worker telemetry confirmed. Financial acceptance remains a separate gate.'
+
+      - name: Require configured probe credential
+        if: env.BILLING_WORKER_TOKEN == ''
+        run: |
+          echo '::error::BILLING_WORKER_TOKEN is missing from the scheduler.'
+          exit 1
+
+      - name: Save sanitized publication evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: saas-readonly-publication-${{ github.run_id }}
+          path: publication-health.json
+          if-no-files-found: ignore
+          retention-days: 30

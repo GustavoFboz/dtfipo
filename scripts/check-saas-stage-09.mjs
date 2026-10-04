@@ -12,6 +12,9 @@ const required = [
   "docs/saas/sql/stage-09-operational-health-rehearsal.sql",
   "src/lib/master-operational-health.ts",
   "src/components/master/MasterOperationalHealth.tsx",
+  "src/lib/billing/asaas-worker-health.server.ts",
+  ".github/workflows/saas-asaas-publication-probe.yml",
+  "scripts/check-saas-worker-workflows.mjs",
   "supabase/migrations/20261004010000_saas_operational_health_stage09.sql",
 ];
 
@@ -44,4 +47,7 @@ if (panel.includes("integrations/supabase") || !panel.includes("@/lib/master-ope
 const scheduler = fs.readFileSync(".github/workflows/saas-asaas-inbox-worker.yml", "utf8");
 if (!scheduler.includes("X-Billing-Environment: sandbox") || !scheduler.includes("monitoringRecorded == true"))
   throw new Error("Stage 09 scheduler must pin Sandbox and check monitoring");
+const probe = fs.readFileSync("src/lib/billing/asaas-worker-health.server.ts", "utf8");
+if (probe.includes("AsaasClient") || probe.includes(".rpc(") || !probe.includes('.from("billing_worker_health")')
+  || !probe.includes('request.method !== "GET"')) throw new Error("Worker publication probe must remain a private telemetry read");
 console.log("Stage 09 static production and operational gates: OK");

@@ -33,3 +33,9 @@ sem dados do provedor e o agendador exige resumo válido/telemetria confirmada.
 Consulte `STAGE-09-INCIDENT-RUNBOOK.md`. O painel não comprova conciliação com
 o Asaas, cron efetivo ou entrega de alerta externo. A branch padrão do
 agendamento e a revisão publicada precisam ser conferidas antes do aceite.
+
+Continuidade de 03/10, 21h em Manaus (04/10 UTC): diagnóstico privado GET
+preparado para distinguir publicação/configuração de execução ausente. O GET
+lê somente telemetria e não chama o Asaas. Workflows serão alinhados na branch
+padrão por alteração isolada; o aceite exige observar execuções reais depois
+da publicação. Frequência de cron não equivale a prazo garantido de execução.
