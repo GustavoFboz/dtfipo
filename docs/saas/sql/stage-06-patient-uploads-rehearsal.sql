@@ -156,10 +156,14 @@ on conflict (id) do update set clinic_id=excluded.clinic_id,role=excluded.role,
 insert into public.user_roles (user_id,role)
 values ('65000000-0000-4000-8000-000000000063','cadista');
 insert into public.cadistas (id,name,user_id)
-values ('65000000-0000-4000-8000-000000000064','Assigned specialist fixture','65000000-0000-4000-8000-000000000063');
+select '65000000-0000-4000-8000-000000000064'::uuid,'Assigned specialist fixture',
+       '65000000-0000-4000-8000-000000000063'::uuid
+where not exists(select 1 from public.cadistas where user_id='65000000-0000-4000-8000-000000000063');
 insert into public.cases (id,patient_id,requested_by,cadista_id,delivery_date,status)
 values ('65000000-0000-4000-8000-000000000065','65000000-0000-4000-8000-000000000072',
-        '65000000-0000-4000-8000-000000000061','65000000-0000-4000-8000-000000000064',current_date+7,'pendente');
+        '65000000-0000-4000-8000-000000000061',
+        (select id from public.cadistas where user_id='65000000-0000-4000-8000-000000000063'),
+        current_date+7,'pendente');
 set local role authenticated;
 do $$ begin
   if not public.can_access_patient('65000000-0000-4000-8000-000000000072') then
