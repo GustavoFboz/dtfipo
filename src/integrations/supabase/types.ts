@@ -14,6 +14,13 @@ export type Database = {
   }
   public: {
     Tables: {
+      billing_worker_health: {
+        Row: { provider_environment: string; run_id: string; started_at: string; finished_at: string | null;
+          last_healthy_at: string | null; status: string; counters: Json }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       account_subscriptions: {
         Row: {
           billing_cycle: string
