@@ -59,6 +59,9 @@ insert into public.patient_attachments (id,patient_id,title,kind,file_url,file_p
 values ('65000000-0000-4000-8000-000000000076','65000000-0000-4000-8000-000000000072',
         'Other company fixture','other','https://example.invalid/foreign',
         '65000000-0000-4000-8000-000000000072/foreign.pdf',1);
+insert into public.cases (id,patient_id,requested_by,delivery_date,status)
+values ('65000000-0000-4000-8000-000000000079','65000000-0000-4000-8000-000000000072',
+        '65000000-0000-4000-8000-000000000074',current_date+7,'em_andamento');
 select set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000061',true);
 select set_config('request.jwt.claim.role','authenticated',true);
 set local role authenticated;
@@ -72,6 +75,23 @@ declare
   v_attachment uuid := '65000000-0000-4000-8000-000000000066';
   v_count bigint;
 begin
+  if public.can_access_case('65000000-0000-4000-8000-000000000079')
+    or public.can_modify_case('65000000-0000-4000-8000-000000000079')
+    or exists(select 1 from public.cases where id='65000000-0000-4000-8000-000000000079') then
+    raise exception 'Global staff leaked a foreign company case';
+  end if;
+  update public.cases set status='cancelado' where id='65000000-0000-4000-8000-000000000079';
+  get diagnostics v_count = row_count;
+  if v_count <> 0 then raise exception 'Global staff modified a foreign company case'; end if;
+  delete from public.cases where id='65000000-0000-4000-8000-000000000079';
+  get diagnostics v_count = row_count;
+  if v_count <> 0 then raise exception 'Global staff deleted a foreign company case'; end if;
+  v_rejected := false;
+  begin
+    insert into public.cases (patient_id,requested_by,delivery_date,status)
+    values (v_other,auth.uid(),current_date+7,'pendente');
+  exception when insufficient_privilege then v_rejected := true; end;
+  if not v_rejected then raise exception 'Case creation forged access to a foreign patient'; end if;
   if public.can_access_patient(v_other) or exists(select 1 from public.patients where id=v_other)
     or exists(select 1 from public.patient_attachments where patient_id=v_other)
     or exists(select 1 from storage.objects where name like v_other::text || '/%') then
@@ -174,6 +194,9 @@ reset role;
 select set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000063',true);
 set local role authenticated;
 do $$ begin
+  if public.can_access_case('65000000-0000-4000-8000-000000000065') then
+    raise exception 'Specialist received a pending case before approval';
+  end if;
   if public.can_access_patient('65000000-0000-4000-8000-000000000072')
     or exists(select 1 from storage.objects where name like '65000000-0000-4000-8000-000000000072/%') then
     raise exception 'Assigned specialist received a foreign patient before approval';
@@ -184,7 +207,16 @@ select set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000061'
 update public.cases set status='em_andamento' where id='65000000-0000-4000-8000-000000000065';
 select set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000063',true);
 set local role authenticated;
-do $$ begin
+do $$
+declare v_rejected boolean := false;
+begin
+  if not public.can_access_case('65000000-0000-4000-8000-000000000065') then
+    raise exception 'Approved specialist lost their explicit case';
+  end if;
+  begin
+    update public.cases set requested_by=auth.uid(),cadista_id=null where id='65000000-0000-4000-8000-000000000065';
+  exception when insufficient_privilege then v_rejected := true; end;
+  if not v_rejected then raise exception 'Specialist forged requester or assignment'; end if;
   if not public.can_access_patient('65000000-0000-4000-8000-000000000072')
     or not exists(select 1 from public.patients where id='65000000-0000-4000-8000-000000000072')
     or (select count(*) from storage.objects where name like '65000000-0000-4000-8000-000000000072/%') <> 2 then

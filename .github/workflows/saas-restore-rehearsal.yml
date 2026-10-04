@@ -134,6 +134,15 @@ jobs:
             < docs/saas/sql/stage-05-lifecycle-rehearsal.sql \
             | tee restore-stage-05-lifecycle.log
 
+      - name: Verify Stage 07 case ownership write boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-07-case-boundary-assertions.sql \
+            | tee restore-stage-07-case-boundary.log
+
       - name: Verify Stage 06 storage quota boundary
         shell: bash
         run: |

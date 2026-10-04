@@ -82,6 +82,14 @@ export type CreateAsaasSubscription = {
   externalReference: string;
 };
 
+/** Narrow recurring change: preserve every existing invoice. Authorization,
+ * ownership, effective date and operation lease belong to the caller. */
+export type UpdateAsaasSubscription = {
+  value?: number;
+  nextDueDate?: string;
+  status?: "INACTIVE";
+};
+
 type AsaasListResponse<T> = {
   object?: "list";
   hasMore?: boolean;
@@ -91,7 +99,7 @@ type AsaasListResponse<T> = {
   data: T[];
 };
 
-type RequestMethod = "GET" | "POST";
+type RequestMethod = "GET" | "POST" | "PUT";
 
 type RequestOptions = {
   query?: Record<string, string | number | boolean | undefined>;
@@ -382,7 +390,7 @@ export class AsaasClient {
             "User-Agent": this.config.userAgent,
             access_token: this.config.apiKey,
           },
-          body: method === "POST" ? JSON.stringify(options.body ?? {}) : undefined,
+          body: method !== "GET" ? JSON.stringify(options.body ?? {}) : undefined,
           signal: controller.signal,
         });
       } catch (error) {
@@ -393,7 +401,7 @@ export class AsaasClient {
             ? "Tempo limite da API Asaas excedido."
             : "Falha de rede ao acessar a API Asaas.",
           retryable: true,
-          ambiguous: method === "POST",
+          ambiguous: method !== "GET",
         });
       } finally {
         clearTimeout(timeout);
@@ -404,7 +412,11 @@ export class AsaasClient {
         this.rateLimitedUntil = Math.max(this.rateLimitedUntil, this.now() + retryAfterMs);
       }
 
-      const text = await response.text();
+      let text: string;
+      try { text = await response.text(); }
+      catch {
+        throw new AsaasApiError({ code: "ASAAS_RESPONSE_READ_FAILED", message: "Não foi possível confirmar a resposta Asaas.", retryable: true, ambiguous: method !== "GET" });
+      }
       let payload: unknown = null;
       if (text) {
         try {
@@ -422,7 +434,7 @@ export class AsaasClient {
           message: details.message,
           status: response.status,
           retryable,
-          ambiguous: method === "POST" && response.status >= 500,
+          ambiguous: method !== "GET" && response.status >= 500,
           retryAfterMs,
         });
       }
@@ -431,6 +443,7 @@ export class AsaasClient {
         throw new AsaasApiError({
           code: "ASAAS_EMPTY_RESPONSE",
           message: "Resposta vazia da API Asaas.",
+          ambiguous: method !== "GET",
         });
       }
       return payload as T;
@@ -506,6 +519,41 @@ export class AsaasClient {
     }
     const response = await this.request<unknown>("POST", "/subscriptions", { body: input });
     return validateSubscription(response);
+  }
+
+  /** No automatic retry. An ambiguous result must be reconciled by GET. */
+  async updateSubscription(subscriptionId: string, input: UpdateAsaasSubscription): Promise<AsaasSubscription> {
+    if (!SUBSCRIPTION_ID_PATTERN.test(subscriptionId)) throw new Error("Assinatura Asaas inválida.");
+    if (!input || typeof input !== "object" ||
+        Object.keys(input).some((key) => !["value", "nextDueDate", "status"].includes(key)) ||
+        (input.value === undefined && input.nextDueDate === undefined && input.status === undefined)) {
+      throw new Error("Alteração de assinatura inválida.");
+    }
+    if (input.value !== undefined && (!Number.isFinite(input.value) || input.value <= 0 ||
+        !Number.isSafeInteger(Math.round(input.value * 100)) ||
+        Math.abs(input.value * 100 - Math.round(input.value * 100)) > 0.000001)) {
+      throw new Error("Preço da assinatura inválido.");
+    }
+    if (input.status !== undefined && input.status !== "INACTIVE") {
+      throw new Error("Status de alteração inválido.");
+    }
+    if (input.nextDueDate !== undefined && (!/^\d{4}-\d{2}-\d{2}$/.test(input.nextDueDate) ||
+        !Number.isFinite(Date.parse(input.nextDueDate + "T00:00:00Z")) ||
+        new Date(input.nextDueDate + "T00:00:00Z").toISOString().slice(0, 10) !== input.nextDueDate)) {
+      throw new Error("Vencimento da assinatura inválido.");
+    }
+    const response = await this.request<unknown>("PUT", `/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+      body: { ...input, updatePendingPayments: false },
+    });
+    // An invalid success response may follow a committed mutation. Never mark
+    // it as a definite rejection or permit a blind second write.
+    let subscription: AsaasSubscription;
+    try { subscription = validateSubscription(response); }
+    catch { throw new AsaasApiError({ code: "ASAAS_INVALID_RESPONSE", message: "Resposta de alteração inválida; concilie a assinatura.", ambiguous: true }); }
+    if (subscription.id !== subscriptionId || !CUSTOMER_ID_PATTERN.test(subscription.customer) || subscription.deleted) {
+      throw new AsaasApiError({ code: "ASAAS_INVALID_RESPONSE", message: "Resposta de alteração divergente; concilie a assinatura.", ambiguous: true });
+    }
+    return subscription;
   }
 
   async listSubscriptionPayments(subscriptionId: string): Promise<AsaasPayment[]> {
