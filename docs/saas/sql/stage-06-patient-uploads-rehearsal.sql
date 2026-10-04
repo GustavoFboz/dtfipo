@@ -171,7 +171,9 @@ do $$ begin
   end if;
 end $$;
 reset role;
+select set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000061',true);
 update public.cases set status='em_andamento' where id='65000000-0000-4000-8000-000000000065';
+select set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000063',true);
 set local role authenticated;
 do $$ begin
   if not public.can_access_patient('65000000-0000-4000-8000-000000000072')
@@ -181,7 +183,9 @@ do $$ begin
   end if;
 end $$;
 reset role;
+select set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000061',true);
 update public.cases set cadista_id=null where id='65000000-0000-4000-8000-000000000065';
+select set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000063',true);
 set local role authenticated;
 do $$ begin
   if public.can_access_patient('65000000-0000-4000-8000-000000000072')
