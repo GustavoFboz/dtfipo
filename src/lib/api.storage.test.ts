@@ -70,3 +70,51 @@ describe("available upload entrypoints require a reservation", () => {
     expect(mocks.cancel).not.toHaveBeenCalled(); expect(mocks.query.insert).not.toHaveBeenCalled(); expect(mocks.complete).not.toHaveBeenCalled();
   });
 });
+
+
+describe("uploaded object rollback", () => {
+  const file = () => new File(["content"], "file.stl", { type: "application/octet-stream" });
+  const action = (kind: string) => kind === "photo" ? uploadPatientPhoto("patient", file())
+    : kind === "avatar" ? uploadUserAvatar(file())
+    : kind === "patient" ? uploadPatientAttachment("patient", file(), { title: "Fixture" })
+    : uploadCaseAttachment("case", file());
+
+  it.each(["photo", "avatar"])("rejects an empty %s signed URL and confirms removal before cancellation", async (kind) => {
+    mocks.signed.mockResolvedValue({ data: null, error: null });
+    await expect(action(kind)).rejects.toThrow("confirmar o acesso");
+    expect(mocks.query.update).not.toHaveBeenCalled();
+    expect(mocks.complete).not.toHaveBeenCalled();
+    expect(mocks.cancel).toHaveBeenCalledWith("reservation", 7);
+    expect(mocks.remove.mock.invocationCallOrder[0]).toBeLessThan(mocks.cancel.mock.invocationCallOrder[0]);
+  });
+
+  it.each(["photo", "avatar"])("preserves the %s reservation when signing and cleanup fail", async (kind) => {
+    mocks.signed.mockResolvedValue({ data: null, error: new Error("Signing failed") });
+    const cleanup = new Error("Removal failed");
+    mocks.remove.mockResolvedValue({ error: cleanup });
+    await expect(action(kind)).rejects.toBe(cleanup);
+    expect(mocks.cancel).not.toHaveBeenCalled();
+    expect(mocks.complete).not.toHaveBeenCalled();
+  });
+
+  it.each(["avatar", "patient", "case"])("preserves the %s reservation if saving metadata and cleanup fail", async (kind) => {
+    const original = new Error("Database unavailable");
+    mocks.query.eq.mockResolvedValue({ error: original });
+    mocks.query.single.mockResolvedValue({ data: null, error: original });
+    const cleanup = new Error("Removal failed");
+    mocks.remove.mockResolvedValue({ error: cleanup });
+    await expect(action(kind)).rejects.toBe(cleanup);
+    expect(mocks.cancel).not.toHaveBeenCalled();
+    expect(mocks.complete).not.toHaveBeenCalled();
+  });
+
+  it.each(["avatar", "patient", "case"])("releases the %s reservation after confirmed metadata-failure cleanup", async (kind) => {
+    const original = new Error("Database unavailable");
+    mocks.query.eq.mockResolvedValue({ error: original });
+    mocks.query.single.mockResolvedValue({ data: null, error: original });
+    await expect(action(kind)).rejects.toBe(original);
+    expect(mocks.cancel).toHaveBeenCalledWith("reservation", 7);
+    expect(mocks.complete).not.toHaveBeenCalled();
+    expect(mocks.remove.mock.invocationCallOrder[0]).toBeLessThan(mocks.cancel.mock.invocationCallOrder[0]);
+  });
+});

@@ -248,3 +248,47 @@ describe("AsaasClient", () => {
     );
   });
 });
+
+
+describe("recurring subscription update transport", () => {
+  it("uses PUT and explicitly preserves already issued invoices", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe("https://api-sandbox.asaas.com/v3/subscriptions/sub_SAFE123");
+      expect(init?.method).toBe("PUT");
+      expect(JSON.parse(String(init?.body))).toEqual({ value: 1, nextDueDate: "2026-11-01", updatePendingPayments: false });
+      return Response.json({ id: "sub_SAFE123", customer: "cus_SAFE123", value: 1 });
+    });
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+    await expect(client.updateSubscription("sub_SAFE123", { value: 1, nextDueDate: "2026-11-01" })).resolves.toMatchObject({ value: 1 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+  it("inactivates recurrence without deleting invoices or sending a new price", async () => {
+    const fetchMock = vi.fn(async (_: RequestInfo | URL, init?: RequestInit) => {
+      expect(JSON.parse(String(init?.body))).toEqual({ status: "INACTIVE", updatePendingPayments: false });
+      return Response.json({ id: "sub_SAFE123", customer: "cus_SAFE123", status: "INACTIVE" });
+    });
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+    await client.updateSubscription("sub_SAFE123", { status: "INACTIVE" });
+  });
+  it.each([{}, { value: 0 }, { value: -1 }, { value: NaN }, { value: 1.001 },
+    { nextDueDate: "2026-02-30" }, { nextDueDate: "not-a-date" }, { status: "ACTIVE" },
+    { status: "INACTIVE", updatePendingPayments: true }, { customer: "cus_OTHER123" }])("rejects invalid or unsupported changes before HTTP: %j", async (input) => {
+    const fetchMock = vi.fn();
+    const client = new AsaasClient(config(), { fetch: fetchMock as typeof fetch });
+    await expect(client.updateSubscription("sub_SAFE123", input as never)).rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it.each(["network", "server", "empty", "invalid", "different", "body-read"])("requires reconciliation without repeating PUT after %s failure", async (kind) => {
+    const fetchMock = vi.fn(async () => {
+      if (kind === "network") throw new TypeError("socket closed");
+      if (kind === "server") return Response.json({}, { status: 503 });
+      if (kind === "empty") return new Response("");
+      if (kind === "invalid") return Response.json({ id: "bad" });
+      if (kind === "body-read") { const response = Response.json({}); vi.spyOn(response, "text").mockRejectedValue(new Error("body interrupted")); return response; }
+      return Response.json({ id: "sub_OTHER123", customer: "cus_SAFE123" });
+    });
+    const client = new AsaasClient(config({ maxGetRetries: 4 }), { fetch: fetchMock as typeof fetch });
+    await expect(client.updateSubscription("sub_SAFE123", { status: "INACTIVE" })).rejects.toMatchObject({ ambiguous: true });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});

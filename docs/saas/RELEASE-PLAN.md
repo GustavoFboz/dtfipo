@@ -6,7 +6,8 @@ para manter o histórico; não são um segundo protocolo.
 
 **Restam 7 de 7 etapas com aceites em aberto.** Há código e provas parciais
 em todas elas; um incremento aprovado não encerra automaticamente a etapa.
-Frentes desta rodada: **3/7 (armazenamento)** e **4/7 (segurança de acesso)**.
+Frentes desta rodada: **3/7 (armazenamento)**, **4/7 (segurança de acesso)**
+e **5/7 (gestão da assinatura)**. 6/7 e 7/7 ficam para a rodada posterior.
 Produção saiu da antiga etapa 09 e ganhou a etapa técnica 10, tornando explícita
 a conexão necessária para receber dinheiro real.
 

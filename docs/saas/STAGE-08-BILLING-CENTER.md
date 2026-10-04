@@ -92,3 +92,18 @@ O registro de CI, implantação e limites está em
 `evidence/STAGE-08-CHANGE-REQUESTS-2026-10-03.md`.
 Reversão: retirar a interface e preservar solicitações/auditoria, ledger e
 períodos pagos. Reabrir permissões diretas de tabela não é uma reversão válida.
+
+
+## Transporte de alteração preparado em 04/10
+
+O cliente servidor agora oferece PUT de assinatura, sem repetição automática.
+Aceita apenas preço com centavos inteiros, data válida e inativação; sempre envia
+`updatePendingPayments: false`. Não altera cobranças já emitidas, não remove
+assinatura nem reativa automaticamente. Rede interrompida, HTTP 5xx, corpo não
+lido, sucesso vazio ou resposta divergente são resultados inconclusivos para
+conciliação por GET. A camada de transporte não concede autorização financeira.
+
+Esse método ainda não é chamado pela fila de solicitações: falta integrar o
+executor privado com AAL2, lease/auditoria, comparação de contrato/cliente,
+revalidação dos limites e projeção por vigência. Não é prova de uma mudança
+executada no Sandbox e não encerra 5/7.

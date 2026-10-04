@@ -1233,6 +1233,14 @@ export const updateCaseStagePending = async (id: string, pending_count: number) 
   if (error) throw error;
 };
 
+// A reservation stays charged until Storage confirms removal. Never hide a
+// cleanup failure behind the original upload error or release retained bytes.
+async function rollbackUploadedObject(bucket: string, path: string, reservationId: string | null, sizeBytes: number): Promise<void> {
+  const { error } = await supabase.storage.from(bucket).remove([path]);
+  if (error) throw error;
+  await cancelStorageUpload(reservationId, sizeBytes);
+}
+
 // Upload de foto do paciente
 export async function uploadPatientPhoto(patientId: string, file: Blob): Promise<string> {
   const path = `${patientId}/${crypto.randomUUID()}.jpg`;
@@ -1240,7 +1248,7 @@ export async function uploadPatientPhoto(patientId: string, file: Blob): Promise
   const { error } = await supabase.storage.from("patient-photos").upload(path, file, { contentType: "image/jpeg", upsert: false });
   if (error) { await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
   const { data, error: signErr } = await supabase.storage.from("patient-photos").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-  if (signErr) { await supabase.storage.from("patient-photos").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw signErr; }
+  if (signErr || !data?.signedUrl) { await rollbackUploadedObject("patient-photos", path, reservation.reservationId, file.size); throw signErr ?? new Error("Não foi possível confirmar o acesso à foto enviada."); }
   await completeStorageUpload(reservation.reservationId, patientId);
   return data.signedUrl;
 }
@@ -1253,10 +1261,10 @@ export async function uploadUserAvatar(file: Blob): Promise<string> {
   const { error } = await supabase.storage.from("avatars").upload(path, file, { contentType: "image/jpeg", upsert: false });
   if (error) { await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
   const { data, error: signErr } = await supabase.storage.from("avatars").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-  if (signErr) { await supabase.storage.from("avatars").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw signErr; }
+  if (signErr || !data?.signedUrl) { await rollbackUploadedObject("avatars", path, reservation.reservationId, file.size); throw signErr ?? new Error("Não foi possível confirmar o acesso ao avatar enviado."); }
   const url = data.signedUrl;
   const { error: updErr } = await supabase.from("profiles").update({ avatar_url: url } as never).eq("id", user.id);
-  if (updErr) { await supabase.storage.from("avatars").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw updErr; }
+  if (updErr) { await rollbackUploadedObject("avatars", path, reservation.reservationId, file.size); throw updErr; }
   await completeStorageUpload(reservation.reservationId, user.id);
   return url;
 }
@@ -1301,15 +1309,13 @@ export async function uploadPatientAttachment(
   if (upErr) { await cancelStorageUpload(reservation.reservationId, file.size); throw upErr; }
   const { data: signed, error: signError } = await supabase.storage.from("patient-files").createSignedUrl(path, 60 * 60 * 24 * 365);
   if (signError || !signed?.signedUrl) {
-    const { error: cleanupError } = await supabase.storage.from("patient-files").remove([path]);
-    if (cleanupError) throw cleanupError;
-    await cancelStorageUpload(reservation.reservationId, file.size);
+    await rollbackUploadedObject("patient-files", path, reservation.reservationId, file.size);
     throw signError ?? new Error("Não foi possível confirmar o acesso ao arquivo enviado.");
   }
   const file_url = signed.signedUrl;
   const isImage = (file.type || "").startsWith("image/");
   const { data, error } = await supabase.from("patient_attachments" as never).insert({ patient_id: patientId, title: meta.title, description: meta.description ?? null, kind: meta.kind ?? "other", file_url, file_path: path, thumbnail_url: isImage ? file_url : null, mime_type: file.type || null, size_bytes: file.size } as never).select().single();
-  if (error) { await supabase.storage.from("patient-files").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
+  if (error) { await rollbackUploadedObject("patient-files", path, reservation.reservationId, file.size); throw error; }
   await completeStorageUpload(reservation.reservationId, (data as any).id);
   return data as unknown as PatientAttachment;
 }
@@ -1372,7 +1378,7 @@ export async function uploadCaseAttachment(
   if (upErr) { await cancelStorageUpload(reservation.reservationId, file.size); throw upErr; }
   const { data: userRes } = await supabase.auth.getUser();
   const { data, error } = await supabase.from("case_attachments" as never).insert({ case_id: caseId, file_name: file.name, storage_path: path, size_bytes: file.size, mime_type: file.type || null, uploaded_by: userRes.user?.id ?? null, notes: notes ?? null, kind } as never).select().single();
-  if (error) { await supabase.storage.from("case-files").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
+  if (error) { await rollbackUploadedObject("case-files", path, reservation.reservationId, file.size); throw error; }
   await completeStorageUpload(reservation.reservationId, (data as any).id);
   return data as unknown as CaseAttachment;
 }
