@@ -17675,3 +17675,8 @@ REVOKE ALL ON FUNCTION public.billing_record_worker_health(text,uuid,text,jsonb)
 GRANT EXECUTE ON FUNCTION public.billing_record_worker_health(text,uuid,text,jsonb) TO service_role;
 REVOKE ALL ON FUNCTION public.platform_master_operational_health() FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.platform_master_operational_health() TO authenticated;
+
+-- Trigger-only case authorization must not inherit legacy blanket grants.
+REVOKE ALL ON FUNCTION public.guard_case_company_write() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.resolve_case_clinic_id(uuid), public.can_access_case(uuid), public.can_modify_case(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.resolve_case_clinic_id(uuid), public.can_access_case(uuid), public.can_modify_case(uuid) TO authenticated, service_role;
