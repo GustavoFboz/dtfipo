@@ -60,5 +60,8 @@ jobs:
       # A repo-wide lint gate currently reports thousands of legacy findings,
       # so enabling it here would make unrelated historical debt block this
       # stabilization PR. Track cleanup separately in docs/ROADMAP.md.
+      - name: Verify SaaS scheduler contracts with fake HTTP
+        run: node scripts/check-saas-worker-workflows.mjs
+
       - name: Production build
         run: bun run build
