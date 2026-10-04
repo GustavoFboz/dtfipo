@@ -1,0 +1,3 @@
+- [x] Verificar meios autorizados de criar e limpar duas contas fictícias e seus dados isolados, sem mexer em usuários existentes.
+- [ ] Executar testes HTTP Auth, MFA, Master e armazenamento com as duas fixtures — bloqueado: não há acesso administrativo autorizado para criar e remover ambas as identidades no Auth sem envio de e-mail.
+- [x] Relatar matriz de resultados reais e resíduos, sem credenciais, identificadores ou dados pessoais.
