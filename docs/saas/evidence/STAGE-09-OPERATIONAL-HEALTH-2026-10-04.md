@@ -15,6 +15,8 @@ Incremento: acompanhamento privado no Master e roteiro de incidentes, sem execut
 
 197 testes em 17 arquivos passaram: billing/worker, Master/MFA/sessões, solicitações, armazenamento, confirmação de exclusão e entitlement Desktop. TypeScript e checks 06/08/09, restauração, bootstrap Desktop e contrato Android passaram. Builds Web, Desktop e Android passaram, executados sequencialmente. A restauração limpa do CI é registrada antes da integração final.
 
+CI do código validado `13f1d986cb4134beaeddaaa4f057cb1c531d4c95`: [build e regressões](https://github.com/GustavoFboz/dtfipo/actions/runs/37165987733) e [restauração limpa](https://github.com/GustavoFboz/dtfipo/actions/runs/37165990562) aprovados. As assertions e o ensaio SQL da etapa 09 também passaram no job `111328600138` do primeiro ensaio. O CI foi alinhado ao Vitest, runner declarado pelos testes, para verificar o relógio simulado assíncrono; nenhum teste foi removido.
+
 Não houve teste em dispositivos Windows/Android, nova sessão real Master nem evidência financeira real neste incremento. Ensaios isolados e builds não substituem esses aceites.
 
 ## Banco e agendamento
@@ -23,6 +25,14 @@ Antes da migration, leitura do banco ativo: 3 assinaturas, 2 pagamentos, 4 plano
 
 A branch padrão do GitHub é `main`, atualmente `5ee9e89f89b2fdf5f496565505fb0a70a418230d`. Ela contém a versão anterior do agendador (blob `fc6be2ec67e1962695dde38d272cafbb45bf9e4b`). A branch conectada Lovable é `saas/stage-03-asaas-checkout`; implantar nela não atualiza o cron em `main`. Este trabalho não troca a branch padrão, credenciais, flag ou ambiente. A configuração e a execução do agendamento atualizado permanecem pendências explícitas.
 
+Leitura dos registros da execução existente [37165788890](https://github.com/GustavoFboz/dtfipo/actions/runs/37165788890), job `111328275782`: schedule em `main` concluído com sucesso às 00:43 UTC. A resposta normal informou 1 assinatura examinada, 0 eventos aplicados/recuperados e 0 revisões. Não foi invocada uma nova execução manual; esse resultado não comprova o workflow atualizado nem conciliação financeira completa.
+
+Migration aplicada no banco ativo em transação com snapshot repetível, após CI aprovado. A comparação de linhas imediatamente antes/depois da DDL foi idêntica: 3 assinaturas (hash `82f7f85c5eef193a18614b74cd77f624`), 2 pagamentos, 4 planos e 7 eventos; hashes de pagamentos/planos/eventos permaneceram os mesmos da leitura inicial. Nenhuma linha de telemetria foi criada como prova artificial. Assertions de grants/RLS/RPC passaram no banco ativo.
+
+RPC de leitura validado no banco ativo com claims SQL do operador habilitado AAL1; identidade sem autorização Master, mesmo AAL2, foi recusada. Essa simulação de claims não substitui teste com login real. A fotografia de 00:50 UTC apresentou Sandbox com 2 dead letters, 1 assinatura vinculada, 0 checkout incerto e 0 inconsistência local de período/ledger; Produção sem recursos vinculados/eventos; 9 reservas antigas somando 1.112.944.862 bytes. `worker=null` nos dois ambientes, porque ainda não havia execução da nova revisão publicada. O cron e seus recursos anteriores foram preservados.
+
 ## Aceites pendentes
 
 Publicação efetiva desta revisão, agendamento atualizado na branch padrão, observação de heartbeat real, entrega de alertas externos, sessões/replay reais, conciliação Asaas↔ledger e provas financeiras das etapas 04/05/08. Produção continua bloqueada até os gates da etapa 09 e a compra real controlada pelo responsável. Nenhuma solicitação pendente será executada automaticamente com o retorno dos créditos.
+
+Integração acompanhada na [PR 119](https://github.com/GustavoFboz/dtfipo/pull/119); revisão final, recibo de publicação e eventuais observações posteriores são registrados nessa PR.
