@@ -31,7 +31,7 @@ if (manifest.indexOf(uploadName) !== current + 1 ||
       fs.readFileSync(`public/restore/migrations/${uploadName}`, "utf8")) {
   throw new Error("Stage 06 upload guards are absent, out of order or diverged from restore.");
 }
-for (const filename of ["stage-06-upload-assertions.sql", "stage-06-upload-rehearsal.sql", "stage-06-concurrency-rehearsal.sh"]) {
+for (const filename of ["stage-06-upload-assertions.sql", "stage-06-upload-rehearsal.sql", "stage-06-patient-uploads-rehearsal.sql", "stage-06-concurrency-rehearsal.sh"]) {
   if (!fs.existsSync(`docs/saas/sql/${filename}`)) {
     throw new Error(`Stage 06 upload verification missing: ${filename}`);
   }

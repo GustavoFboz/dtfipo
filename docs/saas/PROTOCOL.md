@@ -2,6 +2,13 @@
 
 Status: iniciado em 2026-09-19
 
+Contador de conclusão atualizado em 04/10/2026: **7 etapas restantes, 0/7
+encerradas nesta revisão**. A ordem única até vendas e os critérios de aceite
+estão em [RELEASE-PLAN.md](RELEASE-PLAN.md). Frentes atuais: **3/7 —
+armazenamento** e **4/7 — segurança de acesso**. A conexão Asaas Produção,
+antes incluída na etapa técnica 09, agora é explícita na **10 (7/7)**.
+Os IDs técnicos antigos são referências históricas, não outro contador.
+
 Continuidade em 03/10/2026: recuperação do código das etapas 06–09 removido
 na edição Lovable de 29/09, antes de continuar a homologação da etapa 05.
 Histórico e renovação estão preparados; solicitações auditadas de cancelamento
@@ -18,7 +25,9 @@ com execução financeira pendente. Na **06/09**, upload/exclusão de caso estã
 e a recuperação manual de envios pendentes está preparada. O Master **07/09** aguarda os testes com sessões reais e o replay
 auditado. Restam pendências nas seis etapas 04–09: recuperação de
 eventos, ciclo financeiro, uploads publicados, prova do replay auditado Master,
-cancelamento/troca de plano e liberação controlada de produção.
+cancelamento/troca de plano e liberação controlada de produção. Esse registro
+de 03/10 precede a separação explícita de Produção na etapa técnica 10 em 04/10;
+o contador vigente passa a ser o de RELEASE-PLAN.md.
 O tratamento de eventos financeiros fora de ordem e de falhas isoladas do
 worker está registrado em `evidence/STAGE-05-RESUME-2026-10-03.md`.
 A auditoria de armazenamento e o roteiro de homologação estão em
@@ -238,13 +247,24 @@ CI, aplicação no banco e limites desta fase estão em
 - acesso somente ao administrador financeiro autorizado da empresa;
 - comportamento equivalente na Web, Windows e Android.
 
-### 09 — Segurança, Beta e produção
+### 09 — Segurança e operação do Beta
 
 - testes de contrato, RLS, idempotência, concorrência e replay;
 - homologação completa no Sandbox, inclusive falhas e reprocessamentos;
 - rollout por feature flag e lote piloto;
 - runbook de incidentes, métricas, alertas e rollback;
-- somente depois, credenciais e webhook separados de Produção.
+- preparar o gate de Produção, com aceite separado na etapa 10.
+
+### 10 — Asaas Produção e liberação para vendas
+
+Status: pendente; nenhum pagamento real é iniciado sem a autorização específica
+do responsável. Consulte [STAGE-10-PRODUCTION-READINESS.md](STAGE-10-PRODUCTION-READINESS.md).
+
+- conferir a conta recebedora; credenciais e webhook separados de Produção,
+  com API key e token exclusivos nos secrets do backend;
+- validar ambiente, filas, autenticação, webhook e agendadores em conjunto;
+- comprovar compra real controlada, recebimento e liberação correta do acesso;
+- aprovar lote beta com riscos registrados, alertas e suporte após todos os gates.
 
 ## Regra de entrega por etapa
 

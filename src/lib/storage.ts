@@ -288,11 +288,12 @@ export async function completeStorageUpload(reservationId: string | null, source
   void refreshStorageUsage().catch(() => undefined);
 }
 
-export async function cancelStorageUpload(reservationId: string | null, sizeBytes: number) {
-  applyOptimisticStorageDelta(-Math.max(0, sizeBytes));
+export async function cancelStorageUpload(reservationId: string | null, _sizeBytes: number) {
   if (!reservationId) return;
-  const { error } = await supabase.rpc("cancel_storage_upload" as never, { _file_id: reservationId } as never);
-  if (error && !isMissingStorageBackend(error)) console.warn("storage reservation cleanup failed", error);
+  const { error } = await withDesktopCloudTimeout("cancelamento do envio", Promise.resolve(supabase.rpc("cancel_storage_upload" as never, { _file_id: reservationId } as never)));
+  if (error) throw error;
+  // Only a new authoritative measurement frees visible quota. This also avoids
+  // subtracting twice when the idempotent RPC is retried after a lost response.
   void refreshStorageUsage().catch(() => undefined);
 }
 
