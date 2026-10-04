@@ -267,6 +267,23 @@ GRANT SELECT ON TABLE public.billing_event_replays TO service_role;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.platform_operators TO service_role;
 GRANT SELECT ON TABLE public.platform_operator_audit TO service_role;
 
+-- Stage 08 requests are private instructions, not a new browser billing ledger.
+REVOKE ALL ON TABLE public.billing_change_requests, public.billing_change_request_events
+  FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.billing_change_requests, public.billing_change_request_events TO service_role;
+REVOKE ALL ON FUNCTION public.billing_change_request_quote(uuid,text,text),
+  public.billing_change_request_summary(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.billing_change_request_quote(uuid,text,text),
+  public.billing_change_request_summary(uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.billing_company_change_context(uuid),
+  public.billing_submit_change_request(uuid,uuid,text,text,text),
+  public.billing_withdraw_change_request(uuid,uuid), public.platform_master_billing_change_requests(text)
+  FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.billing_company_change_context(uuid),
+  public.billing_submit_change_request(uuid,uuid,text,text,text),
+  public.billing_withdraw_change_request(uuid,uuid), public.platform_master_billing_change_requests(text)
+  TO authenticated;
+
 REVOKE ALL ON FUNCTION public.billing_apply_checkout_paid(
   uuid,text,text,text,text,timestamptz,timestamptz
 ) FROM PUBLIC, anon, authenticated;

@@ -41,6 +41,7 @@ let pendingEnrollment: ReturnType<typeof deferred<void>> | null;
 let host: HTMLDivElement;
 let root: Root;
 let cache: QueryClient;
+let billingRequests: unknown[];
 function emit(event: AuthChangeEvent, next: Session | null) {
   current = next; listeners.forEach((listener) => listener(event, next));
 }
@@ -67,6 +68,7 @@ async function render() {
 
 beforeEach(() => {
   vi.clearAllMocks(); current = session(); listeners = new Set(); verifiedFactor = true;
+  billingRequests = [];
   pendingDashboard = null; pendingMfa = null; pendingEnrollment = null;
   client.auth.getSession.mockImplementation(async () => ({ data: { session: current }, error: null }));
   client.auth.getUser.mockImplementation(async () => ({ data: { user: current?.user ?? null }, error: null }));
@@ -89,14 +91,14 @@ beforeEach(() => {
   client.auth.mfa.getAuthenticatorAssuranceLevel.mockImplementation(async () => ({
     data: { currentLevel: current ? JSON.parse(atob(current.access_token.split(".")[1])).aal : "aal1" }, error: null,
   }));
-  client.rpc.mockImplementation(() => {
+  client.rpc.mockImplementation((name) => {
     let ownerId = "";
     const delayed = pendingDashboard; pendingDashboard = null;
     const request = { setHeader(_name: string, value: string) {
       ownerId = JSON.parse(atob(value.split(".")[1])).sub; return request;
     }, abortSignal() { return request; }, then(resolve: (value: unknown) => void, reject: (reason: unknown) => void) {
       const response = delayed?.promise ?? Promise.resolve(ownerId === "operator"
-        ? { data: dashboard, error: null } : { data: null, error: new Error("PLATFORM_MASTER_FORBIDDEN") });
+        ? { data: name === "platform_master_billing_change_requests" ? billingRequests : dashboard, error: null } : { data: null, error: new Error("PLATFORM_MASTER_FORBIDDEN") });
       return response.then(resolve, reject);
     } }; return request;
   });
@@ -108,6 +110,15 @@ afterEach(async () => {
 });
 
 describe("Master dashboard UI across accounts and sessions", () => {
+  it("shows billing instructions as pending review and removes them on logout", async () => {
+    billingRequests = [{ id: "78000000-0000-4000-8000-000000000012", subscription_id: "78000000-0000-4000-8000-000000000011",
+      kind: "change_plan", status: "awaiting_provider", provider_environment: "sandbox", current_plan_name: "Avançado", current_amount_cents: 74900,
+      target_plan_name: "Crescimento", target_amount_cents: 44900, currency: "BRL", paid_period_end: "2040-01-01T00:00:00Z",
+      effective_not_before: "2040-01-01T00:00:00Z", created_at: "2026-10-03T23:35:00Z", withdrawn_at: null, clinic_name: "Empresa da solicitação" }];
+    await render(); expect(text()).toContain("Empresa da solicitação"); expect(text()).toContain("Troca para Crescimento");
+    expect([...host.querySelectorAll("button")].some((b) => /Executar|Aprovar cancelamento/.test(b.textContent ?? ""))).toBe(false);
+    await act(async () => emit("SIGNED_OUT", null)); await settle(); expect(text()).not.toContain("Empresa da solicitação");
+  });
   it("confirms account MFA while still requiring separate confirmation for replay", async () => {
     await render(); expect(text()).toContain("Empresa protegida");
     await click("Configurar ou confirmar"); await fill("Código de seis dígitos", "123456"); await click("Confirmar identidade");

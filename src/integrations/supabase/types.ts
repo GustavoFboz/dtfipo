@@ -3698,6 +3698,18 @@ export type Database = {
         Returns: Json
       }
       billing_company_history: { Args: { p_clinic_id: string }; Returns: Json }
+      billing_company_change_context: { Args: { p_clinic_id: string }; Returns: Json }
+      billing_change_request_quote: {
+        Args: { p_subscription_id: string; p_kind: string; p_target_plan_code: string | null }
+        Returns: Json
+      }
+      billing_change_request_summary: { Args: { p_request_id: string }; Returns: Json }
+      billing_submit_change_request: {
+        Args: { p_clinic_id: string; p_subscription_id: string; p_kind: string; p_target_plan_code: string | null; p_quote_token: string }
+        Returns: Json
+      }
+      billing_withdraw_change_request: { Args: { p_clinic_id: string; p_request_id: string }; Returns: Json }
+      platform_master_billing_change_requests: { Args: { p_search?: string }; Returns: Json }
       billing_current_user_can_manage_company: {
         Args: { p_clinic_id: string }
         Returns: boolean
