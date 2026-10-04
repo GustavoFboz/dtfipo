@@ -5,6 +5,8 @@ const required = [
   "docs/saas/GO-LIVE-READINESS-2026-09-29.md",
   "docs/saas/STAGE-07-MASTER-ADMIN.md",
   "docs/saas/STAGE-08-BILLING-CENTER.md",
+  "docs/saas/RELEASE-PLAN.md",
+  "docs/saas/STAGE-10-PRODUCTION-READINESS.md",
   ".github/workflows/saas-asaas-inbox-worker.yml",
   ".github/workflows/saas-restore-rehearsal.yml",
   "docs/saas/STAGE-09-INCIDENT-RUNBOOK.md",

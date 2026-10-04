@@ -72,6 +72,33 @@ describe("storage amount display", () => {
   });
 });
 
+describe("reservation cancellation does not invent free space", () => {
+  beforeEach(() => { vi.resetModules(); rpc.mockReset(); });
+  async function measured() {
+    const storage = await import("./storage");
+    rpc.mockResolvedValueOnce({ data: { used_bytes: 300, limit_bytes: 1000 }, error: null });
+    await storage.refreshStorageUsage(); return storage;
+  }
+  it.each([{ message: "STORAGE_OBJECT_STILL_EXISTS" }, { code: "PGRST202", message: "schema cache" }])("keeps visible bytes when cancellation is refused: %s", async (error) => {
+    const storage = await measured(); rpc.mockResolvedValueOnce({ data: null, error });
+    await expect(storage.cancelStorageUpload("reservation", 100)).rejects.toBe(error);
+    expect(storage.getStorageUsageSnapshot().data?.used_bytes).toBe(300);
+    expect(rpc).toHaveBeenCalledTimes(2);
+  });
+  it("waits for a measurement rather than double-subtracting after an idempotent retry", async () => {
+    const storage = await measured();
+    rpc.mockImplementation((name) => name === "cancel_storage_upload"
+      ? Promise.resolve({ data: null, error: null }) : new Promise(() => {}));
+    await storage.cancelStorageUpload("reservation", 100);
+    await storage.cancelStorageUpload("reservation", 100);
+    expect(storage.getStorageUsageSnapshot().data?.used_bytes).toBe(300);
+  });
+  it("does not subtract when no reservation was obtained", async () => {
+    const storage = await measured(); await storage.cancelStorageUpload(null, 100);
+    expect(storage.getStorageUsageSnapshot().data?.used_bytes).toBe(300); expect(rpc).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("manual recovery of abandoned upload reservations", () => {
   const pending = { id: "old-upload", clinic_id: "own-company", bucket: "case-files",
     object_path: "case/old.stl", original_name: "old.stl", status: "reserved", size_bytes: 100,

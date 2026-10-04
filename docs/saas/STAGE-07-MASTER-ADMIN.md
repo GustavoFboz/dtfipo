@@ -1,5 +1,10 @@
 # Etapa 07 — administração Master
 
+Contador de conclusão em 04/10: **4/7**, junto à revisão de segurança indicada
+em RELEASE-PLAN.md. As correções de senha/isolamento de empresa desta rodada
+estão em evidence/READINESS-PASSWORD-STORAGE-2026-10-04.md. Configurar e provar a
+política global do Auth e as sessões reais segue obrigatório.
+
 Status: painel e configuração de autenticador publicados; operador atribuído
 por autorização explícita e TOTP verificado no ambiente ativo em 03/10/2026.
 As negativas de acesso/replay a não operador e de replay sem MFA passaram em

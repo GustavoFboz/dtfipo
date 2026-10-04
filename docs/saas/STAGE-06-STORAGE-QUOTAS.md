@@ -1,5 +1,11 @@
 # Etapa 06 — cota do plano e adicionais (parte 1)
 
+Contador de conclusão em 04/10: **3/7**, conforme RELEASE-PLAN.md. Correções de
+falha na exclusão de paciente/cancelamento de reserva e ensaio de uploads de
+paciente e isolamento dos dados/objetos privados entre empresas estão em
+evidence/READINESS-PASSWORD-STORAGE-2026-10-04.md.
+Os aceites reais dos módulos disponíveis continuam em aberto.
+
 Status: cotas e reservas obrigatórias implantadas na base ativa em 29/09/2026.
 Restauração, uploads autenticados e concorrência passaram em CI; a asserção
 somente leitura do banco ativo retornou `passed`. Upload e exclusão de anexo de

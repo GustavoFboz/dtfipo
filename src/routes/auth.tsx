@@ -19,6 +19,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
+import { NEW_PASSWORD_MIN_LENGTH, newPasswordError } from "@/lib/auth/password-policy";
 import {
   fetchBillingPlans,
   finalizePendingOnboarding,
@@ -147,7 +148,8 @@ function AuthPage() {
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
     if (signupName.trim().length < 2) return toast.error("Informe seu nome completo.");
-    if (signupPassword.length < 8) return toast.error("A senha deve ter pelo menos 8 caracteres.");
+    const passwordError = newPasswordError(signupPassword);
+    if (passwordError) return toast.error(passwordError);
 
     setLoadingSignup(true);
     try {
@@ -248,10 +250,16 @@ function AuthPage() {
                 <div className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 dark:border-white/[0.06] dark:bg-white/[0.025]">
                   <Field label="Nome da empresa"><Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Nome da operação" required /></Field>
                   <div><div className="mb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Plano</div><div className="grid gap-2 sm:grid-cols-3">{[
-                    { code: "company_initial", name: "Inicial", price: 249, sessions: 1 },
-                    { code: "company_growth", name: "Crescimento", price: 449, sessions: 2 },
-                    { code: "company_advanced", name: "Avançado", price: 749, sessions: 3 },
-                  ].map((plan) => <button key={plan.code} type="button" onClick={() => setCompanyPlan(plan.code)} className={`rounded-xl border p-3 text-left ${companyPlan === plan.code ? "border-[#2D7FF9]/50 bg-[#2D7FF9]/[0.05]" : "border-slate-200 bg-white dark:border-white/[0.06] dark:bg-white/[0.02]"}`}><div className="text-[11px] font-semibold">{plan.name}</div><div className="mt-1 text-[10px] text-slate-400">R$ {plan.price}/mês · {plan.sessions} sessão{plan.sessions > 1 ? "ões" : ""}</div></button>)}</div></div>
+                    { code: "company_initial", name: "Inicial" },
+                    { code: "company_growth", name: "Crescimento" },
+                    { code: "company_advanced", name: "Avançado" },
+                  ].map((plan) => {
+                    const current = plans.data?.find((p) => p.code === plan.code);
+                    const amount = current && Number.isSafeInteger(current.monthly_price_cents) && current.monthly_price_cents >= 0
+                      ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(current.monthly_price_cents / 100)
+                      : null;
+                    return <button key={plan.code} type="button" onClick={() => setCompanyPlan(plan.code)} className={`rounded-xl border p-3 text-left ${companyPlan === plan.code ? "border-[#2D7FF9]/50 bg-[#2D7FF9]/[0.05]" : "border-slate-200 bg-white dark:border-white/[0.06] dark:bg-white/[0.02]"}`}><div className="text-[11px] font-semibold">{current?.name ?? plan.name}</div><div className="mt-1 text-[10px] text-slate-400">{amount ? `${amount}/mês` : plans.isPending ? "Consultando valor…" : "Valor indisponível"}{current ? ` · ${current.max_sessions} ${current.max_sessions === 1 ? "sessão" : "sessões"}` : ""}</div></button>;
+                  })}</div></div>
                   <div><div className="mb-2 text-[10px] font-medium uppercase tracking-[0.14em] text-slate-400">Ambientes ({companySessions.length}/{maxSessions})</div><div className="grid grid-cols-3 gap-2"><SessionCard active={companySessions.includes("laboratory")} onClick={() => toggleSession("laboratory")} icon={<FlaskConical className="h-4 w-4" />} label="Laboratório" /><SessionCard active={companySessions.includes("clinic")} onClick={() => toggleSession("clinic")} icon={<Stethoscope className="h-4 w-4" />} label="Clínica" /><SessionCard active={companySessions.includes("radiology")} onClick={() => toggleSession("radiology")} icon={<RadioTower className="h-4 w-4" />} label="Radiologia" /></div></div>
                 </div>
               ) : (
@@ -290,4 +298,4 @@ function Benefit({ text }: { text: string }) { return <div className="flex items
 function Field({ label, children }: { label: string; children: React.ReactNode }) { return <label className="block"><span className="mb-2 block text-[11px] font-medium text-slate-500">{label}</span>{children}</label>; }
 function ModeCard({ value, label, icon }: { value: SignupMode; label: string; icon: React.ReactNode }) { return <label className="cursor-pointer"><RadioGroupItem value={value} className="peer sr-only" /><span className="flex h-16 flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white text-[10px] font-medium text-slate-500 transition peer-data-[state=checked]:border-[#2D7FF9]/50 peer-data-[state=checked]:bg-[#2D7FF9]/[0.05] peer-data-[state=checked]:text-[#2D7FF9] dark:border-white/[0.07] dark:bg-white/[0.025]">{icon}{label}</span></label>; }
 function SessionCard({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) { return <button type="button" onClick={onClick} className={`flex h-16 flex-col items-center justify-center gap-2 rounded-xl border text-[10px] font-medium transition ${active ? "border-[#2D7FF9]/50 bg-[#2D7FF9]/[0.05] text-[#2D7FF9]" : "border-slate-200 bg-white text-slate-400 dark:border-white/[0.06] dark:bg-white/[0.02]"}`}>{icon}{label}</button>; }
-function PasswordField({ label, value, onChange, visible, onToggle, autoComplete }: { label: string; value: string; onChange: (v: string) => void; visible: boolean; onToggle: () => void; autoComplete: string }) { return <Field label={label}><div className="relative"><Input type={visible ? "text" : "password"} value={value} onChange={(e) => onChange(e.target.value)} autoComplete={autoComplete} minLength={8} required className="pr-11" /><button type="button" onClick={onToggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></Field>; }
+function PasswordField({ label, value, onChange, visible, onToggle, autoComplete }: { label: string; value: string; onChange: (v: string) => void; visible: boolean; onToggle: () => void; autoComplete: string }) { return <Field label={label}><div className="relative"><Input type={visible ? "text" : "password"} value={value} onChange={(e) => onChange(e.target.value)} autoComplete={autoComplete} minLength={autoComplete === "new-password" ? NEW_PASSWORD_MIN_LENGTH : undefined} required className="pr-11" /><button type="button" onClick={onToggle} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">{visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button></div></Field>; }

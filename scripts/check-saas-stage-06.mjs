@@ -31,7 +31,7 @@ if (manifest.indexOf(uploadName) !== current + 1 ||
       fs.readFileSync(`public/restore/migrations/${uploadName}`, "utf8")) {
   throw new Error("Stage 06 upload guards are absent, out of order or diverged from restore.");
 }
-for (const filename of ["stage-06-upload-assertions.sql", "stage-06-upload-rehearsal.sql", "stage-06-concurrency-rehearsal.sh"]) {
+for (const filename of ["stage-06-upload-assertions.sql", "stage-06-upload-rehearsal.sql", "stage-06-patient-uploads-rehearsal.sql", "stage-06-concurrency-rehearsal.sh"]) {
   if (!fs.existsSync(`docs/saas/sql/${filename}`)) {
     throw new Error(`Stage 06 upload verification missing: ${filename}`);
   }
@@ -49,3 +49,11 @@ for (const filename of ["stage-06-reservation-recovery-assertions.sql", "stage-0
   if (!fs.existsSync(`docs/saas/sql/${filename}`)) throw new Error(`Stage 06 recovery verification missing: ${filename}`);
 }
 console.log("Stage 06 controlled reservation recovery package verified.");
+
+const patientName = "20261004183500_saas_patient_company_boundary_stage06.sql";
+if (manifest.indexOf(patientName) <= manifest.indexOf(recoveryName) ||
+    fs.readFileSync(`supabase/migrations/${patientName}`, "utf8") !==
+      fs.readFileSync(`public/restore/migrations/${patientName}`, "utf8")) {
+  throw new Error("Stage 06 patient company boundary is absent, out of order or diverged from restore.");
+}
+console.log("Stage 06 patient identity and private file company boundary verified.");

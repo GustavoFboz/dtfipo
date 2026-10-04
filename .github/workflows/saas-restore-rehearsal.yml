@@ -170,6 +170,14 @@ jobs:
             < docs/saas/sql/stage-06-upload-rehearsal.sql \
             | tee restore-stage-06-upload-rehearsal.log
 
+      - name: Rehearse Stage 06 patient uploads at the exact quota boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-patient-uploads-rehearsal.sql \
+            | tee restore-stage-06-patient-uploads.log
       - name: Rehearse Stage 06 concurrent reservations
         shell: bash
         run: |
@@ -264,6 +272,7 @@ jobs:
             restore-stage-06-quota.log
             restore-stage-06-upload-assertions.log
             restore-stage-06-upload-rehearsal.log
+            restore-stage-06-patient-uploads.log
             restore-stage-06-concurrency.log
             restore-stage-06-recovery-assertions.log
             restore-stage-06-recovery.log

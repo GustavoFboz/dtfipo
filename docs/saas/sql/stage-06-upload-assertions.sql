@@ -50,5 +50,27 @@ begin
     raise exception 'Reservation authorization function missing or open to anon';
   end if;
 end $$;
+do $$
+declare v_record record;
+begin
+  for v_record in select * from (values
+    ('storage','objects','patient_storage_read_boundary','SELECT'),
+    ('storage','objects','patient_storage_delete_boundary','DELETE'),
+    ('public','patients','patients_company_read_boundary','SELECT'),
+    ('public','patients','patients_company_update_boundary','UPDATE'),
+    ('public','patients','patients_company_delete_boundary','DELETE'),
+    ('public','patient_attachments','patient_attachments_company_boundary','ALL')
+  ) as required(schema_name,table_name,policy_name,command) loop
+    if not exists(select 1 from pg_policies p
+      where p.schemaname=v_record.schema_name and p.tablename=v_record.table_name
+        and p.policyname=v_record.policy_name and p.cmd=v_record.command
+        and p.permissive='RESTRICTIVE' and p.qual like '%can_access_patient%') then
+      raise exception 'Patient company boundary missing: %',v_record.policy_name;
+    end if;
+  end loop;
+  if has_function_privilege('anon','public.can_access_patient(uuid)','EXECUTE') then
+    raise exception 'Patient access helper is open to anonymous callers';
+  end if;
+end $$;
 select 'passed' as stage_06_upload_contract;
 rollback;

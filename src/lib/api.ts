@@ -4,6 +4,7 @@ import type { CaseRow, Doctor, Cadista, Patient, CaseType, ToothColor, Stage, Ph
 import { autoRecordCaseMilling } from "./burrs";
 import { broadcastEntity, markDeleted } from "./optimistic";
 import { applyOptimisticStorageDelta, cancelStorageUpload, completeStorageUpload, reserveStorageUpload } from "./storage";
+import { newPasswordError } from "./auth/password-policy";
 
 
 async function hydrateVisibleCaseFallback(rows: CaseRow[]): Promise<CaseRow[]> {
@@ -1298,8 +1299,14 @@ export async function uploadPatientAttachment(
   const reservation = await reserveStorageUpload({ sizeBytes: file.size, bucket: "patient-files", objectPath: path, sourceType: "patient_attachment", patientId, originalName: file.name || meta.title || "arquivo", mimeType: file.type || null });
   const { error: upErr } = await supabase.storage.from("patient-files").upload(path, file, { contentType: file.type || undefined, upsert: false });
   if (upErr) { await cancelStorageUpload(reservation.reservationId, file.size); throw upErr; }
-  const { data: signed } = await supabase.storage.from("patient-files").createSignedUrl(path, 60 * 60 * 24 * 365);
-  const file_url = signed?.signedUrl ?? "";
+  const { data: signed, error: signError } = await supabase.storage.from("patient-files").createSignedUrl(path, 60 * 60 * 24 * 365);
+  if (signError || !signed?.signedUrl) {
+    const { error: cleanupError } = await supabase.storage.from("patient-files").remove([path]);
+    if (cleanupError) throw cleanupError;
+    await cancelStorageUpload(reservation.reservationId, file.size);
+    throw signError ?? new Error("Não foi possível confirmar o acesso ao arquivo enviado.");
+  }
+  const file_url = signed.signedUrl;
   const isImage = (file.type || "").startsWith("image/");
   const { data, error } = await supabase.from("patient_attachments" as never).insert({ patient_id: patientId, title: meta.title, description: meta.description ?? null, kind: meta.kind ?? "other", file_url, file_path: path, thumbnail_url: isImage ? file_url : null, mime_type: file.type || null, size_bytes: file.size } as never).select().single();
   if (error) { await supabase.storage.from("patient-files").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
@@ -1308,12 +1315,12 @@ export async function uploadPatientAttachment(
 }
 
 export async function deletePatientAttachment(att: PatientAttachment) {
-  markDeleted(att.id);
-  applyOptimisticStorageDelta(-Math.max(0, Number(att.size_bytes || 0)));
   const { error: storageError } = await supabase.storage.from("patient-files").remove([att.file_path]);
-  if (storageError) console.warn("patient attachment storage cleanup failed", storageError);
+  if (storageError) throw storageError;
   const { error } = await supabase.from("patient_attachments" as never).delete().eq("id", att.id);
-  if (error) { applyOptimisticStorageDelta(Math.max(0, Number(att.size_bytes || 0))); throw error; }
+  if (error) throw error;
+  applyOptimisticStorageDelta(-Math.max(0, Number(att.size_bytes || 0)));
+  try { markDeleted(att.id); } catch {}
 }
 
 export async function refreshAttachmentSignedUrl(path: string): Promise<string> {
@@ -1504,6 +1511,8 @@ export async function rejectJoinRequest(memberId: string) {
 }
 
 export async function adminSetMemberPassword(userId: string, password: string) {
+  const passwordError = newPasswordError(password);
+  if (passwordError) throw new Error(passwordError);
   const { data, error } = await supabase.rpc("admin_set_member_password", { p_user_id: userId, p_password: password });
   if (error) throw error;
   const r = data as any;

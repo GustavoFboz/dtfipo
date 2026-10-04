@@ -165,5 +165,6 @@
   "20261003221500_saas_storage_reservation_recovery_stage06.sql",
   "20261003233500_saas_billing_change_requests_stage08.sql",
   "20261004010000_saas_operational_health_stage09.sql",
+  "20261004183500_saas_patient_company_boundary_stage06.sql",
   "20260718000001_zzz_self_heal_v2.sql"
 ]
