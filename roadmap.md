@@ -1,3 +1,6 @@
 - [x] Verificar meios autorizados de criar e limpar duas contas fictícias e seus dados isolados, sem mexer em usuários existentes.
-- [ ] Executar testes HTTP Auth, MFA, Master e armazenamento com as duas fixtures — bloqueado: não há acesso administrativo autorizado para criar e remover ambas as identidades no Auth sem envio de e-mail.
-- [x] Relatar matriz de resultados reais e resíduos, sem credenciais, identificadores ou dados pessoais.
+- [x] Criar e manter duas contas fictícias confirmadas sem mensagens, cada uma ligada à sua empresa fictícia; validar login, senha curta, MFA, logout e isolamento HTTP.
+- [x] Testar acesso ao painel Master com operador temporário e remover essa concessão.
+- [ ] Recuperação sem envio: bloqueada pela restrição de emissão administrativa de links de acesso; requer meio autorizado específico.
+- [ ] Uploads/armazenamento e aplicações instaladas: fora da investigação curta de configuração Auth; requer aceite específico de fluxo e ambiente.
+- [x] Relatar resultados reais e resíduos sem credenciais, identificadores ou dados pessoais.
