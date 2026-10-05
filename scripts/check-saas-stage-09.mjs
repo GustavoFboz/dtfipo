@@ -47,8 +47,12 @@ const panel = fs.readFileSync("src/components/master/MasterOperationalHealth.tsx
 if (panel.includes("integrations/supabase") || !panel.includes("@/lib/master-operational-health"))
   throw new Error("Master monitoring must use the public session-aware facade");
 const scheduler = fs.readFileSync(".github/workflows/saas-asaas-inbox-worker.yml", "utf8");
-if (!scheduler.includes("X-Billing-Environment: sandbox") || !scheduler.includes("monitoringRecorded == true"))
-  throw new Error("Stage 09 scheduler must pin Sandbox and check monitoring");
+if (!scheduler.includes("vars.BILLING_ENVIRONMENT || 'sandbox'")
+  || !scheduler.includes('X-Billing-Environment: $BILLING_ENVIRONMENT')
+  || !scheduler.includes('$BILLING_PRODUCTION_ENABLED\" != \"true')
+  || !scheduler.includes('$BILLING_PRODUCTION_WORKER_TOKEN\" == \"$BILLING_WORKER_TOKEN')
+  || !scheduler.includes("monitoringRecorded == true"))
+  throw new Error("Stage 09 scheduler must default to Sandbox, guard Production and check monitoring");
 const probe = fs.readFileSync("src/lib/billing/asaas-worker-health.server.ts", "utf8");
 if (probe.includes("AsaasClient") || probe.includes(".rpc(") || !probe.includes('.from("billing_worker_health")')
   || !probe.includes('request.method !== "GET"')) throw new Error("Worker publication probe must remain a private telemetry read");
