@@ -56,4 +56,10 @@ if (!scheduler.includes("vars.BILLING_ENVIRONMENT || 'sandbox'")
 const probe = fs.readFileSync("src/lib/billing/asaas-worker-health.server.ts", "utf8");
 if (probe.includes("AsaasClient") || probe.includes(".rpc(") || !probe.includes('.from("billing_worker_health")')
   || !probe.includes('request.method !== "GET"')) throw new Error("Worker publication probe must remain a private telemetry read");
+const review = fs.readFileSync("src/lib/billing/asaas-inbox-review.server.ts", "utf8");
+if (!review.includes('request.method !== "GET"') || !review.includes('isAsaasWorkerAuthorized(request, token)')
+  || !review.includes('deps.environment !== "sandbox"') || !review.includes('.eq("status", "dead_letter")')
+  || !review.includes('rows.slice(0, 2)') || !review.includes('maxGetRetries: 0')
+  || /\.(?:rpc|insert|update|delete|upsert|createCustomer|createSubscription|updateSubscription)\s*\(/.test(review))
+  throw new Error("Inbox review must remain a private bounded Sandbox read without financial writes");
 console.log("Stage 09 static production and operational gates: OK");
