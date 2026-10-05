@@ -11,6 +11,8 @@ armazenamento, período pago, conta IPO isenta ou política offline de 72 horas.
 A migração 20261005190000 cria extensões, tabela privada e funções. Não cria
 jobs ativos ou segredos. O restore inclui a mesma migração e preserva também
 o hotfix de RLS 20261005111000, antes ausente do manifesto consolidado.
+O self-heal final reaplica as restrições do agendador após seus grants gerais;
+o ensaio de restauração verifica essa fronteira no banco já restaurado.
 
 O POST privado /api/billing/asaas-worker?check=database-scheduler exige o token
 exclusivo do operador de Produção, mesmo ao preparar Sandbox. Seu único campo
