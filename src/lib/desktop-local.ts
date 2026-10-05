@@ -3,15 +3,21 @@ import { clearInstalledSessionSnapshots, hasOfflineAccess, OFFLINE_ACCESS_EXPIRE
 import { clearMobilePrivateBrowserCache } from "./mobile/native";
 const BROWSER_CLEANUP_PENDING_KEY = "dentalflow:offline-browser-cleanup-pending";
 let offlineAccessRevision = 0;
+let browserCleanupInFlight: Promise<void> | null = null;
 export function getOfflineAccessRevision() { return offlineAccessRevision; }
 
 async function flushExpiredBrowserCache() {
-  if (typeof caches !== "undefined") {
-    for (const key of await caches.keys()) await caches.delete(key);
+  if (!browserCleanupInFlight) {
+    browserCleanupInFlight = (async () => {
+      if (typeof caches !== "undefined") {
+        for (const key of await caches.keys()) await caches.delete(key);
+      }
+      if (mobileLocal.isNativeMobileLocalRuntime()) await clearMobilePrivateBrowserCache();
+      else await invokeDesktop<void>("desktop_clear_private_webview_cache");
+      window.localStorage.removeItem(BROWSER_CLEANUP_PENDING_KEY);
+    })().finally(() => { browserCleanupInFlight = null; });
   }
-  if (mobileLocal.isNativeMobileLocalRuntime()) await clearMobilePrivateBrowserCache();
-  else await invokeDesktop<void>("desktop_clear_private_webview_cache");
-  window.localStorage.removeItem(BROWSER_CLEANUP_PENDING_KEY);
+  return browserCleanupInFlight;
 }
 
 type DesktopInvoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>;

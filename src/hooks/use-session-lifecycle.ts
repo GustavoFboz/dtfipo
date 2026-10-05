@@ -36,6 +36,7 @@ export function useSessionLifecycle() {
       await qc.cancelQueries();
       qc.clear();
       await supabase.auth.signOut(reason === "offline_expired" ? { scope: "local" } : undefined);
+      if (reason === "offline_expired") await getProvisionedDesktopIdentity();
       if (!disposed) {
         await navigate({ to: "/auth", replace: true, search: { invite: undefined, mode: undefined, plan: undefined, profession: undefined, returnTo: undefined } });
       }
@@ -45,6 +46,7 @@ export function useSessionLifecycle() {
       if (disposed || expiryLogout) return;
       setOfflineBlocked(true);
       expiryLogout = (async () => {
+        toast.dismiss();
         toast.error("O prazo offline de três dias terminou. Conecte-se e entre novamente.");
         await forceLogout("offline_expired");
         if (!disposed) setOfflineBlocked(false);
