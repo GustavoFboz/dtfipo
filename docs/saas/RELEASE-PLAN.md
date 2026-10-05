@@ -25,7 +25,11 @@ no gate 7.2. Ver [prova](evidence/database-scheduler-20261005.md).
 Os dois dead letters foram consultados no provedor: mesma cobrança Sandbox,
 RECEIVED, 500 centavos, vencimento 29/09, sem assinatura informada na resposta
 e sem pagamento local correspondente. Não autoriza atribuição de acesso ou
-replay. Ver [revisão](evidence/inbox-review-20261005.md).
+replay. O responsável confirmou que era cobrança manual no Asaas; o fluxo
+[de revisão auditada](STAGE-07-EXTERNAL-TEST-REVIEW.md) permite encerrar testes
+externos Sandbox com Master/AAL2, sem alterar pagamentos ou acesso.
+A decisão real dos dois eventos permanece pendente.
+Ver [revisão](evidence/inbox-review-20261005.md).
 Aceites finais: **2/23 — 8,70%**; restam 21 itens parciais/em aberto e nenhuma
 etapa inteira foi encerrada.
 Ver [prova e revisão](evidence/production-preflight-20261005.md) e

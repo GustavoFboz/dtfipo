@@ -12,8 +12,8 @@ reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data
 
 | Item | Resultado exigido | Status atual |
 | --- | --- | --- |
-| 1.1 | Dois dead letters reconciliados individualmente com o Asaas | Parcial: dois GETs reais identificaram a mesma cobrança Sandbox RECEIVED, R$5, vencimento 29/09; sem vínculo comprovado no contrato/ledger. Revisão individual e decisão de replay pendentes. [Prova e limites](evidence/inbox-review-20261005.md) |
-| 1.2 | Duplicatas e eventos fora de ordem | Parcial: código/ensaios; prova real pendente |
+| 1.1 | Dois dead letters reconciliados individualmente com o Asaas | Parcial: Asaas confirmou a mesma cobrança Sandbox RECEIVED de R$5, vencimento 29/09; responsável confirmou criação manual externa. Sem ledger/checkout local. Revisão auditada Master/AAL2 preparada; decisão real dos dois eventos ainda pendente. [Prova](evidence/inbox-review-20261005.md) e [fluxo](STAGE-07-EXTERNAL-TEST-REVIEW.md) |
+| 1.2 | Duplicatas e eventos fora de ordem | Parcial: duas confirmações processadas por cobrança (webhook + reconciliação) correspondem a uma linha do ledger por recurso; redelivery idêntico e efeito fora de ordem ainda sem prova real. [Histórico consultado](evidence/reconciliation-history-20261005.json) |
 | 1.3 | Webhook perdido recuperado | Parcial: reconciliação implementada |
 | 2.1 | Estados do ciclo financeiro | Parcial: ensaios; provedor pendente |
 | 2.2 | Dados e período pago preservados | Parcial: regras/testes; aceite do fluxo pendente |

@@ -103,7 +103,8 @@ beforeEach(() => {
       ownerId = JSON.parse(atob(value.split(".")[1])).sub; return request;
     }, abortSignal() { return request; }, then(resolve: (value: unknown) => void, reject: (reason: unknown) => void) {
       const response = delayed?.promise ?? Promise.resolve(ownerId === "operator"
-        ? { data: name === "platform_master_billing_change_requests" ? billingRequests
+        ? { data: name === "platform_master_close_external_sandbox_test" ? true
+          : name === "platform_master_billing_change_requests" ? billingRequests
           : name === "platform_master_operational_health" ? operationalHealth : dashboard, error: null } : { data: null, error: new Error("PLATFORM_MASTER_FORBIDDEN") });
       return response.then(resolve, reject);
     } }; return request;
@@ -116,6 +117,35 @@ afterEach(async () => {
 });
 
 describe("Master dashboard UI across accounts and sessions", () => {
+  it("requires individual MFA and explicit manual-test confirmation before closing a review", async () => {
+    await render(); await click("Revisar teste externo");
+    await fill("Justificativa da revisão", "Manual Sandbox test checked in Asaas");
+    expect(button("Concluir revisão do teste").disabled).toBe(true);
+    await act(async () => host.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click()); await settle();
+    expect(button("Concluir revisão do teste").disabled).toBe(true);
+    expect(client.rpc.mock.calls.filter(([name]) => name === "platform_master_close_external_sandbox_test")).toHaveLength(0);
+    await fill("Código de seis dígitos", "123456"); await click("Confirmar identidade");
+    expect(button("Concluir revisão do teste").disabled).toBe(false);
+    await click("Concluir revisão do teste");
+    const calls = client.rpc.mock.calls.filter(([name]) => name === "platform_master_close_external_sandbox_test");
+    expect(calls).toHaveLength(1);
+    expect(calls[0][1]).toMatchObject({ p_environment: "sandbox", p_confirm_manual_external: true,
+      p_event_id: "test-event", p_reason: "Manual Sandbox test checked in Asaas" });
+    expect(text()).not.toContain("Encerrar teste externo: test-event");
+    expect(client.rpc.mock.calls.filter(([name]) => name === "platform_master_replay_asaas_event")).toHaveLength(0);
+  });
+  it("clears external-test attestation and draft on a new login session", async () => {
+    await render(); await click("Revisar teste externo");
+    await fill("Justificativa da revisão", "External test reviewed by old session");
+    await act(async () => host.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click()); await settle();
+    await act(async () => emit("SIGNED_IN", session("operator", "login-2"))); await settle();
+    expect(text()).not.toContain("Encerrar teste externo: test-event");
+    await click("Revisar teste externo");
+    expect(host.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked).toBe(false);
+    expect(host.querySelector<HTMLInputElement>('label input:not([type="checkbox"]):not([inputmode])')?.value).toBe("");
+    expect(button("Concluir revisão do teste").disabled).toBe(true);
+    expect(client.rpc.mock.calls.filter(([name]) => name === "platform_master_close_external_sandbox_test")).toHaveLength(0);
+  });
   it("shows private operational alerts, refreshes them and clears them on logout", async () => {
     await render(); expect(text()).toContain("Acompanhamento operacional");
     expect(text()).toContain("2 evento(s) aguardando revisão manual");

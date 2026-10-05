@@ -45,11 +45,30 @@ previsto para a liberação de Produção.
 
 Manter os dois eventos em revisão individual; `requires_manual_review=true`.
 Não atribuir a cobrança a uma empresa por semelhança nem creditar acesso.
-Identificar o contexto original da cobrança e conferir a associação ao
-contrato antes de qualquer decisão. Replay, se aplicável, exige seu fluxo
+Em 05/10, o responsável confirmou no chat que a cobrança era **manual no Asaas**.
+O contexto é teste externo ao checkout. Encaminhar cada evento ao fluxo de
+[revisão auditada](../STAGE-07-EXTERNAL-TEST-REVIEW.md), com confirmação na
+sessão real Master/AAL2. Não executar replay para tentar transformar esse
+teste em assinatura recebida. Replay, se aplicável a outro evento SaaS, exige seu fluxo
 Master/AAL2, justificativa e auditoria; não foi executado nesta revisão.
 **Item 1.1 permanece parcial.** A consulta do provedor foi comprovada; a
 reconciliação individual e a decisão final ainda não foram comprovadas.
 
 [Projeções sanitizadas](inbox-review-20261005.json) preservam a resposta real
 e a conferência do ledger/snapshots, sem dados fiscais, cliente, URLs ou secrets.
+
+## Vínculos locais e histórico financeiro — conferência posterior
+
+Em 22h45:56 UTC, a consulta confirmou zero vínculos da cobrança manual de
+R$5 tanto no ledger quanto em checkout_intents. Os dois eventos conservam
+snapshot contendo somente paymentId, seis tentativas, dead_letter e nenhuma
+lease. São candidatos ao fluxo manual; elegibilidade não significa decisão executada.
+
+As cobranças SaaS antigas pay_e6dpbfypvx5ocrcm e pay_tgvf885wwjhfm8ri têm
+duas confirmações processadas cada uma (webhook e evento de reconciliação),
+mas uma linha paga no ledger por recurso, de 24.900 centavos. Os períodos
+registrados são 29/09–29/10 e 29/10–29/11; a assinatura está ativa até 29/11.
+Isso comprova o histórico observado sem duplicação local, mas não prova
+redelivery idêntico, eventos fora de ordem ou webhook realmente perdido.
+O catálogo de R$1 não alterou esses pagamentos contratados antigos.
+[Projeções históricas](reconciliation-history-20261005.json).

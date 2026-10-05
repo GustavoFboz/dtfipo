@@ -4216,6 +4216,10 @@ export type Database = {
         Returns: Json
       }
       platform_master_dashboard: { Args: { p_search?: string }; Returns: Json }
+      platform_master_close_external_sandbox_test: {
+        Args: { p_environment: string; p_event_id: string; p_reason: string; p_confirm_manual_external?: boolean }
+        Returns: boolean
+      }
       platform_master_operational_health: { Args: never; Returns: Json }
       platform_master_replay_asaas_event: {
         Args: { p_environment: string; p_event_id: string; p_reason: string }

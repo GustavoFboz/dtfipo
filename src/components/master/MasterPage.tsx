@@ -4,6 +4,8 @@ import { Link } from "@tanstack/react-router";
 import { MasterMfaChallenge } from "@/components/master/MasterMfaChallenge";
 import { MasterBillingRequests } from "@/components/master/MasterBillingRequests";
 import { MasterOperationalHealth } from "@/components/master/MasterOperationalHealth";
+import { MasterExternalTestReview } from "@/components/master/MasterExternalTestReview";
+import { masterOperationalHealthKey } from "@/lib/master-operational-health";
 import { useMasterSession } from "@/hooks/use-master-session";
 import { type MasterSessionCheck, type MasterSessionScope } from "@/lib/auth/master-session";
 import { loadMasterDashboard, masterDashboardKey, replayMasterEvent, type MasterReviewEvent } from "@/lib/master-admin";
@@ -38,6 +40,7 @@ function MasterDashboard({ scope, isCurrent }: { scope: MasterSessionScope; isCu
   const [search, setSearch] = useState("");
   const [reason, setReason] = useState("");
   const [selected, setSelected] = useState<MasterReviewEvent | null>(null);
+  const [externalReview, setExternalReview] = useState<MasterReviewEvent | null>(null);
   const queryClient = useQueryClient();
   const snapshot = useQuery({
     queryKey: masterDashboardKey(scope, search),
@@ -101,7 +104,12 @@ function MasterDashboard({ scope, isCurrent }: { scope: MasterSessionScope; isCu
               <li key={`${event.provider_environment}:${event.provider_event_id}`} className="border-t pt-2">
                 {event.event_type} · {event.status} · {event.provider_environment} · {event.attempt_count} tentativas
                 {event.status === "dead_letter" && <button className="ml-2 text-teal-700 underline"
-                  onClick={() => { setSelected(event); setMfaConfirmed(false); replay.reset(); }}>Revisar replay</button>}
+                  onClick={() => { setExternalReview(null); setSelected(event); setReason(""); setMfaConfirmed(false); replay.reset(); }}>Revisar replay</button>}
+                {event.status === "dead_letter" && event.provider_environment === "sandbox"
+                  && ["PAYMENT_CONFIRMED", "PAYMENT_RECEIVED", "PAYMENT_OVERDUE"].includes(event.event_type)
+                  && <button className="ml-2 text-teal-700 underline" onClick={() => {
+                    setSelected(null); setReason(""); setMfaConfirmed(false); setExternalReview(event);
+                  }}>Revisar teste externo</button>}
               </li>)}</ul>
           </div>
           <div className="rounded-xl border bg-white p-5 dark:bg-slate-900">
@@ -111,6 +119,13 @@ function MasterDashboard({ scope, isCurrent }: { scope: MasterSessionScope; isCu
                 {" "}{(payment.amount_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</li>)}</ul>
           </div>
         </section>
+        {externalReview && <MasterExternalTestReview key={`${scope.generation}:${externalReview.provider_event_id}`}
+          event={externalReview} scope={scope} isCurrent={isCurrent}
+          onClose={() => setExternalReview(null)} onCompleted={() => {
+            setExternalReview(null);
+            void queryClient.invalidateQueries({ queryKey: masterDashboardKey(scope) });
+            void queryClient.invalidateQueries({ queryKey: masterOperationalHealthKey(scope) });
+          }} />}
         {selected && <section className="rounded-xl border border-amber-400 bg-white p-5 dark:bg-slate-900">
           <h2 className="font-semibold">Reprocessar {selected.provider_event_id}</h2>
           <p className="mt-2 text-sm">Esta ação exige confirmação de dois fatores, justificativa e cria registro de auditoria. O worker validará o evento no Asaas antes de alterar qualquer acesso.</p>
