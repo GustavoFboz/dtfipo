@@ -1,6 +1,12 @@
 -- Isolated database only. Every Vault/job/request mutation rolls back.
 -- pg_net starts HTTP only after commit; this script never commits.
 begin;
+select has_function_privilege('anon','public.billing_configure_database_scheduler(text,text)','EXECUTE') as anon_can_configure,
+  has_function_privilege('authenticated','public.billing_configure_database_scheduler(text,text)','EXECUTE') as user_can_configure,
+  has_function_privilege('service_role','public.billing_enqueue_database_worker(text)','EXECUTE') as service_can_enqueue,
+  has_table_privilege('authenticated','net.http_request_queue','SELECT') as user_can_read_headers,
+  has_table_privilege('anon','net._http_response','SELECT') as anon_can_read_response,
+  has_table_privilege('authenticated','public.billing_database_scheduler','SELECT') as user_can_read_config;
 do $$
 declare first_job bigint; second_job bigint; first_secret uuid; response jsonb; job_command text; request_id bigint;
 begin
