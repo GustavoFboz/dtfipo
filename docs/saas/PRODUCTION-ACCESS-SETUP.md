@@ -1,9 +1,17 @@
 # Cadastro único de acessos para preparar o Asaas em Produção
 
-Frente atual: etapa 7/7, itens 7.1 e 7.2 em preparação. Este cadastro permite
+Frente atual: etapa 7/7, item 7.1 comprovado e item 7.2 em preparação. Este cadastro permite
 continuar a implementação e os diagnósticos sem compartilhar credenciais.
-Não encerra a homologação nem libera vendas. Os sete estágios e os 23 aceites
-finais permanecem abertos; o denominador é o de ACCEPTANCE-PROGRESS.md.
+Não encerra a homologação nem libera vendas. Os sete estágios têm aceites
+em aberto; 1/23 critérios finais foi concluído (4,35%). O denominador é o de
+ACCEPTANCE-PROGRESS.md.
+
+Em 05/10, 13h49 de Manaus, a consulta real autenticou a chave de Produção,
+confirmou a aprovação geral da conta e validou os quatro secrets do backend
+e o token correspondente do GitHub. Não repetir os geradores nem recriar
+essas credenciais. Ver [prova e revisão](evidence/production-preflight-20261005.md).
+Dados bancários PENDING são uma pendência específica, sem invalidar
+general=APPROVED. Webhook, entrega, agendamento e recebimento ainda exigem prova.
 
 ## 1. Acessos que já funcionam
 
@@ -139,7 +147,20 @@ para consultar repetidamente o status cadastral do Asaas.
 Ele autentica o GET privado
 /api/billing/asaas-worker?check=production-setup com o token de Produção;
 o backend faz exclusivamente GET https://api.asaas.com/v3/myAccount/status/.
-A resposta registra apenas os quatro status cadastrais e indicadores seguros.
+A resposta v2 registra os quatro status cadastrais e indicadores seguros.
+account_approved acompanha exclusivamente general=APPROVED;
+account_setup_complete indica se os quatro campos estão APPROVED. Uma
+pendência específica não deve ser confundida com falta de aprovação geral.
+
+O segundo GET privado, com check=production-webhook, consulta uma única
+página de até 100 webhooks existentes na API de Produção. Confere somente
+registros com o endereço esperado, token por comparação interna, API v3,
+envio sequencial, eventos e estado desativado. Lista incompleta, múltiplos
+registros ou token ocultado pelo provedor deixam a preparação sem confirmação.
+O artefato remove nomes, e-mails, URL, tokens e eventos desconhecidos.
+Configuração correta não comprova entrega; não cria, altera, ativa, apaga
+webhooks nem envia eventos. Uma configuração ativa antes da ativação
+coordenada exige revisão, sem desligamento automático pelo diagnóstico.
 Não altera banco, conta Asaas, webhook, assinatura, cobrança ou autorização.
 Credencial válida, conta aprovada, webhook entregue e pagamento liquidado são
 provas diferentes. Ausência de secret deixa o diagnóstico sem execução e não
@@ -194,5 +215,6 @@ Não deixar webhook de Produção ativo enquanto o endpoint estiver no Sandbox.
 - https://docs.asaas.com/docs/criar-novo-webhook-pela-aplicacao-web
 - https://docs.asaas.com/reference/criar-novo-webhook
 - https://docs.asaas.com/reference/consultar-situacao-cadastral-da-conta
+- https://docs.asaas.com/reference/listar-webhooks
 - https://docs.lovable.dev/features/secrets
 - https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets

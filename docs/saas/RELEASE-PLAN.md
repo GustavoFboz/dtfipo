@@ -6,10 +6,15 @@ para manter o histórico; não são um segundo protocolo.
 
 **Restam 7 de 7 etapas com aceites em aberto.** Há código e provas parciais
 em todas elas; um incremento aprovado não encerra automaticamente a etapa.
-Frente atual: **7/7, itens 7.1 e 7.2 — cadastro de credenciais e diagnóstico de Produção**.
-A preparação de Produção tem código para cadastrar segredos exclusivos sem
-trocar o Sandbox e verificar pontualmente a conta, mas depende do titular para
-preencher os formulários de Secrets. Ver PRODUCTION-ACCESS-SETUP.md. A janela
+Frente atual: **7/7, item 7.2 — conferência do webhook e preparação de Produção**.
+O item 7.1 foi comprovado em 05/10, 13h49 de Manaus: chave real autenticada,
+aprovação geral, dados comerciais e documentação aprovados. Dados bancários
+estão PENDING e são registrados separadamente da aprovação geral.
+Os quatro secrets do backend e a correspondência do token GitHub/backend
+passaram na consulta privada. Não precisam ser gerados novamente.
+Aceites finais: **1/23 — 4,35%**; nenhuma etapa inteira foi encerrada.
+Ver [prova e revisão](evidence/production-preflight-20261005.md) e
+PRODUCTION-ACCESS-SETUP.md. A janela
 offline de 72 horas mantém seus aceites de execução/distribuição em aberto;
 as demais frentes conservam seus aceites em aberto.
 Produção saiu da antiga etapa 09 e ganhou a etapa técnica 10, tornando explícita
@@ -27,6 +32,12 @@ a conexão necessária para receber dinheiro real.
 
 ## Evidência atual e regras de continuidade
 
+- Consulta real de Produção em 05/10, 17h49 UTC, registrada na execução
+  37350659436: credentials_valid=true e general=APPROVED. O contrato v1
+  calculava account_approved pelo conjunto dos quatro campos; seu false não
+  representa ausência de aprovação geral. O contrato v2 separa aprovação
+  geral de cadastro integral. Ambiente financeiro permanece Sandbox e
+  production_enabled=false; não houve cobrança, envio de evento ou replay.
 - Fundação, restore e primeiro checkout pago Sandbox têm evidência histórica.
   Não contam como comprovação de pagamento de Produção.
 - SELECT de 04/10 às 13h35 de Manaus confirmou último heartbeat Sandbox em

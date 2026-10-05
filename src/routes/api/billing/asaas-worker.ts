@@ -4,6 +4,10 @@ export const Route = createFileRoute("/api/billing/asaas-worker")({
   server: {
     handlers: {
       GET: async ({ request }: { request: Request }) => {
+        if (new URL(request.url).searchParams.get("check") === "production-webhook") {
+          const { inspectAsaasProductionWebhook } = await import("@/lib/billing/asaas-production-preflight.server");
+          return inspectAsaasProductionWebhook(request);
+        }
         if (new URL(request.url).searchParams.get("check") === "production-setup") {
           const { inspectAsaasProductionSetup } = await import("@/lib/billing/asaas-production-preflight.server");
           return inspectAsaasProductionSetup(request);
