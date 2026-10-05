@@ -4,7 +4,8 @@ Baseline de 04/10/2026, 23h06 de Manaus. A porcentagem mede itens com aceite
 integral registrado, não linhas de código nem estimativa de esforço. O plano
 tem 23 itens, derivados das sete etapas apresentadas ao responsável.
 
-**Aceites integrais: 0/23 — 0%. Etapas inteiramente encerradas: 0/7.**
+Atualização de 05/10/2026, 13h49 de Manaus: primeiro aceite integral comprovado.
+**Aceites integrais: 1/23 — 4,35%. Etapas inteiramente encerradas: 0/7.**
 Existe implementação e evidência parcial, descrita no RELEASE-PLAN.md; não
 reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data.
 
@@ -29,8 +30,8 @@ reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data
 | 6.2 | Backup, restauração e incidente | Parcial: restore limpo; recuperação operacional pendente |
 | 6.3 | Onboarding, plataformas e capacidade piloto | Em aberto |
 | 6.4 | Documentos comerciais e privacidade revisados | Protocolo preparado; minutas/revisão pendentes |
-| 7.1 | Conta recebedora aprovada | Diagnóstico privado de status cadastral preparado; credencial e aprovação reais pendentes |
-| 7.2 | Secrets, webhook e agendamento de Produção | Agendador, grupo exclusivo de secrets e diagnóstico sem operações financeiras preparados; cadastro/entrega/ativação pendentes |
+| 7.1 | Conta recebedora aprovada | Concluído em 05/10, 13h49 de Manaus: chave real autenticada e general=APPROVED; [prova e revisão](evidence/production-preflight-20261005.md). Pendência bancária registrada separadamente |
+| 7.2 | Secrets, webhook e agendamento de Produção | Parcial: quatro secrets exclusivos do backend e token GitHub/backend validados por consulta real; conferência do webhook, entrega e ativação do agendador pendentes |
 | 7.3 | Recebimento, ledger e acesso reais comprovados | Em aberto; responsável fará compra de R$1 quando liberada |
 | 7.4 | Decisão de liberação para vendas | Pendente dos demais aceites |
 
