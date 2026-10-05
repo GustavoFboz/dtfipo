@@ -31,7 +31,7 @@ reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data
 | 6.3 | Onboarding, plataformas e capacidade piloto | Em aberto |
 | 6.4 | Documentos comerciais e privacidade revisados | Protocolo preparado; minutas/revisão pendentes |
 | 7.1 | Conta recebedora aprovada | Concluído em 05/10, 13h49 de Manaus: chave real autenticada e general=APPROVED; [prova e revisão](evidence/production-preflight-20261005.md). Pendência bancária registrada separadamente |
-| 7.2 | Secrets, webhook e agendamento de Produção | Parcial: quatro secrets exclusivos do backend e token GitHub/backend validados por consulta real; conferência do webhook, entrega e ativação do agendador pendentes |
+| 7.2 | Secrets, webhook e agendamento de Produção | Parcial: secrets e conta validados; webhook único com endereço/API/eventos corretos, porém ativo durante Sandbox; correspondência do token não comprovada, entrega/ativação/agendamento pendentes. [Prova real](evidence/production-preflight-20261005.md) |
 | 7.3 | Recebimento, ledger e acesso reais comprovados | Em aberto; responsável fará compra de R$1 quando liberada |
 | 7.4 | Decisão de liberação para vendas | Pendente dos demais aceites |
 
