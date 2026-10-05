@@ -137,27 +137,39 @@ jobs:
                   and ((.missing_automated_events | sort) == ((automated - .configured_events) | sort))
                   and ((.missing_review_events | sort) == ((review - .configured_events) | sort))
                   and (.unknown_events_count | type == "number" and . == floor and . >= 0 and . <= 300);
-                def prepared: .enabled == false and .interrupted == false and .api_version == 3
-                  and .send_type == "SEQUENTIALLY" and .token_matches == true
+                def configured: .enabled == false and .interrupted == false and .api_version == 3
+                  and .send_type == "SEQUENTIALLY"
                   and (.missing_automated_events | length) == 0 and (.missing_review_events | length) == 0 and .unknown_events_count == 0;
-                .available == true and .contract == "dentalflow-production-webhook-preflight-v1" and .environment == "production"
+                .available == true and .contract == "dentalflow-production-webhook-preflight-v2" and .environment == "production"
                 and .configuration_valid == true and .credentials_valid == true and (.checked_at | stamp)
                 and (.listing_complete | type == "boolean") and (.webhooks | type == "array" and length <= 100 and all(.[]; entry))
                 and (.matching_webhooks == (.webhooks | length))
-                and (.webhook_prepared == (.listing_complete and .matching_webhooks == 1 and (.webhooks | all(.[]; prepared))))
+                and (.webhook_configuration_valid == (.listing_complete and .matching_webhooks == 1 and (.webhooks | all(.[]; configured))))
+                and (.token_verification == (if .listing_complete and .matching_webhooks == 1 then
+                  (if .webhooks[0].token_matches == true then "confirmed"
+                   elif .webhooks[0].token_matches == false then "mismatch" else "requires_delivery" end)
+                  else "not_checked" end))
+                and (.webhook_prepared == (.webhook_configuration_valid and .token_verification == "confirmed"))
                 and .webhook_delivery_verified == false and .financial_processing_invoked == false
               ' "$response_file" > /dev/null; then
                 jq '{available,contract,environment,checked_at,configuration_valid,credentials_valid,
-                  listing_complete,matching_webhooks,webhook_prepared,
+                  listing_complete,matching_webhooks,webhook_configuration_valid,token_verification,webhook_prepared,
                   webhooks:[.webhooks[] | {id,enabled,interrupted,api_version,send_type,token_matches,
                     configured_events,missing_automated_events,missing_review_events,unknown_events_count}],
                   webhook_delivery_verified,financial_processing_invoked}' "$response_file" > production-webhook-preflight.json
                 echo 'Production webhook configuration read without changing or sending events.'
-                if ! jq -e '.webhook_prepared == true' production-webhook-preflight.json > /dev/null; then
-                  echo '::error::Production webhook is not confirmed as prepared and disabled. Inspect sanitized configuration evidence.'
+                if ! jq -e '.webhook_configuration_valid == true' production-webhook-preflight.json > /dev/null; then
+                  echo '::error::Production webhook configuration is not confirmed as correct and disabled. Inspect sanitized evidence.'
                   exit 1
                 fi
-                echo 'Disabled Production webhook preparation confirmed. Delivery and financial acceptance remain separate gates.'
+                if jq -e '.token_verification == "mismatch"' production-webhook-preflight.json > /dev/null; then
+                  echo '::error::Production webhook token mismatch confirmed. Inspect the protected configuration.'
+                  exit 1
+                fi
+                if jq -e '.token_verification == "requires_delivery"' production-webhook-preflight.json > /dev/null; then
+                  echo '::notice::Asaas hides the webhook token after creation. Authentication remains pending real provider delivery; no event was sent.'
+                fi
+                echo 'Disabled Production webhook configuration confirmed. Authentication, delivery and financial acceptance remain separate gates.'
                 exit 0
               fi
               diagnostic_code=$(jq -r '

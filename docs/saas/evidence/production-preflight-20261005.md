@@ -96,3 +96,31 @@ com uma execução manual isolada. Não reenviar dead letters como diagnóstico.
 
 Decisão: 7.1 continua concluído; 7.2 permanece parcial. Não habilitar vendas
 ou afirmar recebimento/entrega como comprovados com essas consultas.
+
+## Ajuste do titular confirmado — 14h36 de Manaus
+
+O titular informou "salvo" às 14h35 de Manaus. A nova consulta real foi
+registrada no job 111922468640 da execução 37354065989.
+Artefato 11365181776, criado em 2026-10-05T18:36:23Z,
+SHA-256 do ZIP 633f47618d2964bcea1f45cac8b4714e50fe0bd8d45f3979f11f440942c5fb5e.
+Resposta original preservada em
+[production-webhook-disabled-20261005.json](production-webhook-disabled-20261005.json).
+
+enabled=false, interrupted=false, um único webhook, endereço correto,
+API v3, envio sequencial e todos os 13 eventos confirmados. Token continua
+omitido. A documentação oficial informa que seu valor é retornado apenas na
+criação, tornando inadequado exigir que uma listagem normal o devolva.
+
+O contrato webhook-v2 separa webhook_configuration_valid de token_verification.
+Omissão normal indica requires_delivery; divergência efetivamente comparável
+indica mismatch e continua recusada. O workflow não falha por omissão normal,
+mas mantém autenticação, entrega e aceites financeiros pendentes. Nenhum token
+novo foi gerado, webhook criado ou evento enviado para obter esta prova.
+
+Fonte: https://docs.asaas.com/docs/criar-novo-webhook-pela-api
+
+Execução agendada Sandbox 37356822791, criada em 18h33 UTC, foi bem-sucedida;
+heartbeat confirmado em 2026-10-05T18:33:30.124305Z. Isso comprova retomada
+recente, sem encerrar a regularidade após os intervalos anteriores. A consulta
+de capacidades mostrou pg_cron/pg_net disponíveis e pré-carregados no backend,
+porém ainda não instalados; nenhum agendamento de banco foi criado nesta prova.
