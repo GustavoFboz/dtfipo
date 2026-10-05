@@ -38,3 +38,7 @@ confirmação individual e descarte após troca de conta/login.
 A implantação não executa a revisão dos dois eventos existentes. Eles permanecem
 preservados até uma decisão na sessão real Master/AAL2. O item 1.1 continua
 parcial; o replay financeiro real permanece um aceite separado de 4.2.
+
+A revisão foi integrada, instalada e confirmada na publicação em 05/10,
+18h54–18h57 de Manaus. CI e dois restores passaram; 286 testes locais passaram.
+Ver [recibos e próximo aceite real](evidence/external-test-review-20261005.md).
