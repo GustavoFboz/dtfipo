@@ -124,3 +124,16 @@ heartbeat confirmado em 2026-10-05T18:33:30.124305Z. Isso comprova retomada
 recente, sem encerrar a regularidade após os intervalos anteriores. A consulta
 de capacidades mostrou pg_cron/pg_net disponíveis e pré-carregados no backend,
 porém ainda não instalados; nenhum agendamento de banco foi criado nesta prova.
+
+## Contrato webhook-v2 publicado e confirmado
+
+PR 135, merge 165d464af976312eb7f6a02c4a459a276cb2621b,
+publicado após sincronização do projeto. Execução 37358820530,
+job 111931835130 concluído com sucesso. Artefato 11365838988,
+SHA-256 do ZIP 87ff2f0cb574a6f186badfadfa7aa7cc3e598929c467660b9d8af9ee2527bd98.
+
+[Resposta original](production-webhook-configuration-v2-20261005.json):
+webhook_configuration_valid=true, token_verification=requires_delivery,
+webhook_prepared=false, webhook_delivery_verified=false. Confirma a correção
+publicada e configuração desativada sem afirmar autenticação/entrega.
+Aceites permanecem 1/23; nenhuma cobrança real foi criada para esta prova.

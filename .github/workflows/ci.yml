@@ -66,6 +66,7 @@ jobs:
           bun run check:saas:stage-09
           node scripts/check-saas-worker-workflows.mjs
           node scripts/check-asaas-production-preflight.mjs
+          node scripts/check-asaas-database-scheduler.mjs
           bunx vitest run --configLoader runner src/lib/offline-access-policy.test.ts src/lib/desktop-local.offline-expiration.test.ts
           bunx vitest run --configLoader runner src/lib/billing/asaas.server.test.ts src/lib/billing/asaas-provisioning.server.test.ts src/lib/billing/asaas-checkout.server.test.ts src/lib/billing/asaas-webhook.server.test.ts src/lib/billing/asaas-renewal.server.test.ts src/lib/billing/asaas-document.server.test.ts
           bunx vitest run --configLoader runner src/lib/storage.test.ts
@@ -77,6 +78,7 @@ jobs:
           bunx vitest run --configLoader runner src/lib/billing-change-requests.test.ts src/components/billing/BillingChangeRequestsPanel.test.tsx
           bunx vitest run --configLoader runner src/lib/master-operational-health.test.ts src/lib/billing/asaas-worker-health.server.test.ts
           bunx vitest run --configLoader runner src/lib/billing/asaas-production-preflight.server.test.ts
+          bunx vitest run --configLoader runner src/lib/billing/asaas-database-scheduler.server.test.ts
 
       # The repository has substantial pre-existing formatting/lint debt.
       # A repo-wide lint gate currently reports thousands of legacy findings,

@@ -3715,6 +3715,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      billing_configure_database_scheduler: {
+        Args: { p_environment: string; p_worker_token: string }
+        Returns: Json
+      }
+      billing_database_scheduler_status: {
+        Args: { p_environment: string }
+        Returns: Json
+      }
+      billing_disable_database_scheduler: {
+        Args: { p_environment: string }
+        Returns: boolean
+      }
+      billing_enqueue_database_worker: {
+        Args: { p_environment: string }
+        Returns: number
+      }
       active_company_member: {
         Args: { _clinic_id: string; _user_id?: string }
         Returns: boolean
@@ -4031,7 +4047,6 @@ export type Database = {
         Args: { _clinic_id: string }
         Returns: boolean
       }
-      can_modify_case: { Args: { _case_id: string }; Returns: boolean }
       cancel_storage_upload: { Args: { _file_id: string }; Returns: undefined }
       case_activity_visible_to_user: {
         Args: { _case_id: string; _created_at: string; _user_id?: string }

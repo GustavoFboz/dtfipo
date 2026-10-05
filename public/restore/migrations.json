@@ -167,5 +167,7 @@
   "20261004010000_saas_operational_health_stage09.sql",
   "20261004183500_saas_patient_company_boundary_stage06.sql",
   "20261005062000_saas_case_company_boundary_stage07.sql",
+  "20261005111000_fix_case_insert_returning_rls.sql",
+  "20261005190000_saas_database_scheduler_stage09.sql",
   "20260718000001_zzz_self_heal_v2.sql"
 ]
