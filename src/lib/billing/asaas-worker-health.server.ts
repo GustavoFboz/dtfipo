@@ -20,7 +20,7 @@ function json(body: object, status: number) {
     "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store",
   } });
 }
-function authorized(request: Request, expected: string) {
+export function isAsaasWorkerAuthorized(request: Request, expected: string) {
   const value = request.headers.get("authorization")?.replace(/^Bearer /, "");
   if (!value || expected.length < 32 || /[\r\n]/.test(expected)) return false;
   const a = Buffer.from(value), b = Buffer.from(expected);
@@ -33,7 +33,7 @@ export async function inspectAsaasWorker(request: Request, dependencies?: Health
   let token: string;
   try { token = dependencies?.workerToken ?? loadAsaasWorkerToken(); }
   catch { return json({ available: false }, 401); }
-  if (!authorized(request, token)) return json({ available: false }, 401);
+  if (!isAsaasWorkerAuthorized(request, token)) return json({ available: false }, 401);
   let deps: HealthDependencies;
   try {
     if (dependencies) deps = dependencies;

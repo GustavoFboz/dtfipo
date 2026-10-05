@@ -4,6 +4,10 @@ export const Route = createFileRoute("/api/billing/asaas-worker")({
   server: {
     handlers: {
       GET: async ({ request }: { request: Request }) => {
+        if (new URL(request.url).searchParams.get("check") === "inbox-review") {
+          const { inspectAsaasInboxReview } = await import("@/lib/billing/asaas-inbox-review.server");
+          return inspectAsaasInboxReview(request);
+        }
         if (new URL(request.url).searchParams.get("check") === "database-scheduler") {
           const { manageAsaasDatabaseScheduler } = await import("@/lib/billing/asaas-database-scheduler.server");
           return manageAsaasDatabaseScheduler(request);

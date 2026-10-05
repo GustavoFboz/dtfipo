@@ -79,6 +79,7 @@ jobs:
           bunx vitest run --configLoader runner src/lib/master-operational-health.test.ts src/lib/billing/asaas-worker-health.server.test.ts
           bunx vitest run --configLoader runner src/lib/billing/asaas-production-preflight.server.test.ts
           bunx vitest run --configLoader runner src/lib/billing/asaas-database-scheduler.server.test.ts
+          bunx vitest run --configLoader runner src/lib/billing/asaas-inbox-review.server.test.ts
 
       # The repository has substantial pre-existing formatting/lint debt.
       # A repo-wide lint gate currently reports thousands of legacy findings,
