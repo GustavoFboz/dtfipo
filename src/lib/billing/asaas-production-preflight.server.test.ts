@@ -64,16 +64,37 @@ describe("private readonly staged Production account diagnostic", () => {
     const fetch = vi.fn(async () => new Response("private credential and personal data", { status }));
     const response = await inspectAsaasProductionSetup(request(), { source, fetch });
     expect(response.status).toBe(502); expect(await response.json()).toEqual({ available: false,
-      code: status === 401 || status === 403 ? "PRODUCTION_CREDENTIAL_REFUSED" : "PRODUCTION_PROVIDER_UNAVAILABLE" });
+      code: status === 401 || status === 403 ? "PRODUCTION_CREDENTIAL_REFUSED" : "PRODUCTION_PROVIDER_UNAVAILABLE",
+      provider_http_status: status });
   });
 
   it("redacts network/redirect errors and rejects invalid account states", async () => {
     const fetch = vi.fn().mockRejectedValueOnce(new Error(source.ASAAS_PRODUCTION_API_KEY))
       .mockResolvedValueOnce(Response.json({ ...account, general: "APPROVED-with-private-data" }));
     const failed = await inspectAsaasProductionSetup(request(), { source, fetch });
-    expect(await failed.json()).toEqual({ available: false, code: "PRODUCTION_PROVIDER_UNAVAILABLE" });
+    expect(await failed.json()).toEqual({ available: false, code: "PRODUCTION_PROVIDER_UNAVAILABLE",
+      provider_http_status: null, transport_code: null });
     const invalid = await inspectAsaasProductionSetup(request(), { source, fetch });
-    expect(await invalid.json()).toEqual({ available: false, code: "PRODUCTION_STATUS_INVALID" });
+    expect(await invalid.json()).toEqual({ available: false, code: "PRODUCTION_STATUS_INVALID", provider_http_status: 200 });
+  });
+
+  it.each(["ENOTFOUND", "ECONNREFUSED", "CERT_HAS_EXPIRED", "UND_ERR_CONNECT_TIMEOUT"])(
+    "exposes only the permitted transport code %s, without messages or credentials", async (code) => {
+      const fetch = vi.fn().mockRejectedValue(Object.assign(new Error(source.ASAAS_PRODUCTION_API_KEY),
+        { cause: { code, message: source.ASAAS_PRODUCTION_API_KEY } }));
+      const response = await inspectAsaasProductionSetup(request(), { source, fetch });
+      expect(await response.json()).toEqual({ available: false, code: "PRODUCTION_PROVIDER_UNAVAILABLE",
+        provider_http_status: null, transport_code: code });
+    });
+
+  it("does not expose an unknown transport code and classifies malformed provider JSON", async () => {
+    const fetch = vi.fn().mockRejectedValueOnce({ code: source.ASAAS_PRODUCTION_API_KEY,
+      cause: { code: source.ASAAS_PRODUCTION_API_KEY } })
+      .mockResolvedValueOnce(new Response(source.ASAAS_PRODUCTION_API_KEY, { status: 200 }));
+    expect(await (await inspectAsaasProductionSetup(request(), { source, fetch })).json()).toEqual({ available: false,
+      code: "PRODUCTION_PROVIDER_UNAVAILABLE", provider_http_status: null, transport_code: null });
+    expect(await (await inspectAsaasProductionSetup(request(), { source, fetch })).json()).toEqual({ available: false,
+      code: "PRODUCTION_STATUS_INVALID", provider_http_status: 200, transport_code: null });
   });
 
   it.each(["ASAAS_PRODUCTION_API_KEY", "ASAAS_PRODUCTION_WEBHOOK_TOKEN", "BILLING_PRODUCTION_REPLAY_TOKEN"])(
@@ -100,6 +121,7 @@ describe("private readonly staged Production account diagnostic", () => {
     await vi.advanceTimersByTimeAsync(10_001);
     const response = await pending;
     expect(signal?.aborted).toBe(true); expect(fetch).toHaveBeenCalledOnce();
-    expect(await response.json()).toEqual({ available: false, code: "PRODUCTION_PREFLIGHT_TIMEOUT" });
+    expect(await response.json()).toEqual({ available: false, code: "PRODUCTION_PREFLIGHT_TIMEOUT",
+      provider_http_status: null, transport_code: null });
   });
 });

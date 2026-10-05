@@ -71,10 +71,27 @@ jobs:
                     or . == "PRODUCTION_PROVIDER_UNAVAILABLE" or . == "PRODUCTION_STATUS_INVALID"
                     or . == "PRODUCTION_PREFLIGHT_TIMEOUT" then . else "UNCLASSIFIED" end
               ' "$response_file" 2>/dev/null) || diagnostic_code=UNCLASSIFIED
+              provider_status=$(jq -r '
+                if type == "object" and (.provider_http_status | type == "number") then .provider_http_status
+                  | if . == floor and . >= 100 and . <= 599 then tostring else "NONE" end
+                else "NONE" end
+              ' "$response_file" 2>/dev/null) || provider_status=NONE
+              transport_code=$(jq -r '
+                if type == "object" then .transport_code else null end
+                | if . == "ENOTFOUND" or . == "EAI_AGAIN" or . == "ECONNRESET" or . == "ECONNREFUSED"
+                    or . == "EHOSTUNREACH" or . == "ENETUNREACH" or . == "ETIMEDOUT" or . == "CERT_HAS_EXPIRED"
+                    or . == "ERR_TLS_CERT_ALTNAME_INVALID" or . == "UNABLE_TO_VERIFY_LEAF_SIGNATURE"
+                    or . == "UND_ERR_CONNECT_TIMEOUT" or . == "UND_ERR_SOCKET" or . == "ERR_SSL_WRONG_VERSION_NUMBER"
+                  then . else "NONE" end
+              ' "$response_file" 2>/dev/null) || transport_code=NONE
               jq -n --arg http_status "$http_status" --arg code "$diagnostic_code" \
-                '{available:false,http_status:$http_status,code:$code,financial_processing_invoked:false}' \
+                --arg provider_status "$provider_status" --arg transport_code "$transport_code" \
+                '{available:false,http_status:$http_status,code:$code,financial_processing_invoked:false,
+                  provider_http_status:(if $provider_status == "NONE" then null else ($provider_status | tonumber) end),
+                  transport_code:(if $transport_code == "NONE" then null else $transport_code end)}' \
                 > production-preflight.json
-              printf 'Production preflight diagnostic: HTTP %s, code %s.\n' "$http_status" "$diagnostic_code"
+              printf 'Production preflight diagnostic: HTTP %s, code %s. Provider HTTP %s, transport %s.\n' \
+                "$http_status" "$diagnostic_code" "$provider_status" "$transport_code"
               if [[ "$http_status" == "401" || "$http_status" == "502" ]]; then
                 echo "::error::Production preflight refused or provider verification failed (HTTP $http_status). No financial processing was invoked."
                 exit 1

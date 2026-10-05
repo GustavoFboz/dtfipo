@@ -10,6 +10,18 @@ type Dependencies = { source?: Record<string, string | undefined>; fetch?: typeo
 function json(body: object, status: number) {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
 }
+const transportCodes = new Set(["ENOTFOUND", "EAI_AGAIN", "ECONNRESET", "ECONNREFUSED", "EHOSTUNREACH",
+  "ENETUNREACH", "ETIMEDOUT", "CERT_HAS_EXPIRED", "ERR_TLS_CERT_ALTNAME_INVALID",
+  "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "UND_ERR_CONNECT_TIMEOUT", "UND_ERR_SOCKET", "ERR_SSL_WRONG_VERSION_NUMBER"]);
+function safeTransportCode(error: unknown) {
+  if (typeof error !== "object" || error === null) return null;
+  const item = error as { code?: unknown; cause?: unknown };
+  const cause = typeof item.cause === "object" && item.cause !== null ? item.cause as { code?: unknown } : null;
+  for (const code of [cause?.code, item.code]) {
+    if (typeof code === "string" && transportCodes.has(code)) return code;
+  }
+  return null;
+}
 function authorized(request: Request, source: Record<string, string | undefined>) {
   const expected = source.BILLING_PRODUCTION_WORKER_TOKEN?.trim() ?? "";
   const supplied = request.headers.get("authorization")?.replace(/^Bearer /, "") ?? "";
@@ -32,6 +44,7 @@ export async function inspectAsaasProductionSetup(request: Request, dependencies
   catch { return json({ available: false, code: "PRODUCTION_CONFIGURATION_FAILED" }, 503); }
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let providerHttpStatus: number | null = null;
   try {
     const fetchImpl = dependencies.fetch ?? globalThis.fetch;
     const probe = async () => {
@@ -39,14 +52,15 @@ export async function inspectAsaasProductionSetup(request: Request, dependencies
         method: "GET", redirect: "error", cache: "no-store", signal: controller.signal,
         headers: { Accept: "application/json", "User-Agent": credentials.userAgent, access_token: credentials.apiKey },
       });
+      providerHttpStatus = response.status;
       // Never echo a provider body/error: it may include personal data or tokens.
       if (!response.ok) {
         const code = response.status === 401 || response.status === 403
           ? "PRODUCTION_CREDENTIAL_REFUSED" : "PRODUCTION_PROVIDER_UNAVAILABLE";
-        return json({ available: false, code }, 502);
+        return json({ available: false, code, provider_http_status: response.status }, 502);
       }
       const parsed = accountSchema.safeParse(await response.json());
-      if (!parsed.success) return json({ available: false, code: "PRODUCTION_STATUS_INVALID" }, 502);
+      if (!parsed.success) return json({ available: false, code: "PRODUCTION_STATUS_INVALID", provider_http_status: 200 }, 502);
       const account = parsed.data;
       const currentEnvironment = source.ASAAS_ENVIRONMENT?.trim();
       return json({ available: true, contract: PRODUCTION_PREFLIGHT_CONTRACT, environment: "production",
@@ -62,7 +76,10 @@ export async function inspectAsaasProductionSetup(request: Request, dependencies
       timer = setTimeout(() => { controller.abort(); reject(new Error("PRODUCTION_PREFLIGHT_TIMEOUT")); }, 10_000);
     })]);
   } catch (error) {
-    return json({ available: false, code: error instanceof Error && error.message === "PRODUCTION_PREFLIGHT_TIMEOUT"
-      ? "PRODUCTION_PREFLIGHT_TIMEOUT" : "PRODUCTION_PROVIDER_UNAVAILABLE" }, 502);
+    const code = error instanceof Error && error.message === "PRODUCTION_PREFLIGHT_TIMEOUT"
+      ? "PRODUCTION_PREFLIGHT_TIMEOUT" : providerHttpStatus === 200
+        ? "PRODUCTION_STATUS_INVALID" : "PRODUCTION_PROVIDER_UNAVAILABLE";
+    return json({ available: false, code, provider_http_status: providerHttpStatus,
+      transport_code: providerHttpStatus === null ? safeTransportCode(error) : null }, 502);
   } finally { if (timer) clearTimeout(timer); controller.abort(); }
 }
