@@ -46,3 +46,26 @@ a conexão necessária para receber dinheiro real.
 Os protocolos completos de desempenho/capacidade e Segurança DentalFlow
 continuam separados. Os requisitos mínimos acima são gates desta liberação;
 não representam certificação de ausência de falhas ou invasões.
+
+## Continuidade de 05/10/2026 — identidade e documentos operacionais
+
+Etapa atual: **4/7**. O relatório mais recente do Lovable informa login real,
+MFA, logout/revogação e isolamento das duas fixtures mantidas. Senha de sete
+caracteres foi recusada (HTTP 422); isso não determina o mínimo exato nem prova
+cadastro/confirmação por e-mail. Recuperação e replay financeiro não foram
+comprovados. Leitura Master em AAL1 é comportamento previsto; replay exige AAL2.
+
+O plano jurídico de preparação da etapa 6/7 está em
+[LEGAL-OPERATIONS-PROTOCOL.md](LEGAL-OPERATIONS-PROTOCOL.md), com oito ações,
+dependências e critérios para redigir e revisar os documentos posteriormente.
+Não autoriza cobranças, uso clínico secundário nem publicação de minutas.
+
+A revisão encontrou URLs assinadas persistidas por um ano em anexos de pacientes
+e dez anos em fotos/avatar. A correção exige renovação autorizada, isolamento
+do cache por conta e tratamento das URLs antigas sem apagar arquivos clínicos.
+Permanece como aceite aberto de 3/7 e 4/7.
+
+Nesta rodada passaram 209 testes em 14 arquivos (armazenamento, Master, Auth,
+billing e licença Desktop), mais verificações estáticas das etapas 06/09 e
+bootstrap Desktop. São provas locais de regressão, não substituem aceites reais.
+Nenhuma das sete etapas foi encerrada; nenhum crédito de chat Lovable foi usado.
