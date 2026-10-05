@@ -61,7 +61,9 @@ jobs:
       # so enabling it here would make unrelated historical debt block this
       # stabilization PR. Track cleanup separately in docs/ROADMAP.md.
       - name: Verify SaaS scheduler contracts with fake HTTP
-        run: node scripts/check-saas-worker-workflows.mjs
+        run: |
+          node scripts/check-saas-worker-workflows.mjs
+          node scripts/check-asaas-production-preflight.mjs
 
       - name: Production build
         run: bun run build
