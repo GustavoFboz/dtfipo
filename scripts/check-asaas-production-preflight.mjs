@@ -52,7 +52,8 @@ process.stdout.write(process.env.FIXTURE_STATUS);
     const result = run({ error: "PRIVATE_ERROR_MARKER" }, status);
     assert.notEqual(result.status, 0); assert(!`${result.stdout}${result.stderr}`.includes("PRIVATE_ERROR_MARKER"));
     assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-preflight.json"), "utf8")),
-      { available: false, http_status: status, code: "UNCLASSIFIED", financial_processing_invoked: false });
+      { available: false, http_status: status, code: "UNCLASSIFIED", financial_processing_invoked: false,
+        provider_http_status: null, transport_code: null });
   }
   for (const code of ["PRODUCTION_CONFIGURATION_FAILED", "PRODUCTION_CREDENTIAL_REFUSED",
     "PRODUCTION_PROVIDER_UNAVAILABLE", "PRODUCTION_STATUS_INVALID", "PRODUCTION_PREFLIGHT_TIMEOUT"]) {
@@ -60,13 +61,29 @@ process.stdout.write(process.env.FIXTURE_STATUS);
     assert.notEqual(result.status, 0); assert(result.stdout.includes(`code ${code}.`));
     assert(!`${result.stdout}${result.stderr}`.includes("PRIVATE_ERROR_MARKER"));
     assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-preflight.json"), "utf8")),
-      { available: false, http_status: "502", code, financial_processing_invoked: false });
+      { available: false, http_status: "502", code, financial_processing_invoked: false,
+        provider_http_status: null, transport_code: null });
   }
   for (const body of [{ code: "PRIVATE_ERROR_MARKER" }, ["PRODUCTION_CREDENTIAL_REFUSED"], null]) {
     const result = run(body, "502"); assert.notEqual(result.status, 0);
     assert(result.stdout.includes("code UNCLASSIFIED."));
     assert(!`${result.stdout}${result.stderr}`.includes("PRIVATE_ERROR_MARKER"));
     assert(!fs.readFileSync(path.join(tmp, "production-preflight.json"), "utf8").includes("PRIVATE_ERROR_MARKER"));
+  }
+  for (const provider_http_status of [200, 400, 429, 503]) {
+    const result = run({ code: "PRODUCTION_PROVIDER_UNAVAILABLE", provider_http_status,
+      transport_code: "PRIVATE_ERROR_MARKER", error: "PRIVATE_ERROR_MARKER" }, "502");
+    assert.notEqual(result.status, 0); assert(result.stdout.includes(`Provider HTTP ${provider_http_status}, transport NONE.`));
+    assert(!`${result.stdout}${result.stderr}`.includes("PRIVATE_ERROR_MARKER"));
+    assert.equal(JSON.parse(fs.readFileSync(path.join(tmp, "production-preflight.json"), "utf8")).provider_http_status,
+      provider_http_status);
+  }
+  for (const provider_http_status of ["PRIVATE_ERROR_MARKER", 429.5, 0, 600]) {
+    const result = run({ code: "PRODUCTION_PROVIDER_UNAVAILABLE", provider_http_status,
+      transport_code: "ENOTFOUND", error: "PRIVATE_ERROR_MARKER" }, "502");
+    assert.notEqual(result.status, 0); assert(result.stdout.includes("Provider HTTP NONE, transport ENOTFOUND."));
+    assert(!`${result.stdout}${result.stderr}`.includes("PRIVATE_ERROR_MARKER"));
+    assert.equal(JSON.parse(fs.readFileSync(path.join(tmp, "production-preflight.json"), "utf8")).provider_http_status, null);
   }
   console.log("Production preflight workflow: fixed private GET, secret via stdin, safe evidence, pending-account and financial guards passed (fake HTTP).");
 } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
