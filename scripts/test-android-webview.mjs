@@ -70,6 +70,17 @@ try {
     await evaluate(`(async () => {
       const db = await new Promise((resolve, reject) => {
         const r = indexedDB.open('dentalflow-mobile-local-v1', 1);
+        // Auth-only startup has not opened the clinical database yet. Seed its
+        // actual version-1 schema before inserting disposable owner fixtures.
+        r.onupgradeneeded = () => {
+          const db = r.result;
+          const cache = db.createObjectStore('cache', {keyPath:'id'});
+          cache.createIndex('owner_namespace',['owner_id','namespace'],{unique:false});
+          cache.createIndex('owner','owner_id',{unique:false});
+          const outbox = db.createObjectStore('outbox',{keyPath:'id'});
+          outbox.createIndex('owner_status',['owner_id','status'],{unique:false});
+          outbox.createIndex('owner','owner_id',{unique:false});
+        };
         r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error);
       });
       const tx = db.transaction(['cache','outbox'], 'readwrite');
