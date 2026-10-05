@@ -64,7 +64,7 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: "2.119.0"
 
       - name: Start isolated clean Supabase database
         shell: bash
@@ -254,6 +254,13 @@ jobs:
           docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
             < docs/saas/sql/stage-09-operational-health-rehearsal.sql | tee restore-stage-09-health.log
 
+      - name: Rehearse private database scheduler with rollback and no HTTP delivery
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/database-scheduler-rehearsal.sql | tee restore-database-scheduler.log
+
       - name: Record sanitized restored-schema audit
         shell: bash
         run: |
@@ -295,6 +302,7 @@ jobs:
             restore-stage-08-request-concurrency.log
             restore-stage-09-health-assertions.log
             restore-stage-09-health.log
+            restore-database-scheduler.log
             restore-audit.log
 
       - name: Stop isolated database

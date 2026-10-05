@@ -33,7 +33,7 @@ function safeTransportCode(error: unknown) {
   }
   return null;
 }
-function authorized(request: Request, source: Record<string, string | undefined>) {
+export function isProductionWorkerAuthorized(request: Request, source: Record<string, string | undefined>) {
   const expected = source.BILLING_PRODUCTION_WORKER_TOKEN?.trim() ?? "";
   const supplied = request.headers.get("authorization")?.replace(/^Bearer /, "") ?? "";
   if (expected.length < 32 || expected.length > 255 || /\s/.test(expected) || expected.startsWith("$aact_") ||
@@ -49,7 +49,7 @@ function authorized(request: Request, source: Record<string, string | undefined>
 export async function inspectAsaasProductionSetup(request: Request, dependencies: Dependencies = {}): Promise<Response> {
   if (request.method !== "GET") return json({ available: false }, 405);
   const source = dependencies.source ?? process.env;
-  if (!authorized(request, source)) return json({ available: false }, 401);
+  if (!isProductionWorkerAuthorized(request, source)) return json({ available: false }, 401);
   let credentials: ReturnType<typeof loadAsaasProductionPreflightSecrets>;
   try { credentials = loadAsaasProductionPreflightSecrets(source); }
   catch { return json({ available: false, code: "PRODUCTION_CONFIGURATION_FAILED" }, 503); }
@@ -104,7 +104,7 @@ export async function inspectAsaasProductionSetup(request: Request, dependencies
 export async function inspectAsaasProductionWebhook(request: Request, dependencies: Dependencies = {}): Promise<Response> {
   if (request.method !== "GET") return json({ available: false }, 405);
   const source = dependencies.source ?? process.env;
-  if (!authorized(request, source)) return json({ available: false }, 401);
+  if (!isProductionWorkerAuthorized(request, source)) return json({ available: false }, 401);
   let credentials: ReturnType<typeof loadAsaasProductionPreflightSecrets>;
   try { credentials = loadAsaasProductionPreflightSecrets(source); }
   catch { return json({ available: false, code: "PRODUCTION_CONFIGURATION_FAILED" }, 503); }

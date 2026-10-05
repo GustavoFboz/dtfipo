@@ -4,6 +4,10 @@ export const Route = createFileRoute("/api/billing/asaas-worker")({
   server: {
     handlers: {
       GET: async ({ request }: { request: Request }) => {
+        if (new URL(request.url).searchParams.get("check") === "database-scheduler") {
+          const { manageAsaasDatabaseScheduler } = await import("@/lib/billing/asaas-database-scheduler.server");
+          return manageAsaasDatabaseScheduler(request);
+        }
         if (new URL(request.url).searchParams.get("check") === "production-webhook") {
           const { inspectAsaasProductionWebhook } = await import("@/lib/billing/asaas-production-preflight.server");
           return inspectAsaasProductionWebhook(request);
@@ -16,6 +20,10 @@ export const Route = createFileRoute("/api/billing/asaas-worker")({
         return inspectAsaasWorker(request);
       },
       POST: async ({ request }: { request: Request }) => {
+        if (new URL(request.url).searchParams.get("check") === "database-scheduler") {
+          const { manageAsaasDatabaseScheduler } = await import("@/lib/billing/asaas-database-scheduler.server");
+          return manageAsaasDatabaseScheduler(request);
+        }
         const { processAsaasInbox } = await import("@/lib/billing/asaas-webhook.server");
         return processAsaasInbox(request);
       },

@@ -210,6 +210,10 @@ Somente após os aceites aplicáveis e a decisão de liberação:
   O código passa a ler os quatro secrets exclusivos de Produção já cadastrados.
 - GitHub Variables: BILLING_ENVIRONMENT=production e
   BILLING_PRODUCTION_ENABLED=true. O scheduler usa seu secret de Produção.
+- Se o agendador do backend estiver instalado, registrar seu ambiente production
+  pela rota privada somente após confirmar os novos campos do backend; isso
+  desativa o job Sandbox e usa o token exclusivo de Produção. Não esperar que
+  o bootstrap automático Sandbox faça a troca. Ver DATABASE-SCHEDULER.md.
 - Asaas: ativar o webhook preparado para o mesmo ambiente e validar entrega.
 - Confirmar execução privada do worker, regularidade/alertas e ausência de
   revisão pendente; não disparar replay ou cobrança como um diagnóstico.

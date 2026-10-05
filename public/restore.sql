@@ -17255,6 +17255,298 @@ DROP TRIGGER IF EXISTS trg_case_company_write ON public.cases;
 CREATE TRIGGER trg_case_company_write BEFORE INSERT OR UPDATE ON public.cases FOR EACH ROW EXECUTE FUNCTION public.guard_case_company_write();
 NOTIFY pgrst, 'reload schema';
 
+-- ===== 20261005111000_fix_case_insert_returning_rls.sql =====
+
+-- Hotfix for case creation after the Stage 07 company boundary.
+--
+-- INSERT ... RETURNING is also checked by SELECT RLS. The Stage 07 SELECT
+-- policies called can_access_case(id), whose STABLE implementation re-queried
+-- public.cases. A row inserted by the current statement is not a safe
+-- authorization source for that RETURNING check, so legitimate inserts could
+-- pass the INSERT boundary and then fail on cases_company_read_boundary.
+--
+-- Authorize the row that RLS is already evaluating instead. This preserves the
+-- same company/requester/specialist rules without widening cross-company access.
+
+CREATE OR REPLACE FUNCTION public.can_access_case_row(
+  _patient_id uuid,
+  _requested_by uuid,
+  _cadista_id uuid,
+  _doctor_id uuid,
+  _status text
+)
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user uuid := auth.uid();
+  v_clinic uuid;
+  v_type text;
+  v_admin boolean;
+  v_owner_clinic uuid;
+BEGIN
+  IF v_user IS NULL THEN
+    RETURN false;
+  END IF;
+
+  SELECT
+    p.clinic_id,
+    upper(COALESCE(NULLIF(trim(p.account_subtype), ''), NULLIF(trim(p.role), ''), '')),
+    COALESCE(p.is_default_admin, false)
+  INTO v_clinic, v_type, v_admin
+  FROM public.profiles p
+  WHERE p.id = v_user;
+
+  IF v_clinic IS NULL OR NOT public.company_has_operational_access(v_clinic) THEN
+    RETURN false;
+  END IF;
+
+  SELECT COALESCE(
+    (SELECT p.clinic_id FROM public.profiles p WHERE p.id = _requested_by),
+    (SELECT p.clinic_id FROM public.patients p WHERE p.id = _patient_id),
+    (SELECT p.clinic_id
+       FROM public.cadistas cd
+       JOIN public.profiles p ON p.id = cd.user_id
+      WHERE cd.id = _cadista_id),
+    (SELECT p.clinic_id
+       FROM public.doctors d
+       JOIN public.profiles p ON p.id = d.user_id
+      WHERE d.id = _doctor_id)
+  )
+  INTO v_owner_clinic;
+
+  RETURN
+    (
+      v_owner_clinic = v_clinic
+      AND (
+        v_admin
+        OR v_type IN ('CEO','ADMIN','PROTETICO')
+        OR (
+          v_type NOT IN ('SOLICITANTE','CADISTA','DR','DENTISTA')
+          AND public.is_staff(v_user)
+        )
+      )
+    )
+    OR _requested_by = v_user
+    OR (
+      COALESCE(_status, '') <> 'pendente'
+      AND (
+        (
+          v_type = 'CADISTA'
+          AND EXISTS (
+            SELECT 1
+            FROM public.cadistas cd
+            WHERE cd.id = _cadista_id
+              AND cd.user_id = v_user
+          )
+        )
+        OR (
+          v_type IN ('DR','DENTISTA')
+          AND EXISTS (
+            SELECT 1
+            FROM public.doctors d
+            WHERE d.id = _doctor_id
+              AND d.user_id = v_user
+          )
+        )
+      )
+    );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.can_access_case_row(uuid,uuid,uuid,uuid,text)
+  FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.can_access_case_row(uuid,uuid,uuid,uuid,text)
+  TO authenticated, service_role;
+
+-- Keep the id-based helper for all existing callers, but delegate the actual
+-- authorization to the row-aware predicate above.
+CREATE OR REPLACE FUNCTION public.can_access_case(_case_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.cases c
+    WHERE c.id = _case_id
+      AND public.can_access_case_row(
+        c.patient_id,
+        c.requested_by,
+        c.cadista_id,
+        c.doctor_id,
+        c.status::text
+      )
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.can_access_case(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.can_access_case(uuid) TO authenticated, service_role;
+
+-- Both sides matter for INSERT ... RETURNING:
+-- 1) at least one permissive SELECT policy must accept the new row;
+-- 2) every restrictive SELECT policy must also accept it.
+DROP POLICY IF EXISTS cases_select_by_company_membership ON public.cases;
+CREATE POLICY cases_select_by_company_membership
+ON public.cases
+FOR SELECT TO authenticated
+USING (
+  public.can_access_case_row(
+    patient_id,
+    requested_by,
+    cadista_id,
+    doctor_id,
+    status::text
+  )
+);
+
+DROP POLICY IF EXISTS cases_company_read_boundary ON public.cases;
+CREATE POLICY cases_company_read_boundary
+ON public.cases
+AS RESTRICTIVE
+FOR SELECT TO authenticated
+USING (
+  public.can_access_case_row(
+    patient_id,
+    requested_by,
+    cadista_id,
+    doctor_id,
+    status::text
+  )
+);
+
+NOTIFY pgrst, 'reload schema';
+
+-- ===== 20261005190000_saas_database_scheduler_stage09.sql =====
+
+-- Backend-owned dispatch cadence. Migration creates no active jobs or secrets.
+create extension if not exists pg_cron with schema pg_catalog;
+create extension if not exists pg_net with schema extensions;
+create extension if not exists supabase_vault;
+
+-- Best-effort grants on managed extension objects. Supabase can retain PUBLIC
+-- grants owned by supabase_admin; actual isolation also requires hidden Data API
+-- schemas, NOLOGIN client roles and no executable SECURITY DEFINER bridge.
+revoke all on net.http_request_queue, net._http_response from public, anon, authenticated, service_role;
+
+create table if not exists public.billing_database_scheduler (
+  provider_environment text primary key check (provider_environment in ('sandbox','production')),
+  enabled boolean not null default false,
+  cron_job_id bigint not null,
+  worker_secret_id uuid not null,
+  configured_at timestamptz not null default clock_timestamp(),
+  last_dispatched_at timestamptz,
+  last_request_id bigint
+);
+alter table public.billing_database_scheduler enable row level security;
+revoke all on public.billing_database_scheduler from public, anon, authenticated, service_role;
+
+create or replace function public.billing_database_scheduler_boundary()
+returns boolean language sql stable security definer set search_path = pg_catalog, public as $$
+  select not exists(select 1 from pg_roles where rolname in ('anon','authenticated') and rolcanlogin)
+    and not exists(select 1 from pg_db_role_setting s cross join lateral unnest(s.setconfig) setting
+      where setting like 'pgrst.db_schemas=%' and 'net'=any(string_to_array(replace(split_part(setting,'=',2),' ',''),',')))
+    and not exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname in ('public','graphql_public') and p.prokind='f' and p.prosecdef
+        and pg_get_functiondef(p.oid) ~ 'net\.'
+        and (has_function_privilege('anon',p.oid,'EXECUTE') or has_function_privilege('authenticated',p.oid,'EXECUTE')))
+$$;
+revoke all on function public.billing_database_scheduler_boundary() from public, anon, authenticated, service_role;
+
+create or replace function public.billing_enqueue_database_worker(p_environment text)
+returns bigint language plpgsql security definer set search_path = pg_catalog, public as $$
+declare c public.billing_database_scheduler%rowtype; token text; request_id bigint;
+begin
+  if not public.billing_database_scheduler_boundary() then raise exception 'BILLING_SCHEDULER_BOUNDARY_INVALID'; end if;
+  select * into c from public.billing_database_scheduler
+  where provider_environment=p_environment and enabled;
+  if not found then return null; end if;
+  select decrypted_secret into token from vault.decrypted_secrets where id=c.worker_secret_id;
+  if token is null or length(token) < 32 or length(token) > 255 or token ~ '[[:space:]]' or token like '$aact_%' then
+    raise exception 'BILLING_SCHEDULER_SECRET_INVALID';
+  end if;
+  select net.http_post(
+    url := 'https://dtfipo.lovable.app/api/billing/asaas-worker',
+    headers := jsonb_build_object('Authorization','Bearer '||token,
+      'X-Billing-Environment',p_environment,'Content-Type','application/json'),
+    body := '{}'::jsonb, timeout_milliseconds := 35000
+  ) into request_id;
+  update public.billing_database_scheduler set last_dispatched_at=clock_timestamp(),last_request_id=request_id
+  where provider_environment=p_environment;
+  return request_id;
+end $$;
+revoke all on function public.billing_enqueue_database_worker(text) from public, anon, authenticated, service_role;
+
+create or replace function public.billing_configure_database_scheduler(p_environment text,p_worker_token text)
+returns jsonb language plpgsql security definer set search_path = pg_catalog, public as $$
+declare secret_id uuid; job_id bigint; secret_name text;
+begin
+  if p_environment is null or p_environment not in ('sandbox','production')
+    or p_worker_token is null or length(p_worker_token) < 32 or length(p_worker_token) > 255
+    or p_worker_token ~ '[[:space:]]' or p_worker_token like '$aact_%' then
+    raise exception 'BILLING_SCHEDULER_CONFIGURATION_INVALID';
+  end if;
+  if not public.billing_database_scheduler_boundary() then raise exception 'BILLING_SCHEDULER_BOUNDARY_INVALID'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('dentalflow_billing_database_scheduler',0));
+  -- Only one runtime environment can be primary at a time.
+  perform cron.unschedule(c.cron_job_id)
+    from public.billing_database_scheduler c join cron.job j on j.jobid=c.cron_job_id
+    where c.provider_environment<>p_environment and j.jobname='dentalflow-billing-'||c.provider_environment and j.username=current_user;
+  update public.billing_database_scheduler set enabled=false where provider_environment<>p_environment;
+  secret_name := 'dentalflow_billing_worker_'||p_environment;
+  select id into secret_id from vault.secrets where name=secret_name;
+  if secret_id is null then
+    select vault.create_secret(p_worker_token,secret_name,'DentalFlow private scheduler worker credential') into secret_id;
+  else
+    perform vault.update_secret(secret_id,p_worker_token,secret_name,'DentalFlow private scheduler worker credential');
+  end if;
+  select cron.schedule('dentalflow-billing-'||p_environment,'1-59/5 * * * *',
+    format('select public.billing_enqueue_database_worker(%L);',p_environment)) into job_id;
+  insert into public.billing_database_scheduler(provider_environment,enabled,cron_job_id,worker_secret_id)
+  values(p_environment,true,job_id,secret_id)
+  on conflict(provider_environment) do update set enabled=true,cron_job_id=excluded.cron_job_id,
+    worker_secret_id=excluded.worker_secret_id,configured_at=clock_timestamp();
+  return jsonb_build_object('provider_environment',p_environment,'scheduled',true,
+    'cron_job_id',job_id,'schedule','1-59/5 * * * *');
+end $$;
+revoke all on function public.billing_configure_database_scheduler(text,text) from public, anon, authenticated;
+grant execute on function public.billing_configure_database_scheduler(text,text) to service_role;
+
+create or replace function public.billing_disable_database_scheduler(p_environment text)
+returns boolean language plpgsql security definer set search_path = pg_catalog, public as $$
+begin
+  if p_environment is null or p_environment not in ('sandbox','production') then
+    raise exception 'BILLING_SCHEDULER_CONFIGURATION_INVALID';
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended('dentalflow_billing_database_scheduler',0));
+  perform cron.unschedule(c.cron_job_id)
+    from public.billing_database_scheduler c join cron.job j on j.jobid=c.cron_job_id
+    where c.provider_environment=p_environment and j.jobname='dentalflow-billing-'||c.provider_environment and j.username=current_user;
+  update public.billing_database_scheduler set enabled=false where provider_environment=p_environment;
+  return true;
+end $$;
+revoke all on function public.billing_disable_database_scheduler(text) from public, anon, authenticated;
+grant execute on function public.billing_disable_database_scheduler(text) to service_role;
+
+create or replace function public.billing_database_scheduler_status(p_environment text)
+returns jsonb language sql stable security definer set search_path = pg_catalog, public as $$
+  select jsonb_build_object('provider_environment',c.provider_environment,'enabled',c.enabled,
+    'cron_job_id',c.cron_job_id,'cron_active',coalesce(j.active,false),
+    'schedule',j.schedule,'configured_at',c.configured_at,'last_dispatched_at',c.last_dispatched_at,
+    'last_response_http_status',r.status_code,'last_response_timed_out',r.timed_out)
+  from public.billing_database_scheduler c left join cron.job j on j.jobid=c.cron_job_id
+  left join net._http_response r on r.id=c.last_request_id
+  where c.provider_environment=p_environment
+$$;
+revoke all on function public.billing_database_scheduler_status(text) from public, anon, authenticated;
+grant execute on function public.billing_database_scheduler_status(text) to service_role;
+notify pgrst, 'reload schema';
+
 -- ===== 20260718000001_zzz_self_heal_v2.sql =====
 
 -- =====================================================================
@@ -17680,3 +17972,15 @@ GRANT EXECUTE ON FUNCTION public.platform_master_operational_health() TO authent
 REVOKE ALL ON FUNCTION public.guard_case_company_write() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.resolve_case_clinic_id(uuid), public.can_access_case(uuid), public.can_modify_case(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.resolve_case_clinic_id(uuid), public.can_access_case(uuid), public.can_modify_case(uuid) TO authenticated, service_role;
+
+-- Scheduler credentials and dispatch remain private after blanket grants.
+REVOKE ALL ON TABLE public.billing_database_scheduler,
+  net.http_request_queue, net._http_response FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.billing_enqueue_database_worker(text), public.billing_database_scheduler_boundary()
+  FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.billing_configure_database_scheduler(text,text),
+  public.billing_disable_database_scheduler(text), public.billing_database_scheduler_status(text)
+  FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.billing_configure_database_scheduler(text,text),
+  public.billing_disable_database_scheduler(text), public.billing_database_scheduler_status(text)
+  TO service_role;
