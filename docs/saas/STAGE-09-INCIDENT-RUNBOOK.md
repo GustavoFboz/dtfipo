@@ -1,6 +1,6 @@
 # Operação e recuperação do SaaS
 
-Escopo: monitoramento interno e recuperação controlada. A homologação financeira permanece em standby até o restabelecimento dos créditos; DICOM aguarda a Radiologia. Este roteiro não libera Produção.
+Escopo: monitoramento interno e recuperação controlada. A preparação avança com o backend existente; criação de cobranças e replay exigem seu próprio fluxo autorizado. A compra real de R$1 será realizada pelo responsável após os gates aplicáveis. DICOM aguarda a Radiologia. Este roteiro não libera Produção.
 
 ## Rotina do operador
 
@@ -45,12 +45,25 @@ aceites com pagamento/assinatura reais ou o teste de interface no dispositivo.
 
 ## Agendador e indisponibilidade
 
-O workflow `saas-asaas-inbox-worker.yml` solicita explicitamente **Sandbox** com `X-Billing-Environment: sandbox`. Backend configurado para outro ambiente recusa antes de processar. Não mudar esse cabeçalho para Produção durante a pausa financeira. A troca de ambiente e a configuração das credenciais pertencem ao gate de Produção.
+O workflow `saas-asaas-inbox-worker.yml` usa BILLING_ENVIRONMENT, cujo padrão é **Sandbox**, e envia o mesmo ambiente em X-Billing-Environment. Produção exige habilitação explícita e token separado. Backend configurado para outro ambiente recusa antes de processar. A troca de ambiente e a configuração das credenciais pertencem ao gate de Produção.
 
 O GitHub executa schedules a partir da branch padrão, atualmente `main`; a integração Lovable usa `saas/stage-03-asaas-checkout`. Publicar nessa branch conectada não atualiza o cron em `main`. Os workflows e seu verificador são alinhados por uma integração isolada na `main`, sem mover a branch padrão ou o código do aplicativo. Conferir a presença do secret `BILLING_WORKER_TOKEN` e as execuções reais antes de considerar o agendamento aceito. Um workflow sem credencial deve falhar de forma explícita.
 
-O processamento mantém a frequência nominal de 5 minutos, nos minutos
-2, 7, 12…; o diagnóstico somente de leitura roda a cada 15 minutos, nos
+O apoio no GitHub mantém a frequência nominal de 5 minutos, nos minutos
+2, 7, 12…; só dispensa o POST após o GET privado comprovar job ativo, HTTP 200
+do despacho e heartbeat saudável recentes no mesmo ambiente. Contrato ausente,
+falha ou estado antigo preservam o processamento anterior. A credencial dos
+probes/worker é passada por headers via stdin, sem corpos de erro no log.
+
+A migração do agendador privado foi instalada em 05/10/2026, 15h46 de Manaus,
+sem criar jobs ou segredos. O bootstrap Sandbox 37365444013 está em fila;
+cadastro e disparos ainda exigem comprovação. Quando registrado, pg_cron chama
+o processador nos minutos 1, 6, 11… e guarda o token no Vault. Configuração
+repetida preserva o job; uma troca de ambiente remove o job anterior. Ver
+[DATABASE-SCHEDULER.md](DATABASE-SCHEDULER.md) e sua
+[evidência](evidence/database-scheduler-20261005.md).
+
+O diagnóstico somente de leitura roda a cada 15 minutos, nos
 minutos 7, 22, 37 e 52, e depois de mudanças de backend na branch conectada.
 Essas frequências são agendamentos solicitados, não garantias de prazo do
 GitHub. Não executar POST manualmente como teste durante a pausa financeira.
