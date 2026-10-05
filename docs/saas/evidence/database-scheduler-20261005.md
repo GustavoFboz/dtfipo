@@ -111,3 +111,50 @@ Fonte consultada: https://www.githubstatus.com/
 Nenhuma configuração de Produção, cobrança real, estorno ou replay foi
 executada para esta instalação. Recebimento e autenticação do webhook
 continuam pendentes. Aceites finais: 1/23 (4,35%); 22 em aberto/parciais.
+
+## Registro, cadência e alerta reais — 18h17 de Manaus
+
+Este checkpoint substitui o estado operacional em fila descrito acima; os
+registros anteriores preservam o que era conhecido em cada horário.
+
+Bootstrap [37365444013](https://github.com/GustavoFboz/dtfipo/actions/runs/37365444013),
+tentativa 2, job 111961240845, concluído com sucesso. O registro ocorreu em
+2026-10-05T20:20:52.427494Z (16h20 de Manaus), sem invocar imediatamente o
+worker. O recibo `dentalflow-database-scheduler-v1` confirmou
+`api_isolation_verified=true`, Sandbox e job 1 ativo, schedule
+`1-59/5 * * * *`. Artefato 11368828572,
+`saas-database-scheduler-37365444013`, criado em 20h20:53 UTC.
+SHA-256 do ZIP: 39e9a77587c7c025d24ff622c510ee325d01bd394be0d225be7ccdc29aa842d6.
+
+A consulta real às 22h17:36 UTC comprovou 24 execuções do pg_cron entre
+20h21 e 22h16 UTC, todas sucedidas e separadas por cinco minutos: janela de
+115 minutos. As 24 respostas correspondentes do worker também foram lidas:
+HTTP 200, sem timeout, `monitoringRecorded=true` e contadores de falha/revisão
+iguais a zero. Não se atribui término HTTP à coluna `net._http_response.created`;
+ela aparece como `response_record_created_at`. O heartbeat do último worker
+terminou às 22h16:02.507139 UTC, status ok.
+
+O diagnóstico [37365443348](https://github.com/GustavoFboz/dtfipo/actions/runs/37365443348),
+tentativa 2, detectou heartbeat antigo às 20h19:13.527 UTC.
+A notificação existente do GitHub foi confirmada por leitura do e-mail:
+recebida às 20h19:37 UTC na caixa conectada do operador/repository owner,
+em INBOX, fora de SPAM, autenticação DKIM aprovada. O corpo identifica essa
+mesma execução. Nenhum e-mail foi enviado ou configuração da caixa alterada.
+O diagnóstico agendado [37372084469](https://github.com/GustavoFboz/dtfipo/actions/runs/37372084469)
+concluiu com sucesso após o registro e a recuperação.
+
+Os hashes de contratos pagos e ledger não mudaram entre 21h46:28 e
+22h17:36 UTC. Permanecem cinco eventos processados, dois dead letters, zero
+pagamentos de Produção e Plano Inicial ativo a 100 centavos BRL. Não houve
+replay, criação de cobrança, estorno nem alteração de período pago nessa revisão.
+
+Projeções originais sanitizadas e fontes:
+[worker-operation-acceptance-20261005.json](worker-operation-acceptance-20261005.json).
+O documento não guarda token, conteúdo de e-mail, endereço da caixa ou dados clínicos.
+
+**Aceite 6.1: concluído em Sandbox**, com cadência observada e alerta entregue.
+Não garante prazo futuro de alerta nem cadência de Produção. O alerta ainda
+depende da execução do GitHub e do transporte de e-mail. O gate 7.2 permanece
+aberto e não há job de Produção. Backup operacional, restore de dados e
+rollback são aceites separados de 6.2.
+**Aceites finais: 2/23 — 8,70%; restam 21 parciais/em aberto, 0/7 etapas inteiras.**

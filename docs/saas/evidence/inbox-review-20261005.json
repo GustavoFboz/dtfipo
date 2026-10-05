@@ -1,0 +1,88 @@
+{
+  "contract": "dentalflow-inbox-review-evidence-v1",
+  "publication_commit": "178041cf91b5420c236235ff4b9d82fbc01a8290",
+  "provider_read": {
+    "evidence": {
+      "available": true,
+      "checked_at": "2026-10-05T22:16:51.597Z",
+      "contract": "dentalflow-inbox-review-v1",
+      "environment": "sandbox",
+      "events": [
+        {
+          "attempt_count": 6,
+          "event_type": "PAYMENT_OVERDUE",
+          "id": "9ad8482e-eb0f-48fd-9ea5-aee5c4b776c2",
+          "lookup_code": "RESOURCE_READ",
+          "provider_amount_cents": 500,
+          "provider_deleted": false,
+          "provider_due_date": "2026-09-29",
+          "provider_http_status": 200,
+          "provider_status": "RECEIVED",
+          "provider_subscription_link": "not_reported",
+          "requires_manual_review": true,
+          "resource_id": "pay_w9733yh2mprx2169",
+          "resource_kind": "payment",
+          "snapshot_customer_matches": null,
+          "snapshot_subscription_matches": null,
+          "stored_error_code": "PROVIDER_RECONCILIATION_FAILED"
+        },
+        {
+          "attempt_count": 6,
+          "event_type": "PAYMENT_RECEIVED",
+          "id": "ea41bc68-e051-4e52-b547-af2ac70e50a4",
+          "lookup_code": "RESOURCE_READ",
+          "provider_amount_cents": 500,
+          "provider_deleted": false,
+          "provider_due_date": "2026-09-29",
+          "provider_http_status": 200,
+          "provider_status": "RECEIVED",
+          "provider_subscription_link": "not_reported",
+          "requires_manual_review": true,
+          "resource_id": "pay_w9733yh2mprx2169",
+          "resource_kind": "payment",
+          "snapshot_customer_matches": null,
+          "snapshot_subscription_matches": null,
+          "stored_error_code": "PROVIDER_RECONCILIATION_FAILED"
+        }
+      ],
+      "financial_processing_invoked": false,
+      "has_more": false,
+      "provider_writes_invoked": false,
+      "replay_invoked": false
+    },
+    "http_status": 200,
+    "probe_request_id": 29,
+    "timed_out": false
+  },
+  "local_correlation": {
+    "checked_at": "2026-10-05T21:51:13.777897+00:00",
+    "event_snapshots": [
+      {
+        "customer_id_present": false,
+        "event_type": "PAYMENT_OVERDUE",
+        "external_reference_present": false,
+        "id": "9ad8482e-eb0f-48fd-9ea5-aee5c4b776c2",
+        "payment_id": "pay_w9733yh2mprx2169",
+        "subscription_id_present": false
+      },
+      {
+        "customer_id_present": false,
+        "event_type": "PAYMENT_RECEIVED",
+        "external_reference_present": false,
+        "id": "ea41bc68-e051-4e52-b547-af2ac70e50a4",
+        "payment_id": "pay_w9733yh2mprx2169",
+        "subscription_id_present": false
+      }
+    ],
+    "local_payment_matches": 0,
+    "local_payment_summary": []
+  },
+  "review_decision": {
+    "acceptance_item": "1.1",
+    "status": "partial",
+    "replay_authorized": false,
+    "replay_invoked": false,
+    "ownership_proved": false,
+    "reason": "Same received Sandbox payment (500 cents); provider subscription omitted, no local ledger match or snapshot customer/subscription/reference. Preserve review pending verified contract/context."
+  }
+}

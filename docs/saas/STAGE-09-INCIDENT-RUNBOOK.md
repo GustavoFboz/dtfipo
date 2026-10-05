@@ -56,9 +56,11 @@ falha ou estado antigo preservam o processamento anterior. A credencial dos
 probes/worker é passada por headers via stdin, sem corpos de erro no log.
 
 A migração do agendador privado foi instalada em 05/10/2026, 15h46 de Manaus,
-sem criar jobs ou segredos. O bootstrap Sandbox 37365444013 está em fila;
-cadastro e disparos ainda exigem comprovação. Quando registrado, pg_cron chama
-o processador nos minutos 1, 6, 11… e guarda o token no Vault. Configuração
+sem criar jobs ou segredos. O bootstrap Sandbox 37365444013, tentativa 2,
+concluiu às 16h20 e comprovou o isolamento da Data API antes do registro.
+O pg_cron chama o processador nos minutos 1, 6, 11… e guarda o token no Vault.
+Foram comprovados 24 disparos de 16h21 a 18h16 e 24 respostas HTTP 200,
+com telemetria saudável. Produção não tem job registrado. Configuração
 repetida preserva o job; uma troca de ambiente remove o job anterior. Ver
 [DATABASE-SCHEDULER.md](DATABASE-SCHEDULER.md) e sua
 [evidência](evidence/database-scheduler-20261005.md).
@@ -88,4 +90,6 @@ Reservas antigas devem ser verificadas com o gestor da empresa. Usar a recupera�
 
 Interromper o rollout e desabilitar a flag `ASAAS_PRODUCTION_ENABLED` caso um incidente ocorra após a liberação controlada; não trocar o ambiente para Sandbox mantendo um webhook de Produção ativo. Manter ledger, eventos, auditoria, arquivos e períodos já pagos. Repor uma revisão de código previamente validada, verificar compatibilidade do schema e conferir indicadores e entitlement antes de retomar. Este incremento não oferece botão financeiro, replay automático ou exclusão de histórico.
 
-Antes do piloto ainda faltam: prova do agendamento atualizado e do heartbeat no backend publicado, alertas externos e entrega testada ao operador, testes reais de identidade/replay, provas financeiras Sandbox, credenciais/webhook separados e compra real controlada de R$ 1 feita pelo responsável. As solicitações da etapa 08 não serão executadas automaticamente com o retorno dos créditos.
+O item 6.1 foi aceito em Sandbox em 05/10, 18h17 de Manaus. O alerta real do diagnóstico 37365443348 por heartbeat antigo foi entregue à caixa do operador às 16h19; o diagnóstico agendado 37372084469 passou após a recuperação. A entrega observada não garante prazo futuro: a detecção e o e-mail dependem dos canais do GitHub.
+
+Antes do piloto ainda faltam: testes reais de identidade/replay, provas financeiras Sandbox, backup/restauração operacional de dados, ativação/autenticação do webhook e agendamento/alertas separados de Produção, além da compra real controlada de R$ 1 feita pelo responsável. As solicitações da etapa 08 não serão executadas automaticamente com o retorno dos créditos.
