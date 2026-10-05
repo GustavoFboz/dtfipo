@@ -35,9 +35,10 @@ a conexão necessária para receber dinheiro real.
   Corrigir as telas e as funções da equipe não comprova a recusa de senha fraca
   diretamente no Auth. A configuração e os testes com conta isolada continuam
   sendo um aceite obrigatório de 4/7.
-- A homologação financeira continua em standby por decisão do responsável.
-  Nenhum teste com dinheiro real, cancelamento ou estorno real é iniciado
-  nesta rodada.
+- Em 04/10, 22h44 de Manaus, o responsável retomou a preparação financeira e
+  informou que fará a primeira compra real de R$1 após as conferências de
+  Produção. Configuração, aceites e pagamento ainda não foram comprovados;
+  esta decisão não executa cancelamento, estorno ou replay de ocorrências antigas.
 - DICOM está adiado até Radiologia funcionar; suas proteções permanecem.
 - Nenhuma etapa será encerrada por mocks, teste SQL de metadata sintética ou
   compilação nativa isoladamente. Os testes necessários em aparelhos e no
@@ -69,3 +70,28 @@ Nesta rodada passaram 209 testes em 14 arquivos (armazenamento, Master, Auth,
 billing e licença Desktop), mais verificações estáticas das etapas 06/09 e
 bootstrap Desktop. São provas locais de regressão, não substituem aceites reais.
 Nenhuma das sete etapas foi encerrada; nenhum crédito de chat Lovable foi usado.
+
+## Preparação de recebimentos — 04/10, 22h45–22h52 em Manaus
+
+Frente atual: **6/7 — operação**, preparando requisitos de **7/7 — Produção**.
+As sete etapas permanecem com aceites abertos. Plano Inicial ativo confirmado
+no banco por 100 centavos BRL. Sandbox tem cinco eventos processados e dois
+dead letters por `PROVIDER_RECONCILIATION_FAILED` (recebimento e atraso,
+seis tentativas cada); não foram reenviados. Produção ainda sem comprovação.
+
+PRs 124 (branch SaaS) e 125 (ponte isolada da main) integraram seleção explícita
+de ambiente no agendador e diagnóstico, padrão Sandbox, habilitação de
+Produção e token separado. O diagnóstico exige o ambiente correto retornado.
+Nenhum secret ou variável foi alterado. Sem mudança na interface ou chamada
+ao Asaas nesta rodada. CI dos dois candidatos e restauração do candidato
+SaaS passaram, incluindo as barreiras de identidade/cota/preço/replay em
+banco isolado; 124 testes locais de billing/licença também passaram.
+
+Recibos: CI SaaS 37256841112; restaurações 37256840825 e 37256843998;
+CI ponte main 37256841264 e 37256845074. Esses resultados não comprovam
+conta recebedora aprovada, publicação servida ou pagamento real.
+
+O responsável informou ter acesso ao Asaas, mas não conhecer o status da conta.
+Conferir cadastro e modalidade de R$1, depois cadastrar secrets e webhook de
+Produção nos painéis apropriados. A ferramenta conectada não oferece configuração
+de secrets. Ver sequência e campos em STAGE-10-PRODUCTION-READINESS.md.
