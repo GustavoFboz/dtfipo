@@ -6,7 +6,7 @@ para manter o histórico; não são um segundo protocolo.
 
 **Restam 7 de 7 etapas com aceites em aberto.** Há código e provas parciais
 em todas elas; um incremento aprovado não encerra automaticamente a etapa.
-Frente atual: **7/7, item 7.2 — conferência do webhook e preparação de Produção**.
+Frente atual: **1/7, item 1.1 — correlação individual dos dois eventos pendentes**.
 O item 7.1 foi comprovado em 05/10, 13h49 de Manaus: chave real autenticada,
 aprovação geral, dados comerciais e documentação aprovados. Dados bancários
 estão PENDING e são registrados separadamente da aprovação geral.
@@ -16,9 +16,18 @@ Conferência publicada após o titular salvar em 05/10, 14h36 de Manaus:
 webhook único no endereço esperado, API v3, sequencial, 13 eventos corretos,
 desativado e fila não interrompida. O Asaas retorna o token somente na criação;
 a autenticação fica pendente da entrega real, sem repetir o cadastro.
-Execução agendada Sandbox de 14h33 foi saudável; intervalos extensos
-anteriores mantêm a regularidade do agendamento sem aceite.
-Aceites finais: **1/23 — 4,35%**; nenhuma etapa inteira foi encerrada.
+O agendador privado Sandbox foi registrado às 16h20. Entre 16h21 e 18h16,
+24 disparos ocorreram a cada cinco minutos, com 24 respostas HTTP 200 e
+telemetria saudável. O alerta real de heartbeat antigo chegou à caixa do
+operador às 16h19; o diagnóstico agendado posterior confirmou recuperação.
+O item 6.1 está aceito em Sandbox; agendamento/alertas de Produção continuam
+no gate 7.2. Ver [prova](evidence/database-scheduler-20261005.md).
+Os dois dead letters foram consultados no provedor: mesma cobrança Sandbox,
+RECEIVED, 500 centavos, vencimento 29/09, sem assinatura informada na resposta
+e sem pagamento local correspondente. Não autoriza atribuição de acesso ou
+replay. Ver [revisão](evidence/inbox-review-20261005.md).
+Aceites finais: **2/23 — 8,70%**; restam 21 itens parciais/em aberto e nenhuma
+etapa inteira foi encerrada.
 Ver [prova e revisão](evidence/production-preflight-20261005.md) e
 PRODUCTION-ACCESS-SETUP.md. A janela
 offline de 72 horas mantém seus aceites de execução/distribuição em aberto;
