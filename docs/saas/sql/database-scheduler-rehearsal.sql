@@ -52,7 +52,7 @@ begin
   if response::text like '%fixture%' or response::text like '%Bearer%' then raise exception 'SCHEDULER_STATUS_LEAKS_CREDENTIAL'; end if;
   perform public.billing_configure_database_scheduler('production','fixture-production-worker-not-a-real-secret-0123456789');
   if (select enabled from public.billing_database_scheduler where provider_environment='sandbox')
-    or (select active from cron.job where jobid=first_job) then raise exception 'SCHEDULER_MULTIPLE_ENVIRONMENTS_ACTIVE'; end if;
+    or exists(select 1 from cron.job where jobid=first_job and active) then raise exception 'SCHEDULER_MULTIPLE_ENVIRONMENTS_ACTIVE'; end if;
   perform public.billing_disable_database_scheduler('production');
   if public.billing_enqueue_database_worker('production') is not null then raise exception 'DISABLED_SCHEDULER_DISPATCHED'; end if;
 end $$;

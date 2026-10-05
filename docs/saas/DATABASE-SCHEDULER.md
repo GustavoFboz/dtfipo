@@ -33,7 +33,8 @@ registro verifica HTTP 406/PGRST106 com Accept-Profile net antes de copiar a
 credencial; a função de despacho verifica novamente a fronteira SQL.
 
 Configuração repetida reutiliza o job e a referência do segredo. A mudança
-de ambiente desativa o job anterior antes de registrar o novo. A rota não
+de ambiente remove o job anterior com cron.unschedule antes de registrar o
+novo, sem depender da permissão gerenciada de cron.alter_job. A rota não
 invoca o processador imediatamente; os disparos posteriores seguem a cadência.
 Um job SQL concluído comprova o enfileiramento HTTP, não a execução financeira.
 
@@ -64,7 +65,7 @@ A produção não é registrada ou ativada pelo bootstrap Sandbox desta etapa.
 Webhook, entrega, recebimento real, ledger e acesso precisam de provas próprias.
 
 Para parar o job, a função privada billing_disable_database_scheduler recebe
-somente o ambiente. Ela desativa o cron e sua configuração; preserva ledger,
+somente o ambiente. Ela remove o job correspondente e desativa sua configuração; preserva ledger,
 eventos, períodos pagos e dados remotos. Mudança de segredo exige sincronizar
 as configurações protegidas antes de atualizar a cópia do agendador.
 Não consultar ou imprimir headers da fila pg_net, segredos do Vault ou corpos

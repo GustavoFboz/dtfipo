@@ -68,9 +68,9 @@ begin
   if not public.billing_database_scheduler_boundary() then raise exception 'BILLING_SCHEDULER_BOUNDARY_INVALID'; end if;
   perform pg_advisory_xact_lock(hashtextextended('dentalflow_billing_database_scheduler',0));
   -- Only one runtime environment can be primary at a time.
-  perform cron.alter_job(c.cron_job_id,active:=false)
+  perform cron.unschedule(c.cron_job_id)
     from public.billing_database_scheduler c join cron.job j on j.jobid=c.cron_job_id
-    where c.provider_environment<>p_environment and j.jobname='dentalflow-billing-'||c.provider_environment;
+    where c.provider_environment<>p_environment and j.jobname='dentalflow-billing-'||c.provider_environment and j.username=current_user;
   update public.billing_database_scheduler set enabled=false where provider_environment<>p_environment;
   secret_name := 'dentalflow_billing_worker_'||p_environment;
   select id into secret_id from vault.secrets where name=secret_name;
@@ -81,7 +81,6 @@ begin
   end if;
   select cron.schedule('dentalflow-billing-'||p_environment,'1-59/5 * * * *',
     format('select public.billing_enqueue_database_worker(%L);',p_environment)) into job_id;
-  perform cron.alter_job(job_id,active:=true);
   insert into public.billing_database_scheduler(provider_environment,enabled,cron_job_id,worker_secret_id)
   values(p_environment,true,job_id,secret_id)
   on conflict(provider_environment) do update set enabled=true,cron_job_id=excluded.cron_job_id,
@@ -99,9 +98,9 @@ begin
     raise exception 'BILLING_SCHEDULER_CONFIGURATION_INVALID';
   end if;
   perform pg_advisory_xact_lock(hashtextextended('dentalflow_billing_database_scheduler',0));
-  perform cron.alter_job(c.cron_job_id,active:=false)
+  perform cron.unschedule(c.cron_job_id)
     from public.billing_database_scheduler c join cron.job j on j.jobid=c.cron_job_id
-    where c.provider_environment=p_environment and j.jobname='dentalflow-billing-'||c.provider_environment;
+    where c.provider_environment=p_environment and j.jobname='dentalflow-billing-'||c.provider_environment and j.username=current_user;
   update public.billing_database_scheduler set enabled=false where provider_environment=p_environment;
   return true;
 end $$;
