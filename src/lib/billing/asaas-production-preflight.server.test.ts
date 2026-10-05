@@ -168,6 +168,7 @@ describe("private readonly Production webhook configuration diagnostic", () => {
     });
     const result = await (await inspectAsaasProductionWebhook(request(), { source, fetch, now })).json();
     expect(result).toMatchObject({ contract: PRODUCTION_WEBHOOK_PREFLIGHT_CONTRACT, webhook_prepared: true,
+      webhook_configuration_valid: true, token_verification: "confirmed",
       matching_webhooks: 1, listing_complete: true, webhook_delivery_verified: false, financial_processing_invoked: false });
     expect(result.webhooks[0]).toMatchObject({ token_matches: true, enabled: false, interrupted: false,
       api_version: 3, send_type: "SEQUENTIALLY", missing_automated_events: [], missing_review_events: [], unknown_events_count: 0 });
@@ -206,7 +207,23 @@ describe("private readonly Production webhook configuration diagnostic", () => {
     expect(await (await inspectAsaasProductionWebhook(request(), { source, fetch })).json()).toMatchObject({
       listing_complete: false, webhook_prepared: false });
     const masked = await (await inspectAsaasProductionWebhook(request(), { source, fetch })).json();
-    expect(masked.webhook_prepared).toBe(false); expect(masked.webhooks[0].token_matches).toBeNull();
+    expect(masked).toMatchObject({ webhook_prepared: false, webhook_configuration_valid: true, token_verification: "requires_delivery" });
+    expect(masked.webhooks[0].token_matches).toBeNull();
+  });
+
+  it("accepts configuration without treating Asaas normal token omission as authentication proof", async () => {
+    const { authToken: _unused, ...listedWebhook } = webhook;
+    const fetch = vi.fn(async () => Response.json({ hasMore: false, data: [listedWebhook] }));
+    expect(await (await inspectAsaasProductionWebhook(request(), { source, fetch })).json()).toMatchObject({
+      webhook_configuration_valid: true, token_verification: "requires_delivery", webhook_prepared: false,
+      webhook_delivery_verified: false, financial_processing_invoked: false });
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it("separates a known token mismatch from valid configuration fields", async () => {
+    const fetch = vi.fn(async () => Response.json({ hasMore: false, data: [{ ...webhook, authToken: "wrong-fixture-token" }] }));
+    expect(await (await inspectAsaasProductionWebhook(request(), { source, fetch })).json()).toMatchObject({
+      webhook_configuration_valid: true, token_verification: "mismatch", webhook_prepared: false });
   });
 
   it("redacts unknown identifiers and private error bodies", async () => {

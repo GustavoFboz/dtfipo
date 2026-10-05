@@ -102,9 +102,9 @@ process.stdout.write(process.env.FIXTURE_STATUS);
   const webhook = { id: "whk_fixture", enabled: false, interrupted: false, api_version: 3,
     send_type: "SEQUENTIALLY", token_matches: true, configured_events: [...automated, ...review],
     missing_automated_events: [], missing_review_events: [], unknown_events_count: 0 };
-  const webhookHealthy = { available: true, contract: "dentalflow-production-webhook-preflight-v1", environment: "production",
+  const webhookHealthy = { available: true, contract: "dentalflow-production-webhook-preflight-v2", environment: "production",
     checked_at: healthy.checked_at, configuration_valid: true, credentials_valid: true, listing_complete: true,
-    matching_webhooks: 1, webhook_prepared: true, webhooks: [webhook],
+    matching_webhooks: 1, webhook_configuration_valid: true, token_verification: "confirmed", webhook_prepared: true, webhooks: [webhook],
     webhook_delivery_verified: false, financial_processing_invoked: false };
   const runWebhook = (body, status = "200") => spawnSync("bash", ["-c", webhookScript], { cwd: tmp, encoding: "utf8", timeout: 15_000,
     env: { ...process.env, PATH: bin + path.delimiter + process.env.PATH,
@@ -116,20 +116,33 @@ process.stdout.write(process.env.FIXTURE_STATUS);
     authToken: "PRIVATE_ERROR_MARKER", email: "PRIVATE_ERROR_MARKER", url: "PRIVATE_ERROR_MARKER" }] }).status, 0);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-webhook-preflight.json"), "utf8")), webhookHealthy);
   for (const fields of [{ enabled: true }, { interrupted: true }, { api_version: 2 }, { send_type: "NON_SEQUENTIALLY" },
-    { token_matches: false }, { token_matches: null }, { unknown_events_count: 1 },
+    { unknown_events_count: 1 },
     { configured_events: [...automated.slice(1), ...review], missing_automated_events: [automated[0]] }]) {
-    const body = { ...webhookHealthy, webhook_prepared: false, webhooks: [{ ...webhook, ...fields }] };
+    const body = { ...webhookHealthy, webhook_configuration_valid: false, webhook_prepared: false, webhooks: [{ ...webhook, ...fields }] };
     assert.notEqual(runWebhook(body).status, 0, "Unprepared webhook was accepted.");
     assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-webhook-preflight.json"), "utf8")), body,
       "Valid configuration finding was not preserved for review.");
   }
+  const pendingToken = { ...webhookHealthy, webhook_prepared: false, token_verification: "requires_delivery",
+    webhooks: [{ ...webhook, token_matches: null }] };
+  const pendingResult = runWebhook(pendingToken);
+  assert.equal(pendingResult.status, 0, "Normal Asaas token omission was incorrectly treated as a configuration failure.");
+  assert(pendingResult.stdout.includes("Authentication remains pending real provider delivery"));
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-webhook-preflight.json"), "utf8")), pendingToken);
+  const mismatchedToken = { ...webhookHealthy, webhook_prepared: false, token_verification: "mismatch",
+    webhooks: [{ ...webhook, token_matches: false }] };
+  assert.notEqual(runWebhook(mismatchedToken).status, 0, "Known token mismatch was accepted.");
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-webhook-preflight.json"), "utf8")), mismatchedToken);
   for (const body of [
-    { ...webhookHealthy, listing_complete: false, webhook_prepared: false },
-    { ...webhookHealthy, matching_webhooks: 0, webhooks: [], webhook_prepared: false },
-    { ...webhookHealthy, matching_webhooks: 2, webhooks: [webhook, webhook], webhook_prepared: false },
+    { ...webhookHealthy, listing_complete: false, webhook_configuration_valid: false, token_verification: "not_checked", webhook_prepared: false },
+    { ...webhookHealthy, matching_webhooks: 0, webhooks: [], webhook_configuration_valid: false, token_verification: "not_checked", webhook_prepared: false },
+    { ...webhookHealthy, matching_webhooks: 2, webhooks: [webhook, webhook], webhook_configuration_valid: false, token_verification: "not_checked", webhook_prepared: false },
   ]) assert.notEqual(runWebhook(body).status, 0, "Incomplete or ambiguous webhook configuration was accepted.");
   for (const body of [
     { ...webhookHealthy, financial_processing_invoked: true },
+    { ...webhookHealthy, contract: "dentalflow-production-webhook-preflight-v1" },
+    { ...webhookHealthy, token_verification: "PRIVATE_ERROR_MARKER" },
+    { ...pendingToken, token_verification: "confirmed", webhook_prepared: true },
     { ...webhookHealthy, matching_webhooks: 99 },
     { ...webhookHealthy, webhooks: [{ ...webhook, enabled: true }] },
     { ...webhookHealthy, webhooks: [{ ...webhook, token_matches: "PRIVATE_ERROR_MARKER" }] },

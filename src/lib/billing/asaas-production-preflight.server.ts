@@ -3,7 +3,7 @@ import { z } from "zod";
 import { loadAsaasProductionPreflightSecrets } from "./asaas.server";
 
 export const PRODUCTION_PREFLIGHT_CONTRACT = "dentalflow-production-preflight-v2";
-export const PRODUCTION_WEBHOOK_PREFLIGHT_CONTRACT = "dentalflow-production-webhook-preflight-v1";
+export const PRODUCTION_WEBHOOK_PREFLIGHT_CONTRACT = "dentalflow-production-webhook-preflight-v2";
 const automatedEvents = ["PAYMENT_CONFIRMED", "PAYMENT_RECEIVED", "PAYMENT_OVERDUE", "PAYMENT_REFUNDED",
   "SUBSCRIPTION_CREATED", "SUBSCRIPTION_UPDATED", "SUBSCRIPTION_INACTIVATED"];
 const reviewEvents = ["PAYMENT_PARTIALLY_REFUNDED", "PAYMENT_REFUND_IN_PROGRESS", "PAYMENT_CHARGEBACK_REQUESTED",
@@ -139,13 +139,22 @@ export async function inspectAsaasProductionWebhook(request: Request, dependenci
           unknown_events_count: item.events.filter((event) => !knownEvents.has(event)).length };
       });
       const listingComplete = !parsed.data.hasMore;
-      const webhookPrepared = listingComplete && webhooks.length === 1 && webhooks.every((item) =>
+      const webhookConfigurationValid = listingComplete && webhooks.length === 1 && webhooks.every((item) =>
         !item.enabled && !item.interrupted && item.api_version === 3 && item.send_type === "SEQUENTIALLY"
-        && item.token_matches === true && item.missing_automated_events.length === 0
+        && item.missing_automated_events.length === 0
         && item.missing_review_events.length === 0 && item.unknown_events_count === 0);
+      // Asaas returns authToken only at creation. A normal GET omits it;
+      // absence is pending delivery proof, never a confirmed match or mismatch.
+      const tokenVerification = listingComplete && webhooks.length === 1
+        ? webhooks[0].token_matches === true ? "confirmed"
+          : webhooks[0].token_matches === false ? "mismatch" : "requires_delivery"
+        : "not_checked";
+      const webhookPrepared = webhookConfigurationValid && tokenVerification === "confirmed";
       return json({ available: true, contract: PRODUCTION_WEBHOOK_PREFLIGHT_CONTRACT, environment: "production",
         checked_at: new Date((dependencies.now ?? Date.now)()).toISOString(), configuration_valid: true, credentials_valid: true,
-        listing_complete: listingComplete, matching_webhooks: webhooks.length, webhook_prepared: webhookPrepared, webhooks,
+        listing_complete: listingComplete, matching_webhooks: webhooks.length,
+        webhook_configuration_valid: webhookConfigurationValid, token_verification: tokenVerification,
+        webhook_prepared: webhookPrepared, webhooks,
         webhook_delivery_verified: false, financial_processing_invoked: false }, 200);
     };
     return await Promise.race([probe(), new Promise<never>((_, reject) => {

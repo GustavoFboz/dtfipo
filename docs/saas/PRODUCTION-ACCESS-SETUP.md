@@ -13,6 +13,12 @@ essas credenciais. Ver [prova e revisão](evidence/production-preflight-20261005
 Dados bancários PENDING são uma pendência específica, sem invalidar
 general=APPROVED. Webhook, entrega, agendamento e recebimento ainda exigem prova.
 
+Webhook desativado confirmado em 05/10, 14h36 de Manaus, com endereço/API/
+envio/eventos corretos e fila não interrompida. Não repetir este ajuste.
+O Asaas retorna authToken apenas na criação; omissão no GET é esperada e
+não exige regenerar segredos nem compartilhar o valor. A prova da autenticação
+será a entrega real aceita pelo endpoint receptor.
+
 ## 1. Acessos que já funcionam
 
 GitHub GustavoFboz/dtfipo, projeto Lovable
@@ -156,7 +162,13 @@ O segundo GET privado, com check=production-webhook, consulta uma única
 página de até 100 webhooks existentes na API de Produção. Confere somente
 registros com o endereço esperado, token por comparação interna, API v3,
 envio sequencial, eventos e estado desativado. Lista incompleta, múltiplos
-registros ou token ocultado pelo provedor deixam a preparação sem confirmação.
+registros deixam a configuração sem confirmação. No contrato v2,
+webhook_configuration_valid valida os campos de preparação; token_verification
+separa confirmed, mismatch, requires_delivery e not_checked. O token omitido
+deixa requires_delivery, sem transformar a consulta correta em falha.
+webhook_prepared continua false até autenticação comprovável, e o diagnóstico
+nunca declara webhook_delivery_verified=true. Workflow verde comprova somente
+o contrato de leitura e a configuração; não encerra o item 7.2 nem libera vendas.
 O artefato remove nomes, e-mails, URL, tokens e eventos desconhecidos.
 Configuração correta não comprova entrega; não cria, altera, ativa, apaga
 webhooks nem envia eventos. Uma configuração ativa antes da ativação
@@ -216,5 +228,6 @@ Não deixar webhook de Produção ativo enquanto o endpoint estiver no Sandbox.
 - https://docs.asaas.com/reference/criar-novo-webhook
 - https://docs.asaas.com/reference/consultar-situacao-cadastral-da-conta
 - https://docs.asaas.com/reference/listar-webhooks
+- https://docs.asaas.com/docs/criar-novo-webhook-pela-api
 - https://docs.lovable.dev/features/secrets
 - https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets

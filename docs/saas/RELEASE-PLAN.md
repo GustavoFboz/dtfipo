@@ -12,12 +12,12 @@ aprovação geral, dados comerciais e documentação aprovados. Dados bancários
 estão PENDING e são registrados separadamente da aprovação geral.
 Os quatro secrets do backend e a correspondência do token GitHub/backend
 passaram na consulta privada. Não precisam ser gerados novamente.
-Conferência publicada de 05/10, 14h13 de Manaus: webhook único no endereço
-esperado, API v3, sequencial e 13 eventos corretos, mas ativo enquanto o
-backend permanece Sandbox. O titular deve desativar esse registro durante
-a preparação. A listagem não forneceu token comparável; correspondência
-e entrega permanecem sem prova. Último heartbeat Sandbox às 05h15 de Manaus;
-regularidade do agendamento continua pendente.
+Conferência publicada após o titular salvar em 05/10, 14h36 de Manaus:
+webhook único no endereço esperado, API v3, sequencial, 13 eventos corretos,
+desativado e fila não interrompida. O Asaas retorna o token somente na criação;
+a autenticação fica pendente da entrega real, sem repetir o cadastro.
+Execução agendada Sandbox de 14h33 foi saudável; intervalos extensos
+anteriores mantêm a regularidade do agendamento sem aceite.
 Aceites finais: **1/23 — 4,35%**; nenhuma etapa inteira foi encerrada.
 Ver [prova e revisão](evidence/production-preflight-20261005.md) e
 PRODUCTION-ACCESS-SETUP.md. A janela
