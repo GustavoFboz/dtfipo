@@ -46,3 +46,53 @@ a conta recebedora. Não atribuir a falha de conexão anterior a uma causa que
 não foi comprovada pelos metadados disponíveis.
 
 Fonte: https://docs.asaas.com/reference/consultar-situacao-cadastral-da-conta
+
+## Conferência publicada — 14h13 de Manaus
+
+PR 133: https://github.com/GustavoFboz/dtfipo/pull/133
+Merge SaaS: 61bde8b54de57237a440002c45be81cff3edbc11.
+Candidato d40f9f89237cdbf4613f8110dbd2f132d172de1d passou CI 37353827676
+e restaurações 37353827765/37353833808. Verificação local: 202 testes em
+12 arquivos, TypeScript, etapas 06/09, bootstrap Desktop e contrato Bash
+com HTTP fictício. Publicação solicitada após sincronização do commit;
+as respostas reais abaixo confirmam os novos contratos publicados.
+
+Execução: https://github.com/GustavoFboz/dtfipo/actions/runs/37354065989
+Job da tentativa publicada: 111912836778. Artefato 11364400542,
+SHA-256 do ZIP 59e34e427748621db76ebf5baab994284263056652e71947471bf386321447a5.
+Não usar o artefato anterior 11363856689, anterior à publicação.
+
+- [Conta v2](production-account-status-v2-20261005.json),
+  2026-10-05T18:13:45.653Z: account_approved=true,
+  account_setup_complete=false; estados cadastrais confirmados sem mudança.
+- [Webhook](production-webhook-status-20261005.json),
+  2026-10-05T18:13:46.185Z: listagem completa, um registro no endereço esperado,
+  id ee2af07c-ec23-4224-893b-390efbc85c8f. API v3, envio sequencial,
+  interrupted=false e todos os 13 eventos esperados; nenhum evento desconhecido.
+- enabled=true, apesar de o backend financeiro permanecer em Sandbox.
+  webhook_prepared=false é um achado válido de configuração, não falha da
+  consulta ou da chave API. A revisão requer desativar este webhook dedicado
+  durante a preparação; nenhuma alteração foi feita pelo diagnóstico.
+- token_matches=null: o campo de token não foi fornecido em formato comparável
+  pela listagem. Não equivale a divergência de token. Sua correspondência e
+  entrega permanecem sem comprovação; não gerar novos tokens por causa disso.
+
+Próxima ação do titular: Asaas → Integrações → Webhooks → DentalFlow Produção
+(conferir o ID acima) → Editar → Ativado=false/desativado → Salvar.
+Preservar endereço, token e eventos. Informar apenas que foi desativado.
+Se o nome for diferente, localizar pelo ID; não alterar outros webhooks.
+
+## Pendência do agendamento
+
+Consulta apenas de leitura ao banco confirmou último heartbeat Sandbox em
+2026-10-05T09:15:25.38289Z (05h15 de Manaus), status ok. Nenhum heartbeat
+de Produção. A execução agendada do worker 37288816440 foi bem-sucedida,
+mas não há comprovação de regularidade recente a cada cinco minutos.
+O probe 37354066005 confirmou contrato publicado/acesso ao banco e falhou
+no critério de execução recente; não era perda de conexão no diagnóstico.
+Listagem de execuções agendadas evidencia intervalos extensos; não identifica
+a causa de ausência de disparos. Não encerrar 6.1 ou o agendamento de 7.2
+com uma execução manual isolada. Não reenviar dead letters como diagnóstico.
+
+Decisão: 7.1 continua concluído; 7.2 permanece parcial. Não habilitar vendas
+ou afirmar recebimento/entrega como comprovados com essas consultas.
