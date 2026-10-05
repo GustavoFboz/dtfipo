@@ -26,12 +26,12 @@ reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data
 | 5.1 | Histórico e documentos de cobrança | Parcial: código/ensaios; fluxo pendente |
 | 5.2 | Solicitações executadas no Asaas | Em aberto: ainda são solicitações |
 | 5.3 | Downgrade, falhas e execução única | Parcial: requisitos/transporte; executor pendente |
-| 6.1 | Processador regular e alertas comprovados | Parcial: cron/telemetria; atraso detectado |
+| 6.1 | Processador regular e alertas comprovados | Parcial: agendador privado integrado e migração instalada em 05/10, 15h46 de Manaus; registro Sandbox em fila no GitHub. Disparos sucessivos e alertas pendentes. [Prova e limites](evidence/database-scheduler-20261005.md) |
 | 6.2 | Backup, restauração e incidente | Parcial: restore limpo; recuperação operacional pendente |
 | 6.3 | Onboarding, plataformas e capacidade piloto | Em aberto |
 | 6.4 | Documentos comerciais e privacidade revisados | Protocolo preparado; minutas/revisão pendentes |
 | 7.1 | Conta recebedora aprovada | Concluído em 05/10, 13h49 de Manaus: chave real autenticada e general=APPROVED; [prova e revisão](evidence/production-preflight-20261005.md). Pendência bancária registrada separadamente |
-| 7.2 | Secrets, webhook e agendamento de Produção | Parcial: secrets validados; webhook único correto e desativado confirmado em 05/10, 14h36 de Manaus. Asaas oculta o token após criação; autenticação será comprovada na entrega. Ativação e agendamento de Produção pendentes. [Prova real](evidence/production-preflight-20261005.md) |
+| 7.2 | Secrets, webhook e agendamento de Produção | Parcial: secrets validados; webhook único correto e desativado confirmado em 05/10, 14h36 de Manaus. Asaas oculta o token após criação; autenticação será comprovada na entrega. Infraestrutura de agendamento instalada; ativação e agendamento de Produção continuam pendentes. [Prova real](evidence/production-preflight-20261005.md) |
 | 7.3 | Recebimento, ledger e acesso reais comprovados | Em aberto; responsável fará compra de R$1 quando liberada |
 | 7.4 | Decisão de liberação para vendas | Pendente dos demais aceites |
 
