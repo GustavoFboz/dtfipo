@@ -2,7 +2,7 @@
 
 Decisão do responsável em 04/10/2026, 23h06 de Manaus. Item 2.3 do protocolo
 SaaS; contribui também para os aceites de segurança e operação. Status:
-implementação em validação, ainda sem aceite em aparelhos ou release distribuída.
+implementação validada parcialmente em CI, ainda sem aceite em aparelhos ou release distribuída.
 
 ## Regra
 
@@ -36,7 +36,10 @@ mas também precisam renovar a autorização do dispositivo a cada três dias.
   e cookies do WebView. Windows usa o comando assíncrono de limpeza de browsing
   data do Tauri/WebView2. Uma pendência persistida exige repetir a limpeza antes
   de permitir novas leituras locais. A limpeza do WebView afeta seu perfil
-  inteiro, incluindo preferências, mas não apaga SQLite de outras contas.
+  inteiro, incluindo preferências e outros caches do WebView, mas não apaga
+  SQLite de outras contas. A preservação por conta no cache adicional de anexos
+  não constitui promessa de preservar esse cache após a limpeza integral do
+  perfil WebView2 do Windows.
 - O cache adicional de anexos em IndexedDB é apagado por conta; cópias em
   memória são descartadas e downloads iniciados antes da expiração não podem
   persistir novos arquivos após a limpeza.
@@ -55,7 +58,7 @@ dispositivo. Relógio, arquivos e JavaScript locais não constituem DRM inviolá
 ## Plataformas e implantação
 
 A política é compartilhada pelas fachadas instaladas. Android e Windows têm
-implementações nativas de limpeza a compilar e homologar. A detecção compartilhada
+implementações nativas compiladas; a homologação em aparelhos permanece pendente. A detecção compartilhada
 inclui iOS, mas o repositório ainda não tem release iPhone nem adapter validado
 de limpeza WKWebView; nesse shell, limpeza nativa ausente falha bloqueando acesso.
 Não declarar o requisito iPhone concluído sem esse adapter e teste próprio.
@@ -66,7 +69,8 @@ instalar a nova versão. Atualizar código no GitHub não atualiza um EXE/APK j�
 
 ## Aceites ainda necessários
 
-1. Compilar Windows/Rust e Android com as bridges nativas.
+1. Registrar o resultado completo das matrizes nativas e homologar as bridges
+   em aparelhos. Compilação Windows/Rust e APK no emulador estável já passaram.
 2. Testar antes, no limite e após 72 horas com relógio de teste controlado;
    iniciar fechado já expirado e retomar depois de suspensão.
 3. Verificar cache/outbox removidos, ausência de fallback por JWT antigo,
@@ -78,3 +82,30 @@ instalar a nova versão. Atualizar código no GitHub não atualiza um EXE/APK j�
 Fontes técnicas oficiais:
 - https://docs.rs/tauri/latest/tauri/webview/struct.Webview.html
 - https://developer.android.com/reference/android/webkit/WebView
+
+## Evidência de implementação em 04–05/10/2026
+
+Revisão de código `cc8b3960b7f2abd5150d59d6e86ae7aa79367dcd`:
+
+- CI geral 37260882490 e restauração 37260884975: sucesso.
+- Windows 37260882543: sucesso; testes Rust de exclusão atômica, rollback e
+  revogação de gravações, compilação e instalador. Não é teste interativo
+  da limpeza WebView2 em um computador de usuário, nem distribuição assinada.
+- Android 37260882514, job 111607663196 (API 35): sucesso; fixtures locais
+  comprovaram exclusão de cache/outbox/anexos da conta vencida, preservação
+  dos registros/anexo da outra conta e remoção de cookies/cache/rascunhos.
+  Nenhuma conta Auth, pagamento ou dado clínico remoto foi alterado.
+- API 37, repetição isolada (job 111609212114): o teste de expiração e limpeza
+  offline passou, conforme log de 05/10 às 04h02 UTC. O job falhou depois, no
+  teste de recuperação do renderer, com
+  `!rcEnc->featureInfo()->hasReadColorBufferDma`. A matriz é experimental e usa
+  `continue-on-error`; o status global success não aprova esse job nem encerra
+  a compatibilidade Android de prévia. Não houve alteração para ocultar a falha.
+- 17 testes TypeScript específicos e verificações estáticas de SaaS, Desktop
+  e Android passaram. Isso não fecha o item 2.3 do protocolo sozinho.
+
+Links de execução:
+- https://github.com/GustavoFboz/dtfipo/actions/runs/37260882490
+- https://github.com/GustavoFboz/dtfipo/actions/runs/37260884975
+- https://github.com/GustavoFboz/dtfipo/actions/runs/37260882543
+- https://github.com/GustavoFboz/dtfipo/actions/runs/37260882514

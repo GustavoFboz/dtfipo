@@ -15,7 +15,7 @@ reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data
 | 1.3 | Webhook perdido recuperado | Parcial: reconciliação implementada |
 | 2.1 | Estados do ciclo financeiro | Parcial: ensaios; provedor pendente |
 | 2.2 | Dados e período pago preservados | Parcial: regras/testes; aceite do fluxo pendente |
-| 2.3 | Acesso nas plataformas e janela offline de 72 horas | Em execução: política, limpeza e regressões; aparelhos/iOS pendentes |
+| 2.3 | Acesso nas plataformas e janela offline de 72 horas | Parcial: código, CI/restore, instalador Windows e limpeza offline nos emuladores Android; recuperação API 37/distribuição/aparelhos/iOS pendentes |
 | 3.1 | Upload/exclusão de casos, pacientes, fotos e avatar | Parcial: caso Web confirmado; demais fluxos pendentes |
 | 3.2 | Concorrência, falhas e reservas históricas | Parcial: ensaios; revisão histórica pendente |
 | 3.3 | Armazenamento nas plataformas disponíveis | Pendente de aparelhos |
