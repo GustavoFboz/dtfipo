@@ -65,6 +65,16 @@ jobs:
                 echo 'Account statuses approved. Webhook delivery, financial lifecycle and sales acceptance remain separate gates.'
                 exit 0
               fi
+              diagnostic_code=$(jq -r '
+                if type == "object" then .code else null end
+                | if . == "PRODUCTION_CONFIGURATION_FAILED" or . == "PRODUCTION_CREDENTIAL_REFUSED"
+                    or . == "PRODUCTION_PROVIDER_UNAVAILABLE" or . == "PRODUCTION_STATUS_INVALID"
+                    or . == "PRODUCTION_PREFLIGHT_TIMEOUT" then . else "UNCLASSIFIED" end
+              ' "$response_file" 2>/dev/null) || diagnostic_code=UNCLASSIFIED
+              jq -n --arg http_status "$http_status" --arg code "$diagnostic_code" \
+                '{available:false,http_status:$http_status,code:$code,financial_processing_invoked:false}' \
+                > production-preflight.json
+              printf 'Production preflight diagnostic: HTTP %s, code %s.\n' "$http_status" "$diagnostic_code"
               if [[ "$http_status" == "401" || "$http_status" == "502" ]]; then
                 echo "::error::Production preflight refused or provider verification failed (HTTP $http_status). No financial processing was invoked."
                 exit 1
