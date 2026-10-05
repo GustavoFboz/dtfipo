@@ -49,7 +49,9 @@ export async function inspectAsaasProductionSetup(request: Request, dependencies
     const fetchImpl = dependencies.fetch ?? globalThis.fetch;
     const probe = async () => {
       const response = await fetchImpl("https://api.asaas.com/v3/myAccount/status/", {
-        method: "GET", redirect: "error", cache: "no-store", signal: controller.signal,
+        // Never follow redirects or forward the key to a second destination.
+        // Manual mode preserves the refusal while exposing the HTTP status.
+        method: "GET", redirect: "manual", cache: "no-store", signal: controller.signal,
         headers: { Accept: "application/json", "User-Agent": credentials.userAgent, access_token: credentials.apiKey },
       });
       providerHttpStatus = response.status;

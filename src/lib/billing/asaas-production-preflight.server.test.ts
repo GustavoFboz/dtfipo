@@ -38,7 +38,7 @@ describe("private readonly staged Production account diagnostic", () => {
     const original = { ...source };
     const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(String(input)).toBe("https://api.asaas.com/v3/myAccount/status/");
-      expect(init?.method).toBe("GET"); expect(init?.body).toBeUndefined(); expect(init?.redirect).toBe("error");
+      expect(init?.method).toBe("GET"); expect(init?.body).toBeUndefined(); expect(init?.redirect).toBe("manual");
       expect(new Headers(init?.headers).get("access_token")).toBe(source.ASAAS_PRODUCTION_API_KEY);
       return Response.json({ ...account, id: "private-account-id", email: "private@example.invalid", apiKey: source.ASAAS_PRODUCTION_API_KEY });
     });
@@ -60,12 +60,22 @@ describe("private readonly staged Production account diagnostic", () => {
         account: { general: "APPROVED", commercialInfo: state } });
     });
 
-  it.each([401, 403, 429, 500])("returns a fixed refusal for provider HTTP %s without reading a private error body", async (status) => {
+  it.each([301, 302, 307, 308, 401, 403, 429, 500])("returns a fixed refusal for provider HTTP %s without reading a private error body", async (status) => {
     const fetch = vi.fn(async () => new Response("private credential and personal data", { status }));
     const response = await inspectAsaasProductionSetup(request(), { source, fetch });
     expect(response.status).toBe(502); expect(await response.json()).toEqual({ available: false,
       code: status === 401 || status === 403 ? "PRODUCTION_CREDENTIAL_REFUSED" : "PRODUCTION_PROVIDER_UNAVAILABLE",
       provider_http_status: status });
+  });
+
+  it("does not follow or expose a redirect location containing a private credential", async () => {
+    const fetch = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      expect(init?.redirect).toBe("manual");
+      return new Response(null, { status: 302, headers: { Location: `https://private.example.invalid/${source.ASAAS_PRODUCTION_API_KEY}` } });
+    });
+    const response = await inspectAsaasProductionSetup(request(), { source, fetch });
+    expect(await response.json()).toEqual({ available: false, code: "PRODUCTION_PROVIDER_UNAVAILABLE", provider_http_status: 302 });
+    expect(fetch).toHaveBeenCalledOnce();
   });
 
   it("redacts network/redirect errors and rejects invalid account states", async () => {
