@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { DATABASE_SCHEDULER_CONTRACT, manageAsaasDatabaseScheduler } from "./asaas-database-scheduler.server";
+import { DATABASE_SCHEDULER_CONTRACT, manageAsaasDatabaseScheduler as manage, verifyNetSchemaIsolation } from "./asaas-database-scheduler.server";
+
+const manageAsaasDatabaseScheduler: typeof manage = (request, dependencies = {}) =>
+  manage(request, { verifyIsolation: async () => true, ...dependencies });
 
 const source = { ASAAS_ENVIRONMENT: "sandbox", ASAAS_PRODUCTION_ENABLED: "false", ASAAS_USER_AGENT: "DentalFlow/tests",
   ASAAS_API_KEY: "$aact_hmlg_fixture_not_a_real_key_0123456789", ASAAS_WEBHOOK_TOKEN: "sandbox-webhook-fixture-not-a-real-secret-0123456789",
@@ -38,7 +41,7 @@ describe("private database scheduler bootstrap", () => {
     expect(response.status).toBe(200); expect(response.headers.get("cache-control")).toBe("no-store");
     const result = await response.json();
     expect(result).toMatchObject({ contract: DATABASE_SCHEDULER_CONTRACT, environment: "sandbox", scheduler: registration,
-      immediate_worker_invoked: false });
+      immediate_worker_invoked: false, api_isolation_verified: true });
     expect(JSON.stringify(result)).not.toContain(source.BILLING_WORKER_TOKEN); expect(JSON.stringify(result)).not.toContain("PRIVATE_MARKER");
     expect(configure).toHaveBeenCalledOnce(); expect(source).toEqual(original);
   });
@@ -80,5 +83,31 @@ describe("private database scheduler bootstrap", () => {
     const response = await manageAsaasDatabaseScheduler(request("GET"), { source, configure, readStatus });
     const result = await response.json(); expect(result.scheduler).toEqual(status); expect(JSON.stringify(result)).not.toContain("PRIVATE_MARKER");
     expect(configure).not.toHaveBeenCalled();
+  });
+  it("refuses registration before copying a token if API isolation cannot be proved", async () => {
+    const configure = vi.fn(), verifyIsolation = vi.fn(async () => false);
+    expect((await manageAsaasDatabaseScheduler(request(), { source, configure, verifyIsolation })).status).toBe(503);
+    expect(verifyIsolation).toHaveBeenCalledOnce(); expect(configure).not.toHaveBeenCalled();
+  });
+});
+
+describe("managed pg_net API isolation", () => {
+  const env = { SUPABASE_URL: "https://fixture.supabase.invalid", SUPABASE_SERVICE_ROLE_KEY: "sb_secret_fake-not-a-real-key-0123456789" };
+  it.each([[406, "PGRST106", true], [406, "OTHER", false], [401, "PGRST106", false], [404, "PGRST106", false], [200, "PGRST106", false]])(
+    "requires the specific schema refusal, not an HTTP/auth failure (%s/%s)", async (status, code, expected) => {
+      const transport = vi.fn(async (input, init) => {
+        expect(String(input)).toBe("https://fixture.supabase.invalid/rest/v1/http_request_queue?select=id&limit=0");
+        expect(init.method).toBe("GET"); expect(init.redirect).toBe("manual");
+        const headers = new Headers(init.headers);
+        expect(headers.get("Accept-Profile")).toBe("net"); expect(headers.get("apikey")).toBe(env.SUPABASE_SERVICE_ROLE_KEY);
+        expect(headers.has("Authorization")).toBe(false);
+        return Response.json({ code, message: "PRIVATE_MARKER" }, { status });
+      }) as unknown as typeof fetch;
+      expect(await verifyNetSchemaIsolation(env, new AbortController().signal, transport)).toBe(expected);
+    });
+  it("does not follow redirects carrying credentials", async () => {
+    const transport = vi.fn(async () => new Response(null, { status: 302, headers: { location: "https://untrusted.invalid" } })) as unknown as typeof fetch;
+    expect(await verifyNetSchemaIsolation(env, new AbortController().signal, transport)).toBe(false);
+    expect(transport).toHaveBeenCalledOnce();
   });
 });

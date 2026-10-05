@@ -23,8 +23,14 @@ ativa e ambiente correspondente; o bootstrap automático prepara só Sandbox.
 
 O job executa nos minutos 1, 6, 11 etc. O comando gravado chama uma função
 privada com o ambiente; não contém o token. Somente a função obtém o segredo
-no momento de enfileirar a requisição. Tabelas de headers/respostas pg_net e
-a tabela de configuração ficam sem acesso das contas do aplicativo.
+no momento de enfileirar a requisição. A tabela de configuração e as funções
+de despacho não concedem acesso às contas do aplicativo. O Supabase pode
+preservar grants PUBLIC próprios do pg_net que postgres não consegue revogar.
+A proteção dessas tabelas é comprovada pelo bloqueio do schema net na Data API,
+pelas contas anon/authenticated sem login SQL e pela ausência de funções
+SECURITY DEFINER executáveis por essas contas que exponham net. O POST de
+registro verifica HTTP 406/PGRST106 com Accept-Profile net antes de copiar a
+credencial; a função de despacho verifica novamente a fronteira SQL.
 
 Configuração repetida reutiliza o job e a referência do segredo. A mudança
 de ambiente desativa o job anterior antes de registrar o novo. A rota não

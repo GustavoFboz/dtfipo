@@ -18,9 +18,29 @@ type Dependencies = {
   now?: () => number;
   configure?: (environment: AsaasProviderEnvironment, workerToken: string, signal: AbortSignal) => Promise<unknown>;
   readStatus?: (environment: AsaasProviderEnvironment, signal: AbortSignal) => Promise<unknown>;
+  verifyIsolation?: (signal: AbortSignal) => Promise<boolean>;
 };
 function json(body: object, status: number) {
   return Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
+}
+
+/** No rows or credentials are returned. A managed grant is safe for this
+ * scheduler only if PostgREST refuses the entire net schema, even to backend
+ * credentials. A normal 200/404/401 is never evidence of schema isolation. */
+export async function verifyNetSchemaIsolation(source: Record<string, string | undefined>, signal: AbortSignal,
+  transport: typeof fetch = fetch): Promise<boolean> {
+  const url = new URL(source.SUPABASE_URL ?? "");
+  const key = source.SUPABASE_SERVICE_ROLE_KEY;
+  if (url.protocol !== "https:" || url.username || url.password || url.pathname !== "/" || !key || key.length < 32)
+    return false;
+  url.pathname = "/rest/v1/http_request_queue";
+  url.search = "?select=id&limit=0";
+  const headers = new Headers({ apikey: key, "Accept-Profile": "net" });
+  if (!key.startsWith("sb_secret_") && !key.startsWith("sb_publishable_")) headers.set("Authorization", `Bearer ${key}`);
+  const response = await transport(url, { method: "GET", headers, signal, redirect: "manual" });
+  if (response.status !== 406) { await response.body?.cancel(); return false; }
+  const value: unknown = await response.json();
+  return typeof value === "object" && value !== null && "code" in value && value.code === "PGRST106";
 }
 
 /** Private operator bootstrap/status. POST copies the current worker credential
@@ -53,6 +73,8 @@ export async function manageAsaasDatabaseScheduler(request: Request, dependencie
     const run = async () => {
       let value: unknown;
       if (request.method === "POST") {
+        const isolated = await (dependencies.verifyIsolation?.(controller.signal) ?? verifyNetSchemaIsolation(source, controller.signal));
+        if (!isolated) throw new Error("NET_SCHEMA_EXPOSED");
         if (dependencies.configure) value = await dependencies.configure(environment, workerToken, controller.signal);
         else {
           const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
@@ -66,7 +88,7 @@ export async function manageAsaasDatabaseScheduler(request: Request, dependencie
         if (!parsed.success || parsed.data.provider_environment !== environment) throw new Error("INVALID_REGISTRATION");
         return json({ available: true, contract: DATABASE_SCHEDULER_CONTRACT, environment,
           checked_at: new Date((dependencies.now ?? Date.now)()).toISOString(), scheduler: parsed.data,
-          immediate_worker_invoked: false }, 200);
+          immediate_worker_invoked: false, api_isolation_verified: true }, 200);
       }
       if (dependencies.readStatus) value = await dependencies.readStatus(environment, controller.signal);
       else {

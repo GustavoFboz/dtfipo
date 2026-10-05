@@ -425,7 +425,7 @@ GRANT EXECUTE ON FUNCTION public.resolve_case_clinic_id(uuid), public.can_access
 -- Scheduler credentials and dispatch remain private after blanket grants.
 REVOKE ALL ON TABLE public.billing_database_scheduler,
   net.http_request_queue, net._http_response FROM PUBLIC, anon, authenticated, service_role;
-REVOKE ALL ON FUNCTION public.billing_enqueue_database_worker(text)
+REVOKE ALL ON FUNCTION public.billing_enqueue_database_worker(text), public.billing_database_scheduler_boundary()
   FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.billing_configure_database_scheduler(text,text),
   public.billing_disable_database_scheduler(text), public.billing_database_scheduler_status(text)

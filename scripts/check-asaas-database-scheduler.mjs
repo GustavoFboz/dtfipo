@@ -31,7 +31,7 @@ fs.writeFileSync(a[a.indexOf('--output')+1],process.env[method+'_BODY']);process
   const base = { available: true, contract: "dentalflow-database-scheduler-v1", environment: "sandbox",
     checked_at: "2026-10-05T19:00:00Z", immediate_worker_invoked: false };
   const unconfigured = { ...base, scheduler: null };
-  const registered = { ...base, scheduler: { provider_environment: "sandbox", scheduled: true, cron_job_id: 1, schedule: "1-59/5 * * * *" } };
+  const registered = { ...base, api_isolation_verified: true, scheduler: { provider_environment: "sandbox", scheduled: true, cron_job_id: 1, schedule: "1-59/5 * * * *" } };
   const active = { ...base, scheduler: { provider_environment: "sandbox", enabled: true, cron_active: true, cron_job_id: 1,
     schedule: "1-59/5 * * * *", configured_at: base.checked_at, last_dispatched_at: null,
     last_response_http_status: null, last_response_timed_out: null } };
@@ -58,7 +58,7 @@ fs.writeFileSync(a[a.indexOf('--output')+1],process.env[method+'_BODY']);process
   const refused = run({ error: "PRIVATE_MARKER" }, registered, "401");
   assert.notEqual(refused.status, 0); assert(!refused.calls.includes("POST"));
   for (const post of [{ ...registered, environment: "production" }, { ...registered, immediate_worker_invoked: true },
-    { ...registered, scheduler: { ...registered.scheduler, scheduled: false } }, { error: "PRIVATE_MARKER" }]) {
+    { ...registered, api_isolation_verified: false }, { ...registered, scheduler: { ...registered.scheduler, scheduled: false } }, { error: "PRIVATE_MARKER" }]) {
     const result = run(unconfigured, post); assert.notEqual(result.status, 0); assert(!`${result.stdout}${result.stderr}`.includes("PRIVATE_MARKER"));
   }
   console.log("Database scheduler bootstrap: private GET handshake, Sandbox drift refusal, fixed configuration POST, idempotent preservation and evidence redaction passed (fake HTTP).");

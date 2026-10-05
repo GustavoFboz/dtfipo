@@ -17429,7 +17429,9 @@ create extension if not exists pg_cron with schema pg_catalog;
 create extension if not exists pg_net with schema extensions;
 create extension if not exists supabase_vault;
 
--- Worker headers must never be readable by application accounts.
+-- Best-effort grants on managed extension objects. Supabase can retain PUBLIC
+-- grants owned by supabase_admin; actual isolation also requires hidden Data API
+-- schemas, NOLOGIN client roles and no executable SECURITY DEFINER bridge.
 revoke all on net.http_request_queue, net._http_response from public, anon, authenticated, service_role;
 
 create table if not exists public.billing_database_scheduler (
@@ -17444,10 +17446,23 @@ create table if not exists public.billing_database_scheduler (
 alter table public.billing_database_scheduler enable row level security;
 revoke all on public.billing_database_scheduler from public, anon, authenticated, service_role;
 
+create or replace function public.billing_database_scheduler_boundary()
+returns boolean language sql stable security definer set search_path = pg_catalog, public as $$
+  select not exists(select 1 from pg_roles where rolname in ('anon','authenticated') and rolcanlogin)
+    and not exists(select 1 from pg_db_role_setting s cross join lateral unnest(s.setconfig) setting
+      where setting like 'pgrst.db_schemas=%' and 'net'=any(string_to_array(replace(split_part(setting,'=',2),' ',''),',')))
+    and not exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname in ('public','graphql_public') and p.prokind='f' and p.prosecdef
+        and pg_get_functiondef(p.oid) ~ 'net\.'
+        and (has_function_privilege('anon',p.oid,'EXECUTE') or has_function_privilege('authenticated',p.oid,'EXECUTE')))
+$$;
+revoke all on function public.billing_database_scheduler_boundary() from public, anon, authenticated, service_role;
+
 create or replace function public.billing_enqueue_database_worker(p_environment text)
 returns bigint language plpgsql security definer set search_path = pg_catalog, public as $$
 declare c public.billing_database_scheduler%rowtype; token text; request_id bigint;
 begin
+  if not public.billing_database_scheduler_boundary() then raise exception 'BILLING_SCHEDULER_BOUNDARY_INVALID'; end if;
   select * into c from public.billing_database_scheduler
   where provider_environment=p_environment and enabled;
   if not found then return null; end if;
@@ -17476,6 +17491,7 @@ begin
     or p_worker_token ~ '[[:space:]]' or p_worker_token like '$aact_%' then
     raise exception 'BILLING_SCHEDULER_CONFIGURATION_INVALID';
   end if;
+  if not public.billing_database_scheduler_boundary() then raise exception 'BILLING_SCHEDULER_BOUNDARY_INVALID'; end if;
   perform pg_advisory_xact_lock(hashtextextended('dentalflow_billing_database_scheduler',0));
   -- Only one runtime environment can be primary at a time.
   perform cron.alter_job(c.cron_job_id,active:=false)
@@ -17961,7 +17977,7 @@ GRANT EXECUTE ON FUNCTION public.resolve_case_clinic_id(uuid), public.can_access
 -- Scheduler credentials and dispatch remain private after blanket grants.
 REVOKE ALL ON TABLE public.billing_database_scheduler,
   net.http_request_queue, net._http_response FROM PUBLIC, anon, authenticated, service_role;
-REVOKE ALL ON FUNCTION public.billing_enqueue_database_worker(text)
+REVOKE ALL ON FUNCTION public.billing_enqueue_database_worker(text), public.billing_database_scheduler_boundary()
   FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.billing_configure_database_scheduler(text,text),
   public.billing_disable_database_scheduler(text), public.billing_database_scheduler_status(text)
