@@ -51,6 +51,22 @@ process.stdout.write(process.env.FIXTURE_STATUS);
   for (const status of ["401", "404", "502", "503"]) {
     const result = run({ error: "PRIVATE_ERROR_MARKER" }, status);
     assert.notEqual(result.status, 0); assert(!`${result.stdout}${result.stderr}`.includes("PRIVATE_ERROR_MARKER"));
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-preflight.json"), "utf8")),
+      { available: false, http_status: status, code: "UNCLASSIFIED", financial_processing_invoked: false });
+  }
+  for (const code of ["PRODUCTION_CONFIGURATION_FAILED", "PRODUCTION_CREDENTIAL_REFUSED",
+    "PRODUCTION_PROVIDER_UNAVAILABLE", "PRODUCTION_STATUS_INVALID", "PRODUCTION_PREFLIGHT_TIMEOUT"]) {
+    const result = run({ available: false, code, private: "PRIVATE_ERROR_MARKER" }, "502");
+    assert.notEqual(result.status, 0); assert(result.stdout.includes(`code ${code}.`));
+    assert(!`${result.stdout}${result.stderr}`.includes("PRIVATE_ERROR_MARKER"));
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-preflight.json"), "utf8")),
+      { available: false, http_status: "502", code, financial_processing_invoked: false });
+  }
+  for (const body of [{ code: "PRIVATE_ERROR_MARKER" }, ["PRODUCTION_CREDENTIAL_REFUSED"], null]) {
+    const result = run(body, "502"); assert.notEqual(result.status, 0);
+    assert(result.stdout.includes("code UNCLASSIFIED."));
+    assert(!`${result.stdout}${result.stderr}`.includes("PRIVATE_ERROR_MARKER"));
+    assert(!fs.readFileSync(path.join(tmp, "production-preflight.json"), "utf8").includes("PRIVATE_ERROR_MARKER"));
   }
   console.log("Production preflight workflow: fixed private GET, secret via stdin, safe evidence, pending-account and financial guards passed (fake HTTP).");
 } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
