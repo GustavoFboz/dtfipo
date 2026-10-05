@@ -48,7 +48,7 @@ if (panel.includes("integrations/supabase") || !panel.includes("@/lib/master-ope
   throw new Error("Master monitoring must use the public session-aware facade");
 const scheduler = fs.readFileSync(".github/workflows/saas-asaas-inbox-worker.yml", "utf8");
 if (!scheduler.includes("vars.BILLING_ENVIRONMENT || 'sandbox'")
-  || !scheduler.includes('X-Billing-Environment: $BILLING_ENVIRONMENT')
+  || !scheduler.includes('X-Billing-Environment: %s\\n')
   || !scheduler.includes('$BILLING_PRODUCTION_ENABLED\" != \"true')
   || !scheduler.includes('$BILLING_PRODUCTION_WORKER_TOKEN\" == \"$BILLING_WORKER_TOKEN')
   || !scheduler.includes("monitoringRecorded == true"))
