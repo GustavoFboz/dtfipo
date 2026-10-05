@@ -19,6 +19,13 @@ cobrança, mensagem bruta ou credencial. Comparação com o snapshot da inbox n�
 é prova de titularidade, preço, período ou autorização para reaplicar pagamento.
 Todos os registros conservam `requires_manual_review=true`.
 
+A projeção informa valor em centavos e vencimento somente quando válidos, e
+distingue assinatura vinculada, ausência explícita e campo omitido pelo
+provedor. Campo omitido não comprova cobrança avulsa nem autoriza completar
+o vínculo a partir de um cliente parecido. Não revela IDs de outros clientes
+ou assinaturas. Estes campos permitem comparar com o ledger e contrato
+durante a revisão individual, sem presumir correspondência pelo status RECEIVED.
+
 HTTP 404 identifica recurso não encontrado/acessível nessa conta e ambiente.
 Não distingue sozinho recurso apagado, ID incorreto ou conta diferente. HTTP
 200 com recurso lido também não encerra o aceite financeiro. Os códigos e
