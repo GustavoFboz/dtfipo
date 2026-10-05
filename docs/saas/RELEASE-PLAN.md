@@ -6,15 +6,16 @@ para manter o histórico; não são um segundo protocolo.
 
 **Restam 7 de 7 etapas com aceites em aberto.** Há código e provas parciais
 em todas elas; um incremento aprovado não encerra automaticamente a etapa.
-Frentes desta rodada: **3/7 (armazenamento)**, **4/7 (segurança de acesso)**
-e **5/7 (gestão da assinatura)**. 6/7 e 7/7 ficam para a rodada posterior.
+Frente atual: **2/7, item 2.3 — autorização offline de até 72 horas**.
+A preparação de Produção continua pendente de configuração e comprovação;
+as demais frentes conservam seus aceites em aberto.
 Produção saiu da antiga etapa 09 e ganhou a etapa técnica 10, tornando explícita
 a conexão necessária para receber dinheiro real.
 
 | Ordem restante | Documento técnico | Critério para encerrar |
 | --- | --- | --- |
 | 1/7 — Eventos e reconciliação | 04 | Duplicata sem duplicar pagamento/acesso; perda de webhook recuperada; eventos fora de ordem; dois dead letters revisados individualmente e replay autorizado com evidência Asaas. |
-| 2/7 — Ciclo da assinatura | 05 | Renovação, atraso, carência, suspensão, estorno/chargeback, cancelamento e reativação comprovados; nenhuma exclusão de dados; acesso online e prazo offline coerentes. |
+| 2/7 — Ciclo da assinatura | 05 | Renovação, atraso, carência, suspensão, estorno/chargeback, cancelamento e reativação comprovados; dados do backend preservados; acesso online e prazo offline coerentes, com exclusão local no vencimento conforme decisão do responsável. |
 | 3/7 — Armazenamento | 06 | Upload, bloqueio por limite, falha/retentativa e exclusão nos módulos disponíveis: caso, paciente, foto e avatar; reserva e tamanho real consistentes; concorrência; revisão individual de reservas e objetos históricos; prova em Web e aplicativos instalados. |
 | 4/7 — Segurança, identidade e Master | 07 + revisão de segurança da 09 | Cadastro/confirmação/recuperação de senha; política aplicada no Auth; sessões reais, MFA e troca/logout; tentativas de acesso a outra empresa/elevação de privilégio/replay em AAL1 recusadas; arquivos privados; revisão de secrets, superfícies públicas e ações administrativas; resultados e riscos registrados. |
 | 5/7 — Gestão pelo cliente | 08 | Histórico e cobrança corretos; cancelamento/troca executados no Asaas uma vez; preço e vigência explícitos, downgrade compatível com limites e reconciliação após falha. |
@@ -95,3 +96,11 @@ O responsável informou ter acesso ao Asaas, mas não conhecer o status da conta
 Conferir cadastro e modalidade de R$1, depois cadastrar secrets e webhook de
 Produção nos painéis apropriados. A ferramenta conectada não oferece configuração
 de secrets. Ver sequência e campos em STAGE-10-PRODUCTION-READINESS.md.
+
+## Decisão adicional: aplicativos offline
+
+O responsável determinou limite de 72 horas, limpeza local e bloqueio após
+o vencimento. Regra, limites, perda de alterações não sincronizadas e aceites
+por plataforma estão em [OFFLINE-72-HOURS.md](OFFLINE-72-HOURS.md).
+O contador verificável é [ACCEPTANCE-PROGRESS.md](ACCEPTANCE-PROGRESS.md);
+implementação parcial não equivale a autorização para vender.

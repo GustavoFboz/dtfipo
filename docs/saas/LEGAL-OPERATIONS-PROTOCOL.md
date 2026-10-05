@@ -41,6 +41,11 @@ L08 encerra a revisão. Nenhuma minuta em branco será apresentada como contrato
   Não presumir hospedagem exclusivamente brasileira nem retenção zero.
 - Prazos de guarda por categoria, necessidade de sigilo profissional, cópias
   offline, exportação, remoção ao fim do contrato e recuperação de backups.
+- Decisão de acesso offline: até 72 horas após validação online da assinatura.
+  As futuras condições comerciais e avisos devem explicar a exclusão de cache
+  e alterações locais não sincronizadas no vencimento, a preservação dos dados
+  do backend e a necessidade de conexão periódica. Confirmar o comportamento
+  por plataforma antes de prometer essa função, especialmente no iPhone.
 - Horários e capacidade reais de suporte; resultados de restauração; disponibilidade
   e prazos de recuperação ainda não medidos permanecem sem promessa numérica.
 
