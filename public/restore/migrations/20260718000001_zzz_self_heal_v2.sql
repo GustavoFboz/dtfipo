@@ -423,6 +423,12 @@ REVOKE ALL ON FUNCTION public.resolve_case_clinic_id(uuid), public.can_access_ca
 GRANT EXECUTE ON FUNCTION public.resolve_case_clinic_id(uuid), public.can_access_case(uuid), public.can_modify_case(uuid) TO authenticated, service_role;
 
 -- Scheduler credentials and dispatch remain private after blanket grants.
+-- Manual external-test review keeps the same operator/AAL2 boundary after restore.
+REVOKE ALL ON FUNCTION public.platform_master_close_external_sandbox_test(text,text,text,boolean)
+  FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.platform_master_close_external_sandbox_test(text,text,text,boolean)
+  TO authenticated;
+
 REVOKE ALL ON TABLE public.billing_database_scheduler,
   net.http_request_queue, net._http_response FROM PUBLIC, anon, authenticated, service_role;
 REVOKE ALL ON FUNCTION public.billing_enqueue_database_worker(text), public.billing_database_scheduler_boundary()

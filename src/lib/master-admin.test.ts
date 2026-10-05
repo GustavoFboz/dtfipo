@@ -3,10 +3,11 @@ import { createClient, type AuthChangeEvent, type Session } from "@supabase/supa
 import { QueryClient } from "@tanstack/react-query";
 import type { Database } from "@/integrations/supabase/types";
 import { observeMasterSession, type MasterSessionState } from "./auth/master-session";
-import { loadMasterDashboard, masterDashboardKey, replayMasterEvent, type MasterReviewEvent } from "./master-admin";
+import { closeExternalSandboxTest, loadMasterDashboard, masterDashboardKey, replayMasterEvent, type MasterReviewEvent } from "./master-admin";
 
 const snapshot = { companies: [{ id: "private", name: "Private operator company" }], queue: {}, recent_payments: [], review_events: [], generated_at: "test" };
 const event = { provider_environment: "sandbox", provider_event_id: "test-event" } as MasterReviewEvent;
+const externalEvent = { ...event, event_type: "PAYMENT_RECEIVED", status: "dead_letter" };
 const cleanup: (() => void)[] = [];
 afterEach(() => cleanup.splice(0).forEach((dispose) => dispose()));
 function session(ownerId = "operator", sessionId = "login-1", aal = "aal2"): Session {
@@ -85,5 +86,40 @@ describe("Master RPC request/session isolation", () => {
     const f = await fixture(session("operator", "login-1", "aal1"));
     await expect(replayMasterEvent(f.client, f.scope, f.observer.isCurrent, event, "Reviewed test-only event")).rejects.toThrow("MASTER_MFA_REQUIRED");
     expect(f.fetcher).not.toHaveBeenCalled();
+  });
+  it("requires AAL2 for external-test review before contacting the RPC", async () => {
+    const f = await fixture(session("operator", "login-1", "aal1"));
+    await expect(closeExternalSandboxTest(f.client, f.scope, f.observer.isCurrent, externalEvent,
+      "Reviewed external manual test", true)).rejects.toThrow("MASTER_MFA_REQUIRED");
+    expect(f.fetcher).not.toHaveBeenCalled();
+  });
+  it.each([
+    [{ ...externalEvent, provider_environment: "production" }, true, "Reviewed external manual test"],
+    [{ ...externalEvent, status: "processing" }, true, "Reviewed external manual test"],
+    [externalEvent, false, "Reviewed external manual test"],
+    [externalEvent, true, "short"],
+  ])("refuses an ineligible or unconfirmed review without a request", async (target, confirmed, reason) => {
+    const f = await fixture();
+    await expect(closeExternalSandboxTest(f.client, f.scope, f.observer.isCurrent, target, reason, confirmed)).rejects.toThrow();
+    expect(f.fetcher).not.toHaveBeenCalled();
+  });
+  it("pins external-test review to the confirmed session and preserves the server denial", async () => {
+    const initial = session(); const f = await fixture(initial);
+    f.fetcher.mockResolvedValueOnce(new Response(JSON.stringify({ code: "P0001", message: "PLATFORM_MASTER_EXTERNAL_TEST_HAS_BILLING_LINK" }), { status: 403 }));
+    await expect(closeExternalSandboxTest(f.client, f.scope, f.observer.isCurrent, externalEvent,
+      "Reviewed external manual test", true)).rejects.toThrow("Há vínculo");
+    expect(new Headers(f.fetcher.mock.calls[0][1]?.headers).get("Authorization")).toBe(`Bearer ${initial.access_token}`);
+    expect(JSON.parse(f.fetcher.mock.calls[0][1]?.body as string)).toMatchObject({ p_environment: "sandbox", p_confirm_manual_external: true });
+  });
+  it("discards a completed review response after the account changes", async () => {
+    const f = await fixture(); const scope = f.scope;
+    let finish!: (response: Response) => void; let started!: () => void;
+    const ready = new Promise<void>((resolve) => { started = resolve; });
+    f.fetcher.mockImplementationOnce(() => { started(); return new Promise((resolve) => { finish = resolve; }); });
+    const pending = closeExternalSandboxTest(f.client, scope, f.observer.isCurrent, externalEvent,
+      "Reviewed external manual test", true);
+    const rejected = expect(pending).rejects.toThrow("MASTER_SESSION_CHANGED");
+    await ready; f.emit("SIGNED_IN", session("other", "login-2"));
+    finish(new Response("true", { status: 200 })); await rejected;
   });
 });

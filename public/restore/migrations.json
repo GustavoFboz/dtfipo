@@ -169,5 +169,6 @@
   "20261005062000_saas_case_company_boundary_stage07.sql",
   "20261005111000_fix_case_insert_returning_rls.sql",
   "20261005190000_saas_database_scheduler_stage09.sql",
+  "20261005223500_saas_master_external_test_review_stage07.sql",
   "20260718000001_zzz_self_heal_v2.sql"
 ]

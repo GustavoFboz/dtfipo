@@ -18,10 +18,19 @@ const required = [
   ".github/workflows/saas-asaas-publication-probe.yml",
   "scripts/check-saas-worker-workflows.mjs",
   "supabase/migrations/20261004010000_saas_operational_health_stage09.sql",
+  "supabase/migrations/20261005223500_saas_master_external_test_review_stage07.sql",
+  "public/restore/migrations/20261005223500_saas_master_external_test_review_stage07.sql",
+  "docs/saas/sql/stage-07-external-test-rehearsal.sql",
+  "docs/saas/STAGE-07-EXTERNAL-TEST-REVIEW.md",
+  "src/components/master/MasterExternalTestReview.tsx",
 ];
 
 const missing = required.filter((p) => !fs.existsSync(p));
 if (missing.length) throw new Error("Stage 09 missing required artifacts: " + missing.join(", "));
+const externalReviewMigration = "20261005223500_saas_master_external_test_review_stage07.sql";
+if (fs.readFileSync(`supabase/migrations/${externalReviewMigration}`, "utf8") !==
+    fs.readFileSync(`public/restore/migrations/${externalReviewMigration}`, "utf8"))
+  throw new Error("External-test review differs between migration and restore");
 
 const forbiddenTracked = [".env.production", ".env.prod", "asaas-production.key"];
 for (const p of forbiddenTracked) {

@@ -83,6 +83,22 @@
     "replay_authorized": false,
     "replay_invoked": false,
     "ownership_proved": false,
-    "reason": "Same received Sandbox payment (500 cents); provider subscription omitted, no local ledger match or snapshot customer/subscription/reference. Preserve review pending verified contract/context."
+    "reason": "Provider reads and operator confirmation identify an external manual Sandbox test; no local ledger/checkout association. Master/AAL2 review of each original event is pending; no replay or SaaS access credit."
+  },
+  "operator_context": {
+    "source": "responsible_operator_chat",
+    "confirmed_on": "2026-10-05",
+    "origin": "manual_in_asaas",
+    "amount_cents": 500,
+    "environment": "sandbox"
+  },
+  "local_eligibility": {
+    "checked_at": "2026-10-05T22:45:56.839604Z",
+    "payment_id": "pay_w9733yh2mprx2169",
+    "ledger_matches": 0,
+    "checkout_matches": 0,
+    "both_events_dead_letter": true,
+    "both_payment_only_snapshot": true,
+    "both_lease_free": true
   }
 }
