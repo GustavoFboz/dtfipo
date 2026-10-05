@@ -62,7 +62,9 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Verify atomic offline cache and outbox expiration
-        run: cargo test --manifest-path src-tauri/Cargo.toml offline_expiration_tests
+        run: |
+          node scripts/prepare-notification-sound.mjs
+          cargo test --manifest-path src-tauri/Cargo.toml offline_expiration_tests
 
       - name: Verify release metadata 0.6.7
         shell: pwsh
