@@ -1,7 +1,10 @@
 # Etapa técnica 10 — conexão Asaas Produção e liberação
 
 Ordem apresentada ao responsável: **7/7**, conforme RELEASE-PLAN.md.
-Status: pendente; pagamentos reais continuam adiados.
+Status: preparação em andamento. Em 04/10/2026, 22h44 de Manaus, o responsável
+solicitou finalizar os aceites e informou que fará o teste da primeira conta
+de R$1. A compra será feita por ele após a conferência de Produção; esta decisão
+não encerra os demais aceites nem autoriza execução de solicitações antigas.
 
 ## Preparação e aceite obrigatório
 
@@ -17,9 +20,11 @@ Status: pendente; pagamentos reais continuam adiados.
 4. Configurar o webhook de Produção com o endpoint publicado, autenticação
    e eventos efetivamente suportados pelo protocolo. Comprovar persistência
    antes do 200, duplicatas e recuperação após indisponibilidade.
-5. Ajustar o agendador e o diagnóstico para o ambiente de Produção no mesmo
-   rollout autorizado. O agendador atual fixa Sandbox: mantê-lo dessa forma
-   enquanto o servidor muda para Produção produziria recusa de ambiente.
+5. Alinhar agendador e diagnóstico ao ambiente do backend no mesmo rollout.
+   A preparação usa `BILLING_ENVIRONMENT` (padrão `sandbox`); `production` exige
+   `BILLING_PRODUCTION_ENABLED=true` e o secret `BILLING_PRODUCTION_WORKER_TOKEN`
+   separado de `BILLING_WORKER_TOKEN` do Sandbox. O backend continua exigindo
+   suas próprias flags e secrets; a configuração do GitHub não os substitui.
 6. Conferir preço, titularidade, vencimento, cancelamento e acesso de uma conta
    isolada. O catálogo Inicial permanece em R$1 para o teste controlado;
    contratos anteriores conservam seus snapshots.
@@ -42,3 +47,26 @@ automaticamente. Reconciliar cada ocorrência com o Asaas e manter auditoria.
 - STAGE-09-INCIDENT-RUNBOOK.md
 - https://docs.asaas.com/reference/comece-por-aqui
 - https://docs.asaas.com/docs/receba-eventos-do-asaas-no-seu-endpoint-de-webhook
+
+## Conferência de 04/10, 22h45 em Manaus
+
+Consulta somente de leitura confirmou `company_initial` ativo, BRL, 100
+centavos. Eventos: cinco processados e dois dead letters, todos Sandbox.
+Nenhuma solicitação de mudança/cancelamento está registrada. Última execução
+saudável do worker: 22h20m13s, Sandbox, aproximadamente 25 minutos antes da
+consulta. Não comprova regularidade aceitável nem habilitação de Produção.
+
+Próximos requisitos de configuração, ainda sem evidência:
+
+| Local | Conferência |
+| --- | --- |
+| Asaas Produção | Conta recebedora correta e aprovada; modalidade aceita para R$1; chave própria; webhook cadastrado com URL e eventos corretos. |
+| Secrets do backend | `ASAAS_ENVIRONMENT=production`, chave e token do webhook de Produção, `ASAAS_PRODUCTION_ENABLED=true`, `BILLING_WORKER_TOKEN` próprio de Produção e demais requisitos de `loadAsaasConfig`. |
+| GitHub | `BILLING_ENVIRONMENT=production`, `BILLING_PRODUCTION_ENABLED=true`, secret `BILLING_PRODUCTION_WORKER_TOKEN` idêntico ao worker do backend de Produção e diferente do Sandbox. |
+| Publicação | Confirmar a revisão servida, GET privado com ambiente correto e execução saudável recente. |
+| Teste do responsável | Uma compra de R$1, identificar cobrança/empresa e verificar recebimento no provedor, webhook, ledger e acesso; não inferir pagamento do redirecionamento. |
+
+Não colar secrets no chat, GitHub ou evidências. As ferramentas conectadas nesta
+rodada não oferecem leitura/configuração de secrets; SQL não comprova seu valor
+nem substitui a verificação no backend. Não configurar apenas a flag e iniciar
+checkout antes de conferir os outros itens.

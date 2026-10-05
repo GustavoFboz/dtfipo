@@ -17,13 +17,35 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 7
     env:
+      BILLING_ENVIRONMENT: ${{ vars.BILLING_ENVIRONMENT || 'sandbox' }}
+      BILLING_PRODUCTION_ENABLED: ${{ vars.BILLING_PRODUCTION_ENABLED }}
       BILLING_WORKER_TOKEN: ${{ secrets.BILLING_WORKER_TOKEN }}
+      BILLING_PRODUCTION_WORKER_TOKEN: ${{ secrets.BILLING_PRODUCTION_WORKER_TOKEN }}
     steps:
-      - name: Process persisted Sandbox events
-        if: env.BILLING_WORKER_TOKEN != ''
+      - name: Process persisted events in the configured environment
+        if: env.BILLING_WORKER_TOKEN != '' || env.BILLING_PRODUCTION_WORKER_TOKEN != ''
         shell: bash
         run: |
           set -euo pipefail
+          case "$BILLING_ENVIRONMENT" in
+            sandbox)
+              if [[ -z "$BILLING_WORKER_TOKEN" ]]; then
+                echo '::error::Sandbox worker credential is missing.'
+                exit 1
+              fi
+              ;;
+            production)
+              if [[ "$BILLING_PRODUCTION_ENABLED" != "true" || -z "$BILLING_PRODUCTION_WORKER_TOKEN" || "$BILLING_PRODUCTION_WORKER_TOKEN" == "$BILLING_WORKER_TOKEN" ]]; then
+                echo '::error::Production requires explicit scheduler enablement and a separate worker credential.'
+                exit 1
+              fi
+              BILLING_WORKER_TOKEN="$BILLING_PRODUCTION_WORKER_TOKEN"
+              ;;
+            *)
+              echo '::error::Invalid billing scheduler environment.'
+              exit 1
+              ;;
+          esac
           response_file=$(mktemp)
           trap 'rm -f "$response_file"' EXIT
           had_review=0
@@ -31,7 +53,7 @@ jobs:
             if ! http_status=$(curl --silent --show-error --max-time 35 --output "$response_file" --write-out '%{http_code}' \
               --request POST \
               --header "Authorization: Bearer $BILLING_WORKER_TOKEN" \
-              --header "X-Billing-Environment: sandbox" \
+              --header "X-Billing-Environment: $BILLING_ENVIRONMENT" \
               --header "Content-Type: application/json" \
               https://dtfipo.lovable.app/api/billing/asaas-worker); then
               echo '::error::Worker transport failed; inspect the private Master monitoring panel.'
@@ -60,7 +82,7 @@ jobs:
             exit 1
           fi
       - name: Require configured worker credential
-        if: env.BILLING_WORKER_TOKEN == ''
+        if: env.BILLING_WORKER_TOKEN == '' && env.BILLING_PRODUCTION_WORKER_TOKEN == ''
         run: |
           echo '::error::BILLING_WORKER_TOKEN is missing from the scheduler.'
           exit 1
