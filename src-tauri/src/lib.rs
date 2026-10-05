@@ -4,7 +4,7 @@ mod notifications;
 mod printing;
 mod window_controls;
 
-use device_identity::{device_identity_clear, device_identity_get, device_identity_set};
+use device_identity::{device_identity_clear, device_identity_get, device_identity_set, desktop_clear_private_webview_cache};
 use local_db::{
     desktop_runtime_info, local_cache_clear_owner, local_cache_delete, local_cache_get,
     local_cache_list, local_cache_put, outbox_clear_done, outbox_enqueue, outbox_mark,
@@ -123,6 +123,7 @@ pub fn run() {
             device_identity_get,
             device_identity_set,
             device_identity_clear,
+            desktop_clear_private_webview_cache,
             local_cache_put,
             local_cache_get,
             local_cache_list,

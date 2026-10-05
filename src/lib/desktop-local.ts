@@ -1,4 +1,27 @@
 import * as mobileLocal from "@/lib/mobile/local-runtime";
+import { clearInstalledSessionSnapshots, hasOfflineAccess, OFFLINE_ACCESS_EXPIRED_EVENT } from "./offline-access-policy";
+import { clearMobilePrivateBrowserCache } from "./mobile/native";
+import { allowAttachmentCacheForOwner, purgePrivateAttachmentCache } from "./desktop-runtime-optimizations";
+const BROWSER_CLEANUP_PENDING_KEY = "dentalflow:offline-browser-cleanup-pending";
+let offlineAccessRevision = 0;
+let browserCleanupInFlight: Promise<void> | null = null;
+export function getOfflineAccessRevision() { return offlineAccessRevision; }
+
+async function flushExpiredBrowserCache() {
+  if (!browserCleanupInFlight) {
+    browserCleanupInFlight = (async () => {
+      const owner = window.localStorage.getItem(BROWSER_CLEANUP_PENDING_KEY);
+      await purgePrivateAttachmentCache(owner && owner !== "1" ? owner : undefined);
+      if (typeof caches !== "undefined") {
+        for (const key of await caches.keys()) await caches.delete(key);
+      }
+      if (mobileLocal.isNativeMobileLocalRuntime()) await clearMobilePrivateBrowserCache();
+      else await invokeDesktop<void>("desktop_clear_private_webview_cache");
+      window.localStorage.removeItem(BROWSER_CLEANUP_PENDING_KEY);
+    })().finally(() => { browserCleanupInFlight = null; });
+  }
+  return browserCleanupInFlight;
+}
 
 type DesktopInvoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
 
@@ -160,29 +183,46 @@ export async function playDesktopNotificationSound() {
   }
 }
 
-export function getProvisionedDesktopIdentity() {
-  if (mobileLocal.isNativeMobileLocalRuntime()) {
-    return Promise.resolve(mobileLocal.mobileGetIdentity() as DeviceIdentity | null);
+export async function getProvisionedDesktopIdentity() {
+  if (typeof window !== "undefined" && isDentalFlowDesktop()
+    && window.localStorage.getItem(BROWSER_CLEANUP_PENDING_KEY)) {
+    await flushExpiredBrowserCache();
   }
-  if (!isDentalFlowWindowsDesktop()) return Promise.resolve<DeviceIdentity | null>(null);
-  return invokeDesktop<DeviceIdentity | null>("device_identity_get");
+  let identity: DeviceIdentity | null;
+  if (mobileLocal.isNativeMobileLocalRuntime()) {
+    identity = await mobileLocal.mobileGetIdentity();
+  } else {
+    if (!isDentalFlowWindowsDesktop()) return null;
+    identity = await invokeDesktop<DeviceIdentity | null>("device_identity_get");
+  }
+  if (identity && !hasOfflineAccess(identity)) {
+    offlineAccessRevision++;
+    clearInstalledSessionSnapshots();
+    window.localStorage.setItem(BROWSER_CLEANUP_PENDING_KEY, identity.user_id);
+    window.dispatchEvent(new CustomEvent(OFFLINE_ACCESS_EXPIRED_EVENT));
+    await flushExpiredBrowserCache();
+    return null;
+  }
+  return identity;
 }
 
-export function provisionDesktopIdentity(input: {
+export async function provisionDesktopIdentity(input: {
   userId: string;
   email?: string | null;
   fullName?: string | null;
   clinicId?: string | null;
 }) {
   if (mobileLocal.isNativeMobileLocalRuntime()) {
-    return Promise.resolve(mobileLocal.mobileSetIdentity({
+    const identity = await mobileLocal.mobileSetIdentity({
       user_id: input.userId,
       email: input.email ?? null,
       full_name: input.fullName ?? null,
       clinic_id: input.clinicId ?? null,
-    }) as DeviceIdentity);
+    });
+    allowAttachmentCacheForOwner(input.userId);
+    return identity;
   }
-  return invokeDesktop<DeviceIdentity>("device_identity_set", {
+  const identity = await invokeDesktop<DeviceIdentity>("device_identity_set", {
     input: {
       user_id: input.userId,
       email: input.email ?? null,
@@ -190,12 +230,13 @@ export function provisionDesktopIdentity(input: {
       clinic_id: input.clinicId ?? null,
     },
   });
+  allowAttachmentCacheForOwner(input.userId);
+  return identity;
 }
 
 export function clearProvisionedDesktopIdentity() {
   if (mobileLocal.isNativeMobileLocalRuntime()) {
-    mobileLocal.mobileClearIdentity();
-    return Promise.resolve();
+    return mobileLocal.mobileClearIdentity();
   }
   if (!isDentalFlowWindowsDesktop()) return Promise.resolve();
   return invokeDesktop<void>("device_identity_clear");
