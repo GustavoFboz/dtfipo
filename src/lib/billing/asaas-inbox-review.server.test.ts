@@ -8,6 +8,7 @@ const row = { id, provider_environment: "sandbox", status: "dead_letter", event_
     paymentId: "pay_fixture1", subscriptionId: "sub_fixture1", customerId: "cus_fixture1",
     externalReference: "private-reference", private: "private-inbox-marker" } };
 const payment = { id: "pay_fixture1", customer: "cus_fixture1", subscription: "sub_fixture1", status: "OVERDUE",
+  value: 249, dueDate: "2026-10-05",
   deleted: false, invoiceUrl: "https://private.example.invalid", cpfCnpj: "private-cpf-marker", private: "private-provider-marker" };
 function deps(rows: unknown = [row]) {
   return { workerToken: token, environment: "sandbox" as "sandbox" | "production", now: () => Date.parse("2026-10-05T20:00:00Z"),
@@ -50,6 +51,7 @@ describe("bounded private Sandbox dead-letter diagnosis", () => {
       financial_processing_invoked: false, replay_invoked: false, events: [{ id, event_type: "PAYMENT_OVERDUE",
         attempt_count: 6, stored_error_code: "PROVIDER_RECONCILIATION_FAILED", resource_kind: "payment",
         resource_id: "pay_fixture1", provider_http_status: 200, provider_status: "OVERDUE", provider_deleted: false,
+        provider_subscription_link: "linked", provider_amount_cents: 24900, provider_due_date: "2026-10-05",
         snapshot_customer_matches: true, snapshot_subscription_matches: true, lookup_code: "RESOURCE_READ", requires_manual_review: true }] });
     expect(JSON.stringify(body)).not.toContain("private");
     expect(d.getPayment).toHaveBeenCalledExactlyOnceWith("pay_fixture1"); expect(d.getSubscription).not.toHaveBeenCalled();
@@ -98,6 +100,19 @@ describe("bounded private Sandbox dead-letter diagnosis", () => {
     expect(body.events[0]).toMatchObject({ provider_status: null, provider_deleted: null,
       snapshot_customer_matches: null, snapshot_subscription_matches: null });
   });
+  it.each([[null, "absent"], [undefined, "not_reported"]])("distinguishes provider subscription absence from omission", async (subscription, link) => {
+    const d = deps(); d.getPayment.mockResolvedValue({ ...payment, subscription });
+    const body = await (await inspectAsaasInboxReview(request(), d)).json();
+    expect(body.events[0]).toMatchObject({ provider_subscription_link: link, requires_manual_review: true });
+    expect(body.events[0].snapshot_subscription_matches).toBe(false);
+  });
+  it.each([[249.001, "2026-02-30"], [Infinity, "private-date"], ["private-value", null], [-1, "2026-13-01"]])(
+    "does not project invalid amounts or dates", async (value, dueDate) => {
+      const d = deps(); d.getPayment.mockResolvedValue({ ...payment, value, dueDate });
+      const body = await (await inspectAsaasInboxReview(request(), d)).json();
+      expect(body.events[0]).toMatchObject({ provider_amount_cents: null, provider_due_date: null });
+      expect(JSON.stringify(body)).not.toContain("private");
+    });
   it("caps provider reads at two and reports a larger queue", async () => {
     const d = deps([row, row, row]); const body = await (await inspectAsaasInboxReview(request(), d)).json();
     expect(body.has_more).toBe(true); expect(body.events).toHaveLength(2); expect(d.getPayment).toHaveBeenCalledTimes(2);
