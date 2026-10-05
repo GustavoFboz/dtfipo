@@ -9,7 +9,11 @@ import {
   isDentalFlowDesktop,
   localCacheGet,
   localCachePut,
+  getProvisionedDesktopIdentity,
+  provisionDesktopIdentity,
+  getOfflineAccessRevision,
 } from "./desktop-local";
+import { hasOfflineAccess } from "./offline-access-policy";
 import {
   resolveDesktopIdentity,
   resolveDesktopOwnerId,
@@ -50,7 +54,8 @@ async function readCachedContext(ownerId: string | null) {
     SUBSCRIPTION_CACHE_NAMESPACE,
     SUBSCRIPTION_CACHE_KEY,
   ).catch(() => null);
-  return entry?.payload ? locallySafeContext(entry.payload) : null;
+  if (!entry?.payload || !hasOfflineAccess({ validated_at: entry.updated_at, valid_until: Number.MAX_SAFE_INTEGER })) return null;
+  return locallySafeContext(entry.payload);
 }
 
 async function persistContext(ownerId: string, context: MySubscriptionContext) {
@@ -63,6 +68,7 @@ async function persistContext(ownerId: string, context: MySubscriptionContext) {
 }
 
 async function fetchVerifiedCloudContext(): Promise<MySubscriptionContext | null> {
+  const revision = getOfflineAccessRevision();
   const identity = await resolveDesktopIdentity();
   if (!identity || identity.source !== "cloud") {
     throw new Error("A sessão online ainda não foi validada neste computador.");
@@ -79,6 +85,22 @@ async function fetchVerifiedCloudContext(): Promise<MySubscriptionContext | null
   );
 
   if (context) {
+    // Only an authoritative paid/privileged entitlement renews the 72-hour
+    // authorization. A local read, JWT refresh or failed RPC never extends it.
+    if (context.effective_access === "full") {
+      const previous = await getProvisionedDesktopIdentity();
+      const { data } = await supabase.auth.getSession();
+      if (revision !== getOfflineAccessRevision() || data.session?.user.id !== identity.userId
+        || data.session.user.user_metadata?.dentalflow_offline_device) {
+        throw new Error("A autorização offline expirou ou a conta mudou. Entre novamente online.");
+      }
+      await provisionDesktopIdentity({
+        userId: identity.userId,
+        email: data.session?.user.email ?? null,
+        fullName: previous?.user_id === identity.userId ? previous.full_name : null,
+        clinicId: previous?.user_id === identity.userId ? previous.clinic_id : null,
+      });
+    }
     await persistContext(identity.userId, context);
   }
   return context;

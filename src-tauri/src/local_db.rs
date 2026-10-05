@@ -169,6 +169,53 @@ fn decode_payload(encoded: &str) -> Result<Value, String> {
     serde_json::from_str(encoded).map_err(|error| error.to_string())
 }
 
+pub fn purge_owner_data(state: &State<'_, LocalDb>, owner_id: &str) -> Result<(), String> {
+    validate_text(owner_id, "owner_id", 160)?;
+    let mut connection = lock_connection(state)?;
+    purge_owner_connection(&mut connection, owner_id)
+}
+
+fn purge_owner_connection(connection: &mut Connection, owner_id: &str) -> Result<(), String> {
+    connection.execute_batch("PRAGMA secure_delete = ON;").map_err(|error| error.to_string())?;
+    let transaction = connection.transaction().map_err(|error| error.to_string())?;
+    transaction.execute("DELETE FROM local_cache WHERE owner_id = ?1", params![owner_id])
+        .map_err(|error| error.to_string())?;
+    transaction.execute("DELETE FROM outbox WHERE owner_id = ?1", params![owner_id])
+        .map_err(|error| error.to_string())?;
+    transaction.commit().map_err(|error| error.to_string())?;
+    connection.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);").map_err(|error| error.to_string())
+}
+
+#[cfg(test)]
+mod offline_expiration_tests {
+    use super::*;
+
+    #[test]
+    fn expiration_removes_all_owner_cache_and_pending_work_only() {
+        let mut db = Connection::open_in_memory().unwrap();
+        db.execute_batch("CREATE TABLE local_cache(owner_id TEXT, payload TEXT);
+            CREATE TABLE outbox(owner_id TEXT, payload TEXT);
+            INSERT INTO local_cache VALUES ('expired','clinical'),('other','keep');
+            INSERT INTO outbox VALUES ('expired','pending'),('other','keep');").unwrap();
+        purge_owner_connection(&mut db, "expired").unwrap();
+        for table in ["local_cache", "outbox"] {
+            let count: i64 = db.query_row(&format!("SELECT count(*) FROM {table} WHERE owner_id='expired'"), [], |r| r.get(0)).unwrap();
+            assert_eq!(count, 0);
+            let other: i64 = db.query_row(&format!("SELECT count(*) FROM {table} WHERE owner_id='other'"), [], |r| r.get(0)).unwrap();
+            assert_eq!(other, 1);
+        }
+    }
+
+    #[test]
+    fn expiration_cleanup_rolls_back_if_the_outbox_cannot_be_removed() {
+        let mut db = Connection::open_in_memory().unwrap();
+        db.execute_batch("CREATE TABLE local_cache(owner_id TEXT); INSERT INTO local_cache VALUES ('expired');").unwrap();
+        assert!(purge_owner_connection(&mut db, "expired").is_err());
+        let count: i64 = db.query_row("SELECT count(*) FROM local_cache", [], |r| r.get(0)).unwrap();
+        assert_eq!(count, 1);
+    }
+}
+
 #[tauri::command]
 pub fn desktop_runtime_info(app: AppHandle, state: State<'_, LocalDb>) -> Result<DesktopRuntimeInfo, String> {
     let connection = lock_connection(&state)?;

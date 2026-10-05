@@ -1,5 +1,6 @@
 import { App } from "@capacitor/app";
 import { Capacitor } from "@capacitor/core";
+import { hasOfflineAccess, MAX_OFFLINE_ACCESS_MS, offlineAccessDeadline } from "../offline-access-policy";
 
 type MobileIdentity = {
   user_id: string;
@@ -38,7 +39,12 @@ const DB_VERSION = 1;
 const CACHE_STORE = "cache";
 const OUTBOX_STORE = "outbox";
 const IDENTITY_KEY = "dentalflow-mobile-device-identity:v1";
-const DEVICE_VALID_DAYS = 30;
+let identityOperations: Promise<unknown> = Promise.resolve();
+function serializeIdentity<T>(operation: () => T | Promise<T>): Promise<T> {
+  const result = identityOperations.then(operation, operation);
+  identityOperations = result.catch(() => undefined);
+  return result;
+}
 
 declare global {
   interface Window {
@@ -53,7 +59,7 @@ declare global {
 export function isNativeMobileLocalRuntime() {
   if (typeof window === "undefined") return false;
   try {
-    return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
+    return Capacitor.isNativePlatform() && (Capacitor.getPlatform() === "android" || Capacitor.getPlatform() === "ios");
   } catch {
     return false;
   }
@@ -101,28 +107,41 @@ export async function mobileRuntimeInfo() {
   const db = await openDb();
   db.close();
   const app = await App.getInfo();
-  return { platform: "android", version: app.version, database_path: DB_NAME, schema_version: DB_VERSION };
+  return { platform: Capacitor.getPlatform(), version: app.version, database_path: DB_NAME, schema_version: DB_VERSION };
 }
 
-export function mobileGetIdentity(): MobileIdentity | null {
+export async function mobileGetIdentity(): Promise<MobileIdentity | null> {
+  return serializeIdentity(readMobileIdentity);
+}
+
+async function readMobileIdentity(): Promise<MobileIdentity | null> {
   if (!isNativeMobileLocalRuntime()) return null;
   try {
     const raw = localStorage.getItem(IDENTITY_KEY);
     if (!raw) return null;
     const identity = JSON.parse(raw) as MobileIdentity;
-    if (!identity?.user_id || identity.valid_until <= Date.now()) return null;
+    if (!identity?.user_id) return null;
+    identity.valid_until = offlineAccessDeadline(identity);
+    if (!hasOfflineAccess(identity)) {
+      await mobilePurgeOwner(identity.user_id);
+      localStorage.removeItem(IDENTITY_KEY);
+      // Return an expiration receipt so the facade can invalidate in-memory UI.
+    }
     return identity;
-  } catch {
-    return null;
+  } catch (error) {
+    // Do not remove the authorization file before cleanup succeeds. A failed
+    // cleanup must block access and retry at the next read, never grant fallback.
+    throw error;
   }
 }
 
-export function mobileSetIdentity(input: {
+export async function mobileSetIdentity(input: {
   user_id: string;
   email?: string | null;
   full_name?: string | null;
   clinic_id?: string | null;
 }) {
+  return serializeIdentity(() => {
   requireMobile();
   const now = Date.now();
   const identity: MobileIdentity = {
@@ -131,14 +150,38 @@ export function mobileSetIdentity(input: {
     full_name: input.full_name ?? null,
     clinic_id: input.clinic_id ?? null,
     validated_at: now,
-    valid_until: now + DEVICE_VALID_DAYS * 24 * 60 * 60 * 1000,
+    valid_until: now + MAX_OFFLINE_ACCESS_MS,
   };
   localStorage.setItem(IDENTITY_KEY, JSON.stringify(identity));
   return identity;
+  });
 }
 
-export function mobileClearIdentity() {
-  if (typeof window !== "undefined") localStorage.removeItem(IDENTITY_KEY);
+export async function mobileClearIdentity() {
+  return serializeIdentity(() => {
+    if (typeof window !== "undefined") localStorage.removeItem(IDENTITY_KEY);
+  });
+}
+
+export async function mobilePurgeOwner(ownerId: string) {
+  const db = await openDb();
+  try {
+    const tx = db.transaction([CACHE_STORE, OUTBOX_STORE], "readwrite");
+    const done = new Promise<void>((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error("Falha ao limpar dados locais."));
+      tx.onabort = () => reject(tx.error ?? new Error("Limpeza local cancelada."));
+    });
+    for (const storeName of [CACHE_STORE, OUTBOX_STORE]) {
+      const store = tx.objectStore(storeName);
+      const request = store.index("owner").openKeyCursor(IDBKeyRange.only(ownerId));
+      request.onsuccess = () => {
+        const cursor = request.result;
+        if (cursor) { store.delete(cursor.primaryKey); cursor.continue(); }
+      };
+    }
+    await done;
+  } finally { db.close(); }
 }
 
 export async function mobileCachePut<T>(ownerId: string, namespace: string, key: string, payload: T) {

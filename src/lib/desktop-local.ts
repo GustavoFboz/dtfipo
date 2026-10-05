@@ -1,4 +1,18 @@
 import * as mobileLocal from "@/lib/mobile/local-runtime";
+import { clearInstalledSessionSnapshots, hasOfflineAccess, OFFLINE_ACCESS_EXPIRED_EVENT } from "./offline-access-policy";
+import { clearMobilePrivateBrowserCache } from "./mobile/native";
+const BROWSER_CLEANUP_PENDING_KEY = "dentalflow:offline-browser-cleanup-pending";
+let offlineAccessRevision = 0;
+export function getOfflineAccessRevision() { return offlineAccessRevision; }
+
+async function flushExpiredBrowserCache() {
+  if (typeof caches !== "undefined") {
+    for (const key of await caches.keys()) await caches.delete(key);
+  }
+  if (mobileLocal.isNativeMobileLocalRuntime()) await clearMobilePrivateBrowserCache();
+  else await invokeDesktop<void>("desktop_clear_private_webview_cache");
+  window.localStorage.removeItem(BROWSER_CLEANUP_PENDING_KEY);
+}
 
 type DesktopInvoke = <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
 
@@ -160,12 +174,27 @@ export async function playDesktopNotificationSound() {
   }
 }
 
-export function getProvisionedDesktopIdentity() {
-  if (mobileLocal.isNativeMobileLocalRuntime()) {
-    return Promise.resolve(mobileLocal.mobileGetIdentity() as DeviceIdentity | null);
+export async function getProvisionedDesktopIdentity() {
+  if (typeof window !== "undefined" && isDentalFlowDesktop()
+    && window.localStorage.getItem(BROWSER_CLEANUP_PENDING_KEY)) {
+    await flushExpiredBrowserCache();
   }
-  if (!isDentalFlowWindowsDesktop()) return Promise.resolve<DeviceIdentity | null>(null);
-  return invokeDesktop<DeviceIdentity | null>("device_identity_get");
+  let identity: DeviceIdentity | null;
+  if (mobileLocal.isNativeMobileLocalRuntime()) {
+    identity = await mobileLocal.mobileGetIdentity();
+  } else {
+    if (!isDentalFlowWindowsDesktop()) return null;
+    identity = await invokeDesktop<DeviceIdentity | null>("device_identity_get");
+  }
+  if (identity && !hasOfflineAccess(identity)) {
+    offlineAccessRevision++;
+    clearInstalledSessionSnapshots();
+    window.localStorage.setItem(BROWSER_CLEANUP_PENDING_KEY, "1");
+    window.dispatchEvent(new CustomEvent(OFFLINE_ACCESS_EXPIRED_EVENT));
+    await flushExpiredBrowserCache();
+    return null;
+  }
+  return identity;
 }
 
 export function provisionDesktopIdentity(input: {
@@ -175,12 +204,12 @@ export function provisionDesktopIdentity(input: {
   clinicId?: string | null;
 }) {
   if (mobileLocal.isNativeMobileLocalRuntime()) {
-    return Promise.resolve(mobileLocal.mobileSetIdentity({
+    return mobileLocal.mobileSetIdentity({
       user_id: input.userId,
       email: input.email ?? null,
       full_name: input.fullName ?? null,
       clinic_id: input.clinicId ?? null,
-    }) as DeviceIdentity);
+    });
   }
   return invokeDesktop<DeviceIdentity>("device_identity_set", {
     input: {
@@ -194,8 +223,7 @@ export function provisionDesktopIdentity(input: {
 
 export function clearProvisionedDesktopIdentity() {
   if (mobileLocal.isNativeMobileLocalRuntime()) {
-    mobileLocal.mobileClearIdentity();
-    return Promise.resolve();
+    return mobileLocal.mobileClearIdentity();
   }
   if (!isDentalFlowWindowsDesktop()) return Promise.resolve();
   return invokeDesktop<void>("device_identity_clear");
