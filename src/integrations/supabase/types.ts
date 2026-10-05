@@ -4031,6 +4031,7 @@ export type Database = {
         Args: { _clinic_id: string }
         Returns: boolean
       }
+      can_modify_case: { Args: { _case_id: string }; Returns: boolean }
       cancel_storage_upload: { Args: { _file_id: string }; Returns: undefined }
       case_activity_visible_to_user: {
         Args: { _case_id: string; _created_at: string; _user_id?: string }
