@@ -22,6 +22,41 @@ let installed = false;
 let dbPromise: Promise<IDBDatabase | null> | null = null;
 const hot = new Map<string, CachedFile>();
 const warming = new Map<string, Promise<CachedFile | null>>();
+let cacheGeneration = 0;
+const revokedOwners = new Set<string>();
+
+export function allowAttachmentCacheForOwner(ownerId: string) {
+  revokedOwners.delete(ownerId);
+}
+
+export async function purgePrivateAttachmentCache(ownerId?: string) {
+  cacheGeneration += 1;
+  if (ownerId) revokedOwners.add(ownerId);
+  hot.clear();
+  warming.clear();
+  if (typeof indexedDB === "undefined") return;
+  const db = await openDb();
+  if (!db) throw new Error("Não foi possível limpar os arquivos locais.");
+  const tx = db.transaction(DB_STORE, "readwrite");
+  const done = new Promise<void>((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error ?? new Error("Falha ao limpar arquivos locais."));
+    tx.onabort = () => reject(tx.error ?? new Error("Limpeza de arquivos cancelada."));
+  });
+  const store = tx.objectStore(DB_STORE);
+  if (!ownerId) store.clear();
+  else {
+    const request = store.openKeyCursor();
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (!cursor) return;
+      if (typeof cursor.key === "string" && cursor.key.startsWith(ownerId + ":")) store.delete(cursor.primaryKey);
+      cursor.continue();
+    };
+  }
+  try { await done; } finally { db.close(); dbPromise = null; }
+}
+
 
 function openDb(): Promise<IDBDatabase | null> {
   if (dbPromise) return dbPromise;
@@ -85,7 +120,7 @@ function attachmentPath(url: URL): string | null {
 
 function persistentKey(input: RequestInfo | URL): string | null {
   const owner = currentOwnerHint();
-  if (!owner) return null;
+  if (!owner || revokedOwners.has(owner)) return null;
   const url = requestUrl(input);
   if (!url) return null;
   const path = attachmentPath(url);
@@ -105,6 +140,7 @@ async function deleteCached(key: string) {
 }
 
 async function readCached(key: string): Promise<CachedFile | null> {
+  const generation = cacheGeneration;
   const memory = hot.get(key);
   if (memory && Date.now() - memory.savedAt <= CACHE_TTL_MS) return memory;
   if (memory) hot.delete(key);
@@ -116,6 +152,7 @@ async function readCached(key: string): Promise<CachedFile | null> {
       const tx = db.transaction(DB_STORE, "readonly");
       const request = tx.objectStore(DB_STORE).get(key);
       request.onsuccess = () => {
+        if (generation !== cacheGeneration) { resolve(null); return; }
         const entry = request.result as CachedFile | undefined;
         if (!entry?.blob || Date.now() - Number(entry.savedAt || 0) > CACHE_TTL_MS) {
           if (entry) void deleteCached(key);
@@ -132,7 +169,8 @@ async function readCached(key: string): Promise<CachedFile | null> {
   });
 }
 
-async function writeCached(key: string, entry: CachedFile): Promise<void> {
+async function writeCached(key: string, entry: CachedFile, generation: number): Promise<void> {
+  if (generation !== cacheGeneration) return;
   hot.set(key, entry);
   const db = await openDb();
   if (!db) return;
@@ -143,6 +181,7 @@ async function writeCached(key: string, entry: CachedFile): Promise<void> {
     // Quota estimation is optional; the IDB write below is still guarded.
   }
   try {
+    if (generation !== cacheGeneration) return;
     const tx = db.transaction(DB_STORE, "readwrite");
     tx.objectStore(DB_STORE).put(entry, key);
   } catch {
@@ -200,12 +239,15 @@ export function installDesktopRuntimeOptimizations() {
     const key = persistentKey(input);
     if (!key) return nativeFetch(input, init);
 
+    const generation = cacheGeneration;
     const cached = await readCached(key);
+    if (generation !== cacheGeneration) throw new Error("Autorização local expirada.");
     if (cached) return cachedResponse(cached);
 
     const warmingNow = warming.get(key);
     if (warmingNow) {
       const warmed = await warmingNow;
+      if (generation !== cacheGeneration) throw new Error("Autorização local expirada.");
       if (warmed) return cachedResponse(warmed);
     }
 
@@ -227,8 +269,8 @@ export function installDesktopRuntimeOptimizations() {
           savedAt: Date.now(),
           size: blob.size,
         };
-        await writeCached(key, entry);
-        return entry;
+        await writeCached(key, entry, generation);
+        return generation === cacheGeneration ? entry : null;
       } catch {
         return null;
       } finally {

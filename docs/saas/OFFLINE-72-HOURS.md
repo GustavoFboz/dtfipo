@@ -37,6 +37,9 @@ mas também precisam renovar a autorização do dispositivo a cada três dias.
   data do Tauri/WebView2. Uma pendência persistida exige repetir a limpeza antes
   de permitir novas leituras locais. A limpeza do WebView afeta seu perfil
   inteiro, incluindo preferências, mas não apaga SQLite de outras contas.
+- O cache adicional de anexos em IndexedDB é apagado por conta; cópias em
+  memória são descartadas e downloads iniciados antes da expiração não podem
+  persistir novos arquivos após a limpeza.
 - CacheStorage da origem é limpo; arquivos que o usuário exportou para Downloads
   ou outras pastas pessoais não são controlados nem apagados pelo aplicativo.
 - O app avisa, ao operar offline, que alterações não sincronizadas serão apagadas

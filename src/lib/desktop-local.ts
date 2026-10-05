@@ -1,6 +1,7 @@
 import * as mobileLocal from "@/lib/mobile/local-runtime";
 import { clearInstalledSessionSnapshots, hasOfflineAccess, OFFLINE_ACCESS_EXPIRED_EVENT } from "./offline-access-policy";
 import { clearMobilePrivateBrowserCache } from "./mobile/native";
+import { allowAttachmentCacheForOwner, purgePrivateAttachmentCache } from "./desktop-runtime-optimizations";
 const BROWSER_CLEANUP_PENDING_KEY = "dentalflow:offline-browser-cleanup-pending";
 let offlineAccessRevision = 0;
 let browserCleanupInFlight: Promise<void> | null = null;
@@ -9,6 +10,8 @@ export function getOfflineAccessRevision() { return offlineAccessRevision; }
 async function flushExpiredBrowserCache() {
   if (!browserCleanupInFlight) {
     browserCleanupInFlight = (async () => {
+      const owner = window.localStorage.getItem(BROWSER_CLEANUP_PENDING_KEY);
+      await purgePrivateAttachmentCache(owner && owner !== "1" ? owner : undefined);
       if (typeof caches !== "undefined") {
         for (const key of await caches.keys()) await caches.delete(key);
       }
@@ -195,7 +198,7 @@ export async function getProvisionedDesktopIdentity() {
   if (identity && !hasOfflineAccess(identity)) {
     offlineAccessRevision++;
     clearInstalledSessionSnapshots();
-    window.localStorage.setItem(BROWSER_CLEANUP_PENDING_KEY, "1");
+    window.localStorage.setItem(BROWSER_CLEANUP_PENDING_KEY, identity.user_id);
     window.dispatchEvent(new CustomEvent(OFFLINE_ACCESS_EXPIRED_EVENT));
     await flushExpiredBrowserCache();
     return null;
@@ -203,21 +206,23 @@ export async function getProvisionedDesktopIdentity() {
   return identity;
 }
 
-export function provisionDesktopIdentity(input: {
+export async function provisionDesktopIdentity(input: {
   userId: string;
   email?: string | null;
   fullName?: string | null;
   clinicId?: string | null;
 }) {
   if (mobileLocal.isNativeMobileLocalRuntime()) {
-    return mobileLocal.mobileSetIdentity({
+    const identity = await mobileLocal.mobileSetIdentity({
       user_id: input.userId,
       email: input.email ?? null,
       full_name: input.fullName ?? null,
       clinic_id: input.clinicId ?? null,
     });
+    allowAttachmentCacheForOwner(input.userId);
+    return identity;
   }
-  return invokeDesktop<DeviceIdentity>("device_identity_set", {
+  const identity = await invokeDesktop<DeviceIdentity>("device_identity_set", {
     input: {
       user_id: input.userId,
       email: input.email ?? null,
@@ -225,6 +230,8 @@ export function provisionDesktopIdentity(input: {
       clinic_id: input.clinicId ?? null,
     },
   });
+  allowAttachmentCacheForOwner(input.userId);
+  return identity;
 }
 
 export function clearProvisionedDesktopIdentity() {

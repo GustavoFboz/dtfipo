@@ -92,6 +92,17 @@ try {
         tx.objectStore('outbox').put({id:owner+'-pending', owner_id:owner, entity_type:'fixture', entity_id:null, operation:'create', payload:{fixture:true}, status:'pending', attempts:0, created_at:Date.now(), updated_at:Date.now()});
       }
       await done; db.close();
+      const files = await new Promise((resolve,reject) => {
+        const r=indexedDB.open('dentalflow-attachment-cache-v1',1);
+        r.onupgradeneeded=()=>r.result.createObjectStore('files');
+        r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+      });
+      const fileTx=files.transaction('files','readwrite');
+      const filesDone=new Promise((resolve,reject)=>{fileTx.oncomplete=resolve;fileTx.onerror=()=>reject(fileTx.error);});
+      for (const owner of ['offline-expiry-fixture','offline-keeper-fixture']) {
+        fileTx.objectStore('files').put({blob:new Blob(['fixture']),savedAt:Date.now(),size:7},owner+':fixture');
+      }
+      await filesDone;files.close();
       sessionStorage.setItem('offline-expiry-fixture', 'fixture');
       localStorage.setItem('stock-item-draft:offline-expiry-fixture', 'fixture');
       document.cookie='offlineExpiryFixture=1; path=/; SameSite=Lax; Secure';
@@ -116,7 +127,15 @@ try {
         const expiredOutbox=await count('outbox','offline-expiry-fixture');
         const otherCache=await count('cache','offline-keeper-fixture');
         const otherOutbox=await count('outbox','offline-keeper-fixture'); db.close();
-        return {expiredCache,expiredOutbox,otherCache,otherOutbox,
+        const files=await new Promise((resolve,reject)=>{
+          const r=indexedDB.open('dentalflow-attachment-cache-v1',1);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+        });
+        const fileKeys=await new Promise((resolve,reject)=>{
+          const r=files.transaction('files','readonly').objectStore('files').getAllKeys();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);
+        });files.close();
+        const expiredFiles=fileKeys.filter(k=>String(k).startsWith('offline-expiry-fixture:')).length;
+        const otherFiles=fileKeys.filter(k=>String(k).startsWith('offline-keeper-fixture:')).length;
+        return {expiredCache,expiredOutbox,otherCache,otherOutbox,expiredFiles,otherFiles,
           identityRemoved:localStorage.getItem('dentalflow-mobile-device-identity:v1')===null,
           draftRemoved:localStorage.getItem('stock-item-draft:offline-expiry-fixture')===null,
           snapshotRemoved:sessionStorage.getItem('offline-expiry-fixture')===null,
@@ -127,11 +146,12 @@ try {
       })()`);
       if (offlineExpiration.expiredCache===0 && offlineExpiration.expiredOutbox===0
         && offlineExpiration.otherCache===1 && offlineExpiration.otherOutbox===1
+        && offlineExpiration.expiredFiles===0 && offlineExpiration.otherFiles===1
         && ['identityRemoved','draftRemoved','snapshotRemoved','browserCacheRemoved','cookieRemoved','cleanupFinished','loginVisible']
           .every(key => offlineExpiration[key]===true)) break;
       await pause(1000);
     }
-    assert.deepEqual(offlineExpiration,{expiredCache:0,expiredOutbox:0,otherCache:1,otherOutbox:1,
+    assert.deepEqual(offlineExpiration,{expiredCache:0,expiredOutbox:0,otherCache:1,otherOutbox:1,expiredFiles:0,otherFiles:1,
       identityRemoved:true,draftRemoved:true,snapshotRemoved:true,browserCacheRemoved:true,
       cookieRemoved:true,cleanupFinished:true,loginVisible:true},'Installed Android offline expiration did not remove private data and preserve the other owner');
     assert.equal(errors.length,0,'Uncaught JavaScript error during offline expiration');

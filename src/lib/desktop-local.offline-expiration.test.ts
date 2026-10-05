@@ -41,7 +41,7 @@ describe("expired installed identities cannot reach local-first callers", () => 
       throw new Error("Native cache unavailable");
     });
     await expect(getProvisionedDesktopIdentity()).rejects.toThrow("Native cache unavailable");
-    expect(window.localStorage.getItem(pendingKey)).toBe("1");
+    expect(window.localStorage.getItem(pendingKey)).toBe("expired-owner");
     mocks.invoke.mockImplementation(async (command) => command === "device_identity_get" ? null : undefined);
     expect(await getProvisionedDesktopIdentity()).toBeNull();
     expect(window.localStorage.getItem(pendingKey)).toBeNull();
