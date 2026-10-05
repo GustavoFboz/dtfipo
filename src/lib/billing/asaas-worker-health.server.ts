@@ -1,6 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
-import { loadAsaasConfig } from "./asaas.server";
+import { loadAsaasConfig, loadAsaasWorkerToken } from "./asaas.server";
 import type { AsaasProviderEnvironment } from "./asaas-contract";
 
 export const WORKER_HEALTH_CONTRACT = "dentalflow-worker-health-v1";
@@ -30,7 +30,9 @@ function authorized(request: Request, expected: string) {
 /** Private GET probe. Reads telemetry only; never claims events or calls Asaas. */
 export async function inspectAsaasWorker(request: Request, dependencies?: HealthDependencies): Promise<Response> {
   if (request.method !== "GET") return json({ available: false }, 405);
-  const token = dependencies?.workerToken ?? process.env.BILLING_WORKER_TOKEN ?? "";
+  let token: string;
+  try { token = dependencies?.workerToken ?? loadAsaasWorkerToken(); }
+  catch { return json({ available: false }, 401); }
   if (!authorized(request, token)) return json({ available: false }, 401);
   let deps: HealthDependencies;
   try {

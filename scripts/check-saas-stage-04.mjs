@@ -45,7 +45,8 @@ check(
   "Webhook authentication missing.",
 );
 check(
-  backend.includes("getPayment") && backend.includes("BILLING_WORKER_TOKEN"),
+  backend.includes("getPayment") && backend.includes("loadAsaasWorkerToken") &&
+    read("src/lib/billing/asaas.server.ts").includes("BILLING_PRODUCTION_WORKER_TOKEN"),
   "Provider reconciliation/worker authorization missing.",
 );
 for (const path of ["asaas-webhook", "asaas-worker"]) {
