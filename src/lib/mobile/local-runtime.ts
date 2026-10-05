@@ -39,6 +39,12 @@ const DB_VERSION = 1;
 const CACHE_STORE = "cache";
 const OUTBOX_STORE = "outbox";
 const IDENTITY_KEY = "dentalflow-mobile-device-identity:v1";
+const revokedOwnerKey = (ownerId: string) => `dentalflow-mobile-revoked-owner:${ownerId}`;
+function requireWritableOwner(ownerId: string) {
+  if (localStorage.getItem(revokedOwnerKey(ownerId))) {
+    throw new Error("Autorização offline expirada. Entre novamente online.");
+  }
+}
 let identityOperations: Promise<unknown> = Promise.resolve();
 function serializeIdentity<T>(operation: () => T | Promise<T>): Promise<T> {
   const result = identityOperations.then(operation, operation);
@@ -153,6 +159,7 @@ export async function mobileSetIdentity(input: {
     valid_until: now + MAX_OFFLINE_ACCESS_MS,
   };
   localStorage.setItem(IDENTITY_KEY, JSON.stringify(identity));
+  localStorage.removeItem(revokedOwnerKey(identity.user_id));
   return identity;
   });
 }
@@ -164,6 +171,9 @@ export async function mobileClearIdentity() {
 }
 
 export async function mobilePurgeOwner(ownerId: string) {
+  // Persist before opening the DB: already-running work must not reinsert data
+  // after the purge transaction. Only verified online provisioning clears it.
+  localStorage.setItem(revokedOwnerKey(ownerId), "1");
   const db = await openDb();
   try {
     const tx = db.transaction([CACHE_STORE, OUTBOX_STORE], "readwrite");
@@ -187,6 +197,7 @@ export async function mobilePurgeOwner(ownerId: string) {
 export async function mobileCachePut<T>(ownerId: string, namespace: string, key: string, payload: T) {
   const db = await openDb();
   try {
+    requireWritableOwner(ownerId);
     const tx = db.transaction(CACHE_STORE, "readwrite");
     tx.objectStore(CACHE_STORE).put({
       id: cacheId(ownerId, namespace, key),
@@ -291,6 +302,7 @@ export async function mobileEnqueueOutbox<T>(input: {
   const now = Date.now();
   const id = input.id ?? crypto.randomUUID();
   try {
+    requireWritableOwner(input.ownerId);
     const tx = db.transaction(OUTBOX_STORE, "readwrite");
     tx.objectStore(OUTBOX_STORE).put({
       id,

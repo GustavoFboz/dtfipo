@@ -25,6 +25,9 @@ mas também precisam renovar a autorização do dispositivo a cada três dias.
 - A leitura da identidade vencida apaga cache e outbox daquela conta em
   transação, inclusive alterações pendentes. Outras contas no banco local
   conservam seus registros. Não há exclusão de prontuários do backend.
+- A limpeza também revoga gravações locais daquela conta: uma operação que
+  terminou atrasada não pode recriar cache/outbox após a exclusão. Somente uma
+  nova validação online permite novas gravações.
 - A autorização local só é removida após sucesso da limpeza do banco. Falhas
   bloqueiam o uso e preservam a informação necessária para uma nova tentativa.
 - Snapshots de sessão e rascunhos clínicos/comerciais do WebView são limpos;

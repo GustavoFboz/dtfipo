@@ -169,6 +169,21 @@ fn decode_payload(encoded: &str) -> Result<Value, String> {
     serde_json::from_str(encoded).map_err(|error| error.to_string())
 }
 
+fn require_writable_owner(connection: &Connection, owner_id: &str) -> Result<(), String> {
+    let revoked: bool = connection.query_row(
+        "SELECT EXISTS(SELECT 1 FROM local_meta WHERE key = ?1)",
+        params![format!("offline_revoked:{owner_id}")], |row| row.get(0),
+    ).map_err(|error| error.to_string())?;
+    if revoked { Err("Autorização offline expirada. Entre novamente online.".to_string()) } else { Ok(()) }
+}
+
+pub fn permit_owner_writes(state: &State<'_, LocalDb>, owner_id: &str) -> Result<(), String> {
+    let connection = lock_connection(state)?;
+    connection.execute("DELETE FROM local_meta WHERE key = ?1", params![format!("offline_revoked:{owner_id}")])
+        .map_err(|error| error.to_string())?;
+    Ok(())
+}
+
 pub fn purge_owner_data(state: &State<'_, LocalDb>, owner_id: &str) -> Result<(), String> {
     validate_text(owner_id, "owner_id", 160)?;
     let mut connection = lock_connection(state)?;
@@ -182,6 +197,10 @@ fn purge_owner_connection(connection: &mut Connection, owner_id: &str) -> Result
         .map_err(|error| error.to_string())?;
     transaction.execute("DELETE FROM outbox WHERE owner_id = ?1", params![owner_id])
         .map_err(|error| error.to_string())?;
+    transaction.execute(
+        "INSERT INTO local_meta (key,value,updated_at) VALUES (?1,'1',?2) ON CONFLICT(key) DO UPDATE SET value='1',updated_at=excluded.updated_at",
+        params![format!("offline_revoked:{owner_id}"), now_ms()],
+    ).map_err(|error| error.to_string())?;
     transaction.commit().map_err(|error| error.to_string())?;
     connection.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);").map_err(|error| error.to_string())
 }
@@ -193,11 +212,14 @@ mod offline_expiration_tests {
     #[test]
     fn expiration_removes_all_owner_cache_and_pending_work_only() {
         let mut db = Connection::open_in_memory().unwrap();
-        db.execute_batch("CREATE TABLE local_cache(owner_id TEXT, payload TEXT);
+        db.execute_batch("CREATE TABLE local_meta(key TEXT PRIMARY KEY,value TEXT,updated_at INTEGER);
+            CREATE TABLE local_cache(owner_id TEXT, payload TEXT);
             CREATE TABLE outbox(owner_id TEXT, payload TEXT);
             INSERT INTO local_cache VALUES ('expired','clinical'),('other','keep');
             INSERT INTO outbox VALUES ('expired','pending'),('other','keep');").unwrap();
         purge_owner_connection(&mut db, "expired").unwrap();
+        assert!(require_writable_owner(&db, "expired").is_err());
+        assert!(require_writable_owner(&db, "other").is_ok());
         for table in ["local_cache", "outbox"] {
             let count: i64 = db.query_row(&format!("SELECT count(*) FROM {table} WHERE owner_id='expired'"), [], |r| r.get(0)).unwrap();
             assert_eq!(count, 0);
@@ -253,6 +275,7 @@ pub fn local_cache_put(
     let timestamp = now_ms();
 
     let connection = lock_connection(&state)?;
+    require_writable_owner(&connection, &owner_id)?;
     connection
         .execute(
             r#"
@@ -403,6 +426,7 @@ pub fn outbox_enqueue(state: State<'_, LocalDb>, input: OutboxInput) -> Result<S
     let timestamp = now_ms();
     let id = input.id.clone();
     let connection = lock_connection(&state)?;
+    require_writable_owner(&connection, &input.owner_id)?;
     connection
         .execute(
             r#"

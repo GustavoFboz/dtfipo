@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf, time::{SystemTime, UNIX_EPOCH}};
 use tauri::{AppHandle, Manager, State};
-use crate::local_db::{LocalDb, purge_owner_data};
+use crate::local_db::{LocalDb, purge_owner_data, permit_owner_writes};
 use std::sync::Mutex;
 static IDENTITY_LOCK: Mutex<()> = Mutex::new(());
 
@@ -78,7 +78,7 @@ pub fn device_identity_get(app: AppHandle, state: State<'_, LocalDb>) -> Result<
 }
 
 #[tauri::command]
-pub fn device_identity_set(app: AppHandle, input: DeviceIdentityInput) -> Result<DeviceIdentity, String> {
+pub fn device_identity_set(app: AppHandle, state: State<'_, LocalDb>, input: DeviceIdentityInput) -> Result<DeviceIdentity, String> {
     let _guard = IDENTITY_LOCK.lock().map_err(|_| "Identidade local indisponível.".to_string())?;
     validate_user_id(&input.user_id)?;
     let validated_at = now_ms();
@@ -100,6 +100,7 @@ pub fn device_identity_set(app: AppHandle, input: DeviceIdentityInput) -> Result
         fs::remove_file(&path).map_err(|error| error.to_string())?;
     }
     fs::rename(&temp, &path).map_err(|error| error.to_string())?;
+    permit_owner_writes(&state, &identity.user_id)?;
     Ok(identity)
 }
 
