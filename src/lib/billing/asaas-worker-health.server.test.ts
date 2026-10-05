@@ -53,4 +53,16 @@ describe("private readonly worker publication probe", () => {
     const r = await inspectAsaasWorker(request());
     expect(r.status).toBe(503); expect(await r.json()).toEqual({ available: false, code: "CONFIGURATION_FAILED" });
   });
+  it("uses the selected environment credential before consulting the database", async () => {
+    const productionToken = "production-worker-fixture-not-a-real-secret-0123456789";
+    for (const [name, value] of Object.entries({ ASAAS_ENVIRONMENT: "production", ASAAS_PRODUCTION_ENABLED: "true",
+      ASAAS_PRODUCTION_API_KEY: "$aact_prod_fixture_not_a_real_key_0123456789",
+      ASAAS_PRODUCTION_WEBHOOK_TOKEN: "production-webhook-fixture-not-a-real-secret-0123456789",
+      BILLING_PRODUCTION_WORKER_TOKEN: productionToken, BILLING_WORKER_TOKEN: token, ASAAS_USER_AGENT: "DentalFlow/tests" })) {
+      vi.stubEnv(name, value);
+    }
+    expect((await inspectAsaasWorker(request(token))).status).toBe(401);
+    // Authenticated with Production token, but Sandbox header fails before the DB import/read.
+    expect((await inspectAsaasWorker(request(productionToken))).status).toBe(409);
+  });
 });

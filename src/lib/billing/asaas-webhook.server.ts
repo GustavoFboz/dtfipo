@@ -3,6 +3,8 @@ import {
   AsaasClient,
   AsaasApiError,
   loadAsaasConfig,
+  loadAsaasWorkerToken,
+  loadAsaasReplayToken,
   type AsaasPayment,
   type AsaasSubscription,
 } from "./asaas.server";
@@ -154,8 +156,8 @@ export async function replayAsaasEvent(
       deps = dependencies;
     } else {
       const config = loadAsaasConfig();
-      const replayToken = process.env.BILLING_REPLAY_TOKEN ?? "";
-      if (replayToken === process.env.BILLING_WORKER_TOKEN || replayToken === config.webhookToken)
+      const replayToken = loadAsaasReplayToken();
+      if (replayToken === loadAsaasWorkerToken() || replayToken === config.webhookToken)
         throw new Error("REPLAY_TOKEN_REUSED");
       deps = {
         environment: config.environment,
@@ -604,7 +606,7 @@ export async function processAsaasInbox(
       deps = dependencies;
     } else {
       const config = loadAsaasConfig();
-      const workerToken = process.env.BILLING_WORKER_TOKEN ?? "";
+      const workerToken = loadAsaasWorkerToken();
       const client = new AsaasClient(config);
       const admin = async () =>
         (await import("@/integrations/supabase/client.server")).supabaseAdmin;

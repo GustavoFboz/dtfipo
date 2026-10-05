@@ -29,8 +29,8 @@ reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data
 | 6.2 | Backup, restauração e incidente | Parcial: restore limpo; recuperação operacional pendente |
 | 6.3 | Onboarding, plataformas e capacidade piloto | Em aberto |
 | 6.4 | Documentos comerciais e privacidade revisados | Protocolo preparado; minutas/revisão pendentes |
-| 7.1 | Conta recebedora aprovada | A confirmar pelo responsável no Asaas |
-| 7.2 | Secrets, webhook e agendamento de Produção | Agendador preparado; configuração pendente |
+| 7.1 | Conta recebedora aprovada | Diagnóstico privado de status cadastral preparado; credencial e aprovação reais pendentes |
+| 7.2 | Secrets, webhook e agendamento de Produção | Agendador, grupo exclusivo de secrets e diagnóstico sem operações financeiras preparados; cadastro/entrega/ativação pendentes |
 | 7.3 | Recebimento, ledger e acesso reais comprovados | Em aberto; responsável fará compra de R$1 quando liberada |
 | 7.4 | Decisão de liberação para vendas | Pendente dos demais aceites |
 

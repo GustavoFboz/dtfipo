@@ -144,6 +144,67 @@ function requiredSecret(
   return value;
 }
 
+function webhookSecret(source: Record<string, string | undefined>, name: string, apiKey: string): string {
+  const value = requiredSecret(source, name, 32);
+  if (value.length > 255 || /\s/.test(value) || value.startsWith("$aact_") || value === apiKey ||
+      (name === "ASAAS_PRODUCTION_WEBHOOK_TOKEN" && source.ASAAS_API_KEY?.trim().startsWith("$aact_hmlg_") &&
+        value === source.ASAAS_WEBHOOK_TOKEN?.trim())) {
+    throw new Error(`Configuração segura ausente ou inválida: ${name}.`);
+  }
+  return value;
+}
+
+function hasProductionSecrets(source: Record<string, string | undefined>): boolean {
+  return source.ASAAS_PRODUCTION_API_KEY !== undefined ||
+    source.ASAAS_PRODUCTION_WEBHOOK_TOKEN !== undefined ||
+    source.BILLING_PRODUCTION_WORKER_TOKEN !== undefined ||
+    source.BILLING_PRODUCTION_REPLAY_TOKEN !== undefined;
+}
+
+/** Existing generic credentials remain Sandbox credentials while Production is staged. */
+export function loadAsaasWorkerToken(source: Record<string, string | undefined> = process.env): string {
+  const stagedProduction = source.ASAAS_ENVIRONMENT?.trim() === "production" && hasProductionSecrets(source);
+  const name = stagedProduction ? "BILLING_PRODUCTION_WORKER_TOKEN" : "BILLING_WORKER_TOKEN";
+  const value = requiredSecret(source, name, 32);
+  const otherSecrets = stagedProduction ? [source.ASAAS_WEBHOOK_TOKEN, source.ASAAS_PRODUCTION_WEBHOOK_TOKEN,
+    source.BILLING_REPLAY_TOKEN, source.BILLING_PRODUCTION_REPLAY_TOKEN, source.BILLING_WORKER_TOKEN]
+    : [source.ASAAS_WEBHOOK_TOKEN, source.BILLING_REPLAY_TOKEN];
+  if (value.length > 255 || /\s/.test(value) || value.startsWith("$aact_") ||
+      otherSecrets.some((other) => other?.trim() === value)) {
+    throw new Error(`Configuração segura ausente ou inválida: ${name}.`);
+  }
+  return value;
+}
+
+/** Reserved for the private operator replay endpoint, never the scheduled worker. */
+export function loadAsaasReplayToken(source: Record<string, string | undefined> = process.env): string {
+  const stagedProduction = source.ASAAS_ENVIRONMENT?.trim() === "production" && hasProductionSecrets(source);
+  const name = stagedProduction ? "BILLING_PRODUCTION_REPLAY_TOKEN" : "BILLING_REPLAY_TOKEN";
+  const value = requiredSecret(source, name, 32);
+  const otherSecrets = stagedProduction ? [source.BILLING_WORKER_TOKEN, source.BILLING_PRODUCTION_WORKER_TOKEN,
+    source.ASAAS_WEBHOOK_TOKEN, source.ASAAS_PRODUCTION_WEBHOOK_TOKEN, source.BILLING_REPLAY_TOKEN]
+    : [source.BILLING_WORKER_TOKEN, source.ASAAS_WEBHOOK_TOKEN];
+  if (value.length > 255 || /\s/.test(value) || value.startsWith("$aact_") ||
+      otherSecrets.some((other) => other?.trim() === value) || value === loadAsaasWorkerToken(source)) {
+    throw new Error(`Configuração segura ausente ou inválida: ${name}.`);
+  }
+  return value;
+}
+
+/** A narrow credential projection for the readonly account diagnostic. It has no
+ * financial-client configuration and cannot enable checkout or the inbox worker. */
+export function loadAsaasProductionPreflightSecrets(source: Record<string, string | undefined> = process.env) {
+  const apiKey = requiredSecret(source, "ASAAS_PRODUCTION_API_KEY", 16);
+  if (!apiKey.startsWith("$aact_prod_")) throw new Error("ASAAS_PRODUCTION_API_KEY não pertence à Produção.");
+  const webhookToken = webhookSecret(source, "ASAAS_PRODUCTION_WEBHOOK_TOKEN", apiKey);
+  const productionSource = { ...source, ASAAS_ENVIRONMENT: "production" };
+  const workerToken = loadAsaasWorkerToken(productionSource);
+  const replayToken = loadAsaasReplayToken(productionSource);
+  const userAgent = requiredSecret(source, "ASAAS_USER_AGENT", 8);
+  if (userAgent.length > 160) throw new Error("ASAAS_USER_AGENT excede 160 caracteres.");
+  return { apiKey, webhookToken, workerToken, replayToken, userAgent };
+}
+
 export function loadAsaasConfig(
   source: Record<string, string | undefined> = process.env,
 ): AsaasConfig {
@@ -157,13 +218,19 @@ export function loadAsaasConfig(
     throw new Error("Asaas Produção permanece bloqueado até homologação e liberação explícitas.");
   }
 
-  const apiKey = requiredSecret(source, "ASAAS_API_KEY", 16);
+  // Prefer the complete, separate Production group. Never fill an incomplete
+  // group with Sandbox secrets. The original Production layout is compatible
+  // only when none of the new names is present.
+  const stagedProduction = environment === "production" && hasProductionSecrets(source);
+  const apiKeyName = stagedProduction ? "ASAAS_PRODUCTION_API_KEY" : "ASAAS_API_KEY";
+  const webhookTokenName = stagedProduction ? "ASAAS_PRODUCTION_WEBHOOK_TOKEN" : "ASAAS_WEBHOOK_TOKEN";
+  const apiKey = requiredSecret(source, apiKeyName, 16);
   const expectedPrefix = environment === "sandbox" ? "$aact_hmlg_" : "$aact_prod_";
   if (!apiKey.startsWith(expectedPrefix)) {
-    throw new Error("ASAAS_API_KEY não pertence ao ASAAS_ENVIRONMENT configurado.");
+    throw new Error(`${apiKeyName} não pertence ao ASAAS_ENVIRONMENT configurado.`);
   }
 
-  const webhookToken = requiredSecret(source, "ASAAS_WEBHOOK_TOKEN", 32);
+  const webhookToken = webhookSecret(source, webhookTokenName, apiKey);
   const userAgent = requiredSecret(source, "ASAAS_USER_AGENT", 8);
   if (userAgent.length > 160) throw new Error("ASAAS_USER_AGENT excede 160 caracteres.");
 

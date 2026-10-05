@@ -1,13 +1,16 @@
 # DentalFlow SaaS — sete etapas restantes até vendas
 
-Atualizado em 04/10/2026, horário de Manaus. Este é o contador de conclusão
+Atualizado em 05/10/2026, horário de Manaus. Este é o contador de conclusão
 apresentado ao responsável. Os IDs 00–10 dos documentos técnicos permanecem
 para manter o histórico; não são um segundo protocolo.
 
 **Restam 7 de 7 etapas com aceites em aberto.** Há código e provas parciais
 em todas elas; um incremento aprovado não encerra automaticamente a etapa.
-Frente atual: **2/7, item 2.3 — autorização offline de até 72 horas**.
-A preparação de Produção continua pendente de configuração e comprovação;
+Frente atual: **7/7, itens 7.1 e 7.2 — cadastro de credenciais e diagnóstico de Produção**.
+A preparação de Produção tem código para cadastrar segredos exclusivos sem
+trocar o Sandbox e verificar pontualmente a conta, mas depende do titular para
+preencher os formulários de Secrets. Ver PRODUCTION-ACCESS-SETUP.md. A janela
+offline de 72 horas mantém seus aceites de execução/distribuição em aberto;
 as demais frentes conservam seus aceites em aberto.
 Produção saiu da antiga etapa 09 e ganhou a etapa técnica 10, tornando explícita
 a conexão necessária para receber dinheiro real.

@@ -1,11 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
-import { AsaasApiError, AsaasClient, loadAsaasConfig, type AsaasConfig } from "./asaas.server";
+import { AsaasApiError, AsaasClient, loadAsaasConfig, loadAsaasWorkerToken, loadAsaasReplayToken, loadAsaasProductionPreflightSecrets, type AsaasConfig } from "./asaas.server";
 
 const sandboxEnv = {
   ASAAS_ENVIRONMENT: "sandbox",
   ASAAS_API_KEY: "$aact_hmlg_test_key_that_is_never_logged",
   ASAAS_WEBHOOK_TOKEN: "sandbox-webhook-token-with-at-least-32-characters",
   ASAAS_USER_AGENT: "DentalFlow/tests",
+};
+const stagedEnv = {
+  ...sandboxEnv, ASAAS_PRODUCTION_ENABLED: "false",
+  BILLING_WORKER_TOKEN: "sandbox-worker-fixture-not-a-real-secret-0123456789",
+  BILLING_REPLAY_TOKEN: "sandbox-replay-fixture-not-a-real-secret-0123456789",
+  ASAAS_PRODUCTION_API_KEY: "$aact_prod_fixture_not_a_real_key_0123456789",
+  ASAAS_PRODUCTION_WEBHOOK_TOKEN: "production-webhook-fixture-not-a-real-secret-0123456789",
+  BILLING_PRODUCTION_WORKER_TOKEN: "production-worker-fixture-not-a-real-secret-0123456789",
+  BILLING_PRODUCTION_REPLAY_TOKEN: "production-replay-fixture-not-a-real-secret-0123456789",
 };
 
 function config(overrides: Partial<AsaasConfig> = {}): AsaasConfig {
@@ -44,6 +53,77 @@ describe("loadAsaasConfig", () => {
       message = String(error);
     }
     expect(message).not.toContain(secret);
+  });
+
+  it("stages all Production secrets without changing the active Sandbox configuration or worker", () => {
+    expect(loadAsaasConfig(stagedEnv)).toEqual(loadAsaasConfig(sandboxEnv));
+    expect(loadAsaasWorkerToken(stagedEnv)).toBe(stagedEnv.BILLING_WORKER_TOKEN);
+    expect(loadAsaasReplayToken(stagedEnv)).toBe(stagedEnv.BILLING_REPLAY_TOKEN);
+    expect(loadAsaasProductionPreflightSecrets(stagedEnv)).toMatchObject({ apiKey: stagedEnv.ASAAS_PRODUCTION_API_KEY });
+    expect(() => loadAsaasConfig({ ...stagedEnv, ASAAS_ENVIRONMENT: "production" })).toThrow(/produção permanece bloqueado/i);
+  });
+
+  it("selects the complete separate group only after explicit Production activation", () => {
+    const env = { ...stagedEnv, ASAAS_ENVIRONMENT: "production", ASAAS_PRODUCTION_ENABLED: "true" };
+    expect(loadAsaasConfig(env)).toMatchObject({ environment: "production", baseUrl: "https://api.asaas.com/v3",
+      apiKey: env.ASAAS_PRODUCTION_API_KEY, webhookToken: env.ASAAS_PRODUCTION_WEBHOOK_TOKEN });
+    expect(loadAsaasWorkerToken(env)).toBe(env.BILLING_PRODUCTION_WORKER_TOKEN);
+    expect(loadAsaasReplayToken(env)).toBe(env.BILLING_PRODUCTION_REPLAY_TOKEN);
+  });
+
+  it("does not fill an incomplete Production group using generic Sandbox secrets", () => {
+    const env: Record<string, string | undefined> = { ...stagedEnv, ASAAS_ENVIRONMENT: "production", ASAAS_PRODUCTION_ENABLED: "true" };
+    delete env.ASAAS_PRODUCTION_WEBHOOK_TOKEN;
+    expect(() => loadAsaasConfig(env)).toThrow(/ASAAS_PRODUCTION_WEBHOOK_TOKEN/);
+    delete env.BILLING_PRODUCTION_WORKER_TOKEN;
+    expect(() => loadAsaasWorkerToken(env)).toThrow(/BILLING_PRODUCTION_WORKER_TOKEN/);
+  });
+
+  it("retains the previously supported explicit generic Production layout", () => {
+    const env = { ...sandboxEnv, ASAAS_ENVIRONMENT: "production", ASAAS_PRODUCTION_ENABLED: "true",
+      ASAAS_API_KEY: stagedEnv.ASAAS_PRODUCTION_API_KEY, BILLING_WORKER_TOKEN: stagedEnv.BILLING_PRODUCTION_WORKER_TOKEN };
+    expect(loadAsaasConfig(env).apiKey).toBe(stagedEnv.ASAAS_PRODUCTION_API_KEY);
+    expect(loadAsaasWorkerToken(env)).toBe(stagedEnv.BILLING_PRODUCTION_WORKER_TOKEN);
+  });
+
+  it.each(["short", "a".repeat(256), "a".repeat(32) + " space", "$aact_prod_fake_key_as_webhook_token_0123456789"])(
+    "refuses invalid webhook secrets without exposing them", (secret) => {
+      let message = "";
+      try { loadAsaasConfig({ ...sandboxEnv, ASAAS_WEBHOOK_TOKEN: secret }); }
+      catch (error) { message = String(error); }
+      expect(message).toContain("ASAAS_WEBHOOK_TOKEN"); expect(message).not.toContain(secret);
+    });
+
+  it("refuses a shared Sandbox/Production worker credential and a worker reused as a webhook", () => {
+    expect(() => loadAsaasWorkerToken({ ...stagedEnv, ASAAS_ENVIRONMENT: "production",
+      BILLING_PRODUCTION_WORKER_TOKEN: stagedEnv.BILLING_WORKER_TOKEN })).toThrow(/BILLING_PRODUCTION_WORKER_TOKEN/);
+    expect(() => loadAsaasWorkerToken({ ...stagedEnv, BILLING_WORKER_TOKEN: sandboxEnv.ASAAS_WEBHOOK_TOKEN })).toThrow(/BILLING_WORKER_TOKEN/);
+  });
+
+  it("keeps operator replay separate from both workers, webhooks and the Sandbox replay credential", () => {
+    const env = { ...stagedEnv, ASAAS_ENVIRONMENT: "production" };
+    for (const token of [env.BILLING_PRODUCTION_WORKER_TOKEN, env.BILLING_WORKER_TOKEN,
+      env.ASAAS_PRODUCTION_WEBHOOK_TOKEN, env.BILLING_REPLAY_TOKEN]) {
+      expect(() => loadAsaasReplayToken({ ...env, BILLING_PRODUCTION_REPLAY_TOKEN: token })).toThrow(/BILLING_PRODUCTION_REPLAY_TOKEN/);
+    }
+  });
+
+  it("refuses a Production webhook copied from Sandbox and a worker copied from the replay secret", () => {
+    expect(() => loadAsaasProductionPreflightSecrets({ ...stagedEnv,
+      ASAAS_PRODUCTION_WEBHOOK_TOKEN: stagedEnv.ASAAS_WEBHOOK_TOKEN })).toThrow(/ASAAS_PRODUCTION_WEBHOOK_TOKEN/);
+    expect(() => loadAsaasWorkerToken({ ...stagedEnv, ASAAS_ENVIRONMENT: "production",
+      BILLING_PRODUCTION_WORKER_TOKEN: stagedEnv.BILLING_PRODUCTION_REPLAY_TOKEN })).toThrow(/BILLING_PRODUCTION_WORKER_TOKEN/);
+  });
+
+  it("an invalid inactive Production group cannot change or block the active Sandbox credentials", () => {
+    const env = { ...stagedEnv, ASAAS_PRODUCTION_API_KEY: "invalid-unused-production-key",
+      ASAAS_PRODUCTION_WEBHOOK_TOKEN: stagedEnv.BILLING_WORKER_TOKEN,
+      BILLING_PRODUCTION_WORKER_TOKEN: stagedEnv.BILLING_REPLAY_TOKEN,
+      BILLING_PRODUCTION_REPLAY_TOKEN: stagedEnv.BILLING_WORKER_TOKEN };
+    expect(loadAsaasConfig(env)).toEqual(loadAsaasConfig(sandboxEnv));
+    expect(loadAsaasWorkerToken(env)).toBe(stagedEnv.BILLING_WORKER_TOKEN);
+    expect(loadAsaasReplayToken(env)).toBe(stagedEnv.BILLING_REPLAY_TOKEN);
+    expect(() => loadAsaasProductionPreflightSecrets(env)).toThrow(/ASAAS_PRODUCTION_API_KEY/);
   });
 });
 
