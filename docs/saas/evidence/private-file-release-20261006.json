@@ -1,0 +1,179 @@
+{
+  "contract": "dentalflow-private-file-release-v1",
+  "acceptance": {
+    "requested_target": 10,
+    "total": 23,
+    "accepted": 2,
+    "percent": 8.695652173913043,
+    "target_reached": false,
+    "whole_stages_completed": 0,
+    "front": "4/7, item 4.3",
+    "master_external_review_audits": 0
+  },
+  "repository": {
+    "name": "GustavoFboz/dtfipo",
+    "connected_branch": "saas/stage-03-asaas-checkout",
+    "pr": 145,
+    "candidate": "bb10b8d5d8fd93460930e6508b909076f50b9c2f",
+    "merged": "d03617875db107a8e4e65906257913b42fa3d8e9",
+    "changed_files": 40
+  },
+  "regression": {
+    "local_tests": 384,
+    "local_test_files": 21,
+    "typecheck": "passed",
+    "web_build": "passed",
+    "desktop_static_build": "passed",
+    "mobile_static_build": "passed",
+    "native_installers_generated": false,
+    "stage_06": "passed",
+    "stage_09": "passed",
+    "desktop_bootstrap": "passed",
+    "restore_migrations": 172
+  },
+  "actions": {
+    "candidate_ci": 37397051506,
+    "candidate_restore": [
+      37397051686,
+      37397056169
+    ],
+    "merged_ci": 37397200303,
+    "merged_restore": 37397200378,
+    "all_completed_successfully": true
+  },
+  "publication": {
+    "status": "pending",
+    "deployment_id": "803b1b3d-537b-43f9-8667-3df77bde44cd",
+    "url": "https://dtfipo.lovable.app",
+    "preview_url": "https://id-preview--a8b717e3-87ad-482d-8d4a-de81679507e0.lovable.app",
+    "runtime_confirmed": true,
+    "html": {
+      "error_msg": null,
+      "id": 65,
+      "response_record_created_at": "2026-10-06 01:05:10.231549+00",
+      "script_paths": [
+        "/assets/api-D_uFKFMO.js",
+        "/assets/billing-change-requests-CV53qcwV.js",
+        "/assets/button-C4HD9MBz.js",
+        "/assets/case-activity-e3ECGjQd.js",
+        "/assets/chunk-CMxvf4Kt.js",
+        "/assets/client-B7aNuHSk.js",
+        "/assets/ClientOnly-C3GOX-p7.js",
+        "/assets/createLucideIcon-DsQZXInX.js",
+        "/assets/desktop-cloud-DGElmfSM.js",
+        "/assets/desktop-identity-Dysg40OW.js",
+        "/assets/desktop-local-CfD7FVXi.js",
+        "/assets/dist-Chrm94JT.js",
+        "/assets/dist-CMuFpO-J.js",
+        "/assets/dist-CngfMkla.js",
+        "/assets/dist-DG3bVIv2.js",
+        "/assets/dist-DIfzjzTV.js",
+        "/assets/dist-DwvDOAgu.js",
+        "/assets/dist-hmKBHs64.js",
+        "/assets/es2015-C8KmuGek.js",
+        "/assets/index-BRkOp_KJ.js",
+        "/assets/invariant-DEEwAagU.js",
+        "/assets/jsx-runtime-sLPvdpSW.js",
+        "/assets/jszip.min-Bm_16osY.js",
+        "/assets/link-CvKY8H68.js",
+        "/assets/master-DE-8Etzm.js",
+        "/assets/native-KdYn1BUg.js",
+        "/assets/not-found-DIgawKw1.js",
+        "/assets/optimistic-DJGI5YOD.js",
+        "/assets/preload-helper-zJ_50EbN.js",
+        "/assets/react-cS1o3OVs.js",
+        "/assets/react-dom-Dvxju874.js",
+        "/assets/redirect-DmtLUW0N.js",
+        "/assets/root-DLTE-HSj.js",
+        "/assets/use-preserve-page-scroll-CKu-8wEa.js",
+        "/assets/useMatch-DPcjon8F.js",
+        "/assets/useMutation-Cb1f3xMN.js",
+        "/assets/useRouter-BiHDD-zA.js",
+        "/assets/useSelector-DbLfG8-Z.js",
+        "/assets/utils-eudQbZeU.js",
+        "/assets/x-DCi5c9ew.js"
+      ],
+      "status_code": 200,
+      "timed_out": false
+    },
+    "api_asset": {
+      "error_msg": null,
+      "id": 67,
+      "patient_upload_code_present": true,
+      "private_asset_imports": [
+        "./private-file-access-L0-VndHU.js"
+      ],
+      "response_record_created_at": "2026-10-06 01:06:22.433195+00",
+      "status_code": 200,
+      "timed_out": false,
+      "ttl_symbol_present": false
+    },
+    "private_asset": {
+      "access_denial_present": true,
+      "error_msg": null,
+      "id": 68,
+      "inspected_at": "2026-10-06 01:08:04.42839+00",
+      "offline_expiry_guard_present": true,
+      "owner_image_namespace_present": true,
+      "response_record_created_at": "2026-10-06 01:07:14.191661+00",
+      "session_guard_present": true,
+      "short_ttl_constant_present": true,
+      "stable_reference_present": true,
+      "status_code": 200,
+      "timed_out": false
+    },
+    "record_timestamp_is_http_completion_time": false,
+    "authenticated_ui_flow_verified": false
+  },
+  "financial_preservation": {
+    "before": {
+      "checked_at": "2026-10-06 00:58:00.502227+00",
+      "contract_snapshot_hash": "ff04b707e964d9697a42b2d5ea06f719",
+      "external_review_audits": 0,
+      "payment_ledger_hash": "d55c78a72d5186254aff4e0323637628",
+      "production_payments_count": 0,
+      "sandbox_event_counts": {
+        "dead_letter": 2,
+        "processed": 5
+      }
+    },
+    "after": {
+      "checked_at": "2026-10-06 01:05:48.684792+00",
+      "contract_snapshot_hash": "ff04b707e964d9697a42b2d5ea06f719",
+      "external_review_audits": 0,
+      "payment_ledger_hash": "d55c78a72d5186254aff4e0323637628",
+      "production_payments_count": 0,
+      "sandbox_event_counts": {
+        "dead_letter": 2,
+        "processed": 5
+      }
+    },
+    "payment_ledger_unchanged": true,
+    "contracts_unchanged": true,
+    "contract_hash_definition": "md5 of ordered account_subscriptions rows with status <> pending_checkout, excluding metadata and updated_at",
+    "ledger_hash_definition": "md5 of ordered billing_payments rows",
+    "asaas_requests_invoked": false,
+    "replay_invoked": false,
+    "production_payment_created": false,
+    "clinical_objects_removed_or_renamed": false
+  },
+  "legacy_reference_audit": {
+    "checked_at": "2026-10-06T00:49:34.211736Z",
+    "all_six_existing_buckets_private": true,
+    "patient_photo_signed_references": 32,
+    "avatar_signed_references": 6,
+    "patient_attachment_signed_references": 0,
+    "photo_owner_path_mismatches": 0,
+    "other_patient_photo_formats": 0,
+    "owner_path_checked_at": "2026-10-06T00:51:04.828460Z",
+    "existing_bearer_copies_revoked": false
+  },
+  "pending": [
+    "Real Master/MFA closure of the two manual Sandbox events",
+    "Authenticated upload/read/renew/denial on the published version",
+    "Historical long-lived bearer treatment and avatar company-read review",
+    "Authorized Auth fixture session/recovery method without email",
+    "Provider Sandbox lifecycle and reconciliation cases",
+    "Physical-device and distribution evidence"
+  ]
+}
