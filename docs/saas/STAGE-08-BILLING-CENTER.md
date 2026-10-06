@@ -2,8 +2,10 @@
 
 Status: histórico, limite de acesso financeiro e links de cobrança preparados.
 Solicitações auditadas de cancelamento e troca de plano implementadas em 03/10.
-A execução no provedor e a prova financeira permanecem em standby. Registrar
-uma solicitação não encerra a renovação nem altera o contrato vigente.
+O executor de cancelamento foi implementado em 06/10; sua publicação e prova
+real ficam registradas separadamente. Troca de plano e seu preço por vigência
+continuam pendentes. Registrar uma solicitação não encerra a renovação nem
+altera o contrato vigente.
 
 ## Implementado
 
@@ -36,7 +38,8 @@ atual usa `UNDEFINED`.
 Migração: `20261003233500_saas_billing_change_requests_stage08.sql`.
 Na página `/assinatura`, o gestor pode registrar uma solicitação, acompanhar
 o estado `awaiting_provider` e retirá-la enquanto aguarda confirmação. O Master
-consulta uma fila privada por empresa; nesta fase a fila não tem botão de execução.
+consulta uma fila privada por empresa. Cancelamento agora possui revisão com
+autenticador e inativação; troca de plano ainda aguarda execução.
 
 - O servidor autoriza owner/CEO/ADMIN ativo da empresa em cada RPC. Tabelas e
   auxiliares não possuem acesso direto dos clientes; Master exige operador
@@ -103,7 +106,47 @@ assinatura nem reativa automaticamente. Rede interrompida, HTTP 5xx, corpo não
 lido, sucesso vazio ou resposta divergente são resultados inconclusivos para
 conciliação por GET. A camada de transporte não concede autorização financeira.
 
-Esse método ainda não é chamado pela fila de solicitações: falta integrar o
-executor privado com AAL2, lease/auditoria, comparação de contrato/cliente,
-revalidação dos limites e projeção por vigência. Não é prova de uma mudança
-executada no Sandbox e não encerra 5/7.
+O cancelamento agora chama esse método pelo executor descrito abaixo. A troca
+continua exigindo revalidação dos limites e projeção por vigência. A implementação
+não comprova uma mudança real no Sandbox e não encerra 5/7.
+
+## Executor de cancelamento, 06/10
+
+Migração `20261006040000_saas_cancel_executor_stage08.sql` e API
+`POST /api/billing/asaas-cancel`. Web e aplicativos instalados usam o mesmo
+contrato online, JWT fixado na sessão atual, timeout e nenhum envio na outbox.
+
+1. O operador seleciona um pedido de cancelamento existente, confirma o seu
+   autenticador, revisa a preservação das cobranças e informa justificativa.
+   Não há cancelamento automático de pedidos antigos.
+2. PostgREST verifica o JWT; as RPCs conferem operador habilitado, AAL2 e sessão
+   Auth vigente. Lease de até 120 segundos, com locks na mesma ordem das RPCs
+   de envio/retirada, bloqueia concorrência. A conta do solicitante precisa
+   continuar autorizada para gerir a empresa. Worker/service_role não recebe
+   permissão de autorizar a ação.
+3. O servidor consulta assinatura, cliente, referência, ciclo, valor, ambiente
+   e ausência de exclusão. O contrato congelado e o período pago são conferidos
+   novamente antes de autorizar uma única escrita. Envia somente `INACTIVE`,
+   preservando as cobranças existentes com `updatePendingPayments: false`.
+4. Uma consulta GET confirma o estado atual; somente `INACTIVE` com vínculo e
+   valor corretos conclui o pedido. O período pago, plano, ledger, arquivos e
+   empresa ficam preservados. O acesso do período cancelado segue a regra
+   existente até a sua data final; não há prorrogação nem estorno.
+5. Falha, resposta perdida ou confirmação divergente deixam o pedido em revisão.
+   Retomadas de leases vencidos e revisões só consultam; nunca repetem PUT.
+   Mesmo uma interrupção antes da escrita exige revisão, preservando o registro
+   e evitando uma repetição financeira cega. A revisão não permite retirar um
+   pedido cuja execução já pode ter alcançado o provedor.
+6. `billing_cancel_executions` registra ator, sessão, justificativa, lease,
+   tentativa de escrita, resultado e hash de prova. Clientes não leem a tabela
+   nem recebem tokens, IDs privados ou payload do provedor. A conclusão é
+   idempotente e aparece no histórico do gestor; o Master vê estados abertos.
+
+Testes de transporte, sessão/UI e ensaio descartável de SQL são regressões.
+O ensaio não chama Asaas e não conta como aceite de 5.2 ou 5.3. Permanecem
+pendentes a prova autenticada Sandbox, mudança de plano por vigência,
+downgrade e falhas reais do provedor. Nenhum contrato existente é cancelado
+para provar a implementação.
+
+Referência do comportamento do provedor consultada em 06/10:
+[Atualizar assinatura existente](https://docs.asaas.com/reference/atualizar-assinatura-existente).

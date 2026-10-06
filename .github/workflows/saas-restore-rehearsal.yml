@@ -249,6 +249,13 @@ jobs:
             < docs/saas/sql/stage-08-change-request-rehearsal.sql | tee restore-stage-08-requests.log
           bash docs/saas/sql/stage-08-change-request-concurrency.sh | tee restore-stage-08-request-concurrency.log
 
+      - name: Rehearse Stage 08 cancellation lease, MFA and paid-period preservation
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-08-cancel-executor-rehearsal.sql | tee restore-stage-08-cancel-executor.log
+
       - name: Verify and rehearse Stage 09 private operational monitoring
         shell: bash
         run: |

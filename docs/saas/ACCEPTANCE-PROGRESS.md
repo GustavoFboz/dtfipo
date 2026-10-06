@@ -25,8 +25,8 @@ reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data
 | 4.2 | Sessões, MFA, isolamento e replay financeiro | Parcial: fixtures/testes; replay real pendente |
 | 4.3 | Arquivos privados e validade dos links | Parcial: referências sem bearer persistente, assinatura de cinco minutos, renovação, isolamento de sessão e espelho instalado limitado a 72h implementados; 38 referências históricas ainda requerem tratamento/revogação e prova autenticada publicada. [Implementação e limites](PRIVATE-FILE-ACCESS.md) |
 | 5.1 | Histórico e documentos de cobrança | Parcial: código/ensaios; fluxo pendente |
-| 5.2 | Solicitações executadas no Asaas | Em aberto: ainda são solicitações |
-| 5.3 | Downgrade, falhas e execução única | Parcial: requisitos/transporte; executor pendente |
+| 5.2 | Solicitações executadas no Asaas | Parcial: executor de cancelamento com revisão Master/AAL2, lease, auditoria e readback implementado; execução autenticada real e troca de plano por vigência ainda pendentes. [Contrato e limites](STAGE-08-BILLING-CENTER.md) |
+| 5.3 | Downgrade, falhas e execução única | Parcial: inativação única e retomada somente por GET implementadas; ensaios não substituem falhas reais, downgrade e preço por vigência |
 | 6.1 | Processador regular e alertas comprovados | Concluído em Sandbox, 05/10, 18h17 de Manaus: 24 disparos a cada 5 minutos, 24 respostas HTTP 200 com telemetria saudável, alerta real de heartbeat antigo entregue à caixa do operador e recuperação observada. Produção permanece no gate 7.2. [Prova e limites](evidence/database-scheduler-20261005.md) |
 | 6.2 | Backup, restauração e incidente | Parcial: restore limpo e recuperação de heartbeat real comprovados; backup/restauração operacional de dados e rollback ainda pendentes |
 | 6.3 | Onboarding, plataformas e capacidade piloto | Em aberto |

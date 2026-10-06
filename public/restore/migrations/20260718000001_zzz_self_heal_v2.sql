@@ -439,3 +439,14 @@ REVOKE ALL ON FUNCTION public.billing_configure_database_scheduler(text,text),
 GRANT EXECUTE ON FUNCTION public.billing_configure_database_scheduler(text,text),
   public.billing_disable_database_scheduler(text), public.billing_database_scheduler_status(text)
   TO service_role;
+
+-- Cancellation executor: reseal after generic function grants above.
+REVOKE ALL ON TABLE public.billing_cancel_executions FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.billing_cancel_executions TO service_role;
+REVOKE ALL ON FUNCTION public.billing_cancel_master_identity() FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.platform_master_claim_cancel_request(uuid,text,text,boolean),
+  public.platform_master_begin_cancel_write(uuid,uuid) FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.platform_master_claim_cancel_request(uuid,text,text,boolean),
+  public.platform_master_begin_cancel_write(uuid,uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.billing_finish_cancel_request(uuid,uuid,jsonb,text) FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.billing_finish_cancel_request(uuid,uuid,jsonb,text) TO service_role;

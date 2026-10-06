@@ -66,6 +66,7 @@ import { Route as AuthenticatedFinanceiroPrevisaoRouteImport } from './routes/_a
 import { Route as AuthenticatedFinanceiroProducaoRouteImport } from './routes/_authenticated/financeiro.producao'
 import { Route as AuthenticatedFinanceiroRelatoriosRouteImport } from './routes/_authenticated/financeiro.relatorios'
 import { Route as AuthenticatedPatientsIdRouteImport } from './routes/_authenticated/patients.$id'
+import { Route as ApiBillingAsaasCancelRouteImport } from './routes/api/billing/asaas-cancel'
 import { Route as ApiBillingAsaasCheckoutRouteImport } from './routes/api/billing/asaas-checkout'
 import { Route as ApiBillingAsaasDocumentRouteImport } from './routes/api/billing/asaas-document'
 import { Route as ApiBillingAsaasRenewalRouteImport } from './routes/api/billing/asaas-renewal'
@@ -389,6 +390,11 @@ const AuthenticatedPatientsIdRoute = AuthenticatedPatientsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => AuthenticatedPatientsRoute,
 } as any)
+const ApiBillingAsaasCancelRoute = ApiBillingAsaasCancelRouteImport.update({
+  id: '/api/billing/asaas-cancel',
+  path: '/api/billing/asaas-cancel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiBillingAsaasCheckoutRoute = ApiBillingAsaasCheckoutRouteImport.update({
   id: '/api/billing/asaas-checkout',
   path: '/api/billing/asaas-checkout',
@@ -489,6 +495,7 @@ export interface FileRoutesByFullPath {
   '/financeiro/producao': typeof AuthenticatedFinanceiroProducaoRoute
   '/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/patients/$id': typeof AuthenticatedPatientsIdRoute
+  '/api/billing/asaas-cancel': typeof ApiBillingAsaasCancelRoute
   '/api/billing/asaas-checkout': typeof ApiBillingAsaasCheckoutRoute
   '/api/billing/asaas-document': typeof ApiBillingAsaasDocumentRoute
   '/api/billing/asaas-renewal': typeof ApiBillingAsaasRenewalRoute
@@ -555,6 +562,7 @@ export interface FileRoutesByTo {
   '/financeiro/producao': typeof AuthenticatedFinanceiroProducaoRoute
   '/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/patients/$id': typeof AuthenticatedPatientsIdRoute
+  '/api/billing/asaas-cancel': typeof ApiBillingAsaasCancelRoute
   '/api/billing/asaas-checkout': typeof ApiBillingAsaasCheckoutRoute
   '/api/billing/asaas-document': typeof ApiBillingAsaasDocumentRoute
   '/api/billing/asaas-renewal': typeof ApiBillingAsaasRenewalRoute
@@ -623,6 +631,7 @@ export interface FileRoutesById {
   '/_authenticated/financeiro/producao': typeof AuthenticatedFinanceiroProducaoRoute
   '/_authenticated/financeiro/relatorios': typeof AuthenticatedFinanceiroRelatoriosRoute
   '/_authenticated/patients/$id': typeof AuthenticatedPatientsIdRoute
+  '/api/billing/asaas-cancel': typeof ApiBillingAsaasCancelRoute
   '/api/billing/asaas-checkout': typeof ApiBillingAsaasCheckoutRoute
   '/api/billing/asaas-document': typeof ApiBillingAsaasDocumentRoute
   '/api/billing/asaas-renewal': typeof ApiBillingAsaasRenewalRoute
@@ -691,6 +700,7 @@ export interface FileRouteTypes {
     | '/financeiro/producao'
     | '/financeiro/relatorios'
     | '/patients/$id'
+    | '/api/billing/asaas-cancel'
     | '/api/billing/asaas-checkout'
     | '/api/billing/asaas-document'
     | '/api/billing/asaas-renewal'
@@ -757,6 +767,7 @@ export interface FileRouteTypes {
     | '/financeiro/producao'
     | '/financeiro/relatorios'
     | '/patients/$id'
+    | '/api/billing/asaas-cancel'
     | '/api/billing/asaas-checkout'
     | '/api/billing/asaas-document'
     | '/api/billing/asaas-renewal'
@@ -824,6 +835,7 @@ export interface FileRouteTypes {
     | '/_authenticated/financeiro/producao'
     | '/_authenticated/financeiro/relatorios'
     | '/_authenticated/patients/$id'
+    | '/api/billing/asaas-cancel'
     | '/api/billing/asaas-checkout'
     | '/api/billing/asaas-document'
     | '/api/billing/asaas-renewal'
@@ -843,6 +855,7 @@ export interface RootRouteChildren {
   MasterRoute: typeof MasterRoute
   ReauthRoute: typeof ReauthRoute
   ApiTranscribeRoute: typeof ApiTranscribeRoute
+  ApiBillingAsaasCancelRoute: typeof ApiBillingAsaasCancelRoute
   ApiBillingAsaasCheckoutRoute: typeof ApiBillingAsaasCheckoutRoute
   ApiBillingAsaasDocumentRoute: typeof ApiBillingAsaasDocumentRoute
   ApiBillingAsaasRenewalRoute: typeof ApiBillingAsaasRenewalRoute
@@ -1253,6 +1266,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPatientsIdRouteImport
       parentRoute: typeof AuthenticatedPatientsRoute
     }
+    '/api/billing/asaas-cancel': {
+      id: '/api/billing/asaas-cancel'
+      path: '/api/billing/asaas-cancel'
+      fullPath: '/api/billing/asaas-cancel'
+      preLoaderRoute: typeof ApiBillingAsaasCancelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/billing/asaas-checkout': {
       id: '/api/billing/asaas-checkout'
       path: '/api/billing/asaas-checkout'
@@ -1518,6 +1538,7 @@ const rootRouteChildren: RootRouteChildren = {
   MasterRoute: MasterRoute,
   ReauthRoute: ReauthRoute,
   ApiTranscribeRoute: ApiTranscribeRoute,
+  ApiBillingAsaasCancelRoute: ApiBillingAsaasCancelRoute,
   ApiBillingAsaasCheckoutRoute: ApiBillingAsaasCheckoutRoute,
   ApiBillingAsaasDocumentRoute: ApiBillingAsaasDocumentRoute,
   ApiBillingAsaasRenewalRoute: ApiBillingAsaasRenewalRoute,
