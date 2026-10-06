@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { PrivateImage } from "@/components/PrivateImage";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -1181,7 +1182,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
                       }}
                       className="absolute inset-0"
                     >
-                      <img src={g.url} alt={g.name} loading="lazy" draggable={false} className="w-full h-full object-cover transition group-hover:scale-105" />
+                      <PrivateImage src={g.url} alt={g.name} loading="lazy" draggable={false} className="w-full h-full object-cover transition group-hover:scale-105" />
                     </button>
                     {canDelete && (
                       <button type="button"

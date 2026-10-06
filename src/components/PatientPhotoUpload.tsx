@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { adminUpdate, uploadPatientPhoto } from "@/lib/api";
@@ -43,7 +44,7 @@ export function PatientPhotoUpload({ patientId, photoUrl, patientName, size = 64
         style={{ height: size, width: size }}
       >
         {photoUrl ? (
-          <img src={photoUrl} alt={patientName ?? ""} className="h-full w-full object-cover" />
+          <PrivateImage src={photoUrl} alt={patientName ?? ""} className="h-full w-full object-cover" />
         ) : (
           <UserIcon className="h-1/2 w-1/2" />
         )}

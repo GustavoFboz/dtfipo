@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { CaseChecklistFab } from "@/components/CaseChecklists";
 
@@ -709,7 +710,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
                       "order-1 h-14 w-14 shrink-0 rounded-full grid place-items-center text-[13px] font-semibold text-slate-500 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 overflow-hidden self-end",
                       groupedWithPrev && "invisible"
                     )}>
-                      {url ? <img src={url} alt={name} className="h-full w-full object-cover" /> : initials(name)}
+                      {url ? <PrivateImage src={url} alt={name} className="h-full w-full object-cover" /> : initials(name)}
                     </div>
                   );
                 })()}
@@ -769,7 +770,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
                             onClick={() => setLightbox({ images: visibleImages, index: i })}
                             className="h-28 w-28 rounded-2xl overflow-hidden border border-black/5 bg-muted hover:opacity-90 transition"
                           >
-                            <img src={img.url} alt={img.name} loading="lazy" className="h-full w-full object-cover" />
+                            <PrivateImage src={img.url} alt={img.name} loading="lazy" className="h-full w-full object-cover" />
                           </button>
                         ))}
                       </div>
@@ -806,7 +807,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
                       "order-3 h-14 w-14 shrink-0 rounded-full grid place-items-center text-[13px] font-semibold text-slate-500 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 overflow-hidden self-end",
                       groupedWithPrev && "invisible"
                     )}>
-                      {url ? <img src={url} alt={name} className="h-full w-full object-cover" /> : initials(name)}
+                      {url ? <PrivateImage src={url} alt={name} className="h-full w-full object-cover" /> : initials(name)}
                     </div>
                   );
                 })()}

@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { createFileRoute, Outlet, useMatch, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -120,7 +121,7 @@ function PatientsLayout() {
               >
                 <div className="h-16 w-16 rounded-full bg-slate-50 dark:bg-white/5 grid place-items-center text-slate-300 shrink-0 overflow-hidden border border-slate-100 dark:border-white/5">
                   {p.photo_url ? (
-                    <img src={p.photo_url} className="h-full w-full object-cover" alt="" />
+                    <PrivateImage src={p.photo_url} className="h-full w-full object-cover" alt="" />
                   ) : (
                     <User className="h-8 w-8 font-light" />
                   )}

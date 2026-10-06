@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { parsePrivateFileReference, privateFileReference } from "./private-file-reference";
 
 export const getAuthorizedPatientPhotoUrls = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -48,7 +49,16 @@ export const getAuthorizedPatientPhotoUrls = createServerFn({ method: "POST" })
     for (const patient of patients ?? []) {
       const id = String((patient as any)?.id || "");
       const url = String((patient as any)?.photo_url || "").trim();
-      if (id && url) photos[id] = url;
+      if (id && url) {
+        // Return a path label, not an old bearer. The shared client re-signs
+        // through Storage under the current caller's RLS on every renewal.
+        try {
+          const reference = parsePrivateFileReference(url, process.env.SUPABASE_URL || "");
+          if (reference?.bucket === "patient-photos" && reference.path.split("/")[0] === id) {
+            photos[id] = privateFileReference(reference.bucket, reference.path);
+          }
+        } catch { /* Invalid legacy references have no private fallback. */ }
+      }
     }
 
     return { success: true, photos };

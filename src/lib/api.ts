@@ -5,6 +5,8 @@ import { autoRecordCaseMilling } from "./burrs";
 import { broadcastEntity, markDeleted } from "./optimistic";
 import { applyOptimisticStorageDelta, cancelStorageUpload, completeStorageUpload, reserveStorageUpload } from "./storage";
 import { newPasswordError } from "./auth/password-policy";
+import { privateFileReference, PRIVATE_FILE_URL_TTL_SECONDS } from "./private-file-reference";
+import { resolvePrivateFile } from "./private-file-access";
 
 
 async function hydrateVisibleCaseFallback(rows: CaseRow[]): Promise<CaseRow[]> {
@@ -1247,10 +1249,10 @@ export async function uploadPatientPhoto(patientId: string, file: Blob): Promise
   const reservation = await reserveStorageUpload({ sizeBytes: file.size, bucket: "patient-photos", objectPath: path, sourceType: "patient_photo", patientId, originalName: "Foto do paciente.jpg", mimeType: "image/jpeg" });
   const { error } = await supabase.storage.from("patient-photos").upload(path, file, { contentType: "image/jpeg", upsert: false });
   if (error) { await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
-  const { data, error: signErr } = await supabase.storage.from("patient-photos").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+  const { data, error: signErr } = await supabase.storage.from("patient-photos").createSignedUrl(path, PRIVATE_FILE_URL_TTL_SECONDS);
   if (signErr || !data?.signedUrl) { await rollbackUploadedObject("patient-photos", path, reservation.reservationId, file.size); throw signErr ?? new Error("Não foi possível confirmar o acesso à foto enviada."); }
   await completeStorageUpload(reservation.reservationId, patientId);
-  return data.signedUrl;
+  return privateFileReference("patient-photos", path);
 }
 
 export async function uploadUserAvatar(file: Blob): Promise<string> {
@@ -1260,9 +1262,9 @@ export async function uploadUserAvatar(file: Blob): Promise<string> {
   const reservation = await reserveStorageUpload({ sizeBytes: file.size, bucket: "avatars", objectPath: path, sourceType: "user_avatar", originalName: "Avatar.jpg", mimeType: "image/jpeg" });
   const { error } = await supabase.storage.from("avatars").upload(path, file, { contentType: "image/jpeg", upsert: false });
   if (error) { await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
-  const { data, error: signErr } = await supabase.storage.from("avatars").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+  const { data, error: signErr } = await supabase.storage.from("avatars").createSignedUrl(path, PRIVATE_FILE_URL_TTL_SECONDS);
   if (signErr || !data?.signedUrl) { await rollbackUploadedObject("avatars", path, reservation.reservationId, file.size); throw signErr ?? new Error("Não foi possível confirmar o acesso ao avatar enviado."); }
-  const url = data.signedUrl;
+  const url = privateFileReference("avatars", path);
   const { error: updErr } = await supabase.from("profiles").update({ avatar_url: url } as never).eq("id", user.id);
   if (updErr) { await rollbackUploadedObject("avatars", path, reservation.reservationId, file.size); throw updErr; }
   await completeStorageUpload(reservation.reservationId, user.id);
@@ -1307,12 +1309,12 @@ export async function uploadPatientAttachment(
   const reservation = await reserveStorageUpload({ sizeBytes: file.size, bucket: "patient-files", objectPath: path, sourceType: "patient_attachment", patientId, originalName: file.name || meta.title || "arquivo", mimeType: file.type || null });
   const { error: upErr } = await supabase.storage.from("patient-files").upload(path, file, { contentType: file.type || undefined, upsert: false });
   if (upErr) { await cancelStorageUpload(reservation.reservationId, file.size); throw upErr; }
-  const { data: signed, error: signError } = await supabase.storage.from("patient-files").createSignedUrl(path, 60 * 60 * 24 * 365);
+  const { data: signed, error: signError } = await supabase.storage.from("patient-files").createSignedUrl(path, PRIVATE_FILE_URL_TTL_SECONDS);
   if (signError || !signed?.signedUrl) {
     await rollbackUploadedObject("patient-files", path, reservation.reservationId, file.size);
     throw signError ?? new Error("Não foi possível confirmar o acesso ao arquivo enviado.");
   }
-  const file_url = signed.signedUrl;
+  const file_url = privateFileReference("patient-files", path);
   const isImage = (file.type || "").startsWith("image/");
   const { data, error } = await supabase.from("patient_attachments" as never).insert({ patient_id: patientId, title: meta.title, description: meta.description ?? null, kind: meta.kind ?? "other", file_url, file_path: path, thumbnail_url: isImage ? file_url : null, mime_type: file.type || null, size_bytes: file.size } as never).select().single();
   if (error) { await rollbackUploadedObject("patient-files", path, reservation.reservationId, file.size); throw error; }
@@ -1330,11 +1332,7 @@ export async function deletePatientAttachment(att: PatientAttachment) {
 }
 
 export async function refreshAttachmentSignedUrl(path: string): Promise<string> {
-  const { data, error } = await supabase.storage
-    .from("patient-files")
-    .createSignedUrl(path, 60 * 60);
-  if (error) throw error;
-  return data.signedUrl;
+  return (await resolvePrivateFile(privateFileReference("patient-files", path))).url;
 }
 
 // ===== Case attachments (72h auto-expire) =====
@@ -1394,7 +1392,7 @@ export async function getCaseAttachmentUrl(path: string, downloadName?: string):
     .from("case-files")
     .createSignedUrl(
       path,
-      60 * 60,
+      PRIVATE_FILE_URL_TTL_SECONDS,
       downloadName ? { download: downloadName } : undefined,
     );
   if (error) throw error;

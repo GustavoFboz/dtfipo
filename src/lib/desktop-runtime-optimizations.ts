@@ -169,6 +169,17 @@ async function readCached(key: string): Promise<CachedFile | null> {
   });
 }
 
+/** Used only after the installed adapter verifies owner and the 72-hour
+ * entitlement. Reuse a previously downloaded case image without a network URL. */
+export async function readPrivateAttachmentImage(ownerId: string, path: string): Promise<Blob | null> {
+  if (!ownerId || revokedOwners.has(ownerId) || !path) return null;
+  const generation = cacheGeneration;
+  const entry = await readCached(`${ownerId}:${path}`);
+  if (generation !== cacheGeneration || revokedOwners.has(ownerId) || !entry
+    || !/^image\/(?:jpeg|png|gif|webp)(?:;|$)/.test(entry.contentType)) return null;
+  return entry.blob;
+}
+
 async function writeCached(key: string, entry: CachedFile, generation: number): Promise<void> {
   if (generation !== cacheGeneration) return;
   hot.set(key, entry);

@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Search, Loader2, X, Users, LayoutDashboard, FileText, ImageIcon, Settings, SlidersHorizontal, Check, UserCircle, Calendar, Boxes, SearchX, Command } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -271,7 +272,7 @@ export function GlobalSearch() {
                     className="w-full text-left px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group flex items-center gap-3"
                   >
                     <div className="h-8 w-8 rounded-full bg-slate-100 dark:bg-white/5 grid place-items-center text-xs font-medium text-slate-500 overflow-hidden">
-                      {p.photo_url ? <img src={p.photo_url} className="h-full w-full object-cover" /> : p.name?.[0]}
+                      {p.photo_url ? <PrivateImage src={p.photo_url} className="h-full w-full object-cover" /> : p.name?.[0]}
                     </div>
                     <div>
                       <div className="text-sm font-normal text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
