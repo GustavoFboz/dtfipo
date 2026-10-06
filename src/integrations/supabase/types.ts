@@ -155,6 +155,68 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_cancel_executions: {
+        Row: {
+          actor_session_id: string
+          actor_user_id: string
+          created_at: string
+          error_code: string | null
+          finished_at: string | null
+          lease_token: string
+          outcome: string | null
+          provider_customer_id: string
+          provider_environment: string
+          provider_proof_hash: string | null
+          provider_subscription_id: string
+          provider_write_started_at: string | null
+          reason: string
+          reconcile_only: boolean
+          request_id: string
+        }
+        Insert: {
+          actor_session_id: string
+          actor_user_id: string
+          created_at?: string
+          error_code?: string | null
+          finished_at?: string | null
+          lease_token: string
+          outcome?: string | null
+          provider_customer_id: string
+          provider_environment: string
+          provider_proof_hash?: string | null
+          provider_subscription_id: string
+          provider_write_started_at?: string | null
+          reason: string
+          reconcile_only: boolean
+          request_id: string
+        }
+        Update: {
+          actor_session_id?: string
+          actor_user_id?: string
+          created_at?: string
+          error_code?: string | null
+          finished_at?: string | null
+          lease_token?: string
+          outcome?: string | null
+          provider_customer_id?: string
+          provider_environment?: string
+          provider_proof_hash?: string | null
+          provider_subscription_id?: string
+          provider_write_started_at?: string | null
+          reason?: string
+          reconcile_only?: boolean
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_cancel_executions_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "billing_change_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       billing_change_request_events: {
         Row: {
           action: string
@@ -190,16 +252,23 @@ export type Database = {
       billing_change_requests: {
         Row: {
           clinic_id: string
+          completed_at: string | null
           created_at: string
           currency: string
           current_amount_cents: number
           current_plan_code: string
           current_plan_name: string
           effective_not_before: string
+          execution_actor: string | null
+          execution_lease_token: string | null
+          execution_lease_until: string | null
+          execution_session_id: string | null
           id: string
           kind: string
+          last_error_code: string | null
           paid_period_end: string | null
           provider_environment: string
+          provider_write_started_at: string | null
           quote_snapshot: Json
           quote_token: string
           requested_by: string
@@ -213,16 +282,23 @@ export type Database = {
         }
         Insert: {
           clinic_id: string
+          completed_at?: string | null
           created_at?: string
           currency: string
           current_amount_cents: number
           current_plan_code: string
           current_plan_name: string
           effective_not_before: string
+          execution_actor?: string | null
+          execution_lease_token?: string | null
+          execution_lease_until?: string | null
+          execution_session_id?: string | null
           id?: string
           kind: string
+          last_error_code?: string | null
           paid_period_end?: string | null
           provider_environment: string
+          provider_write_started_at?: string | null
           quote_snapshot: Json
           quote_token: string
           requested_by: string
@@ -236,16 +312,23 @@ export type Database = {
         }
         Update: {
           clinic_id?: string
+          completed_at?: string | null
           created_at?: string
           currency?: string
           current_amount_cents?: number
           current_plan_code?: string
           current_plan_name?: string
           effective_not_before?: string
+          execution_actor?: string | null
+          execution_lease_token?: string | null
+          execution_lease_until?: string | null
+          execution_session_id?: string | null
           id?: string
           kind?: string
+          last_error_code?: string | null
           paid_period_end?: string | null
           provider_environment?: string
+          provider_write_started_at?: string | null
           quote_snapshot?: Json
           quote_token?: string
           requested_by?: string
@@ -273,6 +356,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      billing_database_scheduler: {
+        Row: {
+          configured_at: string
+          cron_job_id: number
+          enabled: boolean
+          last_dispatched_at: string | null
+          last_request_id: number | null
+          provider_environment: string
+          worker_secret_id: string
+        }
+        Insert: {
+          configured_at?: string
+          cron_job_id: number
+          enabled?: boolean
+          last_dispatched_at?: string | null
+          last_request_id?: number | null
+          provider_environment: string
+          worker_secret_id: string
+        }
+        Update: {
+          configured_at?: string
+          cron_job_id?: number
+          enabled?: boolean
+          last_dispatched_at?: string | null
+          last_request_id?: number | null
+          provider_environment?: string
+          worker_secret_id?: string
+        }
+        Relationships: []
       }
       billing_event_replays: {
         Row: {
@@ -3068,6 +3181,42 @@ export type Database = {
           },
         ]
       }
+      saas_fixture_acceptance_jobs: {
+        Row: {
+          claimed_at: string | null
+          completed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          kind: string
+          receipt: Json | null
+          status: string
+          token_hash: string | null
+        }
+        Insert: {
+          claimed_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id: string
+          kind: string
+          receipt?: Json | null
+          status?: string
+          token_hash?: string | null
+        }
+        Update: {
+          claimed_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          kind?: string
+          receipt?: Json | null
+          status?: string
+          token_hash?: string | null
+        }
+        Relationships: []
+      }
       scan_jigs: {
         Row: {
           created_at: string
@@ -3715,22 +3864,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      billing_configure_database_scheduler: {
-        Args: { p_environment: string; p_worker_token: string }
-        Returns: Json
-      }
-      billing_database_scheduler_status: {
-        Args: { p_environment: string }
-        Returns: Json
-      }
-      billing_disable_database_scheduler: {
-        Args: { p_environment: string }
-        Returns: boolean
-      }
-      billing_enqueue_database_worker: {
-        Args: { p_environment: string }
-        Returns: number
-      }
       active_company_member: {
         Args: { _clinic_id: string; _user_id?: string }
         Returns: boolean
@@ -3833,6 +3966,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      billing_cancel_master_identity: { Args: never; Returns: string }
       billing_change_request_quote: {
         Args: {
           p_kind: string
@@ -3879,9 +4013,26 @@ export type Database = {
         Returns: Json
       }
       billing_company_history: { Args: { p_clinic_id: string }; Returns: Json }
+      billing_configure_database_scheduler: {
+        Args: { p_environment: string; p_worker_token: string }
+        Returns: Json
+      }
       billing_current_user_can_manage_company: {
         Args: { p_clinic_id: string }
         Returns: boolean
+      }
+      billing_database_scheduler_boundary: { Args: never; Returns: boolean }
+      billing_database_scheduler_status: {
+        Args: { p_environment: string }
+        Returns: Json
+      }
+      billing_disable_database_scheduler: {
+        Args: { p_environment: string }
+        Returns: boolean
+      }
+      billing_enqueue_database_worker: {
+        Args: { p_environment: string }
+        Returns: number
       }
       billing_finish_asaas_event: {
         Args: {
@@ -3891,6 +4042,15 @@ export type Database = {
           p_outcome: string
         }
         Returns: boolean
+      }
+      billing_finish_cancel_request: {
+        Args: {
+          p_error_code: string
+          p_lease_token: string
+          p_request_id: string
+          p_verified_subscription: Json
+        }
+        Returns: string
       }
       billing_finish_provider_operation: {
         Args: {
@@ -4038,6 +4198,16 @@ export type Database = {
         Returns: Json
       }
       can_access_case: { Args: { _case_id: string }; Returns: boolean }
+      can_access_case_row: {
+        Args: {
+          _cadista_id: string
+          _doctor_id: string
+          _patient_id: string
+          _requested_by: string
+          _status: string
+        }
+        Returns: boolean
+      }
       can_access_patient: { Args: { _patient_id: string }; Returns: boolean }
       can_manage_clinic_permissions: {
         Args: { _clinic_id: string }
@@ -4047,6 +4217,7 @@ export type Database = {
         Args: { _clinic_id: string }
         Returns: boolean
       }
+      can_modify_case: { Args: { _case_id: string }; Returns: boolean }
       cancel_storage_upload: { Args: { _file_id: string }; Returns: undefined }
       case_activity_visible_to_user: {
         Args: { _case_id: string; _created_at: string; _user_id?: string }
@@ -4211,15 +4382,33 @@ export type Database = {
         Returns: number
       }
       patient_id_from_storage_path: { Args: { _name: string }; Returns: string }
+      platform_master_begin_cancel_write: {
+        Args: { p_lease_token: string; p_request_id: string }
+        Returns: boolean
+      }
       platform_master_billing_change_requests: {
         Args: { p_search?: string }
         Returns: Json
       }
-      platform_master_dashboard: { Args: { p_search?: string }; Returns: Json }
+      platform_master_claim_cancel_request: {
+        Args: {
+          p_environment: string
+          p_reason: string
+          p_reconcile_only: boolean
+          p_request_id: string
+        }
+        Returns: Json
+      }
       platform_master_close_external_sandbox_test: {
-        Args: { p_environment: string; p_event_id: string; p_reason: string; p_confirm_manual_external?: boolean }
+        Args: {
+          p_confirm_manual_external?: boolean
+          p_environment: string
+          p_event_id: string
+          p_reason: string
+        }
         Returns: boolean
       }
+      platform_master_dashboard: { Args: { p_search?: string }; Returns: Json }
       platform_master_operational_health: { Args: never; Returns: Json }
       platform_master_replay_asaas_event: {
         Args: { p_environment: string; p_event_id: string; p_reason: string }
@@ -4287,6 +4476,14 @@ export type Database = {
       reverse_case_stock: {
         Args: { _case_id: string; _user?: string }
         Returns: undefined
+      }
+      saas_claim_fixture_acceptance_job: {
+        Args: { p_job_id: string; p_token_hash: string }
+        Returns: Json
+      }
+      saas_finish_fixture_acceptance_job: {
+        Args: { p_job_id: string; p_receipt: Json }
+        Returns: boolean
       }
       save_workflow_template: {
         Args: { _apply_open?: boolean; _flow_key: string; _stages: Json }
