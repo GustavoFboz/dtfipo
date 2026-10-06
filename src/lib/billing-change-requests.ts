@@ -27,10 +27,11 @@ const quoteSchema = z.object({
 { message: "Inconsistent billing quote" });
 const requestSchema = z.object({
   id: z.string().uuid(), subscription_id: z.string().uuid(), kind: z.enum(["cancel", "change_plan"]),
-  status: z.enum(["awaiting_provider", "withdrawn"]), provider_environment: environment,
+  status: z.enum(["awaiting_provider", "withdrawn", "processing", "review_required", "completed"]), provider_environment: environment,
   current_plan_name: z.string().min(1), current_amount_cents: amount,
   target_plan_name: z.string().min(1).nullable(), target_amount_cents: amount.nullable(), currency: z.literal("BRL"),
   paid_period_end: timestamp.nullable(), effective_not_before: timestamp, created_at: timestamp, withdrawn_at: timestamp.nullable(),
+  completed_at: timestamp.nullable().optional(), last_error_code: z.string().regex(/^[A-Z_]{1,80}$/).nullable().optional(),
 }).refine((r) => (r.kind === "cancel" ? r.target_plan_name === null && r.target_amount_cents === null
   : r.target_plan_name !== null && r.target_amount_cents !== null)
   && (r.status === "withdrawn" ? r.withdrawn_at !== null : r.withdrawn_at === null),
@@ -114,7 +115,7 @@ export async function fetchMasterBillingChangeRequests(scope: BillingSessionScop
   search: string, signal?: AbortSignal): Promise<MasterBillingChangeRequest[]> {
   const data = await financialRpc(scope, isCurrent, "platform_master_billing_change_requests", { p_search: search }, signal);
   const parsed = z.array(requestSchema.and(z.object({ clinic_name: z.string().min(1) }))).safeParse(data);
-  if (!parsed.success || parsed.data.some((r) => r.status !== "awaiting_provider")) throw new Error("Não foi possível conferir a fila de solicitações.");
+  if (!parsed.success || parsed.data.some((r) => !["awaiting_provider", "processing", "review_required"].includes(r.status))) throw new Error("Não foi possível conferir a fila de solicitações.");
   return parsed.data;
 }
 

@@ -48,7 +48,7 @@ export function BillingChangeRequests({ clinicId, scope, isCurrent }: {
   });
   const busy = confirming || submit.isPending || withdraw.isPending || context.isFetching;
   const data = isCurrent(scope) ? context.data : undefined;
-  const pending = data?.requests.find((r) => r.status === "awaiting_provider");
+  const pending = data?.requests.find((r) => ["awaiting_provider", "processing", "review_required"].includes(r.status));
   const selected = data?.plan_quotes.find((q) => q.target_plan_code === selectedCode);
   async function requestChange(quote: BillingChangeQuote) {
     if (busy || !active()) return;
@@ -99,7 +99,10 @@ export function BillingChangeRequests({ clinicId, scope, isCurrent }: {
       <ul className="mt-5 space-y-3 text-sm">
         {data.requests.map((request) => <li key={request.id} className="rounded-xl border p-3">
           <p className="font-medium">{request.kind === "cancel" ? "Cancelamento solicitado" : `Troca para ${request.target_plan_name} · ${formatPlanPrice(request.target_amount_cents!, "BRL")}/mês`}</p>
-          <p className="mt-1 text-xs text-slate-500">{request.status === "awaiting_provider" ? "Aguardando confirmação no Asaas" : "Solicitação retirada"} · {date(request.created_at)} · {request.provider_environment === "sandbox" ? "Teste" : "Produção"}</p>
+          <p className="mt-1 text-xs text-slate-500">{{ awaiting_provider: "Aguardando confirmação no Asaas", withdrawn: "Solicitação retirada",
+            processing: "Conferindo cancelamento", review_required: "Cancelamento precisa de revisão",
+            completed: "Renovação encerrada no Asaas" }[request.status]} · {date(request.created_at)} · {request.provider_environment === "sandbox" ? "Teste" : "Produção"}</p>
+          {request.status === "completed" && <p className="mt-1 text-xs text-slate-500">O período já pago permanece disponível até {request.paid_period_end ? date(request.paid_period_end) : "o prazo contratado"}. Cobranças já emitidas foram preservadas.</p>}
           <p className="mt-1 text-xs text-slate-500">Vigência pretendida a partir de {date(request.effective_not_before)}</p>
           {request.status === "awaiting_provider" && <button type="button" disabled={busy} onClick={() => { void withdrawRequest(request); }} className="mt-2 text-xs text-[#15988f] underline disabled:opacity-50">Retirar solicitação</button>}
         </li>)}

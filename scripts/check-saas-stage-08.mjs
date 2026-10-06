@@ -19,3 +19,14 @@ for (const path of ["src/lib/billing-change-requests.ts", "src/lib/billing-chang
   if (!fs.existsSync(path)) throw new Error(`Stage 08 artifact missing: ${path}`);
 }
 console.log("Stage 08 private requests and pending-provider boundary: OK");
+const cancellation = "20261006040000_saas_cancel_executor_stage08.sql";
+const cancelSource = fs.readFileSync(`supabase/migrations/${cancellation}`, "utf8");
+if (cancelSource !== fs.readFileSync(`public/restore/migrations/${cancellation}`, "utf8")
+  || manifest.indexOf(cancellation) <= manifest.indexOf(migration)) throw new Error("Cancellation restore copy/order diverged");
+for (const marker of ["billing_cancel_master_identity", "from auth.sessions", "BILLING_CANCEL_MFA_REQUIRED",
+  "BILLING_CANCEL_BUSY", "provider_write_started_at is not null", "reconcile_only", "billing_finish_cancel_request"])
+  if (!cancelSource.includes(marker)) throw new Error(`Cancellation guard missing: ${marker}`);
+for (const marker of ["public.billing_cancel_master_identity()", "public.platform_master_claim_cancel_request(uuid,text,text,boolean)",
+  "public.platform_master_begin_cancel_write(uuid,uuid)", "public.billing_finish_cancel_request(uuid,uuid,jsonb,text)"])
+  if (!selfHeal.includes(marker)) throw new Error(`Cancellation grant not resealed: ${marker}`);
+console.log("Stage 08 cancellation executor and read-only reconciliation boundary: OK");

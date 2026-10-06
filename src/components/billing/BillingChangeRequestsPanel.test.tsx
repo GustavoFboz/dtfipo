@@ -66,6 +66,17 @@ describe("customer billing requests", () => {
     expect(error).toHaveBeenCalledWith("Esta solicitação precisa de revisão. Atualize as solicitações."); expect(host.textContent).toContain("Cancelamento solicitado");
     expect(success).not.toHaveBeenCalled();
   });
+  it.each(["processing", "review_required"])("does not offer a second request or withdrawal during %s", async (status) => {
+    fetchContext.mockResolvedValue({ ...context, requests: [{ ...pending, status }] }); await render();
+    expect(host.textContent).not.toContain("Solicitar cancelamento");
+    expect(host.textContent).not.toContain("Retirar solicitação");
+  });
+  it("shows completed cancellation with the preserved paid end", async () => {
+    fetchContext.mockResolvedValue({ ...context, cancellation_quote: null, requests: [{ ...pending, status: "completed" }] });
+    await render(); expect(host.textContent).toContain("Renovação encerrada no Asaas");
+    expect(host.textContent).toContain("período já pago permanece disponível");
+    expect(host.textContent).toContain("Cobranças já emitidas foram preservadas");
+  });
   it("does not send a confirmation from a retired session", async () => {
     const delayed = deferred<boolean>(); confirm.mockReturnValue(delayed.promise); await render(); await click("Solicitar cancelamento");
     current = false; fetchContext.mockResolvedValue({ ...context, cancellation_quote: null });
