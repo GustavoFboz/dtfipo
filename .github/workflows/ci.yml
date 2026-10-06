@@ -77,7 +77,7 @@ jobs:
           bunx vitest run --configLoader runner src/lib/confirm.test.tsx
           bunx vitest run --configLoader runner src/components/StorageUploadReservations.test.tsx
           bunx vitest run --configLoader runner src/lib/billing-change-requests.test.ts src/components/billing/BillingChangeRequestsPanel.test.tsx
-          bunx vitest run --configLoader runner src/lib/billing/asaas-cancel.server.test.ts src/lib/billing-cancel-request.test.ts src/components/master/MasterCancelRequest.test.tsx
+          bunx vitest run --configLoader runner src/lib/billing/asaas-cancel.server.test.ts src/lib/qa/fixture-acceptance.server.test.ts src/lib/billing-cancel-request.test.ts src/components/master/MasterCancelRequest.test.tsx
           bunx vitest run --configLoader runner src/lib/master-operational-health.test.ts src/lib/billing/asaas-worker-health.server.test.ts
           bunx vitest run --configLoader runner src/lib/billing/asaas-production-preflight.server.test.ts
           bunx vitest run --configLoader runner src/lib/billing/asaas-database-scheduler.server.test.ts
