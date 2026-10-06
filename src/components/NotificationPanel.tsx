@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { useState } from "react";
 import type { Profile } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -155,7 +156,7 @@ export function NotificationPanel({ profile: externalProfile }: { profile?: Prof
                     >
                       <div className="flex gap-3">
                         {avatarUrl ? (
-                          <img src={avatarUrl} alt={senderName || "Usuário"} className="h-9 w-9 shrink-0 rounded-full border border-slate-100 object-cover dark:border-slate-800" />
+                          <PrivateImage src={avatarUrl} alt={senderName || "Usuário"} className="h-9 w-9 shrink-0 rounded-full border border-slate-100 object-cover dark:border-slate-800" />
                         ) : (
                           <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary">
                             {isMessage ? initialsOf(senderName) : <Bell className="h-4 w-4" />}

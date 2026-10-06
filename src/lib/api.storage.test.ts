@@ -49,6 +49,24 @@ describe("patient attachment deletion preserves quota and source until confirmat
   });
 });
 describe("available upload entrypoints require a reservation", () => {
+  it("stores patient attachment paths rather than reusable bearer URLs", async () => {
+    await uploadPatientAttachment("patient", new File(["content"], "photo.jpg", { type: "image/jpeg" }), { title: "Fixture" });
+    const saved = mocks.query.insert.mock.calls[0][0];
+    expect(saved.file_url).toBe(`storage://patient-files/${saved.file_path}`);
+    expect(saved.thumbnail_url).toBe(saved.file_url);
+    expect(mocks.signed.mock.calls[0][1]).toBe(300);
+  });
+  it("returns a renewable patient photo reference after validating upload access", async () => {
+    const result = await uploadPatientPhoto("patient", new Blob(["image"], { type: "image/jpeg" }));
+    expect(result).toMatch(/^storage:\/\/patient-photos\/patient\/.+\.jpg$/);
+    expect(result).not.toContain("token="); expect(mocks.signed.mock.calls[0][1]).toBe(300);
+  });
+  it("stores only the avatar reference on the owner profile", async () => {
+    const result = await uploadUserAvatar(new Blob(["image"], { type: "image/jpeg" }));
+    expect(result).toMatch(/^storage:\/\/avatars\/user\/.+\.jpg$/);
+    expect(mocks.query.update).toHaveBeenCalledWith({ avatar_url: result });
+    expect(mocks.signed.mock.calls[0][1]).toBe(300);
+  });
   it.each(["photo", "patient", "avatar", "case"])("does not upload %s when the reservation is refused", async (kind) => {
     const error = new Error("STORAGE_QUOTA_EXCEEDED"); mocks.reserve.mockRejectedValue(error);
     const file = new File(["content"], "file.stl", { type: "application/octet-stream" });

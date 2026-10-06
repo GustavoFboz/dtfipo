@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Search, Plus, SlidersHorizontal, MoreHorizontal } from "lucide-react";
@@ -195,7 +196,7 @@ function MobileCaseRow({ c, reveal, onClick }: { c: CaseRow; reveal: { className
         {/* Avatar à esquerda */}
         <div className="h-14 w-14 shrink-0 rounded-full bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-500 text-[18px] font-light overflow-hidden">
           {c.patient?.photo_url ? (
-            <img src={c.patient.photo_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+            <PrivateImage src={c.patient.photo_url} alt="" className="h-full w-full object-cover" loading="lazy" />
           ) : (
             initial
           )}

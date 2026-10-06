@@ -1,10 +1,11 @@
+import { PrivateAvatarImage } from "@/components/PrivateImage";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { User, Mail, Shield, Camera, Edit2, Check, X, LogOut, Loader2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { fetchProfile, updateProfile, uploadUserAvatar } from "@/lib/api";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -94,7 +95,7 @@ export function ProfilePopover({ children }: { children: React.ReactNode }) {
           <div className="relative inline-block mb-4">
             <div className="h-24 w-24 rounded-3xl border-4 border-white dark:border-slate-950 overflow-hidden bg-white dark:bg-slate-900 shadow-xl group">
               <Avatar className="h-full w-full rounded-none">
-                <AvatarImage src={profile.avatar_url || undefined} className="object-cover" />
+                <PrivateAvatarImage src={profile.avatar_url || undefined} className="object-cover" />
                 <AvatarFallback className="text-2xl font-semibold bg-primary/10 text-primary rounded-none">
                   {initials}
                 </AvatarFallback>

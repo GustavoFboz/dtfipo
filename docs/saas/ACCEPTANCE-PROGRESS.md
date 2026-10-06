@@ -23,7 +23,7 @@ reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data
 | 3.3 | Armazenamento nas plataformas disponíveis | Pendente de aparelhos |
 | 4.1 | Cadastro, confirmação e recuperação de senha | Parcial: Auth/fixtures; recuperação pendente |
 | 4.2 | Sessões, MFA, isolamento e replay financeiro | Parcial: fixtures/testes; replay real pendente |
-| 4.3 | Arquivos privados e validade dos links | Em aberto |
+| 4.3 | Arquivos privados e validade dos links | Parcial: referências sem bearer persistente, assinatura de cinco minutos, renovação, isolamento de sessão e espelho instalado limitado a 72h implementados; 38 referências históricas ainda requerem tratamento/revogação e prova autenticada publicada. [Implementação e limites](PRIVATE-FILE-ACCESS.md) |
 | 5.1 | Histórico e documentos de cobrança | Parcial: código/ensaios; fluxo pendente |
 | 5.2 | Solicitações executadas no Asaas | Em aberto: ainda são solicitações |
 | 5.3 | Downgrade, falhas e execução única | Parcial: requisitos/transporte; executor pendente |
@@ -40,3 +40,8 @@ Um item aprovado vale 100/23 pontos percentuais. Etapas são encerradas somente
 quando todos os seus itens e riscos aplicáveis têm decisão registrada. Mudanças
 de escopo exigem atualizar denominador e explicar a mudança; não arredondar
 uma prova parcial para concluída nem incluir teste fictício como pagamento real.
+
+Meta solicitada em 05/10, 20h35 de Manaus: chegar a 10/23, sem alterar o
+denominador. O [plano de oito aceites adicionais](TARGET-10-OF-23.md) registra
+as provas e dependências. Consulta de 06/10, 00h35 UTC: os dois eventos externos
+seguem dead_letter, sem auditoria de conclusão. Contador permanece **2/23**.

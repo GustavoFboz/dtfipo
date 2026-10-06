@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -253,7 +254,7 @@ function HubPage() {
             className="pointer-events-auto flex min-w-[310px] max-w-[calc(100vw-30px)] items-center gap-4 rounded-full border border-white/90 bg-white/61 px-5 py-[12px] text-left shadow-[0_18px_48px_-31px_rgba(15,23,42,.52)] backdrop-blur-2xl transition hover:bg-white/78 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/10 sm:min-w-[410px] sm:px-7 sm:py-[13px] dark:border-white/[0.08] dark:bg-[#11161d]/58 dark:hover:bg-[#151b23]/74"
           >
             <span className="grid h-[52px] w-[52px] shrink-0 place-items-center overflow-hidden rounded-full bg-white/80 text-[15px] font-light text-[#777f86] shadow-sm dark:bg-white/[0.075] dark:text-white/70">
-              {avatar ? <img src={avatar} alt={profileName} className="h-full w-full object-cover" /> : profileName[0]?.toUpperCase() || "U"}
+              {avatar ? <PrivateImage src={avatar} alt={profileName} className="h-full w-full object-cover" /> : profileName[0]?.toUpperCase() || "U"}
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[18px] font-normal tracking-[-0.025em] text-[#1f2327] sm:text-[20px] dark:text-white/90">{profileName}</span>

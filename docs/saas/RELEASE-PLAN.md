@@ -30,6 +30,12 @@ replay. O responsável confirmou que era cobrança manual no Asaas; o fluxo
 externos Sandbox com Master/AAL2, sem alterar pagamentos ou acesso.
 A decisão real dos dois eventos permanece pendente.
 Ver [revisão](evidence/inbox-review-20261005.md).
+Meta de continuidade: [dez de 23 aceites](TARGET-10-OF-23.md), solicitada em
+05/10, 20h35 Manaus. A consulta de 00h35 UTC confirmou os dois eventos ainda
+pendentes e nenhuma auditoria de conclusão. Frente independente atual:
+**4/7, item 4.3**, referências, renovação e isolamento de arquivos privados.
+Ver [implementação e limites](PRIVATE-FILE-ACCESS.md); links históricos e
+validação autenticada publicada continuam pendentes, sem novo aceite integral.
 Aceites finais: **2/23 — 8,70%**; restam 21 itens parciais/em aberto e nenhuma
 etapa inteira foi encerrada.
 Ver [prova e revisão](evidence/production-preflight-20261005.md) e

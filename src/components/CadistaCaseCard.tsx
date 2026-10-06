@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { User, FileText, Calendar, Info } from "lucide-react";
@@ -21,7 +22,7 @@ export function CadistaCaseCard({ caseRow }: { caseRow: CaseRow }) {
         <div className="flex items-center gap-3 p-4 rounded-2xl bg-black/20 border border-white/5 group-hover:bg-black/30 transition-colors">
           <div className="h-10 w-10 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0 border border-indigo-500/10 overflow-hidden">
             {caseRow.patient?.photo_url ? (
-              <img
+              <PrivateImage
                 src={caseRow.patient.photo_url}
                 alt={caseRow.patient?.name || "Foto do paciente"}
                 className="h-full w-full object-cover"
