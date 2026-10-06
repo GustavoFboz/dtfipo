@@ -450,3 +450,10 @@ GRANT EXECUTE ON FUNCTION public.platform_master_claim_cancel_request(uuid,text,
   public.platform_master_begin_cancel_write(uuid,uuid) TO authenticated;
 REVOKE ALL ON FUNCTION public.billing_finish_cancel_request(uuid,uuid,jsonb,text) FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.billing_finish_cancel_request(uuid,uuid,jsonb,text) TO service_role;
+
+-- Fixture acceptance capabilities remain private after generic self-heal.
+REVOKE ALL ON TABLE public.saas_fixture_acceptance_jobs FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.saas_claim_fixture_acceptance_job(uuid,text),
+  public.saas_finish_fixture_acceptance_job(uuid,jsonb) FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.saas_claim_fixture_acceptance_job(uuid,text),
+  public.saas_finish_fixture_acceptance_job(uuid,jsonb) TO service_role;

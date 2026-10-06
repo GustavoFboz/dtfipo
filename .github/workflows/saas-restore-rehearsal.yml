@@ -272,6 +272,13 @@ jobs:
           docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
             < docs/saas/sql/database-scheduler-rehearsal.sql | tee restore-database-scheduler.log
 
+      - name: Rehearse one-use allowlisted Auth fixture capabilities
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/fixture-acceptance-jobs-rehearsal.sql | tee restore-fixture-capabilities.log
+
       - name: Record sanitized restored-schema audit
         shell: bash
         run: |
@@ -315,6 +322,7 @@ jobs:
             restore-stage-09-health-assertions.log
             restore-stage-09-health.log
             restore-database-scheduler.log
+            restore-fixture-capabilities.log
             restore-audit.log
 
       - name: Stop isolated database

@@ -171,5 +171,6 @@
   "20261005190000_saas_database_scheduler_stage09.sql",
   "20261005223500_saas_master_external_test_review_stage07.sql",
   "20261006040000_saas_cancel_executor_stage08.sql",
+  "20261006050000_saas_fixture_acceptance_jobs.sql",
   "20260718000001_zzz_self_heal_v2.sql"
 ]
