@@ -81,7 +81,17 @@ function publicClient(): SupabaseClient {
   const key = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
   if (!url || !key) throw new FixtureFailure('FIXTURE_AUTH_CONFIGURATION_MISSING');
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    global: { fetch: (input, init) => fetch(input, { ...init, signal: AbortSignal.timeout(6000) }) } });
+    global: { fetch: fixturePublicFetch(key) } });
+}
+export function fixturePublicFetch(key: string, transport: typeof fetch = fetch): typeof fetch {
+  return (input, init) => {
+    const headers = new Headers(input instanceof Request ? input.headers : undefined);
+    if (init?.headers) new Headers(init.headers).forEach((value, name) => headers.set(name, value));
+    if ((key.startsWith('sb_publishable_') || key.startsWith('sb_secret_')) && headers.get('authorization') === `Bearer ${key}`)
+      headers.delete('authorization');
+    headers.set('apikey', key);
+    return transport(input, { ...init, headers, signal: AbortSignal.timeout(6000) });
+  };
 }
 function requireResult<R extends { error: unknown; data?: unknown }>(result: R, code: string): NonNullable<R['data']> {
   if (result.error) {

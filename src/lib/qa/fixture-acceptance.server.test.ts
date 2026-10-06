@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createHash } from 'node:crypto';
-import { handleFixtureAcceptance } from './fixture-acceptance.server';
+import { handleFixtureAcceptance, fixturePublicFetch } from './fixture-acceptance.server';
 
 const id='8a0cbd19-6b52-4db9-991b-66711337e61b';
 const token='a'.repeat(64);
@@ -11,6 +11,15 @@ const job={id,kind:'identity',fixtures:[
 const request=(body:unknown={jobId:id},headers:Record<string,string>={},method='POST')=>new Request('https://dtfipo.lovable.app/api/qa/fixture-acceptance',{method,headers:{authorization:`Bearer ${token}`,'content-type':'application/json',...headers},...(method==='POST'?{body:JSON.stringify(body)}:{})});
 function dependencies(){return {claim:vi.fn().mockResolvedValue(job),finish:vi.fn().mockResolvedValue(true),run:vi.fn().mockResolvedValue([{check:'actual_flow',passed:true}])};}
 describe('private fixture acceptance boundary',()=>{
+  it('sends a new opaque public key only as apikey and preserves real user bearers',async()=>{
+    const key='sb_publishable_fake_fixture_key';const transport=vi.fn<typeof fetch>().mockResolvedValue(Response.json({}));
+    const fetcher=fixturePublicFetch(key,transport);
+    await fetcher('https://fixture.supabase.invalid/auth/v1/verify',{headers:{authorization:`Bearer ${key}`}});
+    const first=transport.mock.calls[0][1]!;expect(new Headers(first.headers).get('authorization')).toBeNull();expect(new Headers(first.headers).get('apikey')).toBe(key);
+    await fetcher('https://fixture.supabase.invalid/auth/v1/user',{headers:{authorization:'Bearer actual.fixture.jwt'}});
+    expect(new Headers(transport.mock.calls[1][1]?.headers).get('authorization')).toBe('Bearer actual.fixture.jwt');
+    expect(transport.mock.calls[1][1]?.signal).toBeInstanceOf(AbortSignal);
+  });
   it('requires a dedicated capability before even loading administration',async()=>{
     const d=dependencies(); const r=await handleFixtureAcceptance(request({}, {authorization:'Bearer financial-worker-credential'}),d);
     expect(r.status).toBe(403);expect(d.claim).not.toHaveBeenCalled();expect(d.run).not.toHaveBeenCalled();

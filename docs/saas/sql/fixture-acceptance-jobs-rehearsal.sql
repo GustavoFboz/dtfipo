@@ -18,6 +18,9 @@ VALUES ('ee083f63-1621-4b82-b7a4-fd13427c0b14','00000000-0000-0000-0000-00000000
 INSERT INTO public.clinics(id,name,owner_id,billing_exempt) VALUES
  ('081d3db4-1606-40f7-a878-19b51556317d','Disposable fixture A','ee083f63-1621-4b82-b7a4-fd13427c0b14',false),
  ('3fc86c40-697e-4725-a9e9-633fc882aadc','Disposable fixture B','24e7cdf9-457e-4af2-b1cb-cf366abbddb0',false);
+INSERT INTO public.clinic_members(clinic_id,user_id,role,status) VALUES
+ ('081d3db4-1606-40f7-a878-19b51556317d','ee083f63-1621-4b82-b7a4-fd13427c0b14','USER','active'),
+ ('3fc86c40-697e-4725-a9e9-633fc882aadc','24e7cdf9-457e-4af2-b1cb-cf366abbddb0','USER','active');
 INSERT INTO public.profiles(id,clinic_id,role) VALUES
  ('ee083f63-1621-4b82-b7a4-fd13427c0b14','081d3db4-1606-40f7-a878-19b51556317d','USER'),
  ('24e7cdf9-457e-4af2-b1cb-cf366abbddb0','3fc86c40-697e-4725-a9e9-633fc882aadc','USER')
