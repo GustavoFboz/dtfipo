@@ -57,4 +57,28 @@ describe("patient-first global search", () => {
     expect(grouped.p1.map((row) => row.id)).toEqual(["a"]);
     expect(grouped.p2.map((row) => row.id)).toEqual(["c"]);
   });
+
+  it("collapses accidental duplicate rows and keeps the record with the active case", () => {
+    const rows = [
+      { ...patient("old", "Labid"), created_at: "2026-10-05T04:12:00Z", photo_url: "old.jpg", __searchExact: true },
+      { ...patient("case", "Labid"), created_at: "2026-10-05T04:29:00Z", photo_url: "case.jpg", __searchExact: true },
+      { ...patient("empty", "Labid"), created_at: "2026-10-05T11:22:00Z", __searchExact: true },
+    ];
+    const result = collapseDuplicatePatientResults(rows, {
+      case: [{ id: "c1", patient_id: "case", case_number: 1, case_label: null, status: "em_andamento", entry_date: "2026-10-05", delivery_date: "2026-10-10" }],
+    });
+    expect(result.patients).toHaveLength(1);
+    expect(result.patients[0].id).toBe("case");
+    expect(result.activeCasesByPatient.case.map((row) => row.id)).toEqual(["c1"]);
+  });
+
+  it("keeps different people with the same name when strong identity data conflicts", () => {
+    const rows = [
+      { ...patient("p1", "João Silva"), cpf: "111.111.111-11", __searchExact: true },
+      { ...patient("p2", "João Silva"), cpf: "222.222.222-22", __searchExact: true },
+    ];
+    const result = collapseDuplicatePatientResults(rows, {});
+    expect(result.patients.map((row) => row.id)).toEqual(["p1", "p2"]);
+  });
+
 });
