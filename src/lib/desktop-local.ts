@@ -452,3 +452,11 @@ export async function desktopPrintText(printer: string, text: string): Promise<v
   }
   await invokeDesktop<void>("desktop_print_text", { printer, text });
 }
+
+/** Salva um PDF já renderizado na pasta Downloads do Windows, sem diálogo intermediário. */
+export async function saveDesktopPdf(fileName: string, base64Data: string): Promise<string> {
+  if (!isDentalFlowWindowsDesktop()) {
+    throw new Error("O salvamento nativo de PDF não está disponível neste dispositivo.");
+  }
+  return invokeDesktop<string>("desktop_save_pdf", { fileName, base64Data });
+}

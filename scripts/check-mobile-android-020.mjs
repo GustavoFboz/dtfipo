@@ -16,6 +16,9 @@ const release = read("scripts/prepare-android-release.py");
 const smokeTest = read("scripts/smoke-test-android.sh");
 const mobileCss = read("src/mobile-app.css");
 const soundPrepare = read("scripts/prepare-notification-sound.mjs");
+const mainActivity = read("mobile/android/native/MainActivity.java");
+const filePlugin = read("mobile/android/native/DentalFlowFilePlugin.java");
+const stockReport = read("src/lib/stock-report.ts");
 
 expect(capacitor.includes("br.com.dentalflow.mobile"), "Android app id changed unexpectedly.");
 expect(capacitor.includes("dentalflow_notification.mp3"), "Android notification channel must use the DentalFlow sound.");
@@ -28,6 +31,9 @@ expect(runtime.includes("Capacitor.isNativePlatform()") && runtime.includes('Cap
 expect(desktopLocal.includes("mobileLocal.isNativeMobileLocalRuntime()"), "Shared installed-client local-first facade must delegate to Android storage.");
 expect(printButton.includes("isDentalFlowWindowsDesktop"), "Android printing must never be routed to Windows-only commands.");
 expect(systemPrint.includes("isNativeMobileApp()") && systemPrint.includes("printHtmlNative"), "Case-note printing must use the Android Print Framework bridge.");
+expect(mainActivity.includes("DentalFlowFilePlugin.class"), "Android must register the native PDF saver.");
+expect(filePlugin.includes("MediaStore.Downloads") && filePlugin.includes("application/pdf"), "Android inventory PDF download must use the system Downloads collection.");
+expect(stockReport.includes('paper:"a4"') && stockReport.includes("savePdfNative"), "Inventory reports must use native A4 print and PDF save on Android.");
 expect(workflow.includes('APK="DentalFlow_Android_${VERSION}.apk"') && workflow.includes('VERSION="0.3.0"') && release.includes('VERSION = "0.3.0"'), "Android release workflow must package version 0.3.0.");
 expect(workflow.includes("github.ref != 'refs/heads/main'") && workflow.includes("canonical Android release requires"), "Main Android releases must use the canonical package and fail closed without retained signing secrets.");
 expect(workflow.includes("8e0c25bfe43f32fd6bdda49c49e6e19624957c2c968af00c867a13936d5330e3"), "Android release workflow must pin the permanent signing certificate.");
