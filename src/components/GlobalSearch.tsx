@@ -30,6 +30,7 @@ import { fetchCaseById, fetchCases, fetchDoctors, fetchPatients } from "@/lib/ap
 import { isDentalFlowDesktop } from "@/lib/desktop-local";
 import {
   caseSearchLabel,
+  collapseDuplicatePatientResults,
   groupActiveCasesByPatient,
   normalizeSearchText,
   rankPatientsForSearch,
@@ -103,7 +104,9 @@ export function GlobalSearch() {
   const [openingCaseId, setOpeningCaseId] = useState<string | null>(null);
   const [photoPatient, setPhotoPatient] = useState<Patient | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [headerOpen, setHeaderOpen] = useState(false);
   const commandInputRef = useRef<HTMLInputElement>(null);
+  const headerContainerRef = useRef<HTMLDivElement>(null);
 
   const normalizedQuery = normalizeSearchText(debouncedQuery);
 
@@ -125,13 +128,23 @@ export function GlobalSearch() {
 
   useEffect(() => {
     if (isCommandOpen) {
+      setHeaderOpen(false);
       window.setTimeout(() => commandInputRef.current?.focus(), 20);
       return;
     }
-    setQuery("");
     setAdvanced(false);
     setActiveIndex(0);
   }, [isCommandOpen]);
+
+  useEffect(() => {
+    const onPointerDown = (event: MouseEvent) => {
+      if (headerContainerRef.current && !headerContainerRef.current.contains(event.target as Node)) {
+        setHeaderOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, []);
 
   const patientSearch = useQuery<PatientSearchBundle>({
     queryKey: ["global-patient-search", normalizedQuery],
@@ -139,25 +152,25 @@ export function GlobalSearch() {
     staleTime: 30_000,
     gcTime: 5 * 60_000,
     queryFn: async () => {
-      let patients: Array<Patient & { __searchExact?: boolean }>;
+      let rankedCandidates: Array<Patient & { __searchExact?: boolean }>;
 
       const cachedPatients = queryClient.getQueryData<Patient[]>(["patients"]);
       if (Array.isArray(cachedPatients) && cachedPatients.length) {
-        patients = rankPatientsForSearch(cachedPatients, normalizedQuery, PATIENT_RESULT_LIMIT);
+        rankedCandidates = rankPatientsForSearch(cachedPatients, normalizedQuery, 24);
       } else if (isDentalFlowDesktop()) {
-        patients = rankPatientsForSearch(await fetchPatients(), normalizedQuery, PATIENT_RESULT_LIMIT);
+        rankedCandidates = rankPatientsForSearch(await fetchPatients(), normalizedQuery, 24);
       } else {
         const { data, error } = await supabase
           .from("patients")
-          .select("id,name,photo_url,phone,email,cpf,created_at")
+          .select("id,name,photo_url,phone,email,cpf,created_at,notes,medical_history,allergies,medications,clinical_notes,address,birth_date")
           .ilike("name", `%${debouncedQuery.trim()}%`)
-          .limit(16);
+          .limit(24);
         if (error) throw error;
-        patients = rankPatientsForSearch((data ?? []) as unknown as Patient[], normalizedQuery, PATIENT_RESULT_LIMIT);
+        rankedCandidates = rankPatientsForSearch((data ?? []) as unknown as Patient[], normalizedQuery, 24);
       }
 
-      const patientIds = patients.map((patient) => patient.id);
-      if (!patientIds.length) return { patients, activeCasesByPatient: {} };
+      const patientIds = rankedCandidates.map((patient) => patient.id);
+      if (!patientIds.length) return { patients: [], activeCasesByPatient: {} };
 
       let activeCases: QuickCaseSummary[] = [];
       const cachedActive = queryClient.getQueryData<CaseRow[]>(["cases", "active"]);
@@ -182,10 +195,8 @@ export function GlobalSearch() {
         activeCases = (data ?? []) as unknown as QuickCaseSummary[];
       }
 
-      return {
-        patients,
-        activeCasesByPatient: groupActiveCasesByPatient(activeCases, patientIds),
-      };
+      const grouped = groupActiveCasesByPatient(activeCases, patientIds);
+      return collapseDuplicatePatientResults(rankedCandidates, grouped, PATIENT_RESULT_LIMIT);
     },
   });
 
@@ -285,8 +296,14 @@ export function GlobalSearch() {
     );
   }
 
-  function openPatient(patient: Patient) {
+  function closeSearchUi() {
     setIsCommandOpen(false);
+    setHeaderOpen(false);
+    setQuery("");
+  }
+
+  function openPatient(patient: Patient) {
+    closeSearchUi();
     void navigate({ to: "/patients/$id", params: { id: patient.id } } as any);
   }
 
@@ -301,7 +318,7 @@ export function GlobalSearch() {
       });
       if (!row) throw new Error("Caso não encontrado ou sem permissão.");
       setSelectedCase(row);
-      setIsCommandOpen(false);
+      closeSearchUi();
     } catch (error) {
       toast.error((error as Error).message || "Não foi possível abrir o caso.");
     } finally {
@@ -326,15 +343,91 @@ export function GlobalSearch() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setIsCommandOpen(true)}
-        aria-label="Buscar paciente"
-        title="Buscar paciente · Ctrl K"
-        className="group h-9 w-9 grid place-items-center rounded-full text-slate-300 hover:text-primary hover:bg-white dark:hover:bg-white/5 transition-all active:scale-95"
-      >
-        <Search className="h-[17px] w-[17px] stroke-[1.45px] transition-transform group-hover:scale-105" />
-      </button>
+      <div ref={headerContainerRef} className="relative w-full max-w-md">
+        <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
+        <Input
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setHeaderOpen(true);
+          }}
+          onFocus={() => setHeaderOpen(true)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && patients[0]) {
+              event.preventDefault();
+              openPatient(patients[0]);
+            }
+            if (event.key === "Escape") {
+              setHeaderOpen(false);
+              setQuery("");
+            }
+          }}
+          placeholder="Buscar paciente…"
+          autoComplete="off"
+          aria-label="Buscar paciente"
+          className="h-10 w-full rounded-full border-slate-200/70 bg-white/85 pl-11 pr-20 text-sm font-light shadow-sm backdrop-blur-sm focus-visible:ring-primary/20 dark:border-white/10 dark:bg-white/[0.045]"
+        />
+        <button
+          type="button"
+          onClick={() => setIsCommandOpen(true)}
+          title="Busca rápida · Ctrl K"
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-slate-200/80 bg-slate-50/80 px-2.5 py-1 text-[10px] font-medium text-slate-400 transition-colors hover:border-primary/20 hover:text-primary dark:border-white/10 dark:bg-white/5"
+        >
+          Ctrl K
+        </button>
+
+        {headerOpen && query.trim() && (
+          <div className="absolute left-0 right-0 top-full z-[120] mt-2 overflow-hidden rounded-2xl border border-slate-200/70 bg-white/95 p-2 shadow-2xl backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/95">
+            {patientSearch.isFetching && patients.length === 0 ? (
+              <div className="flex items-center justify-center gap-2 px-4 py-6 text-slate-400">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-xs">Buscando pacientes…</span>
+              </div>
+            ) : patients.length === 0 ? (
+              <button
+                type="button"
+                onClick={() => setIsCommandOpen(true)}
+                className="flex w-full items-center justify-between rounded-xl px-3 py-3 text-left text-xs text-slate-400 hover:bg-slate-50 dark:hover:bg-white/5"
+              >
+                <span>Nenhum paciente encontrado</span>
+                <span className="text-primary">Busca avançada</span>
+              </button>
+            ) : (
+              <div className="space-y-1">
+                {patients.slice(0, 5).map((patient) => {
+                  const patientCases = activeCasesByPatient[patient.id] ?? [];
+                  return (
+                    <div key={patient.id} className="flex items-center gap-3 rounded-xl px-2.5 py-2 hover:bg-slate-50 dark:hover:bg-white/5">
+                      <button
+                        type="button"
+                        onClick={() => patient.photo_url && setPhotoPatient(patient)}
+                        disabled={!patient.photo_url}
+                        className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-slate-100 text-xs font-medium text-slate-400 dark:bg-white/5"
+                      >
+                        {patient.photo_url ? <PrivateImage src={patient.photo_url} alt="" className="h-full w-full object-cover" /> : patient.name?.[0]?.toUpperCase()}
+                      </button>
+                      <button type="button" onClick={() => openPatient(patient)} className="min-w-0 flex-1 text-left">
+                        <div className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">{patient.name}</div>
+                        <div className="mt-0.5 text-[10px] font-light text-slate-400">
+                          {patientCases.length > 0 ? `${patientCases.length} ${patientCases.length === 1 ? "caso em andamento" : "casos em andamento"}` : "Paciente"}
+                        </div>
+                      </button>
+                      <CasesAction cases={patientCases} openingCaseId={openingCaseId} onCase={(caseId) => void openCase(caseId)} variant="button" />
+                    </div>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => setIsCommandOpen(true)}
+                  className="mt-1 flex w-full items-center justify-center rounded-xl px-3 py-2 text-[11px] font-medium text-primary hover:bg-primary/[0.04]"
+                >
+                  Abrir busca completa
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       <Dialog open={isCommandOpen} onOpenChange={setIsCommandOpen}>
         <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-2xl top-[12%] translate-y-0">
