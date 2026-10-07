@@ -1,5 +1,5 @@
 import { PrivateImage } from "@/components/PrivateImage";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import {
   Activity,
   Boxes,
@@ -25,6 +25,7 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { useNavigate } from "@tanstack/react-router";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { fetchCaseById, fetchCases, fetchDoctors, fetchPatients } from "@/lib/api";
 import { isDentalFlowDesktop } from "@/lib/desktop-local";
 import {
@@ -301,12 +302,14 @@ export function GlobalSearch() {
       if (!row) throw new Error("Caso não encontrado ou sem permissão.");
       setSelectedCase(row);
       setIsCommandOpen(false);
+    } catch (error) {
+      toast.error((error as Error).message || "Não foi possível abrir o caso.");
     } finally {
       setOpeningCaseId(null);
     }
   }
 
-  function handleCommandKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+  function handleCommandKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
     if (!patients.length) return;
     if (event.key === "ArrowDown") {
       event.preventDefault();
