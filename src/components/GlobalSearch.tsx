@@ -732,3 +732,5 @@ function CasesAction({
     </Popover>
   );
 }
+
+// Validation branch: exercise Windows bundle with N2 patient search.
