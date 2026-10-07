@@ -86,3 +86,5 @@ public class DentalFlowFilePlugin extends Plugin {
         return safe.isEmpty() ? "DentalFlow.pdf" : safe;
     }
 }
+
+// Validation branch: exercise the Android A4/PDF packaging workflow.
