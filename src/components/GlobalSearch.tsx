@@ -216,7 +216,7 @@ export function GlobalSearch() {
             .or(`case_label.ilike.${qContains},patient_name_denorm.ilike.${qContains},doctor_name_denorm.ilike.${qContains}`)
             .order("updated_at", { ascending: false })
             .limit(6);
-          if (error) throw error;
+          if (error) { console.warn("[DentalFlow Search] Busca avançada de casos indisponível", error); return; }
           output.cases = (data ?? []) as unknown as QuickCaseSummary[];
         })(),
         (async () => {
@@ -235,7 +235,7 @@ export function GlobalSearch() {
             .select("id,name,crm_cro")
             .ilike("name", qContains)
             .limit(6);
-          if (error) throw error;
+          if (error) { console.warn("[DentalFlow Search] Busca avançada de dentistas indisponível", error); return; }
           output.doctors = (data ?? []) as AdvancedResults["doctors"];
         })(),
         (async () => {
@@ -246,7 +246,7 @@ export function GlobalSearch() {
             .select("id,full_name,role")
             .ilike("full_name", qContains)
             .limit(6);
-          if (error) throw error;
+          if (error) { console.warn("[DentalFlow Search] Busca avançada de equipe indisponível", error); return; }
           output.team = (data ?? []) as AdvancedResults["team"];
         })(),
       ]);
@@ -416,6 +416,12 @@ export function GlobalSearch() {
                 <div className="flex items-center justify-center gap-2 px-8 py-14 text-slate-400">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span className="text-sm font-light">Localizando…</span>
+                </div>
+              ) : patientSearch.isError && !hasResults ? (
+                <div className="px-8 py-14 text-center">
+                  <SearchX className="mx-auto h-8 w-8 text-slate-300" />
+                  <p className="mt-4 text-sm font-medium text-slate-700 dark:text-slate-200">Busca temporariamente indisponível</p>
+                  <p className="mt-1 text-xs font-light text-slate-400">Verifique a conexão e tente novamente em instantes.</p>
                 </div>
               ) : !hasResults ? (
                 <div className="px-8 py-14 text-center">
