@@ -70,6 +70,35 @@ function patientIdentityScore(patient: Patient, activeCaseCount: number): number
   return activeCaseCount * 1000 + identityFields * 100 + (patient.photo_url ? 30 : 0) + clinicalFields * 2;
 }
 
+function patientIdentityTokens(patient: Patient): Set<string> {
+  const tokens = new Set<string>();
+  const cpf = String(patient.cpf ?? "").replace(/\D/g, "");
+  const phone = String(patient.phone ?? "").replace(/\D/g, "");
+  const email = normalizeSearchText(patient.email);
+
+  if (cpf.length >= 8) tokens.add(`cpf:${cpf}`);
+  if (phone.length >= 8) tokens.add(`phone:${phone}`);
+  if (email.includes("@")) tokens.add(`email:${email}`);
+  return tokens;
+}
+
+function canCollapsePatientIdentity(
+  a: Patient,
+  b: Patient,
+): boolean {
+  const aTokens = patientIdentityTokens(a);
+  const bTokens = patientIdentityTokens(b);
+
+  // Empty-shell records (the common duplicate produced by an interrupted
+  // "new patient + new case" flow) may safely collapse into the richer row.
+  if (aTokens.size === 0 || bTokens.size === 0) return true;
+
+  // When both rows carry strong identity data, only collapse them when at
+  // least one value agrees. This prevents two real people with the same full
+  // name but different CPF/phone/e-mail from being hidden as a duplicate.
+  return [...aTokens].some((token) => bTokens.has(token));
+}
+
 export function collapseDuplicatePatientResults(
   rows: Array<Patient & { __searchExact?: boolean }>,
   activeCasesByPatient: Record<string, QuickCaseSummary[]>,
@@ -78,39 +107,51 @@ export function collapseDuplicatePatientResults(
   patients: Array<Patient & { __searchExact?: boolean }>;
   activeCasesByPatient: Record<string, QuickCaseSummary[]>;
 } {
-  const groups = new Map<string, Array<Patient & { __searchExact?: boolean }>>();
+  const nameGroups = new Map<string, Array<Patient & { __searchExact?: boolean }>>();
   for (const patient of rows) {
     const key = normalizeSearchText(patient.name);
     if (!key) continue;
-    const group = groups.get(key) ?? [];
+    const group = nameGroups.get(key) ?? [];
     group.push(patient);
-    groups.set(key, group);
+    nameGroups.set(key, group);
   }
 
   const collapsed: Array<Patient & { __searchExact?: boolean }> = [];
   const mergedCases: Record<string, QuickCaseSummary[]> = {};
 
-  for (const group of groups.values()) {
-    const canonical = [...group].sort((a, b) => {
-      const scoreA = patientIdentityScore(a, activeCasesByPatient[a.id]?.length ?? 0);
-      const scoreB = patientIdentityScore(b, activeCasesByPatient[b.id]?.length ?? 0);
-      if (scoreA !== scoreB) return scoreB - scoreA;
+  for (const sameNameRows of nameGroups.values()) {
+    const identityClusters: Array<Array<Patient & { __searchExact?: boolean }>> = [];
 
-      const createdA = Date.parse(String(a.created_at ?? "")) || Number.MAX_SAFE_INTEGER;
-      const createdB = Date.parse(String(b.created_at ?? "")) || Number.MAX_SAFE_INTEGER;
-      return createdA - createdB;
-    })[0];
+    for (const patient of sameNameRows) {
+      const compatible = identityClusters.find((cluster) =>
+        cluster.every((member) => canCollapsePatientIdentity(member, patient))
+      );
+      if (compatible) compatible.push(patient);
+      else identityClusters.push([patient]);
+    }
 
-    const allCases = group
-      .flatMap((patient) => activeCasesByPatient[patient.id] ?? [])
-      .filter((row, index, all) => all.findIndex((candidate) => candidate.id === row.id) === index)
-      .sort((a, b) => String(b.entry_date ?? "").localeCompare(String(a.entry_date ?? "")));
+    for (const cluster of identityClusters) {
+      const canonical = [...cluster].sort((a, b) => {
+        const scoreA = patientIdentityScore(a, activeCasesByPatient[a.id]?.length ?? 0);
+        const scoreB = patientIdentityScore(b, activeCasesByPatient[b.id]?.length ?? 0);
+        if (scoreA !== scoreB) return scoreB - scoreA;
 
-    collapsed.push({
-      ...canonical,
-      __searchExact: group.some((patient) => Boolean(patient.__searchExact)),
-    });
-    mergedCases[canonical.id] = allCases;
+        const createdA = Date.parse(String(a.created_at ?? "")) || Number.MAX_SAFE_INTEGER;
+        const createdB = Date.parse(String(b.created_at ?? "")) || Number.MAX_SAFE_INTEGER;
+        return createdA - createdB;
+      })[0];
+
+      const allCases = cluster
+        .flatMap((patient) => activeCasesByPatient[patient.id] ?? [])
+        .filter((row, index, all) => all.findIndex((candidate) => candidate.id === row.id) === index)
+        .sort((a, b) => String(b.entry_date ?? "").localeCompare(String(a.entry_date ?? "")));
+
+      collapsed.push({
+        ...canonical,
+        __searchExact: cluster.some((patient) => Boolean(patient.__searchExact)),
+      });
+      mergedCases[canonical.id] = allCases;
+    }
   }
 
   return {
