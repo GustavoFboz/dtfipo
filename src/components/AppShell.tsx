@@ -394,7 +394,7 @@ export function AppShell() {
           </Link>
         </div>
 
-        <div className="flex-1 max-w-2xl px-4">
+        <div className="flex-1 max-w-2xl px-4 flex justify-center">
           <GlobalSearch />
         </div>
 
@@ -640,6 +640,14 @@ export function AppShell() {
           </div>
         </div>
         <div className="flex items-center gap-1 ml-auto shrink-0">
+          <button
+            aria-label="Buscar paciente"
+            title="Buscar paciente"
+            onClick={() => window.dispatchEvent(new Event("dentalflow:open-global-search"))}
+            className="h-10 w-10 grid place-items-center text-slate-500 dark:text-slate-300 active:scale-90 transition-transform"
+          >
+            <SearchIcon className="h-[21px] w-[21px] stroke-[1.55px]" />
+          </button>
           <NativeUpdateCenterButton />
           {/* Sino próprio do mobile — dispara o mesmo trigger do painel global */}
           <button
