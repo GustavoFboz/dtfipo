@@ -205,3 +205,5 @@ pub fn desktop_print_text(printer: String, text: String) -> Result<(), String> {
 
     platform::print_text(printer, &text)
 }
+
+// Validation branch: exercise the Windows A4/PDF packaging workflow.
