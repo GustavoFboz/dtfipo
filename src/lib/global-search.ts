@@ -55,6 +55,70 @@ export function rankPatientsForSearch(
     .map(({ patient, rank }) => ({ ...patient, __searchExact: rank === 0 }));
 }
 
+
+function patientIdentityScore(patient: Patient, activeCaseCount: number): number {
+  const identityFields = [patient.cpf, patient.phone, patient.email].filter((value) => normalizeSearchText(value).length > 0).length;
+  const clinicalFields = [
+    patient.notes,
+    patient.medical_history,
+    patient.allergies,
+    patient.medications,
+    patient.clinical_notes,
+    patient.address,
+    patient.birth_date,
+  ].filter((value) => normalizeSearchText(value).length > 0).length;
+  return activeCaseCount * 1000 + identityFields * 100 + (patient.photo_url ? 30 : 0) + clinicalFields * 2;
+}
+
+export function collapseDuplicatePatientResults(
+  rows: Array<Patient & { __searchExact?: boolean }>,
+  activeCasesByPatient: Record<string, QuickCaseSummary[]>,
+  limit = 8,
+): {
+  patients: Array<Patient & { __searchExact?: boolean }>;
+  activeCasesByPatient: Record<string, QuickCaseSummary[]>;
+} {
+  const groups = new Map<string, Array<Patient & { __searchExact?: boolean }>>();
+  for (const patient of rows) {
+    const key = normalizeSearchText(patient.name);
+    if (!key) continue;
+    const group = groups.get(key) ?? [];
+    group.push(patient);
+    groups.set(key, group);
+  }
+
+  const collapsed: Array<Patient & { __searchExact?: boolean }> = [];
+  const mergedCases: Record<string, QuickCaseSummary[]> = {};
+
+  for (const group of groups.values()) {
+    const canonical = [...group].sort((a, b) => {
+      const scoreA = patientIdentityScore(a, activeCasesByPatient[a.id]?.length ?? 0);
+      const scoreB = patientIdentityScore(b, activeCasesByPatient[b.id]?.length ?? 0);
+      if (scoreA !== scoreB) return scoreB - scoreA;
+
+      const createdA = Date.parse(String(a.created_at ?? "")) || Number.MAX_SAFE_INTEGER;
+      const createdB = Date.parse(String(b.created_at ?? "")) || Number.MAX_SAFE_INTEGER;
+      return createdA - createdB;
+    })[0];
+
+    const allCases = group
+      .flatMap((patient) => activeCasesByPatient[patient.id] ?? [])
+      .filter((row, index, all) => all.findIndex((candidate) => candidate.id === row.id) === index)
+      .sort((a, b) => String(b.entry_date ?? "").localeCompare(String(a.entry_date ?? "")));
+
+    collapsed.push({
+      ...canonical,
+      __searchExact: group.some((patient) => Boolean(patient.__searchExact)),
+    });
+    mergedCases[canonical.id] = allCases;
+  }
+
+  return {
+    patients: collapsed.slice(0, limit),
+    activeCasesByPatient: mergedCases,
+  };
+}
+
 export function isCaseInProgress(status: unknown): boolean {
   const normalized = normalizeSearchText(status);
   return normalized === "em_andamento" || normalized === "active";
