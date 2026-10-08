@@ -32,6 +32,7 @@ export type AsaasCustomer = {
   cpfCnpj?: string;
   externalReference?: string | null;
   deleted?: boolean;
+  notificationDisabled?: boolean;
 };
 
 export type AsaasSubscription = {
@@ -556,8 +557,15 @@ export class AsaasClient {
   }
 
   async createCustomer(input: CreateAsaasCustomer): Promise<AsaasCustomer> {
-    const response = await this.request<unknown>("POST", "/customers", { body: input });
+    const response = await this.request<unknown>("POST", "/customers", {
+      body: this.environment === "sandbox" ? { ...input, notificationDisabled: true } : input,
+    });
     return validateCustomer(response);
+  }
+
+  async getCustomer(customerId: string): Promise<AsaasCustomer> {
+    if (!CUSTOMER_ID_PATTERN.test(customerId)) throw new Error("Cliente Asaas inválido.");
+    return validateCustomer(await this.request<unknown>("GET", `/customers/${encodeURIComponent(customerId)}`));
   }
 
   async findSubscriptionsByExternalReference(
