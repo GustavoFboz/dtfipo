@@ -18,6 +18,8 @@ jobs:
         run: bun install --lockfile-only
       - name: Verify reproducible installation
         run: bun install --frozen-lockfile
+      - name: Show the reviewed lockfile diff
+        run: git diff -- bun.lock
       - name: Record exact source
         run: git rev-parse HEAD > lockfile-source-sha.txt
       - uses: actions/upload-artifact@v4
