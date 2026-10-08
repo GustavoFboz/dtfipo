@@ -1,0 +1,29 @@
+name: DentalFlow lockfile repair artifact
+on:
+  push:
+    branches: ["saas/fixture-e2e-20261008"]
+    paths: [".github/workflows/saas-lockfile-repair.yml"]
+permissions:
+  contents: read
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Resolve the declared package versions
+        run: bun install --lockfile-only
+      - name: Verify reproducible installation
+        run: bun install --frozen-lockfile
+      - name: Record exact source
+        run: git rev-parse HEAD > lockfile-source-sha.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dentalflow-reviewed-lockfile
+          path: |
+            bun.lock
+            lockfile-source-sha.txt
+          retention-days: 2
