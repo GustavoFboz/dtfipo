@@ -4,6 +4,9 @@ import type { CaseRow, Doctor, Cadista, Patient, CaseType, ToothColor, Stage, Ph
 import { autoRecordCaseMilling } from "./burrs";
 import { broadcastEntity, markDeleted } from "./optimistic";
 import { applyOptimisticStorageDelta, cancelStorageUpload, completeStorageUpload, reserveStorageUpload } from "./storage";
+import { newPasswordError } from "./auth/password-policy";
+import { privateFileReference, PRIVATE_FILE_URL_TTL_SECONDS } from "./private-file-reference";
+import { resolvePrivateFile } from "./private-file-access";
 
 
 async function hydrateVisibleCaseFallback(rows: CaseRow[]): Promise<CaseRow[]> {
@@ -1232,30 +1235,38 @@ export const updateCaseStagePending = async (id: string, pending_count: number) 
   if (error) throw error;
 };
 
+// A reservation stays charged until Storage confirms removal. Never hide a
+// cleanup failure behind the original upload error or release retained bytes.
+async function rollbackUploadedObject(bucket: string, path: string, reservationId: string | null, sizeBytes: number): Promise<void> {
+  const { error } = await supabase.storage.from(bucket).remove([path]);
+  if (error) throw error;
+  await cancelStorageUpload(reservationId, sizeBytes);
+}
+
 // Upload de foto do paciente
 export async function uploadPatientPhoto(patientId: string, file: Blob): Promise<string> {
-  const path = `${patientId}/${Date.now()}.jpg`;
+  const path = `${patientId}/${crypto.randomUUID()}.jpg`;
   const reservation = await reserveStorageUpload({ sizeBytes: file.size, bucket: "patient-photos", objectPath: path, sourceType: "patient_photo", patientId, originalName: "Foto do paciente.jpg", mimeType: "image/jpeg" });
-  const { error } = await supabase.storage.from("patient-photos").upload(path, file, { contentType: "image/jpeg", upsert: true });
+  const { error } = await supabase.storage.from("patient-photos").upload(path, file, { contentType: "image/jpeg", upsert: false });
   if (error) { await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
-  const { data, error: signErr } = await supabase.storage.from("patient-photos").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-  if (signErr) { await supabase.storage.from("patient-photos").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw signErr; }
+  const { data, error: signErr } = await supabase.storage.from("patient-photos").createSignedUrl(path, PRIVATE_FILE_URL_TTL_SECONDS);
+  if (signErr || !data?.signedUrl) { await rollbackUploadedObject("patient-photos", path, reservation.reservationId, file.size); throw signErr ?? new Error("Não foi possível confirmar o acesso à foto enviada."); }
   await completeStorageUpload(reservation.reservationId, patientId);
-  return data.signedUrl;
+  return privateFileReference("patient-photos", path);
 }
 
 export async function uploadUserAvatar(file: Blob): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Não autenticado");
-  const path = `${user.id}/${Date.now()}.jpg`;
+  const path = `${user.id}/${crypto.randomUUID()}.jpg`;
   const reservation = await reserveStorageUpload({ sizeBytes: file.size, bucket: "avatars", objectPath: path, sourceType: "user_avatar", originalName: "Avatar.jpg", mimeType: "image/jpeg" });
-  const { error } = await supabase.storage.from("avatars").upload(path, file, { contentType: "image/jpeg", upsert: true });
+  const { error } = await supabase.storage.from("avatars").upload(path, file, { contentType: "image/jpeg", upsert: false });
   if (error) { await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
-  const { data, error: signErr } = await supabase.storage.from("avatars").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-  if (signErr) { await supabase.storage.from("avatars").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw signErr; }
-  const url = data.signedUrl;
+  const { data, error: signErr } = await supabase.storage.from("avatars").createSignedUrl(path, PRIVATE_FILE_URL_TTL_SECONDS);
+  if (signErr || !data?.signedUrl) { await rollbackUploadedObject("avatars", path, reservation.reservationId, file.size); throw signErr ?? new Error("Não foi possível confirmar o acesso ao avatar enviado."); }
+  const url = privateFileReference("avatars", path);
   const { error: updErr } = await supabase.from("profiles").update({ avatar_url: url } as never).eq("id", user.id);
-  if (updErr) { await supabase.storage.from("avatars").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw updErr; }
+  if (updErr) { await rollbackUploadedObject("avatars", path, reservation.reservationId, file.size); throw updErr; }
   await completeStorageUpload(reservation.reservationId, user.id);
   return url;
 }
@@ -1298,30 +1309,30 @@ export async function uploadPatientAttachment(
   const reservation = await reserveStorageUpload({ sizeBytes: file.size, bucket: "patient-files", objectPath: path, sourceType: "patient_attachment", patientId, originalName: file.name || meta.title || "arquivo", mimeType: file.type || null });
   const { error: upErr } = await supabase.storage.from("patient-files").upload(path, file, { contentType: file.type || undefined, upsert: false });
   if (upErr) { await cancelStorageUpload(reservation.reservationId, file.size); throw upErr; }
-  const { data: signed } = await supabase.storage.from("patient-files").createSignedUrl(path, 60 * 60 * 24 * 365);
-  const file_url = signed?.signedUrl ?? "";
+  const { data: signed, error: signError } = await supabase.storage.from("patient-files").createSignedUrl(path, PRIVATE_FILE_URL_TTL_SECONDS);
+  if (signError || !signed?.signedUrl) {
+    await rollbackUploadedObject("patient-files", path, reservation.reservationId, file.size);
+    throw signError ?? new Error("Não foi possível confirmar o acesso ao arquivo enviado.");
+  }
+  const file_url = privateFileReference("patient-files", path);
   const isImage = (file.type || "").startsWith("image/");
   const { data, error } = await supabase.from("patient_attachments" as never).insert({ patient_id: patientId, title: meta.title, description: meta.description ?? null, kind: meta.kind ?? "other", file_url, file_path: path, thumbnail_url: isImage ? file_url : null, mime_type: file.type || null, size_bytes: file.size } as never).select().single();
-  if (error) { await supabase.storage.from("patient-files").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
+  if (error) { await rollbackUploadedObject("patient-files", path, reservation.reservationId, file.size); throw error; }
   await completeStorageUpload(reservation.reservationId, (data as any).id);
   return data as unknown as PatientAttachment;
 }
 
 export async function deletePatientAttachment(att: PatientAttachment) {
-  markDeleted(att.id);
-  applyOptimisticStorageDelta(-Math.max(0, Number(att.size_bytes || 0)));
   const { error: storageError } = await supabase.storage.from("patient-files").remove([att.file_path]);
-  if (storageError) console.warn("patient attachment storage cleanup failed", storageError);
+  if (storageError) throw storageError;
   const { error } = await supabase.from("patient_attachments" as never).delete().eq("id", att.id);
-  if (error) { applyOptimisticStorageDelta(Math.max(0, Number(att.size_bytes || 0))); throw error; }
+  if (error) throw error;
+  applyOptimisticStorageDelta(-Math.max(0, Number(att.size_bytes || 0)));
+  try { markDeleted(att.id); } catch {}
 }
 
 export async function refreshAttachmentSignedUrl(path: string): Promise<string> {
-  const { data, error } = await supabase.storage
-    .from("patient-files")
-    .createSignedUrl(path, 60 * 60);
-  if (error) throw error;
-  return data.signedUrl;
+  return (await resolvePrivateFile(privateFileReference("patient-files", path))).url;
 }
 
 // ===== Case attachments (72h auto-expire) =====
@@ -1365,7 +1376,7 @@ export async function uploadCaseAttachment(
   if (upErr) { await cancelStorageUpload(reservation.reservationId, file.size); throw upErr; }
   const { data: userRes } = await supabase.auth.getUser();
   const { data, error } = await supabase.from("case_attachments" as never).insert({ case_id: caseId, file_name: file.name, storage_path: path, size_bytes: file.size, mime_type: file.type || null, uploaded_by: userRes.user?.id ?? null, notes: notes ?? null, kind } as never).select().single();
-  if (error) { await supabase.storage.from("case-files").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
+  if (error) { await rollbackUploadedObject("case-files", path, reservation.reservationId, file.size); throw error; }
   await completeStorageUpload(reservation.reservationId, (data as any).id);
   return data as unknown as CaseAttachment;
 }
@@ -1381,7 +1392,7 @@ export async function getCaseAttachmentUrl(path: string, downloadName?: string):
     .from("case-files")
     .createSignedUrl(
       path,
-      60 * 60,
+      PRIVATE_FILE_URL_TTL_SECONDS,
       downloadName ? { download: downloadName } : undefined,
     );
   if (error) throw error;
@@ -1389,6 +1400,8 @@ export async function getCaseAttachmentUrl(path: string, downloadName?: string):
 }
 
 export async function deleteCaseAttachment(att: CaseAttachment) {
+  const { error: storageError } = await supabase.storage.from("case-files").remove([att.storage_path]);
+  if (storageError) throw storageError;
   const managed = await supabase.rpc("delete_case_attachment_managed" as never, { _attachment_id: att.id } as never);
   const missingRpc = managed.error && (managed.error.code === "PGRST202" || managed.error.code === "42883" || String(managed.error.message || "").toLowerCase().includes("schema cache"));
   if (managed.error && !missingRpc) throw managed.error;
@@ -1397,10 +1410,6 @@ export async function deleteCaseAttachment(att: CaseAttachment) {
     if (error) throw error;
   }
   applyOptimisticStorageDelta(-Math.max(0, Number(att.size_bytes || 0)));
-  try {
-    const { error: storageError } = await supabase.storage.from("case-files").remove([att.storage_path]);
-    if (storageError) console.warn("attachment storage cleanup failed", storageError);
-  } catch (storageError) { console.warn("attachment storage cleanup failed", storageError); }
   try { markDeleted(att.id); } catch {}
 }
 
@@ -1506,6 +1515,8 @@ export async function rejectJoinRequest(memberId: string) {
 }
 
 export async function adminSetMemberPassword(userId: string, password: string) {
+  const passwordError = newPasswordError(password);
+  if (passwordError) throw new Error(passwordError);
   const { data, error } = await supabase.rpc("admin_set_member_password", { p_user_id: userId, p_password: password });
   if (error) throw error;
   const r = data as any;

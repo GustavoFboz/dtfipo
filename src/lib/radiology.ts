@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { cancelStorageUpload, completeStorageUpload, reserveStorageUpload } from "@/lib/storage";
 
 export type RadiologyStudy = {
   id: string;
@@ -91,20 +92,31 @@ export async function uploadDicomStudy(input: RadiologyUploadInput): Promise<Rad
     throw seriesError;
   }
 
-  const uploadedPaths: string[] = [];
+  const transfers: Array<{ path: string; reservationId: string | null; size: number; uploaded: boolean; instanceId: string }> = [];
   try {
     for (let index = 0; index < input.files.length; index += 1) {
       const file = input.files[index];
       const instanceId = crypto.randomUUID();
       const fileName = `${String(index + 1).padStart(4, "0")}-${instanceId.slice(0, 8)}-${sanitizeName(file.name)}`;
       const path = `${input.clinicId}/${studyId}/${seriesId}/${fileName}`;
+      const reservation = await reserveStorageUpload({
+        sizeBytes: file.size,
+        bucket: "dicom-files",
+        objectPath: path,
+        sourceType: "dicom_instance",
+        patientId: input.patientId,
+        originalName: file.name,
+        mimeType: file.type || "application/dicom",
+      });
+      const transfer = { path, reservationId: reservation.reservationId, size: file.size, uploaded: false, instanceId };
+      transfers.push(transfer);
       const { error: uploadError } = await supabase.storage.from("dicom-files").upload(path, file, {
         upsert: false,
         contentType: file.type || "application/dicom",
         cacheControl: "31536000",
       });
       if (uploadError) throw uploadError;
-      uploadedPaths.push(path);
+      transfer.uploaded = true;
 
       const { error: instanceError } = await (supabase as any).from("radiology_instances").insert({
         id: instanceId,
@@ -116,6 +128,7 @@ export async function uploadDicomStudy(input: RadiologyUploadInput): Promise<Rad
         metadata: { original_name: file.name, mime_type: file.type || null, dicom_metadata_state: "pending_parser" },
       });
       if (instanceError) throw instanceError;
+      await completeStorageUpload(reservation.reservationId, instanceId);
     }
 
     const { data: ready, error: readyError } = await (supabase as any)
@@ -127,7 +140,16 @@ export async function uploadDicomStudy(input: RadiologyUploadInput): Promise<Rad
     if (readyError) throw readyError;
     return ready as RadiologyStudy;
   } catch (error) {
-    if (uploadedPaths.length) await supabase.storage.from("dicom-files").remove(uploadedPaths);
+    // Release only bytes whose object really disappeared. If Storage removal
+    // fails, the catalog keeps counting them until an administrator retries.
+    for (const transfer of transfers.reverse()) {
+      if (transfer.uploaded) {
+        const { error: removeError } = await supabase.storage.from("dicom-files").remove([transfer.path]);
+        if (removeError) continue;
+        await (supabase as any).from("radiology_instances").delete().eq("id", transfer.instanceId);
+      }
+      await cancelStorageUpload(transfer.reservationId, transfer.size);
+    }
     await (supabase as any).from("radiology_studies").update({ status: "error" }).eq("id", studyId);
     throw error;
   }

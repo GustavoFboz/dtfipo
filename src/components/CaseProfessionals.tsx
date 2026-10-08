@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -175,7 +176,7 @@ function Avatar({ p, size = 34 }: { p: Professional; size?: number }) {
       style={{ width: size, height: size }}
     >
       {p.avatar ? (
-        <img
+        <PrivateImage
           src={p.avatar}
           alt=""
           width={size}

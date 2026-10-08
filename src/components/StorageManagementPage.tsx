@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { fetchProfile } from "@/lib/api";
 import { confirm } from "@/lib/confirm";
+import { StorageUploadReservations } from "@/components/StorageUploadReservations";
 import {
   deleteManagedStorageFile,
   fetchStorageFiles,
@@ -171,6 +172,11 @@ export function StorageManagementPage({ context = "laboratory" }: { context?: "l
           </div>
         </div>
       </section>
+
+      {profile.data?.id && profile.data?.clinic_id && <StorageUploadReservations
+        key={`${profile.data.id}:${profile.data.clinic_id}`}
+        ownerId={profile.data.id} clinicId={profile.data.clinic_id}
+      />}
 
       <section className="overflow-hidden rounded-[28px] border border-slate-100 bg-white shadow-[0_18px_45px_-38px_rgba(15,23,42,.45)] dark:border-white/[0.08] dark:bg-slate-950">
         <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 p-4 md:p-5 dark:border-white/[0.08]">

@@ -2,7 +2,42 @@
 
 Status: iniciado em 2026-09-19
 
-Etapa atual: 02 — adapter Asaas Sandbox em homologação
+Contador de conclusão atualizado em 04/10/2026: **7 etapas restantes, 0/7
+encerradas nesta revisão**. A ordem única até vendas e os critérios de aceite
+estão em [RELEASE-PLAN.md](RELEASE-PLAN.md). Frentes atuais: **3/7 —
+armazenamento** e **4/7 — segurança de acesso**. A conexão Asaas Produção,
+antes incluída na etapa técnica 09, agora é explícita na **10 (7/7)**.
+Os IDs técnicos antigos são referências históricas, não outro contador.
+
+Continuidade em 03/10/2026: recuperação do código das etapas 06–09 removido
+na edição Lovable de 29/09, antes de continuar a homologação da etapa 05.
+Histórico e renovação estão preparados; solicitações auditadas de cancelamento
+e troca de plano foram implementadas, com execução Asaas ainda pendente.
+O operador Master foi atribuído no banco ativo por
+autorização explícita, e seu autenticador TOTP foi confirmado em 03/10.
+Consulte `evidence/CONTINUITY-2026-10-03.md` para separar código e provas financeiras.
+
+Retomada de 03/10: etapa financeira **05/09 em espera** por solicitação do
+responsável, até o restabelecimento dos créditos Lovable. Avanço independente
+em 04/10: **09/09**, com acompanhamento operacional privado e roteiro de
+incidentes. Na **08/09**, solicitações e acompanhamento estão implementados,
+com execução financeira pendente. Na **06/09**, upload/exclusão de caso estão comprovados
+e a recuperação manual de envios pendentes está preparada. O Master **07/09** aguarda os testes com sessões reais e o replay
+auditado. Restam pendências nas seis etapas 04–09: recuperação de
+eventos, ciclo financeiro, uploads publicados, prova do replay auditado Master,
+cancelamento/troca de plano e liberação controlada de produção. Esse registro
+de 03/10 precede a separação explícita de Produção na etapa técnica 10 em 04/10;
+o contador vigente passa a ser o de RELEASE-PLAN.md.
+O tratamento de eventos financeiros fora de ordem e de falhas isoladas do
+worker está registrado em `evidence/STAGE-05-RESUME-2026-10-03.md`.
+A auditoria de armazenamento e o roteiro de homologação estão em
+`evidence/STAGE-06-LIVE-AUDIT-2026-10-03.md`.
+O contrato de recuperação está em `evidence/STAGE-06-RESERVATION-RECOVERY-2026-10-03.md`.
+
+Escopo confirmado pelo responsável em 03/10: a Radiologia ainda não está
+funcionando. A homologação DICOM fica adiada para a ativação desse módulo e
+não bloqueia a conclusão do SaaS dos módulos atualmente disponíveis. As
+proteções de armazenamento já implementadas para DICOM permanecem vigentes.
 
 Provedor financeiro obrigatório para lançamento: Asaas
 
@@ -111,8 +146,8 @@ Status: concluída em 2026-09-20.
 
 ### 02 — Adapter Asaas Sandbox
 
-Status: implementação concluída; aguardando configuração dos secrets e
-evidência real no Asaas Sandbox. Consulte `STAGE-02-ASAAS-SANDBOX.md`.
+Status: criação real do cliente e assinatura no Asaas Sandbox comprovada em
+28/09/2026. Consulte `evidence/SANDBOX-FIRST-PAID-CYCLE-2026-09-28.md`.
 
 - configurar `ASAAS_API_KEY`, `ASAAS_WEBHOOK_TOKEN`, ambiente e `User-Agent`
   somente no backend;
@@ -127,12 +162,20 @@ oficial atual define `https://api-sandbox.asaas.com/v3` para Sandbox e
 
 ### 03 — Checkout real
 
+Status: primeiro checkout e pagamento real no Asaas Sandbox comprovados em
+28/09/2026. Consulte `STAGE-03-REAL-CHECKOUT.md` e a evidência do primeiro ciclo.
+
 - transformar intent interno em assinatura e cobrança reais do Asaas;
 - devolver URL de pagamento do Asaas de forma segura;
 - expirar intents abandonados e reconciliar retorno do navegador;
 - nunca ativar assinatura pelo redirect síncrono.
 
 ### 04 — Webhook, inbox e reconciliação
+
+Status: receptor, inbox e worker publicados; primeiro `PAYMENT_CONFIRMED`
+processado no Sandbox em 28/09/2026. Repetição, perda de webhook e erros do
+provedor ainda exigem homologação específica.
+Consulte STAGE-04-ASAAS-WEBHOOK.md.
 
 - endpoint público com validação de `asaas-access-token`;
 - persistência única por `(provider, provider_event_id)` antes do `200`;
@@ -145,12 +188,27 @@ chave única e responder somente após persistir:
 
 ### 05 — Ciclo de vida e reativação
 
+Status: ciclo inicial pago comprovado no Sandbox; renovação, atraso, carência,
+estorno, inativação e replay ainda aguardam provas reais individuais. Os eventos
+de risco restantes continuam em revisão. Consulte STAGE-05-ASAAS-LIFECYCLE.md.
+
 - mapear aprovação, vencimento, atraso, estorno, chargeback e cancelamento;
 - testar carência, suspensão, renovação e reativação sem exclusão de dados;
 - impedir downgrade que exceda sessões, membros ou armazenamento sem uma
   política explícita.
 
 ### 06 — Cotas e armazenamento
+
+Status: cota e reservas obrigatórias implantadas em 29/09/2026; ensaios em
+base descartável passaram. Um novo anexo de caso foi confirmado na conta
+publicada em 03/10. O responsável confirmou a exclusão funcionando, e a
+consulta somente leitura comprovou ausência do objeto/anexo/catálogo e retorno
+exato da cota ao valor anterior. Restam os demais uploads dos módulos
+disponíveis e a reconciliação dos resíduos históricos. DICOM será homologado
+quando a Radiologia estiver funcional, fora do escopo atual de conclusão.
+O administrador pode revisar reservas antigas por uma ação que não remove
+objetos; a limpeza dos nove registros reais depende de revisão individual.
+Consulte `STAGE-06-STORAGE-QUOTAS.md`.
 
 - aplicar limites do plano e adicionais por entitlement;
 - bloquear novos uploads antes de exceder a cota;
@@ -159,6 +217,16 @@ chave única e responder somente após persistir:
 
 ### 07 — Administração Master
 
+Status: papel separado e painel publicados, operador autorizado habilitado no
+banco ativo e um fator TOTP verificado em 03/10/2026. O responsável confirmou o
+autenticador no painel publicado. Testes SQL em transação somente leitura
+confirmaram recusa de acesso/replay a não operador e recusa de replay em `aal1`.
+A prova de replay real com auditoria permanece pendente e depende da revisão
+financeira Sandbox. O painel também passou a isolar cache e confirmações por
+conta/sessão, com testes locais de troca, logout e respostas tardias. Consulte
+`STAGE-07-MASTER-ADMIN.md`, `evidence/STAGE-07-ENROLLMENT-2026-10-03.md` e
+`evidence/STAGE-07-SESSION-ISOLATION-2026-10-03.md`.
+
 - criar papel de plataforma separado de `admin`/`CEO` da empresa;
 - permitir busca de empresas, assinatura, pagamentos, eventos e saúde da fila;
 - ações sensíveis exigem justificativa, auditoria e reautenticação;
@@ -166,18 +234,37 @@ chave única e responder somente após persistir:
 
 ### 08 — Centro de cobrança do cliente
 
+Status: histórico, consulta segura de cobrança e solicitações auditadas de
+cancelamento/troca de plano implementados. Gestor e Master acompanham a fila
+pendente; registrar não modifica contrato, quota ou direito de uso. A execução,
+o preço por vigência e a prova no Asaas ainda faltam. Consulte
+`STAGE-08-BILLING-CENTER.md`.
+CI, aplicação no banco e limites desta fase estão em
+`evidence/STAGE-08-CHANGE-REQUESTS-2026-10-03.md`.
+
 - plano atual, vencimento, forma de pagamento, faturas e recibos;
 - troca/cancelamento com impacto e data efetiva claros;
 - acesso somente ao administrador financeiro autorizado da empresa;
 - comportamento equivalente na Web, Windows e Android.
 
-### 09 — Segurança, Beta e produção
+### 09 — Segurança e operação do Beta
 
 - testes de contrato, RLS, idempotência, concorrência e replay;
 - homologação completa no Sandbox, inclusive falhas e reprocessamentos;
 - rollout por feature flag e lote piloto;
 - runbook de incidentes, métricas, alertas e rollback;
-- somente depois, credenciais e webhook separados de Produção.
+- preparar o gate de Produção, com aceite separado na etapa 10.
+
+### 10 — Asaas Produção e liberação para vendas
+
+Status: pendente; nenhum pagamento real é iniciado sem a autorização específica
+do responsável. Consulte [STAGE-10-PRODUCTION-READINESS.md](STAGE-10-PRODUCTION-READINESS.md).
+
+- conferir a conta recebedora; credenciais e webhook separados de Produção,
+  com API key e token exclusivos nos secrets do backend;
+- validar ambiente, filas, autenticação, webhook e agendadores em conjunto;
+- comprovar compra real controlada, recebimento e liberação correta do acesso;
+- aprovar lote beta com riscos registrados, alertas e suporte após todos os gates.
 
 ## Regra de entrega por etapa
 

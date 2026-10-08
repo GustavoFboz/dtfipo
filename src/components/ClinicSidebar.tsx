@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   CalendarDays,
@@ -113,7 +114,7 @@ function ProfileArea({ profile, collapsed }: { profile?: Profile; collapsed: boo
     >
       <div className={`relative shrink-0 overflow-hidden rounded-full border border-slate-100 bg-white shadow-sm dark:border-white/10 dark:bg-slate-800 ${collapsed ? "h-9 w-9" : "h-12 w-12"}`}>
         {profile.avatar_url ? (
-          <img src={profile.avatar_url} alt={profile.full_name ?? "Perfil"} className="h-full w-full object-cover" />
+          <PrivateImage src={profile.avatar_url} alt={profile.full_name ?? "Perfil"} className="h-full w-full object-cover" />
         ) : (
           <div className="grid h-full w-full place-items-center text-sm font-semibold text-[#1e8f87]">{firstName[0]?.toUpperCase()}</div>
         )}

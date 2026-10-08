@@ -1,0 +1,20 @@
+{
+  "rows": [
+    {
+      "anon_can_configure": false,
+      "checked_at": "2026-10-05 19:46:19.855578+00",
+      "installed_extensions": [
+        "pg_cron",
+        "pg_net",
+        "supabase_vault"
+      ],
+      "managed_boundary_safe": true,
+      "scheduler_jobs": 0,
+      "scheduler_rows": 0,
+      "service_can_configure": true,
+      "service_can_enqueue": false,
+      "user_can_configure": false,
+      "user_can_read_config": false
+    }
+  ]
+}

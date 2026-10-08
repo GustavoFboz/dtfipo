@@ -4,14 +4,14 @@ mod notifications;
 mod printing;
 mod window_controls;
 
-use device_identity::{device_identity_clear, device_identity_get, device_identity_set};
+use device_identity::{device_identity_clear, device_identity_get, device_identity_set, desktop_clear_private_webview_cache};
 use local_db::{
     desktop_runtime_info, local_cache_clear_owner, local_cache_delete, local_cache_get,
     local_cache_list, local_cache_put, outbox_clear_done, outbox_enqueue, outbox_mark,
     outbox_pending,
 };
 use notifications::{desktop_native_notification, desktop_notification_sound};
-use printing::{desktop_list_printers, desktop_open_printer_settings, desktop_print_text};
+use printing::{desktop_list_printers, desktop_open_printer_settings, desktop_print_text, desktop_save_pdf};
 use tauri::{AppHandle, Manager};
 use window_controls::{desktop_window_action, desktop_window_state};
 
@@ -120,9 +120,11 @@ pub fn run() {
             desktop_list_printers,
             desktop_open_printer_settings,
             desktop_print_text,
+            desktop_save_pdf,
             device_identity_get,
             device_identity_set,
             device_identity_clear,
+            desktop_clear_private_webview_cache,
             local_cache_put,
             local_cache_get,
             local_cache_list,

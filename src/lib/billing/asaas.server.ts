@@ -11,6 +11,7 @@ const ASAAS_BASE_URL: Record<AsaasProviderEnvironment, string> = {
 
 const CUSTOMER_ID_PATTERN = /^cus_[A-Za-z0-9]+$/;
 const SUBSCRIPTION_ID_PATTERN = /^sub_[A-Za-z0-9]+$/;
+const PAYMENT_ID_PATTERN = /^pay_[A-Za-z0-9]+$/;
 
 export type AsaasBillingType = "UNDEFINED" | "BOLETO" | "CREDIT_CARD" | "PIX";
 
@@ -31,6 +32,7 @@ export type AsaasCustomer = {
   cpfCnpj?: string;
   externalReference?: string | null;
   deleted?: boolean;
+  notificationDisabled?: boolean;
 };
 
 export type AsaasSubscription = {
@@ -41,6 +43,19 @@ export type AsaasSubscription = {
   nextDueDate?: string;
   cycle?: string;
   status?: string;
+  externalReference?: string | null;
+  deleted?: boolean;
+};
+
+export type AsaasPayment = {
+  id: string;
+  customer: string;
+  subscription?: string | null;
+  billingType?: AsaasBillingType;
+  value?: number;
+  dueDate?: string;
+  status?: string;
+  invoiceUrl?: string;
   externalReference?: string | null;
   deleted?: boolean;
 };
@@ -68,6 +83,14 @@ export type CreateAsaasSubscription = {
   externalReference: string;
 };
 
+/** Narrow recurring change: preserve every existing invoice. Authorization,
+ * ownership, effective date and operation lease belong to the caller. */
+export type UpdateAsaasSubscription = {
+  value?: number;
+  nextDueDate?: string;
+  status?: "INACTIVE";
+};
+
 type AsaasListResponse<T> = {
   object?: "list";
   hasMore?: boolean;
@@ -77,7 +100,7 @@ type AsaasListResponse<T> = {
   data: T[];
 };
 
-type RequestMethod = "GET" | "POST";
+type RequestMethod = "GET" | "POST" | "PUT";
 
 type RequestOptions = {
   query?: Record<string, string | number | boolean | undefined>;
@@ -122,6 +145,67 @@ function requiredSecret(
   return value;
 }
 
+function webhookSecret(source: Record<string, string | undefined>, name: string, apiKey: string): string {
+  const value = requiredSecret(source, name, 32);
+  if (value.length > 255 || /\s/.test(value) || value.startsWith("$aact_") || value === apiKey ||
+      (name === "ASAAS_PRODUCTION_WEBHOOK_TOKEN" && source.ASAAS_API_KEY?.trim().startsWith("$aact_hmlg_") &&
+        value === source.ASAAS_WEBHOOK_TOKEN?.trim())) {
+    throw new Error(`Configuração segura ausente ou inválida: ${name}.`);
+  }
+  return value;
+}
+
+function hasProductionSecrets(source: Record<string, string | undefined>): boolean {
+  return source.ASAAS_PRODUCTION_API_KEY !== undefined ||
+    source.ASAAS_PRODUCTION_WEBHOOK_TOKEN !== undefined ||
+    source.BILLING_PRODUCTION_WORKER_TOKEN !== undefined ||
+    source.BILLING_PRODUCTION_REPLAY_TOKEN !== undefined;
+}
+
+/** Existing generic credentials remain Sandbox credentials while Production is staged. */
+export function loadAsaasWorkerToken(source: Record<string, string | undefined> = process.env): string {
+  const stagedProduction = source.ASAAS_ENVIRONMENT?.trim() === "production" && hasProductionSecrets(source);
+  const name = stagedProduction ? "BILLING_PRODUCTION_WORKER_TOKEN" : "BILLING_WORKER_TOKEN";
+  const value = requiredSecret(source, name, 32);
+  const otherSecrets = stagedProduction ? [source.ASAAS_WEBHOOK_TOKEN, source.ASAAS_PRODUCTION_WEBHOOK_TOKEN,
+    source.BILLING_REPLAY_TOKEN, source.BILLING_PRODUCTION_REPLAY_TOKEN, source.BILLING_WORKER_TOKEN]
+    : [source.ASAAS_WEBHOOK_TOKEN, source.BILLING_REPLAY_TOKEN];
+  if (value.length > 255 || /\s/.test(value) || value.startsWith("$aact_") ||
+      otherSecrets.some((other) => other?.trim() === value)) {
+    throw new Error(`Configuração segura ausente ou inválida: ${name}.`);
+  }
+  return value;
+}
+
+/** Reserved for the private operator replay endpoint, never the scheduled worker. */
+export function loadAsaasReplayToken(source: Record<string, string | undefined> = process.env): string {
+  const stagedProduction = source.ASAAS_ENVIRONMENT?.trim() === "production" && hasProductionSecrets(source);
+  const name = stagedProduction ? "BILLING_PRODUCTION_REPLAY_TOKEN" : "BILLING_REPLAY_TOKEN";
+  const value = requiredSecret(source, name, 32);
+  const otherSecrets = stagedProduction ? [source.BILLING_WORKER_TOKEN, source.BILLING_PRODUCTION_WORKER_TOKEN,
+    source.ASAAS_WEBHOOK_TOKEN, source.ASAAS_PRODUCTION_WEBHOOK_TOKEN, source.BILLING_REPLAY_TOKEN]
+    : [source.BILLING_WORKER_TOKEN, source.ASAAS_WEBHOOK_TOKEN];
+  if (value.length > 255 || /\s/.test(value) || value.startsWith("$aact_") ||
+      otherSecrets.some((other) => other?.trim() === value) || value === loadAsaasWorkerToken(source)) {
+    throw new Error(`Configuração segura ausente ou inválida: ${name}.`);
+  }
+  return value;
+}
+
+/** A narrow credential projection for the readonly account diagnostic. It has no
+ * financial-client configuration and cannot enable checkout or the inbox worker. */
+export function loadAsaasProductionPreflightSecrets(source: Record<string, string | undefined> = process.env) {
+  const apiKey = requiredSecret(source, "ASAAS_PRODUCTION_API_KEY", 16);
+  if (!apiKey.startsWith("$aact_prod_")) throw new Error("ASAAS_PRODUCTION_API_KEY não pertence à Produção.");
+  const webhookToken = webhookSecret(source, "ASAAS_PRODUCTION_WEBHOOK_TOKEN", apiKey);
+  const productionSource = { ...source, ASAAS_ENVIRONMENT: "production" };
+  const workerToken = loadAsaasWorkerToken(productionSource);
+  const replayToken = loadAsaasReplayToken(productionSource);
+  const userAgent = requiredSecret(source, "ASAAS_USER_AGENT", 8);
+  if (userAgent.length > 160) throw new Error("ASAAS_USER_AGENT excede 160 caracteres.");
+  return { apiKey, webhookToken, workerToken, replayToken, userAgent };
+}
+
 export function loadAsaasConfig(
   source: Record<string, string | undefined> = process.env,
 ): AsaasConfig {
@@ -135,13 +219,19 @@ export function loadAsaasConfig(
     throw new Error("Asaas Produção permanece bloqueado até homologação e liberação explícitas.");
   }
 
-  const apiKey = requiredSecret(source, "ASAAS_API_KEY", 16);
+  // Prefer the complete, separate Production group. Never fill an incomplete
+  // group with Sandbox secrets. The original Production layout is compatible
+  // only when none of the new names is present.
+  const stagedProduction = environment === "production" && hasProductionSecrets(source);
+  const apiKeyName = stagedProduction ? "ASAAS_PRODUCTION_API_KEY" : "ASAAS_API_KEY";
+  const webhookTokenName = stagedProduction ? "ASAAS_PRODUCTION_WEBHOOK_TOKEN" : "ASAAS_WEBHOOK_TOKEN";
+  const apiKey = requiredSecret(source, apiKeyName, 16);
   const expectedPrefix = environment === "sandbox" ? "$aact_hmlg_" : "$aact_prod_";
   if (!apiKey.startsWith(expectedPrefix)) {
-    throw new Error("ASAAS_API_KEY não pertence ao ASAAS_ENVIRONMENT configurado.");
+    throw new Error(`${apiKeyName} não pertence ao ASAAS_ENVIRONMENT configurado.`);
   }
 
-  const webhookToken = requiredSecret(source, "ASAAS_WEBHOOK_TOKEN", 32);
+  const webhookToken = webhookSecret(source, webhookTokenName, apiKey);
   const userAgent = requiredSecret(source, "ASAAS_USER_AGENT", 8);
   if (userAgent.length > 160) throw new Error("ASAAS_USER_AGENT excede 160 caracteres.");
 
@@ -267,6 +357,28 @@ function validateSubscription(value: unknown): AsaasSubscription {
   return value as AsaasSubscription;
 }
 
+function validatePayment(value: unknown): AsaasPayment {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !PAYMENT_ID_PATTERN.test(String((value as { id?: unknown }).id ?? "")) ||
+    !CUSTOMER_ID_PATTERN.test(String((value as { customer?: unknown }).customer ?? ""))
+  ) {
+    throw new AsaasApiError({
+      code: "ASAAS_INVALID_RESPONSE",
+      message: "Resposta de cobrança inválida.",
+    });
+  }
+  const subscription = (value as { subscription?: unknown }).subscription;
+  if (subscription != null && !SUBSCRIPTION_ID_PATTERN.test(String(subscription))) {
+    throw new AsaasApiError({
+      code: "ASAAS_INVALID_RESPONSE",
+      message: "Assinatura da cobrança inválida.",
+    });
+  }
+  return value as AsaasPayment;
+}
+
 export class AsaasClient {
   readonly environment: AsaasProviderEnvironment;
   private readonly config: AsaasConfig;
@@ -284,7 +396,9 @@ export class AsaasClient {
     }
     this.config = config;
     this.environment = config.environment;
-    this.fetchImpl = dependencies.fetch ?? fetch;
+    // Some server runtimes require the global fetch receiver. A method call on
+    // AsaasClient changes that receiver and fails before the request is sent.
+    this.fetchImpl = dependencies.fetch ?? ((input, init) => fetch(input, init));
     this.sleepImpl = dependencies.sleep ?? sleep;
     this.random = dependencies.random ?? Math.random;
     this.now = dependencies.now ?? Date.now;
@@ -344,7 +458,7 @@ export class AsaasClient {
             "User-Agent": this.config.userAgent,
             access_token: this.config.apiKey,
           },
-          body: method === "POST" ? JSON.stringify(options.body ?? {}) : undefined,
+          body: method !== "GET" ? JSON.stringify(options.body ?? {}) : undefined,
           signal: controller.signal,
         });
       } catch (error) {
@@ -355,7 +469,7 @@ export class AsaasClient {
             ? "Tempo limite da API Asaas excedido."
             : "Falha de rede ao acessar a API Asaas.",
           retryable: true,
-          ambiguous: method === "POST",
+          ambiguous: method !== "GET",
         });
       } finally {
         clearTimeout(timeout);
@@ -366,7 +480,11 @@ export class AsaasClient {
         this.rateLimitedUntil = Math.max(this.rateLimitedUntil, this.now() + retryAfterMs);
       }
 
-      const text = await response.text();
+      let text: string;
+      try { text = await response.text(); }
+      catch {
+        throw new AsaasApiError({ code: "ASAAS_RESPONSE_READ_FAILED", message: "Não foi possível confirmar a resposta Asaas.", retryable: true, ambiguous: method !== "GET" });
+      }
       let payload: unknown = null;
       if (text) {
         try {
@@ -384,7 +502,7 @@ export class AsaasClient {
           message: details.message,
           status: response.status,
           retryable,
-          ambiguous: method === "POST" && response.status >= 500,
+          ambiguous: method !== "GET" && response.status >= 500,
           retryAfterMs,
         });
       }
@@ -393,6 +511,7 @@ export class AsaasClient {
         throw new AsaasApiError({
           code: "ASAAS_EMPTY_RESPONSE",
           message: "Resposta vazia da API Asaas.",
+          ambiguous: method !== "GET",
         });
       }
       return payload as T;
@@ -438,8 +557,15 @@ export class AsaasClient {
   }
 
   async createCustomer(input: CreateAsaasCustomer): Promise<AsaasCustomer> {
-    const response = await this.request<unknown>("POST", "/customers", { body: input });
+    const response = await this.request<unknown>("POST", "/customers", {
+      body: this.environment === "sandbox" ? { ...input, notificationDisabled: true } : input,
+    });
     return validateCustomer(response);
+  }
+
+  async getCustomer(customerId: string): Promise<AsaasCustomer> {
+    if (!CUSTOMER_ID_PATTERN.test(customerId)) throw new Error("Cliente Asaas inválido.");
+    return validateCustomer(await this.request<unknown>("GET", `/customers/${encodeURIComponent(customerId)}`));
   }
 
   async findSubscriptionsByExternalReference(
@@ -468,5 +594,128 @@ export class AsaasClient {
     }
     const response = await this.request<unknown>("POST", "/subscriptions", { body: input });
     return validateSubscription(response);
+  }
+
+  /** No automatic retry. An ambiguous result must be reconciled by GET. */
+  async updateSubscription(subscriptionId: string, input: UpdateAsaasSubscription): Promise<AsaasSubscription> {
+    if (!SUBSCRIPTION_ID_PATTERN.test(subscriptionId)) throw new Error("Assinatura Asaas inválida.");
+    if (!input || typeof input !== "object" ||
+        Object.keys(input).some((key) => !["value", "nextDueDate", "status"].includes(key)) ||
+        (input.value === undefined && input.nextDueDate === undefined && input.status === undefined)) {
+      throw new Error("Alteração de assinatura inválida.");
+    }
+    if (input.value !== undefined && (!Number.isFinite(input.value) || input.value <= 0 ||
+        !Number.isSafeInteger(Math.round(input.value * 100)) ||
+        Math.abs(input.value * 100 - Math.round(input.value * 100)) > 0.000001)) {
+      throw new Error("Preço da assinatura inválido.");
+    }
+    if (input.status !== undefined && input.status !== "INACTIVE") {
+      throw new Error("Status de alteração inválido.");
+    }
+    if (input.nextDueDate !== undefined && (!/^\d{4}-\d{2}-\d{2}$/.test(input.nextDueDate) ||
+        !Number.isFinite(Date.parse(input.nextDueDate + "T00:00:00Z")) ||
+        new Date(input.nextDueDate + "T00:00:00Z").toISOString().slice(0, 10) !== input.nextDueDate)) {
+      throw new Error("Vencimento da assinatura inválido.");
+    }
+    const response = await this.request<unknown>("PUT", `/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+      body: { ...input, updatePendingPayments: false },
+    });
+    // An invalid success response may follow a committed mutation. Never mark
+    // it as a definite rejection or permit a blind second write.
+    let subscription: AsaasSubscription;
+    try { subscription = validateSubscription(response); }
+    catch { throw new AsaasApiError({ code: "ASAAS_INVALID_RESPONSE", message: "Resposta de alteração inválida; concilie a assinatura.", ambiguous: true }); }
+    if (subscription.id !== subscriptionId || !CUSTOMER_ID_PATTERN.test(subscription.customer) || subscription.deleted) {
+      throw new AsaasApiError({ code: "ASAAS_INVALID_RESPONSE", message: "Resposta de alteração divergente; concilie a assinatura.", ambiguous: true });
+    }
+    return subscription;
+  }
+
+  async listSubscriptionPayments(subscriptionId: string): Promise<AsaasPayment[]> {
+    if (!SUBSCRIPTION_ID_PATTERN.test(subscriptionId)) {
+      throw new Error("Assinatura Asaas inválida.");
+    }
+    const response = await this.request<AsaasListResponse<unknown>>(
+      "GET",
+      `/subscriptions/${encodeURIComponent(subscriptionId)}/payments`,
+    );
+    if (!Array.isArray(response.data)) {
+      throw new AsaasApiError({
+        code: "ASAAS_INVALID_RESPONSE",
+        message: "Lista de cobranças inválida.",
+      });
+    }
+    return response.data
+      .map(validatePayment)
+      .filter((payment) => !payment.deleted && payment.subscription === subscriptionId);
+  }
+
+  /** A single bounded recovery page. An overflow needs operator review; never skip records. */
+  async listPaymentsForReconciliation(
+    subscriptionId: string,
+    sinceDueDate: string,
+  ): Promise<AsaasPayment[]> {
+    if (!SUBSCRIPTION_ID_PATTERN.test(subscriptionId) || !/^\d{4}-\d{2}-\d{2}$/.test(sinceDueDate)) {
+      throw new Error("Parâmetros de conciliação Asaas inválidos.");
+    }
+    const response = await this.request<AsaasListResponse<unknown>>("GET", "/payments", {
+      query: { subscription: subscriptionId, "dueDate[ge]": sinceDueDate, limit: 100, offset: 0 },
+    });
+    if (!Array.isArray(response.data) || response.data.length > 100 ||
+        typeof response.hasMore !== "boolean" || response.hasMore) {
+      throw new AsaasApiError({
+        code: "ASAAS_RECONCILIATION_PAGE_INCOMPLETE",
+        message: "Lista de conciliação incompleta; revisão necessária.",
+      });
+    }
+    const payments = response.data.map(validatePayment);
+    if (payments.some((payment) => payment.deleted || payment.subscription !== subscriptionId)) {
+      throw new AsaasApiError({
+        code: "ASAAS_RECONCILIATION_OWNERSHIP_MISMATCH",
+        message: "Cobranças de conciliação não correspondem à assinatura.",
+      });
+    }
+    return payments;
+  }
+
+  async getPayment(paymentId: string): Promise<AsaasPayment> {
+    if (!PAYMENT_ID_PATTERN.test(paymentId)) throw new Error("Cobrança Asaas inválida.");
+    return validatePayment(
+      await this.request<unknown>("GET", `/payments/${encodeURIComponent(paymentId)}`),
+    );
+  }
+
+  async getSubscription(subscriptionId: string): Promise<AsaasSubscription> {
+    if (!SUBSCRIPTION_ID_PATTERN.test(subscriptionId)) {
+      throw new Error("Assinatura Asaas inválida.");
+    }
+    return validateSubscription(
+      await this.request<unknown>("GET", "/subscriptions/" + encodeURIComponent(subscriptionId)),
+    );
+  }
+
+  validatePaymentUrl(value: string): string {
+    let url: URL;
+    try {
+      url = new URL(value);
+    } catch {
+      throw new AsaasApiError({
+        code: "ASAAS_INVALID_PAYMENT_URL",
+        message: "URL de pagamento inválida.",
+      });
+    }
+
+    const expectedHost = this.environment === "sandbox" ? "sandbox.asaas.com" : "www.asaas.com";
+    if (
+      url.protocol !== "https:" ||
+      url.hostname !== expectedHost ||
+      !/^\/i\/[A-Za-z0-9_-]+(?:[/?#].*)?$/.test(`${url.pathname}${url.search}${url.hash}`)
+    ) {
+      throw new AsaasApiError({
+        code: "ASAAS_INVALID_PAYMENT_URL",
+        message: "URL de pagamento fora do ambiente permitido.",
+      });
+    }
+    return url.toString();
   }
 }

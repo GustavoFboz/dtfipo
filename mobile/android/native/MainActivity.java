@@ -13,6 +13,8 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         StartupActivity.installCrashRecorder(this);
         registerPlugin(DentalFlowPrintPlugin.class);
+        registerPlugin(DentalFlowFilePlugin.class);
+        registerPlugin(DentalFlowPrivacyPlugin.class);
         bridgeBuilder.addWebViewListener(new WebViewListener() {
             @Override public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
                 StartupActivity.record(MainActivity.this, "Renderizador WebView interrompido. Crash: " + detail.didCrash());

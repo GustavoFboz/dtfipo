@@ -79,6 +79,8 @@ async function recoverStoredCloudSession(target: typeof cloudSupabase.auth): Pro
     const result = await target.getSession();
     const session = result.data.session;
     if (!session || session.access_token === LOCAL_ACCESS_TOKEN) return null;
+    const identity = await getProvisionedDesktopIdentity();
+    if (!identity || identity.user_id !== session.user.id) return null;
     usingOfflineDeviceSession = false;
     return session;
   } catch {

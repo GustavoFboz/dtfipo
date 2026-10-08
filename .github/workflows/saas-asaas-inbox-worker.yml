@@ -1,0 +1,132 @@
+name: SaaS Asaas inbox worker
+
+on:
+  schedule:
+    - cron: "2-59/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: saas-asaas-inbox-worker
+  cancel-in-progress: false
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      BILLING_ENVIRONMENT: ${{ vars.BILLING_ENVIRONMENT || 'sandbox' }}
+      BILLING_PRODUCTION_ENABLED: ${{ vars.BILLING_PRODUCTION_ENABLED }}
+      BILLING_WORKER_TOKEN: ${{ secrets.BILLING_WORKER_TOKEN }}
+      BILLING_PRODUCTION_WORKER_TOKEN: ${{ secrets.BILLING_PRODUCTION_WORKER_TOKEN }}
+    steps:
+      - name: Process persisted events in the configured environment
+        if: env.BILLING_WORKER_TOKEN != '' || env.BILLING_PRODUCTION_WORKER_TOKEN != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$BILLING_ENVIRONMENT" in
+            sandbox)
+              if [[ -z "$BILLING_WORKER_TOKEN" ]]; then
+                echo '::error::Sandbox worker credential is missing.'
+                exit 1
+              fi
+              ;;
+            production)
+              if [[ "$BILLING_PRODUCTION_ENABLED" != "true" || -z "$BILLING_PRODUCTION_WORKER_TOKEN" || "$BILLING_PRODUCTION_WORKER_TOKEN" == "$BILLING_WORKER_TOKEN" ]]; then
+                echo '::error::Production requires explicit scheduler enablement and a separate worker credential.'
+                exit 1
+              fi
+              BILLING_WORKER_TOKEN="$BILLING_PRODUCTION_WORKER_TOKEN"
+              ;;
+            *)
+              echo '::error::Invalid billing scheduler environment.'
+              exit 1
+              ;;
+          esac
+          response_file=$(mktemp)
+          scheduler_file=$(mktemp)
+          health_file=$(mktemp)
+          trap 'rm -f "$response_file" "$scheduler_file" "$health_file"' EXIT
+          # The database is primary only after both dispatch and worker health
+          # are proven recent. Failed/absent private probes keep this fallback.
+          if [[ -n "$BILLING_PRODUCTION_WORKER_TOKEN" ]]; then
+            if scheduler_status=$(printf 'Authorization: Bearer %s\n' "$BILLING_PRODUCTION_WORKER_TOKEN" | \
+              curl --silent --show-error --max-time 12 --output "$scheduler_file" --write-out '%{http_code}' \
+                --request GET --header @- \
+                'https://dtfipo.lovable.app/api/billing/asaas-worker?check=database-scheduler') \
+              && [[ "$scheduler_status" == "200" ]] \
+              && jq -e --arg environment "$BILLING_ENVIRONMENT" '
+                def recent: if type != "string" then false else (try (sub("\\.[0-9]+(?=Z$|\\+00:00$)";"")
+                  | sub("\\+00:00$";"Z") | fromdateiso8601) catch 0) as $t
+                  | ($t <= now + 60 and $t >= now - 300) end;
+                .available == true and .contract == "dentalflow-database-scheduler-v1"
+                and .environment == $environment and .immediate_worker_invoked == false
+                and (.checked_at | recent)
+                and .scheduler.provider_environment == $environment
+                and .scheduler.enabled == true and .scheduler.cron_active == true
+                and .scheduler.schedule == "1-59/5 * * * *"
+                and (.scheduler.cron_job_id | type == "number" and . > 0 and . == floor)
+                and .scheduler.last_response_http_status == 200
+                and .scheduler.last_response_timed_out == false
+                and (.scheduler.last_dispatched_at | recent)
+              ' "$scheduler_file" > /dev/null 2>&1; then
+              if health_status=$(printf 'Authorization: Bearer %s\nX-Billing-Environment: %s\n' "$BILLING_WORKER_TOKEN" "$BILLING_ENVIRONMENT" | \
+                curl --silent --show-error --max-time 8 --output "$health_file" --write-out '%{http_code}' \
+                  --request GET --header @- 'https://dtfipo.lovable.app/api/billing/asaas-worker?check=health') \
+                && [[ "$health_status" == "200" ]] \
+                && jq -e --arg environment "$BILLING_ENVIRONMENT" '
+                  def recent: if type != "string" then false else (try (sub("\\.[0-9]+(?=Z$|\\+00:00$)";"")
+                    | sub("\\+00:00$";"Z") | fromdateiso8601) catch 0) as $t
+                    | ($t <= now + 60 and $t >= now - 300) end;
+                  .available == true and .contract == "dentalflow-worker-health-v1"
+                  and .environment == $environment and (.checked_at | recent)
+                  and (.worker.healthy_age_seconds | type == "number" and . >= 0 and . < 300 and . == floor)
+                  and (.worker.last_healthy_at | recent)
+                  and ((.worker.status == "ok" and (.worker.finished_at | recent))
+                    or (.worker.status == "running" and .worker.finished_at == null
+                      and (.worker.started_age_seconds | type == "number" and . >= 0 and . < 180 and . == floor)))
+                ' "$health_file" > /dev/null 2>&1; then
+                echo 'Backend scheduler has recent successful dispatch and worker health; fallback POST skipped.'
+                exit 0
+              fi
+            fi
+          fi
+          had_review=0
+          for attempt in {1..10}; do
+            if ! http_status=$(printf 'Authorization: Bearer %s\nX-Billing-Environment: %s\nContent-Type: application/json\n' "$BILLING_WORKER_TOKEN" "$BILLING_ENVIRONMENT" | \
+              curl --silent --show-error --max-time 35 --output "$response_file" --write-out '%{http_code}' \
+              --request POST --header @- \
+              https://dtfipo.lovable.app/api/billing/asaas-worker); then
+              echo '::error::Worker transport failed; inspect the private Master monitoring panel.'
+              exit 1
+            fi
+            # Print only numeric counters. Never log an arbitrary HTTP error body.
+            if ! jq -e '. as $r | ["processed","ignored","failed","workerReview","suspended","recoveryQueued","graceReview","reconciliationScanned","reconciliationQueued","reconciliationReview"] | all(.[]; ($r[.] | type == "number" and . >= 0 and . <= 9999999 and . == floor))' "$response_file" > /dev/null; then
+              echo "::error::Worker returned an invalid summary (HTTP $http_status)."
+              exit 1
+            fi
+            jq '{processed,ignored,failed,workerReview,suspended,recoveryQueued,graceReview,reconciliationScanned,reconciliationQueued,reconciliationReview}' "$response_file"
+            if [[ "$http_status" != "200" ]] || ! jq -e '.monitoringRecorded == true' "$response_file" > /dev/null; then
+              echo "::error::Worker incomplete or monitoring unavailable (HTTP $http_status)."
+              exit 1
+            fi
+            if [[ "$(jq -r '[.failed,.workerReview,.graceReview,.reconciliationReview] | add' "$response_file")" != "0" ]]; then
+              had_review=1
+              echo '::warning::Worker recorded events requiring review.'
+            fi
+            if [[ "$(jq -r '[.processed,.ignored,.failed,.suspended,.recoveryQueued,.reconciliationQueued] | add' "$response_file")" == "0" ]]; then
+              break
+            fi
+          done
+          if [[ "$had_review" == "1" ]]; then
+            echo '::error::Events require review in Master; automatic replay was not requested.'
+            exit 1
+          fi
+      - name: Require configured worker credential
+        if: env.BILLING_WORKER_TOKEN == '' && env.BILLING_PRODUCTION_WORKER_TOKEN == ''
+        run: |
+          echo '::error::BILLING_WORKER_TOKEN is missing from the scheduler.'
+          exit 1

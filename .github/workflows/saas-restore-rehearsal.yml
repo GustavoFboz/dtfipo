@@ -2,9 +2,25 @@ name: DentalFlow SaaS Restore Rehearsal
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - "saas/**"
+    paths:
+      - "public/restore.sql"
+      - "public/restore/**"
+      - "supabase/migrations/**"
+      - "docs/saas/**"
+      - "scripts/build-restore-bundle.mjs"
+      - "scripts/check-saas-stage-04.mjs"
+      - "scripts/check-saas-stage-05.mjs"
+      - "scripts/check-saas-stage-06.mjs"
+      - "scripts/check-saas-stage-08.mjs"
+      - "scripts/check-saas-stage-09.mjs"
+      - ".github/workflows/saas-restore-rehearsal.yml"
   pull_request:
     branches:
       - main
+      - "saas/stage-03-asaas-checkout"
     paths:
       - "public/restore.sql"
       - "public/restore/**"
@@ -13,6 +29,11 @@ on:
       - "scripts/build-restore-bundle.mjs"
       - "scripts/check-saas-stage-01.mjs"
       - "scripts/check-saas-stage-02.mjs"
+      - "scripts/check-saas-stage-04.mjs"
+      - "scripts/check-saas-stage-05.mjs"
+      - "scripts/check-saas-stage-06.mjs"
+      - "scripts/check-saas-stage-08.mjs"
+      - "scripts/check-saas-stage-09.mjs"
       - ".github/workflows/saas-restore-rehearsal.yml"
 
 permissions:
@@ -43,7 +64,7 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: "2.119.0"
 
       - name: Start isolated clean Supabase database
         shell: bash
@@ -86,6 +107,178 @@ jobs:
             < docs/saas/sql/stage-02-restore-assertions.sql \
             | tee restore-stage-02-assertions.log
 
+      - name: Verify Stage 04 restored webhook boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-04-restore-assertions.sql \
+            | tee restore-stage-04-assertions.log
+
+      - name: Verify Stage 05 private lifecycle boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-05-restore-assertions.sql \
+            | tee restore-stage-05-assertions.log
+
+      - name: Rehearse Stage 05 renewal, grace, refund and cancellation
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-05-lifecycle-rehearsal.sql \
+            | tee restore-stage-05-lifecycle.log
+
+      - name: Verify Stage 07 case ownership write boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-07-case-boundary-assertions.sql \
+            | tee restore-stage-07-case-boundary.log
+
+      - name: Verify Stage 06 storage quota boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-quota-assertions.sql \
+            | tee restore-stage-06-assertions.log
+
+      - name: Rehearse Stage 06 paid and pending storage allowances
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-quota-rehearsal.sql \
+            | tee restore-stage-06-quota.log
+
+      - name: Verify Stage 06 upload reservation boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-upload-assertions.sql \
+            | tee restore-stage-06-upload-assertions.log
+
+      - name: Rehearse Stage 06 authenticated uploads and quota bypass attempts
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-upload-rehearsal.sql \
+            | tee restore-stage-06-upload-rehearsal.log
+
+      - name: Rehearse Stage 06 patient uploads at the exact quota boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-patient-uploads-rehearsal.sql \
+            | tee restore-stage-06-patient-uploads.log
+      - name: Rehearse Stage 06 concurrent reservations
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash docs/saas/sql/stage-06-concurrency-rehearsal.sh \
+            | tee restore-stage-06-concurrency.log
+
+      - name: Verify existing price contracts and R$1 new checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/price-snapshot-assertions.sql \
+            | tee restore-price-assertions.log
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/price-snapshot-rehearsal.sql \
+            | tee restore-price-rehearsal.log
+
+      - name: Verify and rehearse controlled reservation recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-reservation-recovery-assertions.sql | tee restore-stage-06-recovery-assertions.log
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-06-reservation-recovery-rehearsal.sql | tee restore-stage-06-recovery.log
+          bash docs/saas/sql/stage-06-reservation-recovery-concurrency.sh | tee restore-stage-06-recovery-concurrency.log
+
+      - name: Rehearse Stage 07 Master isolation and audited replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-07-master-rehearsal.sql \
+            | tee restore-stage-07-master.log
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-07-external-test-rehearsal.sql \
+            | tee restore-stage-07-external-test.log
+
+      - name: Rehearse Stage 08 billing manager history boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-08-billing-history-rehearsal.sql \
+            | tee restore-stage-08-history.log
+
+      - name: Verify and rehearse Stage 08 protected billing requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-08-change-request-assertions.sql | tee restore-stage-08-request-assertions.log
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-08-change-request-rehearsal.sql | tee restore-stage-08-requests.log
+          bash docs/saas/sql/stage-08-change-request-concurrency.sh | tee restore-stage-08-request-concurrency.log
+
+      - name: Rehearse Stage 08 cancellation lease, MFA and paid-period preservation
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-08-cancel-executor-rehearsal.sql | tee restore-stage-08-cancel-executor.log
+
+      - name: Verify and rehearse Stage 09 private operational monitoring
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-09-operational-health-assertions.sql | tee restore-stage-09-health-assertions.log
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-09-operational-health-rehearsal.sql | tee restore-stage-09-health.log
+
+      - name: Rehearse private database scheduler with rollback and no HTTP delivery
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/database-scheduler-rehearsal.sql | tee restore-database-scheduler.log
+
+      - name: Rehearse one-use allowlisted Auth fixture capabilities
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/fixture-acceptance-jobs-rehearsal.sql | tee restore-fixture-capabilities.log
+
       - name: Record sanitized restored-schema audit
         shell: bash
         run: |
@@ -106,6 +299,30 @@ jobs:
             restore-apply.log
             restore-assertions.log
             restore-stage-02-assertions.log
+            restore-stage-04-assertions.log
+            restore-stage-05-assertions.log
+            restore-stage-05-lifecycle.log
+            restore-stage-06-assertions.log
+            restore-stage-06-quota.log
+            restore-stage-06-upload-assertions.log
+            restore-stage-06-upload-rehearsal.log
+            restore-stage-06-patient-uploads.log
+            restore-stage-06-concurrency.log
+            restore-stage-06-recovery-assertions.log
+            restore-stage-06-recovery.log
+            restore-stage-06-recovery-concurrency.log
+            restore-price-assertions.log
+            restore-price-rehearsal.log
+            restore-stage-07-master.log
+            restore-stage-07-external-test.log
+            restore-stage-08-history.log
+            restore-stage-08-request-assertions.log
+            restore-stage-08-requests.log
+            restore-stage-08-request-concurrency.log
+            restore-stage-09-health-assertions.log
+            restore-stage-09-health.log
+            restore-database-scheduler.log
+            restore-fixture-capabilities.log
             restore-audit.log
 
       - name: Stop isolated database

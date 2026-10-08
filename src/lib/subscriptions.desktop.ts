@@ -2,14 +2,18 @@
 //
 // A fresh Tauri install has no entitlement cache yet. It must verify the real
 // authenticated company context before unlocking the Hub. Once that server-verified
-// snapshot exists, valid paid access can be read immediately from SQLite while a
-// background refresh reconciles billing/session changes.
+// snapshot exists, valid paid access can be read from SQLite while offline. When
+// connected, the same canonical server context used by Web always wins.
 import { supabase } from "@/integrations/supabase/client";
 import {
   isDentalFlowDesktop,
   localCacheGet,
   localCachePut,
+  getProvisionedDesktopIdentity,
+  provisionDesktopIdentity,
+  getOfflineAccessRevision,
 } from "./desktop-local";
+import { hasOfflineAccess } from "./offline-access-policy";
 import {
   resolveDesktopIdentity,
   resolveDesktopOwnerId,
@@ -24,9 +28,7 @@ export * from "./subscriptions";
 
 const SUBSCRIPTION_CACHE_NAMESPACE = "subscription-context:v2";
 const SUBSCRIPTION_CACHE_KEY = "current";
-let backgroundRefresh: Promise<MySubscriptionContext | null> | null = null;
-
-function locallySafeContext(context: MySubscriptionContext): MySubscriptionContext {
+export function locallySafeContext(context: MySubscriptionContext): MySubscriptionContext {
   if (context.effective_access !== "full") return context;
 
   const periodEnd = context.company?.current_period_end ?? null;
@@ -52,7 +54,8 @@ async function readCachedContext(ownerId: string | null) {
     SUBSCRIPTION_CACHE_NAMESPACE,
     SUBSCRIPTION_CACHE_KEY,
   ).catch(() => null);
-  return entry?.payload ? locallySafeContext(entry.payload) : null;
+  if (!entry?.payload || !hasOfflineAccess({ validated_at: entry.updated_at, valid_until: Number.MAX_SAFE_INTEGER })) return null;
+  return locallySafeContext(entry.payload);
 }
 
 async function persistContext(ownerId: string, context: MySubscriptionContext) {
@@ -65,6 +68,7 @@ async function persistContext(ownerId: string, context: MySubscriptionContext) {
 }
 
 async function fetchVerifiedCloudContext(): Promise<MySubscriptionContext | null> {
+  const revision = getOfflineAccessRevision();
   const identity = await resolveDesktopIdentity();
   if (!identity || identity.source !== "cloud") {
     throw new Error("A sessão online ainda não foi validada neste computador.");
@@ -81,30 +85,25 @@ async function fetchVerifiedCloudContext(): Promise<MySubscriptionContext | null
   );
 
   if (context) {
+    // Only an authoritative paid/privileged entitlement renews the 72-hour
+    // authorization. A local read, JWT refresh or failed RPC never extends it.
+    if (context.effective_access === "full") {
+      const previous = await getProvisionedDesktopIdentity();
+      const { data } = await supabase.auth.getSession();
+      if (revision !== getOfflineAccessRevision() || data.session?.user.id !== identity.userId
+        || data.session.user.user_metadata?.dentalflow_offline_device) {
+        throw new Error("A autorização offline expirou ou a conta mudou. Entre novamente online.");
+      }
+      await provisionDesktopIdentity({
+        userId: identity.userId,
+        email: data.session?.user.email ?? null,
+        fullName: previous?.user_id === identity.userId ? previous.full_name : null,
+        clinicId: previous?.user_id === identity.userId ? previous.clinic_id : null,
+      });
+    }
     await persistContext(identity.userId, context);
   }
   return context;
-}
-
-function refreshInBackground() {
-  if (backgroundRefresh) return backgroundRefresh;
-  backgroundRefresh = fetchVerifiedCloudContext()
-    .then((context) => {
-      if (context && typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("dentalflow:subscription-context-updated", { detail: context }),
-        );
-      }
-      return context;
-    })
-    .catch((error) => {
-      console.warn("[DentalFlow Desktop] Atualização da assinatura adiada", error);
-      return null;
-    })
-    .finally(() => {
-      backgroundRefresh = null;
-    });
-  return backgroundRefresh;
 }
 
 /**
@@ -137,13 +136,6 @@ export async function fetchMySubscriptionContext(): Promise<MySubscriptionContex
     throw new Error(
       "A assinatura desta conta ainda não foi validada neste computador. Conecte-se à internet ao menos uma vez.",
     );
-  }
-
-  // A still-valid paid snapshot can render the Hub immediately. The remote
-  // refresh runs concurrently and RLS remains the final authority for writes.
-  if (cached?.effective_access === "full") {
-    void refreshInBackground();
-    return cached;
   }
 
   try {

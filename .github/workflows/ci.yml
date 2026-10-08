@@ -5,6 +5,7 @@ on:
     branches: [main]
   push:
     branches:
+      - "saas/**"
       - "stabilization/**"
       - "feature/**"
       - "feat/**"
@@ -40,7 +41,9 @@ jobs:
         run: bun scripts/check-desktop-offline-regressions-040.mjs
 
       - name: Verify Desktop entitlement-first bootstrap
-        run: bun scripts/check-desktop-entitlement-bootstrap-032.mjs
+        run: |
+          bun scripts/check-desktop-entitlement-bootstrap-032.mjs
+          bun test src/lib/subscriptions.desktop.test.ts
 
       - name: Verify Desktop case dialogs and offline case creation
         run: bun scripts/check-desktop-case-dialog-offline.mjs
@@ -56,10 +59,29 @@ jobs:
           bun test src/lib/native-updates.test.ts
           bun scripts/check-native-update-center.mjs
 
-      - name: Verify SaaS Asaas adapter contract
+      - name: Verify SaaS Asaas lifecycle and plan quota contracts
         run: |
-          bun run check:saas:stage-02
-          bun test src/lib/billing/asaas.server.test.ts src/lib/billing/asaas-provisioning.server.test.ts
+          bun run check:saas:stage-06
+          bun run check:saas:stage-08
+          bun run check:saas:stage-09
+          node scripts/check-saas-worker-workflows.mjs
+          node scripts/check-asaas-production-preflight.mjs
+          node scripts/check-asaas-database-scheduler.mjs
+          bunx vitest run --configLoader runner src/lib/offline-access-policy.test.ts src/lib/desktop-local.offline-expiration.test.ts
+          bunx vitest run --configLoader runner src/lib/billing/asaas.server.test.ts src/lib/billing/asaas-provisioning.server.test.ts src/lib/billing/asaas-checkout.server.test.ts src/lib/billing/asaas-webhook.server.test.ts src/lib/billing/asaas-renewal.server.test.ts src/lib/billing/asaas-document.server.test.ts
+          bunx vitest run --configLoader runner src/lib/storage.test.ts
+          bunx vitest run --configLoader runner src/lib/api.storage.test.ts src/lib/team.functions.test.ts src/routes/-auth.password.test.tsx
+          bunx vitest run --configLoader runner src/lib/private-file-reference.test.ts src/lib/private-file-access.test.ts
+          bunx vitest run --configLoader runner src/lib/auth/master-mfa.test.ts src/lib/auth/master-session.test.ts src/lib/master-admin.test.ts
+          bunx vitest run --configLoader runner src/components/master/MasterPage.test.tsx
+          bunx vitest run --configLoader runner src/lib/confirm.test.tsx
+          bunx vitest run --configLoader runner src/components/StorageUploadReservations.test.tsx
+          bunx vitest run --configLoader runner src/lib/billing-change-requests.test.ts src/components/billing/BillingChangeRequestsPanel.test.tsx
+          bunx vitest run --configLoader runner src/lib/billing/asaas-cancel.server.test.ts src/lib/qa/fixture-acceptance.server.test.ts src/lib/qa/fixture-billing.server.test.ts src/lib/billing-cancel-request.test.ts src/components/master/MasterCancelRequest.test.tsx
+          bunx vitest run --configLoader runner src/lib/master-operational-health.test.ts src/lib/billing/asaas-worker-health.server.test.ts
+          bunx vitest run --configLoader runner src/lib/billing/asaas-production-preflight.server.test.ts
+          bunx vitest run --configLoader runner src/lib/billing/asaas-database-scheduler.server.test.ts
+          bunx vitest run --configLoader runner src/lib/billing/asaas-inbox-review.server.test.ts
 
       # The repository has substantial pre-existing formatting/lint debt.
       # A repo-wide lint gate currently reports thousands of legacy findings,

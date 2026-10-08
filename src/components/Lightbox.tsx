@@ -1,4 +1,7 @@
 import { useEffect } from "react";
+import { PrivateImage } from "@/components/PrivateImage";
+import { getPrivateFileScope, resolvePrivateFile } from "@/lib/private-file-access";
+import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, X, Download } from "lucide-react";
 import { usePreservePageScroll } from "@/hooks/use-preserve-page-scroll";
 
@@ -39,8 +42,15 @@ export function Lightbox({
         onClick={async (e) => {
           e.stopPropagation();
           try {
-            const res = await fetch(cur.url);
-            const blob = await res.blob();
+            const scope = getPrivateFileScope();
+            const resolution = await resolvePrivateFile(cur.url, scope);
+            let blob: Blob;
+            try {
+              const res = await fetch(resolution.url);
+              if (!res.ok) throw new Error("Não foi possível baixar a imagem.");
+              blob = await res.blob();
+            } finally { resolution.release?.(); }
+            if (getPrivateFileScope() !== scope) throw new Error("Sua sessão mudou. Abra a imagem novamente.");
             const href = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = href;
@@ -50,7 +60,7 @@ export function Lightbox({
             a.remove();
             setTimeout(() => URL.revokeObjectURL(href), 1000);
           } catch {
-            window.open(cur.url, "_blank");
+            toast.error("Não foi possível confirmar o acesso à imagem. Conecte-se e tente novamente.");
           }
         }}
         className="absolute top-4 right-16 text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-accent">
@@ -69,7 +79,7 @@ export function Lightbox({
           </button>
         </>
       )}
-      <img src={cur.url} alt={cur.name} onClick={(e) => e.stopPropagation()}
+      <PrivateImage src={cur.url} alt={cur.name} onClick={(e) => e.stopPropagation()}
         className="max-w-[92vw] max-h-[88vh] object-contain rounded-lg shadow-2xl" />
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-muted-foreground text-xs px-3 py-1 rounded-full bg-muted border border-border">
         {cur.name} · {index + 1}/{images.length}

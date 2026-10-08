@@ -1,0 +1,160 @@
+{
+  "contract": "dentalflow-external-test-review-release-v1",
+  "candidate_commit": "8d3bb8f640942d0bd0c6a88cb9a579c5684e92d5",
+  "merge_commit": "b90d72312432e2ce023287b2ac27217035b02369",
+  "pull_request": "https://github.com/GustavoFboz/dtfipo/pull/143",
+  "checks": {
+    "ci_run_id": 37385062205,
+    "ci_conclusion": "success",
+    "restore_run_ids": [
+      37385062195,
+      37385066488
+    ],
+    "restore_conclusion": "success",
+    "local_test_files": 15,
+    "local_tests_passed": 286,
+    "typecheck": "passed",
+    "build": "passed",
+    "stage_06": "passed",
+    "stage_09": "passed",
+    "desktop_bootstrap": "passed"
+  },
+  "isolated_restore": {
+    "run_id": 37385062195,
+    "job_id": 112016195952,
+    "artifact_id": 11378310399,
+    "artifact_name": "saas-stage-01-clean-restore-37385062195",
+    "zip_sha256": "c76960d3f7bc14061ea558518ee3674a696433f52dae99b10bf123c39f1a7d15",
+    "external_review_log_present": true,
+    "external_review_result": "passed",
+    "rolled_back": true
+  },
+  "migration": {
+    "path": "supabase/migrations/20261005223500_saas_master_external_test_review_stage07.sql",
+    "git_blob_sha": "0c4b3a98d4a534d26e8c51b742d0e95971aed8f2",
+    "restore_migration_count": 172
+  },
+  "before_installation": {
+    "audit_close_actions": 0,
+    "checked_at": "2026-10-05T22:52:53.51293+00:00",
+    "paid_contracts_hash": "1f9c587fe65ffea7a3395edbb40efc54",
+    "payment_ledger_hash": "78fd59357e8cfbf0ee9e82aa608c23cf",
+    "production_payments_count": 0,
+    "production_scheduler": null,
+    "review_function_already_installed": false,
+    "sandbox_scheduler": {
+      "configured_at": "2026-10-05T20:20:52.427494+00:00",
+      "cron_active": true,
+      "cron_job_id": 1,
+      "enabled": true,
+      "last_dispatched_at": "2026-10-05T22:51:00.055235+00:00",
+      "last_response_http_status": 200,
+      "last_response_timed_out": false,
+      "provider_environment": "sandbox",
+      "schedule": "1-59/5 * * * *"
+    }
+  },
+  "after_installation": {
+    "anon_can_review": false,
+    "audit_close_actions": 0,
+    "checked_at": "2026-10-05T22:54:09.648886+00:00",
+    "function_definition_md5": "6fe0122b1c2d0a641616551d3988c15d",
+    "manual_events": [
+      {
+        "attempt_count": 6,
+        "event_type": "PAYMENT_OVERDUE",
+        "id": "9ad8482e-eb0f-48fd-9ea5-aee5c4b776c2",
+        "status": "dead_letter"
+      },
+      {
+        "attempt_count": 6,
+        "event_type": "PAYMENT_RECEIVED",
+        "id": "ea41bc68-e051-4e52-b547-af2ac70e50a4",
+        "status": "dead_letter"
+      }
+    ],
+    "paid_contracts_hash": "1f9c587fe65ffea7a3395edbb40efc54",
+    "payment_ledger_hash": "78fd59357e8cfbf0ee9e82aa608c23cf",
+    "production_payments_count": 0,
+    "review_function_installed": true,
+    "service_can_review": false,
+    "user_can_invoke_guarded_review": true
+  },
+  "deployment": {
+    "status": "pending",
+    "deployment_id": "a34d0ef5-94b9-49a9-8e39-9366623582c0",
+    "url": "https://dtfipo.lovable.app",
+    "preview_url": "https://id-preview--a8b717e3-87ad-482d-8d4a-de81679507e0.lovable.app"
+  },
+  "publication": {
+    "master_route": {
+      "anonymous_session_screen_present": true,
+      "http_status": 200,
+      "observed_asset_paths": [
+        "/assets/api-mfdXuTed.js",
+        "/assets/billing-change-requests-CV53qcwV.js",
+        "/assets/button-BoIK-9hM.js",
+        "/assets/case-activity-ByZJkM2t.js",
+        "/assets/chunk-CMxvf4Kt.js",
+        "/assets/client-B7aNuHSk.js",
+        "/assets/ClientOnly-C3GOX-p7.js",
+        "/assets/createLucideIcon-DsQZXInX.js",
+        "/assets/desktop-cloud-DGElmfSM.js",
+        "/assets/desktop-identity-Bf31Iw9I.js",
+        "/assets/desktop-local-3IMKnfQz.js",
+        "/assets/dist-Cc0S-lj8.js",
+        "/assets/dist-Chrm94JT.js",
+        "/assets/dist-CMuFpO-J.js",
+        "/assets/dist-CngfMkla.js",
+        "/assets/dist-DG3bVIv2.js",
+        "/assets/dist-DwvDOAgu.js",
+        "/assets/dist-hmKBHs64.js",
+        "/assets/es2015-C8KmuGek.js",
+        "/assets/index-D8bhrw2t.js",
+        "/assets/invariant-DEEwAagU.js",
+        "/assets/jsx-runtime-sLPvdpSW.js",
+        "/assets/jszip.min-Bm_16osY.js",
+        "/assets/link-D483qTk-.js",
+        "/assets/master-LeE-kibw.js",
+        "/assets/native-KdYn1BUg.js",
+        "/assets/not-found-DIgawKw1.js",
+        "/assets/optimistic-DJGI5YOD.js",
+        "/assets/preload-helper-zJ_50EbN.js",
+        "/assets/react-cS1o3OVs.js",
+        "/assets/react-dom-Dvxju874.js",
+        "/assets/redirect-DmtLUW0N.js",
+        "/assets/root-DLTE-HSj.js",
+        "/assets/use-preserve-page-scroll-CKu-8wEa.js",
+        "/assets/useMatch-BuRatvOC.js"
+      ],
+      "probe_request_id": 37,
+      "response_record_created_at": "2026-10-05 22:55:36.882205+00",
+      "timed_out": false
+    },
+    "observed_master_asset": "/assets/master-LeE-kibw.js",
+    "master_asset": {
+      "explicit_attestation_present": true,
+      "guarded_review_rpc_present": true,
+      "http_status": 200,
+      "probe_request_id": 39,
+      "response_record_created_at": "2026-10-05 22:57:01.493572+00",
+      "review_entrypoint_present": true,
+      "review_submission_present": true,
+      "timed_out": false
+    },
+    "timestamp_note": "response_record_created_at is the pg_net response row created value, not guaranteed HTTP completion time."
+  },
+  "acceptance": {
+    "item": "1.1",
+    "status": "partial",
+    "actual_events_closed": false,
+    "close_audit_count": 0,
+    "required_next_action": "Responsible operator reviews both original Sandbox events through the published Master/AAL2 action; no technical service-role override.",
+    "global_accepted": 2,
+    "global_total": 23,
+    "percentage": 8.7
+  },
+  "provider_writes_invoked": false,
+  "financial_replay_invoked": false,
+  "production_activated": false
+}
