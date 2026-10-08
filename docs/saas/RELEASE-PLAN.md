@@ -1,12 +1,14 @@
 # DentalFlow SaaS — sete etapas restantes até vendas
 
-Atualizado em 05/10/2026, horário de Manaus. Este é o contador de conclusão
+Atualizado em 08/10/2026; as evidências novas registram horários UTC. Este é o contador de conclusão
 apresentado ao responsável. Os IDs 00–10 dos documentos técnicos permanecem
 para manter o histórico; não são um segundo protocolo.
 
 **Restam 7 de 7 etapas com aceites em aberto.** Há código e provas parciais
 em todas elas; um incremento aprovado não encerra automaticamente a etapa.
-Frente atual: **1/7, item 1.1 — correlação individual dos dois eventos pendentes**.
+Frente atual: **3/7, 4/7 e 5/7 — validações reais das duas fixtures**.
+Execução bloqueada pela indisponibilidade do Lovable Cloud; os dois eventos
+manuais também continuam aguardando revisão real do titular.
 O item 7.1 foi comprovado em 05/10, 13h49 de Manaus: chave real autenticada,
 aprovação geral, dados comerciais e documentação aprovados. Dados bancários
 estão PENDING e são registrados separadamente da aprovação geral.
@@ -32,7 +34,7 @@ A decisão real dos dois eventos permanece pendente.
 Ver [revisão](evidence/inbox-review-20261005.md).
 Meta de continuidade: [dez de 23 aceites](TARGET-10-OF-23.md), solicitada em
 05/10, 20h35 Manaus. A consulta de 00h35 UTC confirmou os dois eventos ainda
-pendentes e nenhuma auditoria de conclusão. Frente independente atual:
+pendentes e nenhuma auditoria de conclusão. Frente independente registrada em 06/10:
 **4/7, item 4.3**, referências, renovação e isolamento de arquivos privados.
 Ver [implementação e limites](PRIVATE-FILE-ACCESS.md); links históricos e
 validação autenticada publicada continuam pendentes, sem novo aceite integral.
@@ -143,3 +145,36 @@ o vencimento. Regra, limites, perda de alterações não sincronizadas e aceites
 por plataforma estão em [OFFLINE-72-HOURS.md](OFFLINE-72-HOURS.md).
 O contador verificável é [ACCEPTANCE-PROGRESS.md](ACCEPTANCE-PROGRESS.md);
 implementação parcial não equivale a autorização para vender.
+
+## Continuidade de 08/10/2026 — execução real bloqueada no Cloud
+
+O PR154 integrou os três tipos de job privado, com sessões reais em memória e
+capacidade dedicada de uso único. A validação de cobrança é exclusiva de
+Sandbox, com notificações desabilitadas, contrato conferido no provedor,
+ledger único e documento real. Armazenamento exercita caso, paciente, foto e
+avatar com reserva, quota, isolamento e limpeza dos próprios objetos de teste.
+Isso prepara os aceites; não os conclui.
+
+Passaram 414 testes em 22 arquivos, build e CI. Restore reproduz 175 migrações.
+A migração de limite empresarial para leitura de avatares foi aplicada às
+19h59min47s UTC; links históricos ainda exigem tratamento próprio. A publicação
+do PR154 foi solicitada, mas a sondagem publicada respondeu HTTP503; o diagnóstico
+não vincula os logs explicitamente ao HEAD e não comprova a publicação servida.
+
+O job de identidade enviado retornou HTTP403 antes da claim e não alterou
+contas. O diagnóstico independente confirmou backend_unreachable_db e
+HTTP503 na conexão Auth→banco; o motivo específico do 403 não foi exposto.
+A consulta SQL ficou indisponível. A prioridade operacional é recuperar o
+Cloud, conferir a publicação e preparar uma nova execução, preservando
+contratos, ledger, dados clínicos e a janela offline de 72 horas.
+
+O mínimo global de senha (oito caracteres) permanece pendente no painel Auth.
+As duas revisões manuais externas continuam exigindo a sessão Master/MFA do
+titular. Os cenários de webhook perdido, ciclo financeiro completo e
+preservação clínica não foram executados. Nenhum novo pagamento de Produção
+ou aceite integral foi registrado. **2/23 — 8,70%; 21 itens ainda abertos/parciais.**
+
+O diagnóstico pelo [plugin Lovable](https://lovable.dev/projects/a8b717e3-87ad-482d-8d4a-de81679507e0)
+consumiu 1,5 crédito; somado à consulta Auth de 0,8, o uso nesta continuidade
+foi de 2,3 dos cinco créditos autorizados. Não equivale ao saldo total da conta.
+[Evidências e sequência concreta de retomada](evidence/fixture-cloud-checkpoint-20261008.md).
