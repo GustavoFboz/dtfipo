@@ -243,11 +243,11 @@ export function GlobalSearch() {
           }
           const { data, error } = await supabase
             .from("doctors")
-            .select("id,name,crm_cro")
+            .select("id,name")
             .ilike("name", qContains)
             .limit(6);
           if (error) { console.warn("[DentalFlow Search] Busca avançada de dentistas indisponível", error); return; }
-          output.doctors = (data ?? []) as AdvancedResults["doctors"];
+          output.doctors = data ?? [];
         })(),
         (async () => {
           if (!advancedFilters.includes("team")) return;
