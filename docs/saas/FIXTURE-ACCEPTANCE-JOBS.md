@@ -70,3 +70,19 @@ o ajuste global continua pendente no painel Auth, seguido de nova prova real.
 
 Referências oficiais: [generateLink](https://supabase.com/docs/reference/javascript/auth-admin-generatelink)
 e [verifyOtp](https://supabase.com/docs/reference/javascript/auth-verifyotp).
+
+## Tentativa publicada e bloqueio — 08/10/2026
+
+O PR154 foi integrado com CI/build e restore aprovados. Um novo job de
+identidade foi preparado às 20h02min36s UTC e retornou HTTP403. Às
+20h03min34s UTC ele ainda estava prepared, sem claim/finalização/recibo e sem
+usuário descartável criado. O código da resposta não identifica falha de senha
+ou MFA. A credencial tinha validade de dez minutos e não pode ser reutilizada
+depois de expirar.
+
+O Cloud apresentou backend_unreachable_db e HTTP503 na conexão Auth→banco.
+A execução de cobrança e armazenamento não foi iniciada. Recuperar a
+disponibilidade, comprovar o HEAD servido e preparar um job novo são requisitos
+para continuar. Mínimo global de oito caracteres e papéis/acesso das fixtures
+precisam de conferência antes dos testes respectivos.
+[Checkpoint sem credenciais](evidence/fixture-cloud-checkpoint-20261008.md).
