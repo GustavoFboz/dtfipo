@@ -61,4 +61,15 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.saas_fixture_acceptance_jobs WHERE status='completed' AND token_hash IS NULL)
     THEN RAISE EXCEPTION 'CAPABILITY_RETAINED'; END IF;
 END $$;
+-- Isolated SQL role check only: the broad legacy avatar policy is intersected.
+SELECT set_config('request.jwt.claims','{"role":"authenticated","sub":"ee083f63-1621-4b82-b7a4-fd13427c0b14"}',true);
+SELECT set_config('request.jwt.claim.sub','ee083f63-1621-4b82-b7a4-fd13427c0b14',true);
+SET LOCAL ROLE authenticated;
+DO $$ BEGIN
+  IF NOT public.can_access_user_avatar('ee083f63-1621-4b82-b7a4-fd13427c0b14')
+    OR public.can_access_user_avatar('24e7cdf9-457e-4af2-b1cb-cf366abbddb0') THEN
+    RAISE EXCEPTION 'AVATAR_COMPANY_BOUNDARY_FAILED';
+  END IF;
+END $$;
+RESET ROLE;
 ROLLBACK;

@@ -5,15 +5,16 @@ import { z } from 'zod';
 const contract = 'dentalflow-fixture-acceptance-v1';
 const fixtureSchema = z.object({ user_id: z.string().uuid(), email: z.string().endsWith('@example.invalid'), clinic_id: z.string().uuid() });
 const jobSchema = z.object({ id: z.string().uuid(), kind: z.enum(['identity','storage','billing']), fixtures: z.array(fixtureSchema).length(2) });
-type Job = z.infer<typeof jobSchema>;
-type Check = { check: string; passed: boolean; http_status?: number; code?: string };
+export type Job = z.infer<typeof jobSchema>;
+export type Check = { check: string; passed: boolean; http_status?: number; code?: string;
+  resource_id?: string; state?: string; count?: number; amount_cents?: number; period_end?: string; digest?: string };
 type Receipt = { contract: string; kind: Job['kind']; passed: boolean; checked_at: string; checks: Check[]; fixture_ids: string[] };
 type Dependencies = {
   claim?: (id: string, hash: string) => Promise<unknown>;
   finish?: (id: string, receipt: Receipt) => Promise<boolean>;
   run?: (job: Job) => Promise<Check[]>;
 };
-class FixtureFailure extends Error {
+export class FixtureFailure extends Error {
   constructor(readonly safeCode: string, readonly httpStatus?: number) { super(safeCode); }
 }
 const reply = (status: number, body: object) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
@@ -76,7 +77,7 @@ async function finishJob(id: string, receipt: Receipt) {
   return data === true;
 }
 
-function publicClient(): SupabaseClient {
+export function publicClient(): SupabaseClient {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_ANON_KEY;
   if (!url || !key) throw new FixtureFailure('FIXTURE_AUTH_CONFIGURATION_MISSING');
@@ -93,7 +94,7 @@ export function fixturePublicFetch(key: string, transport: typeof fetch = fetch)
     return transport(input, { ...init, headers, signal: AbortSignal.timeout(6000) });
   };
 }
-function requireResult<R extends { error: unknown; data?: unknown }>(result: R, code: string): NonNullable<R['data']> {
+export function requireResult<R extends { error: unknown; data?: unknown }>(result: R, code: string): NonNullable<R['data']> {
   if (result.error) {
     const status = typeof result.error === 'object' && 'status' in result.error && typeof result.error.status === 'number'
       ? result.error.status : undefined;
@@ -103,6 +104,8 @@ function requireResult<R extends { error: unknown; data?: unknown }>(result: R, 
 }
 async function runJob(job: Job): Promise<Check[]> {
   if (job.kind === 'identity') return runIdentity(job);
+  if (job.kind === 'billing') return (await import('./fixture-billing.server')).runFixtureBilling(job);
+  if (job.kind === 'storage') return (await import('./fixture-storage.server')).runFixtureStorage(job);
   throw new FixtureFailure('FIXTURE_JOB_NOT_IMPLEMENTED');
 }
 
@@ -149,6 +152,9 @@ async function runIdentity(job: Job): Promise<Check[]> {
     checks.push({ check: 'signup_confirmation_consumed', passed: !!signup.user.email_confirmed_at });
     const weak = await signup.client.auth.updateUser({ password: 'Aa1!xy7' });
     checks.push({ check: 'short_credential_denied', passed: !!weak.error && weak.error.status === 422, http_status: weak.error?.status });
+    // A failed policy check may have changed the disposable account. Restore
+    // its known credential before independently testing recovery and login.
+    if (!weak.error) requireResult(await signup.client.auth.updateUser({ password: initial }), 'AUTH_FIXTURE_CREDENTIAL_RESTORE_FAILED');
     const login = publicClient();
     const logged = requireResult(await login.auth.signInWithPassword({ email: temporaryEmail, password: initial }), 'AUTH_CONFIRMED_LOGIN_FAILED');
     if (!logged.session || logged.user.id !== temporaryId) throw new FixtureFailure('AUTH_CONFIRMED_LOGIN_MISMATCH');
