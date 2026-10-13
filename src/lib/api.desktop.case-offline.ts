@@ -100,32 +100,33 @@ export async function createCase(input: Parameters<typeof createCaseBase>[0]) {
 
   if (!startedOffline || !created?.id) return created;
 
-  try {
-    const doctorUserId = String((created as any)?.doctor?.user_id ?? "").trim();
-    if (!doctorUserId) return created;
+  // A local notification is secondary work too: it must not delay the offline
+  // case appearing in the user's list.
+  void (async () => {
+    try {
+      const doctorUserId = String((created as any)?.doctor?.user_id ?? "").trim();
+      if (!doctorUserId) return;
 
-    const { data: auth } = await supabase.auth.getUser();
-    if (auth.user?.id === doctorUserId) return created;
+      const { data: auth } = await supabase.auth.getUser();
+      if (auth.user?.id === doctorUserId) return;
 
-    const patientName = String((created as any)?.patient?.name ?? "paciente").trim() || "paciente";
-    await sendInternalNotificationLocalFirst(
-      doctorUserId,
-      "Novo caso atribuído",
-      `Um novo caso de ${patientName} foi atribuído a você.`,
-      "case_assigned",
-      {
-        case_id: created.id,
-        case_label: patientName,
-        queued_offline: true,
-        source: "desktop_offline_case_create",
-      },
-    );
-  } catch (error) {
-    // Case creation must never be rolled back because a secondary notification
-    // could not be queued. The general case stakeholder path can still retry
-    // subsequent activity notifications.
-    console.warn("[DentalFlow Desktop] Não foi possível enfileirar a notificação do dentista", error);
-  }
+      const patientName = String((created as any)?.patient?.name ?? "paciente").trim() || "paciente";
+      await sendInternalNotificationLocalFirst(
+        doctorUserId,
+        "Novo caso atribuído",
+        `Um novo caso de ${patientName} foi atribuído a você.`,
+        "case_assigned",
+        {
+          case_id: created.id,
+          case_label: patientName,
+          queued_offline: true,
+          source: "desktop_offline_case_create",
+        },
+      );
+    } catch (error) {
+      console.warn("[DentalFlow Desktop] Não foi possível enfileirar a notificação do dentista", error);
+    }
+  })();
 
   return created;
 }
