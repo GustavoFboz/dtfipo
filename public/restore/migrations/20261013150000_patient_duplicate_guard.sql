@@ -80,8 +80,13 @@ BEGIN
         OR (
           v_cpf = '' AND v_rg = '' AND v_phone <> ''
           AND regexp_replace(COALESCE(p.phone, ''), '[^0-9]', '', 'g') = v_phone
-          AND NULLIF(trim(COALESCE(p.cpf, '')), '') IS NULL
-          AND NULLIF(trim(COALESCE(p.rg, '')), '') IS NULL
+          AND (
+            (v_cpf = '' AND v_rg = '')
+            OR (
+              NULLIF(trim(COALESCE(p.cpf, '')), '') IS NULL
+              AND NULLIF(trim(COALESCE(p.rg, '')), '') IS NULL
+            )
+          )
         )
       )
   ) INTO v_duplicate_identity;
