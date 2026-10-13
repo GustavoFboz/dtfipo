@@ -1045,18 +1045,8 @@ export function NewCaseDialog({
 
     },
     onSuccess: async (createdCase) => {
-      if (createdCase?.id) {
-        const row = createdCase;
-        qc.getQueriesData<CaseRow[]>({ queryKey: ["cases"] }).forEach(([key, old]) => {
-          if (!Array.isArray(old)) return;
-          const statusFilter = Array.isArray(key) ? key[1] : undefined;
-          if ((statusFilter === "active" || statusFilter === "finished") && row.status !== statusFilter) return;
-          const next = old.some((item) => item.id === row.id)
-            ? old.map((item) => item.id === row.id ? { ...item, ...row } : item)
-            : [row, ...old];
-          qc.setQueryData(key, next);
-        });
-      }
+      // The create/edit path already patches every matching case cache before
+      // returning. Avoid a second broad cache loop with incomplete status data.
       const queued = queuedUploadCountRef.current;
       toast.success(
         (isEdit ? "Caso atualizado" : "Caso cadastrado") +
