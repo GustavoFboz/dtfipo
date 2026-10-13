@@ -43,6 +43,7 @@ import { PatientCombobox } from "./PatientCombobox";
 import { sortTeeth } from "@/lib/teeth";
 import { applyToothModifierSelection } from "@/lib/tooth-selection";
 import { hasPatientIdentifier, normalizePatientName, patientDuplicateErrorMessage, samePatientIdentity } from "@/lib/patient-identity";
+import { savePatientLocalFirst } from "@/lib/patients-local-first";
 import type { PatientIdentityField } from "@/lib/patient-identity";
 import type { CaseRow } from "@/lib/types";
 import { applyCasePatchToCache } from "@/hooks/use-cases-realtime";
@@ -574,11 +575,23 @@ export function NewCaseDialog({
       patientCreateNameRef.current &&
       normalizePatientName(patientCreateNameRef.current) !== normalizedName
     ) {
-      const previous = await supabase.from("patients").select("id,name").eq("id", patientCreateIdRef.current).maybeSingle();
-      if (previous.data) {
+      const previousCached = (patients.data ?? []).find((patient) => patient.id === patientCreateIdRef.current);
+      let previousName = previousCached?.name ?? null;
+      if (!previousName && typeof navigator !== "undefined" && navigator.onLine !== false) {
+        try {
+          const previous = await supabase.from("patients").select("id,name").eq("id", patientCreateIdRef.current).maybeSingle();
+          previousName = previous.data?.name ?? null;
+        } catch {
+          throw new Error("A tentativa anterior pode ter salvo o paciente. Reconecte-se para confirmar antes de trocar o nome.");
+        }
+      }
+      if (previousName) {
         throw new Error(
-          `A tentativa anterior já salvou "${previous.data.name}". Selecione esse cadastro para evitar uma duplicata.`,
+          `A tentativa anterior já salvou "${previousName}". Selecione esse cadastro para evitar uma duplicata.`,
         );
+      }
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        throw new Error("Para evitar duplicidade, reconecte-se antes de alterar o nome deste paciente após uma tentativa de cadastro.");
       }
       patientCreateIdRef.current = null;
       patientCreateNameRef.current = null;
@@ -611,24 +624,13 @@ export function NewCaseDialog({
     }
 
     const insertValues = {
-      id: requestId,
       name,
       ...(newPatientIdentifierType && newPatientIdentifierValue.trim()
         ? { [newPatientIdentifierType]: newPatientIdentifierValue.trim() }
         : {}),
     };
-    const inserted = await supabase.from("patients").insert(insertValues as any).select("*").single();
-    let patient = inserted.data as any;
-    let error = inserted.error;
-
-    if (error?.code === "23505") {
-      const retry = await supabase.from("patients").select("*").eq("id", requestId).maybeSingle();
-      if (retry.data && normalizePatientName(retry.data.name) === normalizedName) {
-        patient = retry.data;
-        error = null;
-      }
-    }
-    if (error) throw new Error(patientDuplicateErrorMessage(error) ?? error.message);
+    const saved = await savePatientLocalFirst(insertValues, null, requestId);
+    const patient = saved.patient as any;
     if (!patient?.id) throw new Error("Não foi possível confirmar o cadastro do paciente.");
     return patient;
   };
