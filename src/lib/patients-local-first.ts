@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Patient } from "@/lib/types";
+import { normalizePatientName, patientDuplicateErrorMessage } from "@/lib/patient-identity";
 import {
   clearDoneOutbox,
   enqueueOutbox,
@@ -234,10 +235,11 @@ export async function warmPatientLocalCache() {
 export async function savePatientLocalFirst(
   values: Record<string, unknown>,
   existing?: Patient | null,
+  requestId?: string,
 ): Promise<PatientWriteResult> {
   const ownerId = await requireOwnerId();
   const operation = existing ? "update" : "create";
-  const id = existing?.id ?? makeUuid();
+  const id = existing?.id ?? requestId ?? makeUuid();
   const localPatient = buildLocalPatient(id, values, existing);
 
   const persistOffline = async () => {
@@ -260,12 +262,28 @@ export async function savePatientLocalFirst(
 
   try {
     if (operation === "create") {
-      const { data, error } = await supabase
+      const inserted = await supabase
         .from("patients")
         .insert({ id, ...values } as any)
         .select("*")
         .single();
-      if (error) throw error;
+      let data = inserted.data as any;
+      let error = inserted.error;
+
+      if (error && error.code === "23505" && requestId) {
+        // The original insert may have committed before its response was lost.
+        const retry = await supabase.from("patients").select("*").eq("id", id).maybeSingle();
+        if (
+          !retry.error &&
+          retry.data &&
+          normalizePatientName(retry.data.name) === normalizePatientName(values.name)
+        ) {
+          data = retry.data;
+          error = null;
+        }
+      }
+
+      if (error) throw new Error(patientDuplicateErrorMessage(error) ?? error.message);
       const patient = data as unknown as Patient;
       if (isDentalFlowDesktop()) await upsertCachedPatient(ownerId, patient);
       return { patient, queued: false, operation };
