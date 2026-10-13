@@ -4,3 +4,5 @@
 - [ ] Recuperação sem envio: bloqueada pela restrição de emissão administrativa de links de acesso; requer meio autorizado específico.
 - [ ] Uploads/armazenamento e aplicações instaladas: fora da investigação curta de configuração Auth; requer aceite específico de fluxo e ambiente.
 - [x] Relatar resultados reais e resíduos sem credenciais, identificadores ou dados pessoais.
+- [ ] Criação rápida: confirmação transacional/idempotente, paciente por ID e distinção de homônimos, cache essencial e Realtime em Web/Windows/Android.
+- [ ] Validar testes de criação, regressões offline/Realtime/SaaS e bundle; aplicação da migration e aceite real aguardam execução autorizada pelo titular.
