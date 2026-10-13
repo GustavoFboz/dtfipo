@@ -1,5 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Patient } from "@/lib/types";
+import { createPatientConfirmed } from "./creation-rpc";
+import { assertDistinctPatient, possiblePatientMatches } from "./patient-matches";
+import { fetchProfileLocalFirst } from "./reference-local-first";
 import {
   clearDoneOutbox,
   enqueueOutbox,
@@ -234,10 +237,18 @@ export async function warmPatientLocalCache() {
 export async function savePatientLocalFirst(
   values: Record<string, unknown>,
   existing?: Patient | null,
+  attempt?: { key: string; patientId: string },
 ): Promise<PatientWriteResult> {
   const ownerId = await requireOwnerId();
   const operation = existing ? "update" : "create";
-  const id = existing?.id ?? makeUuid();
+  const id = existing?.id ?? attempt?.patientId ?? makeUuid();
+  const key = attempt?.key ?? id;
+  if (!existing) {
+    const profile = await fetchProfileLocalFirst();
+    if (!profile?.clinic_id) throw new Error("Empresa não identificada para cadastrar paciente.");
+    values = { ...values, clinic_id: profile.clinic_id };
+    assertDistinctPatient(values, possiblePatientMatches(await fetchPatientsLocalFirst(), String(values.name ?? ""), profile.clinic_id));
+  }
   const localPatient = buildLocalPatient(id, values, existing);
 
   const persistOffline = async () => {
@@ -250,7 +261,7 @@ export async function savePatientLocalFirst(
       entityType: PATIENT_ENTITY,
       entityId: id,
       operation,
-      payload: operation === "create" ? { id, ...values } : values,
+      payload: operation === "create" ? { id, ...values, idempotency_key: key } : values,
       baseVersion: null,
     });
     return { patient: localPatient, queued: true, operation } as PatientWriteResult;
@@ -260,13 +271,7 @@ export async function savePatientLocalFirst(
 
   try {
     if (operation === "create") {
-      const { data, error } = await supabase
-        .from("patients")
-        .insert({ id, ...values } as any)
-        .select("*")
-        .single();
-      if (error) throw error;
-      const patient = data as unknown as Patient;
+      const patient = await createPatientConfirmed(values, key, id);
       if (isDentalFlowDesktop()) await upsertCachedPatient(ownerId, patient);
       return { patient, queued: false, operation };
     }
@@ -323,13 +328,9 @@ async function syncPatientEntry(ownerId: string, entry: OutboxEntry<Record<strin
 
   try {
     if (entry.operation === "create") {
-      const { data, error } = await supabase
-        .from("patients")
-        .upsert(entry.payload as any, { onConflict: "id" })
-        .select("*")
-        .single();
-      if (error) throw error;
-      await upsertCachedPatient(ownerId, data as unknown as Patient);
+      const { idempotency_key, id, ...values } = entry.payload;
+      const patient = await createPatientConfirmed(values, String(idempotency_key ?? id ?? entry.entity_id), String(id ?? entry.entity_id));
+      await upsertCachedPatient(ownerId, patient);
     } else if (entry.operation === "update") {
       if (!entry.entity_id) throw new Error("Alteração local sem identificador de paciente.");
       const { data, error } = await supabase
