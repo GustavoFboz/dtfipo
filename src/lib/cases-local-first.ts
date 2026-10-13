@@ -254,8 +254,17 @@ export async function createCaseLocalFirst(input: OfflineCreateInput) {
     try {
       const created = await cloud.createCase(input);
       if (created?.id) {
-        for (const row of created.created_cases ?? [created]) {
-          await upsert(owner, row).catch((error) => console.warn("Case mirror deferred", error));
+        const rows = created.created_cases ?? [created];
+        await Promise.all(rows.map((row) =>
+          upsert(owner, row).catch((error) => console.warn("Case mirror deferred", error)),
+        ));
+        // Hydrate joined patient/professional data after the confirmed row has
+        // been mirrored. This must not delay closing the creation dialog.
+        for (const row of rows) {
+          if (!row?.id) continue;
+          void cloud.fetchCaseById(row.id)
+            .then((full) => full ? upsert(owner, full).catch((error) => console.warn("Case detail mirror deferred", error)) : undefined)
+            .catch((error) => console.warn("Case detail hydration deferred", error));
         }
       }
       return created;

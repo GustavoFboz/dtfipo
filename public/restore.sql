@@ -17968,6 +17968,1153 @@ CREATE POLICY avatars_company_read_boundary ON storage.objects AS RESTRICTIVE
   );
 NOTIFY pgrst, 'reload schema';
 
+-- ===== 20261013150000_patient_duplicate_guard.sql =====
+
+-- Guard patient identity at the database boundary without making names globally unique.
+-- The clinic-scoped advisory lock serializes concurrent inserts with the same normalized name.
+CREATE OR REPLACE FUNCTION public.guard_patient_duplicate_identity()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_actor_clinic uuid;
+  v_clinic uuid;
+  v_name text;
+  v_old_name text;
+  v_cpf text;
+  v_rg text;
+  v_phone text;
+  v_duplicate_name boolean;
+  v_duplicate_identity boolean;
+BEGIN
+  IF auth.uid() IS NOT NULL AND TG_OP = 'INSERT' THEN
+    v_actor_clinic := public.storage_current_clinic_id();
+    IF v_actor_clinic IS NULL THEN
+      RAISE EXCEPTION 'PATIENT_CLINIC_REQUIRED' USING ERRCODE = '42501';
+    END IF;
+    IF NEW.clinic_id IS NOT NULL AND NEW.clinic_id IS DISTINCT FROM v_actor_clinic THEN
+      RAISE EXCEPTION 'PATIENT_CLINIC_MISMATCH' USING ERRCODE = '42501';
+    END IF;
+    NEW.clinic_id := v_actor_clinic;
+  ELSIF auth.uid() IS NOT NULL AND TG_OP = 'UPDATE'
+      AND NEW.clinic_id IS DISTINCT FROM OLD.clinic_id THEN
+    RAISE EXCEPTION 'PATIENT_CLINIC_MISMATCH' USING ERRCODE = '42501';
+  END IF;
+
+  v_clinic := COALESCE(NEW.clinic_id, public.resolve_patient_clinic_id(NEW.id));
+  v_name := public.normalize_text(
+    regexp_replace(trim(COALESCE(NEW.name, concat_ws(' ', NEW.first_name, NEW.last_name))), '[[:space:]]+', ' ', 'g')
+  );
+  v_cpf := regexp_replace(COALESCE(NEW.cpf, ''), '[^0-9]', '', 'g');
+  v_rg := public.normalize_text(regexp_replace(trim(COALESCE(NEW.rg, '')), '[^[:alnum:]]', '', 'g'));
+  v_phone := regexp_replace(COALESCE(NEW.phone, ''), '[^0-9]', '', 'g');
+
+  IF v_clinic IS NULL OR v_name = '' THEN
+    RETURN NEW;
+  END IF;
+
+  -- Existing legacy duplicates are not auto-merged or blocked from unrelated
+  -- edits. Revalidate only when the identity fields actually change.
+  IF TG_OP = 'UPDATE' THEN
+    v_old_name := public.normalize_text(
+      regexp_replace(trim(COALESCE(OLD.name, concat_ws(' ', OLD.first_name, OLD.last_name))), '[[:space:]]+', ' ', 'g')
+    );
+    IF v_old_name = v_name
+      AND regexp_replace(COALESCE(OLD.cpf, ''), '[^0-9]', '', 'g') = v_cpf
+      AND public.normalize_text(regexp_replace(trim(COALESCE(OLD.rg, '')), '[^[:alnum:]]', '', 'g')) = v_rg
+      AND regexp_replace(COALESCE(OLD.phone, ''), '[^0-9]', '', 'g') = v_phone
+      AND NEW.clinic_id IS NOT DISTINCT FROM OLD.clinic_id THEN
+      RETURN NEW;
+    END IF;
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(hashtextextended(v_clinic::text || ':' || v_name, 0));
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.patients p
+    WHERE p.id IS DISTINCT FROM NEW.id
+      AND (
+        p.clinic_id = v_clinic
+        OR (p.clinic_id IS NULL AND public.resolve_patient_clinic_id(p.id) = v_clinic)
+      )
+      AND public.normalize_text(regexp_replace(trim(COALESCE(p.name, '')), '[[:space:]]+', ' ', 'g')) = v_name
+  ) INTO v_duplicate_name;
+
+  IF NOT v_duplicate_name THEN
+    RETURN NEW;
+  END IF;
+
+  IF v_cpf = '' AND v_rg = '' AND v_phone = '' THEN
+    RAISE EXCEPTION 'PATIENT_DUPLICATE_NAME_REQUIRES_IDENTIFIER'
+      USING ERRCODE = '23514',
+      HINT = 'Informe CPF, RG ou telefone para cadastrar outra pessoa com o mesmo nome.';
+  END IF;
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.patients p
+    WHERE p.id IS DISTINCT FROM NEW.id
+      AND (
+        p.clinic_id = v_clinic
+        OR (p.clinic_id IS NULL AND public.resolve_patient_clinic_id(p.id) = v_clinic)
+      )
+      AND public.normalize_text(regexp_replace(trim(COALESCE(p.name, '')), '[[:space:]]+', ' ', 'g')) = v_name
+      AND (
+        (v_cpf <> '' AND regexp_replace(COALESCE(p.cpf, ''), '[^0-9]', '', 'g') = v_cpf)
+        OR (v_rg <> '' AND public.normalize_text(regexp_replace(trim(COALESCE(p.rg, '')), '[^[:alnum:]]', '', 'g')) = v_rg)
+        OR (
+          v_phone <> ''
+          AND regexp_replace(COALESCE(p.phone, ''), '[^0-9]', '', 'g') = v_phone
+          AND (
+            (v_cpf = '' AND v_rg = '')
+            OR (
+              NULLIF(trim(COALESCE(p.cpf, '')), '') IS NULL
+              AND NULLIF(trim(COALESCE(p.rg, '')), '') IS NULL
+            )
+          )
+        )
+      )
+  ) INTO v_duplicate_identity;
+
+  IF v_duplicate_identity THEN
+    RAISE EXCEPTION 'PATIENT_DUPLICATE_IDENTITY_EXISTS'
+      USING ERRCODE = '23505',
+      HINT = 'Selecione o paciente existente em vez de criar uma duplicata.';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.guard_patient_duplicate_identity() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.guard_patient_duplicate_identity() TO authenticated, service_role;
+
+DROP TRIGGER IF EXISTS trg_patients_duplicate_guard ON public.patients;
+CREATE TRIGGER trg_patients_duplicate_guard
+BEFORE INSERT OR UPDATE OF name, cpf, rg, phone, clinic_id
+ON public.patients
+FOR EACH ROW
+EXECUTE FUNCTION public.guard_patient_duplicate_identity();
+
+NOTIFY pgrst, 'reload schema';
+
+-- ===== 20261013160000_creation_idempotency_rpc.sql =====
+
+-- Transactional, idempotent patient/case creation.
+-- The UI never falls back to a non-idempotent INSERT when these RPCs are missing.
+ALTER TABLE public.cases
+  ADD COLUMN IF NOT EXISTS has_mockup boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS prosthesis_groups jsonb NOT NULL DEFAULT '[]'::jsonb;
+
+CREATE TABLE IF NOT EXISTS public.creation_requests (
+  idempotency_key uuid PRIMARY KEY,
+  actor_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  operation text NOT NULL CHECK (operation IN ('patient', 'case')),
+  request_hash text NOT NULL,
+  result jsonb NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS creation_requests_actor_created_idx
+  ON public.creation_requests (actor_id, created_at DESC);
+
+ALTER TABLE public.creation_requests ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON TABLE public.creation_requests FROM PUBLIC, anon, authenticated;
+GRANT ALL ON TABLE public.creation_requests TO service_role;
+
+CREATE OR REPLACE FUNCTION public.create_patient_idempotent_v1(
+  _key uuid,
+  _id uuid,
+  _values jsonb
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $
+DECLARE
+  v_actor uuid := auth.uid();
+  v_clinic uuid;
+  v_hash text;
+  v_name text;
+  v_name_normalized text;
+  v_cpf text;
+  v_rg text;
+  v_phone text;
+  v_duplicate_name boolean := false;
+  v_duplicate_identity boolean := false;
+  v_request public.creation_requests%ROWTYPE;
+  v_patient public.patients%ROWTYPE;
+  v_existing public.patients%ROWTYPE;
+  v_result jsonb;
+BEGIN
+  IF v_actor IS NULL THEN
+    RAISE EXCEPTION 'NOT_AUTHENTICATED' USING ERRCODE = '28000';
+  END IF;
+  IF _key IS NULL OR _id IS NULL OR _values IS NULL OR jsonb_typeof(_values) <> 'object' THEN
+    RAISE EXCEPTION 'INVALID_CREATION_ATTEMPT' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT p.clinic_id
+    INTO v_clinic
+    FROM public.profiles p
+   WHERE p.id = v_actor;
+
+  IF v_clinic IS NULL THEN
+    RAISE EXCEPTION 'PATIENT_CLINIC_REQUIRED' USING ERRCODE = '42501';
+  END IF;
+  IF NOT COALESCE(public.company_has_operational_access(v_clinic), false) THEN
+    RAISE EXCEPTION 'PATIENT_COMPANY_MISMATCH' USING ERRCODE = '42501';
+  END IF;
+  IF NULLIF(_values->>'clinic_id', '') IS NOT NULL
+     AND NULLIF(_values->>'clinic_id', '')::uuid IS DISTINCT FROM v_clinic THEN
+    RAISE EXCEPTION 'PATIENT_CLINIC_MISMATCH' USING ERRCODE = '42501';
+  END IF;
+
+  v_name := trim(regexp_replace(
+    COALESCE(
+      NULLIF(trim(_values->>'name'), ''),
+      concat_ws(' ', NULLIF(trim(_values->>'first_name'), ''), NULLIF(trim(_values->>'last_name'), ''))
+    ),
+    '[[:space:]]+', ' ', 'g'
+  ));
+  IF COALESCE(v_name, '') = '' THEN
+    RAISE EXCEPTION 'PATIENT_NAME_REQUIRED' USING ERRCODE = '22023';
+  END IF;
+
+  v_name_normalized := public.normalize_text(v_name);
+  v_cpf := regexp_replace(COALESCE(_values->>'cpf', ''), '[^0-9]', '', 'g');
+  v_rg := public.normalize_text(regexp_replace(trim(COALESCE(_values->>'rg', '')), '[^[:alnum:]]', '', 'g'));
+  v_phone := regexp_replace(COALESCE(_values->>'phone', ''), '[^0-9]', '', 'g');
+  v_hash := md5(jsonb_build_object('id', _id, 'values', _values)::text);
+
+  PERFORM pg_advisory_xact_lock(hashtextextended('dentalflow:creation:' || _key::text, 0));
+
+  SELECT *
+    INTO v_request
+    FROM public.creation_requests r
+   WHERE r.idempotency_key = _key
+   FOR UPDATE;
+
+  IF FOUND THEN
+    IF v_request.actor_id IS DISTINCT FROM v_actor
+       OR v_request.operation IS DISTINCT FROM 'patient'
+       OR v_request.request_hash IS DISTINCT FROM v_hash THEN
+      RAISE EXCEPTION 'CREATION_KEY_CONFLICT' USING ERRCODE = '23505';
+    END IF;
+
+    SELECT *
+      INTO v_existing
+      FROM public.patients p
+     WHERE p.id = NULLIF(v_request.result->>'id', '')::uuid
+     FOR UPDATE;
+
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'CREATION_KEY_CONFLICT' USING ERRCODE = '23505';
+    END IF;
+    IF COALESCE(v_existing.clinic_id, public.resolve_patient_clinic_id(v_existing.id)) IS DISTINCT FROM v_clinic THEN
+      RAISE EXCEPTION 'CREATION_KEY_CONFLICT' USING ERRCODE = '23505';
+    END IF;
+    RETURN to_jsonb(v_existing);
+  END IF;
+
+  SELECT *
+    INTO v_existing
+    FROM public.patients p
+   WHERE p.id = _id
+   FOR UPDATE;
+
+  IF FOUND THEN
+    IF COALESCE(v_existing.clinic_id, public.resolve_patient_clinic_id(v_existing.id)) IS DISTINCT FROM v_clinic
+       OR public.normalize_text(regexp_replace(trim(COALESCE(v_existing.name, '')), '[[:space:]]+', ' ', 'g')) IS DISTINCT FROM v_name_normalized
+       OR (v_cpf <> '' AND regexp_replace(COALESCE(v_existing.cpf, ''), '[^0-9]', '', 'g') IS DISTINCT FROM v_cpf)
+       OR (v_rg <> '' AND public.normalize_text(regexp_replace(trim(COALESCE(v_existing.rg, '')), '[^[:alnum:]]', '', 'g')) IS DISTINCT FROM v_rg)
+       OR (v_phone <> '' AND regexp_replace(COALESCE(v_existing.phone, ''), '[^0-9]', '', 'g') IS DISTINCT FROM v_phone) THEN
+      RAISE EXCEPTION 'CREATION_KEY_CONFLICT' USING ERRCODE = '23505';
+    END IF;
+    v_patient := v_existing;
+  ELSE
+    SELECT EXISTS (
+      SELECT 1
+        FROM public.patients p
+       WHERE p.id IS DISTINCT FROM _id
+         AND (
+           p.clinic_id = v_clinic
+           OR (p.clinic_id IS NULL AND public.resolve_patient_clinic_id(p.id) = v_clinic)
+         )
+         AND public.normalize_text(regexp_replace(trim(COALESCE(p.name, '')), '[[:space:]]+', ' ', 'g')) = v_name_normalized
+    ) INTO v_duplicate_name;
+
+    IF v_duplicate_name THEN
+      IF v_cpf = '' AND v_rg = '' AND v_phone = '' THEN
+        RAISE EXCEPTION 'PATIENT_NAME_MATCH'
+          USING ERRCODE = '23514',
+          HINT = 'Selecione o paciente existente ou informe CPF, RG ou telefone.';
+      END IF;
+
+      SELECT EXISTS (
+        SELECT 1
+          FROM public.patients p
+         WHERE p.id IS DISTINCT FROM _id
+           AND (
+             p.clinic_id = v_clinic
+             OR (p.clinic_id IS NULL AND public.resolve_patient_clinic_id(p.id) = v_clinic)
+           )
+           AND public.normalize_text(regexp_replace(trim(COALESCE(p.name, '')), '[[:space:]]+', ' ', 'g')) = v_name_normalized
+           AND (
+             (v_cpf <> '' AND regexp_replace(COALESCE(p.cpf, ''), '[^0-9]', '', 'g') = v_cpf)
+             OR (v_rg <> '' AND public.normalize_text(regexp_replace(trim(COALESCE(p.rg, '')), '[^[:alnum:]]', '', 'g')) = v_rg)
+             OR (
+               v_phone <> ''
+               AND regexp_replace(COALESCE(p.phone, ''), '[^0-9]', '', 'g') = v_phone
+               AND (
+                 (v_cpf = '' AND v_rg = '')
+                 OR (
+                   NULLIF(trim(COALESCE(p.cpf, '')), '') IS NULL
+                   AND NULLIF(trim(COALESCE(p.rg, '')), '') IS NULL
+                 )
+               )
+             )
+           )
+      ) INTO v_duplicate_identity;
+
+      IF v_duplicate_identity THEN
+        RAISE EXCEPTION 'PATIENT_DUPLICATE_IDENTITY_EXISTS'
+          USING ERRCODE = '23505',
+          HINT = 'Selecione o paciente existente em vez de criar uma duplicata.';
+      END IF;
+    END IF;
+
+    INSERT INTO public.patients (
+      id, name, first_name, last_name, age, birth_date, gender,
+      cpf, rg, phone, email, address, medical_history, allergies,
+      medications, clinical_notes, notes, photo_url, clinic_id
+    ) VALUES (
+      _id,
+      v_name,
+      NULLIF(trim(_values->>'first_name'), ''),
+      NULLIF(trim(_values->>'last_name'), ''),
+      CASE WHEN NULLIF(_values->>'age', '') ~ '^[0-9]+
+
+-- =====================================================================
+-- SELF-HEAL v2 — idempotente. Roda depois de todo o restore.
+-- Consolida ajustes recorrentes descobertos em restaurações reais para
+-- não precisar corrigir manualmente após reconstruir o projeto do zip.
+--
+-- Cobre:
+--   1. Coluna requirements (jsonb) em public.stages (novo sistema de
+--      "exigir na etapa" com dropdown de tipos).
+--   2. RPCs advance_case_workflow / return_case_workflow /
+--      case_stage_requirement_blockers (fluxo com bloqueio por requisito).
+--   3. Função export_backup + backend_schema_hash (botão "Backup Backend").
+--   4. Coluna stock_items.type (texto livre) usada pelo dialog de estoque.
+--   5. Tabela stock_item_custom_fields (campos personalizados dos itens).
+--   6. Backfill: garantir clinic_id em profiles CEO/DR + criar clinics.
+--   7. Skip email confirmation para o primeiro CEO cadastrado.
+-- =====================================================================
+
+-- 1) requirements em stages ---------------------------------------------
+ALTER TABLE public.stages ADD COLUMN IF NOT EXISTS requirements jsonb NOT NULL DEFAULT '[]'::jsonb;
+
+-- Migra flag legada para o novo formato quando ainda não houver requisitos
+UPDATE public.stages
+   SET requirements = jsonb_build_array(jsonb_build_object(
+         'type', 'implant_components',
+         'blocks_advance', 'true'))
+ WHERE COALESCE(requires_implant_components, false) = true
+   AND (requirements IS NULL OR jsonb_typeof(requirements) <> 'array' OR jsonb_array_length(requirements) = 0);
+
+-- 2) stock_items.type + stock_item_custom_fields ------------------------
+ALTER TABLE public.stock_items ADD COLUMN IF NOT EXISTS type text;
+
+CREATE TABLE IF NOT EXISTS public.stock_item_custom_fields (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  stock_item_id uuid NOT NULL REFERENCES public.stock_items(id) ON DELETE CASCADE,
+  key text NOT NULL,
+  value text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_sicf_item ON public.stock_item_custom_fields(stock_item_id);
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.stock_item_custom_fields TO authenticated;
+GRANT ALL ON public.stock_item_custom_fields TO service_role;
+ALTER TABLE public.stock_item_custom_fields ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid='public.stock_item_custom_fields'::regclass AND polname='sicf_staff_all') THEN
+    CREATE POLICY sicf_staff_all ON public.stock_item_custom_fields
+      FOR ALL TO authenticated
+      USING (public.is_staff(auth.uid()))
+      WITH CHECK (public.is_staff(auth.uid()));
+  END IF;
+END $$;
+
+-- 3) RPCs de fluxo -------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.case_stage_requirement_blockers(_case_id uuid)
+RETURNS text[]
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path=public
+AS $$
+DECLARE
+  v_case public.cases%ROWTYPE;
+  v_requirements jsonb := '[]'::jsonb;
+  v_req jsonb;
+  v_type text;
+  v_blocks boolean;
+  v_blockers text[] := ARRAY[]::text[];
+  v_implant_teeth integer[];
+  v_missing_implants integer[];
+BEGIN
+  SELECT * INTO v_case FROM public.cases WHERE id = _case_id;
+  IF NOT FOUND THEN RETURN ARRAY['Caso não encontrado']; END IF;
+
+  SELECT COALESCE(s.requirements,'[]'::jsonb) INTO v_requirements FROM public.stages s WHERE s.id = v_case.current_stage_id;
+  IF v_requirements IS NULL OR jsonb_typeof(v_requirements) <> 'array' THEN RETURN ARRAY[]::text[]; END IF;
+
+  FOR v_req IN SELECT value FROM jsonb_array_elements(v_requirements) LOOP
+    v_blocks := lower(COALESCE(v_req->>'blocks_advance','false')) = 'true';
+    IF NOT v_blocks THEN CONTINUE; END IF;
+    v_type := v_req->>'type';
+
+    IF v_type = 'implant_components' THEN
+      v_implant_teeth := COALESCE(v_case.implant_teeth, ARRAY[]::integer[]);
+      IF COALESCE(array_length(v_implant_teeth,1),0) = 0 THEN CONTINUE; END IF;
+      SELECT array_agg(t ORDER BY t) INTO v_missing_implants
+        FROM unnest(v_implant_teeth) AS t
+        WHERE NOT EXISTS (SELECT 1 FROM public.case_implant_teeth cit
+                          WHERE cit.case_id=_case_id AND cit.tooth_fdi=t AND cit.reversed_at IS NULL);
+      IF COALESCE(array_length(v_missing_implants,1),0) > 0 THEN
+        v_blockers := array_append(v_blockers,
+          'Apontar componente para dentes com implantes (' || array_to_string(v_missing_implants, ', ') || ')');
+      END IF;
+    ELSIF v_type = 'download_scans' THEN
+      IF NOT EXISTS (SELECT 1 FROM public.case_activity ca
+        WHERE ca.case_id=_case_id AND ca.kind='download' AND ca.metadata->>'kind'='scans')
+      THEN v_blockers := array_append(v_blockers, 'Baixar arquivos da aba "Escaneamentos"'); END IF;
+    ELSIF v_type = 'upload_models' THEN
+      IF NOT EXISTS (SELECT 1 FROM public.case_attachments a
+        WHERE a.case_id=_case_id AND a.kind='model' AND a.expired_at IS NULL)
+      THEN v_blockers := array_append(v_blockers, 'Enviar arquivo na aba "Modelos"'); END IF;
+    ELSIF v_type = 'upload_fabrication' THEN
+      IF NOT EXISTS (SELECT 1 FROM public.case_attachments a
+        WHERE a.case_id=_case_id AND a.kind='fabrication' AND a.expired_at IS NULL)
+      THEN v_blockers := array_append(v_blockers, 'Enviar arquivo na aba "Confecção"'); END IF;
+    ELSIF v_type = 'upload_html' THEN
+      IF NOT EXISTS (SELECT 1 FROM public.case_attachments a
+        WHERE a.case_id=_case_id AND a.kind='exocad_html' AND a.expired_at IS NULL)
+      THEN v_blockers := array_append(v_blockers, 'Enviar arquivo na aba "Html"'); END IF;
+    ELSIF v_type = 'upload_gallery' THEN
+      IF NOT EXISTS (SELECT 1 FROM public.case_attachments a
+        WHERE a.case_id=_case_id AND a.kind='gallery' AND a.expired_at IS NULL)
+      THEN v_blockers := array_append(v_blockers, 'Enviar imagem na aba "Galeria"'); END IF;
+    END IF;
+  END LOOP;
+  RETURN v_blockers;
+END $$;
+
+-- 4) Backfill de clinic_id para CEO/DR ----------------------------------
+DO $$
+DECLARE r record; new_clinic uuid;
+BEGIN
+  FOR r IN SELECT id, role FROM public.profiles WHERE clinic_id IS NULL AND role IN ('CEO','DR') LOOP
+    new_clinic := gen_random_uuid();
+    UPDATE public.profiles SET clinic_id = new_clinic WHERE id = r.id;
+  END LOOP;
+END $$;
+
+-- 5) handle_new_user cria clinic para o primeiro usuário ---------------
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public
+AS $$
+DECLARE v_role text; v_full_name text; is_first boolean; v_clinic uuid;
+BEGIN
+  SELECT NOT EXISTS (SELECT 1 FROM public.profiles) INTO is_first;
+  v_role := COALESCE(new.raw_user_meta_data->>'role', CASE WHEN is_first THEN 'CEO' ELSE 'USER' END);
+  v_full_name := COALESCE(new.raw_user_meta_data->>'full_name', new.email);
+  v_clinic := CASE WHEN is_first OR v_role IN ('CEO','DR') THEN gen_random_uuid() ELSE NULL END;
+  INSERT INTO public.profiles (id, full_name, email, role, is_default_admin, clinic_id)
+    VALUES (new.id, v_full_name, new.email, v_role, is_first, v_clinic)
+    ON CONFLICT (id) DO NOTHING;
+  IF is_first THEN
+    INSERT INTO public.user_roles (user_id, role) VALUES (new.id, 'admin') ON CONFLICT DO NOTHING;
+    -- Skip email confirmation para o primeiro CEO
+    UPDATE auth.users SET email_confirmed_at = COALESCE(email_confirmed_at, now()),
+                          confirmed_at = COALESCE(confirmed_at, now())
+      WHERE id = new.id;
+  END IF;
+  IF v_role = 'CADISTA' THEN INSERT INTO public.cadistas (name, user_id) VALUES (v_full_name, new.id); END IF;
+  RETURN new;
+END $$;
+
+-- 6) Re-executa hardening geral: GRANTs, EXECUTE em funções ------------
+-- 6a) case_implant_teeth + RPCs register/remove ------------------------
+CREATE TABLE IF NOT EXISTS public.case_implant_teeth (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id uuid NOT NULL REFERENCES public.cases(id) ON DELETE CASCADE,
+  tooth_fdi integer NOT NULL,
+  implant_system_id uuid REFERENCES public.implant_systems(id) ON DELETE SET NULL,
+  stock_item_id uuid NOT NULL REFERENCES public.stock_items(id) ON DELETE RESTRICT,
+  qty numeric NOT NULL DEFAULT 1,
+  reversed_at timestamptz,
+  created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_cit_case ON public.case_implant_teeth(case_id) WHERE reversed_at IS NULL;
+ALTER TABLE public.case_implant_teeth ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid='public.case_implant_teeth'::regclass AND polname='cit_select') THEN
+    CREATE POLICY cit_select ON public.case_implant_teeth FOR SELECT TO authenticated USING (public.can_access_case(case_id));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policy WHERE polrelid='public.case_implant_teeth'::regclass AND polname='cit_write') THEN
+    CREATE POLICY cit_write ON public.case_implant_teeth FOR ALL TO authenticated
+      USING (public.can_access_case(case_id)) WITH CHECK (public.can_access_case(case_id));
+  END IF;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.register_case_implant_tooth(_case_id uuid, _tooth_fdi integer, _stock_item_id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $fn$
+DECLARE v_system uuid; v_id uuid; v_qty numeric;
+BEGIN
+  IF NOT public.can_access_case(_case_id) THEN RETURN jsonb_build_object('success', false, 'error', 'Sem permissão'); END IF;
+  SELECT isc.implant_system_id INTO v_system FROM public.stock_items si
+    LEFT JOIN public.implant_system_components isc ON isc.id = si.implant_system_component_id
+   WHERE si.id = _stock_item_id;
+  SELECT qty_on_hand INTO v_qty FROM public.stock_items WHERE id = _stock_item_id FOR UPDATE;
+  IF v_qty IS NULL THEN RETURN jsonb_build_object('success', false, 'error', 'Item de estoque não encontrado'); END IF;
+  IF v_qty < 1 THEN RETURN jsonb_build_object('success', false, 'error', 'Estoque insuficiente'); END IF;
+  UPDATE public.case_implant_teeth SET reversed_at = now()
+   WHERE case_id = _case_id AND tooth_fdi = _tooth_fdi AND reversed_at IS NULL;
+  INSERT INTO public.case_implant_teeth (case_id, tooth_fdi, implant_system_id, stock_item_id, qty, created_by)
+    VALUES (_case_id, _tooth_fdi, v_system, _stock_item_id, 1, auth.uid()) RETURNING id INTO v_id;
+  INSERT INTO public.stock_movements (stock_item_id, type, qty, case_id, user_id, notes)
+    VALUES (_stock_item_id, 'auto_case'::stock_movement_type, -1, _case_id, auth.uid(),
+            'Apontamento implante · dente ' || _tooth_fdi::text);
+  RETURN jsonb_build_object('success', true, 'id', v_id);
+EXCEPTION WHEN OTHERS THEN RETURN jsonb_build_object('success', false, 'error', SQLERRM);
+END $fn$;
+
+CREATE OR REPLACE FUNCTION public.remove_case_implant_tooth(_id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $fn$
+DECLARE v_row public.case_implant_teeth%ROWTYPE;
+BEGIN
+  SELECT * INTO v_row FROM public.case_implant_teeth WHERE id = _id;
+  IF NOT FOUND THEN RETURN jsonb_build_object('success', false, 'error', 'Registro não encontrado'); END IF;
+  IF NOT public.can_access_case(v_row.case_id) THEN RETURN jsonb_build_object('success', false, 'error', 'Sem permissão'); END IF;
+  IF v_row.reversed_at IS NOT NULL THEN RETURN jsonb_build_object('success', true); END IF;
+  UPDATE public.case_implant_teeth SET reversed_at = now() WHERE id = _id;
+  INSERT INTO public.stock_movements (stock_item_id, type, qty, case_id, user_id, notes)
+    VALUES (v_row.stock_item_id, 'reverse_case'::stock_movement_type, v_row.qty, v_row.case_id, auth.uid(),
+            'Reversão implante · dente ' || v_row.tooth_fdi::text);
+  RETURN jsonb_build_object('success', true);
+EXCEPTION WHEN OTHERS THEN RETURN jsonb_build_object('success', false, 'error', SQLERRM);
+END $fn$;
+
+DO $$ DECLARE r record; BEGIN
+  FOR r IN SELECT tablename FROM pg_tables WHERE schemaname='public' LOOP
+    EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO authenticated', r.tablename);
+    EXECUTE format('GRANT ALL ON public.%I TO service_role', r.tablename);
+  END LOOP;
+  FOR r IN SELECT p.oid::regprocedure AS sig FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' LOOP
+    EXECUTE format('GRANT EXECUTE ON FUNCTION %s TO authenticated, service_role', r.sig);
+  END LOOP;
+END $$;
+
+-- Restore-only SQL executors are intentionally available while historical
+-- migrations are replayed, but must never survive in the restored database.
+DROP FUNCTION IF EXISTS public.__restore_exec(text);
+DROP FUNCTION IF EXISTS _restore.exec_sql(text);
+DROP SCHEMA IF EXISTS _restore;
+
+-- Financial and fiscal boundaries must be restored after the legacy blanket
+-- grants above. Client roles may read/update only through explicitly validated
+-- RPCs; provider identities and authoritative state changes remain backend-only.
+REVOKE ALL ON FUNCTION public.billing_subscription_contract_amount(uuid)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.billing_subscription_contract_amount(uuid)
+  TO service_role;
+-- Storage reservations are another authoritative ledger: the old blanket
+-- grant must not allow clients to erase or forge usage after restore.
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.storage_files
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.reserve_storage_upload(
+  bigint,text,text,text,uuid,uuid,text,text
+), public.complete_storage_upload(uuid,text), public.cancel_storage_upload(uuid),
+  public.delete_managed_storage_file(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.storage_upload_has_reservation_for_insert(text,text,jsonb),
+  public.release_storage_upload_reservation(uuid,uuid) FROM PUBLIC, anon;
+
+REVOKE ALL ON TABLE public.company_billing_profiles
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.billing_provider_customers
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.billing_provider_operations
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.billing_test_access
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.billing_test_tokens
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.billing_event_replays
+  FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON TABLE public.platform_operators, public.platform_operator_audit
+  FROM PUBLIC, anon, authenticated;
+
+GRANT ALL ON TABLE public.company_billing_profiles TO service_role;
+GRANT ALL ON TABLE public.billing_provider_customers TO service_role;
+GRANT ALL ON TABLE public.billing_provider_operations TO service_role;
+GRANT ALL ON TABLE public.billing_test_access TO service_role;
+GRANT ALL ON TABLE public.billing_test_tokens TO service_role;
+GRANT SELECT ON TABLE public.billing_event_replays TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.platform_operators TO service_role;
+GRANT SELECT ON TABLE public.platform_operator_audit TO service_role;
+
+-- Stage 08 requests are private instructions, not a new browser billing ledger.
+REVOKE ALL ON TABLE public.billing_change_requests, public.billing_change_request_events
+  FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.billing_change_requests, public.billing_change_request_events TO service_role;
+REVOKE ALL ON FUNCTION public.billing_change_request_quote(uuid,text,text),
+  public.billing_change_request_summary(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.billing_change_request_quote(uuid,text,text),
+  public.billing_change_request_summary(uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.billing_company_change_context(uuid),
+  public.billing_submit_change_request(uuid,uuid,text,text,text),
+  public.billing_withdraw_change_request(uuid,uuid), public.platform_master_billing_change_requests(text)
+  FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.billing_company_change_context(uuid),
+  public.billing_submit_change_request(uuid,uuid,text,text,text),
+  public.billing_withdraw_change_request(uuid,uuid), public.platform_master_billing_change_requests(text)
+  TO authenticated;
+
+REVOKE ALL ON FUNCTION public.billing_apply_checkout_paid(
+  uuid,text,text,text,text,timestamptz,timestamptz
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_subscription_state(
+  uuid,text,timestamptz,timestamptz,timestamptz,text,text,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_bind_asaas_customer(uuid,text,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_bind_asaas_subscription(uuid,text,text,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_claim_provider_operation(text,text,text,text,text,integer)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_finish_provider_operation(uuid,uuid,text,text,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_get_asaas_provisioning_context(uuid,uuid,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_get_checkout_provisioning_context(uuid,uuid,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_mark_asaas_checkout_ready(
+  uuid,uuid,text,text,text,text,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_receive_asaas_event(text,text,text,jsonb)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_claim_asaas_events(text,integer)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_finish_asaas_event(uuid,uuid,text,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_asaas_initial_payment(
+  uuid,uuid,text,text,text,integer,date,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_asaas_payment_lifecycle(
+  uuid,uuid,text,text,text,integer,date,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_asaas_subscription_lifecycle(
+  uuid,uuid,text,text,text,integer,text,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_list_asaas_expired_grace(text,integer)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_suspend_asaas_expired_grace(
+  uuid,text,text,text,text,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_replay_asaas_event(text,text,text,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_claim_asaas_reconciliation_candidates(text,integer)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_get_asaas_payment_document_context(uuid,uuid,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_valid_br_tax_id(text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.set_clinic_storage_entitlement(
+  uuid,text,text,bigint,text,text,text,text,boolean
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.recalculate_clinic_storage_limit(uuid)
+  FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION public.billing_apply_checkout_paid(
+  uuid,text,text,text,text,timestamptz,timestamptz
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_subscription_state(
+  uuid,text,timestamptz,timestamptz,timestamptz,text,text,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_bind_asaas_customer(uuid,text,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_bind_asaas_subscription(uuid,text,text,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_claim_provider_operation(text,text,text,text,text,integer)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_finish_provider_operation(uuid,uuid,text,text,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_get_asaas_provisioning_context(uuid,uuid,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_get_checkout_provisioning_context(uuid,uuid,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_mark_asaas_checkout_ready(
+  uuid,uuid,text,text,text,text,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_receive_asaas_event(text,text,text,jsonb)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_claim_asaas_events(text,integer)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_finish_asaas_event(uuid,uuid,text,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_asaas_initial_payment(
+  uuid,uuid,text,text,text,integer,date,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_asaas_payment_lifecycle(
+  uuid,uuid,text,text,text,integer,date,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_asaas_subscription_lifecycle(
+  uuid,uuid,text,text,text,integer,text,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_list_asaas_expired_grace(text,integer)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_suspend_asaas_expired_grace(
+  uuid,text,text,text,text,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_replay_asaas_event(text,text,text,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_claim_asaas_reconciliation_candidates(text,integer)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_get_asaas_payment_document_context(uuid,uuid,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_valid_br_tax_id(text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.set_clinic_storage_entitlement(
+  uuid,text,text,bigint,text,text,text,text,boolean
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.recalculate_clinic_storage_limit(uuid)
+  TO service_role;
+
+REVOKE ALL ON FUNCTION public.billing_get_company_profile(uuid)
+  FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.billing_upsert_company_profile(
+  uuid,text,text,text,text,text,text,text,text,text,text,text
+) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.billing_get_company_profile(uuid)
+  TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.billing_upsert_company_profile(
+  uuid,text,text,text,text,text,text,text,text,text,text,text
+) TO authenticated, service_role;
+
+-- Stage 09 operational telemetry stays private after generic self-heal grants.
+REVOKE ALL ON TABLE public.billing_worker_health FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.billing_worker_health TO service_role;
+REVOKE ALL ON FUNCTION public.billing_record_worker_health(text,uuid,text,jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.billing_record_worker_health(text,uuid,text,jsonb) TO service_role;
+REVOKE ALL ON FUNCTION public.platform_master_operational_health() FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.platform_master_operational_health() TO authenticated;
+
+-- Trigger-only case authorization must not inherit legacy blanket grants.
+REVOKE ALL ON FUNCTION public.guard_case_company_write() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.resolve_case_clinic_id(uuid), public.can_access_case(uuid), public.can_modify_case(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.resolve_case_clinic_id(uuid), public.can_access_case(uuid), public.can_modify_case(uuid) TO authenticated, service_role;
+
+-- Scheduler credentials and dispatch remain private after blanket grants.
+-- Manual external-test review keeps the same operator/AAL2 boundary after restore.
+REVOKE ALL ON FUNCTION public.platform_master_close_external_sandbox_test(text,text,text,boolean)
+  FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.platform_master_close_external_sandbox_test(text,text,text,boolean)
+  TO authenticated;
+
+REVOKE ALL ON TABLE public.billing_database_scheduler,
+  net.http_request_queue, net._http_response FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.billing_enqueue_database_worker(text), public.billing_database_scheduler_boundary()
+  FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.billing_configure_database_scheduler(text,text),
+  public.billing_disable_database_scheduler(text), public.billing_database_scheduler_status(text)
+  FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.billing_configure_database_scheduler(text,text),
+  public.billing_disable_database_scheduler(text), public.billing_database_scheduler_status(text)
+  TO service_role;
+
+-- Cancellation executor: reseal after generic function grants above.
+REVOKE ALL ON TABLE public.billing_cancel_executions FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.billing_cancel_executions TO service_role;
+REVOKE ALL ON FUNCTION public.billing_cancel_master_identity() FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.platform_master_claim_cancel_request(uuid,text,text,boolean),
+  public.platform_master_begin_cancel_write(uuid,uuid) FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.platform_master_claim_cancel_request(uuid,text,text,boolean),
+  public.platform_master_begin_cancel_write(uuid,uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.billing_finish_cancel_request(uuid,uuid,jsonb,text) FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.billing_finish_cancel_request(uuid,uuid,jsonb,text) TO service_role;
+
+-- Fixture acceptance capabilities remain private after generic self-heal.
+REVOKE ALL ON FUNCTION public.can_access_user_avatar(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.can_access_user_avatar(uuid) TO authenticated, service_role;
+REVOKE ALL ON TABLE public.saas_fixture_acceptance_jobs FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.saas_claim_fixture_acceptance_job(uuid,text),
+  public.saas_finish_fixture_acceptance_job(uuid,jsonb) FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.saas_claim_fixture_acceptance_job(uuid,text),
+  public.saas_finish_fixture_acceptance_job(uuid,jsonb) TO service_role;
+ THEN (_values->>'age')::integer ELSE NULL END,
+      CASE WHEN NULLIF(_values->>'birth_date', '') IS NULL THEN NULL ELSE (_values->>'birth_date')::date END,
+      NULLIF(_values->>'gender', ''),
+      NULLIF(_values->>'cpf', ''),
+      NULLIF(_values->>'rg', ''),
+      NULLIF(_values->>'phone', ''),
+      NULLIF(_values->>'email', ''),
+      NULLIF(_values->>'address', ''),
+      NULLIF(_values->>'medical_history', ''),
+      NULLIF(_values->>'allergies', ''),
+      NULLIF(_values->>'medications', ''),
+      NULLIF(_values->>'clinical_notes', ''),
+      NULLIF(_values->>'notes', ''),
+      NULLIF(_values->>'photo_url', ''),
+      v_clinic
+    )
+    RETURNING * INTO v_patient;
+  END IF;
+
+  v_result := to_jsonb(v_patient);
+  INSERT INTO public.creation_requests (idempotency_key, actor_id, operation, request_hash, result)
+  VALUES (_key, v_actor, 'patient', v_hash, v_result);
+
+  RETURN v_result;
+END;
+$;
+
+REVOKE ALL ON FUNCTION public.create_patient_idempotent_v1(uuid, uuid, jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_patient_idempotent_v1(uuid, uuid, jsonb) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.create_case_idempotent_v1(
+  _key uuid,
+  _input jsonb
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $
+DECLARE
+  v_actor uuid := auth.uid();
+  v_clinic uuid;
+  v_role text;
+  v_hash text;
+  v_request public.creation_requests%ROWTYPE;
+  v_case public.cases%ROWTYPE;
+  v_existing public.cases%ROWTYPE;
+  v_main_case public.cases%ROWTYPE;
+  v_sibling_case public.cases%ROWTYPE;
+  v_patient_id uuid;
+  v_main_id uuid;
+  v_sibling_id uuid;
+  v_case_id uuid;
+  v_case_type_id uuid;
+  v_doctor_id uuid;
+  v_cadista_id uuid;
+  v_tooth_color_id uuid;
+  v_implant_system_id uuid;
+  v_scan_jig_id uuid;
+  v_stage_id uuid;
+  v_phase_id uuid;
+  v_requested_by uuid;
+  v_entry_date date;
+  v_delivery_date date;
+  v_arch text;
+  v_also_arch text;
+  v_row_arch text;
+  v_sibling_for_row uuid;
+  v_status text;
+  v_case_label text;
+  v_folder_url text;
+  v_notes text;
+  v_has_provisional boolean;
+  v_has_mockup boolean;
+  v_teeth_numbers integer[] := ARRAY[]::integer[];
+  v_teeth_zirconia integer[] := ARRAY[]::integer[];
+  v_teeth_dissilicato integer[] := ARRAY[]::integer[];
+  v_implant_teeth integer[] := ARRAY[]::integer[];
+  v_implant_system_ids uuid[] := ARRAY[]::uuid[];
+  v_case_type_ids jsonb := '[]'::jsonb;
+  v_component_ids jsonb := '[]'::jsonb;
+  v_tooth_case_types jsonb := '{}'::jsonb;
+  v_tooth_implant_systems jsonb := '{}'::jsonb;
+  v_prosthesis_groups jsonb := '[]'::jsonb;
+  v_gum_info jsonb;
+  v_case_ids uuid[];
+  v_arches text[];
+  v_split boolean := false;
+  v_replayed boolean := false;
+  v_case_rows jsonb := '[]'::jsonb;
+  v_result jsonb;
+  v_case_id_text text;
+  v_i integer;
+BEGIN
+  IF v_actor IS NULL THEN
+    RAISE EXCEPTION 'NOT_AUTHENTICATED' USING ERRCODE = '28000';
+  END IF;
+  IF _key IS NULL OR _input IS NULL OR jsonb_typeof(_input) <> 'object' THEN
+    RAISE EXCEPTION 'INVALID_CREATION_ATTEMPT' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT p.clinic_id,
+         upper(COALESCE(NULLIF(trim(p.account_subtype), ''), NULLIF(trim(p.role::text), ''), ''))
+    INTO v_clinic, v_role
+    FROM public.profiles p
+   WHERE p.id = v_actor;
+
+  IF v_clinic IS NULL OR NOT COALESCE(public.company_has_operational_access(v_clinic), false) THEN
+    RAISE EXCEPTION 'CASE_COMPANY_WRITE_NOT_ALLOWED' USING ERRCODE = '42501';
+  END IF;
+
+  v_hash := md5(_input::text);
+  PERFORM pg_advisory_xact_lock(hashtextextended('dentalflow:creation:' || _key::text, 0));
+
+  SELECT *
+    INTO v_request
+    FROM public.creation_requests r
+   WHERE r.idempotency_key = _key
+   FOR UPDATE;
+
+  IF FOUND THEN
+    IF v_request.actor_id IS DISTINCT FROM v_actor
+       OR v_request.operation IS DISTINCT FROM 'case'
+       OR v_request.request_hash IS DISTINCT FROM v_hash THEN
+      RAISE EXCEPTION 'CREATION_KEY_CONFLICT' USING ERRCODE = '23505';
+    END IF;
+
+    v_main_id := NULLIF(v_request.result->'case'->>'id', '')::uuid;
+    SELECT * INTO v_main_case FROM public.cases c WHERE c.id = v_main_id;
+    IF NOT FOUND OR NOT public.can_access_patient(v_main_case.patient_id) THEN
+      RAISE EXCEPTION 'CASE_COMPANY_WRITE_NOT_ALLOWED' USING ERRCODE = '42501';
+    END IF;
+
+    FOR v_case_id_text IN
+      SELECT item.value->>'id'
+        FROM jsonb_array_elements(COALESCE(v_request.result->'cases', '[]'::jsonb)) AS item(value)
+    LOOP
+      SELECT * INTO v_case FROM public.cases c WHERE c.id = v_case_id_text::uuid;
+      IF NOT FOUND OR NOT public.can_access_patient(v_case.patient_id) THEN
+        RAISE EXCEPTION 'CREATION_KEY_CONFLICT' USING ERRCODE = '23505';
+      END IF;
+      v_case_rows := v_case_rows || jsonb_build_array(to_jsonb(v_case));
+    END LOOP;
+
+    RETURN jsonb_build_object('case', to_jsonb(v_main_case), 'cases', v_case_rows, 'replayed', true);
+  END IF;
+
+  v_patient_id := NULLIF(_input->>'patient_id', '')::uuid;
+  IF v_patient_id IS NULL OR NOT EXISTS (SELECT 1 FROM public.patients p WHERE p.id = v_patient_id) THEN
+    RAISE EXCEPTION 'PATIENT_NOT_FOUND' USING ERRCODE = '23503';
+  END IF;
+
+  v_entry_date := COALESCE(NULLIF(_input->>'entry_date', '')::date, CURRENT_DATE);
+  v_delivery_date := NULLIF(_input->>'delivery_date', '')::date;
+  IF v_delivery_date IS NULL THEN
+    RAISE EXCEPTION 'CASE_DELIVERY_DATE_REQUIRED' USING ERRCODE = '22023';
+  END IF;
+
+  v_doctor_id := NULLIF(_input->>'doctor_id', '')::uuid;
+  v_cadista_id := NULLIF(_input->>'cadista_id', '')::uuid;
+  v_tooth_color_id := NULLIF(_input->>'tooth_color_id', '')::uuid;
+  v_case_label := NULLIF(_input->>'case_label', '');
+  v_folder_url := NULLIF(_input->>'folder_url', '');
+  v_notes := NULLIF(_input->>'notes', '');
+  v_has_provisional := COALESCE(NULLIF(_input->>'has_provisional', '')::boolean, false);
+  v_has_mockup := COALESCE(NULLIF(_input->>'has_mockup', '')::boolean, false);
+  v_scan_jig_id := NULLIF(_input->>'scan_jig_id', '')::uuid;
+  v_gum_info := CASE WHEN jsonb_typeof(_input->'gum_info') = 'object' THEN _input->'gum_info' ELSE NULL END;
+  v_tooth_case_types := CASE WHEN jsonb_typeof(_input->'tooth_case_types') = 'object' THEN _input->'tooth_case_types' ELSE '{}'::jsonb END;
+  v_tooth_implant_systems := CASE WHEN jsonb_typeof(_input->'tooth_implant_systems') = 'object' THEN _input->'tooth_implant_systems' ELSE '{}'::jsonb END;
+  v_prosthesis_groups := CASE WHEN jsonb_typeof(_input->'prosthesis_groups') = 'array' THEN _input->'prosthesis_groups' ELSE '[]'::jsonb END;
+  v_component_ids := CASE WHEN jsonb_typeof(_input->'component_ids') = 'array' THEN _input->'component_ids' ELSE '[]'::jsonb END;
+
+  IF jsonb_typeof(_input->'case_type_ids') = 'array' AND jsonb_array_length(_input->'case_type_ids') > 0 THEN
+    v_case_type_ids := _input->'case_type_ids';
+  ELSIF NULLIF(_input->>'case_type_id', '') IS NOT NULL THEN
+    v_case_type_ids := jsonb_build_array(_input->>'case_type_id');
+  END IF;
+  v_case_type_id := COALESCE(NULLIF(_input->>'case_type_id', '')::uuid, NULLIF(v_case_type_ids->>0, '')::uuid);
+
+  SELECT COALESCE(array_agg(item.value::integer), ARRAY[]::integer[])
+    INTO v_teeth_numbers
+    FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(_input->'teeth_numbers') = 'array' THEN _input->'teeth_numbers' ELSE '[]'::jsonb END) AS item(value)
+   WHERE item.value IS NOT NULL AND item.value <> '';
+  SELECT COALESCE(array_agg(item.value::integer), ARRAY[]::integer[])
+    INTO v_teeth_zirconia
+    FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(_input->'teeth_zirconia') = 'array' THEN _input->'teeth_zirconia' ELSE '[]'::jsonb END) AS item(value)
+   WHERE item.value IS NOT NULL AND item.value <> '';
+  SELECT COALESCE(array_agg(item.value::integer), ARRAY[]::integer[])
+    INTO v_teeth_dissilicato
+    FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(_input->'teeth_dissilicato') = 'array' THEN _input->'teeth_dissilicato' ELSE '[]'::jsonb END) AS item(value)
+   WHERE item.value IS NOT NULL AND item.value <> '';
+  SELECT COALESCE(array_agg(item.value::integer), ARRAY[]::integer[])
+    INTO v_implant_teeth
+    FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(_input->'implant_teeth') = 'array' THEN _input->'implant_teeth' ELSE '[]'::jsonb END) AS item(value)
+   WHERE item.value IS NOT NULL AND item.value <> '';
+  SELECT COALESCE(array_agg(item.value::uuid), ARRAY[]::uuid[])
+    INTO v_implant_system_ids
+    FROM jsonb_array_elements_text(CASE WHEN jsonb_typeof(_input->'implant_system_ids') = 'array' THEN _input->'implant_system_ids' ELSE '[]'::jsonb END) AS item(value)
+   WHERE item.value IS NOT NULL AND item.value <> '';
+
+  v_implant_system_id := COALESCE(NULLIF(_input->>'implant_system_id', '')::uuid, v_implant_system_ids[1]);
+  IF cardinality(v_implant_system_ids) = 0 AND v_implant_system_id IS NOT NULL THEN
+    v_implant_system_ids := ARRAY[v_implant_system_id];
+  END IF;
+
+  v_stage_id := NULLIF(_input->>'current_stage_id', '')::uuid;
+  IF v_stage_id IS NULL THEN
+    SELECT s.id INTO v_stage_id FROM public.stages s ORDER BY s.position ASC LIMIT 1;
+  END IF;
+  v_phase_id := COALESCE(NULLIF(_input->>'current_phase_id', '')::uuid,
+    (SELECT s.phase_id FROM public.stages s WHERE s.id = v_stage_id));
+
+  v_requested_by := CASE
+    WHEN v_role = 'SOLICITANTE' THEN COALESCE(NULLIF(_input->>'requested_by', '')::uuid, v_actor)
+    ELSE NULL
+  END;
+  v_status := CASE WHEN v_role = 'SOLICITANTE' THEN 'pendente' ELSE 'em_andamento' END;
+
+  v_main_id := COALESCE(NULLIF(_input->>'id', '')::uuid, gen_random_uuid());
+  v_arch := NULLIF(_input->>'arch', '');
+  v_also_arch := NULLIF(_input->>'also_arch', '');
+  v_split := v_arch IS NOT NULL AND v_also_arch IS NOT NULL AND v_arch IS DISTINCT FROM v_also_arch;
+
+  IF v_split THEN
+    v_sibling_id := COALESCE(NULLIF(_input->>'also_arch_id', '')::uuid, gen_random_uuid());
+    IF v_sibling_id = v_main_id THEN
+      RAISE EXCEPTION 'CREATION_KEY_CONFLICT' USING ERRCODE = '23505';
+    END IF;
+    v_case_ids := ARRAY[v_main_id, v_sibling_id];
+    v_arches := ARRAY[v_arch, v_also_arch];
+  ELSE
+    v_case_ids := ARRAY[v_main_id];
+    v_arches := ARRAY[v_arch];
+  END IF;
+
+  FOR v_i IN 1..array_length(v_case_ids, 1) LOOP
+    v_case_id := v_case_ids[v_i];
+    v_row_arch := v_arches[v_i];
+    v_sibling_for_row := CASE WHEN v_split AND v_i = 2 THEN v_main_id ELSE NULL END;
+
+    SELECT * INTO v_case FROM public.cases c WHERE c.id = v_case_id FOR UPDATE;
+    IF FOUND THEN
+      IF v_case.patient_id IS DISTINCT FROM v_patient_id
+         OR v_case.entry_date IS DISTINCT FROM v_entry_date
+         OR v_case.delivery_date IS DISTINCT FROM v_delivery_date
+         OR v_case.arch IS DISTINCT FROM v_row_arch
+         OR v_case.case_type_id IS DISTINCT FROM v_case_type_id THEN
+        RAISE EXCEPTION 'CREATION_KEY_CONFLICT' USING ERRCODE = '23505';
+      END IF;
+      IF NOT public.can_access_patient(v_case.patient_id) THEN
+        RAISE EXCEPTION 'CASE_COMPANY_WRITE_NOT_ALLOWED' USING ERRCODE = '42501';
+      END IF;
+      v_replayed := true;
+    ELSE
+      INSERT INTO public.cases (
+        id, patient_id, doctor_id, cadista_id, case_type_id, tooth_color_id,
+        case_label, entry_date, delivery_date, folder_url, current_stage_id,
+        current_phase_id, sibling_case_id, arch, notes, teeth_numbers,
+        elements_count, elements_zirconia, elements_dissilicato,
+        teeth_zirconia, teeth_dissilicato, tooth_case_types, implant_system_id,
+        implant_system_ids, has_provisional, has_mockup, implant_teeth,
+        scan_jig_id, gum_info, tooth_implant_systems, prosthesis_groups,
+        requested_by, status
+      ) VALUES (
+        v_case_id, v_patient_id, v_doctor_id, v_cadista_id, v_case_type_id, v_tooth_color_id,
+        v_case_label, v_entry_date, v_delivery_date, v_folder_url, v_stage_id,
+        v_phase_id, v_sibling_for_row, v_row_arch, v_notes, v_teeth_numbers,
+        cardinality(v_teeth_numbers), cardinality(v_teeth_zirconia), cardinality(v_teeth_dissilicato),
+        v_teeth_zirconia, v_teeth_dissilicato, v_tooth_case_types, v_implant_system_id,
+        v_implant_system_ids, v_has_provisional, v_has_mockup, v_implant_teeth,
+        v_scan_jig_id, v_gum_info, v_tooth_implant_systems, v_prosthesis_groups,
+        v_requested_by, v_status
+      )
+      ON CONFLICT (id) DO NOTHING
+      RETURNING * INTO v_case;
+
+      IF NOT FOUND THEN
+        SELECT * INTO v_existing FROM public.cases c WHERE c.id = v_case_id FOR UPDATE;
+        IF NOT FOUND
+           OR v_existing.patient_id IS DISTINCT FROM v_patient_id
+           OR v_existing.entry_date IS DISTINCT FROM v_entry_date
+           OR v_existing.delivery_date IS DISTINCT FROM v_delivery_date
+           OR v_existing.arch IS DISTINCT FROM v_row_arch
+           OR v_existing.case_type_id IS DISTINCT FROM v_case_type_id THEN
+          RAISE EXCEPTION 'CREATION_KEY_CONFLICT' USING ERRCODE = '23505';
+        END IF;
+        IF NOT public.can_access_patient(v_existing.patient_id) THEN
+          RAISE EXCEPTION 'CASE_COMPANY_WRITE_NOT_ALLOWED' USING ERRCODE = '42501';
+        END IF;
+        v_case := v_existing;
+        v_replayed := true;
+      END IF;
+    END IF;
+
+    IF v_case.current_stage_id IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM public.case_stages cs WHERE cs.case_id = v_case.id) THEN
+      INSERT INTO public.case_stages (case_id, stage_id, position)
+      VALUES (v_case.id, v_case.current_stage_id, 0)
+      ON CONFLICT (case_id, stage_id) DO NOTHING;
+    END IF;
+
+    INSERT INTO public.case_components (case_id, component_id)
+    SELECT v_case.id, item.value::uuid
+      FROM jsonb_array_elements_text(v_component_ids) AS item(value)
+     WHERE item.value IS NOT NULL AND item.value <> ''
+    ON CONFLICT (case_id, component_id) DO NOTHING;
+
+    INSERT INTO public.case_types_link (case_id, case_type_id)
+    SELECT v_case.id, item.value::uuid
+      FROM jsonb_array_elements_text(v_case_type_ids) AS item(value)
+     WHERE item.value IS NOT NULL AND item.value <> ''
+    ON CONFLICT (case_id, case_type_id) DO NOTHING;
+  END LOOP;
+
+  IF v_split THEN
+    SELECT * INTO v_main_case FROM public.cases c WHERE c.id = v_main_id FOR UPDATE;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'CREATION_KEY_CONFLICT' USING ERRCODE = '23505';
+    END IF;
+    IF v_main_case.sibling_case_id IS NOT NULL AND v_main_case.sibling_case_id IS DISTINCT FROM v_sibling_id THEN
+      RAISE EXCEPTION 'CREATION_KEY_CONFLICT' USING ERRCODE = '23505';
+    END IF;
+    IF v_main_case.sibling_case_id IS DISTINCT FROM v_sibling_id THEN
+      UPDATE public.cases SET sibling_case_id = v_sibling_id WHERE id = v_main_id;
+    END IF;
+  END IF;
+
+  SELECT * INTO v_main_case FROM public.cases c WHERE c.id = v_main_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'CREATION_KEY_CONFLICT' USING ERRCODE = '23505';
+  END IF;
+  v_case_rows := jsonb_build_array(to_jsonb(v_main_case));
+
+  IF v_split THEN
+    SELECT * INTO v_sibling_case FROM public.cases c WHERE c.id = v_sibling_id;
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'CREATION_KEY_CONFLICT' USING ERRCODE = '23505';
+    END IF;
+    v_case_rows := v_case_rows || jsonb_build_array(to_jsonb(v_sibling_case));
+  END IF;
+
+  v_result := jsonb_build_object('case', to_jsonb(v_main_case), 'cases', v_case_rows, 'replayed', v_replayed);
+  INSERT INTO public.creation_requests (idempotency_key, actor_id, operation, request_hash, result)
+  VALUES (_key, v_actor, 'case', v_hash, v_result);
+
+  RETURN v_result;
+END;
+$;
+
+REVOKE ALL ON FUNCTION public.create_case_idempotent_v1(uuid, jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_case_idempotent_v1(uuid, jsonb) TO authenticated, service_role;
+
+NOTIFY pgrst, 'reload schema';
+
 -- ===== 20260718000001_zzz_self_heal_v2.sql =====
 
 -- =====================================================================

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,
@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { savePatientLocalFirst } from "@/lib/patients-local-first";
+import { fetchPatients } from "@/lib/api";
+import { hasPatientIdentifier, normalizePatientName, samePatientIdentity } from "@/lib/patient-identity";
 import { broadcastEntity } from "@/lib/optimistic";
 import type { Patient } from "@/lib/types";
 
@@ -45,6 +47,8 @@ export function PatientFormDialog({ trigger, patient, open: openProp, onOpenChan
   const open = openProp ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
   const [f, setF] = useState({ ...empty });
+  // Stable across retries in this dialog so a lost response cannot create a second patient.
+  const createPatientIdRef = useRef<string | null>(null);
   const editing = !!patient;
 
   useEffect(() => {
@@ -98,9 +102,49 @@ export function PatientFormDialog({ trigger, patient, open: openProp, onOpenChan
         notes: f.notes || null,
       };
 
-      return savePatientLocalFirst(payload, editing ? patient ?? null : null);
+      if (editing) return savePatientLocalFirst(payload, patient ?? null);
+
+      let knownPatients = qc.getQueryData<Patient[]>(["patients"]);
+      try {
+        knownPatients = await fetchPatients();
+      } catch (error) {
+        const message = String((error as any)?.message ?? error ?? "").toLowerCase();
+        const transient = (typeof navigator !== "undefined" && navigator.onLine === false) ||
+          ["failed to fetch", "network", "timeout", "offline", "connection"].some((part) => message.includes(part));
+        if (!knownPatients && transient) knownPatients = [];
+        else if (!knownPatients) throw error;
+      }
+
+      const normalizedName = normalizePatientName(fullName);
+      const knownAttempt = createPatientIdRef.current
+        ? (knownPatients ?? []).find((p) => p.id === createPatientIdRef.current)
+        : undefined;
+      if (knownAttempt && normalizePatientName(knownAttempt.name) !== normalizedName) {
+        throw new Error(
+          `A tentativa anterior já salvou "${knownAttempt.name}". Para evitar duplicidade, selecione esse cadastro ou reinicie o formulário.`,
+        );
+      }
+
+      const sameName = (knownPatients ?? []).filter(
+        (p) => p.id !== createPatientIdRef.current && normalizePatientName(p.name) === normalizedName,
+      );
+      if (sameName.length && !hasPatientIdentifier(payload)) {
+        throw new Error(
+          "Já existe um paciente com esse nome. Se for a mesma pessoa, feche este cadastro e selecione o paciente existente; se for outra pessoa, informe CPF, RG ou telefone.",
+        );
+      }
+      if (sameName.some((p) => samePatientIdentity(p as any, payload))) {
+        throw new Error(
+          "Já existe um paciente com esse nome e identificador. Se for a mesma pessoa, selecione o cadastro existente.",
+        );
+      }
+
+      const requestId = createPatientIdRef.current ?? crypto.randomUUID();
+      createPatientIdRef.current = requestId;
+      return savePatientLocalFirst(payload, null, { key: requestId, patientId: requestId });
     },
     onSuccess: (res) => {
+      createPatientIdRef.current = null;
       const row = res.patient;
       const id = row.id;
 

@@ -31,7 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   fetchPatients, fetchDoctors, fetchCadistas, fetchCaseTypes, fetchToothColors,
   fetchStages, fetchImplantSystems, fetchScanJigs, createImplantSystem, createScanJig,
-  createCase, updateCase, syncCaseTypes, adminCreate, adminUpdate, uploadPatientPhoto, fetchProfile,
+  createCase, updateCase, syncCaseTypes, adminCreate, adminUpdate, uploadPatientPhoto, fetchProfile, fetchCaseById,
   fetchTiBaseOptions, updateCaseTiBases,
 } from "@/lib/api";
 
@@ -42,6 +42,9 @@ import { ArcadaModeToggle, type ArcadaMode } from "./ArcadaModeToggle";
 import { PatientCombobox } from "./PatientCombobox";
 import { sortTeeth } from "@/lib/teeth";
 import { applyToothModifierSelection } from "@/lib/tooth-selection";
+import { hasPatientIdentifier, normalizePatientName, patientDuplicateErrorMessage, samePatientIdentity } from "@/lib/patient-identity";
+import { savePatientLocalFirst } from "@/lib/patients-local-first";
+import type { PatientIdentityField } from "@/lib/patient-identity";
 import type { CaseRow } from "@/lib/types";
 import { applyCasePatchToCache } from "@/hooks/use-cases-realtime";
 import { broadcastEntity } from "@/lib/optimistic";
@@ -161,7 +164,13 @@ export function NewCaseDialog({
 
   // Descartar tudo: usado pelo botão Cancelar e após salvar com sucesso.
   const discardAndClose = () => {
-    clearSessionSnapshot(persistOpenKey, persistFormKey);
+    // If a request may already have reached the server, preserve its stable
+    // operation ID and snapshot so reopening can safely resume the same case.
+    const unresolvedCreation = caseCreationAttemptedRef.current && !!caseCreateIdRef.current;
+    if (!unresolvedCreation) clearSessionSnapshot(persistOpenKey, persistFormKey);
+    else if (persistOpenKey && typeof window !== "undefined") {
+      try { sessionStorage.removeItem(persistOpenKey); } catch { /* ignore */ }
+    }
     onOpenChange?.(false);
     if (openProp === undefined) setOpenState(false);
   };
@@ -182,6 +191,19 @@ export function NewCaseDialog({
   const [patientId, setPatientId] = useState<string>(initialPatientId ?? "");
   const [newPatientName, setNewPatientName] = useState("");
   const [newPatientPhoto, setNewPatientPhoto] = useState<File | null>(null);
+  const [newPatientIdentifierType, setNewPatientIdentifierType] = useState<PatientIdentityField | "">("");
+  const [newPatientIdentifierValue, setNewPatientIdentifierValue] = useState("");
+  const [forcePatientIdentifier, setForcePatientIdentifier] = useState(false);
+  const [caseCreationId, setCaseCreationId] = useState<string | null>(null);
+  const caseCreateIdRef = useRef<string | null>(null);
+  const [patientCreationId, setPatientCreationId] = useState<string | null>(null);
+  const patientCreateIdRef = useRef<string | null>(null);
+  const [patientCreationName, setPatientCreationName] = useState<string | null>(null);
+  const patientCreateNameRef = useRef<string | null>(null);
+  const [caseCreationAttempted, setCaseCreationAttempted] = useState(false);
+  const caseCreationAttemptedRef = useRef(false);
+  const [caseCreationPayload, setCaseCreationPayload] = useState<Record<string, any> | null>(null);
+  const caseCreationPayloadRef = useRef<Record<string, any> | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const [doctorId, setDoctorId] = useState<string>("");
   const [cadistaId, setCadistaId] = useState<string>("");
@@ -247,7 +269,8 @@ export function NewCaseDialog({
   // Persiste apenas campos serializáveis — arquivos (File) e refs são ignorados.
   const formSnapshot = useMemo(
     () => ({
-      patientId, newPatientName,
+      patientId, newPatientName, newPatientIdentifierType, newPatientIdentifierValue, forcePatientIdentifier,
+      caseCreationId, patientCreationId, patientCreationName, caseCreationAttempted, caseCreationPayload,
       doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
       entryDate, deliveryDate, stageId, arch,
       implantSystemId, additionalSystemIds, implantTeeth,
@@ -257,7 +280,9 @@ export function NewCaseDialog({
       toothTypeMap, prosthesisGroups, toothEnceramento, toothImplantSystemMap,
     }),
     [
-      patientId, newPatientName, doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
+      patientId, newPatientName, newPatientIdentifierType, newPatientIdentifierValue, forcePatientIdentifier,
+      caseCreationId, patientCreationId, patientCreationName, caseCreationAttempted, caseCreationPayload,
+      doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
       entryDate, deliveryDate, stageId, arch, implantSystemId, additionalSystemIds, implantTeeth,
       arcadaMode, scanJigId, hasProvisional, hasMockup, notes, teeth, zirTeeth, disTeeth,
       gumMode, gumColor, gumNotes, toothTypeMap, prosthesisGroups, toothEnceramento, toothImplantSystemMap,
@@ -266,6 +291,14 @@ export function NewCaseDialog({
   useSessionSnapshot(persistFormKey, !!persistFormKey && open, formSnapshot, (d) => {
     if (d.patientId !== undefined) setPatientId(d.patientId as string);
     if (d.newPatientName !== undefined) setNewPatientName(d.newPatientName as string);
+    if (d.newPatientIdentifierType !== undefined) setNewPatientIdentifierType(d.newPatientIdentifierType as PatientIdentityField | "");
+    if (d.newPatientIdentifierValue !== undefined) setNewPatientIdentifierValue(d.newPatientIdentifierValue as string);
+    if (d.forcePatientIdentifier !== undefined) setForcePatientIdentifier(!!d.forcePatientIdentifier);
+    if (d.caseCreationId !== undefined) { setCaseCreationId(d.caseCreationId as string | null); caseCreateIdRef.current = d.caseCreationId as string | null; }
+    if (d.patientCreationId !== undefined) { setPatientCreationId(d.patientCreationId as string | null); patientCreateIdRef.current = d.patientCreationId as string | null; }
+    if (d.patientCreationName !== undefined) { setPatientCreationName(d.patientCreationName as string | null); patientCreateNameRef.current = d.patientCreationName as string | null; }
+    if (d.caseCreationAttempted !== undefined) { setCaseCreationAttempted(!!d.caseCreationAttempted); caseCreationAttemptedRef.current = !!d.caseCreationAttempted; }
+    if (d.caseCreationPayload !== undefined) { setCaseCreationPayload(d.caseCreationPayload as Record<string, any> | null); caseCreationPayloadRef.current = d.caseCreationPayload as Record<string, any> | null; }
     if (d.doctorId !== undefined) setDoctorId(d.doctorId as string);
     if (d.cadistaId !== undefined) setCadistaId(d.cadistaId as string);
     if (d.caseTypeIds !== undefined) setCaseTypeIds(d.caseTypeIds as string[]);
@@ -395,6 +428,13 @@ export function NewCaseDialog({
 
 
   const patients = useQuery({ queryKey: ["patients"], queryFn: fetchPatients, enabled: open });
+  const normalizedNewPatientName = normalizePatientName(newPatientName);
+  const duplicateNamePatients = useMemo(
+    () => normalizedNewPatientName
+      ? (patients.data ?? []).filter((patient) => normalizePatientName(patient.name) === normalizedNewPatientName)
+      : [],
+    [patients.data, normalizedNewPatientName],
+  );
   const doctors = useQuery({ queryKey: ["doctors"], queryFn: fetchDoctors, enabled: open });
   const cadistas = useQuery({ queryKey: ["cadistas"], queryFn: fetchCadistas, enabled: open });
   // Atualiza dropdown de cadistas/protéticos em tempo real quando alguém adiciona
@@ -439,6 +479,12 @@ export function NewCaseDialog({
 
   const reset = () => {
     setPatientId(initialPatientId ?? ""); setNewPatientName(""); setNewPatientPhoto(null);
+    setNewPatientIdentifierType(""); setNewPatientIdentifierValue(""); setForcePatientIdentifier(false);
+    caseCreateIdRef.current = null; setCaseCreationId(null);
+    patientCreateIdRef.current = null; setPatientCreationId(null);
+    patientCreateNameRef.current = null; setPatientCreationName(null);
+    caseCreationAttemptedRef.current = false; setCaseCreationAttempted(false);
+    caseCreationPayloadRef.current = null; setCaseCreationPayload(null);
     setDoctorId(""); setCadistaId(""); setCaseTypeIds([]);
     setToothColorId(""); setCaseLabel(""); setEntryDate(today); setDeliveryDate(today);
     setStageId(""); setArch(""); setImplantSystemId(""); setAdditionalSystemIds([]); setImplantTeeth([]); setScanJigId(""); setHasProvisional(false); setHasMockup(false);
@@ -447,6 +493,148 @@ export function NewCaseDialog({
     setGumMode(""); setGumColor(""); setGumNotes("");
     setPendingScanFiles([]);
     setPendingGalleryFiles([]);
+  };
+
+  const startPendingUploadsForCase = (caseId: string) => {
+    queuedUploadCountRef.current = 0;
+    for (const item of pendingScanFiles) {
+      startFileUpload({ caseId, kind: item.kind, file: item.file, suppressNotification: true });
+      queuedUploadCountRef.current += 1;
+    }
+    for (const file of pendingGalleryFiles) {
+      startFileUpload({ caseId, kind: "gallery", file, suppressNotification: true });
+      queuedUploadCountRef.current += 1;
+    }
+  };
+
+  const recordInitialAttachmentsInBackground = (caseId: string, editing: boolean) => {
+    const count = pendingScanFiles.length + pendingGalleryFiles.length;
+    if (!count) return;
+    const content = editing
+      ? `${count} arquivo(s) foram adicionados ao caso em uma única atualização.`
+      : `Novo caso criado com ${count} arquivo(s) anexado(s).`;
+    void addCaseActivity(
+      caseId,
+      editing ? "upload_batch" : "create_with_attachments",
+      content,
+      [],
+      { file_count: count },
+    ).then(() => notifyCaseStakeholders({
+      caseId,
+      title: editing ? "Arquivos adicionados ao caso" : "Novo caso com anexos",
+      content,
+      type: editing ? "attachment" : "case",
+    })).catch((error) => console.warn("initial case attachment activity deferred", error));
+  };
+
+  const uploadPatientPhotoInBackground = (patientIdToUpdate: string, file: File, patientName: string) => {
+    void (async () => {
+      const blob = await compressSquareImage(file);
+      const url = await uploadPatientPhoto(patientIdToUpdate, blob);
+      await adminUpdate("patients", patientIdToUpdate, { photo_url: url });
+      const known = (patients.data ?? []).find((p) => p.id === patientIdToUpdate);
+      const updated = { ...(known ?? {}), id: patientIdToUpdate, name: patientName, photo_url: url };
+      qc.setQueriesData<any[]>({ queryKey: ["patients"] }, (old) =>
+        Array.isArray(old) ? old.map((p) => p.id === patientIdToUpdate ? { ...p, photo_url: url } : p) : old,
+      );
+      qc.setQueryData(["patient", patientIdToUpdate], (old: any) => old ? { ...old, photo_url: url } : updated);
+      try { broadcastEntity("patients", "update", updated); } catch { /* local wakeup is best effort */ }
+    })().catch((error) => {
+      console.warn("patient photo upload deferred after case creation", error);
+      toast.error("O caso foi criado, mas a foto do paciente não foi enviada. Você pode adicioná-la depois.");
+    });
+  };
+
+  const hydrateCaseForImmediateCache = (row: any, patientIdToHydrate: string, patientOverride?: any) => {
+    const patient = patientOverride
+      ?? (patients.data ?? []).find((p) => p.id === patientIdToHydrate)
+      ?? (patientIdToHydrate && newPatientName.trim()
+        ? { id: patientIdToHydrate, name: newPatientName.trim(), photo_url: null }
+        : null);
+    const hydrated = {
+      ...row,
+      patient: row?.patient ?? patient,
+      doctor: row?.doctor ?? (doctors.data ?? []).find((item) => item.id === row?.doctor_id) ?? null,
+      cadista: row?.cadista ?? (cadistas.data ?? []).find((item) => item.id === row?.cadista_id) ?? null,
+      case_type: row?.case_type ?? (caseTypes.data ?? []).find((item) => item.id === row?.case_type_id) ?? null,
+      tooth_color: row?.tooth_color ?? (colors.data ?? []).find((item) => item.id === row?.tooth_color_id) ?? null,
+      current_stage: row?.current_stage ?? (stages.data ?? []).find((item) => item.id === row?.current_stage_id) ?? null,
+      case_stages: row?.case_stages ?? [],
+      case_components: row?.case_components ?? [],
+    } as CaseRow;
+    applyCasePatchToCache(qc, hydrated as any);
+    qc.setQueryData<CaseRow | null>(["case", hydrated.id], (old) => old ? { ...old, ...hydrated } : hydrated);
+    return hydrated;
+  };
+
+  const createInlinePatient = async (rawName: string) => {
+    const name = rawName.trim().replace(/\s+/g, " ");
+    const normalizedName = normalizePatientName(name);
+    if (!normalizedName) throw new Error("Informe o nome do paciente.");
+
+    if (
+      patientCreateIdRef.current &&
+      patientCreateNameRef.current &&
+      normalizePatientName(patientCreateNameRef.current) !== normalizedName
+    ) {
+      const previousCached = (patients.data ?? []).find((patient) => patient.id === patientCreateIdRef.current);
+      let previousName = previousCached?.name ?? null;
+      if (!previousName && typeof navigator !== "undefined" && navigator.onLine !== false) {
+        try {
+          const previous = await supabase.from("patients").select("id,name").eq("id", patientCreateIdRef.current).maybeSingle();
+          previousName = previous.data?.name ?? null;
+        } catch {
+          throw new Error("A tentativa anterior pode ter salvo o paciente. Reconecte-se para confirmar antes de trocar o nome.");
+        }
+      }
+      if (previousName) {
+        throw new Error(
+          `A tentativa anterior já salvou "${previousName}". Selecione esse cadastro para evitar uma duplicata.`,
+        );
+      }
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        throw new Error("Para evitar duplicidade, reconecte-se antes de alterar o nome deste paciente após uma tentativa de cadastro.");
+      }
+      patientCreateIdRef.current = null;
+      patientCreateNameRef.current = null;
+      setPatientCreationId(null);
+      setPatientCreationName(null);
+    }
+
+    const requestId = patientCreateIdRef.current ?? crypto.randomUUID();
+    patientCreateIdRef.current = requestId;
+    setPatientCreationId(requestId);
+    patientCreateNameRef.current = name;
+    setPatientCreationName(name);
+
+    const identity: Record<string, unknown> = { cpf: "", rg: "", phone: "" };
+    if (newPatientIdentifierType && newPatientIdentifierValue.trim()) {
+      identity[newPatientIdentifierType] = newPatientIdentifierValue.trim();
+    }
+    const sameName = (patients.data ?? []).filter(
+      (patient) => patient.id !== requestId && normalizePatientName(patient.name) === normalizedName,
+    );
+    if (sameName.length && !hasPatientIdentifier(identity)) {
+      throw new Error(
+        "Já existe um paciente com esse nome. Selecione o cadastro existente ou informe CPF, RG ou telefone para cadastrar outra pessoa.",
+      );
+    }
+    if (sameName.some((patient) => samePatientIdentity(patient as any, identity))) {
+      throw new Error(
+        "Já existe um paciente com esse nome e identificador. Selecione o cadastro existente em vez de criar uma duplicata.",
+      );
+    }
+
+    const insertValues = {
+      name,
+      ...(newPatientIdentifierType && newPatientIdentifierValue.trim()
+        ? { [newPatientIdentifierType]: newPatientIdentifierValue.trim() }
+        : {}),
+    };
+    const saved = await savePatientLocalFirst(insertValues, null, { key: requestId, patientId: requestId });
+    const patient = saved.patient as any;
+    if (!patient?.id) throw new Error("Não foi possível confirmar o cadastro do paciente.");
+    return patient;
   };
 
   const cleanImplantTeeth = useMemo(() => implantTeeth.filter((t) => new Set(teeth).has(t)), [implantTeeth, teeth]);
@@ -637,20 +825,26 @@ export function NewCaseDialog({
 
   const submit = useMutation({
     mutationFn: async () => {
-      let pid = patientId;
-      if (!pid && newPatientName.trim()) {
-        await adminCreate("patients", { name: newPatientName.trim() });
-        const fresh = await fetchPatients();
-        const found = fresh.find((p) => p.name === newPatientName.trim());
-        if (!found) throw new Error("Não foi possível criar o paciente");
-        pid = found.id;
-        if (newPatientPhoto) {
-          const blob = await compressSquareImage(newPatientPhoto);
-          const url = await uploadPatientPhoto(pid, blob);
-          await adminUpdate("patients", pid, { photo_url: url });
+      // If a prior response was lost after the request reached the server,
+      // replay the exact saved payload with the same ID instead of creating
+      // another patient/case from whatever is currently typed in the form.
+      const savedPayload = caseCreationPayloadRef.current;
+      if (caseCreationAttemptedRef.current && caseCreateIdRef.current && savedPayload) {
+        const recovered = await createCase({ ...savedPayload, id: caseCreateIdRef.current } as any);
+        const recoveredId = String((recovered as any)?.id ?? caseCreateIdRef.current);
+        const hydrated = hydrateCaseForImmediateCache(recovered, String(savedPayload.patient_id));
+        startPendingUploadsForCase(recoveredId);
+        if (newPatientPhoto && patientCreateIdRef.current === String(savedPayload.patient_id)) {
+          uploadPatientPhotoInBackground(String(savedPayload.patient_id), newPatientPhoto, patientCreateNameRef.current ?? newPatientName);
         }
+        recordInitialAttachmentsInBackground(recoveredId, false);
+        return hydrated;
       }
-      if (!pid) throw new Error("Selecione ou cadastre um paciente");
+
+      let pid = patientId;
+      let patientForCase: any = (patients.data ?? []).find((patient) => patient.id === pid) ?? null;
+      let photoForBackground: File | null = null;
+      if (!pid && !newPatientName.trim()) throw new Error("Selecione ou cadastre um paciente");
       if (!deliveryDate) throw new Error("Informe a data de entrega");
       if (implantSystemId && cleanImplantTeeth.length === 0) {
         throw new Error("Indique pelo menos um elemento com implante");
@@ -709,6 +903,13 @@ export function NewCaseDialog({
         }
       }
 
+      if (!pid && newPatientName.trim()) {
+        patientForCase = await createInlinePatient(newPatientName);
+        pid = patientForCase.id;
+        photoForBackground = newPatientPhoto;
+      }
+      if (!pid) throw new Error("Selecione ou cadastre um paciente");
+
       const base = {
         patient_id: pid,
         doctor_id: doctorId || null,
@@ -747,6 +948,17 @@ export function NewCaseDialog({
 
       let createdCase: CaseRow | null = null;
       let createdId: string | null = null;
+      let createPayload: Record<string, any> = base as any;
+      if (!isEdit) {
+        const requestId = caseCreateIdRef.current ?? crypto.randomUUID();
+        caseCreateIdRef.current = requestId;
+        setCaseCreationId(requestId);
+        createPayload = { ...base, id: requestId, ...(derivedArch ? { arch: derivedArch } : {}) };
+        caseCreationPayloadRef.current = createPayload;
+        setCaseCreationPayload(createPayload);
+        caseCreationAttemptedRef.current = true;
+        setCaseCreationAttempted(true);
+      }
 
       if (isEdit && editCase) {
         const patch = { ...base, arch: arch || null };
@@ -815,87 +1027,59 @@ export function NewCaseDialog({
 
         createdCase = optimisticRow;
         createdId = editCase.id;
-      } else if (derivedArch) {
-        // Unified case: uma arcada, ambas ("both") ou nenhuma — sempre 1 caso só.
-        const a = await createCase({ ...base, arch: derivedArch });
-        createdCase = a as CaseRow;
-        createdId = (a as any)?.id ?? null;
       } else {
-        const a = await createCase(base);
-        createdCase = a as CaseRow;
-        createdId = (a as any)?.id ?? null;
+        // One stable UUID makes a repeated submit the same operation. Essential
+        // case links are committed before return; media and notifications are
+        // scheduled only after the case has a confirmed ID.
+        const a = await createCase(createPayload as any);
+        createdCase = hydrateCaseForImmediateCache(a, pid, patientForCase);
+        createdId = createdCase?.id ?? (a as any)?.id ?? null;
+        if (createdId && photoForBackground) {
+          uploadPatientPhotoInBackground(pid, photoForBackground, newPatientName.trim());
+        }
       }
 
-      // Disparar uploads de Scans pendentes em background
-      // Disparar uploads pendentes em background (com o tipo escolhido por arquivo)
-      // Quem conseguiu criar/editar o caso tem acesso a ele (can_access_case),
-      // portanto pode enviar os anexos pendentes — inclusive CADISTA.
-      queuedUploadCountRef.current = 0;
       if (createdId) {
-        for (const item of pendingScanFiles) {
-          startFileUpload({ caseId: createdId, kind: item.kind, file: item.file, suppressNotification: true });
-          queuedUploadCountRef.current += 1;
-        }
-        // Galeria pendente
-        for (const f of pendingGalleryFiles) {
-          startFileUpload({ caseId: createdId, kind: "gallery", file: f, suppressNotification: true });
-          queuedUploadCountRef.current += 1;
-        }
-      }
-
-      const initialAttachmentCount = pendingScanFiles.length + pendingGalleryFiles.length;
-      if (createdId && initialAttachmentCount > 0) {
-        const content = isEdit
-          ? `${initialAttachmentCount} arquivo(s) foram adicionados ao caso em uma única atualização.`
-          : `Novo caso criado com ${initialAttachmentCount} arquivo(s) anexado(s).`;
-        try {
-          await addCaseActivity(
-            createdId,
-            isEdit ? "upload_batch" : "create_with_attachments",
-            content,
-            [],
-            { file_count: initialAttachmentCount },
-          );
-          await notifyCaseStakeholders({
-            caseId: createdId,
-            title: isEdit ? "Arquivos adicionados ao caso" : "Novo caso com anexos",
-            content,
-            type: isEdit ? "attachment" : "case",
-          });
-        } catch (e) {
-          console.warn("aggregate initial attachment notification failed", e);
-        }
+        startPendingUploadsForCase(createdId);
+        recordInitialAttachmentsInBackground(createdId, isEdit);
       }
       return createdCase;
 
     },
     onSuccess: async (createdCase) => {
-      if (createdCase?.id) {
-        const row = createdCase;
-        qc.getQueriesData<CaseRow[]>({ queryKey: ["cases"] }).forEach(([key, old]) => {
-          if (!Array.isArray(old)) return;
-          const statusFilter = Array.isArray(key) ? key[1] : undefined;
-          if ((statusFilter === "active" || statusFilter === "finished") && row.status !== statusFilter) return;
-          const next = old.some((item) => item.id === row.id)
-            ? old.map((item) => item.id === row.id ? { ...item, ...row } : item)
-            : [row, ...old];
-          qc.setQueryData(key, next);
-        });
-      }
+      // The create/edit path already patches every matching case cache before
+      // returning. Avoid a second broad cache loop with incomplete status data.
       const queued = queuedUploadCountRef.current;
       toast.success(
         (isEdit ? "Caso atualizado" : "Caso cadastrado") +
         (queued > 0 ? ` · ${queued} arquivo(s) enviando em segundo plano` : "")
       );
-      await qc.invalidateQueries();
-      await qc.refetchQueries({ queryKey: ["cases"], type: "active" });
+      // Do not hold the dialog open for a global refetch. The new row is already
+      // in the cache; refresh only active case lists in the background.
       if (!isEdit) reset();
       discardAndClose();
+      void qc.invalidateQueries({ queryKey: ["cases"], refetchType: "active" }).catch((error) =>
+        console.warn("case list refresh deferred", error),
+      );
 
 
 
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      const friendly = patientDuplicateErrorMessage(e);
+      const duplicatePatientError = /paciente com esse nome|PATIENT_DUPLICATE_NAME|PATIENT_DUPLICATE_IDENTITY/i.test(
+        `${e.message} ${friendly ?? ""}`,
+      );
+      if (duplicatePatientError) {
+        setForcePatientIdentifier(true);
+        void qc.invalidateQueries({ queryKey: ["patients"], refetchType: "active" }).catch(() => undefined);
+      }
+      toast.error(friendly ?? (
+        caseCreationAttemptedRef.current
+          ? `${e.message} A tentativa pode ter sido gravada; tente novamente sem alterar o formulário para retomar a mesma operação com segurança.`
+          : e.message
+      ));
+    },
   });
 
   const isControlled = openProp !== undefined;
@@ -985,8 +1169,32 @@ export function NewCaseDialog({
                       patients={patients.data ?? []}
                       selectedId={patientId}
                       newName={newPatientName}
-                      onSelectExisting={(id) => { setPatientId(id); setNewPatientName(""); setNewPatientPhoto(null); }}
-                      onTypeNew={(name) => { setNewPatientName(name); setPatientId(""); }}
+                      onSelectExisting={(id) => {
+                        setPatientId(id);
+                        setNewPatientName("");
+                        setNewPatientPhoto(null);
+                        setNewPatientIdentifierType("");
+                        setNewPatientIdentifierValue("");
+                        setForcePatientIdentifier(false);
+                        if (!caseCreationAttemptedRef.current) {
+                          patientCreateIdRef.current = null; setPatientCreationId(null);
+                          patientCreateNameRef.current = null; setPatientCreationName(null);
+                        }
+                      }}
+                      onTypeNew={(name) => {
+                        const changed = normalizePatientName(name) !== normalizePatientName(newPatientName);
+                        if (changed) {
+                          setNewPatientIdentifierType("");
+                          setNewPatientIdentifierValue("");
+                          setForcePatientIdentifier(false);
+                          if (!caseCreationAttemptedRef.current) {
+                            patientCreateIdRef.current = null; setPatientCreationId(null);
+                            patientCreateNameRef.current = null; setPatientCreationName(null);
+                          }
+                        }
+                        setNewPatientName(name);
+                        setPatientId("");
+                      }}
                     />
                   </div>
                   <PatientFormDialog 
@@ -999,17 +1207,47 @@ export function NewCaseDialog({
                   />
                 </div>
                 {newPatientName && !patientId && (
-                  <div className="flex gap-2 items-center">
-                    <div className="text-xs text-muted-foreground flex-1">
-                      Será cadastrado como novo paciente: <b>{newPatientName}</b>
+                  <div className="space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <div className="text-xs text-muted-foreground flex-1">
+                        {(duplicateNamePatients.length || forcePatientIdentifier)
+                          ? "Já existe paciente com esse nome. Selecione o cadastro acima ou informe um identificador para cadastrar outra pessoa."
+                          : <>Será cadastrado como novo paciente: <b>{newPatientName}</b></>}
+                      </div>
+                      <input ref={photoInput} type="file" accept="image/*" className="hidden"
+                        onChange={(e) => setNewPatientPhoto(e.target.files?.[0] ?? null)} />
+                      <Button type="button" variant="outline" size="sm"
+                        onClick={() => photoInput.current?.click()} className="gap-2 shrink-0">
+                        <Camera className="h-4 w-4" />
+                        {newPatientPhoto ? "Foto ok" : "Foto"}
+                      </Button>
                     </div>
-                    <input ref={photoInput} type="file" accept="image/*" className="hidden"
-                      onChange={(e) => setNewPatientPhoto(e.target.files?.[0] ?? null)} />
-                    <Button type="button" variant="outline" size="sm"
-                      onClick={() => photoInput.current?.click()} className="gap-2 shrink-0">
-                      <Camera className="h-4 w-4" />
-                      {newPatientPhoto ? "Foto ok" : "Foto"}
-                    </Button>
+                    {(duplicateNamePatients.length > 0 || forcePatientIdentifier) && (
+                      <div className="grid grid-cols-[140px_minmax(0,1fr)] gap-2">
+                        <Select
+                          value={newPatientIdentifierType}
+                          onValueChange={(value) => {
+                            setNewPatientIdentifierType(value as PatientIdentityField);
+                            setNewPatientIdentifierValue("");
+                          }}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Identificador" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cpf">CPF</SelectItem>
+                            <SelectItem value="rg">RG</SelectItem>
+                            <SelectItem value="phone">Telefone</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          value={newPatientIdentifierValue}
+                          onChange={(event) => setNewPatientIdentifierValue(event.target.value)}
+                          placeholder={newPatientIdentifierType === "cpf" ? "CPF do novo paciente" : newPatientIdentifierType === "rg" ? "RG do novo paciente" : "Telefone do novo paciente"}
+                          autoComplete="off"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
