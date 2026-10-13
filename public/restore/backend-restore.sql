@@ -17982,6 +17982,7 @@ DECLARE
   v_actor_clinic uuid;
   v_clinic uuid;
   v_name text;
+  v_old_name text;
   v_cpf text;
   v_rg text;
   v_phone text;
@@ -18006,8 +18007,27 @@ BEGIN
   v_name := public.normalize_text(
     regexp_replace(trim(COALESCE(NEW.name, concat_ws(' ', NEW.first_name, NEW.last_name))), '[[:space:]]+', ' ', 'g')
   );
+  v_cpf := regexp_replace(COALESCE(NEW.cpf, ''), '[^0-9]', '', 'g');
+  v_rg := public.normalize_text(regexp_replace(trim(COALESCE(NEW.rg, '')), '[^[:alnum:]]', '', 'g'));
+  v_phone := regexp_replace(COALESCE(NEW.phone, ''), '[^0-9]', '', 'g');
+
   IF v_clinic IS NULL OR v_name = '' THEN
     RETURN NEW;
+  END IF;
+
+  -- Existing legacy duplicates are not auto-merged or blocked from unrelated
+  -- edits. Revalidate only when the identity fields actually change.
+  IF TG_OP = 'UPDATE' THEN
+    v_old_name := public.normalize_text(
+      regexp_replace(trim(COALESCE(OLD.name, concat_ws(' ', OLD.first_name, OLD.last_name))), '[[:space:]]+', ' ', 'g')
+    );
+    IF v_old_name = v_name
+      AND regexp_replace(COALESCE(OLD.cpf, ''), '[^0-9]', '', 'g') = v_cpf
+      AND public.normalize_text(regexp_replace(trim(COALESCE(OLD.rg, '')), '[^[:alnum:]]', '', 'g')) = v_rg
+      AND regexp_replace(COALESCE(OLD.phone, ''), '[^0-9]', '', 'g') = v_phone
+      AND NEW.clinic_id IS NOT DISTINCT FROM OLD.clinic_id THEN
+      RETURN NEW;
+    END IF;
   END IF;
 
   PERFORM pg_advisory_xact_lock(hashtextextended(v_clinic::text || ':' || v_name, 0));
@@ -18026,10 +18046,6 @@ BEGIN
   IF NOT v_duplicate_name THEN
     RETURN NEW;
   END IF;
-
-  v_cpf := regexp_replace(COALESCE(NEW.cpf, ''), '[^0-9]', '', 'g');
-  v_rg := public.normalize_text(regexp_replace(trim(COALESCE(NEW.rg, '')), '[^[:alnum:]]', '', 'g'));
-  v_phone := regexp_replace(COALESCE(NEW.phone, ''), '[^0-9]', '', 'g');
 
   IF v_cpf = '' AND v_rg = '' AND v_phone = '' THEN
     RAISE EXCEPTION 'PATIENT_DUPLICATE_NAME_REQUIRES_IDENTIFIER'
@@ -18050,7 +18066,7 @@ BEGIN
         (v_cpf <> '' AND regexp_replace(COALESCE(p.cpf, ''), '[^0-9]', '', 'g') = v_cpf)
         OR (v_rg <> '' AND public.normalize_text(regexp_replace(trim(COALESCE(p.rg, '')), '[^[:alnum:]]', '', 'g')) = v_rg)
         OR (
-          v_cpf = '' AND v_rg = '' AND v_phone <> ''
+          v_phone <> ''
           AND regexp_replace(COALESCE(p.phone, ''), '[^0-9]', '', 'g') = v_phone
           AND (
             (v_cpf = '' AND v_rg = '')
