@@ -228,6 +228,21 @@ DROP SCHEMA IF EXISTS _restore;
 -- Financial and fiscal boundaries must be restored after the legacy blanket
 -- grants above. Client roles may read/update only through explicitly validated
 -- RPCs; provider identities and authoritative state changes remain backend-only.
+REVOKE ALL ON FUNCTION public.billing_subscription_contract_amount(uuid)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.billing_subscription_contract_amount(uuid)
+  TO service_role;
+-- Storage reservations are another authoritative ledger: the old blanket
+-- grant must not allow clients to erase or forge usage after restore.
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.storage_files
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.reserve_storage_upload(
+  bigint,text,text,text,uuid,uuid,text,text
+), public.complete_storage_upload(uuid,text), public.cancel_storage_upload(uuid),
+  public.delete_managed_storage_file(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.storage_upload_has_reservation_for_insert(text,text,jsonb),
+  public.release_storage_upload_reservation(uuid,uuid) FROM PUBLIC, anon;
+
 REVOKE ALL ON TABLE public.company_billing_profiles
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON TABLE public.billing_provider_customers
@@ -238,12 +253,36 @@ REVOKE ALL ON TABLE public.billing_test_access
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON TABLE public.billing_test_tokens
   FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.billing_event_replays
+  FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON TABLE public.platform_operators, public.platform_operator_audit
+  FROM PUBLIC, anon, authenticated;
 
 GRANT ALL ON TABLE public.company_billing_profiles TO service_role;
 GRANT ALL ON TABLE public.billing_provider_customers TO service_role;
 GRANT ALL ON TABLE public.billing_provider_operations TO service_role;
 GRANT ALL ON TABLE public.billing_test_access TO service_role;
 GRANT ALL ON TABLE public.billing_test_tokens TO service_role;
+GRANT SELECT ON TABLE public.billing_event_replays TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.platform_operators TO service_role;
+GRANT SELECT ON TABLE public.platform_operator_audit TO service_role;
+
+-- Stage 08 requests are private instructions, not a new browser billing ledger.
+REVOKE ALL ON TABLE public.billing_change_requests, public.billing_change_request_events
+  FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.billing_change_requests, public.billing_change_request_events TO service_role;
+REVOKE ALL ON FUNCTION public.billing_change_request_quote(uuid,text,text),
+  public.billing_change_request_summary(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.billing_change_request_quote(uuid,text,text),
+  public.billing_change_request_summary(uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.billing_company_change_context(uuid),
+  public.billing_submit_change_request(uuid,uuid,text,text,text),
+  public.billing_withdraw_change_request(uuid,uuid), public.platform_master_billing_change_requests(text)
+  FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.billing_company_change_context(uuid),
+  public.billing_submit_change_request(uuid,uuid,text,text,text),
+  public.billing_withdraw_change_request(uuid,uuid), public.platform_master_billing_change_requests(text)
+  TO authenticated;
 
 REVOKE ALL ON FUNCTION public.billing_apply_checkout_paid(
   uuid,text,text,text,text,timestamptz,timestamptz
@@ -261,13 +300,46 @@ REVOKE ALL ON FUNCTION public.billing_finish_provider_operation(uuid,uuid,text,t
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_get_asaas_provisioning_context(uuid,uuid,text)
   FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_get_checkout_provisioning_context(uuid,uuid,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_mark_asaas_checkout_ready(
+  uuid,uuid,text,text,text,text,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_receive_asaas_event(text,text,text,jsonb)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_claim_asaas_events(text,integer)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_finish_asaas_event(uuid,uuid,text,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_asaas_initial_payment(
+  uuid,uuid,text,text,text,integer,date,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_asaas_payment_lifecycle(
+  uuid,uuid,text,text,text,integer,date,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_asaas_subscription_lifecycle(
+  uuid,uuid,text,text,text,integer,text,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_list_asaas_expired_grace(text,integer)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_suspend_asaas_expired_grace(
+  uuid,text,text,text,text,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_replay_asaas_event(text,text,text,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_claim_asaas_reconciliation_candidates(text,integer)
+  FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_get_asaas_payment_document_context(uuid,uuid,text)
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_valid_br_tax_id(text)
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.set_clinic_storage_entitlement(
   uuid,text,text,bigint,text,text,text,text,boolean
 ) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.recalculate_clinic_storage_limit(uuid)
+  FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.billing_apply_checkout_paid(
   uuid,text,text,text,text,timestamptz,timestamptz
@@ -285,13 +357,46 @@ GRANT EXECUTE ON FUNCTION public.billing_finish_provider_operation(uuid,uuid,tex
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_get_asaas_provisioning_context(uuid,uuid,text)
   TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_get_checkout_provisioning_context(uuid,uuid,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_mark_asaas_checkout_ready(
+  uuid,uuid,text,text,text,text,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_receive_asaas_event(text,text,text,jsonb)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_claim_asaas_events(text,integer)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_finish_asaas_event(uuid,uuid,text,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_asaas_initial_payment(
+  uuid,uuid,text,text,text,integer,date,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_asaas_payment_lifecycle(
+  uuid,uuid,text,text,text,integer,date,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_asaas_subscription_lifecycle(
+  uuid,uuid,text,text,text,integer,text,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_list_asaas_expired_grace(text,integer)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_suspend_asaas_expired_grace(
+  uuid,text,text,text,text,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_replay_asaas_event(text,text,text,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_claim_asaas_reconciliation_candidates(text,integer)
+  TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_get_asaas_payment_document_context(uuid,uuid,text)
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_valid_br_tax_id(text)
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.set_clinic_storage_entitlement(
   uuid,text,text,bigint,text,text,text,text,boolean
 ) TO service_role;
+GRANT EXECUTE ON FUNCTION public.recalculate_clinic_storage_limit(uuid)
+  TO service_role;
 
 REVOKE ALL ON FUNCTION public.billing_get_company_profile(uuid)
   FROM PUBLIC, anon;
@@ -303,3 +408,54 @@ GRANT EXECUTE ON FUNCTION public.billing_get_company_profile(uuid)
 GRANT EXECUTE ON FUNCTION public.billing_upsert_company_profile(
   uuid,text,text,text,text,text,text,text,text,text,text,text
 ) TO authenticated, service_role;
+
+-- Stage 09 operational telemetry stays private after generic self-heal grants.
+REVOKE ALL ON TABLE public.billing_worker_health FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.billing_worker_health TO service_role;
+REVOKE ALL ON FUNCTION public.billing_record_worker_health(text,uuid,text,jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.billing_record_worker_health(text,uuid,text,jsonb) TO service_role;
+REVOKE ALL ON FUNCTION public.platform_master_operational_health() FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.platform_master_operational_health() TO authenticated;
+
+-- Trigger-only case authorization must not inherit legacy blanket grants.
+REVOKE ALL ON FUNCTION public.guard_case_company_write() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.resolve_case_clinic_id(uuid), public.can_access_case(uuid), public.can_modify_case(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.resolve_case_clinic_id(uuid), public.can_access_case(uuid), public.can_modify_case(uuid) TO authenticated, service_role;
+
+-- Scheduler credentials and dispatch remain private after blanket grants.
+-- Manual external-test review keeps the same operator/AAL2 boundary after restore.
+REVOKE ALL ON FUNCTION public.platform_master_close_external_sandbox_test(text,text,text,boolean)
+  FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.platform_master_close_external_sandbox_test(text,text,text,boolean)
+  TO authenticated;
+
+REVOKE ALL ON TABLE public.billing_database_scheduler,
+  net.http_request_queue, net._http_response FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.billing_enqueue_database_worker(text), public.billing_database_scheduler_boundary()
+  FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.billing_configure_database_scheduler(text,text),
+  public.billing_disable_database_scheduler(text), public.billing_database_scheduler_status(text)
+  FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.billing_configure_database_scheduler(text,text),
+  public.billing_disable_database_scheduler(text), public.billing_database_scheduler_status(text)
+  TO service_role;
+
+-- Cancellation executor: reseal after generic function grants above.
+REVOKE ALL ON TABLE public.billing_cancel_executions FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.billing_cancel_executions TO service_role;
+REVOKE ALL ON FUNCTION public.billing_cancel_master_identity() FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.platform_master_claim_cancel_request(uuid,text,text,boolean),
+  public.platform_master_begin_cancel_write(uuid,uuid) FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.platform_master_claim_cancel_request(uuid,text,text,boolean),
+  public.platform_master_begin_cancel_write(uuid,uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.billing_finish_cancel_request(uuid,uuid,jsonb,text) FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.billing_finish_cancel_request(uuid,uuid,jsonb,text) TO service_role;
+
+-- Fixture acceptance capabilities remain private after generic self-heal.
+REVOKE ALL ON FUNCTION public.can_access_user_avatar(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.can_access_user_avatar(uuid) TO authenticated, service_role;
+REVOKE ALL ON TABLE public.saas_fixture_acceptance_jobs FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.saas_claim_fixture_acceptance_job(uuid,text),
+  public.saas_finish_fixture_acceptance_job(uuid,jsonb) FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.saas_claim_fixture_acceptance_job(uuid,text),
+  public.saas_finish_fixture_acceptance_job(uuid,jsonb) TO service_role;

@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -311,7 +312,7 @@ function AppointmentCard({ appointment, compact = false, onEdit }: { appointment
         <div className="p-5 pb-4">
           <div className="flex items-start gap-3">
             <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full bg-[#1e8f87]/8 text-sm font-medium text-[#1e8f87]">
-              {patient?.photo_url ? <img src={patient.photo_url} alt="" className="h-full w-full object-cover" /> : <span>{patientInitial(patient?.name)}</span>}
+              {patient?.photo_url ? <PrivateImage src={patient.photo_url} alt="" className="h-full w-full object-cover" /> : <span>{patientInitial(patient?.name)}</span>}
             </div>
             <div className="min-w-0 flex-1 pt-0.5">
               <div className="truncate text-[20px] font-medium leading-tight text-slate-950 dark:text-white">{patient?.name || "Paciente"}</div>

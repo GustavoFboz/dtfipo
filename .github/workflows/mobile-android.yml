@@ -20,6 +20,7 @@ on:
     branches:
       - main
       - "mobile/android-*"
+      - "fix/saas-offline-72-hours"
       - "release/**"
     paths:
       - "src/**"

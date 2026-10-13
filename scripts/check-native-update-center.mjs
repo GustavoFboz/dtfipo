@@ -25,7 +25,7 @@ const androidRelease = read("scripts/prepare-android-release.py");
 const desktopVersion = String(JSON.parse(tauri).version || "");
 const androidVersion = androidRelease.match(/VERSION = "([^"]+)"/)?.[1] ?? "";
 
-expect(desktopVersion === "0.6.6", "The first Windows update-center release must be 0.6.6.");
+expect(desktopVersion === "0.6.7", "The current Windows update-center release must be 0.6.7.");
 expect(androidVersion === "0.3.0", "The current Android update-center release must be 0.3.0.");
 expect(cargo.includes(`version = "${desktopVersion}"`), "Tauri and Cargo versions must match.");
 

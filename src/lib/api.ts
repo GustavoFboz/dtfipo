@@ -1,9 +1,12 @@
 // @ts-nocheck
 import { supabase } from "@/integrations/supabase/client";
 import type { CaseRow, Doctor, Cadista, Patient, CaseType, ToothColor, Stage, Phase, Component, Profile, Notification, ComponentCategory } from "./types";
-import { autoRecordCaseMilling } from "./burrs";
+import { createCaseConfirmed } from "./creation-rpc";
 import { broadcastEntity, markDeleted } from "./optimistic";
 import { applyOptimisticStorageDelta, cancelStorageUpload, completeStorageUpload, reserveStorageUpload } from "./storage";
+import { newPasswordError } from "./auth/password-policy";
+import { privateFileReference, PRIVATE_FILE_URL_TTL_SECONDS } from "./private-file-reference";
+import { resolvePrivateFile } from "./private-file-access";
 
 
 async function hydrateVisibleCaseFallback(rows: CaseRow[]): Promise<CaseRow[]> {
@@ -728,6 +731,8 @@ export async function updateCaseTiBases(caseId: string, map: Record<string, stri
 }
 
 export type CreateCaseInput = {
+  id?: string;
+  idempotency_key?: string;
   patient_id: string;
   doctor_id: string | null;
   cadista_id: string | null;
@@ -757,173 +762,16 @@ export type CreateCaseInput = {
   requested_by?: string | null;
 };
 
-async function insertOneCase(input: CreateCaseInput & { also_arch?: string | null }, sibling_case_id: string | null = null) {
-  const {
-    component_ids,
-    case_type_ids,
-    also_arch: _ignoreAlsoArch,
-    teeth_zirconia = [],
-    teeth_dissilicato = [],
-    teeth_numbers = [],
-    tooth_case_types = {},
-    ...rest
-  } = input;
-  void _ignoreAlsoArch;
-  // Default to the first workflow stage (e.g. "Novo Caso") when none is provided
-  if (!rest.current_stage_id) {
-    const { data: firstStage } = await supabase
-      .from("stages")
-      .select("id")
-      .order("position", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (firstStage?.id) rest.current_stage_id = firstStage.id;
-  }
-  const { data: { user } } = await supabase.auth.getUser();
-  let isSolicitante = false;
-  if (user) {
-    const { data: prof } = await supabase.from("profiles").select("role,account_subtype").eq("id", user.id).maybeSingle();
-    const effectiveType = String(prof?.account_subtype || prof?.role || "").toUpperCase();
-    isSolicitante = effectiveType === "SOLICITANTE";
-  }
-  // Feature columns may briefly be unavailable while a database migration is
-  // rolling out. Keep the core case creation path recoverable instead of
-  // blocking the clinic with a PostgREST schema-cache error.
-  const optionalFeatureKeys = ["has_mockup", "prosthesis_groups"] as const;
-
-  const payload = {
-    ...rest,
-    sibling_case_id,
-    teeth_numbers,
-    teeth_zirconia,
-    teeth_dissilicato,
-    tooth_case_types,
-    elements_count: teeth_numbers.length,
-    elements_zirconia: teeth_zirconia.length,
-    elements_dissilicato: teeth_dissilicato.length,
-    // Somente solicitantes geram solicitações pendentes de aprovação.
-    requested_by: isSolicitante ? (input.requested_by || user?.id) : null,
-    status: isSolicitante ? "pendente" : "em_andamento",
-  };
-  let insertPayload: Record<string, unknown> = { ...payload };
-  let insertResult = await supabase
-    .from("cases")
-    .insert(insertPayload as never)
-    .select()
-    .single();
-
-  // During a rolling migration more than one optional column can be absent.
-  // Retry only for known optional feature columns; every other DB error remains
-  // fatal and visible.
-  for (let attempt = 0; attempt < optionalFeatureKeys.length && insertResult.error; attempt += 1) {
-    const message = String(insertResult.error.message || "");
-    const missingOptionalKey = optionalFeatureKeys.find(
-      (key) =>
-        Object.prototype.hasOwnProperty.call(insertPayload, key) &&
-        message.includes(`'${key}'`) &&
-        message.toLowerCase().includes("schema cache"),
-    );
-    if (!missingOptionalKey) break;
-    delete insertPayload[missingOptionalKey];
-    insertResult = await supabase
-      .from("cases")
-      .insert(insertPayload as never)
-      .select()
-      .single();
-  }
-
-  const { data: row, error } = insertResult;
-  if (error) throw error;
-  if (component_ids && component_ids.length) {
-    const { error: e2 } = await supabase
-      .from("case_components")
-      .insert(component_ids.map((cid) => ({ case_id: row.id, component_id: cid })));
-    if (e2) throw e2;
-  }
-  if (case_type_ids && case_type_ids.length) {
-    await supabase
-      .from("case_types_link")
-      .insert(case_type_ids.map((ctid) => ({ case_id: row.id, case_type_id: ctid })));
-  }
-  if (rest.current_stage_id) {
-    await supabase.from("case_stages").insert({
-      case_id: row.id,
-      stage_id: rest.current_stage_id,
-      position: 0,
-    });
-  }
-  // Auto-record burr usages
-  if (teeth_zirconia.length) await autoRecordCaseMilling(row.id, "zirconia", teeth_zirconia);
-  if (teeth_dissilicato.length) await autoRecordCaseMilling(row.id, "dissilicato", teeth_dissilicato);
-  return row;
-}
-
 export async function createCase(input: CreateCaseInput & { also_arch?: "superior" | "inferior" | null }) {
-  let created: any;
-  if (input.arch && input.also_arch && input.arch !== input.also_arch) {
-    const a = await insertOneCase({ ...input, arch: input.arch });
-    const b = await insertOneCase({ ...input, arch: input.also_arch }, a.id);
-    await supabase.from("cases").update({ sibling_case_id: b.id }).eq("id", a.id);
-    created = a;
-  } else {
-    created = await insertOneCase(input);
+  // The supplied id is also the durable key for legacy outbox entries.
+  const key = input.idempotency_key ?? input.id ?? crypto.randomUUID();
+  const { idempotency_key: _key, ...values } = input;
+  const result = await createCaseConfirmed(values, key);
+  for (const row of result.cases) {
+    try { broadcastEntity("cases", "insert", { id: row.id }); } catch { /* RLS realtime remains authoritative */ }
   }
-
-  // Sincronização instantânea entre abas do MESMO dispositivo. O transporte
-  // cross-device é postgres_changes sob RLS, portanto nunca depende deste peer
-  // local para autorização. Publicamos só o id para forçar cada aba a buscar a
-  // linha que a própria sessão está autorizada a enxergar.
-  try {
-    if (created?.id) {
-      broadcastEntity("cases", "insert", { id: created.id });
-    }
-  } catch (e) { console.warn("local case insert wakeup failed", e); }
-
-  // Notify cadista (if linked to a user) when a case is created and assigned to them
-  try {
-    if (input.cadista_id && created?.status !== "pendente") {
-      const { data: cadista } = await supabase
-        .from("cadistas")
-        .select("name, user_id")
-        .eq("id", input.cadista_id)
-        .maybeSingle();
-      const { data: patient } = await supabase
-        .from("patients")
-        .select("name")
-        .eq("id", input.patient_id)
-        .maybeSingle();
-      const { data: { user } } = await supabase.auth.getUser();
-      const patientName = (patient as any)?.name ?? "paciente";
-      if ((cadista as any)?.user_id) {
-        const nId = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2);
-        const notif = {
-          id: nId,
-          sender_id: user?.id ?? null,
-          recipient_id: (cadista as any).user_id,
-          title: "Novo caso atribuído a você",
-          content: `Você foi designado(a) como cadista do caso de ${patientName}.`,
-          type: "case_assigned",
-          metadata: { case_id: created.id },
-          read_at: null,
-          created_at: new Date().toISOString(),
-        };
-        try { broadcastEntity("notifications", "insert", notif); } catch { /* ignore */ }
-        await supabase.from("notifications").insert(notif as any);
-      }
-
-      // Activity log entry
-      try {
-        const { addCaseActivity } = await import("./case-activity");
-        await addCaseActivity(created.id, "create", `Caso criado para ${patientName}.`, []);
-      } catch (e) { console.warn(e); }
-    }
-  } catch (e) {
-    console.warn("notify cadista on create failed", e);
-  }
-
-  return created;
+  return { ...result.case, created_cases: result.cases };
 }
-
 
 
 export const updateCase = async (id: string, patch: Record<string, unknown>) => {
@@ -1232,30 +1080,38 @@ export const updateCaseStagePending = async (id: string, pending_count: number) 
   if (error) throw error;
 };
 
+// A reservation stays charged until Storage confirms removal. Never hide a
+// cleanup failure behind the original upload error or release retained bytes.
+async function rollbackUploadedObject(bucket: string, path: string, reservationId: string | null, sizeBytes: number): Promise<void> {
+  const { error } = await supabase.storage.from(bucket).remove([path]);
+  if (error) throw error;
+  await cancelStorageUpload(reservationId, sizeBytes);
+}
+
 // Upload de foto do paciente
 export async function uploadPatientPhoto(patientId: string, file: Blob): Promise<string> {
-  const path = `${patientId}/${Date.now()}.jpg`;
+  const path = `${patientId}/${crypto.randomUUID()}.jpg`;
   const reservation = await reserveStorageUpload({ sizeBytes: file.size, bucket: "patient-photos", objectPath: path, sourceType: "patient_photo", patientId, originalName: "Foto do paciente.jpg", mimeType: "image/jpeg" });
-  const { error } = await supabase.storage.from("patient-photos").upload(path, file, { contentType: "image/jpeg", upsert: true });
+  const { error } = await supabase.storage.from("patient-photos").upload(path, file, { contentType: "image/jpeg", upsert: false });
   if (error) { await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
-  const { data, error: signErr } = await supabase.storage.from("patient-photos").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-  if (signErr) { await supabase.storage.from("patient-photos").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw signErr; }
+  const { data, error: signErr } = await supabase.storage.from("patient-photos").createSignedUrl(path, PRIVATE_FILE_URL_TTL_SECONDS);
+  if (signErr || !data?.signedUrl) { await rollbackUploadedObject("patient-photos", path, reservation.reservationId, file.size); throw signErr ?? new Error("Não foi possível confirmar o acesso à foto enviada."); }
   await completeStorageUpload(reservation.reservationId, patientId);
-  return data.signedUrl;
+  return privateFileReference("patient-photos", path);
 }
 
 export async function uploadUserAvatar(file: Blob): Promise<string> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Não autenticado");
-  const path = `${user.id}/${Date.now()}.jpg`;
+  const path = `${user.id}/${crypto.randomUUID()}.jpg`;
   const reservation = await reserveStorageUpload({ sizeBytes: file.size, bucket: "avatars", objectPath: path, sourceType: "user_avatar", originalName: "Avatar.jpg", mimeType: "image/jpeg" });
-  const { error } = await supabase.storage.from("avatars").upload(path, file, { contentType: "image/jpeg", upsert: true });
+  const { error } = await supabase.storage.from("avatars").upload(path, file, { contentType: "image/jpeg", upsert: false });
   if (error) { await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
-  const { data, error: signErr } = await supabase.storage.from("avatars").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-  if (signErr) { await supabase.storage.from("avatars").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw signErr; }
-  const url = data.signedUrl;
+  const { data, error: signErr } = await supabase.storage.from("avatars").createSignedUrl(path, PRIVATE_FILE_URL_TTL_SECONDS);
+  if (signErr || !data?.signedUrl) { await rollbackUploadedObject("avatars", path, reservation.reservationId, file.size); throw signErr ?? new Error("Não foi possível confirmar o acesso ao avatar enviado."); }
+  const url = privateFileReference("avatars", path);
   const { error: updErr } = await supabase.from("profiles").update({ avatar_url: url } as never).eq("id", user.id);
-  if (updErr) { await supabase.storage.from("avatars").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw updErr; }
+  if (updErr) { await rollbackUploadedObject("avatars", path, reservation.reservationId, file.size); throw updErr; }
   await completeStorageUpload(reservation.reservationId, user.id);
   return url;
 }
@@ -1298,30 +1154,30 @@ export async function uploadPatientAttachment(
   const reservation = await reserveStorageUpload({ sizeBytes: file.size, bucket: "patient-files", objectPath: path, sourceType: "patient_attachment", patientId, originalName: file.name || meta.title || "arquivo", mimeType: file.type || null });
   const { error: upErr } = await supabase.storage.from("patient-files").upload(path, file, { contentType: file.type || undefined, upsert: false });
   if (upErr) { await cancelStorageUpload(reservation.reservationId, file.size); throw upErr; }
-  const { data: signed } = await supabase.storage.from("patient-files").createSignedUrl(path, 60 * 60 * 24 * 365);
-  const file_url = signed?.signedUrl ?? "";
+  const { data: signed, error: signError } = await supabase.storage.from("patient-files").createSignedUrl(path, PRIVATE_FILE_URL_TTL_SECONDS);
+  if (signError || !signed?.signedUrl) {
+    await rollbackUploadedObject("patient-files", path, reservation.reservationId, file.size);
+    throw signError ?? new Error("Não foi possível confirmar o acesso ao arquivo enviado.");
+  }
+  const file_url = privateFileReference("patient-files", path);
   const isImage = (file.type || "").startsWith("image/");
   const { data, error } = await supabase.from("patient_attachments" as never).insert({ patient_id: patientId, title: meta.title, description: meta.description ?? null, kind: meta.kind ?? "other", file_url, file_path: path, thumbnail_url: isImage ? file_url : null, mime_type: file.type || null, size_bytes: file.size } as never).select().single();
-  if (error) { await supabase.storage.from("patient-files").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
+  if (error) { await rollbackUploadedObject("patient-files", path, reservation.reservationId, file.size); throw error; }
   await completeStorageUpload(reservation.reservationId, (data as any).id);
   return data as unknown as PatientAttachment;
 }
 
 export async function deletePatientAttachment(att: PatientAttachment) {
-  markDeleted(att.id);
-  applyOptimisticStorageDelta(-Math.max(0, Number(att.size_bytes || 0)));
   const { error: storageError } = await supabase.storage.from("patient-files").remove([att.file_path]);
-  if (storageError) console.warn("patient attachment storage cleanup failed", storageError);
+  if (storageError) throw storageError;
   const { error } = await supabase.from("patient_attachments" as never).delete().eq("id", att.id);
-  if (error) { applyOptimisticStorageDelta(Math.max(0, Number(att.size_bytes || 0))); throw error; }
+  if (error) throw error;
+  applyOptimisticStorageDelta(-Math.max(0, Number(att.size_bytes || 0)));
+  try { markDeleted(att.id); } catch {}
 }
 
 export async function refreshAttachmentSignedUrl(path: string): Promise<string> {
-  const { data, error } = await supabase.storage
-    .from("patient-files")
-    .createSignedUrl(path, 60 * 60);
-  if (error) throw error;
-  return data.signedUrl;
+  return (await resolvePrivateFile(privateFileReference("patient-files", path))).url;
 }
 
 // ===== Case attachments (72h auto-expire) =====
@@ -1365,7 +1221,7 @@ export async function uploadCaseAttachment(
   if (upErr) { await cancelStorageUpload(reservation.reservationId, file.size); throw upErr; }
   const { data: userRes } = await supabase.auth.getUser();
   const { data, error } = await supabase.from("case_attachments" as never).insert({ case_id: caseId, file_name: file.name, storage_path: path, size_bytes: file.size, mime_type: file.type || null, uploaded_by: userRes.user?.id ?? null, notes: notes ?? null, kind } as never).select().single();
-  if (error) { await supabase.storage.from("case-files").remove([path]); await cancelStorageUpload(reservation.reservationId, file.size); throw error; }
+  if (error) { await rollbackUploadedObject("case-files", path, reservation.reservationId, file.size); throw error; }
   await completeStorageUpload(reservation.reservationId, (data as any).id);
   return data as unknown as CaseAttachment;
 }
@@ -1381,7 +1237,7 @@ export async function getCaseAttachmentUrl(path: string, downloadName?: string):
     .from("case-files")
     .createSignedUrl(
       path,
-      60 * 60,
+      PRIVATE_FILE_URL_TTL_SECONDS,
       downloadName ? { download: downloadName } : undefined,
     );
   if (error) throw error;
@@ -1389,6 +1245,8 @@ export async function getCaseAttachmentUrl(path: string, downloadName?: string):
 }
 
 export async function deleteCaseAttachment(att: CaseAttachment) {
+  const { error: storageError } = await supabase.storage.from("case-files").remove([att.storage_path]);
+  if (storageError) throw storageError;
   const managed = await supabase.rpc("delete_case_attachment_managed" as never, { _attachment_id: att.id } as never);
   const missingRpc = managed.error && (managed.error.code === "PGRST202" || managed.error.code === "42883" || String(managed.error.message || "").toLowerCase().includes("schema cache"));
   if (managed.error && !missingRpc) throw managed.error;
@@ -1397,10 +1255,6 @@ export async function deleteCaseAttachment(att: CaseAttachment) {
     if (error) throw error;
   }
   applyOptimisticStorageDelta(-Math.max(0, Number(att.size_bytes || 0)));
-  try {
-    const { error: storageError } = await supabase.storage.from("case-files").remove([att.storage_path]);
-    if (storageError) console.warn("attachment storage cleanup failed", storageError);
-  } catch (storageError) { console.warn("attachment storage cleanup failed", storageError); }
   try { markDeleted(att.id); } catch {}
 }
 
@@ -1506,6 +1360,8 @@ export async function rejectJoinRequest(memberId: string) {
 }
 
 export async function adminSetMemberPassword(userId: string, password: string) {
+  const passwordError = newPasswordError(password);
+  if (passwordError) throw new Error(passwordError);
   const { data, error } = await supabase.rpc("admin_set_member_password", { p_user_id: userId, p_password: password });
   if (error) throw error;
   const r = data as any;

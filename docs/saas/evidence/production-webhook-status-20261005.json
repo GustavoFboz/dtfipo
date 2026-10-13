@@ -1,0 +1,41 @@
+{
+  "available": true,
+  "contract": "dentalflow-production-webhook-preflight-v1",
+  "environment": "production",
+  "checked_at": "2026-10-05T18:13:46.185Z",
+  "configuration_valid": true,
+  "credentials_valid": true,
+  "listing_complete": true,
+  "matching_webhooks": 1,
+  "webhook_prepared": false,
+  "webhooks": [
+    {
+      "id": "ee2af07c-ec23-4224-893b-390efbc85c8f",
+      "enabled": true,
+      "interrupted": false,
+      "api_version": 3,
+      "send_type": "SEQUENTIALLY",
+      "token_matches": null,
+      "configured_events": [
+        "PAYMENT_REFUNDED",
+        "PAYMENT_OVERDUE",
+        "PAYMENT_CONFIRMED",
+        "PAYMENT_CHARGEBACK_REQUESTED",
+        "SUBSCRIPTION_DELETED",
+        "PAYMENT_AWAITING_CHARGEBACK_REVERSAL",
+        "SUBSCRIPTION_UPDATED",
+        "PAYMENT_REFUND_IN_PROGRESS",
+        "PAYMENT_PARTIALLY_REFUNDED",
+        "PAYMENT_CHARGEBACK_DISPUTE",
+        "SUBSCRIPTION_INACTIVATED",
+        "SUBSCRIPTION_CREATED",
+        "PAYMENT_RECEIVED"
+      ],
+      "missing_automated_events": [],
+      "missing_review_events": [],
+      "unknown_events_count": 0
+    }
+  ],
+  "webhook_delivery_verified": false,
+  "financial_processing_invoked": false
+}

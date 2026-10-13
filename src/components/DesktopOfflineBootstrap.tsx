@@ -133,13 +133,6 @@ export function DesktopOfflineBootstrap() {
           fullName = profileResult.data?.full_name ?? null;
           clinicId = profileResult.data?.clinic_id ?? null;
 
-          await provisionDesktopIdentity({
-            userId: user.id,
-            email: user.email ?? null,
-            fullName,
-            clinicId,
-          });
-
           // Subscription/session entitlement is an authorization asset, not an
           // auxiliary dashboard query. Cache it before the Hub is allowed to race
           // with the rest of the first synchronization.
@@ -150,6 +143,9 @@ export function DesktopOfflineBootstrap() {
           );
           if (!subscriptionContext) {
             throw new Error("Não foi possível validar a assinatura e os ambientes desta conta.");
+          }
+          if (subscriptionContext.effective_access === "full") {
+            await provisionDesktopIdentity({ userId: user.id, email: user.email ?? null, fullName, clinicId });
           }
           queryClient.setQueryData(["subscription_context"], subscriptionContext);
 

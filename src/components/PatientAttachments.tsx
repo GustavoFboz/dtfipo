@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  fetchPatientAttachments, uploadPatientAttachment, deletePatientAttachment,
+  fetchPatientAttachments, uploadPatientAttachment, deletePatientAttachment, refreshAttachmentSignedUrl,
 } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,7 @@ import {
 import { Upload, FileText, ImageIcon, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
 import type { PatientAttachment } from "@/lib/types";
+import { PrivateImage } from "@/components/PrivateImage";
 
 const KIND_LABEL: Record<string, string> = {
   scan: "Escaneamento",
@@ -100,6 +101,21 @@ export function PatientAttachments({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const openFile = useMutation({
+    mutationFn: async (a: PatientAttachment) => {
+      // Open before awaiting to preserve the user's popup gesture. The blank
+      // window receives a URL only after the current account passes Storage RLS.
+      const preview = window.open("about:blank", "_blank");
+      if (preview) preview.opener = null;
+      try {
+        const url = await refreshAttachmentSignedUrl(a.file_path);
+        if (!preview || preview.closed) throw new Error("Permita abrir uma nova aba para visualizar o arquivo.");
+        preview.location.replace(url);
+      } catch (error) { preview?.close(); throw error; }
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   return (
     <section>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -151,14 +167,14 @@ export function PatientAttachments({
           {visible.map((a) => (
             <div key={a.id} className="group overflow-hidden rounded-[22px] border border-slate-200/70 bg-white transition hover:border-[#1e8f87]/20 hover:shadow-[0_16px_38px_-32px_rgba(15,23,42,.55)] dark:border-white/10 dark:bg-slate-950">
               <div className="aspect-[4/3] bg-slate-50 grid place-items-center overflow-hidden dark:bg-white/[0.03]">
-                {a.thumbnail_url ? <img src={a.thumbnail_url} alt={a.title} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" /> : <FileText className="h-8 w-8 text-slate-200" />}
+                {a.thumbnail_url ? <PrivateImage src={a.thumbnail_url} alt={a.title} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" /> : <FileText className="h-8 w-8 text-slate-200" />}
               </div>
               <div className="p-3.5">
                 <div className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#1e8f87]">{KIND_LABEL[a.kind] ?? a.kind}</div>
                 <div className="mt-1 truncate text-sm font-medium text-slate-800 dark:text-white" title={a.title}>{a.title}</div>
                 {a.description && <div className="mt-1 line-clamp-2 text-[10px] font-light leading-4 text-slate-400">{a.description}</div>}
                 <div className="mt-3 flex items-center gap-1.5">
-                  <a href={a.file_url} target="_blank" rel="noreferrer" className="flex-1"><Button size="sm" variant="outline" className="h-8 w-full rounded-xl border-slate-200 text-[10px]"><Download className="mr-1.5 h-3.5 w-3.5" /> Abrir</Button></a>
+                  <Button size="sm" variant="outline" disabled={openFile.isPending} onClick={() => openFile.mutate(a)} className="h-8 flex-1 rounded-xl border-slate-200 text-[10px]"><Download className="mr-1.5 h-3.5 w-3.5" /> Abrir</Button>
                   <Button size="icon" variant="ghost" className="h-8 w-8 rounded-xl" onClick={() => setToDelete(a)} aria-label="Excluir"><Trash2 className="h-3.5 w-3.5 text-slate-300 transition hover:text-destructive" /></Button>
                 </div>
               </div>

@@ -13878,6 +13878,4096 @@ comment on function public.billing_get_asaas_provisioning_context(uuid,uuid,text
 comment on function public.billing_bind_asaas_subscription(uuid,text,text,text) is
   'Binds provider identity only; payment webhooks remain the sole authority that activates access.';
 
+-- ===== 20260921210000_saas_asaas_checkout_stage03.sql =====
+
+-- DentalFlow SaaS — Stage 03: authenticated Asaas checkout handoff.
+--
+-- Provider calls remain in the trusted application backend. These RPCs expose
+-- only the minimum checkout context to service_role and persist the first Asaas
+-- payment URL without ever confirming payment or activating entitlements.
+
+create or replace function public.billing_get_checkout_provisioning_context(
+  p_checkout_intent_id uuid,
+  p_actor_user_id uuid,
+  p_provider_environment text
+) returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_intent public.checkout_intents%rowtype;
+  v_subscription public.account_subscriptions%rowtype;
+  v_plan public.billing_plans%rowtype;
+begin
+  if p_provider_environment not in ('sandbox','production') then
+    raise exception 'BILLING_PROVIDER_INVALID_ENVIRONMENT';
+  end if;
+
+  select * into v_intent
+  from public.checkout_intents
+  where id = p_checkout_intent_id;
+
+  if v_intent.id is null then
+    raise exception 'BILLING_CHECKOUT_NOT_FOUND';
+  end if;
+  if v_intent.user_id <> p_actor_user_id then
+    raise exception 'BILLING_CHECKOUT_FORBIDDEN';
+  end if;
+  if v_intent.status not in ('pending','provider_created') then
+    raise exception 'BILLING_CHECKOUT_NOT_PROVISIONABLE';
+  end if;
+  if v_intent.status = 'pending' and v_intent.expires_at <= now() then
+    raise exception 'BILLING_CHECKOUT_EXPIRED';
+  end if;
+  if not public.billing_user_can_manage_company(v_intent.clinic_id, p_actor_user_id) then
+    raise exception 'BILLING_CHECKOUT_FORBIDDEN';
+  end if;
+  if public.is_internal_full_access_company(v_intent.clinic_id) then
+    raise exception 'BILLING_CHECKOUT_EXEMPT_COMPANY';
+  end if;
+
+  select * into v_subscription
+  from public.account_subscriptions
+  where id = v_intent.subscription_id;
+
+  if v_subscription.id is null
+     or v_subscription.clinic_id <> v_intent.clinic_id
+     or v_subscription.scope_type <> 'company'
+     or v_subscription.status <> 'pending_checkout' then
+    raise exception 'BILLING_SUBSCRIPTION_NOT_PROVISIONABLE';
+  end if;
+
+  select * into v_plan
+  from public.billing_plans
+  where code = v_intent.plan_code
+    and account_scope = 'company'
+    and is_active;
+
+  if v_plan.code is null
+     or v_subscription.plan_code <> v_plan.code
+     or v_intent.currency <> 'BRL'
+     or v_plan.currency <> v_intent.currency
+     or v_plan.monthly_price_cents <> v_intent.amount_cents then
+    raise exception 'BILLING_CHECKOUT_CONTRACT_MISMATCH';
+  end if;
+
+  return jsonb_build_object(
+    'checkout_intent_id', v_intent.id,
+    'subscription_id', v_subscription.id,
+    'clinic_id', v_intent.clinic_id,
+    'plan_code', v_plan.code,
+    'plan_name', v_plan.name,
+    'amount_cents', v_intent.amount_cents,
+    'currency', v_intent.currency,
+    'status', v_intent.status,
+    'expires_at', v_intent.expires_at,
+    'provider_environment', p_provider_environment,
+    'provider_customer_id', case
+      when v_subscription.billing_provider = 'asaas'
+       and v_subscription.provider_environment = p_provider_environment
+      then v_subscription.external_customer_id
+      else null
+    end,
+    'provider_subscription_id', case
+      when v_subscription.billing_provider = 'asaas'
+       and v_subscription.provider_environment = p_provider_environment
+      then v_subscription.external_subscription_id
+      else null
+    end,
+    'provider_payment_id', case
+      when v_intent.billing_provider = 'asaas'
+       and v_intent.provider_environment = p_provider_environment
+      then v_intent.provider_payment_id
+      else null
+    end,
+    'provider_payment_url', case
+      when v_intent.billing_provider = 'asaas'
+       and v_intent.provider_environment = p_provider_environment
+      then v_intent.provider_payment_url
+      else null
+    end
+  );
+end;
+$$;
+
+create or replace function public.billing_mark_asaas_checkout_ready(
+  p_checkout_intent_id uuid,
+  p_actor_user_id uuid,
+  p_provider_environment text,
+  p_provider_customer_id text,
+  p_provider_subscription_id text,
+  p_provider_payment_id text,
+  p_provider_payment_url text
+) returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_intent public.checkout_intents%rowtype;
+  v_subscription public.account_subscriptions%rowtype;
+  v_url text := trim(coalesce(p_provider_payment_url, ''));
+begin
+  if p_provider_environment not in ('sandbox','production') then
+    raise exception 'BILLING_PROVIDER_INVALID_ENVIRONMENT';
+  end if;
+  if trim(coalesce(p_provider_customer_id, '')) !~ '^cus_[A-Za-z0-9]+$'
+     or trim(coalesce(p_provider_subscription_id, '')) !~ '^sub_[A-Za-z0-9]+$'
+     or trim(coalesce(p_provider_payment_id, '')) !~ '^pay_[A-Za-z0-9]+$' then
+    raise exception 'BILLING_PROVIDER_INVALID_RESOURCE_ID';
+  end if;
+  if (p_provider_environment = 'sandbox'
+      and v_url !~ '^https://sandbox\.asaas\.com/i/[A-Za-z0-9_-]+([/?#].*)?$')
+     or (p_provider_environment = 'production'
+      and v_url !~ '^https://www\.asaas\.com/i/[A-Za-z0-9_-]+([/?#].*)?$') then
+    raise exception 'BILLING_PROVIDER_INVALID_PAYMENT_URL';
+  end if;
+
+  select * into v_intent
+  from public.checkout_intents
+  where id = p_checkout_intent_id
+  for update;
+
+  if v_intent.id is null then
+    raise exception 'BILLING_CHECKOUT_NOT_FOUND';
+  end if;
+  if v_intent.user_id <> p_actor_user_id
+     or not public.billing_user_can_manage_company(v_intent.clinic_id, p_actor_user_id) then
+    raise exception 'BILLING_CHECKOUT_FORBIDDEN';
+  end if;
+  if v_intent.status not in ('pending','provider_created') then
+    raise exception 'BILLING_CHECKOUT_NOT_PROVISIONABLE';
+  end if;
+
+  select * into v_subscription
+  from public.account_subscriptions
+  where id = v_intent.subscription_id
+  for update;
+
+  if v_subscription.id is null
+     or v_subscription.status <> 'pending_checkout'
+     or v_subscription.billing_provider <> 'asaas'
+     or v_subscription.provider_environment <> p_provider_environment
+     or v_subscription.external_customer_id <> trim(p_provider_customer_id)
+     or v_subscription.external_subscription_id <> trim(p_provider_subscription_id) then
+    raise exception 'BILLING_PROVIDER_SUBSCRIPTION_CONFLICT';
+  end if;
+
+  if (v_intent.billing_provider is not null and v_intent.billing_provider <> 'asaas')
+     or (v_intent.provider_environment is not null
+         and v_intent.provider_environment <> p_provider_environment)
+     or (v_intent.provider_payment_id is not null
+         and v_intent.provider_payment_id <> trim(p_provider_payment_id))
+     or (v_intent.provider_payment_url is not null
+         and v_intent.provider_payment_url <> v_url) then
+    raise exception 'BILLING_CHECKOUT_PROVIDER_CONFLICT';
+  end if;
+
+  update public.checkout_intents
+  set status = 'provider_created',
+      billing_provider = 'asaas',
+      provider_environment = p_provider_environment,
+      provider_payment_id = trim(p_provider_payment_id),
+      provider_payment_url = v_url,
+      updated_at = now()
+  where id = v_intent.id;
+
+  return jsonb_build_object(
+    'checkout_intent_id', v_intent.id,
+    'subscription_id', v_intent.subscription_id,
+    'status', 'provider_created',
+    'provider_environment', p_provider_environment,
+    'provider_payment_id', trim(p_provider_payment_id),
+    'provider_payment_url', v_url,
+    'payment_confirmed', false
+  );
+end;
+$$;
+
+-- A browser refresh or a second click must reuse the same active checkout.
+-- Once an Asaas subscription exists, plan/session changes require a later
+-- lifecycle operation instead of silently attaching a new intent to the old
+-- provider resource.
+create or replace function public.create_checkout_intent(
+  p_plan_code text,
+  p_clinic_id uuid,
+  p_session_types text[] default null
+) returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_plan public.billing_plans%rowtype;
+  v_subscription public.account_subscriptions%rowtype;
+  v_intent public.checkout_intents%rowtype;
+  v_provider_intent public.checkout_intents%rowtype;
+  v_requested text[];
+begin
+  if auth.uid() is null then
+    raise exception 'BILLING_CHECKOUT_FORBIDDEN';
+  end if;
+  if p_clinic_id is null
+     or not public.billing_user_can_manage_company(p_clinic_id, auth.uid()) then
+    raise exception 'BILLING_CHECKOUT_FORBIDDEN';
+  end if;
+  if public.is_internal_full_access_company(p_clinic_id) then
+    raise exception 'BILLING_CHECKOUT_EXEMPT_COMPANY';
+  end if;
+
+  select * into v_plan
+  from public.billing_plans
+  where code = p_plan_code
+    and account_scope = 'company'
+    and is_active;
+  if v_plan.code is null or v_plan.currency <> 'BRL' or v_plan.monthly_price_cents <= 0 then
+    raise exception 'BILLING_PLAN_NOT_PROVISIONABLE';
+  end if;
+
+  select coalesce(array_agg(distinct lower(x) order by lower(x)), '{}'::text[])
+  into v_requested
+  from unnest(coalesce(p_session_types, '{}'::text[])) x
+  where lower(x) in ('laboratory','clinic','radiology');
+
+  if cardinality(v_requested) = 0
+     or cardinality(v_requested) > v_plan.max_sessions then
+    raise exception 'BILLING_CHECKOUT_INVALID_SESSIONS';
+  end if;
+
+  select * into v_subscription
+  from public.account_subscriptions
+  where clinic_id = p_clinic_id
+    and status <> 'canceled'
+  order by created_at desc
+  limit 1
+  for update;
+
+  if v_subscription.id is null then
+    insert into public.account_subscriptions(
+      scope_type, clinic_id, plan_code, status, billing_day
+    ) values (
+      'company', p_clinic_id, v_plan.code, 'pending_checkout',
+      least(28, extract(day from now())::integer)
+    ) returning * into v_subscription;
+  elsif v_subscription.status <> 'pending_checkout' then
+    raise exception 'BILLING_SUBSCRIPTION_REACTIVATION_PENDING';
+  elsif v_subscription.external_subscription_id is not null
+        and v_subscription.plan_code <> v_plan.code then
+    raise exception 'BILLING_PROVIDER_SUBSCRIPTION_PLAN_LOCKED';
+  elsif v_subscription.external_subscription_id is null
+        and v_subscription.plan_code <> v_plan.code then
+    update public.account_subscriptions
+    set plan_code = v_plan.code,
+        updated_at = now()
+    where id = v_subscription.id
+    returning * into v_subscription;
+  end if;
+
+  update public.checkout_intents
+  set status = 'expired',
+      updated_at = now()
+  where subscription_id = v_subscription.id
+    and status = 'pending'
+    and expires_at <= now();
+
+  select * into v_provider_intent
+  from public.checkout_intents
+  where subscription_id = v_subscription.id
+    and status = 'provider_created'
+  order by created_at desc
+  limit 1;
+
+  if v_provider_intent.id is not null then
+    if v_provider_intent.plan_code <> v_plan.code
+       or not (
+         coalesce(v_provider_intent.metadata->'requested_sessions', '[]'::jsonb)
+           @> to_jsonb(v_requested)
+         and coalesce(v_provider_intent.metadata->'requested_sessions', '[]'::jsonb)
+           <@ to_jsonb(v_requested)
+       ) then
+      raise exception 'BILLING_PROVIDER_CHECKOUT_LOCKED';
+    end if;
+    v_intent := v_provider_intent;
+  else
+    select * into v_intent
+    from public.checkout_intents
+    where user_id = auth.uid()
+      and clinic_id = p_clinic_id
+      and subscription_id = v_subscription.id
+      and plan_code = v_plan.code
+      and status = 'pending'
+      and expires_at > now()
+      and coalesce(metadata->'requested_sessions', '[]'::jsonb) @> to_jsonb(v_requested)
+      and coalesce(metadata->'requested_sessions', '[]'::jsonb) <@ to_jsonb(v_requested)
+    order by created_at desc
+    limit 1;
+
+    if v_intent.id is null then
+      update public.checkout_intents
+      set status = 'canceled',
+          updated_at = now()
+      where user_id = auth.uid()
+        and clinic_id = p_clinic_id
+        and subscription_id = v_subscription.id
+        and status = 'pending';
+
+      insert into public.checkout_intents(
+        user_id, clinic_id, subscription_id, plan_code, amount_cents,
+        currency, status, metadata
+      ) values (
+        auth.uid(), p_clinic_id, v_subscription.id, v_plan.code,
+        v_plan.monthly_price_cents, v_plan.currency, 'pending',
+        jsonb_build_object(
+          'requested_sessions', to_jsonb(v_requested),
+          'billing_version', 'saas-stage-03'
+        )
+      ) returning * into v_intent;
+    end if;
+  end if;
+
+  return jsonb_build_object(
+    'checkout_intent_id', v_intent.id,
+    'subscription_id', v_subscription.id,
+    'plan_code', v_intent.plan_code,
+    'plan_name', v_plan.name,
+    'amount_cents', v_intent.amount_cents,
+    'currency', v_intent.currency,
+    'status', v_intent.status,
+    'billing_mode', 'live'
+  );
+end;
+$$;
+
+drop function if exists public.create_checkout_intent(text,uuid);
+create function public.create_checkout_intent(
+  p_plan_code text,
+  p_clinic_id uuid
+) returns jsonb
+language sql
+security definer
+set search_path = pg_catalog, public
+as $$
+  select public.create_checkout_intent(
+    p_plan_code,
+    p_clinic_id,
+    coalesce(
+      (
+        select array_agg(cs.session_type::text order by cs.session_type::text)
+        from public.company_sessions cs
+        where cs.clinic_id = p_clinic_id
+          and cs.status = 'active'
+      ),
+      array['laboratory']::text[]
+    )
+  )
+$$;
+
+revoke all on function public.create_checkout_intent(text,uuid,text[])
+  from public, anon;
+revoke all on function public.create_checkout_intent(text,uuid)
+  from public, anon;
+grant execute on function public.create_checkout_intent(text,uuid,text[])
+  to authenticated, service_role;
+grant execute on function public.create_checkout_intent(text,uuid)
+  to authenticated, service_role;
+
+revoke all on function public.billing_get_checkout_provisioning_context(
+  uuid,uuid,text
+) from public, anon, authenticated;
+revoke all on function public.billing_mark_asaas_checkout_ready(
+  uuid,uuid,text,text,text,text,text
+) from public, anon, authenticated;
+
+grant execute on function public.billing_get_checkout_provisioning_context(
+  uuid,uuid,text
+) to service_role;
+grant execute on function public.billing_mark_asaas_checkout_ready(
+  uuid,uuid,text,text,text,text,text
+) to service_role;
+
+comment on function public.billing_get_checkout_provisioning_context(uuid,uuid,text) is
+  'Backend-only checkout contract without fiscal data or provider secrets.';
+comment on function public.billing_mark_asaas_checkout_ready(uuid,uuid,text,text,text,text,text) is
+  'Stores a validated Asaas payment handoff; never confirms payment or activates access.';
+
+notify pgrst, 'reload schema';
+
+-- ===== 20260926190000_saas_asaas_webhook_stage04.sql =====
+
+-- Stage 04: durable, private Asaas webhook inbox and leased processing.
+-- Applying this migration does not enable the webhook or grant paid access.
+
+alter table public.billing_events
+  add column if not exists attempt_count integer not null default 0,
+  add column if not exists next_attempt_at timestamptz not null default now(),
+  add column if not exists lease_token uuid,
+  add column if not exists lease_until timestamptz;
+
+alter table public.billing_events
+  drop constraint if exists billing_events_status_check;
+alter table public.billing_events
+  add constraint billing_events_status_check
+  check (status in ('received','processing','processed','ignored','failed','dead_letter'));
+
+create index if not exists billing_events_pending_work_idx
+  on public.billing_events (next_attempt_at, received_at)
+  where provider = 'asaas' and status in ('received','processing','failed');
+
+create or replace function public.billing_receive_asaas_event(
+  p_environment text, p_event_id text, p_event_type text, p_payload jsonb
+) returns boolean
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare v_inserted uuid;
+begin
+  if p_environment not in ('sandbox','production')
+    or p_event_id !~ '^evt_[A-Za-z0-9&_-]{1,150}$'
+    or p_event_type !~ '^[A-Z_]{3,100}$'
+    or jsonb_typeof(p_payload) <> 'object'
+    or pg_column_size(p_payload) > 4096 then
+    raise exception 'BILLING_INVALID_ASAAS_EVENT';
+  end if;
+
+  insert into public.billing_events (
+    provider, provider_environment, provider_event_id, event_type, payload, status
+  ) values ('asaas', p_environment, p_event_id, p_event_type, p_payload, 'received')
+  on conflict (provider, provider_environment, provider_event_id) do nothing
+  returning id into v_inserted;
+  return v_inserted is not null;
+end;
+$$;
+
+create or replace function public.billing_claim_asaas_events(
+  p_environment text, p_limit integer default 10
+) returns table (
+  id uuid, event_type text, payload jsonb, lease_token uuid, attempt_count integer
+)
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+begin
+  if p_environment not in ('sandbox','production') or p_limit not between 1 and 20 then
+    raise exception 'BILLING_INVALID_WORKER_REQUEST';
+  end if;
+  return query
+  with claimed as (
+    select e.id
+    from public.billing_events e
+    where e.provider = 'asaas' and e.provider_environment = p_environment
+      and e.next_attempt_at <= now()
+      and (e.status in ('received','failed')
+           or (e.status = 'processing' and e.lease_until < now()))
+    order by e.received_at, e.id
+    limit p_limit for update skip locked
+  )
+  update public.billing_events e
+  set status = 'processing', lease_token = gen_random_uuid(),
+      lease_until = now() + interval '90 seconds',
+      attempt_count = e.attempt_count + 1
+  from claimed c where e.id = c.id
+  returning e.id, e.event_type, e.payload, e.lease_token, e.attempt_count;
+end;
+$$;
+
+create or replace function public.billing_finish_asaas_event(
+  p_id uuid, p_lease_token uuid, p_outcome text, p_error_code text default null
+) returns boolean
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare v_attempts integer;
+begin
+  if p_outcome not in ('processed','ignored','failed')
+    or (p_error_code is not null and p_error_code !~ '^[A-Z0-9_]{1,80}$') then
+    raise exception 'BILLING_INVALID_WORKER_RESULT';
+  end if;
+  select attempt_count into v_attempts from public.billing_events
+  where id = p_id and provider = 'asaas' and status = 'processing'
+    and lease_token = p_lease_token and lease_until > now() for update;
+  if not found then return false; end if;
+
+  update public.billing_events set
+    status = case when p_outcome = 'failed' and v_attempts >= 6
+      then 'dead_letter' else p_outcome end,
+    error_message = p_error_code,
+    processed_at = case when p_outcome = 'failed' then null else now() end,
+    next_attempt_at = case when p_outcome = 'failed'
+      then now() + make_interval(secs => least(3600, 30 * power(2, least(v_attempts, 6)))::integer)
+      else now() end,
+    lease_token = null, lease_until = null
+  where id = p_id;
+  return true;
+end;
+$$;
+
+-- An initial payment is applied in one transaction with its inbox event. A
+-- second event for the same charge is a no-op; a different resource is rejected.
+create or replace function public.billing_apply_asaas_initial_payment(
+  p_event_id uuid, p_lease_token uuid, p_payment_id text,
+  p_customer_id text, p_subscription_id text,
+  p_amount_cents integer, p_due_date date, p_payment_status text
+) returns jsonb
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare
+  v_event public.billing_events%rowtype;
+  v_intent public.checkout_intents%rowtype;
+  v_sub public.account_subscriptions%rowtype;
+  v_plan public.billing_plans%rowtype;
+  v_prior public.billing_payments%rowtype;
+  v_period_end timestamptz;
+  v_requested text[];
+begin
+  select * into v_event from public.billing_events
+  where id = p_event_id and provider = 'asaas' and status = 'processing'
+    and lease_token = p_lease_token and lease_until > now() for update;
+  if v_event.id is null or v_event.event_type not in ('PAYMENT_CONFIRMED','PAYMENT_RECEIVED')
+    or v_event.payload->>'paymentId' is distinct from p_payment_id
+    or p_payment_status not in ('CONFIRMED','RECEIVED','RECEIVED_IN_CASH')
+    or p_payment_id !~ '^pay_[A-Za-z0-9]+$'
+    or p_customer_id !~ '^cus_[A-Za-z0-9]+$'
+    or p_subscription_id !~ '^sub_[A-Za-z0-9]+$'
+    or p_amount_cents <= 0 or p_due_date is null then
+    raise exception 'BILLING_PAYMENT_NOT_VERIFIED';
+  end if;
+
+  select * into v_intent from public.checkout_intents
+  where billing_provider = 'asaas' and provider_environment = v_event.provider_environment
+    and provider_payment_id = p_payment_id for update;
+  if v_intent.id is null or v_intent.status not in ('provider_created','paid')
+    or v_intent.amount_cents <> p_amount_cents or v_intent.currency <> 'BRL' then
+    raise exception 'BILLING_PAYMENT_INTENT_MISMATCH';
+  end if;
+  select * into v_sub from public.account_subscriptions
+  where id = v_intent.subscription_id for update;
+  if v_sub.id is null or v_sub.scope_type <> 'company'
+    or v_sub.clinic_id is distinct from v_intent.clinic_id
+    or v_sub.billing_provider <> 'asaas'
+    or v_sub.provider_environment <> v_event.provider_environment
+    or v_sub.external_customer_id <> p_customer_id
+    or v_sub.external_subscription_id <> p_subscription_id
+    or public.is_internal_full_access_company(v_sub.clinic_id) then
+    raise exception 'BILLING_PAYMENT_OWNERSHIP_MISMATCH';
+  end if;
+
+  select * into v_prior from public.billing_payments
+  where provider = 'asaas' and provider_environment = v_event.provider_environment
+    and provider_payment_id = p_payment_id for update;
+  if v_prior.id is not null then
+    if v_prior.status <> 'paid' or v_prior.subscription_id <> v_sub.id
+      or v_prior.checkout_intent_id <> v_intent.id or v_prior.amount_cents <> p_amount_cents then
+      raise exception 'BILLING_PAYMENT_ALREADY_RECONCILED_DIFFERENTLY';
+    end if;
+    update public.billing_events set status = 'processed', processed_at = now(),
+      error_message = null, lease_token = null, lease_until = null where id = v_event.id;
+    return jsonb_build_object('applied', false, 'idempotent', true);
+  end if;
+
+  if v_intent.status <> 'provider_created' or v_sub.status <> 'pending_checkout' then
+    raise exception 'BILLING_PAYMENT_STATE_MISMATCH';
+  end if;
+  select * into v_plan from public.billing_plans
+  where code = v_intent.plan_code and account_scope = 'company';
+  if v_plan.code is null or v_sub.plan_code <> v_plan.code
+    or v_plan.monthly_price_cents <> p_amount_cents or v_plan.currency <> 'BRL' then
+    raise exception 'BILLING_PAYMENT_PLAN_MISMATCH';
+  end if;
+  v_period_end := (p_due_date + interval '1 month')::timestamptz;
+  if v_period_end <= now() or p_due_date > current_date + 31 then
+    raise exception 'BILLING_PAYMENT_PERIOD_REVIEW_REQUIRED';
+  end if;
+
+  insert into public.billing_payments (
+    subscription_id, checkout_intent_id, clinic_id, amount_cents, currency,
+    status, provider, provider_environment, provider_payment_id,
+    paid_at, period_start, period_end
+  ) values (
+    v_sub.id, v_intent.id, v_sub.clinic_id, p_amount_cents, 'BRL',
+    'paid', 'asaas', v_event.provider_environment, p_payment_id,
+    now(), p_due_date::timestamptz, v_period_end
+  );
+  update public.account_subscriptions set status = 'active',
+    current_period_start = p_due_date::timestamptz,
+    current_period_end = v_period_end, grace_until = null,
+    updated_at = now() where id = v_sub.id;
+  update public.checkout_intents set status = 'paid', updated_at = now()
+    where id = v_intent.id;
+  update public.clinics set storage_limit_bytes = v_plan.storage_bytes
+    where id = v_sub.clinic_id;
+  select coalesce(array_agg(s.value), '{}'::text[]) into v_requested
+  from jsonb_array_elements_text(coalesce(v_intent.metadata->'requested_sessions', '[]'::jsonb)) s(value);
+  if cardinality(v_requested) > 0 then
+    update public.company_sessions set status = 'disabled'
+      where clinic_id = v_sub.clinic_id and not (session_type = any(v_requested));
+    insert into public.company_sessions (clinic_id,session_type,status,sharing_mode)
+    select v_sub.clinic_id, x, 'active',
+      case when v_plan.max_sessions > 1 then 'company' else 'isolated' end
+    from unnest(v_requested) x
+    on conflict (clinic_id,session_type) do update
+      set status = 'active', sharing_mode = excluded.sharing_mode, updated_at = now();
+  end if;
+  update public.billing_events set status = 'processed', processed_at = now(),
+    error_message = null, lease_token = null, lease_until = null where id = v_event.id;
+  return jsonb_build_object('applied', true, 'subscription_id', v_sub.id);
+end;
+$$;
+
+revoke all on function public.billing_receive_asaas_event(text,text,text,jsonb) from public,anon,authenticated;
+revoke all on function public.billing_claim_asaas_events(text,integer) from public,anon,authenticated;
+revoke all on function public.billing_finish_asaas_event(uuid,uuid,text,text) from public,anon,authenticated;
+revoke all on function public.billing_apply_asaas_initial_payment(uuid,uuid,text,text,text,integer,date,text) from public,anon,authenticated;
+grant execute on function public.billing_receive_asaas_event(text,text,text,jsonb) to service_role;
+grant execute on function public.billing_claim_asaas_events(text,integer) to service_role;
+grant execute on function public.billing_finish_asaas_event(uuid,uuid,text,text) to service_role;
+grant execute on function public.billing_apply_asaas_initial_payment(uuid,uuid,text,text,text,integer,date,text) to service_role;
+notify pgrst, 'reload schema';
+
+-- ===== 20260926210000_saas_asaas_lifecycle_stage05.sql =====
+
+-- Stage 05: project verified monthly payment changes without trusting webhook data.
+-- Requires the Stage 04 inbox and keeps provider secrets outside the database.
+
+create or replace function public.billing_apply_asaas_payment_lifecycle(
+  p_event_id uuid, p_lease_token uuid, p_payment_id text,
+  p_customer_id text, p_subscription_id text,
+  p_amount_cents integer, p_due_date date, p_payment_status text
+) returns jsonb
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare
+  v_event public.billing_events%rowtype;
+  v_sub public.account_subscriptions%rowtype;
+  v_intent public.checkout_intents%rowtype;
+  v_plan public.billing_plans%rowtype;
+  v_payment public.billing_payments%rowtype;
+  v_start timestamptz := p_due_date::timestamptz;
+  v_end timestamptz := (p_due_date + interval '1 month')::timestamptz;
+  v_last_paid_end timestamptz;
+  v_last_paid_start timestamptz;
+  v_action text;
+begin
+  select * into v_event from public.billing_events
+  where id = p_event_id and provider = 'asaas' and status = 'processing'
+    and lease_token = p_lease_token and lease_until > now() for update;
+  if v_event.id is null
+    or v_event.payload->>'paymentId' is distinct from p_payment_id
+    or coalesce(p_payment_id, '') !~ '^pay_[A-Za-z0-9]+$'
+    or coalesce(p_customer_id, '') !~ '^cus_[A-Za-z0-9]+$'
+    or coalesce(p_subscription_id, '') !~ '^sub_[A-Za-z0-9]+$'
+    or p_amount_cents is null or p_amount_cents <= 0 or p_due_date is null then
+    raise exception 'BILLING_LIFECYCLE_PAYMENT_NOT_VERIFIED';
+  end if;
+  if v_event.event_type in ('PAYMENT_CONFIRMED','PAYMENT_RECEIVED')
+     and p_payment_status in ('CONFIRMED','RECEIVED','RECEIVED_IN_CASH') then
+    v_action := 'paid';
+  elsif v_event.event_type = 'PAYMENT_OVERDUE' and p_payment_status = 'OVERDUE' then
+    v_action := 'overdue';
+  elsif v_event.event_type = 'PAYMENT_REFUNDED' and p_payment_status = 'REFUNDED' then
+    v_action := 'reversed';
+  else
+    raise exception 'BILLING_LIFECYCLE_PROVIDER_STATUS_CHANGED';
+  end if;
+
+  -- The checkout payment is governed by the stricter Stage 04 first-payment
+  -- contract, including its paid-intent and requested-session checks.
+  if v_action = 'paid' then
+    select * into v_intent from public.checkout_intents
+    where billing_provider = 'asaas'
+      and provider_environment = v_event.provider_environment
+      and provider_payment_id = p_payment_id;
+    if v_intent.id is not null then
+      return public.billing_apply_asaas_initial_payment(
+        p_event_id, p_lease_token, p_payment_id, p_customer_id,
+        p_subscription_id, p_amount_cents, p_due_date, p_payment_status
+      );
+    end if;
+  end if;
+
+  select * into v_sub from public.account_subscriptions
+  where billing_provider = 'asaas'
+    and provider_environment = v_event.provider_environment
+    and external_subscription_id = p_subscription_id for update;
+  if v_sub.id is null or v_sub.scope_type <> 'company'
+    or v_sub.clinic_id is null or v_sub.billing_cycle <> 'MONTHLY'
+    or v_sub.external_customer_id is distinct from p_customer_id
+    or public.is_internal_full_access_company(v_sub.clinic_id) then
+    raise exception 'BILLING_LIFECYCLE_OWNERSHIP_MISMATCH';
+  end if;
+  select * into v_plan from public.billing_plans
+  where code = v_sub.plan_code and account_scope = 'company';
+  if v_plan.code is null or v_plan.currency <> 'BRL'
+    or (v_action <> 'reversed' and v_plan.monthly_price_cents <> p_amount_cents) then
+    raise exception 'BILLING_LIFECYCLE_PLAN_MISMATCH';
+  end if;
+  select * into v_payment from public.billing_payments
+  where provider = 'asaas' and provider_environment = v_event.provider_environment
+    and provider_payment_id = p_payment_id for update;
+  if v_payment.id is not null and (
+    v_payment.subscription_id <> v_sub.id
+    or v_payment.clinic_id <> v_sub.clinic_id
+    or v_payment.amount_cents <> p_amount_cents
+    or v_payment.currency <> 'BRL'
+    or (v_action <> 'reversed' and (
+      v_payment.period_start is distinct from v_start
+      or v_payment.period_end is distinct from v_end
+    ))
+  ) then
+    raise exception 'BILLING_LIFECYCLE_PAYMENT_CONFLICT';
+  end if;
+
+  if v_action = 'paid' then
+    if v_payment.status = 'paid' then
+      -- An older CONFIRMED event may arrive after RECEIVED or vice versa.
+      null;
+    else
+      if v_sub.status = 'canceled' or v_sub.current_period_end is null
+        or v_start < v_sub.current_period_end
+        or v_start > v_sub.current_period_end + interval '31 days'
+        or v_end <= now() or p_due_date > current_date + 31 then
+        raise exception 'BILLING_LIFECYCLE_PERIOD_REVIEW_REQUIRED';
+      end if;
+      if not exists (
+        select 1 from public.billing_payments b
+        where b.subscription_id = v_sub.id and b.provider = 'asaas'
+          and b.provider_environment = v_event.provider_environment
+          and b.status = 'paid'
+      ) then
+        raise exception 'BILLING_LIFECYCLE_INITIAL_PAYMENT_REQUIRED';
+      end if;
+      if v_payment.id is null then
+        insert into public.billing_payments (
+          subscription_id, clinic_id, amount_cents, currency, status,
+          provider, provider_environment, provider_payment_id,
+          paid_at, period_start, period_end
+        ) values (
+          v_sub.id, v_sub.clinic_id, p_amount_cents, 'BRL', 'paid',
+          'asaas', v_event.provider_environment, p_payment_id,
+          now(), v_start, v_end
+        );
+      elsif v_payment.status in ('pending','refunded','failed') then
+        update public.billing_payments
+        set status = 'paid', paid_at = now() where id = v_payment.id;
+      else
+        raise exception 'BILLING_LIFECYCLE_PAYMENT_CONFLICT';
+      end if;
+      update public.account_subscriptions
+      set status = 'active', current_period_start = v_start,
+          current_period_end = v_end, grace_until = null, updated_at = now()
+      where id = v_sub.id;
+    end if;
+  elsif v_action = 'overdue' then
+    -- An overdue invoice for a future or historical cycle cannot reduce an
+    -- already-paid entitlement. Seven days of grace begin at the due date.
+    if v_sub.status <> 'canceled' and v_sub.status <> 'pending_checkout'
+      and v_sub.current_period_end is not null
+      and v_start >= v_sub.current_period_end
+      and v_start <= v_sub.current_period_end + interval '1 day'
+      and v_start <= now() and v_payment.id is null
+      and not exists (
+        select 1 from public.billing_payments b
+        where b.subscription_id = v_sub.id and b.provider = 'asaas'
+          and b.provider_environment = v_event.provider_environment
+          and b.status = 'paid' and b.period_start >= v_start
+      ) then
+      insert into public.billing_payments (
+        subscription_id, clinic_id, amount_cents, currency, status,
+        provider, provider_environment, provider_payment_id,
+        period_start, period_end
+      ) values (
+        v_sub.id, v_sub.clinic_id, p_amount_cents, 'BRL', 'pending',
+        'asaas', v_event.provider_environment, p_payment_id, v_start, v_end
+      );
+      update public.account_subscriptions
+      set status = case when v_start + interval '7 days' > now()
+        then 'past_due' else 'suspended' end,
+        grace_until = case when v_start + interval '7 days' > now()
+          then v_start + interval '7 days' else null end,
+        updated_at = now()
+      where id = v_sub.id;
+    elsif v_payment.id is not null and v_payment.status = 'pending'
+      and v_sub.status in ('past_due','suspended') then
+      null; -- duplicate event, including one received after grace expiration
+    elsif v_payment.id is not null and v_payment.status = 'paid' then
+      null; -- paid already; this event arrived out of order
+    elsif v_sub.status in ('canceled','pending_checkout') then
+      null; -- neither cancellation nor first unpaid checkout gains access
+    else
+      raise exception 'BILLING_LIFECYCLE_OVERDUE_REVIEW_REQUIRED';
+    end if;
+  else
+    if v_payment.id is null or v_payment.status not in ('paid','refunded') then
+      raise exception 'BILLING_LIFECYCLE_REVERSAL_REVIEW_REQUIRED';
+    end if;
+    if v_payment.status = 'paid' then
+      update public.billing_payments set status = 'refunded',
+        metadata = metadata || jsonb_build_object('reversal_event', v_event.event_type)
+      where id = v_payment.id;
+      select b.period_start, b.period_end
+      into v_last_paid_start, v_last_paid_end
+      from public.billing_payments b
+      where b.subscription_id = v_sub.id and b.provider = 'asaas'
+        and b.provider_environment = v_event.provider_environment
+        and b.status = 'paid'
+      order by b.period_end desc limit 1;
+      -- Reversing an older invoice does not shorten a newer paid period.
+      if v_payment.period_end >= v_sub.current_period_end then
+        update public.account_subscriptions
+        set current_period_start = v_last_paid_start,
+          current_period_end = v_last_paid_end,
+          status = case
+            when status = 'canceled' then 'canceled'
+            when v_last_paid_end > now() then 'active'
+            else 'suspended' end,
+          grace_until = null, updated_at = now()
+        where id = v_sub.id;
+      end if;
+    end if;
+  end if;
+
+  update public.billing_events set status = 'processed', processed_at = now(),
+    error_message = null, lease_token = null, lease_until = null
+  where id = v_event.id;
+  return jsonb_build_object('applied', true, 'effect', v_action);
+end;
+$$;
+
+create or replace function public.billing_apply_asaas_subscription_lifecycle(
+  p_event_id uuid, p_lease_token uuid, p_subscription_id text,
+  p_customer_id text, p_external_reference text,
+  p_amount_cents integer, p_cycle text, p_provider_status text
+) returns jsonb
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare
+  v_event public.billing_events%rowtype;
+  v_sub public.account_subscriptions%rowtype;
+  v_plan public.billing_plans%rowtype;
+begin
+  select * into v_event from public.billing_events
+  where id = p_event_id and provider = 'asaas' and status = 'processing'
+    and lease_token = p_lease_token and lease_until > now() for update;
+  if v_event.id is null
+    or v_event.payload->>'subscriptionId' is distinct from p_subscription_id
+    or v_event.event_type not in (
+      'SUBSCRIPTION_CREATED','SUBSCRIPTION_UPDATED','SUBSCRIPTION_INACTIVATED'
+    )
+    or coalesce(p_subscription_id, '') !~ '^sub_[A-Za-z0-9]+$'
+    or coalesce(p_customer_id, '') !~ '^cus_[A-Za-z0-9]+$'
+    or p_cycle is distinct from 'MONTHLY'
+    or p_amount_cents is null or p_amount_cents <= 0 then
+    raise exception 'BILLING_SUBSCRIPTION_NOT_VERIFIED';
+  end if;
+  select * into v_sub from public.account_subscriptions
+  where billing_provider = 'asaas'
+    and provider_environment = v_event.provider_environment
+    and external_subscription_id = p_subscription_id for update;
+  if v_sub.id is null or v_sub.scope_type <> 'company'
+    or v_sub.external_customer_id is distinct from p_customer_id
+    or p_external_reference is distinct from 'dentalflow:subscription:' || v_sub.id::text
+    or public.is_internal_full_access_company(v_sub.clinic_id) then
+    raise exception 'BILLING_SUBSCRIPTION_OWNERSHIP_MISMATCH';
+  end if;
+  select * into v_plan from public.billing_plans
+  where code = v_sub.plan_code and account_scope = 'company';
+  if v_plan.code is null or v_plan.currency <> 'BRL'
+    or (p_provider_status <> 'INACTIVE'
+      and v_plan.monthly_price_cents <> p_amount_cents) then
+    raise exception 'BILLING_SUBSCRIPTION_PLAN_MISMATCH';
+  end if;
+  if p_provider_status = 'INACTIVE'
+     and v_event.event_type in ('SUBSCRIPTION_INACTIVATED','SUBSCRIPTION_UPDATED') then
+    update public.account_subscriptions
+    set status = 'canceled', canceled_at = coalesce(canceled_at, now()),
+      grace_until = null, updated_at = now()
+    where id = v_sub.id;
+  elsif p_provider_status = 'ACTIVE'
+    and v_event.event_type in ('SUBSCRIPTION_CREATED','SUBSCRIPTION_UPDATED')
+    and v_sub.status <> 'canceled' then
+    null; -- provider activity alone never establishes a paid entitlement
+  else
+    raise exception 'BILLING_SUBSCRIPTION_STATE_REVIEW_REQUIRED';
+  end if;
+  update public.billing_events set status = 'processed', processed_at = now(),
+    error_message = null, lease_token = null, lease_until = null
+  where id = v_event.id;
+  return jsonb_build_object('applied', true, 'status', p_provider_status);
+end;
+$$;
+
+-- The scheduler can inspect expired grace candidates. It must check the
+-- current invoice with Asaas before suspending or enqueueing a paid recovery.
+create or replace function public.billing_list_asaas_expired_grace(
+  p_environment text, p_limit integer default 10
+) returns table (
+  subscription_id uuid, payment_id text
+)
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+begin
+  if p_environment not in ('sandbox','production') or p_limit not between 1 and 20 then
+    raise exception 'BILLING_INVALID_WORKER_REQUEST';
+  end if;
+  return query
+  select s.id, b.provider_payment_id
+  from public.account_subscriptions s
+  join lateral (
+    select p.provider_payment_id
+    from public.billing_payments p
+    where p.subscription_id = s.id and p.provider = 'asaas'
+      and p.provider_environment = p_environment
+      and p.status = 'pending' and p.period_start >= s.current_period_end
+    order by p.period_start desc limit 1
+  ) b on true
+  where s.billing_provider = 'asaas' and s.provider_environment = p_environment
+    and s.status = 'past_due' and s.grace_until <= now()
+  order by s.grace_until, s.id limit p_limit;
+end;
+$$;
+
+create or replace function public.billing_suspend_asaas_expired_grace(
+  p_subscription_id uuid, p_environment text, p_payment_id text,
+  p_customer_id text, p_provider_subscription_id text, p_provider_status text
+) returns boolean
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare v_sub public.account_subscriptions%rowtype;
+begin
+  if p_environment not in ('sandbox','production')
+    or p_provider_status is distinct from 'OVERDUE'
+    or coalesce(p_payment_id, '') !~ '^pay_[A-Za-z0-9]+$'
+    or coalesce(p_customer_id, '') !~ '^cus_[A-Za-z0-9]+$'
+    or coalesce(p_provider_subscription_id, '') !~ '^sub_[A-Za-z0-9]+$' then
+    raise exception 'BILLING_SUSPENSION_NOT_VERIFIED';
+  end if;
+  select * into v_sub from public.account_subscriptions
+  where id = p_subscription_id for update;
+  if v_sub.id is null or v_sub.status <> 'past_due'
+    or v_sub.grace_until > now()
+    or v_sub.billing_provider <> 'asaas'
+    or v_sub.provider_environment <> p_environment
+    or v_sub.external_customer_id is distinct from p_customer_id
+    or v_sub.external_subscription_id is distinct from p_provider_subscription_id
+    or public.is_internal_full_access_company(v_sub.clinic_id)
+    or not exists (
+      select 1 from public.billing_payments b
+      where b.subscription_id = v_sub.id and b.provider = 'asaas'
+        and b.provider_environment = p_environment
+        and b.provider_payment_id = p_payment_id
+        and b.status = 'pending' and b.period_start >= v_sub.current_period_end
+    )
+    or exists (
+      select 1 from public.billing_payments b
+      where b.subscription_id = v_sub.id and b.provider = 'asaas'
+        and b.provider_environment = p_environment
+        and b.status = 'paid' and b.period_start >= v_sub.current_period_end
+    ) then return false; end if;
+  update public.account_subscriptions
+  set status = 'suspended', grace_until = null, updated_at = now()
+  where id = v_sub.id;
+  return true;
+end;
+$$;
+
+revoke all on function public.billing_apply_asaas_payment_lifecycle(uuid,uuid,text,text,text,integer,date,text) from public,anon,authenticated;
+revoke all on function public.billing_apply_asaas_subscription_lifecycle(uuid,uuid,text,text,text,integer,text,text) from public,anon,authenticated;
+revoke all on function public.billing_list_asaas_expired_grace(text,integer) from public,anon,authenticated;
+revoke all on function public.billing_suspend_asaas_expired_grace(uuid,text,text,text,text,text) from public,anon,authenticated;
+grant execute on function public.billing_apply_asaas_payment_lifecycle(uuid,uuid,text,text,text,integer,date,text) to service_role;
+grant execute on function public.billing_apply_asaas_subscription_lifecycle(uuid,uuid,text,text,text,integer,text,text) to service_role;
+grant execute on function public.billing_list_asaas_expired_grace(text,integer) to service_role;
+grant execute on function public.billing_suspend_asaas_expired_grace(uuid,text,text,text,text,text) to service_role;
+notify pgrst, 'reload schema';
+
+-- ===== 20260926220000_saas_asaas_replay_stage05.sql =====
+
+-- Stage 05: an operator can retry a reviewed dead letter without replacing
+-- the provider event ID or bypassing the normal Asaas verification worker.
+create table if not exists public.billing_event_replays (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.billing_events(id),
+  provider_environment text not null check (provider_environment in ('sandbox','production')),
+  provider_event_id text not null,
+  previous_attempt_count integer not null,
+  operator_ref text not null,
+  reason text not null,
+  requested_at timestamptz not null default now()
+);
+create index if not exists billing_event_replays_event_idx
+  on public.billing_event_replays (event_id, requested_at);
+alter table public.billing_event_replays enable row level security;
+revoke all on table public.billing_event_replays from public, anon, authenticated, service_role;
+grant select on table public.billing_event_replays to service_role;
+
+create or replace function public.billing_replay_asaas_event(
+  p_environment text, p_event_id text, p_operator_ref text, p_reason text
+) returns boolean
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare v_event public.billing_events%rowtype;
+begin
+  if p_environment is null or p_environment not in ('sandbox','production')
+    or coalesce(p_event_id,'') !~ '^evt_[A-Za-z0-9&_-]{1,150}$'
+    or coalesce(p_operator_ref,'') !~ '^[A-Za-z0-9_.-]{3,64}$'
+    or p_reason is null or char_length(btrim(p_reason)) not between 16 and 300
+    or p_reason ~ '[[:cntrl:]]' then
+    raise exception 'BILLING_INVALID_REPLAY_REQUEST';
+  end if;
+
+  select * into v_event from public.billing_events
+  where provider = 'asaas' and provider_environment = p_environment
+    and provider_event_id = p_event_id for update;
+  if not found or v_event.status <> 'dead_letter' then return false; end if;
+
+  insert into public.billing_event_replays (
+    event_id, provider_environment, provider_event_id,
+    previous_attempt_count, operator_ref, reason
+  ) values (
+    v_event.id, p_environment, p_event_id,
+    v_event.attempt_count, p_operator_ref, btrim(p_reason)
+  );
+  update public.billing_events set status = 'received', attempt_count = 0,
+    next_attempt_at = now(), error_message = null, processed_at = null,
+    lease_token = null, lease_until = null
+  where id = v_event.id;
+  return true;
+end;
+$$;
+revoke all on function public.billing_replay_asaas_event(text,text,text,text)
+  from public, anon, authenticated;
+grant execute on function public.billing_replay_asaas_event(text,text,text,text)
+  to service_role;
+notify pgrst, 'reload schema';
+
+-- ===== 20260926230000_saas_asaas_reconciliation_stage05.sql =====
+
+-- Stage 05: bounded recovery when an Asaas webhook never reaches the inbox.
+-- Claiming a candidate never changes paid access. The worker must consult
+-- Asaas and enqueue a synthetic event for the existing verified processor.
+
+alter table public.account_subscriptions
+  add column if not exists reconciliation_checked_at timestamptz;
+
+create index if not exists account_subscriptions_asaas_reconciliation_idx
+  on public.account_subscriptions (provider_environment, reconciliation_checked_at, id)
+  where billing_provider = 'asaas' and external_subscription_id is not null;
+
+create or replace function public.billing_claim_asaas_reconciliation_candidates(
+  p_environment text, p_limit integer default 1
+) returns table (
+  subscription_id uuid, provider_subscription_id text, customer_id text
+)
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+begin
+  if p_environment not in ('sandbox','production') or p_limit not between 1 and 2 then
+    raise exception 'BILLING_INVALID_WORKER_REQUEST';
+  end if;
+
+  return query
+  with candidates as (
+    select s.id
+    from public.account_subscriptions s
+    where s.scope_type = 'company' and s.clinic_id is not null
+      and s.billing_provider = 'asaas'
+      and s.provider_environment = p_environment
+      and s.external_subscription_id ~ '^sub_[A-Za-z0-9]+$'
+      and s.external_customer_id ~ '^cus_[A-Za-z0-9]+$'
+      and s.status in ('pending_checkout','active','past_due','grace','suspended','canceled')
+      and (s.created_at >= now() - interval '120 days'
+           or s.current_period_end >= now() - interval '120 days')
+      and s.created_at <= now() - interval '5 minutes'
+      and (s.reconciliation_checked_at is null
+           or s.reconciliation_checked_at <= now() - interval '1 hour')
+      and not public.is_internal_full_access_company(s.clinic_id)
+    order by s.reconciliation_checked_at nulls first, s.id
+    limit p_limit for update of s skip locked
+  )
+  update public.account_subscriptions s
+  set reconciliation_checked_at = clock_timestamp()
+  from candidates c where s.id = c.id
+  returning s.id, s.external_subscription_id, s.external_customer_id;
+end;
+$$;
+
+revoke all on function public.billing_claim_asaas_reconciliation_candidates(text,integer)
+  from public,anon,authenticated;
+grant execute on function public.billing_claim_asaas_reconciliation_candidates(text,integer)
+  to service_role;
+notify pgrst, 'reload schema';
+
+-- ===== 20260928180000_saas_plan_storage_quota_stage06.sql =====
+
+-- Stage 06 (part 1): the paid company plan is the included storage allowance.
+-- Legacy base/courtesy entitlements may raise that allowance; purchases and
+-- manual additions are extra. Recalculating an add-on must never reset a paid
+-- company's plan allowance to the old one-gigabyte default.
+
+create or replace function public.recalculate_clinic_storage_limit(_clinic_id uuid)
+returns bigint
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_plan_bytes bigint := 0;
+  v_included_bytes bigint := 0;
+  v_extra_bytes bigint := 0;
+  v_limit bigint;
+  v_internal boolean;
+begin
+  select c.billing_exempt into v_internal
+  from public.clinics c where c.id = _clinic_id for update;
+  if not found then raise exception 'STORAGE_CLINIC_NOT_FOUND'; end if;
+
+  -- A pending checkout does not confer the chosen plan. Keep the most recent
+  -- established plan while an account is suspended so its files remain intact.
+  select p.storage_bytes into v_plan_bytes
+  from public.account_subscriptions s
+  join public.billing_plans p on p.code = s.plan_code and p.account_scope = 'company'
+  where s.clinic_id = _clinic_id and s.scope_type = 'company'
+    and s.status <> 'pending_checkout'
+  order by (s.status <> 'canceled') desc, s.updated_at desc, s.created_at desc
+  limit 1;
+
+  select
+    coalesce(sum(e.bytes) filter (where e.entitlement_type in ('base','courtesy')), 0),
+    coalesce(sum(e.bytes) filter (where e.entitlement_type in ('purchase','manual')), 0)
+  into v_included_bytes, v_extra_bytes
+  from public.clinic_storage_entitlements e
+  where e.clinic_id = _clinic_id and e.status = 'active'
+    and e.starts_at <= now() and (e.ends_at is null or e.ends_at > now());
+
+  v_limit := greatest(
+    coalesce(v_plan_bytes, 0), v_included_bytes, 1073741824::bigint,
+    case when v_internal then 536870912000::bigint else 0::bigint end
+  ) + v_extra_bytes;
+  update public.clinics set storage_limit_bytes = v_limit
+  where id = _clinic_id and storage_limit_bytes is distinct from v_limit;
+  return v_limit;
+end;
+$$;
+
+-- Only the existing entitlement trigger and the private billing/admin service
+-- need to recalculate. Do not expose a SECURITY DEFINER write RPC to clients.
+revoke all on function public.recalculate_clinic_storage_limit(uuid)
+from public, anon, authenticated;
+grant execute on function public.recalculate_clinic_storage_limit(uuid)
+to service_role;
+
+notify pgrst, 'reload schema';
+
+-- ===== 20260929120000_saas_storage_upload_guards_stage06.sql =====
+
+-- Stage 06: every managed Storage upload must have a serialized, scoped reservation.
+-- Storage API remains responsible for the actual object bytes; SQL only reads its metadata.
+
+REVOKE INSERT, UPDATE, DELETE ON public.storage_files FROM PUBLIC, anon, authenticated;
+DROP POLICY IF EXISTS storage_files_admin_delete ON public.storage_files;
+
+-- A patient can be photographed before their first case exists. Persist the
+-- owning company at creation, then keep the original case-based fallback for
+-- older records that were created before this column existed.
+ALTER TABLE public.patients
+  ADD COLUMN IF NOT EXISTS clinic_id uuid REFERENCES public.clinics(id) ON DELETE SET NULL;
+ALTER TABLE public.patients
+  ALTER COLUMN clinic_id SET DEFAULT public.storage_current_clinic_id();
+UPDATE public.patients p SET clinic_id = public.resolve_patient_clinic_id(p.id)
+  WHERE p.clinic_id IS NULL AND public.resolve_patient_clinic_id(p.id) IS NOT NULL;
+
+CREATE OR REPLACE FUNCTION public.resolve_patient_clinic_id(_patient_id uuid)
+RETURNS uuid LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_clinic uuid;
+BEGIN
+  SELECT p.clinic_id INTO v_clinic FROM public.patients p WHERE p.id = _patient_id;
+  IF v_clinic IS NOT NULL THEN RETURN v_clinic; END IF;
+  SELECT public.resolve_case_clinic_id(c.id) INTO v_clinic
+    FROM public.cases c WHERE c.patient_id = _patient_id
+    ORDER BY c.created_at DESC NULLS LAST, c.id LIMIT 1;
+  RETURN v_clinic;
+END;
+$$;
+
+-- These fields feed the quota decision. Direct client writes could otherwise
+-- inflate a limit, claim an IPO exemption, or move their own profile to a
+-- different company's allowance. Trusted SECURITY DEFINER onboarding and
+-- service-role billing operations still run as their owner.
+CREATE OR REPLACE FUNCTION public.guard_saas_storage_clinic_fields()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN
+  IF current_user IN ('authenticated', 'anon') THEN
+    IF TG_OP = 'INSERT' THEN
+      IF NEW.storage_limit_bytes <> 1073741824 OR COALESCE(NEW.billing_exempt, false) THEN
+        RAISE EXCEPTION 'STORAGE_LIMIT_MANAGED_BY_BILLING';
+      END IF;
+    ELSIF NEW.storage_limit_bytes IS DISTINCT FROM OLD.storage_limit_bytes
+       OR NEW.billing_exempt IS DISTINCT FROM OLD.billing_exempt THEN
+      RAISE EXCEPTION 'STORAGE_LIMIT_MANAGED_BY_BILLING';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_guard_saas_storage_clinic_fields ON public.clinics;
+CREATE TRIGGER trg_guard_saas_storage_clinic_fields
+  BEFORE INSERT OR UPDATE OF storage_limit_bytes, billing_exempt ON public.clinics
+  FOR EACH ROW EXECUTE FUNCTION public.guard_saas_storage_clinic_fields();
+
+CREATE OR REPLACE FUNCTION public.guard_saas_storage_profile_fields()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN
+  IF current_user IN ('authenticated', 'anon') THEN
+    IF TG_OP = 'INSERT' THEN
+      IF NEW.id IS DISTINCT FROM auth.uid() OR NEW.clinic_id IS NOT NULL
+        OR COALESCE(NEW.is_default_admin, false)
+        OR COALESCE(NEW.role, 'USER') <> 'USER'
+        OR NEW.account_subtype IS NOT NULL
+        OR NEW.account_type IS NOT NULL THEN
+        RAISE EXCEPTION 'PROFILE_COMPANY_MANAGED_BY_BACKEND';
+      END IF;
+    ELSIF NEW.clinic_id IS DISTINCT FROM OLD.clinic_id
+      OR NEW.role IS DISTINCT FROM OLD.role
+      OR NEW.account_subtype IS DISTINCT FROM OLD.account_subtype
+      OR NEW.is_default_admin IS DISTINCT FROM OLD.is_default_admin
+      OR NEW.account_type IS DISTINCT FROM OLD.account_type THEN
+      RAISE EXCEPTION 'PROFILE_COMPANY_MANAGED_BY_BACKEND';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_guard_saas_storage_profile_fields ON public.profiles;
+CREATE TRIGGER trg_guard_saas_storage_profile_fields
+  BEFORE INSERT OR UPDATE OF clinic_id, role, account_subtype, is_default_admin, account_type
+  ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.guard_saas_storage_profile_fields();
+
+CREATE OR REPLACE FUNCTION public.guard_saas_patient_company()
+RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$
+BEGIN
+  IF current_user IN ('authenticated', 'anon') THEN
+    IF TG_OP = 'INSERT' THEN
+      IF NEW.clinic_id IS DISTINCT FROM public.storage_current_clinic_id()
+        OR NEW.clinic_id IS NULL THEN
+        RAISE EXCEPTION 'PATIENT_COMPANY_MISMATCH';
+      END IF;
+    ELSIF NEW.clinic_id IS DISTINCT FROM OLD.clinic_id THEN
+      RAISE EXCEPTION 'PATIENT_COMPANY_MISMATCH';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS trg_guard_saas_patient_company ON public.patients;
+CREATE TRIGGER trg_guard_saas_patient_company
+  BEFORE INSERT OR UPDATE OF clinic_id ON public.patients
+  FOR EACH ROW EXECUTE FUNCTION public.guard_saas_patient_company();
+
+CREATE OR REPLACE FUNCTION public.reserve_storage_upload(
+  _size_bytes bigint, _bucket text, _object_path text, _source_type text,
+  _case_id uuid DEFAULT NULL, _patient_id uuid DEFAULT NULL,
+  _original_name text DEFAULT 'arquivo', _mime_type text DEFAULT NULL
+)
+RETURNS TABLE (file_id uuid, used_bytes bigint, limit_bytes bigint)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_clinic uuid := public.storage_current_clinic_id();
+  v_limit bigint;
+  v_used bigint;
+  v_file uuid;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'NOT_AUTHENTICATED'; END IF;
+  IF _size_bytes IS NULL OR _size_bytes < 0 OR _object_path IS NULL
+     OR split_part(_object_path, '/', 2) = '' THEN
+    RAISE EXCEPTION 'INVALID_STORAGE_RESERVATION';
+  END IF;
+  IF v_clinic IS NULL THEN RAISE EXCEPTION 'STORAGE_CLINIC_NOT_FOUND'; END IF;
+
+  IF NOT COALESCE((CASE
+    WHEN _bucket = 'avatars' AND _source_type = 'user_avatar' THEN
+      split_part(_object_path, '/', 1) = auth.uid()::text
+      AND _case_id IS NULL AND _patient_id IS NULL
+    WHEN _bucket = 'patient-photos' AND _source_type = 'patient_photo' THEN
+      _patient_id IS NOT NULL AND split_part(_object_path, '/', 1) = _patient_id::text
+      AND _case_id IS NULL AND public.can_access_patient(_patient_id)
+      AND public.resolve_patient_clinic_id(_patient_id) = v_clinic
+    WHEN _bucket = 'patient-files' AND _source_type = 'patient_attachment' THEN
+      _patient_id IS NOT NULL AND split_part(_object_path, '/', 1) = _patient_id::text
+      AND _case_id IS NULL AND public.can_access_patient(_patient_id)
+      AND public.resolve_patient_clinic_id(_patient_id) = v_clinic
+    WHEN _bucket = 'case-files' AND _source_type = 'case_attachment' THEN
+      _case_id IS NOT NULL AND split_part(_object_path, '/', 1) = _case_id::text
+      AND _patient_id IS NULL AND public.can_access_case(_case_id)
+      AND EXISTS (
+        SELECT 1 FROM public.cases c WHERE c.id = _case_id AND (
+          public.resolve_case_clinic_id(c.id) = v_clinic OR c.requested_by = auth.uid()
+          OR EXISTS (SELECT 1 FROM public.cadistas cd
+                     WHERE cd.id = c.cadista_id AND cd.user_id = auth.uid())
+        )
+      )
+    WHEN _bucket = 'dicom-files' AND _source_type = 'dicom_instance' THEN
+      _case_id IS NULL AND split_part(_object_path, '/', 1) = v_clinic::text
+      AND split_part(_object_path, '/', 4) <> ''
+      AND (_patient_id IS NULL OR public.resolve_patient_clinic_id(_patient_id) = v_clinic)
+      AND public.user_can_use_company_session(v_clinic, 'radiology')
+      AND EXISTS (
+        SELECT 1 FROM public.radiology_series se
+        JOIN public.radiology_studies st ON st.id = se.study_id
+        WHERE st.clinic_id = v_clinic
+          AND st.id::text = split_part(_object_path, '/', 2)
+          AND se.id::text = split_part(_object_path, '/', 3)
+          AND (_patient_id IS NULL OR _patient_id = st.patient_id)
+      )
+    ELSE false
+  END), false) THEN
+    RAISE EXCEPTION 'STORAGE_RESERVATION_NOT_ALLOWED';
+  END IF;
+
+  -- All reservations for one company serialize on its limit row.
+  SELECT c.storage_limit_bytes INTO v_limit
+    FROM public.clinics c WHERE c.id = v_clinic FOR UPDATE;
+  SELECT COALESCE(sum(sf.size_bytes), 0) INTO v_used
+    FROM public.storage_files sf
+    WHERE sf.clinic_id = v_clinic AND sf.status IN ('reserved', 'ready');
+  IF v_used + _size_bytes > v_limit THEN RAISE EXCEPTION 'STORAGE_QUOTA_EXCEEDED'; END IF;
+
+  -- Never re-reserve an existing object or shrink a ready ledger entry.
+  INSERT INTO public.storage_files (
+    clinic_id, bucket, object_path, source_type, case_id, patient_id,
+    original_name, mime_type, size_bytes, uploaded_by, status
+  ) VALUES (
+    v_clinic, _bucket, _object_path, _source_type, _case_id, _patient_id,
+    COALESCE(NULLIF(_original_name, ''), 'arquivo'), _mime_type,
+    _size_bytes, auth.uid(), 'reserved'
+  ) RETURNING id INTO v_file;
+  RETURN QUERY SELECT v_file, v_used + _size_bytes, v_limit;
+END;
+$$;
+
+-- Called from Storage's INSERT RLS check. The server-supplied metadata size must
+-- match the reservation exactly; a stale or unrelated reservation cannot be used.
+CREATE OR REPLACE FUNCTION public.storage_upload_has_reservation(
+  _bucket text, _path text, _metadata jsonb
+)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT auth.uid() IS NOT NULL
+    AND COALESCE(_metadata->>'size', '') ~ '^[0-9]+$'
+    AND EXISTS (
+      SELECT 1 FROM public.storage_files sf
+      WHERE sf.bucket = _bucket AND sf.object_path = _path
+        AND sf.uploaded_by = auth.uid()
+        AND sf.clinic_id = public.storage_current_clinic_id()
+        AND sf.status = 'reserved'
+        AND sf.size_bytes = CASE WHEN COALESCE(_metadata->>'size', '') ~ '^[0-9]{1,18}$'
+          THEN (_metadata->>'size')::bigint ELSE -1 END
+    );
+$$;
+REVOKE ALL ON FUNCTION public.storage_upload_has_reservation(text,text,jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.storage_upload_has_reservation(text,text,jsonb) TO authenticated, service_role;
+
+-- RESTRICTIVE policies intersect *all* existing permissive bucket policies.
+DROP POLICY IF EXISTS managed_storage_reserved_insert ON storage.objects;
+CREATE POLICY managed_storage_reserved_insert ON storage.objects AS RESTRICTIVE
+  FOR INSERT TO authenticated WITH CHECK (
+    bucket_id NOT IN ('avatars', 'patient-photos', 'patient-files', 'case-files', 'dicom-files')
+    OR public.storage_upload_has_reservation(bucket_id, name, metadata)
+  );
+
+-- The case attachment record is created after the Storage API returns from
+-- upload. Let its reserving uploader read that single object during the gap;
+-- the existing attachment policy takes over once the record is written.
+DROP POLICY IF EXISTS case_files_reserved_uploader_read ON storage.objects;
+CREATE POLICY case_files_reserved_uploader_read ON storage.objects
+  FOR SELECT TO authenticated USING (
+    bucket_id = 'case-files'
+    AND public.storage_upload_has_reservation(bucket_id, name, metadata)
+  );
+
+-- New managed objects use unique paths; prevent overwrites and moves that
+-- would change actual bytes without a new, serialized reservation.
+DROP POLICY IF EXISTS managed_storage_no_update ON storage.objects;
+CREATE POLICY managed_storage_no_update ON storage.objects AS RESTRICTIVE
+  FOR UPDATE TO authenticated
+  USING (bucket_id NOT IN ('avatars', 'patient-photos', 'patient-files', 'case-files', 'dicom-files'))
+  WITH CHECK (bucket_id NOT IN ('avatars', 'patient-photos', 'patient-files', 'case-files', 'dicom-files'));
+
+-- The old DICOM policies referenced clinics.name inside their subquery by
+-- accident. Qualify the Storage object path, including the SELECT needed by
+-- the Storage API to return metadata after a successful upload.
+DROP POLICY IF EXISTS dicom_objects_read ON storage.objects;
+CREATE POLICY dicom_objects_read ON storage.objects FOR SELECT TO authenticated
+  USING (bucket_id = 'dicom-files'
+    AND public.user_can_use_company_session(
+      public.patient_id_from_storage_path(storage.objects.name), 'radiology'));
+DROP POLICY IF EXISTS dicom_objects_insert ON storage.objects;
+CREATE POLICY dicom_objects_insert ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'dicom-files'
+    AND public.user_can_use_company_session(
+      public.patient_id_from_storage_path(storage.objects.name), 'radiology'));
+DROP POLICY IF EXISTS dicom_objects_update ON storage.objects;
+DROP POLICY IF EXISTS dicom_objects_delete ON storage.objects;
+CREATE POLICY dicom_objects_delete ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'dicom-files'
+    AND public.user_can_use_company_session(
+      public.patient_id_from_storage_path(storage.objects.name), 'radiology'));
+
+CREATE OR REPLACE FUNCTION public.complete_storage_upload(_file_id uuid, _source_id text DEFAULT NULL)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_file public.storage_files%ROWTYPE;
+  v_size bigint;
+BEGIN
+  SELECT * INTO v_file FROM public.storage_files WHERE id = _file_id FOR UPDATE;
+  IF NOT FOUND OR auth.uid() IS NULL OR
+     NOT (v_file.uploaded_by = auth.uid() OR public.can_manage_clinic_storage(v_file.clinic_id)) THEN
+    RAISE EXCEPTION 'STORAGE_RESERVATION_NOT_FOUND';
+  END IF;
+  SELECT CASE WHEN COALESCE(o.metadata->>'size', '') ~ '^[0-9]{1,18}$'
+              THEN (o.metadata->>'size')::bigint ELSE NULL END INTO v_size
+    FROM storage.objects o WHERE o.bucket_id = v_file.bucket AND o.name = v_file.object_path;
+  IF v_size IS NULL OR v_size <> v_file.size_bytes THEN
+    RAISE EXCEPTION 'STORAGE_OBJECT_SIZE_MISMATCH';
+  END IF;
+  IF NOT COALESCE((CASE v_file.source_type
+    WHEN 'user_avatar' THEN _source_id = auth.uid()::text
+    WHEN 'patient_photo' THEN _source_id = v_file.patient_id::text
+    WHEN 'case_attachment' THEN EXISTS (
+      SELECT 1 FROM public.case_attachments a WHERE a.id::text = _source_id
+        AND a.storage_path = v_file.object_path AND a.case_id = v_file.case_id)
+    WHEN 'patient_attachment' THEN EXISTS (
+      SELECT 1 FROM public.patient_attachments a WHERE a.id::text = _source_id
+        AND a.file_path = v_file.object_path AND a.patient_id = v_file.patient_id)
+    WHEN 'dicom_instance' THEN EXISTS (
+      SELECT 1 FROM public.radiology_instances i
+      JOIN public.radiology_series se ON se.id = i.series_id
+      JOIN public.radiology_studies st ON st.id = se.study_id
+      WHERE i.id::text = _source_id AND i.storage_path = v_file.object_path
+        AND st.clinic_id = v_file.clinic_id AND i.byte_size = v_size)
+    ELSE false
+  END), false) THEN RAISE EXCEPTION 'STORAGE_SOURCE_MISMATCH'; END IF;
+
+  UPDATE public.storage_files SET status = 'ready', source_id = _source_id,
+    updated_at = now() WHERE id = _file_id;
+END;
+$$;
+
+-- Can also clear a ready entry after its object was removed by the Storage API.
+-- A client can never free its quota while its object still exists.
+CREATE OR REPLACE FUNCTION public.cancel_storage_upload(_file_id uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_file public.storage_files%ROWTYPE;
+BEGIN
+  SELECT * INTO v_file FROM public.storage_files WHERE id = _file_id FOR UPDATE;
+  IF NOT FOUND THEN RETURN; END IF;
+  IF auth.uid() IS NULL OR NOT (
+    v_file.uploaded_by = auth.uid() OR public.can_manage_clinic_storage(v_file.clinic_id)
+  ) THEN RAISE EXCEPTION 'STORAGE_RESERVATION_NOT_ALLOWED'; END IF;
+  IF EXISTS (SELECT 1 FROM storage.objects o
+             WHERE o.bucket_id = v_file.bucket AND o.name = v_file.object_path) THEN
+    RAISE EXCEPTION 'STORAGE_OBJECT_STILL_EXISTS';
+  END IF;
+  DELETE FROM public.storage_files WHERE id = _file_id;
+END;
+$$;
+
+-- Source records can disappear during cascades; their bytes keep counting until
+-- the actual object is removed through the Storage API.
+CREATE OR REPLACE FUNCTION public.sync_case_attachment_storage_catalog()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    DELETE FROM public.storage_files sf
+      WHERE sf.bucket = 'case-files' AND sf.object_path = OLD.storage_path
+        AND NOT EXISTS (SELECT 1 FROM storage.objects o
+                        WHERE o.bucket_id = sf.bucket AND o.name = sf.object_path);
+    RETURN OLD;
+  END IF;
+  UPDATE public.storage_files sf SET source_id = NEW.id::text,
+    status = 'ready', updated_at = now()
+    WHERE sf.bucket = 'case-files' AND sf.object_path = NEW.storage_path
+      AND sf.case_id = NEW.case_id AND sf.uploaded_by = auth.uid()
+      AND EXISTS (SELECT 1 FROM storage.objects o
+        WHERE o.bucket_id = sf.bucket AND o.name = sf.object_path
+          AND COALESCE(o.metadata->>'size', '') ~ '^[0-9]{1,18}$'
+          AND (o.metadata->>'size')::bigint = sf.size_bytes);
+  IF NOT FOUND THEN RAISE EXCEPTION 'STORAGE_RESERVATION_REQUIRED'; END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.sync_patient_attachment_storage_catalog()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    DELETE FROM public.storage_files sf
+      WHERE sf.bucket = 'patient-files' AND sf.object_path = OLD.file_path
+        AND NOT EXISTS (SELECT 1 FROM storage.objects o
+                        WHERE o.bucket_id = sf.bucket AND o.name = sf.object_path);
+    RETURN OLD;
+  END IF;
+  UPDATE public.storage_files sf SET source_id = NEW.id::text,
+    status = 'ready', updated_at = now()
+    WHERE sf.bucket = 'patient-files' AND sf.object_path = NEW.file_path
+      AND sf.patient_id = NEW.patient_id AND sf.uploaded_by = auth.uid()
+      AND EXISTS (SELECT 1 FROM storage.objects o
+        WHERE o.bucket_id = sf.bucket AND o.name = sf.object_path
+          AND COALESCE(o.metadata->>'size', '') ~ '^[0-9]{1,18}$'
+          AND (o.metadata->>'size')::bigint = sf.size_bytes);
+  IF NOT FOUND THEN RAISE EXCEPTION 'STORAGE_RESERVATION_REQUIRED'; END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.delete_managed_storage_file(_file_id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_file public.storage_files%ROWTYPE;
+BEGIN
+  SELECT * INTO v_file FROM public.storage_files WHERE id = _file_id FOR UPDATE;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  IF NOT public.can_manage_clinic_storage(v_file.clinic_id) THEN
+    RAISE EXCEPTION 'STORAGE_MANAGEMENT_NOT_ALLOWED';
+  END IF;
+  IF EXISTS (SELECT 1 FROM storage.objects o
+             WHERE o.bucket_id = v_file.bucket AND o.name = v_file.object_path) THEN
+    RAISE EXCEPTION 'STORAGE_OBJECT_STILL_EXISTS';
+  END IF;
+  IF v_file.source_type = 'case_attachment' AND v_file.source_id IS NOT NULL THEN
+    DELETE FROM public.case_attachments WHERE id::text = v_file.source_id;
+  ELSIF v_file.source_type = 'patient_attachment' AND v_file.source_id IS NOT NULL THEN
+    DELETE FROM public.patient_attachments WHERE id::text = v_file.source_id;
+  ELSIF v_file.source_type = 'patient_photo' AND v_file.source_id IS NOT NULL THEN
+    UPDATE public.patients SET photo_url = NULL WHERE id::text = v_file.source_id;
+  ELSIF v_file.source_type = 'user_avatar' AND v_file.source_id IS NOT NULL THEN
+    UPDATE public.profiles SET avatar_url = NULL WHERE id::text = v_file.source_id;
+  ELSIF v_file.source_type = 'dicom_instance' AND v_file.source_id IS NOT NULL THEN
+    DELETE FROM public.radiology_instances WHERE id::text = v_file.source_id;
+  END IF;
+  DELETE FROM public.storage_files WHERE id = _file_id;
+  RETURN jsonb_build_object('id', v_file.id, 'bucket', v_file.bucket,
+    'object_path', v_file.object_path, 'size_bytes', v_file.size_bytes,
+    'source_type', v_file.source_type, 'source_id', v_file.source_id);
+END;
+$$;
+
+-- Reconcile attributable historical objects without deleting unknown ones or
+-- reducing old ledger entries. Unattributable objects need separate review.
+INSERT INTO public.storage_files (
+  clinic_id, bucket, object_path, source_type, case_id,
+  original_name, mime_type, size_bytes, status, created_at
+)
+SELECT public.resolve_case_clinic_id(c.id), o.bucket_id, o.name,
+  'legacy_case_object', c.id, split_part(o.name, '/', 2),
+  o.metadata->>'mimetype', (o.metadata->>'size')::bigint,
+  'ready', COALESCE(o.created_at, now())
+FROM storage.objects o JOIN public.cases c ON c.id::text = split_part(o.name, '/', 1)
+WHERE o.bucket_id = 'case-files' AND o.metadata->>'size' ~ '^[0-9]{1,18}$'
+  AND public.resolve_case_clinic_id(c.id) IS NOT NULL
+ON CONFLICT (bucket, object_path) DO NOTHING;
+
+INSERT INTO public.storage_files (
+  clinic_id, bucket, object_path, source_type, source_id,
+  original_name, mime_type, size_bytes, status, created_at
+)
+SELECT st.clinic_id, o.bucket_id, o.name, 'legacy_dicom_object', i.id::text,
+  split_part(o.name, '/', 4), o.metadata->>'mimetype',
+  (o.metadata->>'size')::bigint, 'ready', COALESCE(o.created_at, now())
+FROM storage.objects o JOIN public.radiology_instances i ON i.storage_path = o.name
+JOIN public.radiology_series se ON se.id = i.series_id
+JOIN public.radiology_studies st ON st.id = se.study_id
+WHERE o.bucket_id = 'dicom-files' AND o.metadata->>'size' ~ '^[0-9]{1,18}$'
+ON CONFLICT (bucket, object_path) DO NOTHING;
+
+NOTIFY pgrst, 'reload schema';
+
+REVOKE ALL ON FUNCTION public.reserve_storage_upload(bigint,text,text,text,uuid,uuid,text,text),
+  public.complete_storage_upload(uuid,text), public.cancel_storage_upload(uuid),
+  public.delete_managed_storage_file(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.reserve_storage_upload(bigint,text,text,text,uuid,uuid,text,text),
+  public.complete_storage_upload(uuid,text), public.cancel_storage_upload(uuid),
+  public.delete_managed_storage_file(uuid) TO authenticated, service_role;
+
+-- ===== 20260929133000_saas_asaas_price_snapshot_r1.sql =====
+
+-- Asaas catalog price transition: R$1 test offer for NEW Empresa Inicial checkouts.
+-- Existing linked subscriptions retain their original contract amount.
+-- Do not use this promotional price for general release; restore the commercial
+-- catalog price after the controlled production test in a separate migration.
+
+
+-- Each Asaas resource keeps the amount of its original checkout. Catalog changes
+-- only affect new checkouts; paid renewal and replay retain the agreed amount.
+create or replace function public.billing_subscription_contract_amount(p_subscription_id uuid)
+returns integer language sql stable security definer set search_path = pg_catalog, public as $$
+  select coalesce(
+    (select ci.amount_cents from public.checkout_intents ci
+      join public.account_subscriptions s on s.id = ci.subscription_id
+      where ci.subscription_id = p_subscription_id and ci.plan_code = s.plan_code
+        and ci.amount_cents > 0 and ci.currency = 'BRL'
+        and ci.billing_provider = 'asaas'
+        and ci.provider_environment = s.provider_environment
+        and ci.status in ('paid','provider_created')
+      order by case when ci.status = 'paid' then 0 else 1 end, ci.created_at desc
+      limit 1),
+    (select b.amount_cents from public.billing_payments b
+      join public.account_subscriptions s on s.id = b.subscription_id
+      where b.subscription_id = p_subscription_id and b.provider = 'asaas'
+        and b.provider_environment = s.provider_environment
+        and b.status = 'paid' and b.amount_cents > 0 and b.currency = 'BRL'
+      order by b.period_start asc limit 1),
+    (select ci.amount_cents from public.checkout_intents ci
+      join public.account_subscriptions s on s.id = ci.subscription_id
+      where ci.subscription_id = p_subscription_id and s.status = 'pending_checkout'
+        and ci.plan_code = s.plan_code and ci.status = 'pending'
+        and ci.expires_at > now() and ci.amount_cents > 0 and ci.currency = 'BRL'
+      order by ci.created_at desc limit 1)
+  );
+$$;
+revoke all on function public.billing_subscription_contract_amount(uuid) from public, anon, authenticated;
+grant execute on function public.billing_subscription_contract_amount(uuid) to service_role;
+
+
+create or replace function public.billing_get_asaas_provisioning_context(
+  p_subscription_id uuid,
+  p_actor_user_id uuid,
+  p_provider_environment text
+) returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_subscription public.account_subscriptions%rowtype;
+  v_profile public.company_billing_profiles%rowtype;
+  v_plan public.billing_plans%rowtype;
+  v_clinic public.clinics%rowtype;
+  v_customer public.billing_provider_customers%rowtype;
+  v_contract_amount integer;
+begin
+  if p_provider_environment not in ('sandbox','production') then
+    raise exception 'BILLING_PROVIDER_INVALID_ENVIRONMENT';
+  end if;
+
+  select * into v_subscription
+  from public.account_subscriptions
+  where id = p_subscription_id;
+
+  if v_subscription.id is null
+     or v_subscription.scope_type <> 'company'
+     or v_subscription.clinic_id is null
+     or v_subscription.status = 'canceled' then
+    raise exception 'BILLING_SUBSCRIPTION_NOT_PROVISIONABLE';
+  end if;
+
+  if not public.billing_user_can_manage_company(
+    v_subscription.clinic_id,
+    p_actor_user_id
+  ) then
+    raise exception 'BILLING_SUBSCRIPTION_FORBIDDEN';
+  end if;
+
+  select * into v_clinic
+  from public.clinics
+  where id = v_subscription.clinic_id;
+  if v_clinic.id is null or coalesce(v_clinic.billing_exempt, false) then
+    raise exception 'BILLING_SUBSCRIPTION_EXEMPT_OR_MISSING';
+  end if;
+
+  select * into v_profile
+  from public.company_billing_profiles
+  where clinic_id = v_subscription.clinic_id;
+  if v_profile.clinic_id is null then
+    raise exception 'BILLING_PROFILE_REQUIRED';
+  end if;
+
+  select * into v_plan
+  from public.billing_plans
+  where code = v_subscription.plan_code
+    and account_scope = 'company'
+    and is_active;
+  if v_plan.code is null
+     or v_plan.currency <> 'BRL'
+     or v_plan.monthly_price_cents <= 0 then
+    raise exception 'BILLING_PLAN_NOT_PROVISIONABLE';
+  end if;
+
+  v_contract_amount := public.billing_subscription_contract_amount(v_subscription.id);
+  if v_subscription.external_subscription_id is not null and v_contract_amount is null then
+    raise exception 'BILLING_SUBSCRIPTION_PRICE_UNKNOWN';
+  end if;
+
+  select * into v_customer
+  from public.billing_provider_customers
+  where clinic_id = v_subscription.clinic_id
+    and provider = 'asaas'
+    and provider_environment = p_provider_environment;
+
+  return jsonb_build_object(
+    'subscription_id', v_subscription.id,
+    'clinic_id', v_subscription.clinic_id,
+    'clinic_name', v_clinic.name,
+    'plan_code', v_plan.code,
+    'plan_name', v_plan.name,
+    'monthly_price_cents', coalesce(v_contract_amount, v_plan.monthly_price_cents),
+    'currency', v_plan.currency,
+    'billing_day', v_subscription.billing_day,
+    'provider_environment', p_provider_environment,
+    'provider_customer_id', v_customer.provider_customer_id,
+    'external_customer_id', case
+      when v_subscription.billing_provider = 'asaas'
+       and v_subscription.provider_environment = p_provider_environment
+      then v_subscription.external_customer_id
+      else null
+    end,
+    'external_subscription_id', case
+      when v_subscription.billing_provider = 'asaas'
+       and v_subscription.provider_environment = p_provider_environment
+      then v_subscription.external_subscription_id
+      else null
+    end,
+    'legal_name', v_profile.legal_name,
+    'tax_id_digits', v_profile.tax_id_digits,
+    'billing_email', v_profile.billing_email,
+    'billing_phone_digits', v_profile.billing_phone_digits,
+    'postal_code_digits', v_profile.postal_code_digits,
+    'address_line', v_profile.address_line,
+    'address_number', v_profile.address_number,
+    'address_complement', v_profile.address_complement,
+    'district', v_profile.district,
+    'city', v_profile.city,
+    'state', v_profile.state,
+    'country_code', v_profile.country_code
+  );
+end;
+$$;
+
+create or replace function public.billing_get_checkout_provisioning_context(
+  p_checkout_intent_id uuid,
+  p_actor_user_id uuid,
+  p_provider_environment text
+) returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_intent public.checkout_intents%rowtype;
+  v_subscription public.account_subscriptions%rowtype;
+  v_plan public.billing_plans%rowtype;
+begin
+  if p_provider_environment not in ('sandbox','production') then
+    raise exception 'BILLING_PROVIDER_INVALID_ENVIRONMENT';
+  end if;
+
+  select * into v_intent
+  from public.checkout_intents
+  where id = p_checkout_intent_id;
+
+  if v_intent.id is null then
+    raise exception 'BILLING_CHECKOUT_NOT_FOUND';
+  end if;
+  if v_intent.user_id <> p_actor_user_id then
+    raise exception 'BILLING_CHECKOUT_FORBIDDEN';
+  end if;
+  if v_intent.status not in ('pending','provider_created') then
+    raise exception 'BILLING_CHECKOUT_NOT_PROVISIONABLE';
+  end if;
+  if v_intent.status = 'pending' and v_intent.expires_at <= now() then
+    raise exception 'BILLING_CHECKOUT_EXPIRED';
+  end if;
+  if not public.billing_user_can_manage_company(v_intent.clinic_id, p_actor_user_id) then
+    raise exception 'BILLING_CHECKOUT_FORBIDDEN';
+  end if;
+  if public.is_internal_full_access_company(v_intent.clinic_id) then
+    raise exception 'BILLING_CHECKOUT_EXEMPT_COMPANY';
+  end if;
+
+  select * into v_subscription
+  from public.account_subscriptions
+  where id = v_intent.subscription_id;
+
+  if v_subscription.id is null
+     or v_subscription.clinic_id <> v_intent.clinic_id
+     or v_subscription.scope_type <> 'company'
+     or v_subscription.status <> 'pending_checkout' then
+    raise exception 'BILLING_SUBSCRIPTION_NOT_PROVISIONABLE';
+  end if;
+
+  select * into v_plan
+  from public.billing_plans
+  where code = v_intent.plan_code
+    and account_scope = 'company'
+    and is_active;
+
+  if v_plan.code is null
+     or v_subscription.plan_code <> v_plan.code
+     or v_intent.currency <> 'BRL'
+     or v_plan.currency <> v_intent.currency
+     or (v_intent.status = 'pending' and v_plan.monthly_price_cents <> v_intent.amount_cents)
+     or (v_intent.status = 'provider_created'
+         and public.billing_subscription_contract_amount(v_subscription.id) is distinct from v_intent.amount_cents) then
+    raise exception 'BILLING_CHECKOUT_CONTRACT_MISMATCH';
+  end if;
+
+  return jsonb_build_object(
+    'checkout_intent_id', v_intent.id,
+    'subscription_id', v_subscription.id,
+    'clinic_id', v_intent.clinic_id,
+    'plan_code', v_plan.code,
+    'plan_name', v_plan.name,
+    'amount_cents', v_intent.amount_cents,
+    'currency', v_intent.currency,
+    'status', v_intent.status,
+    'expires_at', v_intent.expires_at,
+    'provider_environment', p_provider_environment,
+    'provider_customer_id', case
+      when v_subscription.billing_provider = 'asaas'
+       and v_subscription.provider_environment = p_provider_environment
+      then v_subscription.external_customer_id
+      else null
+    end,
+    'provider_subscription_id', case
+      when v_subscription.billing_provider = 'asaas'
+       and v_subscription.provider_environment = p_provider_environment
+      then v_subscription.external_subscription_id
+      else null
+    end,
+    'provider_payment_id', case
+      when v_intent.billing_provider = 'asaas'
+       and v_intent.provider_environment = p_provider_environment
+      then v_intent.provider_payment_id
+      else null
+    end,
+    'provider_payment_url', case
+      when v_intent.billing_provider = 'asaas'
+       and v_intent.provider_environment = p_provider_environment
+      then v_intent.provider_payment_url
+      else null
+    end
+  );
+end;
+$$;
+
+create or replace function public.create_checkout_intent(
+  p_plan_code text,
+  p_clinic_id uuid,
+  p_session_types text[] default null
+) returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_plan public.billing_plans%rowtype;
+  v_subscription public.account_subscriptions%rowtype;
+  v_intent public.checkout_intents%rowtype;
+  v_provider_intent public.checkout_intents%rowtype;
+  v_requested text[];
+begin
+  if auth.uid() is null then
+    raise exception 'BILLING_CHECKOUT_FORBIDDEN';
+  end if;
+  if p_clinic_id is null
+     or not public.billing_user_can_manage_company(p_clinic_id, auth.uid()) then
+    raise exception 'BILLING_CHECKOUT_FORBIDDEN';
+  end if;
+  if public.is_internal_full_access_company(p_clinic_id) then
+    raise exception 'BILLING_CHECKOUT_EXEMPT_COMPANY';
+  end if;
+
+  select * into v_plan
+  from public.billing_plans
+  where code = p_plan_code
+    and account_scope = 'company'
+    and is_active;
+  if v_plan.code is null or v_plan.currency <> 'BRL' or v_plan.monthly_price_cents <= 0 then
+    raise exception 'BILLING_PLAN_NOT_PROVISIONABLE';
+  end if;
+
+  select coalesce(array_agg(distinct lower(x) order by lower(x)), '{}'::text[])
+  into v_requested
+  from unnest(coalesce(p_session_types, '{}'::text[])) x
+  where lower(x) in ('laboratory','clinic','radiology');
+
+  if cardinality(v_requested) = 0
+     or cardinality(v_requested) > v_plan.max_sessions then
+    raise exception 'BILLING_CHECKOUT_INVALID_SESSIONS';
+  end if;
+
+  select * into v_subscription
+  from public.account_subscriptions
+  where clinic_id = p_clinic_id
+    and status <> 'canceled'
+  order by created_at desc
+  limit 1
+  for update;
+
+  if v_subscription.id is null then
+    insert into public.account_subscriptions(
+      scope_type, clinic_id, plan_code, status, billing_day
+    ) values (
+      'company', p_clinic_id, v_plan.code, 'pending_checkout',
+      least(28, extract(day from now())::integer)
+    ) returning * into v_subscription;
+  elsif v_subscription.status <> 'pending_checkout' then
+    raise exception 'BILLING_SUBSCRIPTION_REACTIVATION_PENDING';
+  elsif v_subscription.external_subscription_id is not null
+        and v_subscription.plan_code <> v_plan.code then
+    raise exception 'BILLING_PROVIDER_SUBSCRIPTION_PLAN_LOCKED';
+  elsif v_subscription.external_subscription_id is null
+        and v_subscription.plan_code <> v_plan.code then
+    update public.account_subscriptions
+    set plan_code = v_plan.code,
+        updated_at = now()
+    where id = v_subscription.id
+    returning * into v_subscription;
+  end if;
+
+  update public.checkout_intents
+  set status = 'expired',
+      updated_at = now()
+  where subscription_id = v_subscription.id
+    and status = 'pending'
+    and expires_at <= now();
+
+  select * into v_provider_intent
+  from public.checkout_intents
+  where subscription_id = v_subscription.id
+    and status = 'provider_created'
+  order by created_at desc
+  limit 1;
+
+  if v_provider_intent.id is not null then
+    if v_provider_intent.plan_code <> v_plan.code
+       or not (
+         coalesce(v_provider_intent.metadata->'requested_sessions', '[]'::jsonb)
+           @> to_jsonb(v_requested)
+         and coalesce(v_provider_intent.metadata->'requested_sessions', '[]'::jsonb)
+           <@ to_jsonb(v_requested)
+       ) then
+      raise exception 'BILLING_PROVIDER_CHECKOUT_LOCKED';
+    end if;
+    v_intent := v_provider_intent;
+  else
+    select * into v_intent
+    from public.checkout_intents
+    where user_id = auth.uid()
+      and clinic_id = p_clinic_id
+      and subscription_id = v_subscription.id
+      and plan_code = v_plan.code
+      and amount_cents = v_plan.monthly_price_cents
+      and status = 'pending'
+      and expires_at > now()
+      and coalesce(metadata->'requested_sessions', '[]'::jsonb) @> to_jsonb(v_requested)
+      and coalesce(metadata->'requested_sessions', '[]'::jsonb) <@ to_jsonb(v_requested)
+    order by created_at desc
+    limit 1;
+
+    if v_intent.id is null then
+      update public.checkout_intents
+      set status = 'canceled',
+          updated_at = now()
+      where subscription_id = v_subscription.id
+        and status = 'pending';
+
+      insert into public.checkout_intents(
+        user_id, clinic_id, subscription_id, plan_code, amount_cents,
+        currency, status, metadata
+      ) values (
+        auth.uid(), p_clinic_id, v_subscription.id, v_plan.code,
+        v_plan.monthly_price_cents, v_plan.currency, 'pending',
+        jsonb_build_object(
+          'requested_sessions', to_jsonb(v_requested),
+          'billing_version', 'saas-stage-03'
+        )
+      ) returning * into v_intent;
+    end if;
+  end if;
+
+  return jsonb_build_object(
+    'checkout_intent_id', v_intent.id,
+    'subscription_id', v_subscription.id,
+    'plan_code', v_intent.plan_code,
+    'plan_name', v_plan.name,
+    'amount_cents', v_intent.amount_cents,
+    'currency', v_intent.currency,
+    'status', v_intent.status,
+    'billing_mode', 'live'
+  );
+end;
+$$;
+
+create or replace function public.billing_apply_asaas_initial_payment(
+  p_event_id uuid, p_lease_token uuid, p_payment_id text,
+  p_customer_id text, p_subscription_id text,
+  p_amount_cents integer, p_due_date date, p_payment_status text
+) returns jsonb
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare
+  v_event public.billing_events%rowtype;
+  v_intent public.checkout_intents%rowtype;
+  v_sub public.account_subscriptions%rowtype;
+  v_plan public.billing_plans%rowtype;
+  v_prior public.billing_payments%rowtype;
+  v_period_end timestamptz;
+  v_requested text[];
+begin
+  select * into v_event from public.billing_events
+  where id = p_event_id and provider = 'asaas' and status = 'processing'
+    and lease_token = p_lease_token and lease_until > now() for update;
+  if v_event.id is null or v_event.event_type not in ('PAYMENT_CONFIRMED','PAYMENT_RECEIVED')
+    or v_event.payload->>'paymentId' is distinct from p_payment_id
+    or p_payment_status not in ('CONFIRMED','RECEIVED','RECEIVED_IN_CASH')
+    or p_payment_id !~ '^pay_[A-Za-z0-9]+$'
+    or p_customer_id !~ '^cus_[A-Za-z0-9]+$'
+    or p_subscription_id !~ '^sub_[A-Za-z0-9]+$'
+    or p_amount_cents <= 0 or p_due_date is null then
+    raise exception 'BILLING_PAYMENT_NOT_VERIFIED';
+  end if;
+
+  select * into v_intent from public.checkout_intents
+  where billing_provider = 'asaas' and provider_environment = v_event.provider_environment
+    and provider_payment_id = p_payment_id for update;
+  if v_intent.id is null or v_intent.status not in ('provider_created','paid')
+    or v_intent.amount_cents <> p_amount_cents or v_intent.currency <> 'BRL' then
+    raise exception 'BILLING_PAYMENT_INTENT_MISMATCH';
+  end if;
+  select * into v_sub from public.account_subscriptions
+  where id = v_intent.subscription_id for update;
+  if v_sub.id is null or v_sub.scope_type <> 'company'
+    or v_sub.clinic_id is distinct from v_intent.clinic_id
+    or v_sub.billing_provider <> 'asaas'
+    or v_sub.provider_environment <> v_event.provider_environment
+    or v_sub.external_customer_id <> p_customer_id
+    or v_sub.external_subscription_id <> p_subscription_id
+    or public.is_internal_full_access_company(v_sub.clinic_id) then
+    raise exception 'BILLING_PAYMENT_OWNERSHIP_MISMATCH';
+  end if;
+
+  select * into v_prior from public.billing_payments
+  where provider = 'asaas' and provider_environment = v_event.provider_environment
+    and provider_payment_id = p_payment_id for update;
+  if v_prior.id is not null then
+    if v_prior.status <> 'paid' or v_prior.subscription_id <> v_sub.id
+      or v_prior.checkout_intent_id <> v_intent.id or v_prior.amount_cents <> p_amount_cents then
+      raise exception 'BILLING_PAYMENT_ALREADY_RECONCILED_DIFFERENTLY';
+    end if;
+    update public.billing_events set status = 'processed', processed_at = now(),
+      error_message = null, lease_token = null, lease_until = null where id = v_event.id;
+    return jsonb_build_object('applied', false, 'idempotent', true);
+  end if;
+
+  if v_intent.status <> 'provider_created' or v_sub.status <> 'pending_checkout' then
+    raise exception 'BILLING_PAYMENT_STATE_MISMATCH';
+  end if;
+  select * into v_plan from public.billing_plans
+  where code = v_intent.plan_code and account_scope = 'company';
+  if v_plan.code is null or v_sub.plan_code <> v_plan.code
+    or public.billing_subscription_contract_amount(v_sub.id) is distinct from p_amount_cents
+    or v_plan.currency <> 'BRL' then
+    raise exception 'BILLING_PAYMENT_PLAN_MISMATCH';
+  end if;
+  v_period_end := (p_due_date + interval '1 month')::timestamptz;
+  if v_period_end <= now() or p_due_date > current_date + 31 then
+    raise exception 'BILLING_PAYMENT_PERIOD_REVIEW_REQUIRED';
+  end if;
+
+  insert into public.billing_payments (
+    subscription_id, checkout_intent_id, clinic_id, amount_cents, currency,
+    status, provider, provider_environment, provider_payment_id,
+    paid_at, period_start, period_end
+  ) values (
+    v_sub.id, v_intent.id, v_sub.clinic_id, p_amount_cents, 'BRL',
+    'paid', 'asaas', v_event.provider_environment, p_payment_id,
+    now(), p_due_date::timestamptz, v_period_end
+  );
+  update public.account_subscriptions set status = 'active',
+    current_period_start = p_due_date::timestamptz,
+    current_period_end = v_period_end, grace_until = null,
+    updated_at = now() where id = v_sub.id;
+  update public.checkout_intents set status = 'paid', updated_at = now()
+    where id = v_intent.id;
+  update public.clinics set storage_limit_bytes = v_plan.storage_bytes
+    where id = v_sub.clinic_id;
+  select coalesce(array_agg(s.value), '{}'::text[]) into v_requested
+  from jsonb_array_elements_text(coalesce(v_intent.metadata->'requested_sessions', '[]'::jsonb)) s(value);
+  if cardinality(v_requested) > 0 then
+    update public.company_sessions set status = 'disabled'
+      where clinic_id = v_sub.clinic_id and not (session_type = any(v_requested));
+    insert into public.company_sessions (clinic_id,session_type,status,sharing_mode)
+    select v_sub.clinic_id, x, 'active',
+      case when v_plan.max_sessions > 1 then 'company' else 'isolated' end
+    from unnest(v_requested) x
+    on conflict (clinic_id,session_type) do update
+      set status = 'active', sharing_mode = excluded.sharing_mode, updated_at = now();
+  end if;
+  update public.billing_events set status = 'processed', processed_at = now(),
+    error_message = null, lease_token = null, lease_until = null where id = v_event.id;
+  return jsonb_build_object('applied', true, 'subscription_id', v_sub.id);
+end;
+$$;
+
+create or replace function public.billing_apply_asaas_payment_lifecycle(
+  p_event_id uuid, p_lease_token uuid, p_payment_id text,
+  p_customer_id text, p_subscription_id text,
+  p_amount_cents integer, p_due_date date, p_payment_status text
+) returns jsonb
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare
+  v_event public.billing_events%rowtype;
+  v_sub public.account_subscriptions%rowtype;
+  v_intent public.checkout_intents%rowtype;
+  v_plan public.billing_plans%rowtype;
+  v_payment public.billing_payments%rowtype;
+  v_start timestamptz := p_due_date::timestamptz;
+  v_end timestamptz := (p_due_date + interval '1 month')::timestamptz;
+  v_last_paid_end timestamptz;
+  v_last_paid_start timestamptz;
+  v_action text;
+begin
+  select * into v_event from public.billing_events
+  where id = p_event_id and provider = 'asaas' and status = 'processing'
+    and lease_token = p_lease_token and lease_until > now() for update;
+  if v_event.id is null
+    or v_event.payload->>'paymentId' is distinct from p_payment_id
+    or coalesce(p_payment_id, '') !~ '^pay_[A-Za-z0-9]+$'
+    or coalesce(p_customer_id, '') !~ '^cus_[A-Za-z0-9]+$'
+    or coalesce(p_subscription_id, '') !~ '^sub_[A-Za-z0-9]+$'
+    or p_amount_cents is null or p_amount_cents <= 0 or p_due_date is null then
+    raise exception 'BILLING_LIFECYCLE_PAYMENT_NOT_VERIFIED';
+  end if;
+  if v_event.event_type in ('PAYMENT_CONFIRMED','PAYMENT_RECEIVED')
+     and p_payment_status in ('CONFIRMED','RECEIVED','RECEIVED_IN_CASH') then
+    v_action := 'paid';
+  elsif v_event.event_type = 'PAYMENT_OVERDUE' and p_payment_status = 'OVERDUE' then
+    v_action := 'overdue';
+  elsif v_event.event_type = 'PAYMENT_REFUNDED' and p_payment_status = 'REFUNDED' then
+    v_action := 'reversed';
+  else
+    raise exception 'BILLING_LIFECYCLE_PROVIDER_STATUS_CHANGED';
+  end if;
+
+  -- The checkout payment is governed by the stricter Stage 04 first-payment
+  -- contract, including its paid-intent and requested-session checks.
+  if v_action = 'paid' then
+    select * into v_intent from public.checkout_intents
+    where billing_provider = 'asaas'
+      and provider_environment = v_event.provider_environment
+      and provider_payment_id = p_payment_id;
+    if v_intent.id is not null then
+      return public.billing_apply_asaas_initial_payment(
+        p_event_id, p_lease_token, p_payment_id, p_customer_id,
+        p_subscription_id, p_amount_cents, p_due_date, p_payment_status
+      );
+    end if;
+  end if;
+
+  select * into v_sub from public.account_subscriptions
+  where billing_provider = 'asaas'
+    and provider_environment = v_event.provider_environment
+    and external_subscription_id = p_subscription_id for update;
+  if v_sub.id is null or v_sub.scope_type <> 'company'
+    or v_sub.clinic_id is null or v_sub.billing_cycle <> 'MONTHLY'
+    or v_sub.external_customer_id is distinct from p_customer_id
+    or public.is_internal_full_access_company(v_sub.clinic_id) then
+    raise exception 'BILLING_LIFECYCLE_OWNERSHIP_MISMATCH';
+  end if;
+  select * into v_plan from public.billing_plans
+  where code = v_sub.plan_code and account_scope = 'company';
+  if v_plan.code is null or v_plan.currency <> 'BRL'
+    or (v_action <> 'reversed' and public.billing_subscription_contract_amount(v_sub.id) is distinct from p_amount_cents) then
+    raise exception 'BILLING_LIFECYCLE_PLAN_MISMATCH';
+  end if;
+  select * into v_payment from public.billing_payments
+  where provider = 'asaas' and provider_environment = v_event.provider_environment
+    and provider_payment_id = p_payment_id for update;
+  if v_payment.id is not null and (
+    v_payment.subscription_id <> v_sub.id
+    or v_payment.clinic_id <> v_sub.clinic_id
+    or v_payment.amount_cents <> p_amount_cents
+    or v_payment.currency <> 'BRL'
+    or (v_action <> 'reversed' and (
+      v_payment.period_start is distinct from v_start
+      or v_payment.period_end is distinct from v_end
+    ))
+  ) then
+    raise exception 'BILLING_LIFECYCLE_PAYMENT_CONFLICT';
+  end if;
+
+  if v_action = 'paid' then
+    if v_payment.status = 'paid' then
+      -- An older CONFIRMED event may arrive after RECEIVED or vice versa.
+      null;
+    else
+      if v_sub.status = 'canceled' or v_sub.current_period_end is null
+        or v_start < v_sub.current_period_end
+        or v_start > v_sub.current_period_end + interval '31 days'
+        or v_end <= now() or p_due_date > current_date + 31 then
+        raise exception 'BILLING_LIFECYCLE_PERIOD_REVIEW_REQUIRED';
+      end if;
+      if not exists (
+        select 1 from public.billing_payments b
+        where b.subscription_id = v_sub.id and b.provider = 'asaas'
+          and b.provider_environment = v_event.provider_environment
+          and b.status = 'paid'
+      ) then
+        raise exception 'BILLING_LIFECYCLE_INITIAL_PAYMENT_REQUIRED';
+      end if;
+      if v_payment.id is null then
+        insert into public.billing_payments (
+          subscription_id, clinic_id, amount_cents, currency, status,
+          provider, provider_environment, provider_payment_id,
+          paid_at, period_start, period_end
+        ) values (
+          v_sub.id, v_sub.clinic_id, p_amount_cents, 'BRL', 'paid',
+          'asaas', v_event.provider_environment, p_payment_id,
+          now(), v_start, v_end
+        );
+      elsif v_payment.status in ('pending','refunded','failed') then
+        update public.billing_payments
+        set status = 'paid', paid_at = now() where id = v_payment.id;
+      else
+        raise exception 'BILLING_LIFECYCLE_PAYMENT_CONFLICT';
+      end if;
+      update public.account_subscriptions
+      set status = 'active', current_period_start = v_start,
+          current_period_end = v_end, grace_until = null, updated_at = now()
+      where id = v_sub.id;
+    end if;
+  elsif v_action = 'overdue' then
+    -- An overdue invoice for a future or historical cycle cannot reduce an
+    -- already-paid entitlement. Seven days of grace begin at the due date.
+    if v_sub.status <> 'canceled' and v_sub.status <> 'pending_checkout'
+      and v_sub.current_period_end is not null
+      and v_start >= v_sub.current_period_end
+      and v_start <= v_sub.current_period_end + interval '1 day'
+      and v_start <= now() and v_payment.id is null
+      and not exists (
+        select 1 from public.billing_payments b
+        where b.subscription_id = v_sub.id and b.provider = 'asaas'
+          and b.provider_environment = v_event.provider_environment
+          and b.status = 'paid' and b.period_start >= v_start
+      ) then
+      insert into public.billing_payments (
+        subscription_id, clinic_id, amount_cents, currency, status,
+        provider, provider_environment, provider_payment_id,
+        period_start, period_end
+      ) values (
+        v_sub.id, v_sub.clinic_id, p_amount_cents, 'BRL', 'pending',
+        'asaas', v_event.provider_environment, p_payment_id, v_start, v_end
+      );
+      update public.account_subscriptions
+      set status = case when v_start + interval '7 days' > now()
+        then 'past_due' else 'suspended' end,
+        grace_until = case when v_start + interval '7 days' > now()
+          then v_start + interval '7 days' else null end,
+        updated_at = now()
+      where id = v_sub.id;
+    elsif v_payment.id is not null and v_payment.status = 'pending'
+      and v_sub.status in ('past_due','suspended') then
+      null; -- duplicate event, including one received after grace expiration
+    elsif v_payment.id is not null and v_payment.status = 'paid' then
+      null; -- paid already; this event arrived out of order
+    elsif v_sub.status in ('canceled','pending_checkout') then
+      null; -- neither cancellation nor first unpaid checkout gains access
+    else
+      raise exception 'BILLING_LIFECYCLE_OVERDUE_REVIEW_REQUIRED';
+    end if;
+  else
+    if v_payment.id is null or v_payment.status not in ('paid','refunded') then
+      raise exception 'BILLING_LIFECYCLE_REVERSAL_REVIEW_REQUIRED';
+    end if;
+    if v_payment.status = 'paid' then
+      update public.billing_payments set status = 'refunded',
+        metadata = metadata || jsonb_build_object('reversal_event', v_event.event_type)
+      where id = v_payment.id;
+      select b.period_start, b.period_end
+      into v_last_paid_start, v_last_paid_end
+      from public.billing_payments b
+      where b.subscription_id = v_sub.id and b.provider = 'asaas'
+        and b.provider_environment = v_event.provider_environment
+        and b.status = 'paid'
+      order by b.period_end desc limit 1;
+      -- Reversing an older invoice does not shorten a newer paid period.
+      if v_payment.period_end >= v_sub.current_period_end then
+        update public.account_subscriptions
+        set current_period_start = v_last_paid_start,
+          current_period_end = v_last_paid_end,
+          status = case
+            when status = 'canceled' then 'canceled'
+            when v_last_paid_end > now() then 'active'
+            else 'suspended' end,
+          grace_until = null, updated_at = now()
+        where id = v_sub.id;
+      end if;
+    end if;
+  end if;
+
+  update public.billing_events set status = 'processed', processed_at = now(),
+    error_message = null, lease_token = null, lease_until = null
+  where id = v_event.id;
+  return jsonb_build_object('applied', true, 'effect', v_action);
+end;
+$$;
+
+create or replace function public.billing_apply_asaas_subscription_lifecycle(
+  p_event_id uuid, p_lease_token uuid, p_subscription_id text,
+  p_customer_id text, p_external_reference text,
+  p_amount_cents integer, p_cycle text, p_provider_status text
+) returns jsonb
+language plpgsql security definer set search_path = pg_catalog, public
+as $$
+declare
+  v_event public.billing_events%rowtype;
+  v_sub public.account_subscriptions%rowtype;
+  v_plan public.billing_plans%rowtype;
+begin
+  select * into v_event from public.billing_events
+  where id = p_event_id and provider = 'asaas' and status = 'processing'
+    and lease_token = p_lease_token and lease_until > now() for update;
+  if v_event.id is null
+    or v_event.payload->>'subscriptionId' is distinct from p_subscription_id
+    or v_event.event_type not in (
+      'SUBSCRIPTION_CREATED','SUBSCRIPTION_UPDATED','SUBSCRIPTION_INACTIVATED'
+    )
+    or coalesce(p_subscription_id, '') !~ '^sub_[A-Za-z0-9]+$'
+    or coalesce(p_customer_id, '') !~ '^cus_[A-Za-z0-9]+$'
+    or p_cycle is distinct from 'MONTHLY'
+    or p_amount_cents is null or p_amount_cents <= 0 then
+    raise exception 'BILLING_SUBSCRIPTION_NOT_VERIFIED';
+  end if;
+  select * into v_sub from public.account_subscriptions
+  where billing_provider = 'asaas'
+    and provider_environment = v_event.provider_environment
+    and external_subscription_id = p_subscription_id for update;
+  if v_sub.id is null or v_sub.scope_type <> 'company'
+    or v_sub.external_customer_id is distinct from p_customer_id
+    or p_external_reference is distinct from 'dentalflow:subscription:' || v_sub.id::text
+    or public.is_internal_full_access_company(v_sub.clinic_id) then
+    raise exception 'BILLING_SUBSCRIPTION_OWNERSHIP_MISMATCH';
+  end if;
+  select * into v_plan from public.billing_plans
+  where code = v_sub.plan_code and account_scope = 'company';
+  if v_plan.code is null or v_plan.currency <> 'BRL'
+    or (p_provider_status <> 'INACTIVE'
+      and public.billing_subscription_contract_amount(v_sub.id) is distinct from p_amount_cents) then
+    raise exception 'BILLING_SUBSCRIPTION_PLAN_MISMATCH';
+  end if;
+  if p_provider_status = 'INACTIVE'
+     and v_event.event_type in ('SUBSCRIPTION_INACTIVATED','SUBSCRIPTION_UPDATED') then
+    update public.account_subscriptions
+    set status = 'canceled', canceled_at = coalesce(canceled_at, now()),
+      grace_until = null, updated_at = now()
+    where id = v_sub.id;
+  elsif p_provider_status = 'ACTIVE'
+    and v_event.event_type in ('SUBSCRIPTION_CREATED','SUBSCRIPTION_UPDATED')
+    and v_sub.status <> 'canceled' then
+    null; -- provider activity alone never establishes a paid entitlement
+  else
+    raise exception 'BILLING_SUBSCRIPTION_STATE_REVIEW_REQUIRED';
+  end if;
+  update public.billing_events set status = 'processed', processed_at = now(),
+    error_message = null, lease_token = null, lease_until = null
+  where id = v_event.id;
+  return jsonb_build_object('applied', true, 'status', p_provider_status);
+end;
+$$;
+
+create or replace function public.company_subscription_snapshot(_clinic_id uuid)
+returns jsonb
+language plpgsql stable security definer set search_path=public as $$
+declare
+  s public.account_subscriptions%rowtype;
+  p public.billing_plans%rowtype;
+  allowed boolean;
+  internal boolean;
+begin
+  select exists(select 1 from public.clinics c where c.id=_clinic_id and c.owner_id=auth.uid())
+      or public.active_company_member(_clinic_id,auth.uid())
+      or exists(select 1 from public.profiles pr where pr.id=auth.uid() and pr.clinic_id=_clinic_id)
+    into allowed;
+  if not allowed then return null; end if;
+
+  internal:=public.is_internal_full_access_company(_clinic_id);
+  select * into s from public.account_subscriptions
+   where clinic_id=_clinic_id and status<>'canceled' order by created_at desc limit 1;
+  if s.id is null then
+    select * into s from public.account_subscriptions where clinic_id=_clinic_id order by created_at desc limit 1;
+  end if;
+  if s.id is null then return null; end if;
+  select * into p from public.billing_plans where code=case when internal then 'company_advanced' else s.plan_code end;
+
+  return jsonb_build_object(
+    'subscription_id',s.id,'scope','company','plan_code',p.code,'plan_name',p.name,
+    'status',case when internal then 'active' else s.status end,
+    'access_mode',case when internal then 'full' else public.subscription_access_mode(s.status,s.current_period_end,s.grace_until) end,
+    'billing_day',s.billing_day,
+    'current_period_end',case when internal then '9999-12-31 23:59:59+00'::timestamptz else s.current_period_end end,
+    'grace_until',case when internal then null else s.grace_until end,
+    'monthly_price_cents',case when internal then p.monthly_price_cents
+      else coalesce(public.billing_subscription_contract_amount(s.id),p.monthly_price_cents) end,
+    'currency',p.currency,
+    'max_sessions',p.max_sessions,'max_members',p.max_members,'storage_bytes',p.storage_bytes,'features',p.features,
+    'internal_full_access',internal,
+    'sessions',coalesce((select jsonb_agg(cs.session_type order by cs.session_type) from public.company_sessions cs where cs.clinic_id=_clinic_id and cs.status='active'),'[]'::jsonb)
+  );
+end $$;
+
+revoke all on function public.billing_get_asaas_provisioning_context(uuid,uuid,text) from public,anon,authenticated;
+revoke all on function public.billing_get_checkout_provisioning_context(uuid,uuid,text) from public,anon,authenticated;
+revoke all on function public.billing_apply_asaas_initial_payment(uuid,uuid,text,text,text,integer,date,text) from public,anon,authenticated;
+revoke all on function public.billing_apply_asaas_payment_lifecycle(uuid,uuid,text,text,text,integer,date,text) from public,anon,authenticated;
+revoke all on function public.billing_apply_asaas_subscription_lifecycle(uuid,uuid,text,text,text,integer,text,text) from public,anon,authenticated;
+grant execute on function public.billing_get_asaas_provisioning_context(uuid,uuid,text) to service_role;
+grant execute on function public.billing_get_checkout_provisioning_context(uuid,uuid,text) to service_role;
+grant execute on function public.billing_apply_asaas_initial_payment(uuid,uuid,text,text,text,integer,date,text) to service_role;
+grant execute on function public.billing_apply_asaas_payment_lifecycle(uuid,uuid,text,text,text,integer,date,text) to service_role;
+grant execute on function public.billing_apply_asaas_subscription_lifecycle(uuid,uuid,text,text,text,integer,text,text) to service_role;
+
+-- Change only the future catalog price. Historical intents and payments are immutable.
+update public.billing_plans set monthly_price_cents = 100
+where code = 'company_initial' and account_scope = 'company' and monthly_price_cents = 24900;
+do $$ begin
+  if (select monthly_price_cents from public.billing_plans where code = 'company_initial') <> 100 then
+    raise exception 'BILLING_TEST_PRICE_NOT_APPLIED';
+  end if;
+end $$;
+notify pgrst, 'reload schema';
+
+-- ===== 20260929140000_saas_master_admin_stage07.sql =====
+
+-- Stage 07: platform administration is independent of company CEO/admin roles.
+-- No operator is enrolled by this migration. Enrolment is a deliberate,
+-- separately audited service-role operation after verifying the auth user.
+create table if not exists public.platform_operators (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  enabled boolean not null default true,
+  enrolled_at timestamptz not null default now(),
+  enrolled_by text not null check (length(btrim(enrolled_by)) between 3 and 120)
+);
+create table if not exists public.platform_operator_audit (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id),
+  action text not null check (action in ('replay_asaas_event')),
+  reason text not null check (length(btrim(reason)) between 16 and 300),
+  target_environment text not null check (target_environment in ('sandbox','production')),
+  target_ref text not null,
+  performed_at timestamptz not null default now()
+);
+create index if not exists platform_operator_audit_recent_idx
+  on public.platform_operator_audit (performed_at desc);
+alter table public.platform_operators enable row level security;
+alter table public.platform_operator_audit enable row level security;
+revoke all on public.platform_operators, public.platform_operator_audit from public, anon, authenticated;
+grant select, insert, update, delete on public.platform_operators to service_role;
+grant select on public.platform_operator_audit to service_role;
+
+create or replace function public.platform_master_dashboard(p_search text default '')
+returns jsonb language plpgsql stable security definer
+set search_path = pg_catalog, public as $$
+declare v_search text := btrim(coalesce(p_search,''));
+declare v_result jsonb;
+begin
+  if auth.uid() is null or auth.role() <> 'authenticated'
+     or not exists (select 1 from public.platform_operators o
+                    where o.user_id = auth.uid() and o.enabled) then
+    raise exception 'PLATFORM_MASTER_FORBIDDEN';
+  end if;
+  if length(v_search) > 80 then raise exception 'PLATFORM_MASTER_SEARCH_INVALID'; end if;
+
+  select jsonb_build_object(
+    'companies', coalesce((select jsonb_agg(to_jsonb(t) order by t.name) from (
+      select c.id, c.name, coalesce(c.billing_exempt,false) as billing_exempt,
+             s.id as subscription_id, s.status, s.plan_code,
+             s.provider_environment, s.current_period_end,
+             s.external_subscription_id is not null as provider_linked
+      from public.clinics c
+      left join lateral (
+        select id, status, plan_code, provider_environment,
+               current_period_end, external_subscription_id
+        from public.account_subscriptions
+        where clinic_id = c.id order by created_at desc limit 1
+      ) s on true
+      where v_search = '' or c.name ilike '%' || v_search || '%'
+      order by c.name, c.id limit 50
+    ) t), '[]'::jsonb),
+    'queue', coalesce((select jsonb_object_agg(status, total) from (
+      select status, count(*) as total from public.billing_events
+      where provider = 'asaas' group by status
+    ) q), '{}'::jsonb),
+    'recent_payments', coalesce((select jsonb_agg(to_jsonb(t) order by t.created_at desc) from (
+      select b.id, b.clinic_id, b.status, b.amount_cents, b.currency,
+             b.provider_environment, b.created_at, b.paid_at
+      from public.billing_payments b where b.provider = 'asaas'
+      order by b.created_at desc limit 30
+    ) t), '[]'::jsonb),
+    'review_events', coalesce((select jsonb_agg(to_jsonb(t) order by t.received_at desc) from (
+      select provider_event_id, event_type, provider_environment,
+             status, attempt_count, received_at
+      from public.billing_events where provider = 'asaas'
+        and status in ('failed','dead_letter')
+      order by received_at desc limit 30
+    ) t), '[]'::jsonb),
+    'generated_at', now()
+  ) into v_result;
+  return v_result;
+end $$;
+
+create or replace function public.platform_master_replay_asaas_event(
+  p_environment text, p_event_id text, p_reason text
+) returns boolean language plpgsql security definer
+set search_path = pg_catalog, public as $$
+declare v_queued boolean;
+begin
+  if auth.uid() is null or auth.role() <> 'authenticated'
+     or not exists (select 1 from public.platform_operators o
+                    where o.user_id = auth.uid() and o.enabled) then
+    raise exception 'PLATFORM_MASTER_FORBIDDEN';
+  end if;
+  if auth.jwt()->>'aal' is distinct from 'aal2' then
+    raise exception 'PLATFORM_MASTER_REAUTH_REQUIRED';
+  end if;
+  if p_reason is null or length(btrim(p_reason)) not between 16 and 300
+     or p_reason ~ '[[:cntrl:]]' then
+    raise exception 'PLATFORM_MASTER_REASON_REQUIRED';
+  end if;
+  v_queued := public.billing_replay_asaas_event(
+    p_environment, p_event_id, auth.uid()::text, btrim(p_reason));
+  if v_queued then
+    insert into public.platform_operator_audit
+      (user_id, action, reason, target_environment, target_ref)
+    values (auth.uid(), 'replay_asaas_event', btrim(p_reason), p_environment, p_event_id);
+  end if;
+  return v_queued;
+end $$;
+
+revoke all on function public.platform_master_dashboard(text) from public, anon, authenticated;
+revoke all on function public.platform_master_replay_asaas_event(text,text,text) from public, anon, authenticated;
+grant execute on function public.platform_master_dashboard(text) to authenticated;
+grant execute on function public.platform_master_replay_asaas_event(text,text,text) to authenticated;
+notify pgrst, 'reload schema';
+
+-- ===== 20260929141000_saas_billing_center_stage08.sql =====
+
+-- Stage 08: financial history belongs to a company billing manager only.
+-- Existing team-wide payment reads are narrowed; no payment state is written.
+create or replace function public.billing_current_user_can_manage_company(p_clinic_id uuid)
+returns boolean language sql stable security definer set search_path = pg_catalog, public as $$
+  select auth.uid() is not null
+     and public.billing_user_can_manage_company(p_clinic_id, auth.uid());
+$$;
+revoke all on function public.billing_current_user_can_manage_company(uuid)
+  from public, anon, authenticated;
+grant execute on function public.billing_current_user_can_manage_company(uuid) to authenticated;
+
+drop policy if exists billing_payments_company_read on public.billing_payments;
+create policy billing_payments_company_read on public.billing_payments
+for select to authenticated using (
+  public.billing_current_user_can_manage_company(clinic_id)
+);
+
+create or replace function public.billing_company_history(p_clinic_id uuid)
+returns jsonb language plpgsql stable security definer set search_path = pg_catalog, public as $$
+declare v_result jsonb;
+begin
+  if auth.role() <> 'authenticated'
+     or not public.billing_current_user_can_manage_company(p_clinic_id) then
+    raise exception 'BILLING_HISTORY_FORBIDDEN';
+  end if;
+  select jsonb_build_object(
+    'payments', coalesce((select jsonb_agg(to_jsonb(t) order by t.created_at desc) from (
+      select b.id, b.status, b.amount_cents, b.currency, b.provider_environment,
+             b.provider_payment_id is not null as document_available,
+             b.paid_at, b.period_start, b.period_end, b.created_at
+      from public.billing_payments b
+      where b.clinic_id = p_clinic_id and b.provider = 'asaas'
+      order by b.created_at desc limit 50
+    ) t), '[]'::jsonb),
+    'subscriptions', coalesce((select jsonb_agg(to_jsonb(t) order by t.created_at desc) from (
+      select s.id, s.plan_code, s.status, s.provider_environment,
+             s.current_period_end, s.canceled_at, s.created_at
+      from public.account_subscriptions s
+      where s.clinic_id = p_clinic_id and s.scope_type = 'company'
+      order by s.created_at desc limit 20
+    ) t), '[]'::jsonb)
+  ) into v_result;
+  return v_result;
+end $$;
+
+-- Service-role-only context for fetching one hosted invoice from Asaas. The
+-- browser never supplies a company/customer/subscription identity as authority.
+create or replace function public.billing_get_asaas_payment_document_context(
+  p_payment_id uuid, p_actor_user_id uuid, p_environment text
+) returns jsonb language plpgsql stable security definer
+set search_path = pg_catalog, public as $$
+declare v_payment public.billing_payments%rowtype;
+declare v_subscription public.account_subscriptions%rowtype;
+begin
+  if p_environment not in ('sandbox','production') then
+    raise exception 'BILLING_DOCUMENT_ENVIRONMENT_INVALID';
+  end if;
+  select * into v_payment from public.billing_payments
+  where id = p_payment_id and provider = 'asaas'
+    and provider_environment = p_environment;
+  if v_payment.id is null or v_payment.provider_payment_id is null
+     or not public.billing_user_can_manage_company(v_payment.clinic_id, p_actor_user_id) then
+    raise exception 'BILLING_DOCUMENT_FORBIDDEN';
+  end if;
+  select * into v_subscription from public.account_subscriptions
+  where id = v_payment.subscription_id and clinic_id = v_payment.clinic_id
+    and billing_provider = 'asaas' and provider_environment = p_environment;
+  if v_subscription.id is null or v_subscription.external_customer_id is null
+     or v_subscription.external_subscription_id is null then
+    raise exception 'BILLING_DOCUMENT_UNLINKED';
+  end if;
+  return jsonb_build_object(
+    'payment_id', v_payment.provider_payment_id,
+    'customer_id', v_subscription.external_customer_id,
+    'subscription_id', v_subscription.external_subscription_id,
+    'amount_cents', v_payment.amount_cents,
+    'environment', p_environment
+  );
+end $$;
+
+revoke all on function public.billing_company_history(uuid) from public, anon, authenticated;
+grant execute on function public.billing_company_history(uuid) to authenticated;
+revoke all on function public.billing_get_asaas_payment_document_context(uuid,uuid,text)
+  from public, anon, authenticated;
+grant execute on function public.billing_get_asaas_payment_document_context(uuid,uuid,text)
+  to service_role;
+notify pgrst, 'reload schema';
+
+-- ===== 20260929154000_fix_storage_reservation_insert_rls.sql =====
+
+-- Stage 06 hotfix: valid reserved uploads must not depend on Storage INSERT metadata size.
+-- Exact byte-size verification remains mandatory in complete_storage_upload()
+-- after Storage persists authoritative object metadata.
+CREATE OR REPLACE FUNCTION public.storage_upload_has_reservation(
+  _bucket text, _path text, _metadata jsonb
+)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT auth.uid() IS NOT NULL
+    AND EXISTS (
+      SELECT 1 FROM public.storage_files sf
+      WHERE sf.bucket = _bucket AND sf.object_path = _path
+        AND sf.uploaded_by = auth.uid()
+        AND sf.clinic_id = public.storage_current_clinic_id()
+        AND sf.status = 'reserved'
+        AND (
+          COALESCE(_metadata->>'size', '') = ''
+          OR (COALESCE(_metadata->>'size', '') ~ '^[0-9]{1,18}$'
+              AND sf.size_bytes = (_metadata->>'size')::bigint)
+        )
+    );
+$$;
+REVOKE ALL ON FUNCTION public.storage_upload_has_reservation(text,text,jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.storage_upload_has_reservation(text,text,jsonb) TO authenticated, service_role;
+NOTIFY pgrst, 'reload schema';
+
+-- ===== 20261003221500_saas_storage_reservation_recovery_stage06.sql =====
+
+-- Stage 06: manual recovery of abandoned reservations, without deleting files.
+-- Only INSERT takes a reservation lock; the existing STABLE read helper stays
+-- available for signed URLs and read-only requests.
+CREATE OR REPLACE FUNCTION public.storage_upload_has_reservation_for_insert(
+  _bucket text, _path text, _metadata jsonb
+)
+RETURNS boolean LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_file uuid;
+  v_size bigint;
+  v_metadata_size text := COALESCE(_metadata->>'size', '');
+BEGIN
+  IF auth.uid() IS NULL THEN RETURN false; END IF;
+  -- Storage may omit size during INSERT. Finalization still verifies the actual
+  -- persisted size, preserving the 29/09 hotfix and old clients' upload flow.
+  IF v_metadata_size <> '' THEN
+    IF v_metadata_size !~ '^[0-9]{1,18}$' THEN RETURN false; END IF;
+    v_size := v_metadata_size::bigint;
+  END IF;
+  SELECT sf.id INTO v_file FROM public.storage_files sf
+    WHERE sf.bucket = _bucket AND sf.object_path = _path
+      AND sf.uploaded_by = auth.uid()
+      AND sf.clinic_id = public.storage_current_clinic_id()
+      AND sf.status = 'reserved' AND (v_size IS NULL OR sf.size_bytes = v_size)
+    FOR SHARE;
+  -- Held until the Storage transaction ends. Recovery uses FOR UPDATE on the
+  -- same row, so it cannot remove quota between authorization and object INSERT.
+  RETURN FOUND;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.storage_upload_has_reservation_for_insert(text,text,jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.storage_upload_has_reservation_for_insert(text,text,jsonb) TO authenticated, service_role;
+
+DROP POLICY IF EXISTS managed_storage_reserved_insert ON storage.objects;
+CREATE POLICY managed_storage_reserved_insert ON storage.objects AS RESTRICTIVE
+  FOR INSERT TO authenticated WITH CHECK (
+    bucket_id NOT IN ('avatars', 'patient-photos', 'patient-files', 'case-files', 'dicom-files')
+    OR public.storage_upload_has_reservation_for_insert(bucket_id, name, metadata)
+  );
+
+CREATE OR REPLACE FUNCTION public.release_storage_upload_reservation(_file_id uuid, _clinic_id uuid)
+RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_file public.storage_files%ROWTYPE;
+BEGIN
+  IF auth.uid() IS NULL OR auth.role() IS DISTINCT FROM 'authenticated' THEN
+    RAISE EXCEPTION 'NOT_AUTHENTICATED';
+  END IF;
+  IF _clinic_id IS NULL OR NOT public.can_manage_clinic_storage(_clinic_id) THEN
+    RAISE EXCEPTION 'STORAGE_MANAGEMENT_NOT_ALLOWED';
+  END IF;
+  SELECT * INTO v_file FROM public.storage_files
+    WHERE id = _file_id AND clinic_id = _clinic_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('id', _file_id, 'released', false, 'released_bytes', 0);
+  END IF;
+  IF v_file.status <> 'reserved' THEN RAISE EXCEPTION 'STORAGE_RESERVATION_NOT_PENDING'; END IF;
+  -- Age makes a reservation reviewable; it is never an automatic expiry.
+  IF v_file.created_at > now() - interval '24 hours' THEN
+    RAISE EXCEPTION 'STORAGE_RESERVATION_TOO_RECENT';
+  END IF;
+  IF EXISTS (SELECT 1 FROM storage.objects o
+             WHERE o.bucket_id = v_file.bucket AND o.name = v_file.object_path) THEN
+    RAISE EXCEPTION 'STORAGE_OBJECT_STILL_EXISTS';
+  END IF;
+  IF v_file.source_id IS NOT NULL
+    OR (v_file.bucket = 'case-files' AND EXISTS (
+      SELECT 1 FROM public.case_attachments a WHERE a.storage_path = v_file.object_path))
+    OR (v_file.bucket = 'patient-files' AND EXISTS (
+      SELECT 1 FROM public.patient_attachments a WHERE a.file_path = v_file.object_path))
+    OR (v_file.bucket = 'dicom-files' AND EXISTS (
+      SELECT 1 FROM public.radiology_instances i WHERE i.storage_path = v_file.object_path))
+    OR (v_file.bucket = 'avatars' AND EXISTS (
+      SELECT 1 FROM public.profiles p WHERE position(v_file.object_path in p.avatar_url) > 0))
+    OR (v_file.bucket = 'patient-photos' AND EXISTS (
+      SELECT 1 FROM public.patients p WHERE position(v_file.object_path in p.photo_url) > 0)) THEN
+    RAISE EXCEPTION 'STORAGE_RESERVATION_HAS_SOURCE';
+  END IF;
+  DELETE FROM public.storage_files WHERE id = v_file.id AND clinic_id = _clinic_id;
+  RETURN jsonb_build_object('id', v_file.id, 'released', true, 'released_bytes', v_file.size_bytes);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.release_storage_upload_reservation(uuid,uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.release_storage_upload_reservation(uuid,uuid) TO authenticated;
+NOTIFY pgrst, 'reload schema';
+
+-- ===== 20261003233500_saas_billing_change_requests_stage08.sql =====
+
+-- Stage 08: customer requests only. No provider call, entitlement/price change,
+-- payment cancellation or automatic execution is authorized by this migration.
+create table if not exists public.billing_change_requests (
+  id uuid primary key default gen_random_uuid(),
+  clinic_id uuid not null references public.clinics(id),
+  subscription_id uuid not null references public.account_subscriptions(id),
+  requested_by uuid not null references auth.users(id),
+  kind text not null check (kind in ('cancel','change_plan')),
+  status text not null default 'awaiting_provider' check (status in ('awaiting_provider','withdrawn')),
+  provider_environment text not null check (provider_environment in ('sandbox','production')),
+  current_plan_code text not null,
+  current_plan_name text not null,
+  current_amount_cents integer not null check (current_amount_cents > 0),
+  target_plan_code text,
+  target_plan_name text,
+  target_amount_cents integer,
+  currency text not null check (currency = 'BRL'),
+  paid_period_end timestamptz,
+  effective_not_before timestamptz not null,
+  quote_token text not null,
+  quote_snapshot jsonb not null,
+  created_at timestamptz not null default now(),
+  withdrawn_at timestamptz,
+  withdrawn_by uuid references auth.users(id),
+  check ((kind = 'cancel' and target_plan_code is null and target_plan_name is null and target_amount_cents is null)
+      or (kind = 'change_plan' and target_plan_code is not null and target_plan_name is not null and target_amount_cents is not null and target_amount_cents > 0)),
+  check ((status = 'awaiting_provider' and withdrawn_at is null and withdrawn_by is null)
+      or (status = 'withdrawn' and withdrawn_at is not null and withdrawn_by is not null))
+);
+create unique index if not exists billing_change_requests_one_pending_company
+  on public.billing_change_requests(clinic_id) where status = 'awaiting_provider';
+create index if not exists billing_change_requests_company_recent
+  on public.billing_change_requests(clinic_id, created_at desc);
+create table if not exists public.billing_change_request_events (
+  id uuid primary key default gen_random_uuid(),
+  request_id uuid not null references public.billing_change_requests(id),
+  actor_user_id uuid not null references auth.users(id),
+  action text not null check (action in ('submitted','withdrawn')),
+  created_at timestamptz not null default now(),
+  unique(request_id, action)
+);
+alter table public.billing_change_requests enable row level security;
+alter table public.billing_change_request_events enable row level security;
+revoke all on public.billing_change_requests, public.billing_change_request_events from public, anon, authenticated, service_role;
+grant select on public.billing_change_requests, public.billing_change_request_events to service_role;
+
+-- Private fresh quote; the digest is a stale-selection guard, not authorization.
+-- Consumption is advisory for a REQUEST and must be checked again at execution.
+create or replace function public.billing_change_request_quote(
+  p_subscription_id uuid, p_kind text, p_target_plan_code text
+) returns jsonb language plpgsql stable security definer
+set search_path = pg_catalog, public as $$
+declare
+  s public.account_subscriptions%rowtype;
+  p public.billing_plans%rowtype;
+  t public.billing_plans%rowtype;
+  v_amount integer;
+  v_used bigint;
+  v_base bigint;
+  v_extra bigint;
+  v_target_storage bigint;
+  v_members integer;
+  v_sessions integer;
+  v_block text;
+  v_snapshot jsonb;
+begin
+  select * into s from public.account_subscriptions where id = p_subscription_id;
+  v_amount := public.billing_subscription_contract_amount(s.id);
+  if s.id is null or s.scope_type <> 'company' or s.billing_provider is distinct from 'asaas'
+    or s.status not in ('active','past_due','grace','suspended')
+    or coalesce(s.provider_environment,'') not in ('sandbox','production')
+    or coalesce(s.external_customer_id,'') !~ '^cus_[A-Za-z0-9]+$'
+    or coalesce(s.external_subscription_id,'') !~ '^sub_[A-Za-z0-9]+$'
+    or public.is_internal_full_access_company(s.clinic_id)
+    or v_amount is null or v_amount <= 0 then
+    raise exception 'BILLING_CHANGE_NOT_ELIGIBLE';
+  end if;
+  select * into p from public.billing_plans where code = s.plan_code and account_scope = 'company';
+  if p.code is null or p.currency <> 'BRL' then raise exception 'BILLING_CHANGE_NOT_ELIGIBLE'; end if;
+  if p_kind is null or p_kind not in ('cancel','change_plan')
+    or (p_kind = 'cancel' and p_target_plan_code is not null) then
+    raise exception 'BILLING_CHANGE_INVALID';
+  end if;
+  if p_kind = 'change_plan' then
+    select * into t from public.billing_plans
+    where code = p_target_plan_code and account_scope = 'company' and is_active
+      and currency = 'BRL' and monthly_price_cents > 0 and code <> s.plan_code;
+    if t.code is null then raise exception 'BILLING_CHANGE_INVALID_PLAN'; end if;
+    if s.status <> 'active' or s.current_period_end is null or s.current_period_end <= now()
+      or not exists (select 1 from public.billing_payments b where b.subscription_id = s.id
+        and b.provider = 'asaas' and b.provider_environment = s.provider_environment
+        and b.status = 'paid' and b.period_end >= s.current_period_end) then
+      v_block := 'paid_period_required';
+    end if;
+    select coalesce(sum(size_bytes),0) into v_used from public.storage_files
+    where clinic_id = s.clinic_id and status in ('ready','reserved');
+    select coalesce(sum(bytes) filter (where entitlement_type in ('base','courtesy')),0),
+           coalesce(sum(bytes) filter (where entitlement_type in ('purchase','manual')),0)
+    into v_base, v_extra from public.clinic_storage_entitlements
+    where clinic_id = s.clinic_id and status = 'active' and starts_at <= now()
+      and (ends_at is null or ends_at > now());
+    v_target_storage := greatest(t.storage_bytes, v_base, 1073741824::bigint) + v_extra;
+    select count(*) into v_members from public.clinic_members
+    where clinic_id = s.clinic_id and status in ('active','accepted');
+    select count(*) into v_sessions from public.company_sessions
+    where clinic_id = s.clinic_id and status = 'active';
+    if v_block is null then
+      v_block := case when v_used > v_target_storage then 'storage_limit'
+        when t.max_members > 0 and v_members > t.max_members then 'member_limit'
+        when t.max_sessions > 0 and v_sessions > t.max_sessions then 'session_limit' end;
+    end if;
+  end if;
+  v_snapshot := jsonb_build_object(
+    'subscription_id',s.id,'current_plan_code',p.code,'current_plan_name',p.name,
+    'current_amount_cents',v_amount,'currency','BRL','paid_period_end',s.current_period_end,
+    'provider_environment',s.provider_environment,'kind',p_kind,
+    'target_plan_code',t.code,'target_plan_name',t.name,'target_amount_cents',t.monthly_price_cents,
+    'target_max_members',t.max_members,'target_max_sessions',t.max_sessions,
+    'target_features',t.features,
+    'target_storage_bytes',v_target_storage,'storage_used_bytes',v_used,
+    'members_used',v_members,'sessions_used',v_sessions,'block_reason',v_block
+  );
+  -- Usage is checked afresh but is not a price/agreement version: an unrelated
+  -- small upload must not invalidate a still-compatible selection.
+  return v_snapshot || jsonb_build_object('quote_token',md5((
+    v_snapshot - 'storage_used_bytes' - 'members_used' - 'sessions_used' - 'block_reason'
+    || jsonb_build_object('status',s.status,'customer',s.external_customer_id,
+                         'subscription',s.external_subscription_id)
+  )::text));
+end $$;
+
+-- Return an explicit, safe projection. Never expose provider IDs or raw quote.
+create or replace function public.billing_change_request_summary(p_request_id uuid)
+returns jsonb language sql stable security definer set search_path = pg_catalog, public as $$
+  select jsonb_build_object('id',r.id,'subscription_id',r.subscription_id,'kind',r.kind,
+    'status',r.status,'provider_environment',r.provider_environment,
+    'current_plan_name',r.current_plan_name,'current_amount_cents',r.current_amount_cents,
+    'target_plan_name',r.target_plan_name,'target_amount_cents',r.target_amount_cents,
+    'currency',r.currency,'paid_period_end',r.paid_period_end,
+    'effective_not_before',r.effective_not_before,'created_at',r.created_at,'withdrawn_at',r.withdrawn_at)
+  from public.billing_change_requests r where r.id = p_request_id;
+$$;
+
+create or replace function public.billing_company_change_context(p_clinic_id uuid)
+returns jsonb language plpgsql stable security definer set search_path = pg_catalog, public as $$
+declare s public.account_subscriptions%rowtype; v_cancel jsonb; v_plans jsonb := '[]'; v_requests jsonb; t record;
+begin
+  if auth.role() <> 'authenticated' or not public.billing_current_user_can_manage_company(p_clinic_id) then
+    raise exception 'BILLING_CHANGE_FORBIDDEN';
+  end if;
+  select * into s from public.account_subscriptions where clinic_id = p_clinic_id and scope_type = 'company'
+  order by (status <> 'canceled') desc, created_at desc, id desc limit 1;
+  begin
+    v_cancel := public.billing_change_request_quote(s.id,'cancel',null);
+  exception when others then
+    if sqlerrm <> 'BILLING_CHANGE_NOT_ELIGIBLE' then raise; end if;
+  end;
+  if v_cancel is not null then
+    for t in select code from public.billing_plans where account_scope = 'company' and is_active
+      and code <> s.plan_code and currency = 'BRL' and monthly_price_cents > 0 order by display_order, code loop
+      v_plans := v_plans || jsonb_build_array(public.billing_change_request_quote(s.id,'change_plan',t.code));
+    end loop;
+  end if;
+  select coalesce(jsonb_agg(public.billing_change_request_summary(r.id) order by r.created_at desc),'[]')
+  into v_requests from (select id, created_at from public.billing_change_requests
+    where clinic_id = p_clinic_id order by created_at desc, id desc limit 20) r;
+  return jsonb_build_object('clinic_id',p_clinic_id,'cancellation_quote',v_cancel,
+    'plan_quotes',v_plans,'requests',v_requests);
+end $$;
+
+create or replace function public.billing_submit_change_request(
+  p_clinic_id uuid, p_subscription_id uuid, p_kind text, p_target_plan_code text, p_quote_token text
+) returns jsonb language plpgsql security definer set search_path = pg_catalog, public as $$
+declare s public.account_subscriptions%rowtype; r public.billing_change_requests%rowtype; q jsonb;
+begin
+  if auth.role() <> 'authenticated' or not public.billing_current_user_can_manage_company(p_clinic_id) then
+    raise exception 'BILLING_CHANGE_FORBIDDEN';
+  end if;
+  select * into s from public.account_subscriptions
+  where id = p_subscription_id and clinic_id = p_clinic_id and scope_type = 'company' for update;
+  if s.id is null then raise exception 'BILLING_CHANGE_FORBIDDEN'; end if;
+  select * into r from public.billing_change_requests
+  where clinic_id = p_clinic_id and status = 'awaiting_provider' for update;
+  if r.id is not null then
+    if r.subscription_id = s.id and r.kind = p_kind
+      and r.target_plan_code is not distinct from p_target_plan_code and r.quote_token = p_quote_token then
+      return public.billing_change_request_summary(r.id); -- retry after ambiguous transport
+    end if;
+    raise exception 'BILLING_CHANGE_PENDING';
+  end if;
+  if s.id is distinct from (select id from public.account_subscriptions
+      where clinic_id = p_clinic_id and scope_type = 'company'
+      order by (status <> 'canceled') desc, created_at desc, id desc limit 1) then
+    raise exception 'BILLING_CHANGE_QUOTE_STALE';
+  end if;
+  perform 1 from public.billing_plans where code in (s.plan_code,p_target_plan_code) order by code for share;
+  q := public.billing_change_request_quote(s.id,p_kind,p_target_plan_code);
+  if p_quote_token is null or q->>'quote_token' is distinct from p_quote_token then
+    raise exception 'BILLING_CHANGE_QUOTE_STALE';
+  end if;
+  if q->>'block_reason' is not null then raise exception 'BILLING_CHANGE_LIMIT_REVIEW'; end if;
+  insert into public.billing_change_requests
+    (clinic_id,subscription_id,requested_by,kind,provider_environment,current_plan_code,current_plan_name,
+     current_amount_cents,target_plan_code,target_plan_name,target_amount_cents,currency,paid_period_end,
+     effective_not_before,quote_token,quote_snapshot)
+  values (p_clinic_id,s.id,auth.uid(),p_kind,s.provider_environment,s.plan_code,q->>'current_plan_name',
+    (q->>'current_amount_cents')::integer,q->>'target_plan_code',q->>'target_plan_name',
+    (q->>'target_amount_cents')::integer,'BRL',s.current_period_end,
+    greatest(now(),s.current_period_end),p_quote_token,q) returning * into r;
+  insert into public.billing_change_request_events(request_id,actor_user_id,action) values (r.id,auth.uid(),'submitted');
+  return public.billing_change_request_summary(r.id);
+exception when unique_violation then raise exception 'BILLING_CHANGE_PENDING';
+end $$;
+
+create or replace function public.billing_withdraw_change_request(p_clinic_id uuid, p_request_id uuid)
+returns jsonb language plpgsql security definer set search_path = pg_catalog, public as $$
+declare r public.billing_change_requests%rowtype; v_sub uuid;
+begin
+  if auth.role() <> 'authenticated' or not public.billing_current_user_can_manage_company(p_clinic_id) then
+    raise exception 'BILLING_CHANGE_FORBIDDEN';
+  end if;
+  select subscription_id into v_sub from public.billing_change_requests where id = p_request_id and clinic_id = p_clinic_id;
+  if v_sub is null then raise exception 'BILLING_CHANGE_FORBIDDEN'; end if;
+  -- Same lock order as submit: subscription, then request.
+  perform 1 from public.account_subscriptions where id = v_sub for update;
+  select * into r from public.billing_change_requests where id = p_request_id and clinic_id = p_clinic_id for update;
+  if r.status = 'awaiting_provider' then
+    update public.billing_change_requests set status = 'withdrawn', withdrawn_at = now(), withdrawn_by = auth.uid() where id = r.id;
+    insert into public.billing_change_request_events(request_id,actor_user_id,action) values (r.id,auth.uid(),'withdrawn');
+  elsif r.status is distinct from 'withdrawn' then raise exception 'BILLING_CHANGE_REVIEW_REQUIRED'; end if;
+  return public.billing_change_request_summary(r.id);
+end $$;
+
+create or replace function public.platform_master_billing_change_requests(p_search text default '')
+returns jsonb language plpgsql stable security definer set search_path = pg_catalog, public as $$
+declare v_result jsonb; v_search text := btrim(coalesce(p_search,''));
+begin
+  if auth.uid() is null or auth.role() <> 'authenticated' or not exists
+    (select 1 from public.platform_operators where user_id = auth.uid() and enabled) then
+    raise exception 'PLATFORM_MASTER_FORBIDDEN';
+  end if;
+  if length(v_search) > 80 then raise exception 'PLATFORM_MASTER_SEARCH_INVALID'; end if;
+  select coalesce(jsonb_agg(public.billing_change_request_summary(r.id) || jsonb_build_object('clinic_name',r.name)
+    order by r.created_at),'[]') into v_result from (
+    select r.id, r.created_at, c.name from public.billing_change_requests r join public.clinics c on c.id = r.clinic_id
+    where r.status = 'awaiting_provider' and (v_search = '' or c.name ilike '%' || v_search || '%')
+    order by r.created_at, r.id limit 50
+  ) r;
+  return v_result;
+end $$;
+
+revoke all on function public.billing_change_request_quote(uuid,text,text), public.billing_change_request_summary(uuid)
+  from public, anon, authenticated;
+grant execute on function public.billing_change_request_quote(uuid,text,text), public.billing_change_request_summary(uuid) to service_role;
+revoke all on function public.billing_company_change_context(uuid), public.billing_submit_change_request(uuid,uuid,text,text,text),
+  public.billing_withdraw_change_request(uuid,uuid), public.platform_master_billing_change_requests(text) from public, anon, authenticated;
+grant execute on function public.billing_company_change_context(uuid), public.billing_submit_change_request(uuid,uuid,text,text,text),
+  public.billing_withdraw_change_request(uuid,uuid), public.platform_master_billing_change_requests(text) to authenticated;
+notify pgrst, 'reload schema';
+
+-- ===== 20261004010000_saas_operational_health_stage09.sql =====
+
+-- Stage 09: bounded operational telemetry. No provider/ledger/entitlement writes.
+-- One latest run per environment; historical incidents remain in the inbox and CI logs.
+create table if not exists public.billing_worker_health (
+  provider_environment text primary key check (provider_environment in ('sandbox','production')),
+  run_id uuid not null,
+  started_at timestamptz not null default clock_timestamp(),
+  finished_at timestamptz,
+  last_healthy_at timestamptz,
+  status text not null check (status in ('running','ok','review','failed')),
+  counters jsonb not null default '{}'::jsonb check (jsonb_typeof(counters) = 'object'),
+  check ((status = 'running' and finished_at is null) or (status <> 'running' and finished_at is not null and finished_at >= started_at))
+);
+alter table public.billing_worker_health enable row level security;
+revoke all on public.billing_worker_health from public, anon, authenticated, service_role;
+grant select on public.billing_worker_health to service_role;
+
+create or replace function public.billing_record_worker_health(
+  p_environment text, p_run_id uuid, p_status text, p_counters jsonb default '{}'::jsonb
+) returns boolean language plpgsql security definer set search_path = pg_catalog, public as $$
+declare h public.billing_worker_health%rowtype; k text; v jsonb;
+begin
+  if p_environment is null or p_environment not in ('sandbox','production') or p_run_id is null
+    or p_status is null or p_status not in ('running','ok','review','failed')
+    or p_counters is null or jsonb_typeof(p_counters) <> 'object' or pg_column_size(p_counters) > 2048 then
+    raise exception 'BILLING_INVALID_HEALTH_RECORD';
+  end if;
+  for k,v in select * from jsonb_each(p_counters) loop
+    if k not in ('processed','ignored','failed','workerReview','suspended','recoveryQueued','graceReview',
+      'reconciliationScanned','reconciliationQueued','reconciliationReview')
+      or jsonb_typeof(v) <> 'number' or v::text !~ '^[0-9]{1,7}$' then
+      raise exception 'BILLING_INVALID_HEALTH_RECORD';
+    end if;
+  end loop;
+  if p_status = 'running' then
+    if p_counters <> '{}'::jsonb then raise exception 'BILLING_INVALID_HEALTH_RECORD'; end if;
+    insert into public.billing_worker_health(provider_environment,run_id,status)
+    values (p_environment,p_run_id,'running')
+    on conflict (provider_environment) do update set run_id=excluded.run_id, started_at=clock_timestamp(),
+      finished_at=null,status='running',counters='{}'::jsonb
+    where billing_worker_health.run_id <> excluded.run_id;
+    return true;
+  end if;
+  if (select count(*) from jsonb_object_keys(p_counters)) <> 10
+    or (p_status='ok' and (p_counters->>'failed')::integer + (p_counters->>'workerReview')::integer
+      + (p_counters->>'graceReview')::integer + (p_counters->>'reconciliationReview')::integer <> 0) then
+    raise exception 'BILLING_INVALID_HEALTH_RECORD';
+  end if;
+  select * into h from public.billing_worker_health where provider_environment=p_environment for update;
+  if not found or h.run_id <> p_run_id then return false; end if;
+  if h.status <> 'running' then return h.status=p_status and h.counters=p_counters; end if;
+  update public.billing_worker_health set status=p_status,counters=p_counters,finished_at=clock_timestamp(),
+    last_healthy_at=case when p_status='ok' then clock_timestamp() else last_healthy_at end
+  where provider_environment=p_environment;
+  return true;
+end $$;
+
+create or replace function public.platform_master_operational_health()
+returns jsonb language plpgsql stable security definer set search_path = pg_catalog, public as $$
+declare result jsonb;
+begin
+  if auth.uid() is null or auth.role() <> 'authenticated' or not exists (
+    select 1 from public.platform_operators where user_id=auth.uid() and enabled
+  ) then raise exception 'PLATFORM_MASTER_FORBIDDEN'; end if;
+  select jsonb_build_object('generated_at',now(), 'environments', (
+    select jsonb_agg(jsonb_build_object('environment',env,
+      'worker', (select jsonb_build_object('started_at',h.started_at,'finished_at',h.finished_at,
+        'last_healthy_at',h.last_healthy_at,'status',h.status,'counters',h.counters)
+        from public.billing_worker_health h where h.provider_environment=env),
+      'queue', (select jsonb_build_object(
+        'waiting',count(*) filter(where status in ('received','failed')),
+        'processing',count(*) filter(where status='processing'),
+        'failed',count(*) filter(where status='failed'),
+        'dead_letter',count(*) filter(where status='dead_letter'),
+        'expired_leases',count(*) filter(where status='processing' and lease_until <= now()),
+        'late_due',count(*) filter(where status in ('received','failed') and next_attempt_at <= now()-interval '10 minutes'),
+        'oldest_due_at',min(next_attempt_at) filter(where status in ('received','failed') and next_attempt_at <= now()))
+        from public.billing_events where provider='asaas' and provider_environment=env),
+      'checkout', (select jsonb_build_object(
+        'failed_24h',count(*) filter(where status='failed' and updated_at >= now()-interval '24 hours'),
+        'uncertain',count(*) filter(where status='uncertain'),
+        'expired_leases',count(*) filter(where status='in_progress' and lease_expires_at <= now()))
+        from public.billing_provider_operations where provider='asaas' and provider_environment=env),
+      'subscriptions', (select jsonb_build_object(
+        'linked',count(*),
+        'reconciliation_late',count(*) filter(where created_at <= now()-interval '5 minutes'
+          and (created_at >= now()-interval '120 days' or current_period_end >= now()-interval '120 days')
+          and (reconciliation_checked_at is null or reconciliation_checked_at <= now()-interval '2 hours')),
+        'expired_grace',count(*) filter(where status='past_due' and grace_until <= now()),
+        'paid_period_without_ledger',count(*) filter(where status='active' and current_period_end > now()
+          and not exists(select 1 from public.billing_payments b where b.subscription_id=s.id
+            and b.provider='asaas' and b.provider_environment=env and b.status='paid' and b.period_end >= s.current_period_end)))
+        from public.account_subscriptions s where scope_type='company' and clinic_id is not null
+          and billing_provider='asaas' and provider_environment=env
+          and external_subscription_id ~ '^sub_[A-Za-z0-9]+$' and external_customer_id ~ '^cus_[A-Za-z0-9]+$'
+          and not public.is_internal_full_access_company(clinic_id))
+    ) order by env) from (values ('sandbox'),('production')) e(env)),
+    'storage', (select jsonb_build_object('reserved',count(*) filter(where status='reserved'),
+      'reserved_bytes',coalesce(sum(size_bytes) filter(where status='reserved'),0),
+      'reserved_over_24h',count(*) filter(where status='reserved' and created_at <= now()-interval '24 hours'))
+      from public.storage_files)) into result;
+  return result;
+end $$;
+revoke all on function public.billing_record_worker_health(text,uuid,text,jsonb) from public,anon,authenticated;
+grant execute on function public.billing_record_worker_health(text,uuid,text,jsonb) to service_role;
+revoke all on function public.platform_master_operational_health() from public,anon,authenticated,service_role;
+grant execute on function public.platform_master_operational_health() to authenticated;
+notify pgrst, 'reload schema';
+
+-- ===== 20261004183500_saas_patient_company_boundary_stage06.sql =====
+
+-- Patient identity and private files are scoped to their owning company.
+-- Keep explicit cross-company case participation; staff status alone cannot
+-- grant access to another company's patient or bypass old bucket policies.
+CREATE OR REPLACE FUNCTION public.can_access_patient(_patient_id uuid)
+RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_user uuid := auth.uid();
+  v_clinic uuid;
+  v_type text;
+  v_admin boolean;
+BEGIN
+  IF v_user IS NULL OR _patient_id IS NULL THEN RETURN false; END IF;
+  SELECT p.clinic_id,
+    upper(COALESCE(NULLIF(trim(p.account_subtype), ''), NULLIF(trim(p.role), ''), '')),
+    COALESCE(p.is_default_admin, false)
+    INTO v_clinic, v_type, v_admin FROM public.profiles p WHERE p.id = v_user;
+  IF v_clinic IS NULL OR NOT public.company_has_operational_access(v_clinic) THEN RETURN false; END IF;
+  IF public.resolve_patient_clinic_id(_patient_id) = v_clinic THEN
+    IF v_admin OR v_type IN ('CEO', 'ADMIN', 'PROTETICO') THEN RETURN true; END IF;
+    RETURN EXISTS (SELECT 1 FROM public.cases c
+      WHERE c.patient_id = _patient_id AND public.can_access_case(c.id));
+  END IF;
+  -- A requester may follow their own pending request. Assigned specialists
+  -- receive another company's patient only after approval, as in the case flow.
+  RETURN EXISTS (SELECT 1 FROM public.cases c WHERE c.patient_id = _patient_id AND (
+    c.requested_by = v_user
+    OR (c.status <> 'pendente' AND (
+      (v_type = 'CADISTA' AND EXISTS (SELECT 1 FROM public.cadistas cd
+        WHERE cd.id = c.cadista_id AND cd.user_id = v_user))
+      OR (v_type IN ('DR', 'DENTISTA') AND EXISTS (SELECT 1 FROM public.doctors d
+        WHERE d.id = c.doctor_id AND d.user_id = v_user))
+    ))
+  ));
+END;
+$$;
+REVOKE ALL ON FUNCTION public.can_access_patient(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.can_access_patient(uuid) TO authenticated, service_role;
+
+-- Some live databases retained only the old staff SELECT policy. Keep the
+-- authoritative case policy so assigned specialists can read patient identity.
+DROP POLICY IF EXISTS patients_select_by_case_membership ON public.patients;
+CREATE POLICY patients_select_by_case_membership ON public.patients
+  FOR SELECT TO authenticated USING (public.can_access_patient(id));
+DROP POLICY IF EXISTS patients_company_read_boundary ON public.patients;
+CREATE POLICY patients_company_read_boundary ON public.patients AS RESTRICTIVE
+  FOR SELECT TO authenticated USING (public.can_access_patient(id));
+DROP POLICY IF EXISTS patients_company_update_boundary ON public.patients;
+CREATE POLICY patients_company_update_boundary ON public.patients AS RESTRICTIVE
+  FOR UPDATE TO authenticated USING (public.can_access_patient(id))
+  WITH CHECK (public.can_access_patient(id));
+DROP POLICY IF EXISTS patients_company_delete_boundary ON public.patients;
+CREATE POLICY patients_company_delete_boundary ON public.patients AS RESTRICTIVE
+  FOR DELETE TO authenticated USING (public.can_access_patient(id));
+DROP POLICY IF EXISTS patient_attachments_company_boundary ON public.patient_attachments;
+CREATE POLICY patient_attachments_company_boundary ON public.patient_attachments AS RESTRICTIVE
+  FOR ALL TO authenticated USING (public.can_access_patient(patient_id))
+  WITH CHECK (public.can_access_patient(patient_id));
+
+DROP POLICY IF EXISTS patient_storage_read_boundary ON storage.objects;
+CREATE POLICY patient_storage_read_boundary ON storage.objects AS RESTRICTIVE
+  FOR SELECT TO authenticated USING (
+    bucket_id NOT IN ('patient-photos', 'patient-files')
+    OR public.can_access_patient(public.patient_id_from_storage_path(name))
+  );
+DROP POLICY IF EXISTS patient_storage_delete_boundary ON storage.objects;
+CREATE POLICY patient_storage_delete_boundary ON storage.objects AS RESTRICTIVE
+  FOR DELETE TO authenticated USING (
+    bucket_id NOT IN ('patient-photos', 'patient-files')
+    OR public.can_access_patient(public.patient_id_from_storage_path(name))
+  );
+
+-- The company owner and legitimate case participants must not depend on an
+-- unrelated legacy user_roles row to read the patient's photo.
+DROP POLICY IF EXISTS patient_photos_select ON storage.objects;
+CREATE POLICY patient_photos_select ON storage.objects FOR SELECT TO authenticated
+  USING (bucket_id = 'patient-photos'
+    AND public.can_access_patient(public.patient_id_from_storage_path(name)));
+DROP POLICY IF EXISTS patient_photos_insert ON storage.objects;
+CREATE POLICY patient_photos_insert ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'patient-photos'
+    AND public.can_access_patient(public.patient_id_from_storage_path(name)));
+DROP POLICY IF EXISTS patient_photos_delete ON storage.objects;
+CREATE POLICY patient_photos_delete ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'patient-photos'
+    AND public.can_access_patient(public.patient_id_from_storage_path(name)));
+-- INSERT still intersects the mandatory reservation; UPDATE remains denied
+-- by managed_storage_no_update. No bytes, balances or records are changed.
+NOTIFY pgrst, 'reload schema';
+
+-- ===== 20261005062000_saas_case_company_boundary_stage07.sql =====
+
+-- Scope legacy staff permissions to the case's company. A staff-created case
+-- has no requester: use its patient's company before optional assignments.
+CREATE OR REPLACE FUNCTION public.resolve_case_clinic_id(_case_id uuid)
+RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT COALESCE(requester.clinic_id, patient.clinic_id, cad_profile.clinic_id, doctor_profile.clinic_id)
+  FROM public.cases c
+  LEFT JOIN public.profiles requester ON requester.id = c.requested_by
+  LEFT JOIN public.patients patient ON patient.id = c.patient_id
+  LEFT JOIN public.cadistas cad ON cad.id = c.cadista_id
+  LEFT JOIN public.profiles cad_profile ON cad_profile.id = cad.user_id
+  LEFT JOIN public.doctors doc ON doc.id = c.doctor_id
+  LEFT JOIN public.profiles doctor_profile ON doctor_profile.id = doc.user_id
+  WHERE c.id = _case_id LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.can_access_case(_case_id uuid)
+RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_user uuid := auth.uid(); v_clinic uuid; v_type text; v_admin boolean;
+BEGIN
+  IF v_user IS NULL OR _case_id IS NULL THEN RETURN false; END IF;
+  SELECT p.clinic_id, upper(COALESCE(NULLIF(trim(p.account_subtype), ''), NULLIF(trim(p.role), ''), '')),
+    COALESCE(p.is_default_admin, false) INTO v_clinic, v_type, v_admin
+  FROM public.profiles p WHERE p.id = v_user;
+  IF v_clinic IS NULL OR NOT public.company_has_operational_access(v_clinic) THEN RETURN false; END IF;
+  RETURN EXISTS (SELECT 1 FROM public.cases c WHERE c.id = _case_id AND (
+    (public.resolve_case_clinic_id(c.id) = v_clinic AND (v_admin OR v_type IN ('CEO','ADMIN','PROTETICO') OR (v_type NOT IN ('SOLICITANTE','CADISTA','DR','DENTISTA') AND public.is_staff(v_user))))
+    OR c.requested_by = v_user
+    OR (c.status <> 'pendente' AND (
+      (v_type = 'CADISTA' AND EXISTS (SELECT 1 FROM public.cadistas cd WHERE cd.id = c.cadista_id AND cd.user_id = v_user))
+      OR (v_type IN ('DR','DENTISTA') AND EXISTS (SELECT 1 FROM public.doctors d WHERE d.id = c.doctor_id AND d.user_id = v_user))
+    ))
+  ));
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.can_modify_case(_case_id uuid)
+RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_type text;
+BEGIN
+  IF NOT public.can_access_case(_case_id) THEN RETURN false; END IF;
+  SELECT upper(COALESCE(NULLIF(trim(p.account_subtype), ''), NULLIF(trim(p.role), ''), '')) INTO v_type
+  FROM public.profiles p WHERE p.id = auth.uid();
+  IF v_type = 'SOLICITANTE' THEN
+    RETURN EXISTS (SELECT 1 FROM public.cases c WHERE c.id = _case_id AND c.requested_by = auth.uid() AND c.status = 'pendente');
+  END IF;
+  RETURN true;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.resolve_case_clinic_id(uuid), public.can_access_case(uuid), public.can_modify_case(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.resolve_case_clinic_id(uuid), public.can_access_case(uuid), public.can_modify_case(uuid) TO authenticated, service_role;
+
+-- Explicit assigned specialists also need a permissive SELECT on databases
+-- that retained only the legacy staff policies.
+DROP POLICY IF EXISTS cases_select_by_company_membership ON public.cases;
+CREATE POLICY cases_select_by_company_membership ON public.cases FOR SELECT TO authenticated USING (public.can_access_case(id));
+-- Intersect permissive legacy policies instead of relying on their removal.
+DROP POLICY IF EXISTS cases_company_read_boundary ON public.cases;
+CREATE POLICY cases_company_read_boundary ON public.cases AS RESTRICTIVE FOR SELECT TO authenticated USING (public.can_access_case(id));
+DROP POLICY IF EXISTS cases_company_update_boundary ON public.cases;
+CREATE POLICY cases_company_update_boundary ON public.cases AS RESTRICTIVE FOR UPDATE TO authenticated
+  USING (public.can_modify_case(id)) WITH CHECK (public.can_modify_case(id));
+DROP POLICY IF EXISTS cases_company_delete_boundary ON public.cases;
+CREATE POLICY cases_company_delete_boundary ON public.cases AS RESTRICTIVE FOR DELETE TO authenticated USING (public.can_modify_case(id));
+DROP POLICY IF EXISTS cases_company_insert_boundary ON public.cases;
+CREATE POLICY cases_company_insert_boundary ON public.cases AS RESTRICTIVE FOR INSERT TO authenticated WITH CHECK (
+  public.can_access_patient(patient_id) AND (
+    requested_by IS NULL OR requested_by = auth.uid() OR EXISTS (
+      SELECT 1 FROM public.profiles requester JOIN public.profiles actor ON actor.id = auth.uid()
+      WHERE requester.id = requested_by AND requester.clinic_id = actor.clinic_id
+    )
+  )
+);
+DROP POLICY IF EXISTS case_attachments_company_boundary ON public.case_attachments;
+CREATE POLICY case_attachments_company_boundary ON public.case_attachments AS RESTRICTIVE FOR ALL TO authenticated
+  USING (public.can_access_case(case_id)) WITH CHECK (public.can_access_case(case_id));
+DROP POLICY IF EXISTS case_storage_read_boundary ON storage.objects;
+CREATE POLICY case_storage_read_boundary ON storage.objects AS RESTRICTIVE FOR SELECT TO authenticated USING (
+  bucket_id <> 'case-files' OR CASE WHEN split_part(name, '/', 1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    THEN public.can_access_case(split_part(name, '/', 1)::uuid) ELSE false END
+);
+DROP POLICY IF EXISTS case_storage_delete_boundary ON storage.objects;
+CREATE POLICY case_storage_delete_boundary ON storage.objects AS RESTRICTIVE FOR DELETE TO authenticated USING (
+  bucket_id <> 'case-files' OR CASE WHEN split_part(name, '/', 1) ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    THEN public.can_modify_case(split_part(name, '/', 1)::uuid) ELSE false END
+);
+
+-- WITH CHECK helpers see the existing row. Validate ownership-bearing fields
+-- on NEW as well: explicit participants cannot forge their own authorization.
+CREATE OR REPLACE FUNCTION public.guard_case_company_write()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_clinic uuid; v_type text; v_admin boolean; v_owner uuid; v_owner_staff boolean;
+BEGIN
+  -- Trusted restore/maintenance and service role operations are outside client
+  -- RLS. current_setting('role') retains the caller role in SECURITY DEFINER.
+  IF COALESCE(current_setting('role', true), 'none') NOT IN ('authenticated', 'anon') THEN RETURN NEW; END IF;
+  SELECT p.clinic_id, upper(COALESCE(NULLIF(trim(p.account_subtype), ''), NULLIF(trim(p.role), ''), '')),
+    COALESCE(p.is_default_admin, false) INTO v_clinic, v_type, v_admin
+  FROM public.profiles p WHERE p.id = auth.uid();
+  IF v_clinic IS NULL OR NOT public.company_has_operational_access(v_clinic) THEN
+    RAISE EXCEPTION 'CASE_COMPANY_WRITE_NOT_ALLOWED' USING ERRCODE = '42501';
+  END IF;
+  IF TG_OP = 'INSERT' THEN
+    IF NOT public.can_access_patient(NEW.patient_id) OR (
+      NEW.requested_by IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = NEW.requested_by AND p.clinic_id = v_clinic)
+    ) OR (NEW.requested_by IS NULL AND public.resolve_patient_clinic_id(NEW.patient_id) IS DISTINCT FROM v_clinic) THEN
+      RAISE EXCEPTION 'CASE_COMPANY_WRITE_NOT_ALLOWED' USING ERRCODE = '42501';
+    END IF;
+    IF v_type = 'SOLICITANTE' AND (NEW.requested_by IS DISTINCT FROM auth.uid() OR NEW.status IS DISTINCT FROM 'pendente') THEN
+      RAISE EXCEPTION 'CASE_COMPANY_WRITE_NOT_ALLOWED' USING ERRCODE = '42501';
+    END IF;
+  ELSE
+    v_owner := public.resolve_case_clinic_id(OLD.id);
+    v_owner_staff := v_owner = v_clinic AND (v_admin OR v_type IN ('CEO','ADMIN','PROTETICO') OR (v_type NOT IN ('SOLICITANTE','CADISTA','DR','DENTISTA') AND public.is_staff(auth.uid())));
+    IF NEW.id IS DISTINCT FROM OLD.id OR NOT public.can_modify_case(OLD.id) THEN
+      RAISE EXCEPTION 'CASE_COMPANY_WRITE_NOT_ALLOWED' USING ERRCODE = '42501';
+    END IF;
+    IF NEW.requested_by IS DISTINCT FROM OLD.requested_by OR NEW.patient_id IS DISTINCT FROM OLD.patient_id THEN
+      IF NOT v_owner_staff OR public.resolve_patient_clinic_id(NEW.patient_id) IS DISTINCT FROM v_owner
+        OR (NEW.requested_by IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = NEW.requested_by AND p.clinic_id = v_owner)) THEN
+        RAISE EXCEPTION 'CASE_COMPANY_WRITE_NOT_ALLOWED' USING ERRCODE = '42501';
+      END IF;
+    END IF;
+    IF NOT v_owner_staff AND (NEW.cadista_id IS DISTINCT FROM OLD.cadista_id OR NEW.doctor_id IS DISTINCT FROM OLD.doctor_id) THEN
+      RAISE EXCEPTION 'CASE_COMPANY_WRITE_NOT_ALLOWED' USING ERRCODE = '42501';
+    END IF;
+    IF NOT v_owner_staff AND OLD.requested_by = auth.uid() AND OLD.status = 'pendente' AND (NEW.status IS NULL OR NEW.status NOT IN ('pendente','cancelado')) THEN
+      RAISE EXCEPTION 'CASE_COMPANY_WRITE_NOT_ALLOWED' USING ERRCODE = '42501';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.guard_case_company_write() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_case_company_write ON public.cases;
+CREATE TRIGGER trg_case_company_write BEFORE INSERT OR UPDATE ON public.cases FOR EACH ROW EXECUTE FUNCTION public.guard_case_company_write();
+NOTIFY pgrst, 'reload schema';
+
+-- ===== 20261005111000_fix_case_insert_returning_rls.sql =====
+
+-- Hotfix for case creation after the Stage 07 company boundary.
+--
+-- INSERT ... RETURNING is also checked by SELECT RLS. The Stage 07 SELECT
+-- policies called can_access_case(id), whose STABLE implementation re-queried
+-- public.cases. A row inserted by the current statement is not a safe
+-- authorization source for that RETURNING check, so legitimate inserts could
+-- pass the INSERT boundary and then fail on cases_company_read_boundary.
+--
+-- Authorize the row that RLS is already evaluating instead. This preserves the
+-- same company/requester/specialist rules without widening cross-company access.
+
+CREATE OR REPLACE FUNCTION public.can_access_case_row(
+  _patient_id uuid,
+  _requested_by uuid,
+  _cadista_id uuid,
+  _doctor_id uuid,
+  _status text
+)
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user uuid := auth.uid();
+  v_clinic uuid;
+  v_type text;
+  v_admin boolean;
+  v_owner_clinic uuid;
+BEGIN
+  IF v_user IS NULL THEN
+    RETURN false;
+  END IF;
+
+  SELECT
+    p.clinic_id,
+    upper(COALESCE(NULLIF(trim(p.account_subtype), ''), NULLIF(trim(p.role), ''), '')),
+    COALESCE(p.is_default_admin, false)
+  INTO v_clinic, v_type, v_admin
+  FROM public.profiles p
+  WHERE p.id = v_user;
+
+  IF v_clinic IS NULL OR NOT public.company_has_operational_access(v_clinic) THEN
+    RETURN false;
+  END IF;
+
+  SELECT COALESCE(
+    (SELECT p.clinic_id FROM public.profiles p WHERE p.id = _requested_by),
+    (SELECT p.clinic_id FROM public.patients p WHERE p.id = _patient_id),
+    (SELECT p.clinic_id
+       FROM public.cadistas cd
+       JOIN public.profiles p ON p.id = cd.user_id
+      WHERE cd.id = _cadista_id),
+    (SELECT p.clinic_id
+       FROM public.doctors d
+       JOIN public.profiles p ON p.id = d.user_id
+      WHERE d.id = _doctor_id)
+  )
+  INTO v_owner_clinic;
+
+  RETURN
+    (
+      v_owner_clinic = v_clinic
+      AND (
+        v_admin
+        OR v_type IN ('CEO','ADMIN','PROTETICO')
+        OR (
+          v_type NOT IN ('SOLICITANTE','CADISTA','DR','DENTISTA')
+          AND public.is_staff(v_user)
+        )
+      )
+    )
+    OR _requested_by = v_user
+    OR (
+      COALESCE(_status, '') <> 'pendente'
+      AND (
+        (
+          v_type = 'CADISTA'
+          AND EXISTS (
+            SELECT 1
+            FROM public.cadistas cd
+            WHERE cd.id = _cadista_id
+              AND cd.user_id = v_user
+          )
+        )
+        OR (
+          v_type IN ('DR','DENTISTA')
+          AND EXISTS (
+            SELECT 1
+            FROM public.doctors d
+            WHERE d.id = _doctor_id
+              AND d.user_id = v_user
+          )
+        )
+      )
+    );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.can_access_case_row(uuid,uuid,uuid,uuid,text)
+  FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.can_access_case_row(uuid,uuid,uuid,uuid,text)
+  TO authenticated, service_role;
+
+-- Keep the id-based helper for all existing callers, but delegate the actual
+-- authorization to the row-aware predicate above.
+CREATE OR REPLACE FUNCTION public.can_access_case(_case_id uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.cases c
+    WHERE c.id = _case_id
+      AND public.can_access_case_row(
+        c.patient_id,
+        c.requested_by,
+        c.cadista_id,
+        c.doctor_id,
+        c.status::text
+      )
+  );
+$$;
+
+REVOKE ALL ON FUNCTION public.can_access_case(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.can_access_case(uuid) TO authenticated, service_role;
+
+-- Both sides matter for INSERT ... RETURNING:
+-- 1) at least one permissive SELECT policy must accept the new row;
+-- 2) every restrictive SELECT policy must also accept it.
+DROP POLICY IF EXISTS cases_select_by_company_membership ON public.cases;
+CREATE POLICY cases_select_by_company_membership
+ON public.cases
+FOR SELECT TO authenticated
+USING (
+  public.can_access_case_row(
+    patient_id,
+    requested_by,
+    cadista_id,
+    doctor_id,
+    status::text
+  )
+);
+
+DROP POLICY IF EXISTS cases_company_read_boundary ON public.cases;
+CREATE POLICY cases_company_read_boundary
+ON public.cases
+AS RESTRICTIVE
+FOR SELECT TO authenticated
+USING (
+  public.can_access_case_row(
+    patient_id,
+    requested_by,
+    cadista_id,
+    doctor_id,
+    status::text
+  )
+);
+
+NOTIFY pgrst, 'reload schema';
+
+-- ===== 20261005190000_saas_database_scheduler_stage09.sql =====
+
+-- Backend-owned dispatch cadence. Migration creates no active jobs or secrets.
+create extension if not exists pg_cron with schema pg_catalog;
+create extension if not exists pg_net with schema extensions;
+create extension if not exists supabase_vault;
+
+-- Best-effort grants on managed extension objects. Supabase can retain PUBLIC
+-- grants owned by supabase_admin; actual isolation also requires hidden Data API
+-- schemas, NOLOGIN client roles and no executable SECURITY DEFINER bridge.
+revoke all on net.http_request_queue, net._http_response from public, anon, authenticated, service_role;
+
+create table if not exists public.billing_database_scheduler (
+  provider_environment text primary key check (provider_environment in ('sandbox','production')),
+  enabled boolean not null default false,
+  cron_job_id bigint not null,
+  worker_secret_id uuid not null,
+  configured_at timestamptz not null default clock_timestamp(),
+  last_dispatched_at timestamptz,
+  last_request_id bigint
+);
+alter table public.billing_database_scheduler enable row level security;
+revoke all on public.billing_database_scheduler from public, anon, authenticated, service_role;
+
+create or replace function public.billing_database_scheduler_boundary()
+returns boolean language sql stable security definer set search_path = pg_catalog, public as $$
+  select not exists(select 1 from pg_roles where rolname in ('anon','authenticated') and rolcanlogin)
+    and not exists(select 1 from pg_db_role_setting s cross join lateral unnest(s.setconfig) setting
+      where setting like 'pgrst.db_schemas=%' and 'net'=any(string_to_array(replace(split_part(setting,'=',2),' ',''),',')))
+    and not exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+      where n.nspname in ('public','graphql_public') and p.prokind='f' and p.prosecdef
+        and pg_get_functiondef(p.oid) ~ 'net\.'
+        and (has_function_privilege('anon',p.oid,'EXECUTE') or has_function_privilege('authenticated',p.oid,'EXECUTE')))
+$$;
+revoke all on function public.billing_database_scheduler_boundary() from public, anon, authenticated, service_role;
+
+create or replace function public.billing_enqueue_database_worker(p_environment text)
+returns bigint language plpgsql security definer set search_path = pg_catalog, public as $$
+declare c public.billing_database_scheduler%rowtype; token text; request_id bigint;
+begin
+  if not public.billing_database_scheduler_boundary() then raise exception 'BILLING_SCHEDULER_BOUNDARY_INVALID'; end if;
+  select * into c from public.billing_database_scheduler
+  where provider_environment=p_environment and enabled;
+  if not found then return null; end if;
+  select decrypted_secret into token from vault.decrypted_secrets where id=c.worker_secret_id;
+  if token is null or length(token) < 32 or length(token) > 255 or token ~ '[[:space:]]' or token like '$aact_%' then
+    raise exception 'BILLING_SCHEDULER_SECRET_INVALID';
+  end if;
+  select net.http_post(
+    url := 'https://dtfipo.lovable.app/api/billing/asaas-worker',
+    headers := jsonb_build_object('Authorization','Bearer '||token,
+      'X-Billing-Environment',p_environment,'Content-Type','application/json'),
+    body := '{}'::jsonb, timeout_milliseconds := 35000
+  ) into request_id;
+  update public.billing_database_scheduler set last_dispatched_at=clock_timestamp(),last_request_id=request_id
+  where provider_environment=p_environment;
+  return request_id;
+end $$;
+revoke all on function public.billing_enqueue_database_worker(text) from public, anon, authenticated, service_role;
+
+create or replace function public.billing_configure_database_scheduler(p_environment text,p_worker_token text)
+returns jsonb language plpgsql security definer set search_path = pg_catalog, public as $$
+declare secret_id uuid; job_id bigint; secret_name text;
+begin
+  if p_environment is null or p_environment not in ('sandbox','production')
+    or p_worker_token is null or length(p_worker_token) < 32 or length(p_worker_token) > 255
+    or p_worker_token ~ '[[:space:]]' or p_worker_token like '$aact_%' then
+    raise exception 'BILLING_SCHEDULER_CONFIGURATION_INVALID';
+  end if;
+  if not public.billing_database_scheduler_boundary() then raise exception 'BILLING_SCHEDULER_BOUNDARY_INVALID'; end if;
+  perform pg_advisory_xact_lock(hashtextextended('dentalflow_billing_database_scheduler',0));
+  -- Only one runtime environment can be primary at a time.
+  perform cron.unschedule(c.cron_job_id)
+    from public.billing_database_scheduler c join cron.job j on j.jobid=c.cron_job_id
+    where c.provider_environment<>p_environment and j.jobname='dentalflow-billing-'||c.provider_environment and j.username=current_user;
+  update public.billing_database_scheduler set enabled=false where provider_environment<>p_environment;
+  secret_name := 'dentalflow_billing_worker_'||p_environment;
+  select id into secret_id from vault.secrets where name=secret_name;
+  if secret_id is null then
+    select vault.create_secret(p_worker_token,secret_name,'DentalFlow private scheduler worker credential') into secret_id;
+  else
+    perform vault.update_secret(secret_id,p_worker_token,secret_name,'DentalFlow private scheduler worker credential');
+  end if;
+  select cron.schedule('dentalflow-billing-'||p_environment,'1-59/5 * * * *',
+    format('select public.billing_enqueue_database_worker(%L);',p_environment)) into job_id;
+  insert into public.billing_database_scheduler(provider_environment,enabled,cron_job_id,worker_secret_id)
+  values(p_environment,true,job_id,secret_id)
+  on conflict(provider_environment) do update set enabled=true,cron_job_id=excluded.cron_job_id,
+    worker_secret_id=excluded.worker_secret_id,configured_at=clock_timestamp();
+  return jsonb_build_object('provider_environment',p_environment,'scheduled',true,
+    'cron_job_id',job_id,'schedule','1-59/5 * * * *');
+end $$;
+revoke all on function public.billing_configure_database_scheduler(text,text) from public, anon, authenticated;
+grant execute on function public.billing_configure_database_scheduler(text,text) to service_role;
+
+create or replace function public.billing_disable_database_scheduler(p_environment text)
+returns boolean language plpgsql security definer set search_path = pg_catalog, public as $$
+begin
+  if p_environment is null or p_environment not in ('sandbox','production') then
+    raise exception 'BILLING_SCHEDULER_CONFIGURATION_INVALID';
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended('dentalflow_billing_database_scheduler',0));
+  perform cron.unschedule(c.cron_job_id)
+    from public.billing_database_scheduler c join cron.job j on j.jobid=c.cron_job_id
+    where c.provider_environment=p_environment and j.jobname='dentalflow-billing-'||c.provider_environment and j.username=current_user;
+  update public.billing_database_scheduler set enabled=false where provider_environment=p_environment;
+  return true;
+end $$;
+revoke all on function public.billing_disable_database_scheduler(text) from public, anon, authenticated;
+grant execute on function public.billing_disable_database_scheduler(text) to service_role;
+
+create or replace function public.billing_database_scheduler_status(p_environment text)
+returns jsonb language sql stable security definer set search_path = pg_catalog, public as $$
+  select jsonb_build_object('provider_environment',c.provider_environment,'enabled',c.enabled,
+    'cron_job_id',c.cron_job_id,'cron_active',coalesce(j.active,false),
+    'schedule',j.schedule,'configured_at',c.configured_at,'last_dispatched_at',c.last_dispatched_at,
+    'last_response_http_status',r.status_code,'last_response_timed_out',r.timed_out)
+  from public.billing_database_scheduler c left join cron.job j on j.jobid=c.cron_job_id
+  left join net._http_response r on r.id=c.last_request_id
+  where c.provider_environment=p_environment
+$$;
+revoke all on function public.billing_database_scheduler_status(text) from public, anon, authenticated;
+grant execute on function public.billing_database_scheduler_status(text) to service_role;
+notify pgrst, 'reload schema';
+
+-- ===== 20261005223500_saas_master_external_test_review_stage07.sql =====
+
+-- A reviewed external Sandbox test can leave the actionable queue without
+-- replaying it. This never verifies a payment, edits a contract or grants access.
+alter table public.platform_operator_audit
+  drop constraint if exists platform_operator_audit_action_check;
+alter table public.platform_operator_audit
+  add constraint platform_operator_audit_action_check
+  check (action in ('replay_asaas_event','close_external_sandbox_test'));
+
+create or replace function public.platform_master_close_external_sandbox_test(
+  p_environment text, p_event_id text, p_reason text,
+  p_confirm_manual_external boolean default false
+) returns boolean language plpgsql security definer
+set search_path = pg_catalog, public as $$
+declare v_event public.billing_events%rowtype; v_payment_id text;
+begin
+  if auth.uid() is null or auth.role() <> 'authenticated'
+     or not exists (select 1 from public.platform_operators o
+                    where o.user_id = auth.uid() and o.enabled) then
+    raise exception 'PLATFORM_MASTER_FORBIDDEN';
+  end if;
+  if auth.jwt()->>'aal' is distinct from 'aal2' then
+    raise exception 'PLATFORM_MASTER_REAUTH_REQUIRED';
+  end if;
+  if p_environment is distinct from 'sandbox'
+     or p_confirm_manual_external is distinct from true then
+    raise exception 'PLATFORM_MASTER_EXTERNAL_TEST_CONFIRMATION_REQUIRED';
+  end if;
+  if p_reason is null or length(btrim(p_reason)) not between 16 and 300
+     or p_reason ~ '[[:cntrl:]]' then
+    raise exception 'PLATFORM_MASTER_REASON_REQUIRED';
+  end if;
+  if p_event_id is null or length(p_event_id) not between 5 and 200
+     or p_event_id ~ '[[:cntrl:]]' then
+    raise exception 'PLATFORM_MASTER_EXTERNAL_TEST_NOT_ELIGIBLE';
+  end if;
+
+  select * into v_event from public.billing_events
+  where provider = 'asaas' and provider_environment = 'sandbox'
+    and provider_event_id = p_event_id for update;
+  if v_event.id is null then return false; end if;
+  -- Retrying an ambiguous response does not duplicate the audit record.
+  if v_event.status = 'ignored'
+     and v_event.error_message = 'EXTERNAL_MANUAL_SANDBOX_TEST' then
+    return true;
+  end if;
+  v_payment_id := v_event.payload->>'paymentId';
+  -- Only the legacy payment-only snapshot is eligible. Reconciliation events,
+  -- provider references and any known billing association remain in review.
+  if v_event.status <> 'dead_letter'
+     or v_event.event_type not in ('PAYMENT_CONFIRMED','PAYMENT_RECEIVED','PAYMENT_OVERDUE')
+     or v_event.lease_token is not null or v_event.lease_until is not null
+     or jsonb_typeof(v_event.payload) is distinct from 'object'
+     or (v_event.payload - 'paymentId') <> '{}'::jsonb
+     or v_payment_id is null or v_payment_id !~ '^pay_[A-Za-z0-9]{1,90}$' then
+    raise exception 'PLATFORM_MASTER_EXTERNAL_TEST_NOT_ELIGIBLE';
+  end if;
+  if exists (select 1 from public.billing_payments p
+             where p.provider = 'asaas' and p.provider_environment = 'sandbox'
+               and p.provider_payment_id = v_payment_id)
+     or exists (select 1 from public.checkout_intents c
+                where c.billing_provider = 'asaas' and c.provider_environment = 'sandbox'
+                  and c.provider_payment_id = v_payment_id) then
+    raise exception 'PLATFORM_MASTER_EXTERNAL_TEST_HAS_BILLING_LINK';
+  end if;
+
+  update public.billing_events set status = 'ignored', processed_at = now(),
+    error_message = 'EXTERNAL_MANUAL_SANDBOX_TEST', lease_token = null, lease_until = null
+  where id = v_event.id;
+  insert into public.platform_operator_audit
+    (user_id,action,reason,target_environment,target_ref)
+  values (auth.uid(),'close_external_sandbox_test',btrim(p_reason),'sandbox',p_event_id);
+  return true;
+end $$;
+
+revoke all on function public.platform_master_close_external_sandbox_test(text,text,text,boolean)
+  from public, anon, authenticated, service_role;
+grant execute on function public.platform_master_close_external_sandbox_test(text,text,text,boolean)
+  to authenticated;
+
+-- ===== 20261006040000_saas_cancel_executor_stage08.sql =====
+
+-- Stage 08: operator-authorized INACTIVE only. Preserve existing invoices,
+-- ledger, clinical data, plan and paid periods. No change-plan write is enabled.
+alter table public.billing_change_requests
+  drop constraint if exists billing_change_requests_status_check,
+  drop constraint if exists billing_change_requests_check1;
+alter table public.billing_change_requests
+  add column if not exists execution_lease_token uuid,
+  add column if not exists execution_lease_until timestamptz,
+  add column if not exists execution_actor uuid references auth.users(id),
+  add column if not exists execution_session_id uuid,
+  add column if not exists provider_write_started_at timestamptz,
+  add column if not exists completed_at timestamptz,
+  add column if not exists last_error_code text;
+alter table public.billing_change_requests
+  add constraint billing_change_requests_status_check
+    check(status in ('awaiting_provider','withdrawn','processing','review_required','completed')),
+  add constraint billing_change_requests_withdrawal_check
+    check((status = 'withdrawn' and withdrawn_at is not null and withdrawn_by is not null)
+      or (status <> 'withdrawn' and withdrawn_at is null and withdrawn_by is null));
+drop index if exists public.billing_change_requests_one_pending_company;
+create unique index billing_change_requests_one_pending_company on public.billing_change_requests(clinic_id)
+  where status in ('awaiting_provider','processing','review_required');
+
+create table public.billing_cancel_executions (
+  lease_token uuid primary key,
+  request_id uuid not null references public.billing_change_requests(id),
+  actor_user_id uuid not null references auth.users(id),
+  actor_session_id uuid not null,
+  reason text not null check(length(btrim(reason)) between 16 and 300),
+  reconcile_only boolean not null,
+  provider_environment text not null,
+  provider_customer_id text not null,
+  provider_subscription_id text not null,
+  created_at timestamptz not null default now(),
+  provider_write_started_at timestamptz,
+  finished_at timestamptz,
+  outcome text check(outcome in ('completed','review_required')),
+  error_code text,
+  provider_proof_hash text
+);
+alter table public.billing_cancel_executions enable row level security;
+revoke all on public.billing_cancel_executions from public, anon, authenticated, service_role;
+grant select on public.billing_cancel_executions to service_role;
+
+-- Existing customer projections keep provider IDs, lease and identity private.
+create or replace function public.billing_change_request_summary(p_request_id uuid)
+returns jsonb language sql stable security definer set search_path = pg_catalog, public as $$
+  select jsonb_build_object('id',r.id,'subscription_id',r.subscription_id,'kind',r.kind,
+    'status',r.status,'provider_environment',r.provider_environment,
+    'current_plan_name',r.current_plan_name,'current_amount_cents',r.current_amount_cents,
+    'target_plan_name',r.target_plan_name,'target_amount_cents',r.target_amount_cents,
+    'currency',r.currency,'paid_period_end',r.paid_period_end,
+    'effective_not_before',r.effective_not_before,'created_at',r.created_at,'withdrawn_at',r.withdrawn_at,
+    'completed_at',r.completed_at,'last_error_code',r.last_error_code)
+  from public.billing_change_requests r where r.id = p_request_id;
+$$;
+
+create or replace function public.platform_master_billing_change_requests(p_search text default '')
+returns jsonb language plpgsql stable security definer set search_path = pg_catalog, public as $$
+declare v_result jsonb; v_search text := btrim(coalesce(p_search,''));
+begin
+  if auth.uid() is null or auth.role() <> 'authenticated' or not exists
+    (select 1 from public.platform_operators where user_id = auth.uid() and enabled) then
+    raise exception 'PLATFORM_MASTER_FORBIDDEN';
+  end if;
+  if length(v_search) > 80 then raise exception 'PLATFORM_MASTER_SEARCH_INVALID'; end if;
+  select coalesce(jsonb_agg(public.billing_change_request_summary(r.id) || jsonb_build_object('clinic_name',r.name)
+    order by r.created_at),'[]') into v_result from (
+    select r.id, r.created_at, c.name from public.billing_change_requests r join public.clinics c on c.id = r.clinic_id
+    where r.status in ('awaiting_provider','processing','review_required')
+      and (v_search = '' or c.name ilike '%' || v_search || '%')
+    order by r.created_at, r.id limit 50
+  ) r;
+  return v_result;
+end $$;
+
+-- These checks run on the verified JWT received by PostgREST, not decoded
+-- browser claims. A revoked/expired Auth session cannot authorize a write.
+create function public.billing_cancel_master_identity()
+returns uuid language plpgsql stable security definer set search_path = pg_catalog, public as $$
+declare v_session uuid;
+begin
+  if auth.uid() is null or auth.role() <> 'authenticated' or not exists
+    (select 1 from public.platform_operators where user_id = auth.uid() and enabled) then
+    raise exception 'BILLING_CANCEL_FORBIDDEN';
+  end if;
+  if auth.jwt()->>'aal' is distinct from 'aal2' then raise exception 'BILLING_CANCEL_MFA_REQUIRED'; end if;
+  if coalesce(auth.jwt()->>'session_id','') !~ '^[0-9a-fA-F-]{36}$'
+    or coalesce(auth.jwt()->>'exp','') !~ '^[0-9]{1,12}$' then raise exception 'BILLING_CANCEL_SESSION_REQUIRED'; end if;
+  v_session := (auth.jwt()->>'session_id')::uuid;
+  if (auth.jwt()->>'exp')::bigint <= extract(epoch from now()) + 15
+    or not exists(select 1 from auth.sessions where id = v_session and user_id = auth.uid()
+      and (not_after is null or not_after > now())) then raise exception 'BILLING_CANCEL_SESSION_REQUIRED'; end if;
+  return v_session;
+end $$;
+
+create function public.platform_master_claim_cancel_request(
+  p_request_id uuid, p_environment text, p_reason text, p_reconcile_only boolean
+) returns jsonb language plpgsql security definer set search_path = pg_catalog, public as $$
+declare r public.billing_change_requests%rowtype; s public.account_subscriptions%rowtype;
+  v_sub uuid; v_session uuid; v_token uuid; v_readonly boolean; v_reason text := btrim(coalesce(p_reason,''));
+begin
+  v_session := public.billing_cancel_master_identity();
+  if p_environment is null or p_environment not in ('sandbox','production') or p_reconcile_only is null
+    or length(v_reason) not between 16 and 300 or v_reason ~ '[[:cntrl:]]' then
+    raise exception 'BILLING_CANCEL_INVALID';
+  end if;
+  select subscription_id into v_sub from public.billing_change_requests where id = p_request_id;
+  if v_sub is null then raise exception 'BILLING_CANCEL_NOT_ELIGIBLE'; end if;
+  -- Same order as customer submit/withdraw: subscription, then request.
+  select * into s from public.account_subscriptions where id = v_sub for update;
+  select * into r from public.billing_change_requests where id = p_request_id for update;
+  if r.kind <> 'cancel' then raise exception 'BILLING_CANCEL_PLAN_NOT_READY'; end if;
+  if r.provider_environment is distinct from p_environment
+    or s.provider_environment is distinct from p_environment or s.billing_provider is distinct from 'asaas'
+    or s.scope_type <> 'company' or s.clinic_id is distinct from r.clinic_id
+    or s.billing_cycle is distinct from 'MONTHLY' or public.is_internal_full_access_company(r.clinic_id)
+    or coalesce(s.external_customer_id,'') !~ '^cus_[A-Za-z0-9]+$'
+    or coalesce(s.external_subscription_id,'') !~ '^sub_[A-Za-z0-9]+$' then
+    raise exception 'BILLING_CANCEL_NOT_ELIGIBLE';
+  end if;
+  if r.status = 'completed' then return jsonb_build_object('done',true,'request_id',r.id); end if;
+  if r.status not in ('awaiting_provider','processing','review_required') then raise exception 'BILLING_CANCEL_NOT_ELIGIBLE'; end if;
+  if r.status = 'processing' and r.execution_lease_until > now() then raise exception 'BILLING_CANCEL_BUSY'; end if;
+  if not public.billing_user_can_manage_company(r.clinic_id,r.requested_by)
+    or s.status not in ('active','past_due','grace','suspended','canceled')
+    or s.plan_code is distinct from r.current_plan_code
+    or s.current_period_end is distinct from r.paid_period_end
+    or public.billing_subscription_contract_amount(s.id) is distinct from r.current_amount_cents then
+    raise exception 'BILLING_CANCEL_STALE';
+  end if;
+  -- Expired claims and review states can only inspect, even if the first server
+  -- crashed before recording whether it reached the provider.
+  v_readonly := p_reconcile_only or r.status <> 'awaiting_provider' or r.provider_write_started_at is not null;
+  v_token := gen_random_uuid();
+  update public.billing_change_requests set status = 'processing', execution_lease_token = v_token,
+    execution_lease_until = least(now()+interval '120 seconds',to_timestamp((auth.jwt()->>'exp')::bigint)),
+    execution_actor = auth.uid(), execution_session_id = v_session, last_error_code = null where id = r.id;
+  insert into public.billing_cancel_executions(lease_token,request_id,actor_user_id,actor_session_id,reason,reconcile_only,
+    provider_environment,provider_customer_id,provider_subscription_id)
+    values(v_token,r.id,auth.uid(),v_session,v_reason,v_readonly,p_environment,s.external_customer_id,s.external_subscription_id);
+  return jsonb_build_object('done',false,'request_id',r.id,'lease_token',v_token,
+    'subscription_id',s.id,'external_subscription_id',s.external_subscription_id,
+    'external_customer_id',s.external_customer_id,'amount_cents',r.current_amount_cents,
+    'environment',p_environment,'reconcile_only',v_readonly);
+end $$;
+
+create function public.platform_master_begin_cancel_write(p_request_id uuid, p_lease_token uuid)
+returns boolean language plpgsql security definer set search_path = pg_catalog, public as $$
+declare v_session uuid; r public.billing_change_requests%rowtype; s public.account_subscriptions%rowtype;
+begin
+  v_session := public.billing_cancel_master_identity();
+  select * into s from public.account_subscriptions where id =
+    (select subscription_id from public.billing_change_requests where id = p_request_id) for update;
+  select * into r from public.billing_change_requests where id = p_request_id for update;
+  if r.id is null or r.kind <> 'cancel' or r.status <> 'processing'
+    or r.execution_lease_token is distinct from p_lease_token or r.execution_lease_until is null or r.execution_lease_until <= now()
+    or r.execution_actor is distinct from auth.uid() or r.execution_session_id is distinct from v_session
+    or r.provider_write_started_at is not null or not exists(select 1 from public.billing_cancel_executions
+      where lease_token = p_lease_token and request_id = r.id and not reconcile_only
+        and provider_environment = s.provider_environment and provider_customer_id = s.external_customer_id
+        and provider_subscription_id = s.external_subscription_id)
+    or not public.billing_user_can_manage_company(r.clinic_id,r.requested_by)
+    or s.billing_provider is distinct from 'asaas' or s.billing_cycle is distinct from 'MONTHLY'
+    or s.clinic_id is distinct from r.clinic_id or s.provider_environment is distinct from r.provider_environment
+    or public.is_internal_full_access_company(r.clinic_id)
+    or s.current_period_end is distinct from r.paid_period_end or s.plan_code is distinct from r.current_plan_code
+    or public.billing_subscription_contract_amount(s.id) is distinct from r.current_amount_cents then
+    raise exception 'BILLING_CANCEL_WRITE_NOT_AUTHORIZED';
+  end if;
+  update public.billing_change_requests set provider_write_started_at = now() where id = r.id;
+  update public.billing_cancel_executions set provider_write_started_at = now() where lease_token = p_lease_token;
+  return true;
+end $$;
+
+-- Only the server can submit a fresh provider proof. Exact lease/actor/frozen
+-- contract fences survive client timeouts, repeated clicks and worker runs.
+create function public.billing_finish_cancel_request(
+  p_request_id uuid, p_lease_token uuid, p_verified_subscription jsonb, p_error_code text
+) returns text language plpgsql security definer set search_path = pg_catalog, public as $$
+declare r public.billing_change_requests%rowtype; s public.account_subscriptions%rowtype;
+  v_outcome text; v_error text; v_proof jsonb := p_verified_subscription;
+begin
+  select * into s from public.account_subscriptions where id =
+    (select subscription_id from public.billing_change_requests where id = p_request_id) for update;
+  select * into r from public.billing_change_requests where id = p_request_id for update;
+  if r.id is null or r.kind <> 'cancel' then raise exception 'BILLING_CANCEL_NOT_ELIGIBLE'; end if;
+  if r.status = 'completed' then return 'completed'; end if;
+  if r.status <> 'processing' or r.execution_lease_token is distinct from p_lease_token
+    or r.execution_lease_until is null or r.execution_lease_until <= now() or not exists(select 1 from public.billing_cancel_executions e
+      where e.lease_token = p_lease_token and e.request_id = r.id and e.actor_user_id = r.execution_actor
+        and e.actor_session_id = r.execution_session_id) then raise exception 'BILLING_CANCEL_LEASE_LOST'; end if;
+  v_outcome := 'review_required';
+  v_error := case when p_error_code in ('PROVIDER_STILL_ACTIVE','PROVIDER_RESULT_UNCONFIRMED','PROVIDER_REVIEW_REQUIRED')
+    then p_error_code else 'PROVIDER_REVIEW_REQUIRED' end;
+  if p_error_code is null and v_proof is not null and jsonb_typeof(v_proof) = 'object'
+    and v_proof->>'id' = s.external_subscription_id and v_proof->>'customer' = s.external_customer_id
+    and v_proof->>'externalReference' = 'dentalflow:subscription:' || s.id::text
+    and v_proof->>'cycle' = 'MONTHLY' and v_proof->>'status' = 'INACTIVE'
+    and v_proof->'deleted' = 'false'::jsonb and jsonb_typeof(v_proof->'value') = 'number'
+    and (v_proof->>'value')::numeric * 100 = r.current_amount_cents
+    and s.plan_code = r.current_plan_code and s.current_period_end is not distinct from r.paid_period_end
+    and s.billing_provider = 'asaas' and s.provider_environment = r.provider_environment
+    and public.billing_subscription_contract_amount(s.id) = r.current_amount_cents
+    and not public.is_internal_full_access_company(r.clinic_id) then
+    v_outcome := 'completed'; v_error := null;
+    -- Cancellation stops future renewal. Existing canceled-period access is
+    -- governed by subscription_access_mode until the unchanged paid end.
+    update public.account_subscriptions set status = 'canceled', canceled_at = coalesce(canceled_at,now()),
+      grace_until = null, updated_at = now() where id = s.id;
+  end if;
+  update public.billing_change_requests set status = v_outcome,
+    completed_at = case when v_outcome = 'completed' then now() else null end,
+    last_error_code = v_error, execution_lease_until = null where id = r.id;
+  update public.billing_cancel_executions set finished_at = now(), outcome = v_outcome,
+    error_code = v_error, provider_proof_hash = case when v_outcome = 'completed' then md5(v_proof::text) else null end
+    where lease_token = p_lease_token;
+  return v_outcome;
+end $$;
+
+revoke all on function public.billing_cancel_master_identity() from public, anon, authenticated, service_role;
+revoke all on function public.platform_master_claim_cancel_request(uuid,text,text,boolean),
+  public.platform_master_begin_cancel_write(uuid,uuid) from public, anon, authenticated, service_role;
+grant execute on function public.platform_master_claim_cancel_request(uuid,text,text,boolean),
+  public.platform_master_begin_cancel_write(uuid,uuid) to authenticated;
+revoke all on function public.billing_finish_cancel_request(uuid,uuid,jsonb,text) from public, anon, authenticated, service_role;
+grant execute on function public.billing_finish_cancel_request(uuid,uuid,jsonb,text) to service_role;
+notify pgrst, 'reload schema';
+
+-- ===== 20261006050000_saas_fixture_acceptance_jobs.sql =====
+
+-- Private, one-use QA capabilities. No financial worker secret, Master identity,
+-- arbitrary user selector, email delivery, or automatic jobs are introduced.
+CREATE TABLE IF NOT EXISTS public.saas_fixture_acceptance_jobs (
+  id uuid PRIMARY KEY,
+  kind text NOT NULL CHECK (kind IN ('identity','storage','billing')),
+  token_hash text CHECK (token_hash ~ '^[a-f0-9]{64}$'),
+  expires_at timestamptz NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  claimed_at timestamptz,
+  completed_at timestamptz,
+  status text NOT NULL DEFAULT 'prepared' CHECK (status IN ('prepared','running','completed','failed')),
+  receipt jsonb,
+  CHECK (expires_at <= created_at + interval '15 minutes'),
+  CHECK ((status='prepared') = (token_hash IS NOT NULL))
+);
+ALTER TABLE public.saas_fixture_acceptance_jobs ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.saas_fixture_acceptance_jobs FROM PUBLIC, anon, authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.saas_claim_fixture_acceptance_job(p_job_id uuid, p_token_hash text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_job public.saas_fixture_acceptance_jobs%ROWTYPE; v_fixtures jsonb;
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' OR p_token_hash IS NULL OR p_token_hash !~ '^[a-f0-9]{64}$' THEN
+    RAISE EXCEPTION 'FIXTURE_JOB_FORBIDDEN' USING ERRCODE = '42501';
+  END IF;
+  SELECT * INTO v_job FROM public.saas_fixture_acceptance_jobs WHERE id = p_job_id FOR UPDATE;
+  IF NOT FOUND OR v_job.status <> 'prepared' OR v_job.token_hash IS DISTINCT FROM p_token_hash
+     OR v_job.expires_at <= now() THEN
+    RAISE EXCEPTION 'FIXTURE_JOB_FORBIDDEN' USING ERRCODE = '42501';
+  END IF;
+  -- These are the two previously authorized fixtures. Metadata alone never
+  -- allows a client to nominate a real account or acquire an administrative role.
+  SELECT jsonb_agg(jsonb_build_object('user_id',u.id,'email',u.email,'clinic_id',c.id) ORDER BY u.id)
+    INTO v_fixtures
+    FROM auth.users u JOIN public.profiles p ON p.id=u.id
+    JOIN public.clinics c ON c.id=p.clinic_id AND c.owner_id=u.id
+    WHERE (u.id,u.email,c.id) IN (
+      ('ee083f63-1621-4b82-b7a4-fd13427c0b14'::uuid,
+       'dentalflow-acceptance-20261004-e0537565-4015-4ffe-a249-5da489824e6e@example.invalid',
+       '081d3db4-1606-40f7-a878-19b51556317d'::uuid),
+      ('24e7cdf9-457e-4af2-b1cb-cf366abbddb0'::uuid,
+       'dentalflow-acceptance-20261004-237e6ef4-9893-43d2-b9a3-311f8708aa3d@example.invalid',
+       '3fc86c40-697e-4725-a9e9-633fc882aadc'::uuid))
+    AND u.raw_user_meta_data->>'acceptance_fixture'='true'
+    AND u.email_confirmed_at IS NOT NULL
+    AND NOT COALESCE(c.billing_exempt,false)
+    AND NOT EXISTS (SELECT 1 FROM public.platform_operators op WHERE op.user_id=u.id)
+    AND NOT EXISTS (SELECT 1 FROM public.account_subscriptions s
+                    WHERE s.clinic_id=c.id AND s.provider_environment='production');
+  IF jsonb_array_length(COALESCE(v_fixtures,'[]'::jsonb)) <> 2 THEN
+    RAISE EXCEPTION 'FIXTURE_ALLOWLIST_MISMATCH' USING ERRCODE = '42501';
+  END IF;
+  UPDATE public.saas_fixture_acceptance_jobs SET status='running',claimed_at=now(),token_hash=NULL
+    WHERE id=p_job_id;
+  RETURN jsonb_build_object('id',v_job.id,'kind',v_job.kind,'fixtures',v_fixtures);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.saas_finish_fixture_acceptance_job(p_job_id uuid, p_receipt jsonb)
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF auth.role() IS DISTINCT FROM 'service_role' OR jsonb_typeof(p_receipt)<>'object'
+     OR octet_length(p_receipt::text)>24000
+     OR p_receipt->>'contract' IS DISTINCT FROM 'dentalflow-fixture-acceptance-v1'
+     OR p_receipt::text ~* '(bearer |access_token|refresh_token|hashed_token|action_link|password|secret|signedurl|https?://)' THEN
+    RAISE EXCEPTION 'FIXTURE_RECEIPT_INVALID' USING ERRCODE = '42501';
+  END IF;
+  UPDATE public.saas_fixture_acceptance_jobs SET completed_at=now(),token_hash=NULL,
+    status=CASE WHEN p_receipt->>'passed'='true' THEN 'completed' ELSE 'failed' END,
+    receipt=p_receipt WHERE id=p_job_id AND status='running';
+  RETURN FOUND;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.saas_claim_fixture_acceptance_job(uuid,text),
+  public.saas_finish_fixture_acceptance_job(uuid,jsonb) FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.saas_claim_fixture_acceptance_job(uuid,text),
+  public.saas_finish_fixture_acceptance_job(uuid,jsonb) TO service_role;
+NOTIFY pgrst, 'reload schema';
+
+-- ===== 20261008194500_saas_avatar_company_boundary_stage06.sql =====
+
+-- Intersect legacy broad authenticated avatar SELECT policies without removing
+-- them. Owners, their paid company, and explicit case participants retain access.
+CREATE OR REPLACE FUNCTION public.can_access_user_avatar(_owner_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT auth.uid() IS NOT NULL AND (
+    _owner_id=auth.uid()
+    OR EXISTS (SELECT 1 FROM public.profiles me JOIN public.profiles owner ON owner.id=_owner_id
+      WHERE me.id=auth.uid() AND me.clinic_id=owner.clinic_id AND me.clinic_id IS NOT NULL
+        AND public.company_has_operational_access(me.clinic_id))
+    OR EXISTS (SELECT 1 FROM public.cases c
+      WHERE public.can_access_case(c.id) AND (
+        c.requested_by=_owner_id
+        OR EXISTS (SELECT 1 FROM public.cadistas cd WHERE cd.id=c.cadista_id AND cd.user_id=_owner_id)
+        OR EXISTS (SELECT 1 FROM public.doctors d WHERE d.id=c.doctor_id AND d.user_id=_owner_id)
+      ))
+  );
+$$;
+REVOKE ALL ON FUNCTION public.can_access_user_avatar(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.can_access_user_avatar(uuid) TO authenticated, service_role;
+DROP POLICY IF EXISTS avatars_company_read_boundary ON storage.objects;
+CREATE POLICY avatars_company_read_boundary ON storage.objects AS RESTRICTIVE
+  FOR SELECT TO authenticated USING (
+    bucket_id<>'avatars' OR public.can_access_user_avatar(public.patient_id_from_storage_path(name))
+  );
+NOTIFY pgrst, 'reload schema';
+
 -- ===== 20260718000001_zzz_self_heal_v2.sql =====
 
 -- =====================================================================
@@ -14110,6 +18200,21 @@ DROP SCHEMA IF EXISTS _restore;
 -- Financial and fiscal boundaries must be restored after the legacy blanket
 -- grants above. Client roles may read/update only through explicitly validated
 -- RPCs; provider identities and authoritative state changes remain backend-only.
+REVOKE ALL ON FUNCTION public.billing_subscription_contract_amount(uuid)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.billing_subscription_contract_amount(uuid)
+  TO service_role;
+-- Storage reservations are another authoritative ledger: the old blanket
+-- grant must not allow clients to erase or forge usage after restore.
+REVOKE INSERT, UPDATE, DELETE ON TABLE public.storage_files
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.reserve_storage_upload(
+  bigint,text,text,text,uuid,uuid,text,text
+), public.complete_storage_upload(uuid,text), public.cancel_storage_upload(uuid),
+  public.delete_managed_storage_file(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.storage_upload_has_reservation_for_insert(text,text,jsonb),
+  public.release_storage_upload_reservation(uuid,uuid) FROM PUBLIC, anon;
+
 REVOKE ALL ON TABLE public.company_billing_profiles
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON TABLE public.billing_provider_customers
@@ -14120,12 +18225,36 @@ REVOKE ALL ON TABLE public.billing_test_access
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON TABLE public.billing_test_tokens
   FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON TABLE public.billing_event_replays
+  FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON TABLE public.platform_operators, public.platform_operator_audit
+  FROM PUBLIC, anon, authenticated;
 
 GRANT ALL ON TABLE public.company_billing_profiles TO service_role;
 GRANT ALL ON TABLE public.billing_provider_customers TO service_role;
 GRANT ALL ON TABLE public.billing_provider_operations TO service_role;
 GRANT ALL ON TABLE public.billing_test_access TO service_role;
 GRANT ALL ON TABLE public.billing_test_tokens TO service_role;
+GRANT SELECT ON TABLE public.billing_event_replays TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.platform_operators TO service_role;
+GRANT SELECT ON TABLE public.platform_operator_audit TO service_role;
+
+-- Stage 08 requests are private instructions, not a new browser billing ledger.
+REVOKE ALL ON TABLE public.billing_change_requests, public.billing_change_request_events
+  FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.billing_change_requests, public.billing_change_request_events TO service_role;
+REVOKE ALL ON FUNCTION public.billing_change_request_quote(uuid,text,text),
+  public.billing_change_request_summary(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.billing_change_request_quote(uuid,text,text),
+  public.billing_change_request_summary(uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.billing_company_change_context(uuid),
+  public.billing_submit_change_request(uuid,uuid,text,text,text),
+  public.billing_withdraw_change_request(uuid,uuid), public.platform_master_billing_change_requests(text)
+  FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.billing_company_change_context(uuid),
+  public.billing_submit_change_request(uuid,uuid,text,text,text),
+  public.billing_withdraw_change_request(uuid,uuid), public.platform_master_billing_change_requests(text)
+  TO authenticated;
 
 REVOKE ALL ON FUNCTION public.billing_apply_checkout_paid(
   uuid,text,text,text,text,timestamptz,timestamptz
@@ -14143,13 +18272,46 @@ REVOKE ALL ON FUNCTION public.billing_finish_provider_operation(uuid,uuid,text,t
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_get_asaas_provisioning_context(uuid,uuid,text)
   FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_get_checkout_provisioning_context(uuid,uuid,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_mark_asaas_checkout_ready(
+  uuid,uuid,text,text,text,text,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_receive_asaas_event(text,text,text,jsonb)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_claim_asaas_events(text,integer)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_finish_asaas_event(uuid,uuid,text,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_asaas_initial_payment(
+  uuid,uuid,text,text,text,integer,date,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_asaas_payment_lifecycle(
+  uuid,uuid,text,text,text,integer,date,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_apply_asaas_subscription_lifecycle(
+  uuid,uuid,text,text,text,integer,text,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_list_asaas_expired_grace(text,integer)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_suspend_asaas_expired_grace(
+  uuid,text,text,text,text,text
+) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_replay_asaas_event(text,text,text,text)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_claim_asaas_reconciliation_candidates(text,integer)
+  FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
+  FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.billing_get_asaas_payment_document_context(uuid,uuid,text)
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.billing_valid_br_tax_id(text)
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.set_clinic_storage_entitlement(
   uuid,text,text,bigint,text,text,text,text,boolean
 ) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.recalculate_clinic_storage_limit(uuid)
+  FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION public.billing_apply_checkout_paid(
   uuid,text,text,text,text,timestamptz,timestamptz
@@ -14167,13 +18329,46 @@ GRANT EXECUTE ON FUNCTION public.billing_finish_provider_operation(uuid,uuid,tex
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_get_asaas_provisioning_context(uuid,uuid,text)
   TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_get_checkout_provisioning_context(uuid,uuid,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_mark_asaas_checkout_ready(
+  uuid,uuid,text,text,text,text,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_receive_asaas_event(text,text,text,jsonb)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_claim_asaas_events(text,integer)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_finish_asaas_event(uuid,uuid,text,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_asaas_initial_payment(
+  uuid,uuid,text,text,text,integer,date,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_asaas_payment_lifecycle(
+  uuid,uuid,text,text,text,integer,date,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_apply_asaas_subscription_lifecycle(
+  uuid,uuid,text,text,text,integer,text,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_list_asaas_expired_grace(text,integer)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_suspend_asaas_expired_grace(
+  uuid,text,text,text,text,text
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_replay_asaas_event(text,text,text,text)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_claim_asaas_reconciliation_candidates(text,integer)
+  TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_user_can_manage_company(uuid,uuid)
+  TO service_role;
+GRANT EXECUTE ON FUNCTION public.billing_get_asaas_payment_document_context(uuid,uuid,text)
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.billing_valid_br_tax_id(text)
   TO service_role;
 GRANT EXECUTE ON FUNCTION public.set_clinic_storage_entitlement(
   uuid,text,text,bigint,text,text,text,text,boolean
 ) TO service_role;
+GRANT EXECUTE ON FUNCTION public.recalculate_clinic_storage_limit(uuid)
+  TO service_role;
 
 REVOKE ALL ON FUNCTION public.billing_get_company_profile(uuid)
   FROM PUBLIC, anon;
@@ -14185,3 +18380,54 @@ GRANT EXECUTE ON FUNCTION public.billing_get_company_profile(uuid)
 GRANT EXECUTE ON FUNCTION public.billing_upsert_company_profile(
   uuid,text,text,text,text,text,text,text,text,text,text,text
 ) TO authenticated, service_role;
+
+-- Stage 09 operational telemetry stays private after generic self-heal grants.
+REVOKE ALL ON TABLE public.billing_worker_health FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.billing_worker_health TO service_role;
+REVOKE ALL ON FUNCTION public.billing_record_worker_health(text,uuid,text,jsonb) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.billing_record_worker_health(text,uuid,text,jsonb) TO service_role;
+REVOKE ALL ON FUNCTION public.platform_master_operational_health() FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.platform_master_operational_health() TO authenticated;
+
+-- Trigger-only case authorization must not inherit legacy blanket grants.
+REVOKE ALL ON FUNCTION public.guard_case_company_write() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.resolve_case_clinic_id(uuid), public.can_access_case(uuid), public.can_modify_case(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.resolve_case_clinic_id(uuid), public.can_access_case(uuid), public.can_modify_case(uuid) TO authenticated, service_role;
+
+-- Scheduler credentials and dispatch remain private after blanket grants.
+-- Manual external-test review keeps the same operator/AAL2 boundary after restore.
+REVOKE ALL ON FUNCTION public.platform_master_close_external_sandbox_test(text,text,text,boolean)
+  FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.platform_master_close_external_sandbox_test(text,text,text,boolean)
+  TO authenticated;
+
+REVOKE ALL ON TABLE public.billing_database_scheduler,
+  net.http_request_queue, net._http_response FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.billing_enqueue_database_worker(text), public.billing_database_scheduler_boundary()
+  FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.billing_configure_database_scheduler(text,text),
+  public.billing_disable_database_scheduler(text), public.billing_database_scheduler_status(text)
+  FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.billing_configure_database_scheduler(text,text),
+  public.billing_disable_database_scheduler(text), public.billing_database_scheduler_status(text)
+  TO service_role;
+
+-- Cancellation executor: reseal after generic function grants above.
+REVOKE ALL ON TABLE public.billing_cancel_executions FROM PUBLIC, anon, authenticated, service_role;
+GRANT SELECT ON TABLE public.billing_cancel_executions TO service_role;
+REVOKE ALL ON FUNCTION public.billing_cancel_master_identity() FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.platform_master_claim_cancel_request(uuid,text,text,boolean),
+  public.platform_master_begin_cancel_write(uuid,uuid) FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.platform_master_claim_cancel_request(uuid,text,text,boolean),
+  public.platform_master_begin_cancel_write(uuid,uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.billing_finish_cancel_request(uuid,uuid,jsonb,text) FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.billing_finish_cancel_request(uuid,uuid,jsonb,text) TO service_role;
+
+-- Fixture acceptance capabilities remain private after generic self-heal.
+REVOKE ALL ON FUNCTION public.can_access_user_avatar(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.can_access_user_avatar(uuid) TO authenticated, service_role;
+REVOKE ALL ON TABLE public.saas_fixture_acceptance_jobs FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.saas_claim_fixture_acceptance_job(uuid,text),
+  public.saas_finish_fixture_acceptance_job(uuid,jsonb) FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.saas_claim_fixture_acceptance_job(uuid,text),
+  public.saas_finish_fixture_acceptance_job(uuid,jsonb) TO service_role;
