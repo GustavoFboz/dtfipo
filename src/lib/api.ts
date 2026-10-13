@@ -778,17 +778,14 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
   } = input;
   void _ignoreAlsoArch;
   void _ignoreAlsoArchId;
-  // Default to the first workflow stage (e.g. "Novo Caso") when none is provided
-  if (!rest.current_stage_id) {
-    const { data: firstStage } = await supabase
-      .from("stages")
-      .select("id")
-      .order("position", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (firstStage?.id) rest.current_stage_id = firstStage.id;
-  }
-  const { data: { user } } = await supabase.auth.getUser();
+  // Stage lookup and auth lookup are independent; run them concurrently so
+  // the primary insert does not pay for avoidable serial round trips.
+  const stageLookup = rest.current_stage_id
+    ? Promise.resolve({ data: null })
+    : supabase.from("stages").select("id").order("position", { ascending: true }).limit(1).maybeSingle();
+  const [stageResult, authResult] = await Promise.all([stageLookup, supabase.auth.getUser()]);
+  if (!rest.current_stage_id && stageResult.data?.id) rest.current_stage_id = stageResult.data.id;
+  const user = authResult.data?.user ?? null;
   let isSolicitante = false;
   if (user) {
     const { data: prof } = await supabase.from("profiles").select("role,account_subtype").eq("id", user.id).maybeSingle();
@@ -865,36 +862,41 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
   if (error) throw error;
   if (idempotentReplay) (row as any).__idempotentReplay = true;
 
-  // These links have natural unique keys. Ignore conflicts so a retry can
-  // safely finish a partially completed creation without duplicating links.
+  // These links have natural unique keys. Run independent writes in parallel
+  // and ignore conflicts so a retry can safely finish a partial creation.
+  const linkOperations: any[] = [];
   if (component_ids && component_ids.length) {
-    const { error: e2 } = await supabase
-      .from("case_components")
-      .upsert(
+    linkOperations.push(
+      supabase.from("case_components").upsert(
         component_ids.map((cid) => ({ case_id: row.id, component_id: cid })),
         { onConflict: "case_id,component_id", ignoreDuplicates: true },
-      );
-    if (e2) throw e2;
+      ),
+    );
   }
   if (case_type_ids && case_type_ids.length) {
-    const { error: e3 } = await supabase
-      .from("case_types_link")
-      .upsert(
+    linkOperations.push(
+      supabase.from("case_types_link").upsert(
         case_type_ids.map((ctid) => ({ case_id: row.id, case_type_id: ctid })),
         { onConflict: "case_id,case_type_id", ignoreDuplicates: true },
-      );
-    if (e3) throw e3;
+      ),
+    );
   }
   if (rest.current_stage_id) {
-    const { error: e4 } = await supabase.from("case_stages").upsert(
-      { case_id: row.id, stage_id: rest.current_stage_id, position: 0 },
-      { onConflict: "case_id,stage_id", ignoreDuplicates: true },
+    linkOperations.push(
+      supabase.from("case_stages").upsert(
+        { case_id: row.id, stage_id: rest.current_stage_id, position: 0 },
+        { onConflict: "case_id,stage_id", ignoreDuplicates: true },
+      ),
     );
-    if (e4) throw e4;
   }
-  // Auto-record burr usages
-  if (teeth_zirconia.length) await autoRecordCaseMilling(row.id, "zirconia", teeth_zirconia);
-  if (teeth_dissilicato.length) await autoRecordCaseMilling(row.id, "dissilicato", teeth_dissilicato);
+  const linkResults = await Promise.all(linkOperations);
+  const linkError = linkResults.find((result) => result?.error)?.error;
+  if (linkError) throw linkError;
+
+  await Promise.all([
+    teeth_zirconia.length ? autoRecordCaseMilling(row.id, "zirconia", teeth_zirconia) : Promise.resolve(),
+    teeth_dissilicato.length ? autoRecordCaseMilling(row.id, "dissilicato", teeth_dissilicato) : Promise.resolve(),
+  ]);
   return row;
 }
 
