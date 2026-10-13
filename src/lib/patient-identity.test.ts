@@ -22,6 +22,13 @@ describe("patient identity safeguards", () => {
     expect(samePatientIdentity({ rg: "MG-12.345" }, { rg: "mg12345" })).toBe(true);
   });
 
+  it("recognizes a matching RG even if a mistyped CPF differs", () => {
+    expect(samePatientIdentity(
+      { cpf: "111.111.111-11", rg: "MG-12.345" },
+      { cpf: "222.222.222-22", rg: "mg12345" },
+    )).toBe(true);
+  });
+
   it("uses phone as fallback only when both records lack CPF and RG", () => {
     expect(samePatientIdentity({ phone: "(92) 99999-0000" }, { phone: "92999990000" })).toBe(true);
     expect(samePatientIdentity(
