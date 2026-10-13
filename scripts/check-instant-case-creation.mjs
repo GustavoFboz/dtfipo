@@ -7,6 +7,7 @@ const expect = (condition, message) => {
 
 const api = read("src/lib/api.ts");
 const desktop = read("src/lib/cases-local-first.ts");
+const desktopOffline = read("src/lib/api.desktop.case-offline.ts");
 const dialog = read("src/components/NewCaseDialog.tsx");
 const realtime = read("src/hooks/use-cases-realtime.ts");
 const patients = read("src/lib/patients-local-first.ts");
@@ -20,6 +21,7 @@ expect(api.includes('onConflict: "case_id,component_id"') && api.includes('onCon
 expect(api.includes("Notifications and activity logs are secondary work") && api.includes("return returned;"), "Notifications must not block the confirmed case response.");
 expect(desktop.includes("const id = input.id ?? crypto.randomUUID()"), "Desktop outbox must preserve the same case ID on retry.");
 expect(desktop.includes("void cloud.fetchCaseById(created.id)"), "Desktop joined cache hydration must run in the background.");
+expect(desktopOffline.includes("void (async () => {") && desktopOffline.includes("sendInternalNotificationLocalFirst"), "Offline notifications must not block the local case save.");
 expect(dialog.includes("caseCreationPayloadRef.current = createPayload") && dialog.includes("caseCreationAttemptedRef.current = true"), "The case dialog must persist its operation ID/payload before the cloud request.");
 expect(dialog.includes("createInlinePatient(newPatientName)") && dialog.includes("newPatientIdentifierValue"), "Inline patient creation must support a duplicate-name identifier.");
 expect(dialog.includes("recordInitialAttachmentsInBackground") && dialog.includes("uploadPatientPhotoInBackground"), "Attachments and patient photos must not hold the dialog open.");
