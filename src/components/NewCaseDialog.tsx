@@ -565,7 +565,7 @@ export function NewCaseDialog({
   };
 
   const createInlinePatient = async (rawName: string) => {
-    const name = rawName.trim().replace(/\\s+/g, " ");
+    const name = rawName.trim().replace(/\s+/g, " ");
     const normalizedName = normalizePatientName(name);
     if (!normalizedName) throw new Error("Informe o nome do paciente.");
 
@@ -1168,8 +1168,30 @@ export function NewCaseDialog({
                       patients={patients.data ?? []}
                       selectedId={patientId}
                       newName={newPatientName}
-                      onSelectExisting={(id) => { setPatientId(id); setNewPatientName(""); setNewPatientPhoto(null); }}
-                      onTypeNew={(name) => { setNewPatientName(name); setPatientId(""); }}
+                      onSelectExisting={(id) => {
+                        setPatientId(id);
+                        setNewPatientName("");
+                        setNewPatientPhoto(null);
+                        setNewPatientIdentifierType("");
+                        setNewPatientIdentifierValue("");
+                        if (!caseCreationAttemptedRef.current) {
+                          patientCreateIdRef.current = null; setPatientCreationId(null);
+                          patientCreateNameRef.current = null; setPatientCreationName(null);
+                        }
+                      }}
+                      onTypeNew={(name) => {
+                        const changed = normalizePatientName(name) !== normalizePatientName(newPatientName);
+                        if (changed) {
+                          setNewPatientIdentifierType("");
+                          setNewPatientIdentifierValue("");
+                          if (!caseCreationAttemptedRef.current) {
+                            patientCreateIdRef.current = null; setPatientCreationId(null);
+                            patientCreateNameRef.current = null; setPatientCreationName(null);
+                          }
+                        }
+                        setNewPatientName(name);
+                        setPatientId("");
+                      }}
                     />
                   </div>
                   <PatientFormDialog 
@@ -1182,17 +1204,47 @@ export function NewCaseDialog({
                   />
                 </div>
                 {newPatientName && !patientId && (
-                  <div className="flex gap-2 items-center">
-                    <div className="text-xs text-muted-foreground flex-1">
-                      Será cadastrado como novo paciente: <b>{newPatientName}</b>
+                  <div className="space-y-2">
+                    <div className="flex gap-2 items-center">
+                      <div className="text-xs text-muted-foreground flex-1">
+                        {duplicateNamePatients.length
+                          ? "Já existe paciente com esse nome. Selecione o cadastro acima ou informe um identificador para cadastrar outra pessoa."
+                          : <>Será cadastrado como novo paciente: <b>{newPatientName}</b></>}
+                      </div>
+                      <input ref={photoInput} type="file" accept="image/*" className="hidden"
+                        onChange={(e) => setNewPatientPhoto(e.target.files?.[0] ?? null)} />
+                      <Button type="button" variant="outline" size="sm"
+                        onClick={() => photoInput.current?.click()} className="gap-2 shrink-0">
+                        <Camera className="h-4 w-4" />
+                        {newPatientPhoto ? "Foto ok" : "Foto"}
+                      </Button>
                     </div>
-                    <input ref={photoInput} type="file" accept="image/*" className="hidden"
-                      onChange={(e) => setNewPatientPhoto(e.target.files?.[0] ?? null)} />
-                    <Button type="button" variant="outline" size="sm"
-                      onClick={() => photoInput.current?.click()} className="gap-2 shrink-0">
-                      <Camera className="h-4 w-4" />
-                      {newPatientPhoto ? "Foto ok" : "Foto"}
-                    </Button>
+                    {duplicateNamePatients.length > 0 && (
+                      <div className="grid grid-cols-[140px_minmax(0,1fr)] gap-2">
+                        <Select
+                          value={newPatientIdentifierType}
+                          onValueChange={(value) => {
+                            setNewPatientIdentifierType(value as PatientIdentityField);
+                            setNewPatientIdentifierValue("");
+                          }}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Identificador" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cpf">CPF</SelectItem>
+                            <SelectItem value="rg">RG</SelectItem>
+                            <SelectItem value="phone">Telefone</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          value={newPatientIdentifierValue}
+                          onChange={(event) => setNewPatientIdentifierValue(event.target.value)}
+                          placeholder={newPatientIdentifierType === "cpf" ? "CPF do novo paciente" : newPatientIdentifierType === "rg" ? "RG do novo paciente" : "Telefone do novo paciente"}
+                          autoComplete="off"
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
