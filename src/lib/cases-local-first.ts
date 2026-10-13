@@ -235,10 +235,10 @@ async function buildLocalCase(id: string, input: OfflineCreateInput, siblingId: 
 }
 
 async function queueLocalCaseCreate(owner: string, input: OfflineCreateInput, siblingId: string | null = null) {
-  const id = crypto.randomUUID();
+  const id = input.id ?? crypto.randomUUID();
   const row = await buildLocalCase(id, input, siblingId);
   await upsert(owner, row);
-  const syncInput = { ...input, also_arch: null } as OfflineCreateInput;
+  const syncInput = { ...input, id, also_arch: null, also_arch_id: null } as OfflineCreateInput;
   await enqueueOutbox({ ownerId: owner, entityType: ENTITY, entityId: id, operation: "create", payload: { id, input: syncInput } });
   return row;
 }
@@ -251,8 +251,11 @@ export async function createCaseLocalFirst(input: OfflineCreateInput) {
     try {
       const created = await cloud.createCase(input);
       if (created?.id) {
-        const full = await cloud.fetchCaseById(created.id).catch(() => null);
-        if (full) await upsert(owner, full);
+        // Keep the UI path independent from the slower joined detail read.
+        // The complete Desktop SQLite snapshot is hydrated in the background.
+        void cloud.fetchCaseById(created.id)
+          .then((full) => full ? upsert(owner, full) : undefined)
+          .catch((error) => console.warn("[DentalFlow Desktop] case cache hydration deferred", error));
       }
       return created;
     } catch (error) {
@@ -261,10 +264,10 @@ export async function createCaseLocalFirst(input: OfflineCreateInput) {
   }
 
   if (input.arch && input.also_arch && input.arch !== input.also_arch) {
-    const idA = crypto.randomUUID();
-    const idB = crypto.randomUUID();
-    const inputA = { ...input, arch: input.arch, also_arch: null } as OfflineCreateInput;
-    const inputB = { ...input, arch: input.also_arch, also_arch: null } as OfflineCreateInput;
+    const idA = input.id ?? crypto.randomUUID();
+    const idB = input.also_arch_id ?? crypto.randomUUID();
+    const inputA = { ...input, id: idA, arch: input.arch, also_arch: null, also_arch_id: null } as OfflineCreateInput;
+    const inputB = { ...input, id: idB, arch: input.also_arch, also_arch: null, also_arch_id: null } as OfflineCreateInput;
     const [rowA, rowB] = await Promise.all([
       buildLocalCase(idA, inputA, idB),
       buildLocalCase(idB, inputB, idA),
@@ -379,8 +382,13 @@ async function processCaseEntry(entry: OutboxEntry<CaseOutboxPayload>) {
     case "create": {
       const id = String(payload.id ?? entry.entity_id);
       const existing = await cloud.fetchCaseById(id).catch(() => null);
-      if (existing) return;
-      await cloud.createCase({ ...(payload.input ?? {}), id, also_arch: null } as any);
+      // Even when the primary row already exists, replay the idempotent create
+      // to finish any links interrupted by a timeout before the outbox was queued.
+      if (existing) {
+        await cloud.createCase({ ...(payload.input ?? {}), id, also_arch: null, also_arch_id: null } as any);
+        return;
+      }
+      await cloud.createCase({ ...(payload.input ?? {}), id, also_arch: null, also_arch_id: null } as any);
       return;
     }
     case "update":
