@@ -295,7 +295,7 @@ export async function savePatientLocalFirst(
       .eq("id", id)
       .select("*")
       .single();
-    if (error) throw error;
+    if (error) throw new Error(patientDuplicateErrorMessage(error) ?? error.message);
     const patient = data as unknown as Patient;
     if (isDentalFlowDesktop()) await upsertCachedPatient(ownerId, patient);
     return { patient, queued: false, operation };
