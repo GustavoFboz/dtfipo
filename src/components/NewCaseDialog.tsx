@@ -821,20 +821,26 @@ export function NewCaseDialog({
 
   const submit = useMutation({
     mutationFn: async () => {
-      let pid = patientId;
-      if (!pid && newPatientName.trim()) {
-        await adminCreate("patients", { name: newPatientName.trim() });
-        const fresh = await fetchPatients();
-        const found = fresh.find((p) => p.name === newPatientName.trim());
-        if (!found) throw new Error("Não foi possível criar o paciente");
-        pid = found.id;
-        if (newPatientPhoto) {
-          const blob = await compressSquareImage(newPatientPhoto);
-          const url = await uploadPatientPhoto(pid, blob);
-          await adminUpdate("patients", pid, { photo_url: url });
+      // If a prior response was lost after the request reached the server,
+      // replay the exact saved payload with the same ID instead of creating
+      // another patient/case from whatever is currently typed in the form.
+      const savedPayload = caseCreationPayloadRef.current;
+      if (caseCreationAttemptedRef.current && caseCreateIdRef.current && savedPayload) {
+        const recovered = await createCase({ ...savedPayload, id: caseCreateIdRef.current } as any);
+        const recoveredId = String((recovered as any)?.id ?? caseCreateIdRef.current);
+        const hydrated = hydrateCaseForImmediateCache(recovered, String(savedPayload.patient_id));
+        startPendingUploadsForCase(recoveredId);
+        if (newPatientPhoto && patientCreateIdRef.current === String(savedPayload.patient_id)) {
+          uploadPatientPhotoInBackground(String(savedPayload.patient_id), newPatientPhoto, patientCreateNameRef.current ?? newPatientName);
         }
+        recordInitialAttachmentsInBackground(recoveredId, false);
+        return hydrated;
       }
-      if (!pid) throw new Error("Selecione ou cadastre um paciente");
+
+      let pid = patientId;
+      let patientForCase: any = (patients.data ?? []).find((patient) => patient.id === pid) ?? null;
+      let photoForBackground: File | null = null;
+      if (!pid && !newPatientName.trim()) throw new Error("Selecione ou cadastre um paciente");
       if (!deliveryDate) throw new Error("Informe a data de entrega");
       if (implantSystemId && cleanImplantTeeth.length === 0) {
         throw new Error("Indique pelo menos um elemento com implante");
@@ -893,6 +899,13 @@ export function NewCaseDialog({
         }
       }
 
+      if (!pid && newPatientName.trim()) {
+        patientForCase = await createInlinePatient(newPatientName);
+        pid = patientForCase.id;
+        photoForBackground = newPatientPhoto;
+      }
+      if (!pid) throw new Error("Selecione ou cadastre um paciente");
+
       const base = {
         patient_id: pid,
         doctor_id: doctorId || null,
@@ -931,6 +944,17 @@ export function NewCaseDialog({
 
       let createdCase: CaseRow | null = null;
       let createdId: string | null = null;
+      let createPayload: Record<string, any> = base as any;
+      if (!isEdit) {
+        const requestId = caseCreateIdRef.current ?? crypto.randomUUID();
+        caseCreateIdRef.current = requestId;
+        setCaseCreationId(requestId);
+        createPayload = { ...base, id: requestId, ...(derivedArch ? { arch: derivedArch } : {}) };
+        caseCreationPayloadRef.current = createPayload;
+        setCaseCreationPayload(createPayload);
+        caseCreationAttemptedRef.current = true;
+        setCaseCreationAttempted(true);
+      }
 
       if (isEdit && editCase) {
         const patch = { ...base, arch: arch || null };
@@ -999,56 +1023,21 @@ export function NewCaseDialog({
 
         createdCase = optimisticRow;
         createdId = editCase.id;
-      } else if (derivedArch) {
-        // Unified case: uma arcada, ambas ("both") ou nenhuma — sempre 1 caso só.
-        const a = await createCase({ ...base, arch: derivedArch });
-        createdCase = a as CaseRow;
-        createdId = (a as any)?.id ?? null;
       } else {
-        const a = await createCase(base);
-        createdCase = a as CaseRow;
-        createdId = (a as any)?.id ?? null;
+        // One stable UUID makes a repeated submit the same operation. Essential
+        // case links are committed before return; media and notifications are
+        // scheduled only after the case has a confirmed ID.
+        const a = await createCase(createPayload as any);
+        createdCase = hydrateCaseForImmediateCache(a, pid, patientForCase);
+        createdId = createdCase?.id ?? (a as any)?.id ?? null;
+        if (createdId && photoForBackground) {
+          uploadPatientPhotoInBackground(pid, photoForBackground, newPatientName.trim());
+        }
       }
 
-      // Disparar uploads de Scans pendentes em background
-      // Disparar uploads pendentes em background (com o tipo escolhido por arquivo)
-      // Quem conseguiu criar/editar o caso tem acesso a ele (can_access_case),
-      // portanto pode enviar os anexos pendentes — inclusive CADISTA.
-      queuedUploadCountRef.current = 0;
       if (createdId) {
-        for (const item of pendingScanFiles) {
-          startFileUpload({ caseId: createdId, kind: item.kind, file: item.file, suppressNotification: true });
-          queuedUploadCountRef.current += 1;
-        }
-        // Galeria pendente
-        for (const f of pendingGalleryFiles) {
-          startFileUpload({ caseId: createdId, kind: "gallery", file: f, suppressNotification: true });
-          queuedUploadCountRef.current += 1;
-        }
-      }
-
-      const initialAttachmentCount = pendingScanFiles.length + pendingGalleryFiles.length;
-      if (createdId && initialAttachmentCount > 0) {
-        const content = isEdit
-          ? `${initialAttachmentCount} arquivo(s) foram adicionados ao caso em uma única atualização.`
-          : `Novo caso criado com ${initialAttachmentCount} arquivo(s) anexado(s).`;
-        try {
-          await addCaseActivity(
-            createdId,
-            isEdit ? "upload_batch" : "create_with_attachments",
-            content,
-            [],
-            { file_count: initialAttachmentCount },
-          );
-          await notifyCaseStakeholders({
-            caseId: createdId,
-            title: isEdit ? "Arquivos adicionados ao caso" : "Novo caso com anexos",
-            content,
-            type: isEdit ? "attachment" : "case",
-          });
-        } catch (e) {
-          console.warn("aggregate initial attachment notification failed", e);
-        }
+        startPendingUploadsForCase(createdId);
+        recordInitialAttachmentsInBackground(createdId, isEdit);
       }
       return createdCase;
 
@@ -1071,15 +1060,25 @@ export function NewCaseDialog({
         (isEdit ? "Caso atualizado" : "Caso cadastrado") +
         (queued > 0 ? ` · ${queued} arquivo(s) enviando em segundo plano` : "")
       );
-      await qc.invalidateQueries();
-      await qc.refetchQueries({ queryKey: ["cases"], type: "active" });
+      // Do not hold the dialog open for a global refetch. The new row is already
+      // in the cache; refresh only active case lists in the background.
       if (!isEdit) reset();
       discardAndClose();
+      void qc.invalidateQueries({ queryKey: ["cases"], refetchType: "active" }).catch((error) =>
+        console.warn("case list refresh deferred", error),
+      );
 
 
 
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      const friendly = patientDuplicateErrorMessage(e);
+      toast.error(friendly ?? (
+        caseCreationAttemptedRef.current
+          ? `${e.message} A tentativa pode ter sido gravada; tente novamente sem alterar o formulário para retomar a mesma operação com segurança.`
+          : e.message
+      ));
+    },
   });
 
   const isControlled = openProp !== undefined;
