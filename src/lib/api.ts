@@ -926,50 +926,55 @@ export async function createCase(input: CreateCaseInput & { also_arch?: "superio
 
   // Notifications and activity logs are secondary work. They must not hold the
   // form open after the case and its essential links have been committed.
-  // Replays skip this side effect to avoid duplicate notifications after a timeout.
-  if (!isReplay) {
-    void (async () => {
-      try {
-        if (input.cadista_id && returned?.status !== "pendente") {
-          const { data: cadista } = await supabase
-            .from("cadistas")
-            .select("name, user_id")
-            .eq("id", input.cadista_id)
-            .maybeSingle();
-          const { data: patient } = await supabase
-            .from("patients")
-            .select("name")
-            .eq("id", input.patient_id)
-            .maybeSingle();
-          const { data: { user } } = await supabase.auth.getUser();
-          const patientName = (patient as any)?.name ?? "paciente";
-          if ((cadista as any)?.user_id) {
-            const nId = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2);
-            const notif = {
-              id: nId,
-              sender_id: user?.id ?? null,
-              recipient_id: (cadista as any).user_id,
-              title: "Novo caso atribuído a você",
-              content: `Você foi designado(a) como cadista do caso de ${patientName}.`,
-              type: "case_assigned",
-              metadata: { case_id: returned.id },
-              read_at: null,
-              created_at: new Date().toISOString(),
-            };
-            try { broadcastEntity("notifications", "insert", notif); } catch { /* ignore */ }
-            await supabase.from("notifications").insert(notif as any);
-          }
+  // The notification ID is the case ID, so a replay can safely upsert the same
+  // notification instead of sending a second one.
+  void (async () => {
+    try {
+      if (input.cadista_id && returned?.status !== "pendente") {
+        const { data: cadista } = await supabase
+          .from("cadistas")
+          .select("name, user_id")
+          .eq("id", input.cadista_id)
+          .maybeSingle();
+        const { data: patient } = await supabase
+          .from("patients")
+          .select("name")
+          .eq("id", input.patient_id)
+          .maybeSingle();
+        const { data: { user } } = await supabase.auth.getUser();
+        const patientName = (patient as any)?.name ?? "paciente";
+        if ((cadista as any)?.user_id) {
+          const notif = {
+            id: returned.id,
+            sender_id: user?.id ?? null,
+            recipient_id: (cadista as any).user_id,
+            title: "Novo caso atribuído a você",
+            content: `Você foi designado(a) como cadista do caso de ${patientName}.`,
+            type: "case_assigned",
+            metadata: { case_id: returned.id },
+            read_at: null,
+            created_at: new Date().toISOString(),
+          };
+          const { error: notificationError } = await supabase
+            .from("notifications")
+            .upsert(notif as any, { onConflict: "id", ignoreDuplicates: true });
+          if (notificationError) throw notificationError;
+          try { broadcastEntity("notifications", "insert", notif); } catch { /* local wakeup is best effort */ }
 
-          try {
-            const { addCaseActivity } = await import("./case-activity");
-            await addCaseActivity(returned.id, "create", `Caso criado para ${patientName}.`, []);
-          } catch (e) { console.warn(e); }
+          // The activity feed is not part of the critical creation path. Avoid
+          // duplicating its "created" entry when resuming a partially completed request.
+          if (!isReplay) {
+            try {
+              const { addCaseActivity } = await import("./case-activity");
+              await addCaseActivity(returned.id, "create", `Caso criado para ${patientName}.`, []);
+            } catch (e) { console.warn(e); }
+          }
         }
-      } catch (e) {
-        console.warn("notify cadista on create failed", e);
       }
-    })();
-  }
+    } catch (e) {
+      console.warn("notify cadista on create failed", e);
+    }
+  })();
 
   return returned;
 }
