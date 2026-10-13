@@ -731,6 +731,10 @@ export async function updateCaseTiBases(caseId: string, map: Record<string, stri
 }
 
 export type CreateCaseInput = {
+  /** Stable client-generated operation ID; reusing it makes a retry idempotent. */
+  id?: string;
+  /** Stable ID for the second arch when a two-case workflow is requested. */
+  also_arch_id?: string | null;
   patient_id: string;
   doctor_id: string | null;
   cadista_id: string | null;
@@ -765,6 +769,7 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
     component_ids,
     case_type_ids,
     also_arch: _ignoreAlsoArch,
+    also_arch_id: _ignoreAlsoArchId,
     teeth_zirconia = [],
     teeth_dissilicato = [],
     teeth_numbers = [],
@@ -772,6 +777,7 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
     ...rest
   } = input;
   void _ignoreAlsoArch;
+  void _ignoreAlsoArchId;
   // Default to the first workflow stage (e.g. "Novo Caso") when none is provided
   if (!rest.current_stage_id) {
     const { data: firstStage } = await supabase
@@ -835,25 +841,56 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
       .single();
   }
 
+  // A timed-out request can have committed successfully even when the client
+  // never received its response. A stable case UUID turns that retry into a
+  // read of the original row rather than a second case.
+  let idempotentReplay = false;
+  if (insertResult.error && insertResult.error.code === "23505" && typeof rest.id === "string") {
+    const existingResult = await supabase
+      .from("cases")
+      .select("*")
+      .eq("id", rest.id)
+      .maybeSingle();
+    if (
+      !existingResult.error &&
+      existingResult.data &&
+      existingResult.data.patient_id === rest.patient_id
+    ) {
+      insertResult = { data: existingResult.data, error: null } as any;
+      idempotentReplay = true;
+    }
+  }
+
   const { data: row, error } = insertResult;
   if (error) throw error;
+  if (idempotentReplay) (row as any).__idempotentReplay = true;
+
+  // These links have natural unique keys. Ignore conflicts so a retry can
+  // safely finish a partially completed creation without duplicating links.
   if (component_ids && component_ids.length) {
     const { error: e2 } = await supabase
       .from("case_components")
-      .insert(component_ids.map((cid) => ({ case_id: row.id, component_id: cid })));
+      .upsert(
+        component_ids.map((cid) => ({ case_id: row.id, component_id: cid }),
+        { onConflict: "case_id,component_id", ignoreDuplicates: true },
+      );
     if (e2) throw e2;
   }
   if (case_type_ids && case_type_ids.length) {
-    await supabase
+    const { error: e3 } = await supabase
       .from("case_types_link")
-      .insert(case_type_ids.map((ctid) => ({ case_id: row.id, case_type_id: ctid })));
+      .upsert(
+        case_type_ids.map((ctid) => ({ case_id: row.id, case_type_id: ctid })),
+        { onConflict: "case_id,case_type_id", ignoreDuplicates: true },
+      );
+    if (e3) throw e3;
   }
   if (rest.current_stage_id) {
-    await supabase.from("case_stages").insert({
-      case_id: row.id,
-      stage_id: rest.current_stage_id,
-      position: 0,
-    });
+    const { error: e4 } = await supabase.from("case_stages").upsert(
+      { case_id: row.id, stage_id: rest.current_stage_id, position: 0 },
+      { onConflict: "case_id,stage_id", ignoreDuplicates: true },
+    );
+    if (e4) throw e4;
   }
   // Auto-record burr usages
   if (teeth_zirconia.length) await autoRecordCaseMilling(row.id, "zirconia", teeth_zirconia);
@@ -864,67 +901,75 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
 export async function createCase(input: CreateCaseInput & { also_arch?: "superior" | "inferior" | null }) {
   let created: any;
   if (input.arch && input.also_arch && input.arch !== input.also_arch) {
-    const a = await insertOneCase({ ...input, arch: input.arch });
-    const b = await insertOneCase({ ...input, arch: input.also_arch }, a.id);
-    await supabase.from("cases").update({ sibling_case_id: b.id }).eq("id", a.id);
+    const mainId = input.id ?? crypto.randomUUID();
+    const siblingId = input.also_arch_id ?? crypto.randomUUID();
+    const a = await insertOneCase({ ...input, id: mainId, arch: input.arch });
+    const b = await insertOneCase({ ...input, id: siblingId, arch: input.also_arch, also_arch: null }, a.id);
+    const { error: siblingError } = await supabase.from("cases").update({ sibling_case_id: b.id }).eq("id", a.id);
+    if (siblingError) throw siblingError;
     created = a;
   } else {
     created = await insertOneCase(input);
   }
 
-  // Sincronização instantânea entre abas do MESMO dispositivo. O transporte
-  // cross-device é postgres_changes sob RLS, portanto nunca depende deste peer
-  // local para autorização. Publicamos só o id para forçar cada aba a buscar a
-  // linha que a própria sessão está autorizada a enxergar.
+  const isReplay = Boolean((created as any)?.__idempotentReplay);
+  const returned = { ...created };
+  delete (returned as any).__idempotentReplay;
+
+  // Immediate same-device wakeup; cross-device propagation remains protected
+  // by Postgres Changes/RLS. Never broadcast private patient data.
   try {
-    if (created?.id) {
-      broadcastEntity("cases", "insert", { id: created.id });
-    }
+    if (returned?.id) broadcastEntity("cases", "insert", { id: returned.id });
   } catch (e) { console.warn("local case insert wakeup failed", e); }
 
-  // Notify cadista (if linked to a user) when a case is created and assigned to them
-  try {
-    if (input.cadista_id && created?.status !== "pendente") {
-      const { data: cadista } = await supabase
-        .from("cadistas")
-        .select("name, user_id")
-        .eq("id", input.cadista_id)
-        .maybeSingle();
-      const { data: patient } = await supabase
-        .from("patients")
-        .select("name")
-        .eq("id", input.patient_id)
-        .maybeSingle();
-      const { data: { user } } = await supabase.auth.getUser();
-      const patientName = (patient as any)?.name ?? "paciente";
-      if ((cadista as any)?.user_id) {
-        const nId = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2);
-        const notif = {
-          id: nId,
-          sender_id: user?.id ?? null,
-          recipient_id: (cadista as any).user_id,
-          title: "Novo caso atribuído a você",
-          content: `Você foi designado(a) como cadista do caso de ${patientName}.`,
-          type: "case_assigned",
-          metadata: { case_id: created.id },
-          read_at: null,
-          created_at: new Date().toISOString(),
-        };
-        try { broadcastEntity("notifications", "insert", notif); } catch { /* ignore */ }
-        await supabase.from("notifications").insert(notif as any);
-      }
-
-      // Activity log entry
+  // Notifications and activity logs are secondary work. They must not hold the
+  // form open after the case and its essential links have been committed.
+  // Replays skip this side effect to avoid duplicate notifications after a timeout.
+  if (!isReplay) {
+    void (async () => {
       try {
-        const { addCaseActivity } = await import("./case-activity");
-        await addCaseActivity(created.id, "create", `Caso criado para ${patientName}.`, []);
-      } catch (e) { console.warn(e); }
-    }
-  } catch (e) {
-    console.warn("notify cadista on create failed", e);
+        if (input.cadista_id && returned?.status !== "pendente") {
+          const { data: cadista } = await supabase
+            .from("cadistas")
+            .select("name, user_id")
+            .eq("id", input.cadista_id)
+            .maybeSingle();
+          const { data: patient } = await supabase
+            .from("patients")
+            .select("name")
+            .eq("id", input.patient_id)
+            .maybeSingle();
+          const { data: { user } } = await supabase.auth.getUser();
+          const patientName = (patient as any)?.name ?? "paciente";
+          if ((cadista as any)?.user_id) {
+            const nId = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+            const notif = {
+              id: nId,
+              sender_id: user?.id ?? null,
+              recipient_id: (cadista as any).user_id,
+              title: "Novo caso atribuído a você",
+              content: `Você foi designado(a) como cadista do caso de ${patientName}.`,
+              type: "case_assigned",
+              metadata: { case_id: returned.id },
+              read_at: null,
+              created_at: new Date().toISOString(),
+            };
+            try { broadcastEntity("notifications", "insert", notif); } catch { /* ignore */ }
+            await supabase.from("notifications").insert(notif as any);
+          }
+
+          try {
+            const { addCaseActivity } = await import("./case-activity");
+            await addCaseActivity(returned.id, "create", `Caso criado para ${patientName}.`, []);
+          } catch (e) { console.warn(e); }
+        }
+      } catch (e) {
+        console.warn("notify cadista on create failed", e);
+      }
+    })();
   }
 
-  return created;
+  return returned;
 }
 
 
