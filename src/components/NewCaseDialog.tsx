@@ -31,7 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   fetchPatients, fetchDoctors, fetchCadistas, fetchCaseTypes, fetchToothColors,
   fetchStages, fetchImplantSystems, fetchScanJigs, createImplantSystem, createScanJig,
-  createCase, updateCase, syncCaseTypes, adminCreate, adminUpdate, uploadPatientPhoto, fetchProfile,
+  createCase, updateCase, syncCaseTypes, adminCreate, adminUpdate, uploadPatientPhoto, fetchProfile, fetchCaseById,
   fetchTiBaseOptions, updateCaseTiBases,
 } from "@/lib/api";
 
@@ -42,6 +42,8 @@ import { ArcadaModeToggle, type ArcadaMode } from "./ArcadaModeToggle";
 import { PatientCombobox } from "./PatientCombobox";
 import { sortTeeth } from "@/lib/teeth";
 import { applyToothModifierSelection } from "@/lib/tooth-selection";
+import { hasPatientIdentifier, normalizePatientName, patientDuplicateErrorMessage, samePatientIdentity } from "@/lib/patient-identity";
+import type { PatientIdentityField } from "@/lib/patient-identity";
 import type { CaseRow } from "@/lib/types";
 import { applyCasePatchToCache } from "@/hooks/use-cases-realtime";
 import { broadcastEntity } from "@/lib/optimistic";
@@ -161,7 +163,13 @@ export function NewCaseDialog({
 
   // Descartar tudo: usado pelo botão Cancelar e após salvar com sucesso.
   const discardAndClose = () => {
-    clearSessionSnapshot(persistOpenKey, persistFormKey);
+    // If a request may already have reached the server, preserve its stable
+    // operation ID and snapshot so reopening can safely resume the same case.
+    const unresolvedCreation = caseCreationAttemptedRef.current && !!caseCreateIdRef.current;
+    if (!unresolvedCreation) clearSessionSnapshot(persistOpenKey, persistFormKey);
+    else if (persistOpenKey && typeof window !== "undefined") {
+      try { sessionStorage.removeItem(persistOpenKey); } catch { /* ignore */ }
+    }
     onOpenChange?.(false);
     if (openProp === undefined) setOpenState(false);
   };
@@ -182,6 +190,18 @@ export function NewCaseDialog({
   const [patientId, setPatientId] = useState<string>(initialPatientId ?? "");
   const [newPatientName, setNewPatientName] = useState("");
   const [newPatientPhoto, setNewPatientPhoto] = useState<File | null>(null);
+  const [newPatientIdentifierType, setNewPatientIdentifierType] = useState<PatientIdentityField | "">("");
+  const [newPatientIdentifierValue, setNewPatientIdentifierValue] = useState("");
+  const [caseCreationId, setCaseCreationId] = useState<string | null>(null);
+  const caseCreateIdRef = useRef<string | null>(null);
+  const [patientCreationId, setPatientCreationId] = useState<string | null>(null);
+  const patientCreateIdRef = useRef<string | null>(null);
+  const [patientCreationName, setPatientCreationName] = useState<string | null>(null);
+  const patientCreateNameRef = useRef<string | null>(null);
+  const [caseCreationAttempted, setCaseCreationAttempted] = useState(false);
+  const caseCreationAttemptedRef = useRef(false);
+  const [caseCreationPayload, setCaseCreationPayload] = useState<Record<string, any> | null>(null);
+  const caseCreationPayloadRef = useRef<Record<string, any> | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const [doctorId, setDoctorId] = useState<string>("");
   const [cadistaId, setCadistaId] = useState<string>("");
@@ -247,7 +267,8 @@ export function NewCaseDialog({
   // Persiste apenas campos serializáveis — arquivos (File) e refs são ignorados.
   const formSnapshot = useMemo(
     () => ({
-      patientId, newPatientName,
+      patientId, newPatientName, newPatientIdentifierType, newPatientIdentifierValue,
+      caseCreationId, patientCreationId, patientCreationName, caseCreationAttempted, caseCreationPayload,
       doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
       entryDate, deliveryDate, stageId, arch,
       implantSystemId, additionalSystemIds, implantTeeth,
@@ -257,7 +278,9 @@ export function NewCaseDialog({
       toothTypeMap, prosthesisGroups, toothEnceramento, toothImplantSystemMap,
     }),
     [
-      patientId, newPatientName, doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
+      patientId, newPatientName, newPatientIdentifierType, newPatientIdentifierValue,
+      caseCreationId, patientCreationId, patientCreationName, caseCreationAttempted, caseCreationPayload,
+      doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
       entryDate, deliveryDate, stageId, arch, implantSystemId, additionalSystemIds, implantTeeth,
       arcadaMode, scanJigId, hasProvisional, hasMockup, notes, teeth, zirTeeth, disTeeth,
       gumMode, gumColor, gumNotes, toothTypeMap, prosthesisGroups, toothEnceramento, toothImplantSystemMap,
@@ -266,6 +289,13 @@ export function NewCaseDialog({
   useSessionSnapshot(persistFormKey, !!persistFormKey && open, formSnapshot, (d) => {
     if (d.patientId !== undefined) setPatientId(d.patientId as string);
     if (d.newPatientName !== undefined) setNewPatientName(d.newPatientName as string);
+    if (d.newPatientIdentifierType !== undefined) setNewPatientIdentifierType(d.newPatientIdentifierType as PatientIdentityField | "");
+    if (d.newPatientIdentifierValue !== undefined) setNewPatientIdentifierValue(d.newPatientIdentifierValue as string);
+    if (d.caseCreationId !== undefined) { setCaseCreationId(d.caseCreationId as string | null); caseCreateIdRef.current = d.caseCreationId as string | null; }
+    if (d.patientCreationId !== undefined) { setPatientCreationId(d.patientCreationId as string | null); patientCreateIdRef.current = d.patientCreationId as string | null; }
+    if (d.patientCreationName !== undefined) { setPatientCreationName(d.patientCreationName as string | null); patientCreateNameRef.current = d.patientCreationName as string | null; }
+    if (d.caseCreationAttempted !== undefined) { setCaseCreationAttempted(!!d.caseCreationAttempted); caseCreationAttemptedRef.current = !!d.caseCreationAttempted; }
+    if (d.caseCreationPayload !== undefined) { setCaseCreationPayload(d.caseCreationPayload as Record<string, any> | null); caseCreationPayloadRef.current = d.caseCreationPayload as Record<string, any> | null; }
     if (d.doctorId !== undefined) setDoctorId(d.doctorId as string);
     if (d.cadistaId !== undefined) setCadistaId(d.cadistaId as string);
     if (d.caseTypeIds !== undefined) setCaseTypeIds(d.caseTypeIds as string[]);
@@ -395,6 +425,13 @@ export function NewCaseDialog({
 
 
   const patients = useQuery({ queryKey: ["patients"], queryFn: fetchPatients, enabled: open });
+  const normalizedNewPatientName = normalizePatientName(newPatientName);
+  const duplicateNamePatients = useMemo(
+    () => normalizedNewPatientName
+      ? (patients.data ?? []).filter((patient) => normalizePatientName(patient.name) === normalizedNewPatientName)
+      : [],
+    [patients.data, normalizedNewPatientName],
+  );
   const doctors = useQuery({ queryKey: ["doctors"], queryFn: fetchDoctors, enabled: open });
   const cadistas = useQuery({ queryKey: ["cadistas"], queryFn: fetchCadistas, enabled: open });
   // Atualiza dropdown de cadistas/protéticos em tempo real quando alguém adiciona
@@ -439,6 +476,12 @@ export function NewCaseDialog({
 
   const reset = () => {
     setPatientId(initialPatientId ?? ""); setNewPatientName(""); setNewPatientPhoto(null);
+    setNewPatientIdentifierType(""); setNewPatientIdentifierValue("");
+    caseCreateIdRef.current = null; setCaseCreationId(null);
+    patientCreateIdRef.current = null; setPatientCreationId(null);
+    patientCreateNameRef.current = null; setPatientCreationName(null);
+    caseCreationAttemptedRef.current = false; setCaseCreationAttempted(false);
+    caseCreationPayloadRef.current = null; setCaseCreationPayload(null);
     setDoctorId(""); setCadistaId(""); setCaseTypeIds([]);
     setToothColorId(""); setCaseLabel(""); setEntryDate(today); setDeliveryDate(today);
     setStageId(""); setArch(""); setImplantSystemId(""); setAdditionalSystemIds([]); setImplantTeeth([]); setScanJigId(""); setHasProvisional(false); setHasMockup(false);
