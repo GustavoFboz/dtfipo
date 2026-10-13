@@ -18134,7 +18134,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $$
 DECLARE
   v_actor uuid := auth.uid();
   v_clinic uuid;
@@ -18785,7 +18785,7 @@ GRANT EXECUTE ON FUNCTION public.saas_claim_fixture_acceptance_job(uuid,text),
 
   RETURN v_result;
 END;
-$;
+$$;
 
 REVOKE ALL ON FUNCTION public.create_patient_idempotent_v1(uuid, uuid, jsonb) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.create_patient_idempotent_v1(uuid, uuid, jsonb) TO authenticated, service_role;
@@ -18798,7 +18798,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $$
 DECLARE
   v_actor uuid := auth.uid();
   v_clinic uuid;
@@ -19108,7 +19108,7 @@ BEGIN
 
   RETURN v_result;
 END;
-$;
+$$;
 
 REVOKE ALL ON FUNCTION public.create_case_idempotent_v1(uuid, jsonb) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.create_case_idempotent_v1(uuid, jsonb) TO authenticated, service_role;
