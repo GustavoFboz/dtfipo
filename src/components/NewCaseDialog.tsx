@@ -193,6 +193,7 @@ export function NewCaseDialog({
   const [newPatientPhoto, setNewPatientPhoto] = useState<File | null>(null);
   const [newPatientIdentifierType, setNewPatientIdentifierType] = useState<PatientIdentityField | "">("");
   const [newPatientIdentifierValue, setNewPatientIdentifierValue] = useState("");
+  const [forcePatientIdentifier, setForcePatientIdentifier] = useState(false);
   const [caseCreationId, setCaseCreationId] = useState<string | null>(null);
   const caseCreateIdRef = useRef<string | null>(null);
   const [patientCreationId, setPatientCreationId] = useState<string | null>(null);
@@ -268,7 +269,7 @@ export function NewCaseDialog({
   // Persiste apenas campos serializáveis — arquivos (File) e refs são ignorados.
   const formSnapshot = useMemo(
     () => ({
-      patientId, newPatientName, newPatientIdentifierType, newPatientIdentifierValue,
+      patientId, newPatientName, newPatientIdentifierType, newPatientIdentifierValue, forcePatientIdentifier,
       caseCreationId, patientCreationId, patientCreationName, caseCreationAttempted, caseCreationPayload,
       doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
       entryDate, deliveryDate, stageId, arch,
@@ -279,7 +280,7 @@ export function NewCaseDialog({
       toothTypeMap, prosthesisGroups, toothEnceramento, toothImplantSystemMap,
     }),
     [
-      patientId, newPatientName, newPatientIdentifierType, newPatientIdentifierValue,
+      patientId, newPatientName, newPatientIdentifierType, newPatientIdentifierValue, forcePatientIdentifier,
       caseCreationId, patientCreationId, patientCreationName, caseCreationAttempted, caseCreationPayload,
       doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
       entryDate, deliveryDate, stageId, arch, implantSystemId, additionalSystemIds, implantTeeth,
@@ -292,6 +293,7 @@ export function NewCaseDialog({
     if (d.newPatientName !== undefined) setNewPatientName(d.newPatientName as string);
     if (d.newPatientIdentifierType !== undefined) setNewPatientIdentifierType(d.newPatientIdentifierType as PatientIdentityField | "");
     if (d.newPatientIdentifierValue !== undefined) setNewPatientIdentifierValue(d.newPatientIdentifierValue as string);
+    if (d.forcePatientIdentifier !== undefined) setForcePatientIdentifier(!!d.forcePatientIdentifier);
     if (d.caseCreationId !== undefined) { setCaseCreationId(d.caseCreationId as string | null); caseCreateIdRef.current = d.caseCreationId as string | null; }
     if (d.patientCreationId !== undefined) { setPatientCreationId(d.patientCreationId as string | null); patientCreateIdRef.current = d.patientCreationId as string | null; }
     if (d.patientCreationName !== undefined) { setPatientCreationName(d.patientCreationName as string | null); patientCreateNameRef.current = d.patientCreationName as string | null; }
@@ -477,7 +479,7 @@ export function NewCaseDialog({
 
   const reset = () => {
     setPatientId(initialPatientId ?? ""); setNewPatientName(""); setNewPatientPhoto(null);
-    setNewPatientIdentifierType(""); setNewPatientIdentifierValue("");
+    setNewPatientIdentifierType(""); setNewPatientIdentifierValue(""); setForcePatientIdentifier(false);
     caseCreateIdRef.current = null; setCaseCreationId(null);
     patientCreateIdRef.current = null; setPatientCreationId(null);
     patientCreateNameRef.current = null; setPatientCreationName(null);
@@ -1065,6 +1067,13 @@ export function NewCaseDialog({
     },
     onError: (e: Error) => {
       const friendly = patientDuplicateErrorMessage(e);
+      const duplicatePatientError = /paciente com esse nome|PATIENT_DUPLICATE_NAME|PATIENT_DUPLICATE_IDENTITY/i.test(
+        `${e.message} ${friendly ?? ""}`,
+      );
+      if (duplicatePatientError) {
+        setForcePatientIdentifier(true);
+        void qc.invalidateQueries({ queryKey: ["patients"], refetchType: "active" }).catch(() => undefined);
+      }
       toast.error(friendly ?? (
         caseCreationAttemptedRef.current
           ? `${e.message} A tentativa pode ter sido gravada; tente novamente sem alterar o formulário para retomar a mesma operação com segurança.`
@@ -1166,6 +1175,7 @@ export function NewCaseDialog({
                         setNewPatientPhoto(null);
                         setNewPatientIdentifierType("");
                         setNewPatientIdentifierValue("");
+                        setForcePatientIdentifier(false);
                         if (!caseCreationAttemptedRef.current) {
                           patientCreateIdRef.current = null; setPatientCreationId(null);
                           patientCreateNameRef.current = null; setPatientCreationName(null);
@@ -1176,6 +1186,7 @@ export function NewCaseDialog({
                         if (changed) {
                           setNewPatientIdentifierType("");
                           setNewPatientIdentifierValue("");
+                          setForcePatientIdentifier(false);
                           if (!caseCreationAttemptedRef.current) {
                             patientCreateIdRef.current = null; setPatientCreationId(null);
                             patientCreateNameRef.current = null; setPatientCreationName(null);
@@ -1199,7 +1210,7 @@ export function NewCaseDialog({
                   <div className="space-y-2">
                     <div className="flex gap-2 items-center">
                       <div className="text-xs text-muted-foreground flex-1">
-                        {duplicateNamePatients.length
+                        {(duplicateNamePatients.length || forcePatientIdentifier)
                           ? "Já existe paciente com esse nome. Selecione o cadastro acima ou informe um identificador para cadastrar outra pessoa."
                           : <>Será cadastrado como novo paciente: <b>{newPatientName}</b></>}
                       </div>
@@ -1211,7 +1222,7 @@ export function NewCaseDialog({
                         {newPatientPhoto ? "Foto ok" : "Foto"}
                       </Button>
                     </div>
-                    {duplicateNamePatients.length > 0 && (
+                    {(duplicateNamePatients.length > 0 || forcePatientIdentifier) && (
                       <div className="grid grid-cols-[140px_minmax(0,1fr)] gap-2">
                         <Select
                           value={newPatientIdentifierType}
