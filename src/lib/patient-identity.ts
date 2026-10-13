@@ -27,11 +27,11 @@ export function samePatientIdentity(
 ): boolean {
   const existingCpf = normalizePatientIdentifier("cpf", existing.cpf);
   const incomingCpf = normalizePatientIdentifier("cpf", incoming.cpf);
-  if (existingCpf && incomingCpf) return existingCpf === incomingCpf;
+  if (existingCpf && incomingCpf && existingCpf === incomingCpf) return true;
 
   const existingRg = normalizePatientIdentifier("rg", existing.rg);
   const incomingRg = normalizePatientIdentifier("rg", incoming.rg);
-  if (existingRg && incomingRg) return existingRg === incomingRg;
+  if (existingRg && incomingRg && existingRg === incomingRg) return true;
 
   // A shared phone is treated as a match when either record lacks CPF/RG.
   // If both records have distinct strong identifiers, a shared family phone is
