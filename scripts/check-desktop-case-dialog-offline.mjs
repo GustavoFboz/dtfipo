@@ -49,8 +49,8 @@ expect(
 
 expect(casesLocal.includes('operation: "create"'), "Offline case creation must enqueue a durable case outbox entry.");
 expect(
-  casesLocal.includes('await cloud.createCase({ ...(payload.input ?? {}), id, also_arch: null } as any)'),
-  "Queued offline cases must be created in Lovable Cloud on reconnect.",
+  /await cloud\.createCase\(\{\s*\.\.\.\(payload\.input \?\? \{\}\),\s*id,\s*also_arch:\s*null(?:,\s*also_arch_id:\s*null)?\s*\}\s*as any\)/.test(casesLocal),
+  "Queued offline cases must replay with the stable case ID and without creating an extra arch.",
 );
 expect(
   desktopVite.includes("api.desktop.case-offline.ts"),

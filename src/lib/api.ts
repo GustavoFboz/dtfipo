@@ -893,10 +893,13 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
   const linkError = linkResults.find((result) => result?.error)?.error;
   if (linkError) throw linkError;
 
-  await Promise.all([
+  // Milling/burr usage is auxiliary bookkeeping. The case and its required
+  // links are already committed, so never keep the creation dialog waiting on
+  // a separate stock-history lookup. The operation is idempotent per case/material.
+  void Promise.all([
     teeth_zirconia.length ? autoRecordCaseMilling(row.id, "zirconia", teeth_zirconia) : Promise.resolve(),
     teeth_dissilicato.length ? autoRecordCaseMilling(row.id, "dissilicato", teeth_dissilicato) : Promise.resolve(),
-  ]);
+  ]).catch((error) => console.warn("[DentalFlow] case milling tracking deferred", error));
   return row;
 }
 

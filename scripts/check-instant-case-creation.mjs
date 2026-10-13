@@ -14,11 +14,13 @@ const patients = read("src/lib/patients-local-first.ts");
 const patientDialog = read("src/components/PatientFormDialog.tsx");
 const migrationName = "20261013150000_patient_duplicate_guard.sql";
 const migration = read(`public/restore/migrations/${migrationName}`);
+const liveMigration = read(`supabase/migrations/${migrationName}`);
 const manifest = JSON.parse(read("public/restore/migrations.json"));
 
 expect(api.includes("id?: string;") && api.includes("idempotentReplay"), "Cloud case creation must reuse a stable ID after an ambiguous response.");
 expect(api.includes('onConflict: "case_id,component_id"') && api.includes('onConflict: "case_id,case_type_id"') && api.includes('onConflict: "case_id,stage_id"'), "Essential case links must be idempotent.");
 expect(api.includes("Notifications and activity logs are secondary work") && api.includes("return returned;"), "Notifications must not block the confirmed case response.");
+expect(api.includes("void Promise.all([") && api.includes("case milling tracking deferred"), "Auxiliary burr usage must not block the confirmed case response.");
 expect(desktop.includes("const id = input.id ?? crypto.randomUUID()"), "Desktop outbox must preserve the same case ID on retry.");
 expect(desktop.includes("void cloud.fetchCaseById(created.id)"), "Desktop joined cache hydration must run in the background.");
 expect(desktopOffline.includes("void (async () => {") && desktopOffline.includes("sendInternalNotificationLocalFirst"), "Offline notifications must not block the local case save.");
@@ -31,6 +33,7 @@ expect(realtime.includes("upsertCaseIntoCache(queryClient, minimal)") && realtim
 expect(patients.includes("requestId?: string") && patients.includes("normalizePatientName(retry.data.name)"), "Patient creation must be idempotent after a lost response.");
 expect(patientDialog.includes("samePatientIdentity") && patientDialog.includes("createPatientIdRef"), "The full patient form must guard duplicates and reuse its creation ID.");
 expect(migration.includes("pg_advisory_xact_lock") && migration.includes("PATIENT_DUPLICATE_NAME_REQUIRES_IDENTIFIER") && migration.includes("PATIENT_DUPLICATE_IDENTITY_EXISTS"), "Database must serialize and guard same-name patient creation.");
+expect(liveMigration.trim() === migration.trim(), "The live Supabase migration must match the tested restore migration exactly.");
 expect(manifest.includes(migrationName) && manifest.at(-1)?.includes("self_heal"), "The patient guard migration must be registered before the final self-heal migration.");
 
 for (const bundlePath of ["public/restore.sql", "public/restore/backend-restore.sql"]) {
