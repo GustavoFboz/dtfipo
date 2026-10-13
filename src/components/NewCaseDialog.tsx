@@ -492,6 +492,147 @@ export function NewCaseDialog({
     setPendingGalleryFiles([]);
   };
 
+  const startPendingUploadsForCase = (caseId: string) => {
+    queuedUploadCountRef.current = 0;
+    for (const item of pendingScanFiles) {
+      startFileUpload({ caseId, kind: item.kind, file: item.file, suppressNotification: true });
+      queuedUploadCountRef.current += 1;
+    }
+    for (const file of pendingGalleryFiles) {
+      startFileUpload({ caseId, kind: "gallery", file, suppressNotification: true });
+      queuedUploadCountRef.current += 1;
+    }
+  };
+
+  const recordInitialAttachmentsInBackground = (caseId: string, editing: boolean) => {
+    const count = pendingScanFiles.length + pendingGalleryFiles.length;
+    if (!count) return;
+    const content = editing
+      ? `${count} arquivo(s) foram adicionados ao caso em uma única atualização.`
+      : `Novo caso criado com ${count} arquivo(s) anexado(s).`;
+    void addCaseActivity(
+      caseId,
+      editing ? "upload_batch" : "create_with_attachments",
+      content,
+      [],
+      { file_count: count },
+    ).then(() => notifyCaseStakeholders({
+      caseId,
+      title: editing ? "Arquivos adicionados ao caso" : "Novo caso com anexos",
+      content,
+      type: editing ? "attachment" : "case",
+    })).catch((error) => console.warn("initial case attachment activity deferred", error));
+  };
+
+  const uploadPatientPhotoInBackground = (patientIdToUpdate: string, file: File, patientName: string) => {
+    void (async () => {
+      const blob = await compressSquareImage(file);
+      const url = await uploadPatientPhoto(patientIdToUpdate, blob);
+      await adminUpdate("patients", patientIdToUpdate, { photo_url: url });
+      const known = (patients.data ?? []).find((p) => p.id === patientIdToUpdate);
+      const updated = { ...(known ?? {}), id: patientIdToUpdate, name: patientName, photo_url: url };
+      qc.setQueriesData<any[]>({ queryKey: ["patients"] }, (old) =>
+        Array.isArray(old) ? old.map((p) => p.id === patientIdToUpdate ? { ...p, photo_url: url } : p) : old,
+      );
+      qc.setQueryData(["patient", patientIdToUpdate], (old: any) => old ? { ...old, photo_url: url } : updated);
+      try { broadcastEntity("patients", "update", updated); } catch { /* local wakeup is best effort */ }
+    })().catch((error) => {
+      console.warn("patient photo upload deferred after case creation", error);
+      toast.error("O caso foi criado, mas a foto do paciente não foi enviada. Você pode adicioná-la depois.");
+    });
+  };
+
+  const hydrateCaseForImmediateCache = (row: any, patientIdToHydrate: string, patientOverride?: any) => {
+    const patient = patientOverride
+      ?? (patients.data ?? []).find((p) => p.id === patientIdToHydrate)
+      ?? (patientIdToHydrate && newPatientName.trim()
+        ? { id: patientIdToHydrate, name: newPatientName.trim(), photo_url: null }
+        : null);
+    const hydrated = {
+      ...row,
+      patient: row?.patient ?? patient,
+      doctor: row?.doctor ?? (doctors.data ?? []).find((item) => item.id === row?.doctor_id) ?? null,
+      cadista: row?.cadista ?? (cadistas.data ?? []).find((item) => item.id === row?.cadista_id) ?? null,
+      case_type: row?.case_type ?? (caseTypes.data ?? []).find((item) => item.id === row?.case_type_id) ?? null,
+      tooth_color: row?.tooth_color ?? (colors.data ?? []).find((item) => item.id === row?.tooth_color_id) ?? null,
+      current_stage: row?.current_stage ?? (stages.data ?? []).find((item) => item.id === row?.current_stage_id) ?? null,
+      case_stages: row?.case_stages ?? [],
+      case_components: row?.case_components ?? [],
+    } as CaseRow;
+    applyCasePatchToCache(qc, hydrated as any);
+    qc.setQueryData<CaseRow | null>(["case", hydrated.id], (old) => old ? { ...old, ...hydrated } : hydrated);
+    return hydrated;
+  };
+
+  const createInlinePatient = async (rawName: string) => {
+    const name = rawName.trim().replace(/\\s+/g, " ");
+    const normalizedName = normalizePatientName(name);
+    if (!normalizedName) throw new Error("Informe o nome do paciente.");
+
+    if (
+      patientCreateIdRef.current &&
+      patientCreateNameRef.current &&
+      normalizePatientName(patientCreateNameRef.current) !== normalizedName
+    ) {
+      const previous = await supabase.from("patients").select("id,name").eq("id", patientCreateIdRef.current).maybeSingle();
+      if (previous.data) {
+        throw new Error(
+          `A tentativa anterior já salvou "${previous.data.name}". Selecione esse cadastro para evitar uma duplicata.`,
+        );
+      }
+      patientCreateIdRef.current = null;
+      patientCreateNameRef.current = null;
+      setPatientCreationId(null);
+      setPatientCreationName(null);
+    }
+
+    const requestId = patientCreateIdRef.current ?? crypto.randomUUID();
+    patientCreateIdRef.current = requestId;
+    setPatientCreationId(requestId);
+    patientCreateNameRef.current = name;
+    setPatientCreationName(name);
+
+    const identity: Record<string, unknown> = { cpf: "", rg: "", phone: "" };
+    if (newPatientIdentifierType && newPatientIdentifierValue.trim()) {
+      identity[newPatientIdentifierType] = newPatientIdentifierValue.trim();
+    }
+    const sameName = (patients.data ?? []).filter(
+      (patient) => patient.id !== requestId && normalizePatientName(patient.name) === normalizedName,
+    );
+    if (sameName.length && !hasPatientIdentifier(identity)) {
+      throw new Error(
+        "Já existe um paciente com esse nome. Selecione o cadastro existente ou informe CPF, RG ou telefone para cadastrar outra pessoa.",
+      );
+    }
+    if (sameName.some((patient) => samePatientIdentity(patient as any, identity))) {
+      throw new Error(
+        "Já existe um paciente com esse nome e identificador. Selecione o cadastro existente em vez de criar uma duplicata.",
+      );
+    }
+
+    const insertValues = {
+      id: requestId,
+      name,
+      ...(newPatientIdentifierType && newPatientIdentifierValue.trim()
+        ? { [newPatientIdentifierType]: newPatientIdentifierValue.trim() }
+        : {}),
+    };
+    const inserted = await supabase.from("patients").insert(insertValues as any).select("*").single();
+    let patient = inserted.data as any;
+    let error = inserted.error;
+
+    if (error?.code === "23505") {
+      const retry = await supabase.from("patients").select("*").eq("id", requestId).maybeSingle();
+      if (retry.data && normalizePatientName(retry.data.name) === normalizedName) {
+        patient = retry.data;
+        error = null;
+      }
+    }
+    if (error) throw new Error(patientDuplicateErrorMessage(error) ?? error.message);
+    if (!patient?.id) throw new Error("Não foi possível confirmar o cadastro do paciente.");
+    return patient;
+  };
+
   const cleanImplantTeeth = useMemo(() => implantTeeth.filter((t) => new Set(teeth).has(t)), [implantTeeth, teeth]);
 
   // Todos os sistemas de implante ativos no caso (primário + adicionais), na ordem de exibição.
