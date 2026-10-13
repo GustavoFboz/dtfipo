@@ -134,6 +134,19 @@ export async function deleteBurrUsage(id: string) {
 
 export async function autoRecordCaseMilling(caseId: string, material: BurrMaterial, teeth: number[]) {
   if (!teeth.length) return;
+
+  // A case retry may resume after the primary row was committed. Do not record
+  // the same material twice for that case.
+  const { data: existingUsage, error: usageLookupError } = await supabase
+    .from("burr_usages")
+    .select("id")
+    .eq("case_id", caseId)
+    .eq("material", material)
+    .limit(1)
+    .maybeSingle();
+  if (usageLookupError) throw usageLookupError;
+  if (existingUsage) return;
+
   const burr = await fetchActiveBurr(material);
   if (!burr) {
     // Não bloquear cadastro do caso quando não houver fresa ativa: registra silenciosamente nada.
