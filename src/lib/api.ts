@@ -871,7 +871,7 @@ async function insertOneCase(input: CreateCaseInput & { also_arch?: string | nul
     const { error: e2 } = await supabase
       .from("case_components")
       .upsert(
-        component_ids.map((cid) => ({ case_id: row.id, component_id: cid }),
+        component_ids.map((cid) => ({ case_id: row.id, component_id: cid })),
         { onConflict: "case_id,component_id", ignoreDuplicates: true },
       );
     if (e2) throw e2;
