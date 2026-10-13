@@ -33,11 +33,14 @@ export function samePatientIdentity(
   const incomingRg = normalizePatientIdentifier("rg", incoming.rg);
   if (existingRg && incomingRg) return existingRg === incomingRg;
 
-  const noStrongId =
-    !existingCpf && !incomingCpf && !existingRg && !incomingRg;
+  // A shared phone is treated as a match when either record lacks CPF/RG.
+  // If both records have distinct strong identifiers, a shared family phone is
+  // not enough to merge or block two different people.
+  const atLeastOneLacksStrongId =
+    (!existingCpf && !existingRg) || (!incomingCpf && !incomingRg);
   const existingPhone = normalizePatientIdentifier("phone", existing.phone);
   const incomingPhone = normalizePatientIdentifier("phone", incoming.phone);
-  return noStrongId && Boolean(existingPhone && incomingPhone && existingPhone === incomingPhone);
+  return atLeastOneLacksStrongId && Boolean(existingPhone && incomingPhone && existingPhone === incomingPhone);
 }
 
 export function patientDuplicateErrorMessage(error: unknown): string | null {
