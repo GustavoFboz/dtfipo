@@ -4209,6 +4209,7 @@ export type Database = {
         Returns: boolean
       }
       can_access_patient: { Args: { _patient_id: string }; Returns: boolean }
+      can_access_user_avatar: { Args: { _owner_id: string }; Returns: boolean }
       can_manage_clinic_permissions: {
         Args: { _clinic_id: string }
         Returns: boolean
