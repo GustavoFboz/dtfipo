@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { CaseRow, Doctor, Cadista, Patient, CaseType, ToothColor, Stage, Phase, Component, Profile, Notification, ComponentCategory } from "./types";
 import { createCaseConfirmed } from "./creation-rpc";
+import { autoRecordCaseMilling } from "./burrs";
 import { broadcastEntity, markDeleted } from "./optimistic";
 import { applyOptimisticStorageDelta, cancelStorageUpload, completeStorageUpload, reserveStorageUpload } from "./storage";
 import { newPasswordError } from "./auth/password-policy";
@@ -733,6 +734,8 @@ export async function updateCaseTiBases(caseId: string, map: Record<string, stri
 export type CreateCaseInput = {
   id?: string;
   idempotency_key?: string;
+  /** Stable ID for the sibling row when both arches are requested. */
+  also_arch_id?: string | null;
   patient_id: string;
   doctor_id: string | null;
   cadista_id: string | null;
@@ -763,14 +766,75 @@ export type CreateCaseInput = {
 };
 
 export async function createCase(input: CreateCaseInput & { also_arch?: "superior" | "inferior" | null }) {
-  // The supplied id is also the durable key for legacy outbox entries.
+  // The supplied ID is the durable idempotency key for form retries and legacy outbox entries.
   const key = input.idempotency_key ?? input.id ?? crypto.randomUUID();
   const { idempotency_key: _key, ...values } = input;
   const result = await createCaseConfirmed(values, key);
-  for (const row of result.cases) {
+  const createdRows = Array.isArray(result.cases) && result.cases.length ? result.cases : [result.case];
+
+  // Postgres Changes is authoritative across devices; this is only a fast wake-up
+  // for other views in the same browser/desktop runtime.
+  for (const row of createdRows) {
     try { broadcastEntity("cases", "insert", { id: row.id }); } catch { /* RLS realtime remains authoritative */ }
   }
-  return { ...result.case, created_cases: result.cases };
+
+  // Milling history is secondary bookkeeping. Do not keep the case dialog open
+  // while separate stock-history reads finish; the RPC already committed the case
+  // and its essential links transactionally.
+  void Promise.all(createdRows.flatMap((row: any) => {
+    const zirconia = Array.isArray(row.teeth_zirconia) ? row.teeth_zirconia : (input.teeth_zirconia ?? []);
+    const dissilicato = Array.isArray(row.teeth_dissilicato) ? row.teeth_dissilicato : (input.teeth_dissilicato ?? []);
+    return [
+      zirconia.length ? autoRecordCaseMilling(row.id, "zirconia", zirconia) : Promise.resolve(),
+      dissilicato.length ? autoRecordCaseMilling(row.id, "dissilicato", dissilicato) : Promise.resolve(),
+    ];
+  })).catch((error) => console.warn("[DentalFlow] case milling tracking deferred", error));
+
+  // Notifications and activity are also secondary. Stable notification IDs make
+  // retries safe, and a replay never adds another creation activity entry.
+  const isReplay = Boolean(result.replayed);
+  void (async () => {
+    try {
+      if (!input.cadista_id || result.case?.status === "pendente") return;
+      const [cadistaResult, patientResult, authResult] = await Promise.all([
+        supabase.from("cadistas").select("name, user_id").eq("id", input.cadista_id).maybeSingle(),
+        supabase.from("patients").select("name").eq("id", input.patient_id).maybeSingle(),
+        supabase.auth.getUser(),
+      ]);
+      const cadista = cadistaResult.data as any;
+      if (!cadista?.user_id) return;
+      const patientName = String((patientResult.data as any)?.name ?? "paciente");
+      const notif = {
+        id: result.case.id,
+        sender_id: authResult.data.user?.id ?? null,
+        recipient_id: cadista.user_id,
+        title: "Novo caso atribuído a você",
+        content: `Você foi designado(a) como cadista do caso de ${patientName}.`,
+        type: "case_assigned",
+        metadata: { case_id: result.case.id },
+        read_at: null,
+        created_at: new Date().toISOString(),
+      };
+      const { error: notificationError } = await supabase
+        .from("notifications")
+        .upsert(notif as any, { onConflict: "id", ignoreDuplicates: true });
+      if (notificationError) throw notificationError;
+      try { broadcastEntity("notifications", "insert", notif); } catch { /* local wakeup is best effort */ }
+
+      if (!isReplay) {
+        try {
+          const { addCaseActivity } = await import("./case-activity");
+          await addCaseActivity(result.case.id, "create", `Caso criado para ${patientName}.`, []);
+        } catch (error) {
+          console.warn("[DentalFlow] case creation activity deferred", error);
+        }
+      }
+    } catch (error) {
+      console.warn("[DentalFlow] case assignment notification deferred", error);
+    }
+  })();
+
+  return { ...result.case, created_cases: createdRows };
 }
 
 

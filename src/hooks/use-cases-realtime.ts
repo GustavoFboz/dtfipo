@@ -215,8 +215,30 @@ export function useCasesRealtime() {
     const dbChannel = supabase
       .channel(`cases-db-live-${Math.random().toString(36).slice(2, 8)}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "cases" }, (payload) => {
-        const id = (payload.new as { id?: string } | null)?.id;
-        if (!id) return invalidateLists();
+        const inserted = payload.new as (Partial<CaseRow> & { id?: string; patient_id?: string }) | null;
+        const id = inserted?.id;
+        if (!id || !inserted?.patient_id) return invalidateLists();
+
+        // Paint the core row immediately using relations already in React Query.
+        // The joined case detail is fetched afterward, without blocking other rows.
+        const cachedPatients = queryClient.getQueryData<any[]>(["patients"]) ?? [];
+        const cachedDoctors = queryClient.getQueryData<any[]>(["doctors"]) ?? [];
+        const cachedCadistas = queryClient.getQueryData<any[]>(["cadistas"]) ?? [];
+        const cachedTypes = queryClient.getQueryData<any[]>(["case_types"]) ?? [];
+        const cachedColors = queryClient.getQueryData<any[]>(["tooth_colors"]) ?? [];
+        const minimal = {
+          ...inserted,
+          patient: cachedPatients.find((p) => p.id === inserted.patient_id) ?? null,
+          doctor: cachedDoctors.find((p) => p.id === inserted.doctor_id) ?? null,
+          cadista: cachedCadistas.find((p) => p.id === inserted.cadista_id) ?? null,
+          case_type: cachedTypes.find((p) => p.id === inserted.case_type_id) ?? null,
+          tooth_color: cachedColors.find((p) => p.id === inserted.tooth_color_id) ?? null,
+          current_stage: cachedStage(queryClient, inserted.current_stage_id),
+          case_stages: [],
+          case_components: [],
+        } as CaseRow;
+        upsertCaseIntoCache(queryClient, minimal);
+
         void fetchCaseById(id)
           .then((row) => {
             if (row) upsertCaseIntoCache(queryClient, row);

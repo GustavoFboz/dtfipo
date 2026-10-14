@@ -2,7 +2,7 @@ name: Dental Flow CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, "saas/**"]
   push:
     branches:
       - "saas/**"
@@ -30,6 +30,11 @@ jobs:
 
       - name: Verify tooth selection semantics
         run: bun test src/lib/tooth-selection.test.ts
+
+      - name: Verify instant case creation and patient identity safeguards
+        run: |
+          bunx vitest run --configLoader runner src/lib/patient-identity.test.ts
+          bun scripts/check-instant-case-creation.mjs
 
       - name: Verify Clinic route outlets
         run: bun scripts/check-clinic-route-outlets.mjs
