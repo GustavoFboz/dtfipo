@@ -2,7 +2,7 @@ name: Dental Flow CI
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, "saas/**"]
   push:
     branches:
       - "saas/**"
