@@ -15,6 +15,7 @@
     "mobile:android": "bun run build:mobile && bunx cap sync android",
     "check:saas:stage-00": "node scripts/check-saas-stage-00.mjs",
     "check:saas:stage-01": "node scripts/check-saas-stage-01.mjs && node scripts/build-restore-bundle.mjs --check",
+    "check:saas:stage-02": "node scripts/check-saas-stage-02.mjs && node scripts/build-restore-bundle.mjs --check",
     "build:restore": "node scripts/build-restore-bundle.mjs",
     "check:restore": "node scripts/build-restore-bundle.mjs --check",
     "build:dev": "vite build --mode development",
