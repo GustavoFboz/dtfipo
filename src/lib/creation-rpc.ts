@@ -1,15 +1,19 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { CaseRow, Patient } from "./types";
 
-// Local contract until the owner applies the staged migration and regenerates
-// managed types. Do not silently fall back to non-idempotent INSERT on 404.
+// Resolve rpc lazily: unrelated API modules and their tests may mock only the
+// Supabase surfaces they use. Binding at module evaluation would crash those
+// imports before any creation request is made.
 type CreationRpc = (name: string, args: Record<string, unknown>) => PromiseLike<{
   data: unknown; error: { code?: string; message: string } | null;
 }>;
-const rpc = supabase.rpc.bind(supabase) as unknown as CreationRpc;
 
 async function call<T>(name: string, args: Record<string, unknown>): Promise<T> {
-  const { data, error } = await rpc(name, args);
+  const rpcMethod = (supabase as unknown as { rpc?: CreationRpc }).rpc;
+  if (typeof rpcMethod !== "function") {
+    throw new Error("A operação de criação segura não está disponível nesta sessão. Atualize a página e tente novamente.");
+  }
+  const { data, error } = await rpcMethod.call(supabase, name, args);
   if (error) {
     if (error.code === "PGRST202" || error.code === "42883") {
       throw new Error("A criação segura aguarda a atualização autorizada do banco. Nenhum cadastro foi enviado pelo caminho antigo.");
