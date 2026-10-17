@@ -1,0 +1,362 @@
+{
+  "schemaVersion": 1,
+  "product": "DentalFlow",
+  "publicationDate": "2026-10-17",
+  "timezone": "America/Manaus",
+  "scope": {
+    "web": "https://dtfipo.lovable.app",
+    "windows": "0.6.8",
+    "android": "0.3.1",
+    "androidVersionCode": 6
+  },
+  "source": {
+    "reviewPullRequest": "https://github.com/GustavoFboz/dtfipo/pull/164",
+    "integratedCommit": "97835172aebd052f631a0caa29f455c9f90a755a",
+    "reviewedProductTree": "dd6a23ebc3310be1f0d168beee625964e696d031",
+    "nativeReleaseCommit": "e0c32c604016267f0aa7b3b28659a358e2176a0b",
+    "nativeReleaseBranch": "release/native-20261017",
+    "mainCommitUnchanged": "4d07498581263b3e60ef5cf689d211ae5741fb1c"
+  },
+  "web": {
+    "deploymentId": "69ba8796-901c-4dbf-88c2-a321d452c0e4",
+    "servedNativeOriginsVerified": true,
+    "probeMethod": "POST",
+    "probeAuthentication": "absent",
+    "probeBody": {},
+    "financialOperations": 0,
+    "invoiceOpenings": 0,
+    "checkedAt": "2026-10-17 21:36:36.841853+00",
+    "passed": 24,
+    "total": 24,
+    "limits": "These denied POST responses verify the served origin boundary and error response. Live OPTIONS and authenticated financial/device flows are separate checks.",
+    "responses": [
+      {
+        "endpoint": "asaas-checkout",
+        "origin": "http://tauri.localhost",
+        "status": 403,
+        "allowedOrigin": "http://tauri.localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-renewal",
+        "origin": "http://tauri.localhost",
+        "status": 400,
+        "allowedOrigin": "http://tauri.localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-document",
+        "origin": "http://tauri.localhost",
+        "status": 403,
+        "allowedOrigin": "http://tauri.localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-cancel",
+        "origin": "http://tauri.localhost",
+        "status": 400,
+        "allowedOrigin": "http://tauri.localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-checkout",
+        "origin": "https://tauri.localhost",
+        "status": 403,
+        "allowedOrigin": "https://tauri.localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-renewal",
+        "origin": "https://tauri.localhost",
+        "status": 400,
+        "allowedOrigin": "https://tauri.localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-document",
+        "origin": "https://tauri.localhost",
+        "status": 403,
+        "allowedOrigin": "https://tauri.localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-cancel",
+        "origin": "https://tauri.localhost",
+        "status": 400,
+        "allowedOrigin": "https://tauri.localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-checkout",
+        "origin": "https://localhost",
+        "status": 403,
+        "allowedOrigin": "https://localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-renewal",
+        "origin": "https://localhost",
+        "status": 400,
+        "allowedOrigin": "https://localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-document",
+        "origin": "https://localhost",
+        "status": 403,
+        "allowedOrigin": "https://localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-cancel",
+        "origin": "https://localhost",
+        "status": 400,
+        "allowedOrigin": "https://localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-checkout",
+        "origin": "tauri://localhost",
+        "status": 403,
+        "allowedOrigin": "tauri://localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-renewal",
+        "origin": "tauri://localhost",
+        "status": 400,
+        "allowedOrigin": "tauri://localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-document",
+        "origin": "tauri://localhost",
+        "status": 403,
+        "allowedOrigin": "tauri://localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-cancel",
+        "origin": "tauri://localhost",
+        "status": 400,
+        "allowedOrigin": "tauri://localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-checkout",
+        "origin": "capacitor://localhost",
+        "status": 403,
+        "allowedOrigin": "capacitor://localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-renewal",
+        "origin": "capacitor://localhost",
+        "status": 400,
+        "allowedOrigin": "capacitor://localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-document",
+        "origin": "capacitor://localhost",
+        "status": 403,
+        "allowedOrigin": "capacitor://localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-cancel",
+        "origin": "capacitor://localhost",
+        "status": 400,
+        "allowedOrigin": "capacitor://localhost",
+        "allowedHeaders": "authorization, content-type",
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-checkout",
+        "origin": "https://localhost.evil.example",
+        "status": 403,
+        "allowedOrigin": null,
+        "allowedHeaders": null,
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-renewal",
+        "origin": "https://localhost.evil.example",
+        "status": 403,
+        "allowedOrigin": null,
+        "allowedHeaders": null,
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-document",
+        "origin": "https://localhost.evil.example",
+        "status": 403,
+        "allowedOrigin": null,
+        "allowedHeaders": null,
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      },
+      {
+        "endpoint": "asaas-cancel",
+        "origin": "https://localhost.evil.example",
+        "status": 403,
+        "allowedOrigin": null,
+        "allowedHeaders": null,
+        "allowCredentials": null,
+        "vary": "Origin",
+        "at": "2026-10-17 21:36:36.841853+00"
+      }
+    ]
+  },
+  "reviewChecks": {
+    "localTests": 480,
+    "localTestFiles": 22,
+    "desktopEntitlementTests": 4,
+    "nativeOriginTests": 57,
+    "desktopSpa": "passed",
+    "mobileSpa": "passed",
+    "typescript": "passed",
+    "schemaRestoreMigrations": 175,
+    "ci": "https://github.com/GustavoFboz/dtfipo/actions/runs/39063595163",
+    "restore": "https://github.com/GustavoFboz/dtfipo/actions/runs/39063595174",
+    "windows": "https://github.com/GustavoFboz/dtfipo/actions/runs/39063595169",
+    "android": "https://github.com/GustavoFboz/dtfipo/actions/runs/39063595191"
+  },
+  "officialBuilds": {
+    "windows": {
+      "runId": 39071585192,
+      "buildJobId": 117510145343,
+      "publishJobId": 117512219229,
+      "status": "published",
+      "authenticode": "unsigned; trusted certificate not configured",
+      "releaseId": 416083466,
+      "tag": "windows-v0.6.8",
+      "publishedAt": "2026-10-17T21:45:52Z",
+      "pageUrl": "https://github.com/GustavoFboz/dtfipo/releases/tag/windows-v0.6.8",
+      "assets": [
+        {
+          "name": "DentalFlow_Windows_0.6.8_x64-setup.exe",
+          "size": 4627467,
+          "digest": "sha256:c64a7dc5485a7c00bfcd20c56a767ce758d4c8afe991e9771446559ad6a9e8ab",
+          "downloadUrl": "https://github.com/GustavoFboz/dtfipo/releases/download/windows-v0.6.8/DentalFlow_Windows_0.6.8_x64-setup.exe"
+        },
+        {
+          "name": "DentalFlow_Windows_0.6.8_x64-setup.sha256",
+          "size": 106,
+          "digest": "sha256:c671e278ad61f8cff984bd65ce0420fe661e50cbfeb00b57ccd082459ec21531",
+          "downloadUrl": "https://github.com/GustavoFboz/dtfipo/releases/download/windows-v0.6.8/DentalFlow_Windows_0.6.8_x64-setup.sha256"
+        }
+      ]
+    },
+    "android": {
+      "runId": 39071585172,
+      "buildJobId": 117510145229,
+      "publishJobId": 117511678684,
+      "status": "published",
+      "requiredApi35": "passed",
+      "experimentalApi37": "failed; emulator system_server GPU assertion confirmed",
+      "retainedCertificateSha256": "8e0c25bfe43f32fd6bdda49c49e6e19624957c2c968af00c867a13936d5330e3",
+      "releaseId": 416081837,
+      "tag": "android-v0.3.1",
+      "publishedAt": "2026-10-17T21:43:12Z",
+      "pageUrl": "https://github.com/GustavoFboz/dtfipo/releases/tag/android-v0.3.1",
+      "assets": [
+        {
+          "name": "DentalFlow_Android_0.3.1.apk",
+          "size": 5947416,
+          "digest": "sha256:d107240302dabe8d6db4abd70f21f95deb95cd65ceb8458a46f3570b889b4a77",
+          "downloadUrl": "https://github.com/GustavoFboz/dtfipo/releases/download/android-v0.3.1/DentalFlow_Android_0.3.1.apk"
+        },
+        {
+          "name": "DentalFlow_Android_0.3.1.sha256",
+          "size": 95,
+          "digest": "sha256:9f0dc4fd993b5b15e25b0094268134f6551a887f2cb30b0f365299ea11c480be",
+          "downloadUrl": "https://github.com/GustavoFboz/dtfipo/releases/download/android-v0.3.1/DentalFlow_Android_0.3.1.sha256"
+        }
+      ]
+    }
+  },
+  "limits": {
+    "androidExperimentalApi37": "Review run launched the app, then the emulator system_server aborted in TaskSnapshotPer with hasReadColorBufferDma; no Android17 acceptance is claimed.",
+    "physicalDeviceTest": "pending",
+    "windowsAuthenticode": "unsigned; trusted certificate not configured in official build",
+    "offlineHours": 72,
+    "saasAccepted": 5,
+    "saasCriteria": 23,
+    "completedFinalStages": 0,
+    "financialEnvironment": "sandbox",
+    "productionEnabledByThisWork": false,
+    "realOneRealPayment": "pending; user-controlled"
+  },
+  "publicationStatus": "published",
+  "nativeUpdateCatalog": {
+    "latestWindows": "0.6.8",
+    "latestAndroid": "0.3.1",
+    "installerAndChecksumRecognized": true,
+    "bothOptional": true
+  }
+}
