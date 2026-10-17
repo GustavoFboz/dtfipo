@@ -34,8 +34,10 @@ async function render() {
   await act(async () => root.render(createElement(QueryClientProvider, { client }, createElement(component))));
 }
 async function until(check: () => boolean) {
-  for (let i = 0; i < 40 && !check(); i++) await act(async () => { await new Promise(resolve => setTimeout(resolve, 5)); });
-  expect(check()).toBe(true);
+  await vi.waitFor(async () => {
+    await act(async () => { await Promise.resolve(); });
+    expect(check()).toBe(true);
+  }, { timeout: 2000, interval: 10 });
 }
 
 describe("landing plan catalog", () => {

@@ -36,6 +36,9 @@ sem a flag de Produção, ambiente incorreto, contrato antigo, autenticação
 recusada, dados privados em erros, isolamento ausente, configuração inválida,
 preservação idempotente e renovação da cópia de token recusada. Também passaram os 340 testes de billing, os quatro testes de entitlement
 Desktop, as verificações das etapas 06/09 e o bundle com 175 migrações.
+No CI, a primeira renderização da LP excedeu a espera fixa de 200 ms do teste.
+O teste agora aguarda a condição por até dois segundos, mantendo todas as
+asserções de preço e plano, sem modificar o código da página.
 Nenhum teste faz chamada real ao worker, ao banco ou ao Asaas.
 
 ## Próximos passos protegidos
