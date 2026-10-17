@@ -84,7 +84,7 @@ export async function runFixtureStorage(job:Job):Promise<Check[]> {
               _case_id:upload.caseId??null,_patient_id:upload.patientId??null,_original_name:upload.path.split('/')[1],_mime_type:upload.mime}),'FIXTURE_RESERVATION_FAILED') as any;
             upload.fileId=(Array.isArray(reserved)?reserved[0]:reserved)?.file_id;
             if(!upload.fileId) throw new FixtureFailure('FIXTURE_RESERVATION_MISSING');
-            requireResult(await fixture.client.storage.from(upload.bucket).upload(upload.path,upload.bytes,{contentType:upload.mime,upsert:false}),'FIXTURE_UPLOAD_FAILED');upload.uploaded=true;
+            requireResult(await fixture.client.storage.from(upload.bucket).upload(upload.path,upload.bytes,{contentType:upload.mime,cacheControl:'0',upsert:false}),'FIXTURE_UPLOAD_FAILED');upload.uploaded=true;
             const stable=`storage://${upload.bucket}/${upload.path}`;
             if(upload.source==='case_attachment') {
               const source=requireResult(await fixture.client.from('case_attachments').insert({case_id:clinical.caseId,file_name:'qa-fixture.stl',storage_path:upload.path,

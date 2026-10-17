@@ -11,6 +11,22 @@ const job={id,kind:'identity',fixtures:[
 const request=(body:unknown={jobId:id},headers:Record<string,string>={},method='POST')=>new Request('https://dtfipo.lovable.app/api/qa/fixture-acceptance',{method,headers:{authorization:`Bearer ${token}`,'content-type':'application/json',...headers},...(method==='POST'?{body:JSON.stringify(body)}:{})});
 function dependencies(){return {claim:vi.fn().mockResolvedValue(job),finish:vi.fn().mockResolvedValue(true),run:vi.fn().mockResolvedValue([{check:'actual_flow',passed:true}])};}
 describe('private fixture acceptance boundary',()=>{
+  it('bypasses cached Storage bytes for each actor and post-deletion check without changing Auth requests',async()=>{
+    const transport=vi.fn<typeof fetch>().mockResolvedValue(new Response('fixture'));
+    const fetcher=fixturePublicFetch('sb_publishable_fixture',transport);
+    const url='https://fixture.supabase.invalid/storage/v1/object/avatars/user/qa.png';
+    await fetcher(url,{headers:{authorization:'Bearer user.one'}});
+    await fetcher(new Request(url,{headers:{authorization:'Bearer user.two'}}));
+    await fetcher(url,{headers:{authorization:'Bearer user.one'}});
+    const requests=transport.mock.calls.map(([input,init])=>({url:new URL(input instanceof Request?input.url:String(input)),init}));
+    const nonces=requests.map(r=>r.url.searchParams.get('cacheNonce'));
+    expect(nonces.every(n=>/^[0-9a-f-]{36}$/.test(n??''))).toBe(true);
+    expect(new Set(nonces).size).toBe(3);
+    expect(requests.every(r=>r.url.pathname==='/storage/v1/object/avatars/user/qa.png'&&r.init?.cache==='no-store')).toBe(true);
+    expect(new Headers(requests[1].init?.headers).get('authorization')).toBe('Bearer user.two');
+    const auth='https://fixture.supabase.invalid/auth/v1/user';await fetcher(auth);
+    expect(transport.mock.calls[3][0]).toBe(auth);
+  });
   it('sends a new opaque public key only as apikey and preserves real user bearers',async()=>{
     const key='sb_publishable_fake_fixture_key';const transport=vi.fn<typeof fetch>().mockResolvedValue(Response.json({}));
     const fetcher=fixturePublicFetch(key,transport);
