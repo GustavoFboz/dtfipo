@@ -1,6 +1,8 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Bell, Building2, Check, Database, FlaskConical, Layers3, RadioTower, ShieldCheck, Stethoscope, Users } from "lucide-react";
 import { isNativeMobileApp } from "@/lib/mobile/native";
+import { fetchBillingPlans, type BillingPlan } from "@/lib/subscriptions";
 
 export const Route = createFileRoute("/lp")({
   beforeLoad: () => {
@@ -22,7 +24,6 @@ const COMPANY_PLANS = [
   {
     code: "company_initial",
     name: "Empresa Inicial",
-    price: "R$ 249",
     sessions: "1 sessão empresarial",
     members: "Até 8 membros",
     storage: "25 GB incluídos",
@@ -31,7 +32,6 @@ const COMPANY_PLANS = [
   {
     code: "company_growth",
     name: "Empresa Crescimento",
-    price: "R$ 449",
     sessions: "Até 2 sessões",
     members: "Até 20 membros",
     storage: "100 GB incluídos",
@@ -40,7 +40,6 @@ const COMPANY_PLANS = [
   {
     code: "company_advanced",
     name: "Empresa Avançado",
-    price: "R$ 749",
     sessions: "3 sessões completas",
     members: "Até 50 membros",
     storage: "500 GB incluídos",
@@ -50,6 +49,15 @@ const COMPANY_PLANS = [
 ];
 
 function LandingPage() {
+  const plans = useQuery({
+    queryKey: ["billing_plans", "company"],
+    queryFn: fetchBillingPlans,
+    staleTime: 60_000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    retry: 1,
+  });
+
   return (
     <div className="min-h-screen bg-white text-slate-950">
       <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/85 backdrop-blur-xl">
@@ -131,7 +139,8 @@ function LandingPage() {
         <section id="planos" className="border-y border-slate-100 bg-[#0b1619] text-white">
           <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8 md:py-28">
             <div className="max-w-3xl"><span className="text-[9px] font-semibold uppercase tracking-[0.22em] text-[#69cfc7]">Planos empresariais</span><h2 className="mt-4 text-[38px] font-extralight leading-[1.04] tracking-[-0.045em] sm:text-[52px]">O preço cresce com a operação, não com recursos escondidos.</h2><p className="mt-5 max-w-2xl text-[13px] font-light leading-6 text-white/48">Cada sessão contratada recebe os recursos completos daquela área. O que muda é quantidade de sessões, vagas de equipe, armazenamento e integração entre operações.</p></div>
-            <div className="mt-12 grid gap-4 lg:grid-cols-3">{COMPANY_PLANS.map((plan) => <PlanCard key={plan.code} {...plan} />)}</div>
+            <div className="mt-12 grid gap-4 lg:grid-cols-3">{COMPANY_PLANS.map((plan) => <PlanCard key={plan.code} {...plan} currentPlan={plans.isError ? undefined : plans.data?.find((current) => current.code === plan.code)} loading={plans.isPending} />)}</div>
+            {plans.isError ? <p className="mt-5 text-[12px] text-white/65">Não foi possível consultar os preços agora. <button type="button" onClick={() => void plans.refetch()} disabled={plans.isFetching} className="underline underline-offset-4 disabled:opacity-50">Atualizar preços</button></p> : null}
             <p className="mt-7 text-[10px] font-light leading-5 text-white/35">Cobrança mensal por empresa. O acesso operacional depende do período pago; em caso de suspensão, os dados permanecem preservados.</p>
           </div>
         </section>
@@ -160,5 +169,26 @@ function Brand() { return <Link to="/lp" className="flex items-center gap-2.5"><
 function Line({ text }: { text: string }) { return <div className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0 text-[#15988f]" />{text}</div>; }
 function SessionPreview({ icon, name, text, tone }: { icon: React.ReactNode; name: string; text: string; tone: "blue" | "teal" | "violet" }) { const cls = tone === "blue" ? "bg-blue-50 text-blue-600" : tone === "teal" ? "bg-teal-50 text-teal-600" : "bg-violet-50 text-violet-600"; return <div className="rounded-2xl border border-slate-200/70 bg-white p-4"><div className={`grid h-9 w-9 place-items-center rounded-xl ${cls}`}>{icon}</div><div className="mt-4 text-[12px] font-medium">{name}</div><div className="mt-1 text-[9px] font-light leading-4 text-slate-400">{text}</div></div>; }
 function AreaCard({ icon, title, description, bullets }: { icon: React.ReactNode; title: string; description: string; bullets: string[] }) { return <div className="rounded-[24px] border border-slate-200/75 bg-white p-6"><div className="grid h-10 w-10 place-items-center rounded-xl bg-[#15988f]/8 text-[#15988f]">{icon}</div><h3 className="mt-5 text-[18px] font-medium">{title}</h3><p className="mt-3 text-[12px] font-light leading-6 text-slate-500">{description}</p><div className="mt-5 space-y-2">{bullets.map((b) => <Line key={b} text={b} />)}</div></div>; }
-function PlanCard({ code, name, price, sessions, members, storage, description, highlight }: (typeof COMPANY_PLANS)[number]) { return <div className={`relative rounded-[26px] border p-7 ${highlight ? "border-[#69cfc7]/45 bg-white/[0.07] shadow-[0_30px_80px_-50px_rgba(105,207,199,.45)]" : "border-white/10 bg-white/[0.035]"}`}>{highlight ? <span className="absolute right-5 top-5 rounded-full bg-[#69cfc7]/12 px-2.5 py-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-[#69cfc7]">Completo</span> : null}<div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50">{name}</div><div className="mt-5 text-[36px] font-extralight tracking-[-0.04em]">{price}<span className="ml-1 text-[10px] font-light tracking-normal text-white/35">/mês</span></div><p className="mt-4 min-h-12 text-[11px] font-light leading-5 text-white/45">{description}</p><div className="mt-6 space-y-3 text-[11px] font-light text-white/65"><div className="flex gap-2"><Check className="h-4 w-4 text-[#69cfc7]" />{sessions}</div><div className="flex gap-2"><Users className="h-4 w-4 text-[#69cfc7]" />{members}</div><div className="flex gap-2"><Database className="h-4 w-4 text-[#69cfc7]" />{storage}</div></div><a href={`/auth?mode=company&plan=${code}`} className={`mt-7 inline-flex h-11 w-full items-center justify-center rounded-xl text-[11px] font-medium ${highlight ? "bg-[#69cfc7] text-[#0b1619]" : "border border-white/15 text-white/75"}`}>Escolher plano</a></div>; }
+function PlanCard({ code, name, sessions, members, storage, description, highlight, currentPlan, loading }: (typeof COMPANY_PLANS)[number] & { currentPlan?: BillingPlan; loading: boolean }) {
+  const price = currentPlan && Number.isSafeInteger(currentPlan.monthly_price_cents) && currentPlan.monthly_price_cents >= 0
+    ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: currentPlan.currency }).format(currentPlan.monthly_price_cents / 100)
+    : null;
+  const actionClass = `mt-7 inline-flex h-11 w-full items-center justify-center rounded-xl text-[11px] font-medium ${highlight ? "bg-[#69cfc7] text-[#0b1619]" : "border border-white/15 text-white/75"}`;
+  return (
+    <div className={`relative rounded-[26px] border p-7 ${highlight ? "border-[#69cfc7]/45 bg-white/[0.07] shadow-[0_30px_80px_-50px_rgba(105,207,199,.45)]" : "border-white/10 bg-white/[0.035]"}`}>
+      {highlight ? <span className="absolute right-5 top-5 rounded-full bg-[#69cfc7]/12 px-2.5 py-1 text-[8px] font-semibold uppercase tracking-[0.14em] text-[#69cfc7]">Completo</span> : null}
+      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/50">{name}</div>
+      <div className="mt-5 text-[36px] font-extralight tracking-[-0.04em]" aria-live="polite">
+        {price !== null ? <>{price}<span className="ml-1 text-[10px] font-light tracking-normal text-white/35">/mês</span></> : <span className="text-[14px] tracking-normal text-white/65">{loading ? "Carregando preço…" : "Valor indisponível"}</span>}
+      </div>
+      <p className="mt-4 min-h-12 text-[11px] font-light leading-5 text-white/45">{description}</p>
+      <div className="mt-6 space-y-3 text-[11px] font-light text-white/65">
+        <div className="flex gap-2"><Check className="h-4 w-4 text-[#69cfc7]" />{sessions}</div>
+        <div className="flex gap-2"><Users className="h-4 w-4 text-[#69cfc7]" />{members}</div>
+        <div className="flex gap-2"><Database className="h-4 w-4 text-[#69cfc7]" />{storage}</div>
+      </div>
+      {price !== null ? <a href={`/auth?mode=company&plan=${code}`} className={actionClass}>Escolher plano</a> : <button type="button" disabled className={`${actionClass} cursor-not-allowed opacity-50`}>{loading ? "Carregando…" : "Plano indisponível"}</button>}
+    </div>
+  );
+}
 function SecurityCard({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) { return <div className="rounded-2xl border border-slate-200/75 bg-white p-5"><div className="grid h-8 w-8 place-items-center rounded-lg bg-[#15988f]/8 text-[#15988f]">{icon}</div><div className="mt-4 text-[13px] font-medium">{title}</div><div className="mt-2 text-[11px] font-light leading-5 text-slate-500">{text}</div></div>; }
