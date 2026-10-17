@@ -7,6 +7,13 @@ tem 23 itens, derivados das sete etapas apresentadas ao responsável.
 Atualização de 08/10/2026: testes restritos integrados; execução real bloqueada
 pela indisponibilidade do Lovable Cloud. A cadência Sandbox aceita em 05/10 é
 histórica e não comprova a disponibilidade atual.
+
+Retomada de 17/10/2026: consultas ao banco e jobs privados voltaram a funcionar;
+288 disparos Sandbox em 24h reconferidos. Identidade: 15/16 verificações reais
+aprovadas; mínimo global de oito caracteres ainda falha. Checkout Sandbox
+criou recursos corretamente, mas o job tratava o retorno HTTPS como envelope
+de server function. Correção e novas verificações em preparação, sem novo aceite
+integral. [Provas e sequência](evidence/continuity-20261017.md).
 **Aceites integrais: 2/23 — 8,70%. Restam 21 itens parciais/em aberto.
 Etapas inteiramente encerradas: 0/7.**
 Existe implementação e evidência parcial, descrita no RELEASE-PLAN.md; não
