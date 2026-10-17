@@ -11,3 +11,10 @@ O SaaS continua em preparação: esta atualização não libera vendas nem subst
 o teste de pagamento real. O plano Inicial de R$1 permanece reservado ao teste
 controlado. A disponibilidade de assinatura Authenticode é informada pelo
 workflow; não confundir o checksum do arquivo com assinatura de editor Windows.
+
+### Verificações desta publicação
+
+O instalador e o executável Windows passaram nas verificações do GitHub, junto
+com o frontend embarcado e os testes de expiração atômica do cache e da fila
+offline. A assinatura Authenticode permanece dependente do certificado de
+distribuição configurado; o build de revisão desta versão não está assinado.

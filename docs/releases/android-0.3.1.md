@@ -11,3 +11,11 @@ O SaaS continua em preparação; esta atualização não libera vendas nem subst
 o teste de pagamento real. O plano Inicial de R$1 permanece reservado ao teste
 controlado. A validação em emuladores e o teste no Moto G56 são registrados
 separadamente; gerar o APK não comprova todos os fluxos em aparelho físico.
+
+### Verificações desta publicação
+
+O build e os testes obrigatórios no emulador Android API 35 passaram, incluindo
+abertura, WebView, expiração offline, recuperação e pacote de release. O ensaio
+experimental API 37 abriu o aplicativo, mas o `system_server` do emulador caiu
+durante a retomada, com falha gráfica `hasReadColorBufferDma`. Esse ensaio não
+comprova compatibilidade com Android 17 nem substitui o teste em aparelho físico.
