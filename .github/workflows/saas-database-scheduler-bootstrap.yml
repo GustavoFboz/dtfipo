@@ -1,4 +1,4 @@
-name: SaaS Sandbox database scheduler bootstrap
+name: SaaS database scheduler bootstrap
 
 on:
   push:
@@ -16,10 +16,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  configure-sandbox:
+  configure-database:
     runs-on: ubuntu-latest
     timeout-minutes: 3
     env:
+      BILLING_ENVIRONMENT: ${{ vars.BILLING_ENVIRONMENT || 'sandbox' }}
+      BILLING_PRODUCTION_ENABLED: ${{ vars.BILLING_PRODUCTION_ENABLED }}
       BILLING_PRODUCTION_WORKER_TOKEN: ${{ secrets.BILLING_PRODUCTION_WORKER_TOKEN }}
     steps:
       - name: Require private operator credential
@@ -28,11 +30,24 @@ jobs:
           echo '::error::Private operator credential missing; no database scheduler was configured.'
           exit 1
 
-      - name: Confirm private contract before configuring the Sandbox schedule
+      - name: Confirm private contract before configuring the selected schedule
         if: env.BILLING_PRODUCTION_WORKER_TOKEN != ''
         shell: bash
         run: |
           set -euo pipefail
+          case "$BILLING_ENVIRONMENT" in
+            sandbox) ;;
+            production)
+              if [[ "$BILLING_PRODUCTION_ENABLED" != "true" ]]; then
+                echo '::error::Production scheduling requires explicit enablement.'
+                exit 1
+              fi
+              ;;
+            *)
+              echo '::error::Invalid billing scheduler environment.'
+              exit 1
+              ;;
+          esac
           response_file=$(mktemp)
           trap 'rm -f "$response_file"' EXIT
           confirmed=0
@@ -41,12 +56,12 @@ jobs:
               curl --silent --show-error --max-time 12 --output "$response_file" --write-out '%{http_code}' \
                 --request GET --header @- \
                 'https://dtfipo.lovable.app/api/billing/asaas-worker?check=database-scheduler'); then
-              if [[ "$http_status" == "200" ]] && jq -e '
+              if [[ "$http_status" == "200" ]] && jq -e --arg environment "$BILLING_ENVIRONMENT" '
                 def stamp: type == "string" and length <= 40 and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$");
-                .available == true and .contract == "dentalflow-database-scheduler-v1" and .environment == "sandbox"
+                .available == true and .contract == "dentalflow-database-scheduler-v1" and .environment == $environment
                 and (.checked_at | stamp) and .immediate_worker_invoked == false
                 and (.scheduler == null or (.scheduler |
-                  .provider_environment == "sandbox" and (.enabled | type == "boolean")
+                  .provider_environment == $environment and (.enabled | type == "boolean")
                   and (.cron_active | type == "boolean") and (.cron_job_id | type == "number" and . > 0 and . == floor)
                   and (.schedule == null or .schedule == "1-59/5 * * * *")
                   and (.configured_at | stamp) and (.last_dispatched_at == null or (.last_dispatched_at | stamp))
@@ -64,33 +79,33 @@ jobs:
             if [[ "$attempt" != "3" ]]; then sleep 5; fi
           done
           if [[ "$confirmed" != "1" ]]; then
-            echo '::error::Sandbox database scheduler contract unavailable. No configuration POST was sent.'
+            echo '::error::Selected database scheduler contract unavailable. No configuration POST was sent.'
             exit 1
           fi
           if jq -e '.scheduler != null and .scheduler.enabled == true and .scheduler.cron_active == true
             and .scheduler.schedule == "1-59/5 * * * *"
             and .scheduler.last_response_http_status != 401 and .scheduler.last_response_http_status != 403' database-scheduler.json > /dev/null; then
-            echo 'Sandbox database schedule already active; preserved its stored credential.'
+            echo 'Selected database schedule already active; preserved its stored credential.'
             exit 0
           fi
           http_status=$(printf 'Authorization: Bearer %s\nContent-Type: application/json\n' "$BILLING_PRODUCTION_WORKER_TOKEN" | \
             curl --silent --show-error --max-time 12 --output "$response_file" --write-out '%{http_code}' \
-              --request POST --header @- --data '{"expected_environment":"sandbox"}' \
+              --request POST --header @- --data "$(jq -cn --arg environment "$BILLING_ENVIRONMENT" '{expected_environment:$environment}')" \
               'https://dtfipo.lovable.app/api/billing/asaas-worker?check=database-scheduler')
-          if [[ "$http_status" != "200" ]] || ! jq -e '
+          if [[ "$http_status" != "200" ]] || ! jq -e --arg environment "$BILLING_ENVIRONMENT" '
             def stamp: type == "string" and length <= 40 and test("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?(Z|[+-][0-9]{2}:[0-9]{2})$");
-            .available == true and .contract == "dentalflow-database-scheduler-v1" and .environment == "sandbox"
+            .available == true and .contract == "dentalflow-database-scheduler-v1" and .environment == $environment
             and (.checked_at | stamp) and .immediate_worker_invoked == false
             and .api_isolation_verified == true
-            and .scheduler.provider_environment == "sandbox" and .scheduler.scheduled == true
+            and .scheduler.provider_environment == $environment and .scheduler.scheduled == true
             and .scheduler.schedule == "1-59/5 * * * *" and (.scheduler.cron_job_id | type == "number" and . > 0 and . == floor)
           ' "$response_file" > /dev/null; then
-            echo "::error::Sandbox database registration was not confirmed (HTTP $http_status). No immediate worker invocation was requested."
+            echo "::error::Selected database registration was not confirmed (HTTP $http_status). No immediate worker invocation was requested."
             exit 1
           fi
           jq '{available,contract,environment,checked_at,immediate_worker_invoked,api_isolation_verified,
             scheduler:(.scheduler | {provider_environment,scheduled,cron_job_id,schedule})}' "$response_file" > database-scheduler.json
-          echo 'Sandbox cadence registered in Postgres. Actual dispatch, worker execution and regularity still require evidence.'
+          echo 'Selected cadence registered in Postgres. Actual dispatch, worker execution and regularity still require evidence.'
 
       - name: Save safe database scheduler evidence
         if: always()
