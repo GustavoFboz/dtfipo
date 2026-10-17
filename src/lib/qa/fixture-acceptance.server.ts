@@ -91,6 +91,16 @@ export function fixturePublicFetch(key: string, transport: typeof fetch = fetch)
     if ((key.startsWith('sb_publishable_') || key.startsWith('sb_secret_')) && headers.get('authorization') === `Bearer ${key}`)
       headers.delete('authorization');
     headers.set('apikey', key);
+    const url=new URL(input instanceof Request?input.url:String(input));
+    const method=init?.method??(input instanceof Request?input.method:'GET');
+    if(method.toUpperCase()==='GET'&&url.pathname.startsWith('/storage/v1/object/')) {
+      // QA must observe the origin after actor changes and deletion, rather
+      // than bytes cached for a previous successful download. HTTP query
+      // transport also works with the repository's locked Storage SDK.
+      url.searchParams.set('cacheNonce',randomUUID());
+      const target=input instanceof Request?new Request(url,input):url.toString();
+      return transport(target,{...init,headers,cache:'no-store',signal:AbortSignal.timeout(6000)});
+    }
     return transport(input, { ...init, headers, signal: AbortSignal.timeout(6000) });
   };
 }

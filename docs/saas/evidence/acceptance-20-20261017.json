@@ -236,5 +236,278 @@
         "timed_out": false
       }
     ]
+  },
+  "storage_published_cached_probe": {
+    "rows": [
+      {
+        "claimed_at": "2026-10-17 18:59:26.686138+00",
+        "completed_at": "2026-10-17 18:59:39.597916+00",
+        "http_status": 200,
+        "id": "51ee9a71-0722-408f-8758-33d835c3904a",
+        "kind": "storage",
+        "receipt": {
+          "checked_at": "2026-10-17T18:59:39.536Z",
+          "checks": [
+            {
+              "check": "unreserved_real_upload_denied",
+              "passed": true
+            },
+            {
+              "check": "actual_quota_overflow_denied",
+              "passed": true
+            },
+            {
+              "check": "case_attachment_real_upload_size",
+              "count": 31,
+              "passed": true,
+              "resource_id": "6b828611-06e2-4a81-83fa-9e89968c37e5"
+            },
+            {
+              "check": "case_attachment_foreign_download_denied",
+              "passed": true
+            },
+            {
+              "check": "case_attachment_foreign_reservation_denied",
+              "passed": true
+            },
+            {
+              "check": "case_attachment_foreign_delete_preserved",
+              "passed": true
+            },
+            {
+              "check": "patient_attachment_real_upload_size",
+              "count": 39,
+              "passed": true,
+              "resource_id": "1b9bcd57-e80f-4d22-8793-8a72a8553771"
+            },
+            {
+              "check": "patient_attachment_foreign_download_denied",
+              "passed": true
+            },
+            {
+              "check": "patient_attachment_foreign_reservation_denied",
+              "passed": true
+            },
+            {
+              "check": "patient_attachment_foreign_delete_preserved",
+              "passed": true
+            },
+            {
+              "check": "patient_photo_real_upload_size",
+              "count": 68,
+              "passed": true,
+              "resource_id": "25045df9-f4bc-4e7f-a9e5-ab379564fe2f"
+            },
+            {
+              "check": "patient_photo_foreign_download_denied",
+              "passed": true
+            },
+            {
+              "check": "patient_photo_foreign_reservation_denied",
+              "passed": true
+            },
+            {
+              "check": "patient_photo_foreign_delete_preserved",
+              "passed": true
+            },
+            {
+              "check": "user_avatar_real_upload_size",
+              "count": 68,
+              "passed": true,
+              "resource_id": "d33d3fd7-2bc1-48ec-a9db-912297a1fa55"
+            },
+            {
+              "check": "user_avatar_foreign_download_denied",
+              "passed": true
+            },
+            {
+              "check": "user_avatar_foreign_reservation_denied",
+              "passed": true
+            },
+            {
+              "check": "user_avatar_foreign_delete_preserved",
+              "passed": true
+            },
+            {
+              "check": "populated_company_clinical_isolation",
+              "passed": true
+            },
+            {
+              "check": "user_avatar_real_delete",
+              "passed": false,
+              "resource_id": "d33d3fd7-2bc1-48ec-a9db-912297a1fa55"
+            },
+            {
+              "check": "patient_photo_real_delete",
+              "passed": false,
+              "resource_id": "25045df9-f4bc-4e7f-a9e5-ab379564fe2f"
+            },
+            {
+              "check": "patient_attachment_real_delete",
+              "passed": false,
+              "resource_id": "1b9bcd57-e80f-4d22-8793-8a72a8553771"
+            },
+            {
+              "check": "case_attachment_real_delete",
+              "passed": true,
+              "resource_id": "6b828611-06e2-4a81-83fa-9e89968c37e5"
+            },
+            {
+              "check": "clinical_fixture_cleanup",
+              "passed": true
+            },
+            {
+              "check": "authoritative_quota_restored",
+              "count": 0,
+              "passed": true
+            },
+            {
+              "check": "unreserved_real_upload_denied",
+              "passed": true
+            },
+            {
+              "check": "actual_quota_overflow_denied",
+              "passed": true
+            },
+            {
+              "check": "case_attachment_real_upload_size",
+              "count": 31,
+              "passed": true,
+              "resource_id": "058fc647-6582-492d-8747-bc4e76a35dcc"
+            },
+            {
+              "check": "case_attachment_foreign_download_denied",
+              "passed": true
+            },
+            {
+              "check": "case_attachment_foreign_reservation_denied",
+              "passed": true
+            },
+            {
+              "check": "case_attachment_foreign_delete_preserved",
+              "passed": true
+            },
+            {
+              "check": "patient_attachment_real_upload_size",
+              "count": 39,
+              "passed": true,
+              "resource_id": "e8b7f9ff-8f1e-47ad-b01d-cda82764a409"
+            },
+            {
+              "check": "patient_attachment_foreign_download_denied",
+              "passed": true
+            },
+            {
+              "check": "patient_attachment_foreign_reservation_denied",
+              "passed": true
+            },
+            {
+              "check": "patient_attachment_foreign_delete_preserved",
+              "passed": true
+            },
+            {
+              "check": "patient_photo_real_upload_size",
+              "count": 68,
+              "passed": true,
+              "resource_id": "4d8c90c0-a15b-40f6-86ba-67b38d7b4ab4"
+            },
+            {
+              "check": "patient_photo_foreign_download_denied",
+              "passed": true
+            },
+            {
+              "check": "patient_photo_foreign_reservation_denied",
+              "passed": true
+            },
+            {
+              "check": "patient_photo_foreign_delete_preserved",
+              "passed": true
+            },
+            {
+              "check": "user_avatar_real_upload_size",
+              "count": 68,
+              "passed": true,
+              "resource_id": "77cf7798-f17a-4560-b030-e0285fdde902"
+            },
+            {
+              "check": "user_avatar_foreign_download_denied",
+              "passed": true
+            },
+            {
+              "check": "user_avatar_foreign_reservation_denied",
+              "passed": true
+            },
+            {
+              "check": "user_avatar_foreign_delete_preserved",
+              "passed": true
+            },
+            {
+              "check": "populated_company_clinical_isolation",
+              "passed": true
+            },
+            {
+              "check": "user_avatar_real_delete",
+              "passed": false,
+              "resource_id": "77cf7798-f17a-4560-b030-e0285fdde902"
+            },
+            {
+              "check": "patient_photo_real_delete",
+              "passed": false,
+              "resource_id": "4d8c90c0-a15b-40f6-86ba-67b38d7b4ab4"
+            },
+            {
+              "check": "patient_attachment_real_delete",
+              "passed": false,
+              "resource_id": "e8b7f9ff-8f1e-47ad-b01d-cda82764a409"
+            },
+            {
+              "check": "case_attachment_real_delete",
+              "passed": true,
+              "resource_id": "058fc647-6582-492d-8747-bc4e76a35dcc"
+            },
+            {
+              "check": "clinical_fixture_cleanup",
+              "passed": true
+            },
+            {
+              "check": "authoritative_quota_restored",
+              "count": 0,
+              "passed": true
+            }
+          ],
+          "contract": "dentalflow-fixture-acceptance-v1",
+          "fixture_ids": [
+            "24e7cdf9-457e-4af2-b1cb-cf366abbddb0",
+            "ee083f63-1621-4b82-b7a4-fd13427c0b14"
+          ],
+          "kind": "storage",
+          "passed": false
+        },
+        "status": "failed",
+        "timed_out": false
+      }
+    ]
+  },
+  "storage_absence_after_cached_probe": {
+    "rows": [
+      {
+        "fixture_roles": 0,
+        "remaining_catalog": 0,
+        "remaining_objects": 0,
+        "remaining_patients": 0
+      }
+    ]
+  },
+  "before_storage_snapshot": {
+    "rows": [
+      {
+        "business_clinical_digest": "ec65c7700c3173be36e52ffb972cb6b78a15c82312012737d01ba47762d9ecd8",
+        "fixture_legacy_roles": 0,
+        "fixture_operators": 0,
+        "fixture_patients": 0,
+        "fixture_storage_entries": 0,
+        "production_payments": 0
+      }
+    ]
   }
 }

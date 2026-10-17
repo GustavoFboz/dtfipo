@@ -1,14 +1,15 @@
 # DentalFlow SaaS — sete etapas restantes até vendas
 
-Atualizado em 08/10/2026; as evidências novas registram horários UTC. Este é o contador de conclusão
+Atualizado em 17/10/2026; as evidências novas registram horários UTC. Este é o contador de conclusão
 apresentado ao responsável. Os IDs 00–10 dos documentos técnicos permanecem
 para manter o histórico; não são um segundo protocolo.
 
 **Restam 7 de 7 etapas com aceites em aberto.** Há código e provas parciais
 em todas elas; um incremento aprovado não encerra automaticamente a etapa.
 Frente atual: **3/7, 4/7 e 5/7 — validações reais das duas fixtures**.
-Execução bloqueada pela indisponibilidade do Lovable Cloud; os dois eventos
-manuais também continuam aguardando revisão real do titular.
+Cloud recuperado em 17/10; cobrança publicada passou 25/25 verificações e
+os itens 1.2 e 5.1 foram aceitos. Armazenamento está em validação publicada.
+Os dois eventos manuais continuam aguardando revisão real do titular.
 O item 7.1 foi comprovado em 05/10, 13h49 de Manaus: chave real autenticada,
 aprovação geral, dados comerciais e documentação aprovados. Dados bancários
 estão PENDING e são registrados separadamente da aprovação geral.
@@ -38,8 +39,9 @@ pendentes e nenhuma auditoria de conclusão. Frente independente registrada em 0
 **4/7, item 4.3**, referências, renovação e isolamento de arquivos privados.
 Ver [implementação e limites](PRIVATE-FILE-ACCESS.md); links históricos e
 validação autenticada publicada continuam pendentes, sem novo aceite integral.
-Aceites finais: **2/23 — 8,70%**; restam 21 itens parciais/em aberto e nenhuma
-etapa inteira foi encerrada.
+Aceites finais: **4/23 — 17,39%**; restam 19 itens parciais/em aberto e nenhuma
+etapa inteira foi encerrada. A meta atual é pelo menos 20% do total, isto é,
+5/23 (21,74%), sem alterar os 23 critérios. Ver [provas de 17/10](evidence/acceptance-20-20261017.md).
 Ver [prova e revisão](evidence/production-preflight-20261005.md) e
 PRODUCTION-ACCESS-SETUP.md. A janela
 offline de 72 horas mantém seus aceites de execução/distribuição em aberto;
