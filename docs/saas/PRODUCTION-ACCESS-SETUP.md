@@ -3,7 +3,7 @@
 Frente atual: etapa 7/7, item 7.1 comprovado e item 7.2 em preparação. Este cadastro permite
 continuar a implementação e os diagnósticos sem compartilhar credenciais.
 Não encerra a homologação nem libera vendas. Os sete estágios têm aceites
-em aberto; 1/23 critérios finais foi concluído (4,35%). O denominador é o de
+em aberto; 5/23 critérios finais foram concluídos (21,74%). O denominador é o de
 ACCEPTANCE-PROGRESS.md.
 
 Em 05/10, 13h49 de Manaus, a consulta real autenticou a chave de Produção,
@@ -224,6 +224,27 @@ Somente após os aceites aplicáveis e a decisão de liberação:
 Se precisar interromper o rollout, desabilitar a flag de Produção e o webhook
 do mesmo ambiente; preservar ledger, eventos, período pago e dados remotos.
 Não deixar webhook de Produção ativo enquanto o endpoint estiver no Sandbox.
+
+## Retomada autorizada em 17/10/2026
+
+Às 19h05 de Manaus, o titular solicitou a migração para recebimentos reais e
+o teste com o plano Inicial de R$1. Esta solicitação autoriza a preparação e
+a ativação coordenada da configuração de Produção, após sua conferência real.
+O pagamento será concluído pelo próprio titular; não é autorização para
+cancelar, estornar ou reinterpretar os contratos anteriores do Sandbox.
+
+Antes da mudança, a consulta confirmou o plano Inicial ativo, BRL, 100 centavos,
+quatro pagamentos Sandbox e nenhum pagamento de Produção. Só há referência
+de worker Sandbox no Vault do agendador. Os quatro secrets de Produção já
+preparados e o webhook existente devem ser reutilizados, sem regeneração ou
+exposição de valores. A aprovação cadastral e os campos atuais do webhook
+serão revalidados pelo workflow privado de leitura desta preparação.
+
+A mudança de ambiente deve alinhar backend, webhook, cron do banco e fallback
+GitHub. Não converter IDs Sandbox em IDs de Produção nem alterar snapshots de
+preço antigos. O teste usa uma empresa comum elegível; IPO mantém sua isenção.
+Entregas, liquidação, ledger e liberação real são conferidos após o pagamento.
+O pedido de migração não encerra os outros 18 critérios ainda em aberto.
 
 ## Fontes oficiais
 
