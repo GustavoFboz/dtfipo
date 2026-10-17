@@ -12,17 +12,39 @@ async function usage(fixture:FixtureSession) {
   return {used:Number(row.used_bytes),limit:Number(row.limit_bytes)};
 }
 async function ownClinical(fixture:FixtureSession,jobId:string) {
+  // A participant may upload to an assigned case without being allowed to
+  // create/delete patients. Provision only this job's disposable records as
+  // trusted setup; all reservations and Storage operations use the real user.
+  // Never promote a fixture or change policies to make the test pass.
+  const {supabaseAdmin:admin}=await import('@/integrations/supabase/client.server');
   const patientId=randomUUID(),caseId=randomUUID();
-  requireResult(await fixture.client.from('patients').insert({id:patientId,name:`DentalFlow SaaS QA ${jobId}`,clinic_id:fixture.clinic_id}).select('id').single(),'FIXTURE_PATIENT_CREATE_FAILED');
+  const photo=`storage://patient-photos/${patientId}/qa-${jobId}.png`;
+  requireResult(await admin.from('patients').insert({id:patientId,name:`DentalFlow SaaS QA ${jobId}`,clinic_id:fixture.clinic_id,photo_url:photo}).select('id').single(),'FIXTURE_PATIENT_CREATE_FAILED');
   try {
-    requireResult(await fixture.client.from('cases').insert({id:caseId,patient_id:patientId,requested_by:fixture.user_id,
+    // An unassigned draft avoids the legacy INSERT broadcast to global staff.
+    // Attach only this fixture after INSERT; assignment/status stay unchanged.
+    requireResult(await admin.from('cases').insert({id:caseId,patient_id:patientId,requested_by:null,
       delivery_date:new Date(Date.now()+7*86400000).toISOString().slice(0,10),status:'pendente'}).select('id').single(),'FIXTURE_CASE_CREATE_FAILED');
-  } catch(error) { await fixture.client.from('patients').delete().eq('id',patientId);throw error; }
-  return {patientId,caseId};
+    requireResult(await admin.from('cases').update({requested_by:fixture.user_id}).eq('id',caseId).eq('patient_id',patientId).is('requested_by',null).select('id').single(),'FIXTURE_CASE_PARTICIPANT_FAILED');
+  } catch(error) {
+    await admin.from('cases').delete().eq('id',caseId).eq('patient_id',patientId);
+    await admin.from('patients').delete().eq('id',patientId).eq('clinic_id',fixture.clinic_id);throw error;
+  }
+  return {patientId,caseId,photo,async remove() {
+    // Exact random IDs returned by our inserts, scoped again to the fixture.
+    requireResult(await admin.from('cases').delete().eq('id',caseId).eq('patient_id',patientId).eq('requested_by',fixture.user_id),'FIXTURE_CASE_DELETE_FAILED');
+    requireResult(await admin.from('patients').delete().eq('id',patientId).eq('clinic_id',fixture.clinic_id).eq('name',`DentalFlow SaaS QA ${jobId}`),'FIXTURE_PATIENT_DELETE_FAILED');
+    const cases=await admin.from('cases').select('id').eq('id',caseId),patients=await admin.from('patients').select('id').eq('id',patientId);
+    return !cases.error&&cases.data.length===0&&!patients.error&&patients.data.length===0;
+  }};
 }
 async function cleanup(fixture:FixtureSession,upload:Upload) {
   if(upload.uploaded) requireResult(await fixture.client.storage.from(upload.bucket).remove([upload.path]),'FIXTURE_OBJECT_DELETE_FAILED');
-  if(upload.fileId) requireResult(await fixture.client.rpc(upload.completed?'delete_managed_storage_file':'cancel_storage_upload',{_file_id:upload.fileId}),'FIXTURE_RESERVATION_DELETE_FAILED');
+  // The uploader can release its own reservation only after Storage confirms
+  // absence. Company-wide managed deletion requires a different manager role.
+  if(upload.fileId) requireResult(await fixture.client.rpc('cancel_storage_upload',{_file_id:upload.fileId}),'FIXTURE_RESERVATION_DELETE_FAILED');
+  if(upload.sourceId&&upload.source==='case_attachment') requireResult(await fixture.client.from('case_attachments').delete().eq('id',upload.sourceId).eq('storage_path',upload.path),'FIXTURE_CASE_ATTACHMENT_DELETE_FAILED');
+  if(upload.sourceId&&upload.source==='patient_attachment') requireResult(await fixture.client.from('patient_attachments').delete().eq('id',upload.sourceId).eq('file_path',upload.path),'FIXTURE_PATIENT_ATTACHMENT_DELETE_FAILED');
 }
 
 /** Real authenticated Storage uploads, persisted size checks, clinical links,
@@ -34,10 +56,10 @@ export async function runFixtureStorage(job:Job):Promise<Check[]> {
       for(const fixture of sessions) {
         const foreign=sessions.find(s=>s.user_id!==fixture.user_id)!;
         const baseline=await usage(fixture);
-        const clinical=await ownClinical(fixture,job.id);
         const own=requireResult(await fixture.client.from('profiles').select('avatar_url').eq('id',fixture.user_id).single(),'FIXTURE_AVATAR_READ_FAILED');
         const originals={avatar:own.avatar_url};
         if(originals.avatar) throw new FixtureFailure('FIXTURE_AVATAR_ALREADY_SET');
+        const clinical=await ownClinical(fixture,job.id);
         const uploads:Upload[]=[
           {bucket:'case-files',path:`${clinical.caseId}/qa-${job.id}.stl`,source:'case_attachment',bytes:Buffer.from('solid fixture\nendsolid fixture\n'),mime:'application/octet-stream',caseId:clinical.caseId},
           {bucket:'patient-files',path:`${clinical.patientId}/qa-${job.id}.pdf`,source:'patient_attachment',bytes:Buffer.from('%PDF-1.4\n% DentalFlow QA fixture\n%%EOF\n'),mime:'application/pdf',patientId:clinical.patientId},
@@ -71,7 +93,12 @@ export async function runFixtureStorage(job:Job):Promise<Check[]> {
               const source=requireResult(await fixture.client.from('patient_attachments').insert({patient_id:clinical.patientId,title:'QA fixture',kind:'other',file_url:stable,
                 file_path:upload.path,size_bytes:upload.bytes.length,mime_type:upload.mime}).select('id').single(),'FIXTURE_PATIENT_ATTACHMENT_FAILED');upload.sourceId=source.id;
             } else if(upload.source==='patient_photo') {
-              requireResult(await fixture.client.from('patients').update({photo_url:stable}).eq('id',clinical.patientId).select('id').single(),'FIXTURE_PATIENT_PHOTO_FAILED');upload.sourceId=clinical.patientId;
+              // The fixture is a case participant, not a clinical administrator.
+              // Its disposable patient's reference was seeded during setup;
+              // validate that the real user can read that exact private source.
+              const patient=requireResult(await fixture.client.from('patients').select('photo_url').eq('id',clinical.patientId).single(),'FIXTURE_PATIENT_PHOTO_FAILED');
+              if(patient.photo_url!==stable || stable!==clinical.photo) throw new FixtureFailure('FIXTURE_PATIENT_PHOTO_MISMATCH');
+              upload.sourceId=clinical.patientId;
             } else {
               requireResult(await fixture.client.from('profiles').update({avatar_url:stable}).eq('id',fixture.user_id).select('id').single(),'FIXTURE_AVATAR_UPDATE_FAILED');upload.sourceId=fixture.user_id;
             }
@@ -110,10 +137,10 @@ export async function runFixtureStorage(job:Job):Promise<Check[]> {
             } catch(error) {checks.push({check:`${upload.source}_cleanup`,passed:false,code:error instanceof FixtureFailure?error.safeCode:'FIXTURE_CLEANUP_FAILED'});}
           }
           requireResult(await fixture.client.from('profiles').update({avatar_url:originals.avatar}).eq('id',fixture.user_id),'FIXTURE_AVATAR_RESTORE_FAILED');
-          requireResult(await fixture.client.from('cases').delete().eq('id',clinical.caseId),'FIXTURE_CASE_DELETE_FAILED');
-          requireResult(await fixture.client.from('patients').delete().eq('id',clinical.patientId),'FIXTURE_PATIENT_DELETE_FAILED');
-          const cases=await fixture.client.from('cases').select('id').eq('id',clinical.caseId),patients=await fixture.client.from('patients').select('id').eq('id',clinical.patientId);
-          checks.push({check:'clinical_fixture_real_delete',passed:!cases.error&&cases.data.length===0&&!patients.error&&patients.data.length===0});
+          // Do not orphan bytes if an actual Storage deletion failed.
+          const restored=await usage(fixture);
+          if(restored.used!==baseline.used) throw new FixtureFailure('FIXTURE_STORAGE_CLEANUP_INCOMPLETE');
+          checks.push({check:'clinical_fixture_cleanup',passed:await clinical.remove()});
           const final=await usage(fixture);
           checks.push({check:'authoritative_quota_restored',passed:final.used===baseline.used,count:final.used});
         }
