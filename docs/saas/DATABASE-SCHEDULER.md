@@ -44,8 +44,9 @@ Um job SQL concluído comprova o enfileiramento HTTP, não a execução financei
    tudo numa transação com rollback: pg_net não inicia HTTP antes de commit.
 2. Integrar na branch SaaS, aplicar somente a nova migração ao backend e
    publicar a versão correspondente.
-3. Executar SaaS Sandbox database scheduler bootstrap. Antes de qualquer POST,
-   ele exige o GET com o contrato específico e ambiente Sandbox. Isso impede
+3. Executar o workflow `saas-database-scheduler-bootstrap.yml` na branch SaaS.
+   O padrão continua Sandbox. Antes de qualquer POST,
+   ele exige o GET com o contrato específico e o ambiente selecionado. Isso impede
    invocação acidental do processador de uma versão antiga. Se o job correto
    já estiver ativo, preserva o segredo; HTTP 401/403 anterior permite atualizar
    sua cópia a partir do backend sem gerar um token novo.
@@ -58,11 +59,28 @@ Um job SQL concluído comprova o enfileiramento HTTP, não a execução financei
 
 ## Ativação de Produção e rollback
 
-Após os gates aplicáveis, o titular muda os campos protegidos de ambiente e
-habilitação conforme PRODUCTION-ACCESS-SETUP.md. O registro privado posterior
-deve corresponder ao ambiente production; não reutiliza o token Sandbox.
-A produção não é registrada ou ativada pelo bootstrap Sandbox desta etapa.
+Após a conferência real e a autorização do titular, os campos protegidos do
+backend devem usar `ASAAS_ENVIRONMENT=production` e
+`ASAAS_PRODUCTION_ENABLED=true`. No GitHub, `BILLING_ENVIRONMENT=production`
+e `BILLING_PRODUCTION_ENABLED=true` selecionam o mesmo ambiente para o
+bootstrap e o fallback. O bootstrap recusa Produção sem a flag explícita e
+recusa uma resposta de ambiente diferente antes de enviar qualquer POST.
+
+Executar manualmente `saas-database-scheduler-bootstrap.yml`, selecionando
+`saas/stage-03-asaas-checkout`. O registro privado copia o token correspondente
+ao ambiente production do próprio backend, sem reutilizar o token Sandbox.
+A função já existente retira o agendamento do ambiente anterior e registra
+a mesma cadência para o ambiente selecionado. Uma configuração saudável já
+ativa é preservada. O workflow não altera flags, webhooks, preços ou pagamentos
+nem chama o processador imediatamente; não é uma prova de execução financeira.
+Conferir seu recibo e observar os disparos reais antes do teste de pagamento.
 Webhook, entrega, recebimento real, ledger e acesso precisam de provas próprias.
+
+Conferência em 17/10/2026, 19h12 Manaus: chave real autenticada, conta
+`general=APPROVED`, dados comerciais e documentação aprovados. Dados bancários
+`PENDING` permanecem identificados separadamente. Webhook único correto,
+desativado, sem interrupção e com os 13 eventos esperados; autenticação aguarda
+entrega real. Backend e cron permanecem em Sandbox neste checkpoint.
 
 Para parar o job, a função privada billing_disable_database_scheduler recebe
 somente o ambiente. Ela remove o job correspondente e desativa sua configuração; preserva ledger,
