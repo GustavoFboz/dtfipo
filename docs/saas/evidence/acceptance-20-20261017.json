@@ -1,0 +1,240 @@
+{
+  "recorded_at": "2026-10-17T18:49:19.402Z",
+  "billing": {
+    "rows": [
+      {
+        "completed_at": "2026-10-17 18:45:17.265759+00",
+        "http_status": 200,
+        "id": "8f2ff970-9e1a-4445-be8f-ba705eb87931",
+        "receipt": {
+          "checked_at": "2026-10-17T18:45:17.218Z",
+          "checks": [
+            {
+              "check": "sandbox_customer_notifications_disabled",
+              "passed": true,
+              "resource_id": "cus_000009545411"
+            },
+            {
+              "check": "unpaid_operational_access_denied",
+              "passed": true,
+              "resource_id": "4579343f-7ba7-49a0-b316-638ef16fbcc5"
+            },
+            {
+              "amount_cents": 44900,
+              "check": "sandbox_paid_observed",
+              "passed": true,
+              "resource_id": "pay_dt9zrgqvzv403oyi",
+              "state": "RECEIVED"
+            },
+            {
+              "check": "one_verified_paid_ledger",
+              "count": 1,
+              "passed": true,
+              "resource_id": "pay_dt9zrgqvzv403oyi"
+            },
+            {
+              "check": "identical_redelivery_single_ledger",
+              "count": 1,
+              "passed": true,
+              "resource_id": "evt_d26e303b238e509335ac9ba210e51b0f&22508929"
+            },
+            {
+              "check": "provider_verified_paid_access",
+              "passed": true,
+              "period_end": "2026-11-18T00:00:00+00:00",
+              "resource_id": "4579343f-7ba7-49a0-b316-638ef16fbcc5",
+              "state": "active"
+            },
+            {
+              "check": "authenticated_paid_access",
+              "passed": true,
+              "resource_id": "4579343f-7ba7-49a0-b316-638ef16fbcc5"
+            },
+            {
+              "check": "billing_manager_history",
+              "passed": true,
+              "resource_id": "ed8c28c6-741f-4be7-82c1-154a87744f4b"
+            },
+            {
+              "check": "other_company_history_denied",
+              "passed": true
+            },
+            {
+              "check": "provider_document_opened",
+              "http_status": 200,
+              "passed": true,
+              "resource_id": "ed8c28c6-741f-4be7-82c1-154a87744f4b"
+            },
+            {
+              "check": "other_company_document_denied",
+              "http_status": 403,
+              "passed": true
+            },
+            {
+              "amount_cents": 44900,
+              "check": "authenticated_checkout_created",
+              "passed": true,
+              "resource_id": "735f64f6-a4dc-40ab-a5f7-25ca63f84753"
+            },
+            {
+              "check": "sandbox_customer_notifications_disabled",
+              "passed": true,
+              "resource_id": "cus_000009545708"
+            },
+            {
+              "check": "unpaid_operational_access_denied",
+              "passed": true,
+              "resource_id": "f089af79-cea4-4821-8497-0e594e67f3cf"
+            },
+            {
+              "check": "sandbox_overdue_observed",
+              "passed": true,
+              "resource_id": "pay_czkeklos8vntrzy6",
+              "state": "OVERDUE"
+            },
+            {
+              "amount_cents": 44900,
+              "check": "sandbox_paid_observed",
+              "passed": true,
+              "resource_id": "pay_czkeklos8vntrzy6",
+              "state": "RECEIVED"
+            },
+            {
+              "check": "one_verified_paid_ledger",
+              "count": 1,
+              "passed": true,
+              "resource_id": "pay_czkeklos8vntrzy6"
+            },
+            {
+              "check": "identical_redelivery_single_ledger",
+              "count": 1,
+              "passed": true,
+              "resource_id": "evt_d26e303b238e509335ac9ba210e51b0f&22508973"
+            },
+            {
+              "check": "provider_verified_paid_access",
+              "passed": true,
+              "period_end": "2026-11-16T00:00:00+00:00",
+              "resource_id": "f089af79-cea4-4821-8497-0e594e67f3cf",
+              "state": "active"
+            },
+            {
+              "check": "authenticated_paid_access",
+              "passed": true,
+              "resource_id": "f089af79-cea4-4821-8497-0e594e67f3cf"
+            },
+            {
+              "check": "billing_manager_history",
+              "passed": true,
+              "resource_id": "a489377d-d053-4854-b3cb-5bf27070ced9"
+            },
+            {
+              "check": "other_company_history_denied",
+              "passed": true
+            },
+            {
+              "check": "provider_document_opened",
+              "http_status": 200,
+              "passed": true,
+              "resource_id": "a489377d-d053-4854-b3cb-5bf27070ced9"
+            },
+            {
+              "check": "other_company_document_denied",
+              "http_status": 403,
+              "passed": true
+            },
+            {
+              "check": "business_ledger_contracts_unchanged",
+              "digest": "ab738b218bd4d80589c45eec936315ded1621ee34fc1cbda69df33eaeb44abc8",
+              "passed": true
+            }
+          ],
+          "contract": "dentalflow-fixture-acceptance-v1",
+          "fixture_ids": [
+            "24e7cdf9-457e-4af2-b1cb-cf366abbddb0",
+            "ee083f63-1621-4b82-b7a4-fd13427c0b14"
+          ],
+          "kind": "billing",
+          "passed": true
+        },
+        "seconds_since_claim": 52,
+        "status": "completed",
+        "timed_out": false
+      }
+    ]
+  },
+  "events": {
+    "rows": [
+      {
+        "error_message": null,
+        "event_type": "PAYMENT_RECEIVED",
+        "id": "1358e9a0-f03c-4132-9f57-ce529b41040a",
+        "payment_id": "pay_dt9zrgqvzv403oyi",
+        "processed_at": "2026-10-17 18:44:56.214678+00",
+        "provider_event_id": "evt_d26e303b238e509335ac9ba210e51b0f&22508929",
+        "received_at": "2026-10-17 18:44:54.833243+00",
+        "status": "processed"
+      },
+      {
+        "error_message": "SUPERSEDED_PROVIDER_STATUS",
+        "event_type": "PAYMENT_OVERDUE",
+        "id": "8bc4ec95-0d43-4cd1-845d-1bc760364707",
+        "payment_id": "pay_czkeklos8vntrzy6",
+        "processed_at": "2026-10-17 18:45:10.562153+00",
+        "provider_event_id": "evt_071da53af2a9613df04213d0157d6b88&22508966",
+        "received_at": "2026-10-17 18:45:08.969351+00",
+        "status": "ignored"
+      },
+      {
+        "error_message": null,
+        "event_type": "PAYMENT_RECEIVED",
+        "id": "b89e47b1-f9c1-4ab0-bec9-babc08fdd537",
+        "payment_id": "pay_czkeklos8vntrzy6",
+        "processed_at": "2026-10-17 18:45:12.626745+00",
+        "provider_event_id": "evt_reconcile_pay_czkeklos8vntrzy6_RECEIVED",
+        "received_at": "2026-10-17 18:45:10.479009+00",
+        "status": "processed"
+      },
+      {
+        "error_message": null,
+        "event_type": "PAYMENT_RECEIVED",
+        "id": "61cf30a4-5d47-4da3-bfc1-77b6abb53d16",
+        "payment_id": "pay_czkeklos8vntrzy6",
+        "processed_at": "2026-10-17 18:45:13.751195+00",
+        "provider_event_id": "evt_d26e303b238e509335ac9ba210e51b0f&22508973",
+        "received_at": "2026-10-17 18:45:10.746587+00",
+        "status": "processed"
+      }
+    ]
+  },
+  "storage_first_attempt": {
+    "rows": [
+      {
+        "claimed_at": "2026-10-17 18:47:32.215774+00",
+        "completed_at": "2026-10-17 18:47:33.142618+00",
+        "http_status": 200,
+        "id": "38ff3580-4788-4a85-95f4-985d5519716c",
+        "kind": "storage",
+        "receipt": {
+          "checked_at": "2026-10-17T18:47:33.085Z",
+          "checks": [
+            {
+              "check": "storage_flow",
+              "code": "FIXTURE_PATIENT_CREATE_FAILED",
+              "passed": false
+            }
+          ],
+          "contract": "dentalflow-fixture-acceptance-v1",
+          "fixture_ids": [
+            "24e7cdf9-457e-4af2-b1cb-cf366abbddb0",
+            "ee083f63-1621-4b82-b7a4-fd13427c0b14"
+          ],
+          "kind": "storage",
+          "passed": false
+        },
+        "status": "failed",
+        "timed_out": false
+      }
+    ]
+  }
+}
