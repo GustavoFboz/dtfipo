@@ -41,14 +41,31 @@ O teste agora aguarda a condição por até dois segundos, mantendo todas as
 asserções de preço e plano, sem modificar o código da página.
 Nenhum teste faz chamada real ao worker, ao banco ou ao Asaas.
 
-## Próximos passos protegidos
+## Execução pelo GitHub e limite atual
 
-O conector possui leitura do projeto e do banco, mas não edita os campos
-protegidos. O painel privado do Lovable pediu login neste navegador. Após o
-acesso seguro, alinhar as duas flags do backend, publicar, alinhar as duas
-variáveis GitHub, registrar e conferir o cron de Produção e só então ativar o
-webhook existente e disponibilizar o teste ao titular em uma empresa comum.
-Não alterar IDs Sandbox, snapshots antigos, IPO, conta de cliente ou dados clínicos.
+Às 19h40 de Manaus, o titular orientou executar pelo diretório GitHub e não
+usar o Lovable. A tentativa de autenticação não confirmou acesso; nenhuma
+configuração protegida foi alterada. O restante do trabalho segue pelo
+repositório, sem novas ações no Lovable.
+
+A preparação foi integrada na [PR 168](https://github.com/GustavoFboz/dtfipo/pull/168),
+merge `d2481a59ee75fb9308945c005abde309d1ee01c5`.
+CI `39078684736`, restauração `39078684748`, Windows `39078684733` e Android
+`39078684743` passaram no head revisado. Não foram republicados instaladores.
+O [bootstrap publicado](https://github.com/GustavoFboz/dtfipo/actions/runs/39080225821)
+passou e preservou o agendamento Sandbox já ativo, sem novo registro.
+
+O repositório possui builds, restauração, diagnóstico e agendadores. Não possui
+workflow de publicação do backend atual nem credencial de implantação/configuração
+para alterar suas variáveis de execução. `ASAAS_ENVIRONMENT` e
+`ASAAS_PRODUCTION_ENABLED` são lidas pelo servidor; mudar apenas as variáveis
+GitHub não muda esse ambiente. Nenhuma chave foi copiada para arquivos ou clientes.
+
+Para concluir a ativação usando somente GitHub, é necessário disponibilizar um
+processo de implantação autorizado ao servidor de destino com gestão segura das
+variáveis já preparadas. Depois, alinhar backend e agendador, conferir os disparos
+reais, ativar o webhook existente e disponibilizar o checkout ao titular numa
+empresa comum. Não alterar IDs Sandbox, snapshots antigos, IPO ou dados clínicos.
 
 Este checkpoint não é uma ativação: nenhuma flag, webhook ou recurso financeiro
 foi alterado. Não há aceite de pagamento real, entrega ou regularidade de
