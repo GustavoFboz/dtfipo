@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { z } from 'zod';
 import { AsaasClient, loadAsaasConfig, loadAsaasWorkerToken, type AsaasConfig, type AsaasPayment } from '@/lib/billing/asaas.server';
 import { FixtureFailure, requireResult, type Check, type Job } from './fixture-acceptance.server';
 import { fixtureAppPost, withFixtureSessions, type FixtureSession } from './fixture-sessions.server';
@@ -9,6 +10,52 @@ const paidStates = new Set(['RECEIVED','CONFIRMED']);
 const pause = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 type Contract = { id: string; clinic_id: string; provider_environment: string; external_customer_id: string;
   external_subscription_id: string; status: string; plan_code: string; current_period_end: string | null };
+
+const checkoutResponse = z.object({
+  checkoutIntentId: z.string().uuid(), subscriptionId: z.string().regex(/^sub_[A-Za-z0-9]+$/),
+  paymentId: z.string().regex(/^pay_[A-Za-z0-9]+$/), paymentUrl: z.string().url(),
+  amountCents: z.literal(44900), currency: z.literal('BRL'),
+  environment: z.literal('sandbox'), paymentConfirmed: z.literal(false),
+});
+
+/** The HTTPS endpoint returns the checkout directly. Only the server-function
+ * transport wraps it in { ok, checkout }; the fixture exercises HTTPS. */
+export function assertFixtureCheckoutResponse(result: { status: number; body: unknown }, intentId: string): void {
+  const parsed = checkoutResponse.safeParse(result.body);
+  if (result.status !== 200 || !parsed.success || parsed.data.checkoutIntentId !== intentId)
+    throw new FixtureFailure('FIXTURE_CHECKOUT_TRANSPORT_FAILED', result.status);
+  const url = new URL(parsed.data.paymentUrl);
+  if (url.protocol !== 'https:' || url.hostname !== 'sandbox.asaas.com' || url.username || url.password)
+    throw new FixtureFailure('FIXTURE_CHECKOUT_TRANSPORT_FAILED', result.status);
+}
+
+const paidLedger = z.object({ id: z.string().uuid(), status: z.literal('paid'), amount_cents: z.literal(44900),
+  period_start: z.string().datetime({ offset: true }), period_end: z.string().datetime({ offset: true }),
+}).refine(row => Date.parse(row.period_start) < Date.parse(row.period_end));
+
+/** A duplicate must preserve the paid period as well as the row count/ID. */
+export function fixtureLedgerUnchanged(before: unknown[], after: unknown[]): boolean {
+  if (before.length !== 1 || after.length !== 1) return false;
+  const a = paidLedger.safeParse(before[0]), b = paidLedger.safeParse(after[0]);
+  return a.success && b.success && a.data.id === b.data.id
+    && Date.parse(a.data.period_start) === Date.parse(b.data.period_start)
+    && Date.parse(a.data.period_end) === Date.parse(b.data.period_end);
+}
+
+export function fixtureOldNoticeResolved(event: { status?: string; error_message?: string | null } | undefined): boolean {
+  // The current worker retires a stale notice only after persisting recovery.
+  // Generic ignored/review outcomes cannot count as a recovered payment.
+  return event?.status === 'processed'
+    || (event?.status === 'ignored' && event.error_message === 'SUPERSEDED_PROVIDER_STATUS');
+}
+
+export function fixtureAccessMatches(value: unknown, contract: Pick<Contract, 'id' | 'clinic_id'>, paid: boolean): boolean {
+  const expected = paid ? 'full' : 'billing_only';
+  const parsed = z.object({ active_clinic_id: z.literal(contract.clinic_id), effective_access: z.literal(expected),
+    company: z.object({ subscription_id: z.literal(contract.id), access_mode: z.literal(expected) }),
+  }).safeParse(value);
+  return parsed.success;
+}
 
 export function assertFixturePayment(payment: AsaasPayment, contract: Contract): void {
   if (contract.provider_environment !== 'sandbox' || !fixtureCompanies.includes(contract.clinic_id)
@@ -63,13 +110,12 @@ async function prepare(admin: SupabaseClient, fixture: FixtureSession, checks: C
     p_plan_code:'company_growth',p_clinic_id:fixture.clinic_id,p_session_types:['laboratory'] }), 'FIXTURE_CHECKOUT_INTENT_FAILED') as any;
   if (!intent?.checkout_intent_id || intent.amount_cents!==44900) throw new FixtureFailure('FIXTURE_CHECKOUT_AMOUNT_MISMATCH');
   const result=await fixtureAppPost('/api/billing/asaas-checkout',fixture,{checkoutIntentId:intent.checkout_intent_id});
-  if (result.status!==200 || result.body?.ok!==true || result.body.checkout?.environment!=='sandbox')
-    throw new FixtureFailure('FIXTURE_CHECKOUT_TRANSPORT_FAILED',result.status);
+  assertFixtureCheckoutResponse(result, intent.checkout_intent_id);
   checks.push({check:'authenticated_checkout_created',passed:true,resource_id:intent.checkout_intent_id,amount_cents:intent.amount_cents});
   return requireResult(await admin.from('account_subscriptions').select('*').eq('id',intent.subscription_id).single(), 'FIXTURE_CONTRACT_LINK_FAILED') as Contract;
 }
 async function events(admin: SupabaseClient, paymentId: string) {
-  return requireResult(await admin.from('billing_events').select('id,provider_event_id,event_type,payload,status,processed_at')
+  return requireResult(await admin.from('billing_events').select('id,provider_event_id,event_type,payload,status,processed_at,error_message')
     .eq('provider_environment','sandbox').contains('payload',{paymentId}).order('received_at'), 'FIXTURE_EVENT_READ_FAILED');
 }
 async function ledger(admin: SupabaseClient, paymentId: string) {
@@ -123,6 +169,12 @@ export async function runFixtureBilling(job: Job): Promise<Check[]> {
         assertFixturePayment(payment,contract);
         let current=payment;
         let oldEventId:string|undefined;
+        if(contract.status==='pending_checkout' && ['PENDING','OVERDUE'].includes(current.status??'')) {
+          const context=requireResult(await fixture.client.rpc('my_subscription_context'),'FIXTURE_UNPAID_ACCESS_READ_FAILED');
+          const denied=fixtureAccessMatches(context,contract,false);
+          checks.push({check:'unpaid_operational_access_denied',passed:denied,resource_id:contract.id});
+          if(!denied) throw new FixtureFailure('FIXTURE_UNPAID_ACCESS_NOT_DENIED');
+        }
         if(current.status==='PENDING' && fixture.user_id.startsWith('ee08')) {
           await simulateFixturePayment(config,current.id,'overdue');
           current=await provider.getPayment(current.id);assertFixturePayment(current,contract);
@@ -163,16 +215,18 @@ export async function runFixtureBilling(job: Job): Promise<Check[]> {
           await worker();
           const after=await ledger(admin,current.id);
           const duplicate=await events(admin,current.id);
-          checks.push({check:'identical_redelivery_single_ledger',passed:after.length===1&&after[0].id===local[0].id&&duplicate.filter((e:any)=>e.provider_event_id===confirmation.provider_event_id).length===1,
+          checks.push({check:'identical_redelivery_single_ledger',passed:fixtureLedgerUnchanged(local,after)&&duplicate.filter((e:any)=>e.provider_event_id===confirmation.provider_event_id).length===1,
             resource_id:confirmation.provider_event_id,count:after.length});
         }
         if(overdue) {
           const handled=(await events(admin,current.id)).find((e:any)=>e.id===overdue.id);
-          checks.push({check:'old_notice_processed_using_paid_provider',passed:handled?.status==='processed'&&(await ledger(admin,current.id)).length===1,
+          checks.push({check:'old_notice_processed_using_paid_provider',passed:fixtureOldNoticeResolved(handled)&&fixtureLedgerUnchanged(local,await ledger(admin,current.id)),
             resource_id:overdue.provider_event_id,state:handled?.status});
         }
         const updated=requireResult(await admin.from('account_subscriptions').select('status,current_period_end').eq('id',contract.id).single(),'FIXTURE_ENTITLEMENT_READ_FAILED');
         checks.push({check:'provider_verified_paid_access',passed:['active','canceled'].includes(updated.status)&&Date.parse(updated.current_period_end)>Date.now(),resource_id:contract.id,state:updated.status,period_end:updated.current_period_end});
+        const access=requireResult(await fixture.client.rpc('my_subscription_context'),'FIXTURE_PAID_ACCESS_READ_FAILED');
+        checks.push({check:'authenticated_paid_access',passed:fixtureAccessMatches(access,contract,true),resource_id:contract.id});
         await verifyDocuments(fixture,sessions.find(s=>s.user_id!==fixture.user_id)!,current,local[0],checks);
       }
     });

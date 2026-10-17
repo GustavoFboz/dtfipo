@@ -6,9 +6,10 @@ import type { CaseRow, Patient } from "./types";
 type CreationRpc = (name: string, args: Record<string, unknown>) => PromiseLike<{
   data: unknown; error: { code?: string; message: string } | null;
 }>;
-const rpc = supabase.rpc.bind(supabase) as unknown as CreationRpc;
-
 async function call<T>(name: string, args: Record<string, unknown>): Promise<T> {
+  // Resolve the RPC only when used. Importing a shared API module must not
+  // require the creation transport during storage-only tests or bootstrap.
+  const rpc = supabase.rpc.bind(supabase) as unknown as CreationRpc;
   const { data, error } = await rpc(name, args);
   if (error) {
     if (error.code === "PGRST202" || error.code === "42883") {
