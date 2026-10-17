@@ -14,8 +14,9 @@ aprovadas; mínimo global de oito caracteres ainda falha. Checkout Sandbox
 criou recursos corretamente, mas o job tratava o retorno HTTPS como envelope
 de server function. A correção foi integrada no PR160 e o job publicado passou
 25/25 verificações reais. Duplicatas/ordem e histórico/documentos têm agora
-prova completa. [Provas da rodada de 20%](evidence/acceptance-20-20261017.md).
-**Aceites integrais: 4/23 — 17,39%. Restam 19 itens parciais/em aberto.
+prova completa. Armazenamento passou 50/50 checks reais após corrigir preparo
+e leitura de cache. [Provas da rodada de 20%](evidence/acceptance-20-20261017.md).
+**Aceites integrais: 5/23 — 21,74%. Restam 18 itens parciais/em aberto.
 Etapas inteiramente encerradas: 0/7.**
 Existe implementação e evidência parcial, descrita no RELEASE-PLAN.md; não
 reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data.
@@ -28,7 +29,7 @@ reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data
 | 2.1 | Estados do ciclo financeiro | Parcial: ensaios; provedor pendente |
 | 2.2 | Dados e período pago preservados | Parcial: regras/testes; aceite do fluxo pendente |
 | 2.3 | Acesso nas plataformas e janela offline de 72 horas | Parcial: código, CI/restore, instalador Windows e limpeza offline nos emuladores Android; recuperação API 37/distribuição/aparelhos/iOS pendentes |
-| 3.1 | Upload/exclusão de casos, pacientes, fotos e avatar | Parcial: primeira execução real falhou na criação de paciente, pois fixtures USER não são staff. Preparo clínico descartável separado dos uploads autenticados, sem promover contas; nova execução pendente. [Prova e limites](evidence/acceptance-20-20261017.md) |
+| 3.1 | Upload/exclusão de casos, pacientes, fotos e avatar | Concluído pelas APIs autenticadas em 17/10, 15h06 Manaus: 50/50 checks reais nas duas fixtures USER, quatro buckets, tamanho/hash/cota consistentes, excesso e acesso estrangeiro recusados, oito exclusões e cota zero. Preparo clínico descartável administrativo; sem promoção de papéis. Aparelhos, concorrência/resíduos e links históricos mantêm aceites próprios. [Recibo e revisão](evidence/acceptance-20-20261017.md) |
 | 3.2 | Concorrência, falhas e reservas históricas | Parcial: ensaios; revisão histórica pendente |
 | 3.3 | Armazenamento nas plataformas disponíveis | Pendente de aparelhos |
 | 4.1 | Cadastro, confirmação e recuperação de senha | Parcial: em 17/10, 15/16 checks reais passaram, incluindo cadastro, confirmação, recuperação e login. Auth ainda aceitou senha de sete caracteres; ajuste global e nova prova negativa pendentes. [Recibo](evidence/continuity-20261017.md) |

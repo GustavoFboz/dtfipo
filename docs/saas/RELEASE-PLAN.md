@@ -8,7 +8,8 @@ para manter o histórico; não são um segundo protocolo.
 em todas elas; um incremento aprovado não encerra automaticamente a etapa.
 Frente atual: **3/7, 4/7 e 5/7 — validações reais das duas fixtures**.
 Cloud recuperado em 17/10; cobrança publicada passou 25/25 verificações e
-os itens 1.2 e 5.1 foram aceitos. Armazenamento está em validação publicada.
+os itens 1.2 e 5.1 foram aceitos. Armazenamento pelas APIs autenticadas passou
+50/50 checks publicados às 15h06 Manaus, encerrando o item 3.1.
 Os dois eventos manuais continuam aguardando revisão real do titular.
 O item 7.1 foi comprovado em 05/10, 13h49 de Manaus: chave real autenticada,
 aprovação geral, dados comerciais e documentação aprovados. Dados bancários
@@ -39,9 +40,9 @@ pendentes e nenhuma auditoria de conclusão. Frente independente registrada em 0
 **4/7, item 4.3**, referências, renovação e isolamento de arquivos privados.
 Ver [implementação e limites](PRIVATE-FILE-ACCESS.md); links históricos e
 validação autenticada publicada continuam pendentes, sem novo aceite integral.
-Aceites finais: **4/23 — 17,39%**; restam 19 itens parciais/em aberto e nenhuma
-etapa inteira foi encerrada. A meta atual é pelo menos 20% do total, isto é,
-5/23 (21,74%), sem alterar os 23 critérios. Ver [provas de 17/10](evidence/acceptance-20-20261017.md).
+Aceites finais: **5/23 — 21,74%**; restam 18 itens parciais/em aberto e nenhuma
+etapa inteira foi encerrada. A meta de pelo menos 20% do total foi atingida,
+sem alterar os 23 critérios. Ver [provas de 17/10](evidence/acceptance-20-20261017.md).
 Ver [prova e revisão](evidence/production-preflight-20261005.md) e
 PRODUCTION-ACCESS-SETUP.md. A janela
 offline de 72 horas mantém seus aceites de execução/distribuição em aberto;
