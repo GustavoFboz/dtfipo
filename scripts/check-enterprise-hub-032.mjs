@@ -84,7 +84,10 @@ expect(auth.includes("pending_invite_code"), "Professional onboarding must persi
 expect(auth.includes("finalizePendingOnboarding"), "Onboarding finalization must run after login/sign-up.");
 
 expect(!lp.includes("R$ 89"), "Landing page must not sell a standalone professional plan.");
-expect(lp.includes("R$ 249") && lp.includes("R$ 449") && lp.includes("R$ 749"), "Landing pricing must expose only the three company plans.");
+const landingPlanCodes = [...lp.matchAll(/code:\s*"(company_[a-z]+)"/g)].map(match => match[1]);
+expect(JSON.stringify(landingPlanCodes) === JSON.stringify(["company_initial", "company_growth", "company_advanced"]), "Landing pricing must expose only the three company plans.");
+expect(lp.includes("fetchBillingPlans") && lp.includes("monthly_price_cents"), "Landing prices must use the current billing catalog.");
+expect(!/price:\s*["']R\$/.test(lp), "Landing must not keep a hardcoded price that diverges from checkout.");
 expect(lp.includes("Profissionais entram pela empresa") || lp.includes("código da empresa"), "Landing must position professionals as company members, not independent subscribers.");
 expect(lp.includes("Radiologia") && lp.includes("DICOM"), "Landing must position Radiology/DICOM as a first-class session.");
 
