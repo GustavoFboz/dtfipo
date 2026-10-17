@@ -70,18 +70,18 @@ const sleep = (milliseconds: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 
 function isAllowedRequestOrigin(origin: string): boolean {
+  // Exact installed-shell origins. Tauri v2 on Windows uses tauri.localhost;
+  // this Capacitor build serves Android from https://localhost. Neither is a
+  // public Web origin, and accepting them never replaces bearer/Auth checks.
+  if (new Set([
+    "http://tauri.localhost", "https://tauri.localhost", "https://localhost",
+    "tauri://localhost", "capacitor://localhost",
+  ]).has(origin)) return true;
   let url: URL;
   try {
     url = new URL(origin);
   } catch {
     return false;
-  }
-
-  if (
-    (url.protocol === "tauri:" || url.protocol === "capacitor:") &&
-    url.hostname === "localhost"
-  ) {
-    return true;
   }
 
   if (url.protocol === "http:" && (url.hostname === "localhost" || url.hostname === "127.0.0.1")) {
