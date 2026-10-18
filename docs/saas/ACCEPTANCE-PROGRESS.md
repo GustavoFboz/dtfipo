@@ -28,6 +28,13 @@ telemetria saudável; cron Sandbox desativado. Entrega autenticada e compra
 real continuam pendentes; 5/23 preservados.
 [Conferência e próximos passos](evidence/production-webhook-activation-20261018.md).
 
+Tentativa do titular em 18/10, 17h50–17h53: cliente de Produção criado,
+assinatura recusada com `invalid_value`, sem pagamento. O mínimo oficial de
+R$5 impede o teste solicitado de R$1. O titular autorizou R$5/mês às 18h00;
+o catálogo foi ajustado e reconferido às 18h01m52s. A correção explica e bloqueia
+o valor insuficiente antes de criar recursos externos.
+[Diagnóstico e proposta](evidence/production-checkout-minimum-20261018.md).
+
 | Item | Resultado exigido | Status atual |
 | --- | --- | --- |
 | 1.1 | Dois dead letters reconciliados individualmente com o Asaas | Parcial: Asaas confirmou a mesma cobrança Sandbox RECEIVED de R$5, vencimento 29/09; responsável confirmou criação manual externa. Sem ledger/checkout local. Revisão auditada Master/AAL2 preparada; decisão real dos dois eventos ainda pendente. [Prova](evidence/inbox-review-20261005.md) e [fluxo](STAGE-07-EXTERNAL-TEST-REVIEW.md) |
@@ -51,7 +58,7 @@ real continuam pendentes; 5/23 preservados.
 | 6.4 | Documentos comerciais e privacidade revisados | Protocolo preparado; minutas/revisão pendentes |
 | 7.1 | Conta recebedora aprovada | Concluído em 05/10, 13h49 de Manaus: chave real autenticada e general=APPROVED; [prova e revisão](evidence/production-preflight-20261005.md). Pendência bancária registrada separadamente |
 | 7.2 | Secrets, webhook e agendamento de Produção | Parcial, 18/10, 16h47 Manaus: configuração publicada em Produção; cron Production ativo, HTTP 200 e processador saudável; cron Sandbox desativado. Webhook ativado pelo titular, confirmado pela API com 13 eventos corretos e fila não interrompida. Autenticação na entrega e alerta real de Produção continuam pendentes. [Prova e limites](evidence/production-webhook-activation-20261018.md) |
-| 7.3 | Recebimento, ledger e acesso reais comprovados | Em aberto: zero pagamentos e zero eventos de Produção na consulta de 18/10, 16h47 Manaus. Próximo passo: titular concluir checkout e pagamento do Inicial de R$1/mês em empresa comum; a IPO é isenta. |
+| 7.3 | Recebimento, ledger e acesso reais comprovados | Em aberto: tentativa de R$1 recusada com invalid_value; mínimo oficial R$5. Titular autorizou R$5/mês às 18h00 e catálogo foi ajustado às 18h01m52s. Zero pagamentos/eventos de Produção na leitura das 17h56; falta titular concluir o checkout de R$5 e comprovar recebimento, evento, ledger e acesso. [Prova](evidence/production-checkout-minimum-20261018.md) |
 | 7.4 | Decisão de liberação para vendas | Pendente dos demais aceites |
 
 Um item aprovado vale 100/23 pontos percentuais. Etapas são encerradas somente

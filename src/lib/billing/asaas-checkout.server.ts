@@ -188,6 +188,12 @@ function nextDueDate(now = new Date()): string {
 }
 
 function publicCheckoutErrorMessage(code: string): string {
+  if (code === "ASAAS_CHECKOUT_AMOUNT_BELOW_MINIMUM") {
+    return "O Asaas aceita cobranças reais a partir de R$ 5,00. O responsável pelo DentalFlow precisa ajustar o valor do plano antes de continuar.";
+  }
+  if (code === "invalid_value") {
+    return "O Asaas recusou o valor da assinatura. O responsável pelo DentalFlow precisa conferir o preço do plano antes de continuar.";
+  }
   if (code === "BILLING_PROFILE_REQUIRED") {
     return "Preencha os dados de cobrança da empresa antes de continuar.";
   }
@@ -229,7 +235,9 @@ function checkoutError(error: unknown): { body: CheckoutErrorBody; status: numbe
 
   if (error instanceof AsaasProvisioningError || error instanceof AsaasApiError) {
     const status =
-      error.code === "PROVIDER_OPERATION_BUSY"
+      error.code === "ASAAS_CHECKOUT_AMOUNT_BELOW_MINIMUM"
+        ? 422
+        : error.code === "PROVIDER_OPERATION_BUSY"
         ? 409
         : error.code.includes("FORBIDDEN")
           ? 403
@@ -248,7 +256,12 @@ function checkoutError(error: unknown): { body: CheckoutErrorBody; status: numbe
                   ? error.status
                   : 400;
     return {
-      body: { error: publicCheckoutErrorMessage(error.code), code: error.code },
+      body: {
+        error: error instanceof AsaasApiError && !error.code.startsWith("ASAAS_") && error.code !== "invalid_value"
+          ? "O Asaas não aceitou a preparação da cobrança. Confira os dados da empresa e tente novamente."
+          : publicCheckoutErrorMessage(error.code),
+        code: error.code,
+      },
       status,
     };
   }
