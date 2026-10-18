@@ -7,12 +7,14 @@ para manter o histórico; não são um segundo protocolo.
 **Restam 7 de 7 etapas com aceites em aberto.** Há código e provas parciais
 em todas elas; um incremento aprovado não encerra automaticamente a etapa.
 Frente atual: **7/7 — ativação técnica de Produção e preparação do teste real**.
-Em 18/10, às 16h11 Manaus, backend e GitHub estavam alinhados em Produção,
-com cron Production ativo, três disparos HTTP 200 e processador saudável.
-Cron Sandbox desativado. Webhook e compra real de R$1 continuam pendentes;
-o acesso Asaas após SMS não pôde ser verificado por bloqueio da revisão
-automática. Nenhum novo aceite integral foi atribuído. Ver
-[ativação e limites atuais](evidence/production-activation-20261018.md).
+Em 18/10, às 16h47 Manaus, a API confirmou o webhook de Produção ativo após
+ativação pelo titular no próprio navegador: fila não interrompida e 13 eventos
+corretos. Backend e GitHub estão alinhados em Produção, com cron ativo,
+HTTP 200 e processador saudável; cron Sandbox desativado. O próximo passo é
+o checkout e pagamento real do Inicial de R$1/mês em empresa comum.
+Entrega autenticada, recebimento, ledger e acesso continuam pendentes.
+Nenhum novo aceite integral foi atribuído. Ver
+[ativação e limites atuais](evidence/production-webhook-activation-20261018.md).
 
 Histórico das demais frentes: **3/7, 4/7 e 5/7 — validações reais das duas fixtures**.
 Cloud recuperado em 17/10; cobrança publicada passou 25/25 verificações e
