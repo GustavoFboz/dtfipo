@@ -21,6 +21,11 @@ Etapas inteiramente encerradas: 0/7.**
 Existe implementação e evidência parcial, descrita no RELEASE-PLAN.md; não
 reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data.
 
+Em 18/10, 16h11 Manaus, backend e GitHub foram alinhados em Produção, com três
+disparos HTTP 200 do novo cron e telemetria saudável. O cron Sandbox foi
+desativado. Webhook e compra real continuam pendentes; 5/23 preservados.
+[Ativação técnica e limite de autenticação](evidence/production-activation-20261018.md).
+
 | Item | Resultado exigido | Status atual |
 | --- | --- | --- |
 | 1.1 | Dois dead letters reconciliados individualmente com o Asaas | Parcial: Asaas confirmou a mesma cobrança Sandbox RECEIVED de R$5, vencimento 29/09; responsável confirmou criação manual externa. Sem ledger/checkout local. Revisão auditada Master/AAL2 preparada; decisão real dos dois eventos ainda pendente. [Prova](evidence/inbox-review-20261005.md) e [fluxo](STAGE-07-EXTERNAL-TEST-REVIEW.md) |
@@ -43,7 +48,7 @@ reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data
 | 6.3 | Onboarding, plataformas e capacidade piloto | Em aberto |
 | 6.4 | Documentos comerciais e privacidade revisados | Protocolo preparado; minutas/revisão pendentes |
 | 7.1 | Conta recebedora aprovada | Concluído em 05/10, 13h49 de Manaus: chave real autenticada e general=APPROVED; [prova e revisão](evidence/production-preflight-20261005.md). Pendência bancária registrada separadamente |
-| 7.2 | Secrets, webhook e agendamento de Produção | Parcial: secrets validados; webhook único correto e desativado confirmado em 05/10, 14h36 de Manaus. Asaas oculta o token após criação; autenticação será comprovada na entrega. Agendamento Sandbox ativo e comprovado; ativação, autenticação na entrega e agendamento de Produção continuam pendentes. [Prova real](evidence/production-preflight-20261005.md) |
+| 7.2 | Secrets, webhook e agendamento de Produção | Parcial, 18/10, 16h11 Manaus: configuração publicada em Produção; cron Production ativo com três disparos HTTP 200 e processador saudável; cron Sandbox desativado. Webhook único preparado, mas ainda não ativado pelo agente; autenticação na entrega e alerta real de Produção continuam pendentes. Retomada da verificação SMS exige nova autorização após bloqueio da revisão automática. [Prova e limites](evidence/production-activation-20261018.md) |
 | 7.3 | Recebimento, ledger e acesso reais comprovados | Em aberto; responsável fará compra de R$1 quando liberada |
 | 7.4 | Decisão de liberação para vendas | Pendente dos demais aceites |
 

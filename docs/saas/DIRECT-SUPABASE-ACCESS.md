@@ -1,6 +1,26 @@
 # Acesso direto ao Supabase e ativação Asaas
 
-## Atualização de acesso em 18/10/2026
+## Ativação técnica em 18/10/2026, 16h11 Manaus
+
+O login administrativo do GitHub foi concluído. Backend e GitHub estão
+alinhados em Produção; a configuração foi publicada no aplicativo existente.
+O cron Production foi registrado às 20h00 UTC, com três disparos às 20h01,
+20h06 e 20h11, todos HTTP 200 sem timeout. Processador status ok, sem falhas
+ou revisões. O job Sandbox foi retirado e seus dados permanecem preservados.
+
+O plano Inicial continua BRL 100 centavos/mês. O ledger contém zero pagamentos
+de Produção e quatro Sandbox. O webhook não foi ativado pelo agente. O login
+Asaas avançou até SMS; a observação posterior foi bloqueada pela revisão
+automática, que exige nova autorização explícita para retomar a autenticação.
+Não houve mensagem de erro do provedor observada nem tentativa de contorno.
+Ver [recibo e próximos passos](evidence/production-activation-20261018.md).
+
+As configurações foram feitas nos formulários administrativos, sem uso do
+agente de construção Lovable, geração/leitura de credenciais ou mudança de
+hospedagem. O restante deste documento registra as conferências anteriores.
+Progresso: **5/23 (21,74%), 0/7 etapas encerradas**.
+
+## Histórico de acesso em 18/10/2026, 01h37 Manaus
 
 O titular esclareceu que o Supabase é integrado ao Lovable e autorizou o uso
 do painel de configurações do backend com sua conta Google. O código continua
