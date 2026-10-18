@@ -1,5 +1,23 @@
 # Acesso direto ao Supabase e ativação Asaas
 
+## Webhook ativo em 18/10/2026, 16h47 Manaus
+
+O titular ativou o webhook existente no próprio navegador. A leitura privada
+da API confirmou `enabled=true`, `interrupted=false`, API v3, processamento
+sequencial e os 13 eventos esperados. Backend e GitHub continuam em Produção;
+o cron respondeu HTTP 200 às 20h46 UTC e o processador permanece saudável.
+Não é necessário retomar o login no navegador em nuvem para essa ativação.
+
+O próximo passo é o titular gerar o checkout do plano Inicial de R$1,00/mês
+em uma empresa comum do DentalFlow e pagar na página oficial do Asaas.
+A IPO é isenta. Na consulta das 20h47 UTC, ainda havia zero pagamentos e
+zero eventos de Produção. A autenticação na entrega, o recebimento, o ledger
+e a liberação de acesso precisam da prova real; nenhum deles é presumido
+pela ativação. Ver [conferência e instruções](evidence/production-webhook-activation-20261018.md).
+Contador preservado em **5/23 (21,74%), 0/7 etapas encerradas**.
+
+As seções abaixo são históricas e descrevem as pendências em cada data.
+
 ## Ativação técnica em 18/10/2026, 16h11 Manaus
 
 O login administrativo do GitHub foi concluído. Backend e GitHub estão

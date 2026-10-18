@@ -21,10 +21,12 @@ Etapas inteiramente encerradas: 0/7.**
 Existe implementação e evidência parcial, descrita no RELEASE-PLAN.md; não
 reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data.
 
-Em 18/10, 16h11 Manaus, backend e GitHub foram alinhados em Produção, com três
-disparos HTTP 200 do novo cron e telemetria saudável. O cron Sandbox foi
-desativado. Webhook e compra real continuam pendentes; 5/23 preservados.
-[Ativação técnica e limite de autenticação](evidence/production-activation-20261018.md).
+Em 18/10, 16h47 Manaus, a API confirmou o webhook de Produção ativo após
+ativação pelo titular no próprio navegador: fila não interrompida e 13 eventos
+corretos. Backend, GitHub e cron continuam em Produção, com HTTP 200 e
+telemetria saudável; cron Sandbox desativado. Entrega autenticada e compra
+real continuam pendentes; 5/23 preservados.
+[Conferência e próximos passos](evidence/production-webhook-activation-20261018.md).
 
 | Item | Resultado exigido | Status atual |
 | --- | --- | --- |
@@ -48,8 +50,8 @@ desativado. Webhook e compra real continuam pendentes; 5/23 preservados.
 | 6.3 | Onboarding, plataformas e capacidade piloto | Em aberto |
 | 6.4 | Documentos comerciais e privacidade revisados | Protocolo preparado; minutas/revisão pendentes |
 | 7.1 | Conta recebedora aprovada | Concluído em 05/10, 13h49 de Manaus: chave real autenticada e general=APPROVED; [prova e revisão](evidence/production-preflight-20261005.md). Pendência bancária registrada separadamente |
-| 7.2 | Secrets, webhook e agendamento de Produção | Parcial, 18/10, 16h11 Manaus: configuração publicada em Produção; cron Production ativo com três disparos HTTP 200 e processador saudável; cron Sandbox desativado. Webhook único preparado, mas ainda não ativado pelo agente; autenticação na entrega e alerta real de Produção continuam pendentes. Retomada da verificação SMS exige nova autorização após bloqueio da revisão automática. [Prova e limites](evidence/production-activation-20261018.md) |
-| 7.3 | Recebimento, ledger e acesso reais comprovados | Em aberto; responsável fará compra de R$1 quando liberada |
+| 7.2 | Secrets, webhook e agendamento de Produção | Parcial, 18/10, 16h47 Manaus: configuração publicada em Produção; cron Production ativo, HTTP 200 e processador saudável; cron Sandbox desativado. Webhook ativado pelo titular, confirmado pela API com 13 eventos corretos e fila não interrompida. Autenticação na entrega e alerta real de Produção continuam pendentes. [Prova e limites](evidence/production-webhook-activation-20261018.md) |
+| 7.3 | Recebimento, ledger e acesso reais comprovados | Em aberto: zero pagamentos e zero eventos de Produção na consulta de 18/10, 16h47 Manaus. Próximo passo: titular concluir checkout e pagamento do Inicial de R$1/mês em empresa comum; a IPO é isenta. |
 | 7.4 | Decisão de liberação para vendas | Pendente dos demais aceites |
 
 Um item aprovado vale 100/23 pontos percentuais. Etapas são encerradas somente
