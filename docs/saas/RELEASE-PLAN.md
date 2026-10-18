@@ -1,12 +1,20 @@
 # DentalFlow SaaS — sete etapas restantes até vendas
 
-Atualizado em 17/10/2026; as evidências novas registram horários UTC. Este é o contador de conclusão
+Atualizado em 18/10/2026; as evidências novas registram horários UTC. Este é o contador de conclusão
 apresentado ao responsável. Os IDs 00–10 dos documentos técnicos permanecem
 para manter o histórico; não são um segundo protocolo.
 
 **Restam 7 de 7 etapas com aceites em aberto.** Há código e provas parciais
 em todas elas; um incremento aprovado não encerra automaticamente a etapa.
-Frente atual: **3/7, 4/7 e 5/7 — validações reais das duas fixtures**.
+Frente atual: **7/7 — ativação técnica de Produção e preparação do teste real**.
+Em 18/10, às 16h11 Manaus, backend e GitHub estavam alinhados em Produção,
+com cron Production ativo, três disparos HTTP 200 e processador saudável.
+Cron Sandbox desativado. Webhook e compra real de R$1 continuam pendentes;
+o acesso Asaas após SMS não pôde ser verificado por bloqueio da revisão
+automática. Nenhum novo aceite integral foi atribuído. Ver
+[ativação e limites atuais](evidence/production-activation-20261018.md).
+
+Histórico das demais frentes: **3/7, 4/7 e 5/7 — validações reais das duas fixtures**.
 Cloud recuperado em 17/10; cobrança publicada passou 25/25 verificações e
 os itens 1.2 e 5.1 foram aceitos. Armazenamento pelas APIs autenticadas passou
 50/50 checks publicados às 15h06 Manaus, encerrando o item 3.1.
