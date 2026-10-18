@@ -1,5 +1,11 @@
 # Etapa técnica 10 — conexão Asaas Produção e liberação
 
+Atualização de 18/10/2026: Produção e webhook ativos. A tentativa real de R$1
+foi recusada com `invalid_value`; o mínimo oficial do Asaas é R$5. O titular
+autorizou R$5/mês às 18h00 e o catálogo foi ajustado às 18h01m52s. Recebimento,
+evento, ledger e acesso ainda precisam de confirmação real.
+[Prova e validação](evidence/production-checkout-minimum-20261018.md).
+
 Ordem apresentada ao responsável: **7/7**, conforme RELEASE-PLAN.md.
 Status: preparação em andamento. Em 04/10/2026, 22h44 de Manaus, o responsável
 solicitou finalizar os aceites e informou que fará o teste da primeira conta
@@ -26,7 +32,7 @@ não encerra os demais aceites nem autoriza execução de solicitações antigas
    separado de `BILLING_WORKER_TOKEN` do Sandbox. O backend continua exigindo
    suas próprias flags e secrets; a configuração do GitHub não os substitui.
 6. Conferir preço, titularidade, vencimento, cancelamento e acesso de uma conta
-   isolada. O catálogo Inicial permanece em R$1 para o teste controlado;
+   isolada. O catálogo Inicial está em R$5 para o teste controlado autorizado;
    contratos anteriores conservam seus snapshots.
 7. Após autorização específica do responsável, realizar a compra real
    controlada. Guardar evidências sanitizadas de cobrança recebida, evento,

@@ -2,8 +2,8 @@
 begin transaction read only;
 do $$
 begin
-  if (select monthly_price_cents from public.billing_plans where code = 'company_initial') <> 100 then
-    raise exception 'Initial plan is not R$ 1';
+  if (select monthly_price_cents from public.billing_plans where code = 'company_initial') <> 500 then
+    raise exception 'Initial plan is not R$ 5';
   end if;
   if to_regprocedure('public.billing_subscription_contract_amount(uuid)') is null
      or has_function_privilege('anon', 'public.billing_subscription_contract_amount(uuid)', 'execute')

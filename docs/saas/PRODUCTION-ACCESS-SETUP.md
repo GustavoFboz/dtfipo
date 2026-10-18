@@ -198,7 +198,8 @@ Informar de uma vez:
    pessoais podem ser preenchidos no documento final em canal apropriado;
    não compartilhar documentos de identidade, dados bancários ou credenciais.
 
-O valor de R$1 é para a homologação controlada solicitada, não substitui a
+O valor atual de R$5/mês, autorizado em 18/10 após a recusa de R$1 por estar
+abaixo do mínimo do Asaas, é para a homologação controlada; não substitui a
 definição dos preços comerciais. A compra real será realizada pelo próprio
 responsável após os gates técnicos aplicáveis.
 
@@ -222,7 +223,7 @@ Somente após os aceites aplicáveis e a decisão de liberação:
 - Asaas: ativar o webhook preparado para o mesmo ambiente e validar entrega.
 - Confirmar execução privada do worker, regularidade/alertas e ausência de
   revisão pendente; não disparar replay ou cobrança como um diagnóstico.
-- Responsável realiza o pagamento controlado de R$1, se autorizado, e conferir
+- Responsável realiza o pagamento controlado autorizado de R$5/mês e confere
   recebimento, ledger, liberação de acesso e preservação dos dados.
 - Resolver os demais aceites e registrar a decisão para vendas.
 

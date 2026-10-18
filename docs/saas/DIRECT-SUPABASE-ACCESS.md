@@ -1,5 +1,17 @@
 # Acesso direto ao Supabase e ativação Asaas
 
+## Checkout real em 18/10/2026, 17h56 Manaus
+
+O titular chegou ao checkout com Inicial de R$1/mês. O cliente foi criado no
+Asaas, mas a assinatura foi recusada com `invalid_value`; nenhum pagamento foi
+gerado. A Central oficial do provedor informa mínimo de R$5 por cobrança.
+O titular autorizou R$5/mês às 18h00; a transação das 18h01m52s ajustou o
+catálogo e a leitura confirmou BRL 500 centavos. A correção impede novas
+tentativas abaixo do mínimo e devolve uma
+mensagem clara. Não é necessário refazer cadastro nem login administrativo.
+Ver [diagnóstico, prova e proposta](evidence/production-checkout-minimum-20261018.md).
+**5/23 (21,74%), 0/7 etapas encerradas**.
+
 ## Webhook ativo em 18/10/2026, 16h47 Manaus
 
 O titular ativou o webhook existente no próprio navegador. A leitura privada

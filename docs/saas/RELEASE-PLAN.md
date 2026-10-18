@@ -11,10 +11,17 @@ Em 18/10, às 16h47 Manaus, a API confirmou o webhook de Produção ativo após
 ativação pelo titular no próprio navegador: fila não interrompida e 13 eventos
 corretos. Backend e GitHub estão alinhados em Produção, com cron ativo,
 HTTP 200 e processador saudável; cron Sandbox desativado. O próximo passo é
-o checkout e pagamento real do Inicial de R$1/mês em empresa comum.
+o checkout e pagamento real do Inicial em empresa comum.
 Entrega autenticada, recebimento, ledger e acesso continuam pendentes.
+Na tentativa das 17h50–17h53 Manaus, o cliente foi criado, mas a assinatura de
+R$1 foi recusada com `invalid_value`. O Asaas informa mínimo de R$5 por cobrança.
+O titular autorizou R$5/mês às 18h00. O catálogo foi ajustado e a leitura das
+18h01m52s confirmou BRL 500 centavos; o teste pode ser retomado após atualizar
+a página e conferir o novo valor. A correção impede novas criações abaixo do
+mínimo e explica a causa.
 Nenhum novo aceite integral foi atribuído. Ver
-[ativação e limites atuais](evidence/production-webhook-activation-20261018.md).
+[ativação do webhook](evidence/production-webhook-activation-20261018.md) e
+[diagnóstico do valor e proposta](evidence/production-checkout-minimum-20261018.md).
 
 Histórico das demais frentes: **3/7, 4/7 e 5/7 — validações reais das duas fixtures**.
 Cloud recuperado em 17/10; cobrança publicada passou 25/25 verificações e

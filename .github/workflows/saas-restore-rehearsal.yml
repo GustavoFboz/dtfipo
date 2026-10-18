@@ -194,7 +194,7 @@ jobs:
           bash docs/saas/sql/stage-06-concurrency-rehearsal.sh \
             | tee restore-stage-06-concurrency.log
 
-      - name: Verify existing price contracts and R$1 new checkout
+      - name: Verify historical price contracts and R$5 new checkout
         shell: bash
         run: |
           set -euo pipefail

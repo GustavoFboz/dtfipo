@@ -1,5 +1,10 @@
 # Preço de R$ 1 para a compra controlada
 
+Registro histórico. Em 18/10/2026, o Asaas recusou R$1 em Produção por estar
+abaixo do mínimo oficial de R$5. O titular autorizou R$5/mês; o catálogo foi
+ajustado às 18h01m52s Manaus. A migração `20261018220200_saas_plan_price_company_initial_500c.sql`
+mantém snapshots anteriores e usa 500 centavos para novos checkouts.
+
 O catálogo `public.billing_plans` é a fonte do preço enviado pelo DentalFlow
 ao Asaas. Em 29/09/2026, a empresa Inicial ainda constava a R$ 249,00 nesse
 catálogo; a assinatura já paga da AS Lab e seu checkout também eram de R$ 249,00.
@@ -29,7 +34,7 @@ Não executar pagamento real até o operador decidir iniciar o teste.
 
 Quando o operador informar plano e novo valor, comparar primeiro o catálogo
 vivo e executar `node scripts/prepare-saas-plan-price.mjs --plan company_initial
---from 1,00 --to 249,00 --dry-run` com os valores atuais. Sem `--dry-run`, o
+--from 5,00 --to 249,00 --dry-run` com os valores atuais. Sem `--dry-run`, o
 comando gera migration e pacote de restauração, mas não chama Asaas nem altera
 o banco. Depois de ensaio e revisão, aplicar a migration em transação, verificar
 o preço no catálogo e publicar a versão correspondente. Isso permite pedidos
