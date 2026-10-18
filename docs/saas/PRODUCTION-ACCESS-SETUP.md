@@ -110,8 +110,13 @@ ações administrativas, incluindo MFA no painel Master, continuam em aberto.
 
 ## 5. Formulário protegido do backend
 
-No projeto correto do Lovable: More / Mais → Cloud → Secrets → Add secret.
-O formulário aceita mais de um par de nome e valor.
+No projeto correto do Lovable, a navegação móvel conferida em 18/10/2026 é:
+menu do projeto → Configurações → botão Geral, na parte inferior → Secrets
+→ Add secret. A documentação também apresenta More / Mais → Cloud → Secrets.
+O formulário aceita mais de um par de nome e valor. A lista exibe somente
+nomes e datas; os valores não podem ser lidos depois de salvos.
+O próprio painel informa: a alteração passa a valer na prévia imediatamente
+e exige publicação para valer no aplicativo Live. Salvar não comprova ativação.
 Se houver Manage secrets para Supabase externo, utilizar o painel que ele
 abrir, sem criar outro backend ou substituir secrets gerenciados.
 

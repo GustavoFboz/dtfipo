@@ -1,5 +1,28 @@
 # Acesso direto ao Supabase e ativação Asaas
 
+## Atualização de acesso em 18/10/2026
+
+O titular esclareceu que o Supabase é integrado ao Lovable e autorizou o uso
+do painel de configurações do backend com sua conta Google. O código continua
+pelo GitHub; não foi usado o agente de IA do Lovable nesta conferência.
+
+Após a aprovação Google no celular, o projeto abriu. O proprietário e o
+subdomínio `dtfipo` foram conferidos. A lista protegida confirmou os nomes das
+credenciais de Produção e dos dois campos de ambiente; nenhum valor foi lido,
+substituído ou publicado. O caminho atual está no item 5 de
+[PRODUCTION-ACCESS-SETUP.md](PRODUCTION-ACCESS-SETUP.md).
+
+A etapa administrativa do GitHub pediu login para as duas variáveis de
+ambiente. A solicitação segura expirou, sem acesso confirmado. Nenhuma variável
+GitHub foi alterada. A consulta posterior ao banco confirmou cron Sandbox
+ativo, último disparo em `2026-10-18T05:31:00.413214+00:00`, HTTP 200 sem timeout,
+e ausência de cron de Produção. Não é uma ativação financeira; 5/23 preservados.
+
+O registro abaixo descreve a verificação anterior, antes dessa autorização
+limitada de acesso ao painel Lovable. Não solicita mudança de hospedagem.
+
+## Histórico da verificação direta
+
 Orientação do titular em 17/10/2026, 23h53 de Manaus: continuar por GitHub e
 Supabase, sem ações na plataforma Lovable. Não há solicitação de trocar a
 hospedagem, criar um banco substituto ou migrar dados automaticamente.
