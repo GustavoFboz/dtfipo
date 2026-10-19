@@ -243,4 +243,35 @@ describe("private readonly Production webhook configuration diagnostic", () => {
     expect(await (await pending).json()).toMatchObject({ code: "PRODUCTION_PREFLIGHT_TIMEOUT" });
     expect(signal?.aborted).toBe(true); expect(fetch).toHaveBeenCalledOnce();
   });
+
+  it("correlates the reported queue using only the fixed authenticated provider GET", async () => {
+    const diagnostic = new Request('https://dtfipo.lovable.app/api/billing/asaas-worker?check=production-queue-alert&url=https://untrusted.example.invalid', {
+      headers: { Authorization: `Bearer ${source.BILLING_PRODUCTION_WORKER_TOKEN}` },
+    });
+    const fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe('https://api.asaas.com/v3/webhooks?offset=0&limit=100');
+      expect(init?.method).toBe('GET'); expect(init?.redirect).toBe('manual');
+      return Response.json({ hasMore: false, data: [webhook, { ...webhook, id: 'whk_reported',
+        name: 'Teste Webhook Unika POS', url: 'https://other.example.invalid/private?auth=hidden', interrupted: true }] });
+    });
+    const response = await inspectAsaasProductionWebhook(diagnostic, { source, fetch, now });
+    const result = await response.json();
+    expect(response.status).toBe(200);
+    expect(result).toMatchObject({ contract: 'dentalflow-production-queue-alert-v1', environment: 'production',
+      correlation: 'different_queue', dentalflow: [{ interrupted: false, targets_dentalflow: true }],
+      reported_test_queue: [{ interrupted: true, targets_dentalflow: false }], delivery_logs_checked: false,
+      webhook_configuration_changed: false, financial_processing_invoked: false });
+    for (const value of [webhook.authToken, webhook.url, webhook.email, webhook.name, source.ASAAS_PRODUCTION_API_KEY,
+      'other.example.invalid', 'hidden', 'Unika']) expect(JSON.stringify(result)).not.toContain(value);
+    expect(fetch).toHaveBeenCalledOnce();
+  });
+
+  it.each(['', 'wrong', source.BILLING_WORKER_TOKEN])('protects the queue diagnostic before provider access (%s)', async token => {
+    const diagnostic = new Request('https://dtfipo.lovable.app/api/billing/asaas-worker?check=production-queue-alert', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const fetch = vi.fn();
+    expect((await inspectAsaasProductionWebhook(diagnostic, { source, fetch })).status).toBe(401);
+    expect(fetch).not.toHaveBeenCalled();
+  });
 });

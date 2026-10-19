@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "purpose": "Preparation for the owner's requested target of at least 50 percent",
+  "date": "2026-10-19",
+  "baseline": {
+    "accepted": 7,
+    "total": 23,
+    "open": 16,
+    "completed_stages": 0,
+    "total_stages": 7
+  },
+  "target": { "accepted": 12, "total": 23, "additional_acceptances_required": 5 },
+  "new_acceptances_earned": 0,
+  "prepared_changes": [
+    "Authenticated read-only correlation of the reported queue against the DentalFlow webhook endpoint",
+    "Fixture Storage checks for concurrent reservations, interrupted upload, mismatched size and premature quota release"
+  ],
+  "local_validation": {
+    "vitest_files_passed": 12,
+    "vitest_tests_passed": 244,
+    "typescript_no_emit": "passed",
+    "saas_stage_06": "passed",
+    "saas_stage_09": "passed",
+    "desktop_068_entitlement_bootstrap": "passed",
+    "restore_bundle": { "status": "passed", "migrations": 176 },
+    "git_diff_check": "passed"
+  },
+  "production_observation": {
+    "source": "read-only database query",
+    "observed_at": "2026-10-19T16:33:19.696859Z",
+    "production_payments": 1,
+    "production_failed_events": 0,
+    "scheduler": {
+      "enabled": true,
+      "cron_active": true,
+      "last_dispatched_at": "2026-10-19T16:31:00.433805Z",
+      "http_status": 200,
+      "timed_out": false
+    },
+    "worker": { "status": "ok", "last_healthy_at": "2026-10-19T16:31:03.42853Z" },
+    "historical_reservations": { "count": 9, "older_than_one_day": 9, "reviewed_or_deleted": false }
+  },
+  "reported_queue": {
+    "name": "Teste Webhook Unika POS",
+    "configuration_read": false,
+    "delivery_logs_read": false,
+    "relationship_to_dentalflow": "not_yet_established",
+    "configuration_changed": false
+  },
+  "execution": {
+    "application_server_published": false,
+    "new_queue_diagnostic_executed_live": false,
+    "extended_storage_job_executed_live": false,
+    "global_auth_minimum_changed": false,
+    "production_financial_state_changed": false,
+    "historical_storage_deleted": false
+  },
+  "blockers": [
+    "Asaas secure sign-in did not confirm an authenticated session; queue logs remain unread",
+    "Automatic approval review rejected opening the Lovable panel because the owner instructed not to use Lovable",
+    "Live publication and Auth administration require an authorized route consistent with the owner's restriction",
+    "The current financial fixture job refuses the Production runtime; isolated Sandbox execution remains required"
+  ]
+}
