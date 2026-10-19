@@ -15,6 +15,12 @@ Produção ainda mantém o item 7.2 parcial; a decisão de vendas permanece pend
 **Aceites atuais: 6/23 (26,09%), 17 em aberto/parciais, 0/7 etapas encerradas.**
 Ver [primeiro recebimento real, revisão e limites](evidence/first-production-payment-20261019.md).
 
+Frente operacional em andamento: correção do falso alerta de webhook
+desativado e preparação de um ensaio de notificação em cópia isolada do
+snapshot. O monitor não deve exigir desligar um webhook de Produção saudável.
+Ensaio externo ainda não disparado; 7.2 parcial e contador 6/23 preservados.
+Ver [revisão do monitor](evidence/production-monitor-preparation-20261019.md).
+
 Histórico da preparação em 18/10:
 Em 18/10, às 16h47 Manaus, a API confirmou o webhook de Produção ativo após
 ativação pelo titular no próprio navegador: fila não interrompida e 13 eventos

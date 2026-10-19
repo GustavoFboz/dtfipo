@@ -16,7 +16,7 @@ const extract = (name) => {
   return script;
 };
 const script = extract("Read staged Production credentials and account status");
-const webhookScript = extract("Read staged Production webhook configuration");
+const webhookScript = extract("Read Production webhook configuration for the active runtime");
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "dentalflow-production-preflight-"));
 try {
   const bin = path.join(tmp, "bin"); fs.mkdirSync(bin);
@@ -35,12 +35,19 @@ process.stdout.write(process.env.FIXTURE_STATUS);
     checked_at: "2026-10-05T05:00:00Z", configuration_valid: true, credentials_valid: true, account,
     account_approved: true, account_setup_complete: true, runtime_environment: "sandbox", production_enabled: false,
     webhook_delivery_verified: false, financial_processing_invoked: false };
-  const run = (body, status = "200") => spawnSync("bash", ["-c", script], { cwd: tmp, encoding: "utf8", timeout: 15_000,
+  const run = (body, status = "200", environment = "sandbox", enabled = "false") => spawnSync("bash", ["-c", script], { cwd: tmp, encoding: "utf8", timeout: 15_000,
     env: { ...process.env, PATH: bin + path.delimiter + process.env.PATH,
       BILLING_PRODUCTION_WORKER_TOKEN: "fake-production-worker-fixture-not-a-real-secret-0123456789",
+      BILLING_ENVIRONMENT: environment, BILLING_PRODUCTION_ENABLED: enabled,
       FIXTURE_BODY: JSON.stringify(body), FIXTURE_STATUS: status,
       FIXTURE_ENDPOINT: "https://dtfipo.lovable.app/api/billing/asaas-worker?check=production-setup" } });
   assert.equal(run(healthy).status, 0, "Readonly Production credential verification failed.");
+  const activeAccount = { ...healthy, runtime_environment: "production", production_enabled: true };
+  assert.equal(run(activeAccount, "200", "production", "true").status, 0, "Active Production was rejected.");
+  assert.notEqual(run(activeAccount).status, 0, "Backend activation diverged from GitHub without a failure.");
+  assert.notEqual(run(healthy, "200", "production", "true").status, 0, "Inactive backend was accepted for active GitHub.");
+  assert.notEqual(run(activeAccount, "200", "production", "false").status, 0, "Production was accepted without explicit GitHub enablement.");
+  assert.notEqual(run(healthy, "200", "invalid").status, 0);
   assert.equal(run({ ...healthy, private: "PRIVATE_ERROR_MARKER", account: { ...account, private: "APPROVED" } }).status, 0);
   assert(!fs.readFileSync(path.join(tmp, "production-preflight.json"), "utf8").includes("PRIVATE_ERROR_MARKER"));
   assert(!fs.readFileSync(path.join(tmp, "production-preflight.json"), "utf8").includes('"private"'));
@@ -106,33 +113,48 @@ process.stdout.write(process.env.FIXTURE_STATUS);
     checked_at: healthy.checked_at, configuration_valid: true, credentials_valid: true, listing_complete: true,
     matching_webhooks: 1, webhook_configuration_valid: true, token_verification: "confirmed", webhook_prepared: true, webhooks: [webhook],
     webhook_delivery_verified: false, financial_processing_invoked: false };
-  const runWebhook = (body, status = "200") => spawnSync("bash", ["-c", webhookScript], { cwd: tmp, encoding: "utf8", timeout: 15_000,
+  const runWebhook = (body, status = "200", active = false) => {
+    fs.writeFileSync(path.join(tmp, "production-preflight.json"), JSON.stringify(active ? activeAccount : healthy));
+    return spawnSync("bash", ["-c", webhookScript], { cwd: tmp, encoding: "utf8", timeout: 15_000,
     env: { ...process.env, PATH: bin + path.delimiter + process.env.PATH,
       BILLING_PRODUCTION_WORKER_TOKEN: "fake-production-worker-fixture-not-a-real-secret-0123456789",
       FIXTURE_BODY: JSON.stringify(body), FIXTURE_STATUS: status,
       FIXTURE_ENDPOINT: "https://dtfipo.lovable.app/api/billing/asaas-worker?check=production-webhook" } });
+  };
+  const persisted = (body, active = false, runtimeValid = body.webhook_configuration_valid) => ({ ...body,
+    expected_webhook_enabled: active, webhook_runtime_configuration_valid: runtimeValid });
   assert.equal(runWebhook(webhookHealthy).status, 0, "Disabled webhook configuration was not confirmed.");
   assert.equal(runWebhook({ ...webhookHealthy, private: "PRIVATE_ERROR_MARKER", webhooks: [{ ...webhook,
     authToken: "PRIVATE_ERROR_MARKER", email: "PRIVATE_ERROR_MARKER", url: "PRIVATE_ERROR_MARKER" }] }).status, 0);
-  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-webhook-preflight.json"), "utf8")), webhookHealthy);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-webhook-preflight.json"), "utf8")), persisted(webhookHealthy));
+  const activeWebhook = { ...webhookHealthy, webhook_configuration_valid: false, webhook_prepared: false,
+    webhooks: [{ ...webhook, enabled: true }] };
+  assert.equal(runWebhook(activeWebhook, "200", true).status, 0, "Enabled Production webhook was incorrectly rejected.");
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-webhook-preflight.json"), "utf8")), persisted(activeWebhook, true, true));
+  assert.notEqual(runWebhook(activeWebhook).status, 0, "Webhook was enabled before runtime activation.");
+  assert.notEqual(runWebhook(webhookHealthy, "200", true).status, 0, "Disabled webhook was accepted for active Production.");
+  const activeHiddenToken = { ...activeWebhook, token_verification: "requires_delivery",
+    webhooks: [{ ...webhook, enabled: true, token_matches: null }] };
+  assert.equal(runWebhook(activeHiddenToken, "200", true).status, 0, "Normal token omission broke active configuration verification.");
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-webhook-preflight.json"), "utf8")), persisted(activeHiddenToken, true, true));
   for (const fields of [{ enabled: true }, { interrupted: true }, { api_version: 2 }, { send_type: "NON_SEQUENTIALLY" },
     { unknown_events_count: 1 },
     { configured_events: [...automated.slice(1), ...review], missing_automated_events: [automated[0]] }]) {
     const body = { ...webhookHealthy, webhook_configuration_valid: false, webhook_prepared: false, webhooks: [{ ...webhook, ...fields }] };
     assert.notEqual(runWebhook(body).status, 0, "Unprepared webhook was accepted.");
-    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-webhook-preflight.json"), "utf8")), body,
+    assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-webhook-preflight.json"), "utf8")), persisted(body),
       "Valid configuration finding was not preserved for review.");
   }
   const pendingToken = { ...webhookHealthy, webhook_prepared: false, token_verification: "requires_delivery",
     webhooks: [{ ...webhook, token_matches: null }] };
   const pendingResult = runWebhook(pendingToken);
   assert.equal(pendingResult.status, 0, "Normal Asaas token omission was incorrectly treated as a configuration failure.");
-  assert(pendingResult.stdout.includes("Authentication remains pending real provider delivery"));
-  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-webhook-preflight.json"), "utf8")), pendingToken);
+  assert(pendingResult.stdout.includes("This GET cannot verify delivery authentication"));
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-webhook-preflight.json"), "utf8")), persisted(pendingToken));
   const mismatchedToken = { ...webhookHealthy, webhook_prepared: false, token_verification: "mismatch",
     webhooks: [{ ...webhook, token_matches: false }] };
   assert.notEqual(runWebhook(mismatchedToken).status, 0, "Known token mismatch was accepted.");
-  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-webhook-preflight.json"), "utf8")), mismatchedToken);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(tmp, "production-webhook-preflight.json"), "utf8")), persisted(mismatchedToken));
   for (const body of [
     { ...webhookHealthy, listing_complete: false, webhook_configuration_valid: false, token_verification: "not_checked", webhook_prepared: false },
     { ...webhookHealthy, matching_webhooks: 0, webhooks: [], webhook_configuration_valid: false, token_verification: "not_checked", webhook_prepared: false },
@@ -161,5 +183,5 @@ process.stdout.write(process.env.FIXTURE_STATUS);
     assert(!`${result.stdout}${result.stderr}`.includes("PRIVATE_ERROR_MARKER"));
     assert(!fs.readFileSync(path.join(tmp, "production-webhook-preflight.json"), "utf8").includes("PRIVATE_ERROR_MARKER"));
   }
-  console.log("Production preflight workflow: fixed private GETs, secrets via stdin, safe evidence, independent general approval, disabled webhook configuration and financial guards passed (fake HTTP).");
+  console.log("Production preflight workflow: fixed private GETs, secrets via stdin, runtime/GitHub alignment, staged/active webhook states, safe evidence and financial guards passed (fake HTTP).");
 } finally { fs.rmSync(tmp, { recursive: true, force: true }); }

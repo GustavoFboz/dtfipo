@@ -1,5 +1,19 @@
 # Operação e recuperação do SaaS
 
+Atualização de 19/10/2026: Produção tem cron ativo e a primeira compra de R$5
+está comprovada. O diagnóstico de credenciais gerou um falso alerta porque
+a regra legada exigia webhook desativado. O workflow passa a conferir o estado
+esperado pelo runtime e sua correspondência com as variáveis GitHub. A API
+v2 e o processamento financeiro são preservados.
+
+Há um [ensaio isolado preparado](PRODUCTION-ALERT-DRILL.md), somente manual na
+branch exclusiva, que altera uma cópia do snapshot e não para o processador.
+O disparo ainda depende de autorização explícita para a nova notificação
+externa. O e-mail já observado do falso positivo comprova aquele transporte,
+não o ensaio de falha do monitor. **7.2 parcial; 6/23 (26,09%), 0/7 etapas.**
+Ver [diagnóstico e revisão](evidence/production-monitor-preparation-20261019.md).
+As descrições anteriores abaixo mantêm o contexto de cada checkpoint.
+
 Escopo: monitoramento interno e recuperação controlada. A preparação avança com o backend existente; criação de cobranças e replay exigem seu próprio fluxo autorizado. A compra real de R$1 será realizada pelo responsável após os gates aplicáveis. DICOM aguarda a Radiologia. Este roteiro não libera Produção.
 
 ## Rotina do operador

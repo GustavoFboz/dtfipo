@@ -33,7 +33,12 @@ for(const s of [...workerSteps,...probeSteps]) {
   const r=spawnSync("bash",["-n"],{input:s.script,encoding:"utf8"});
   assert.equal(r.status,0,`${s.name}: invalid Bash`);
 }
-assert.equal(probeSteps.length,3);
+assert.deepEqual(probeSteps.map((step) => step.name), [
+  "Read the published contract without financial processing",
+  "Assess recorded worker execution",
+  "Require configured probe credential",
+  "Simulate a stale heartbeat in the downloaded copy only",
+]);
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),"dentalflow-worker-probe-"));
 try {
   const bin=path.join(tmp,"bin");fs.mkdirSync(bin);

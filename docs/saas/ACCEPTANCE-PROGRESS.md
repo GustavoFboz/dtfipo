@@ -28,6 +28,12 @@ e plano corretos. **Item 7.3 concluído; 6/23.** O item 7.2 permanece parcial
 somente pelo alerta operacional real de Produção, ainda sem aceite.
 [Prova, revisão e limites](evidence/first-production-payment-20261019.md).
 
+Continuidade operacional de 19/10: corrigida a regra do diagnóstico que
+exigia webhook desativado após a ativação. Ensaio de alerta isolado preparado
+e validado com dados fictícios, sem execução externa. A entrega observada do
+falso positivo não encerra o teste operacional de falha. O item 7.2 e o total
+6/23 permanecem preservados. [Revisão e próximos passos](evidence/production-monitor-preparation-20261019.md).
+
 Os checkpoints de 18/10 abaixo são históricos.
 
 Em 18/10, 16h47 Manaus, a API confirmou o webhook de Produção ativo após
