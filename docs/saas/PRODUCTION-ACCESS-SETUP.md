@@ -168,13 +168,22 @@ página de até 100 webhooks existentes na API de Produção. Confere somente
 registros com o endereço esperado, token por comparação interna, API v3,
 envio sequencial, eventos e estado desativado. Lista incompleta, múltiplos
 registros deixam a configuração sem confirmação. No contrato v2,
-webhook_configuration_valid valida os campos de preparação; token_verification
+webhook_configuration_valid valida os campos legados de preparação desativada; token_verification
 separa confirmed, mismatch, requires_delivery e not_checked. O token omitido
 deixa requires_delivery, sem transformar a consulta correta em falha.
-webhook_prepared continua false até autenticação comprovável, e o diagnóstico
+webhook_prepared continua false quando o token fica oculto neste GET, inclusive
+depois de uma entrega autenticada já comprovada separadamente. O diagnóstico
 nunca declara webhook_delivery_verified=true. Workflow verde comprova somente
 o contrato de leitura e a configuração; não encerra o item 7.2 nem libera vendas.
 O artefato remove nomes, e-mails, URL, tokens e eventos desconhecidos.
+Após a ativação, o workflow confere primeiro se ambiente e habilitação do
+backend correspondem às variáveis GitHub. Deriva `expected_webhook_enabled`
+da leitura privada do runtime: Produção habilitada exige webhook ativo;
+preparação em Sandbox exige webhook desativado. O novo campo calculado
+`webhook_runtime_configuration_valid` avalia esse estado sem mudar o contrato
+v2 do backend. Seu `webhook_configuration_valid` continua descrevendo a
+preparação legada desativada e pode ser false numa configuração ativa correta.
+O GET não altera esse estado para fazer o diagnóstico passar.
 Configuração correta não comprova entrega; não cria, altera, ativa, apaga
 webhooks nem envia eventos. Uma configuração ativa antes da ativação
 coordenada exige revisão, sem desligamento automático pelo diagnóstico.

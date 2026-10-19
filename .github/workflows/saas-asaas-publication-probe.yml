@@ -118,3 +118,49 @@ jobs:
           path: publication-health.json
           if-no-files-found: ignore
           retention-days: 30
+
+  controlled-alert-drill:
+    name: CONTROLLED TEST - Production monitoring alert delivery
+    # Prepared only. Never run on pushes/schedules or a normal manual probe.
+    # Dispatching this exact dedicated branch requires the owner's explicit
+    # authorization for the existing GitHub notification that failure emits.
+    if: github.event_name == 'workflow_dispatch' && github.ref_name == 'saas/production-alert-drill-20261019'
+    needs: inspect
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Download this run's verified readonly health snapshot
+        uses: actions/download-artifact@v4
+        with:
+          name: saas-readonly-publication-${{ github.run_id }}
+
+      - name: Simulate a stale heartbeat in the downloaded copy only
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! jq -e '.available == true and .contract == "dentalflow-worker-health-v1"
+            and .environment == "production" and .worker.status == "ok"
+            and (.worker.healthy_age_seconds | type == "number" and . == floor and . >= 0 and . < 900)' publication-health.json > /dev/null; then
+            echo '::error::Drill refused: a healthy live Production snapshot is required first.'
+            exit 2
+          fi
+          jq '. + {drill_contract:"dentalflow-production-alert-drill-v1", simulated_condition:"stale_worker_heartbeat",
+            actual_healthy_age_seconds:.worker.healthy_age_seconds, live_processing_paused:false, live_data_modified:false}
+            | .worker.healthy_age_seconds = 901' publication-health.json > production-alert-drill.json
+          if jq -e '.worker != null and .worker.healthy_age_seconds != null
+            and .worker.healthy_age_seconds < 900 and .worker.status != "review" and .worker.status != "failed"
+            and (.worker.status != "running" or .worker.started_age_seconds < 300)' production-alert-drill.json > /dev/null; then
+            echo '::error::Drill failed: the monitor accepted the simulated stale heartbeat.'
+            exit 2
+          fi
+          echo '::error::CONTROLLED TEST: simulated stale Production heartbeat. Live processing and data were unchanged. This intentional failure verifies the existing GitHub notification delivery.'
+          exit 1
+
+      - name: Preserve the sanitized controlled alert evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: saas-controlled-alert-${{ github.run_id }}
+          path: production-alert-drill.json
+          if-no-files-found: ignore
+          retention-days: 30
