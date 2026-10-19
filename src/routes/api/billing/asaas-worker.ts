@@ -12,7 +12,7 @@ export const Route = createFileRoute("/api/billing/asaas-worker")({
           const { manageAsaasDatabaseScheduler } = await import("@/lib/billing/asaas-database-scheduler.server");
           return manageAsaasDatabaseScheduler(request);
         }
-        if (new URL(request.url).searchParams.get("check") === "production-webhook") {
+        if (["production-webhook", "production-queue-alert"].includes(new URL(request.url).searchParams.get("check") ?? "")) {
           const { inspectAsaasProductionWebhook } = await import("@/lib/billing/asaas-production-preflight.server");
           return inspectAsaasProductionWebhook(request);
         }

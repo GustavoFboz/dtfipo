@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { FixtureFailure, requireResult, type Check, type Job } from './fixture-acceptance.server';
 import { withFixtureSessions, type FixtureSession } from './fixture-sessions.server';
+import { exerciseFixtureStorageResilience } from './fixture-storage-resilience.server';
 
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6BYAAAAASUVORK5CYII=','base64');
 type Upload={bucket:string;path:string;source:string;bytes:Buffer;mime:string;caseId?:string;patientId?:string;fileId?:string;sourceId?:string;uploaded?:boolean;completed?:boolean};
@@ -144,6 +145,7 @@ export async function runFixtureStorage(job:Job):Promise<Check[]> {
           const final=await usage(fixture);
           checks.push({check:'authoritative_quota_restored',passed:final.used===baseline.used,count:final.used});
         }
+        checks.push(...await exerciseFixtureStorageResilience(fixture,job.id));
       }
     });
   } catch(error) { checks.push({check:'storage_flow',passed:false,code:error instanceof FixtureFailure?error.safeCode:'FIXTURE_STORAGE_FLOW_FAILED',

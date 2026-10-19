@@ -33,6 +33,24 @@ passar regressões ou ensaiar SQL em banco descartável não encerra 4.1, 3.1,
 5.1 nem qualquer critério financeiro. O titular continua responsável pela
 revisão dos seus eventos manuais com sua sessão Master/AAL2.
 
+## Preparação da meta de 50% — 19/10/2026
+
+O job `storage` inclui também verificações de resiliência com a sessão real
+da fixture: duas reservas concorrentes que juntas excederiam a cota, uma
+única vencedora, cancelamento após envio interrompido, liberação repetida,
+upload com tamanho diferente e recusa de liberar cota com bytes existentes.
+Reservas grandes são apenas metadados; os únicos bytes adicionais são PNGs
+minúsculos do próprio job. O cleanup consulta somente os caminhos exatos
+gerados para esse job/empresa/dono antes de liberar suas reservas, inclusive
+quando uma resposta de reserva foi ambígua. Nenhum arquivo histórico é removido.
+Se a RLS impedir o readback de uma reserva com resposta perdida, o saldo de
+cota denuncia o resíduo e o job falha; não declara recuperação nem amplia o
+papel da fixture para forçar a limpeza. Esse cenário mantém revisão própria.
+
+Os testes locais de sucesso e de contratos defeituosos não substituem a
+execução real. Revisão histórica e demais critérios seguem em
+[TARGET-50-PERCENT.md](TARGET-50-PERCENT.md); o contador continua 7/23.
+
 ## Execução de cobrança e arquivos — 08/10/2026
 
 Os tipos privados `billing` e `storage` usam sessões reais das mesmas duas

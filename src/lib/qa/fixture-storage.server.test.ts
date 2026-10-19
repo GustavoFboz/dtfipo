@@ -11,14 +11,19 @@ const job:Job={id:'8a0cbd19-6b52-4db9-991b-66711337e61b',kind:'storage',fixtures
   {user_id:'24e7cdf9-457e-4af2-b1cb-cf366abbddb0',email:'dentalflow-acceptance-20261004-237e6ef4-9893-43d2-b9a3-311f8708aa3d@example.invalid',clinic_id:'3fc86c40-697e-4725-a9e9-633fc882aadc'},
 ]};
 type Row=Record<string,any>;
-function environment(options:{failUpload?:boolean;failDelete?:boolean}={}) {
+function environment(options:{failUpload?:boolean;failDelete?:boolean;allowOverdraft?:boolean;allowSizeMismatch?:boolean;allowPrematureRelease?:boolean;ambiguousReservation?:boolean}={}) {
   const tables:Record<string,Row[]>={patients:[],cases:[],case_attachments:[],patient_attachments:[],
     profiles:job.fixtures.map(f=>({id:f.user_id,clinic_id:f.clinic_id,role:'USER',avatar_url:null}))};
   const reservations=new Map<string,Row>(),objects=new Map<string,{owner:string;bytes:Buffer}>();
   const adminCalls:Row[]=[],userCalls:Row[]=[];
+  let ambiguityUsed=false;
   const result=(data:any,error:any=null)=>({data,error});
   const owns=(row:Row,table:string,actor:Job['fixtures'][number]):boolean=>{
     if(table==='profiles') return row.id===actor.user_id;
+    // Ordinary participants cannot list the company storage catalog. Known
+    // returned reservation IDs must suffice; hidden metadata is not proof of
+    // absence after an ambiguous transport result.
+    if(table==='storage_files') return false;
     if(table==='patients') return row.clinic_id===actor.clinic_id;
     if(table==='cases') return row.requested_by===actor.user_id;
     const parent=table==='case_attachments'?'cases':'patients';
@@ -27,19 +32,21 @@ function environment(options:{failUpload?:boolean;failDelete?:boolean}={}) {
   };
   function from(table:string,actor?:Job['fixtures'][number]) {
     if(!actor&&!['patients','cases'].includes(table)) throw new Error('Administrative scope exceeded');
-    let operation='select',values:Row|undefined,single=false;const filters:Row={};
+    let operation='select',values:Row|undefined,single=false;const filters:Row={},lists:Record<string,any[]>={};
     const query:any={
       insert(row:Row){operation='insert';values=row;return query;},
       update(row:Row){operation='update';values=row;return query;},
       delete(){operation='delete';return query;},
       select(){return query;},eq(key:string,value:any){filters[key]=value;return query;},
       is(key:string,value:any){filters[key]=value;return query;},
+      in(key:string,values:any[]){lists[key]=values;return query;},
       single(){single=true;return query;},
       then(resolve:any,reject:any){return Promise.resolve().then(()=>{
         (actor?userCalls:adminCalls).push({table,operation,filters:{...filters},values});
         if(actor&&['patients','cases'].includes(table)&&operation!=='select') return result(null,{message:'Clinical administration denied'});
         if(actor&&table==='profiles'&&values&&Object.keys(values).some(k=>k!=='avatar_url')) throw new Error('Profile privilege mutation');
-        const matches=(row:Row)=>Object.entries(filters).every(([k,v])=>row[k]===v)&&(!actor||owns(row,table,actor));
+        if(table==='storage_files') tables[table]=[...reservations.entries()].map(([id,row])=>({id,object_path:row._object_path,bucket:row._bucket,uploaded_by:row.owner,clinic_id:row.clinic_id,status:'reserved'}));
+        const matches=(row:Row)=>Object.entries(filters).every(([k,v])=>row[k]===v)&&Object.entries(lists).every(([k,v])=>v.includes(row[k]))&&(!actor||owns(row,table,actor));
         let rows=tables[table].filter(matches);
         if(operation==='insert') {const row={id:randomUUID(),...values};tables[table].push(row);rows=[row];}
         if(operation==='update') rows.forEach(row=>Object.assign(row,values));
@@ -59,17 +66,23 @@ function environment(options:{failUpload?:boolean;failDelete?:boolean}={}) {
         const allowed=args._bucket==='avatars'?prefix===actor.user_id:
           [...tables.patients,...tables.cases].some(row=>row.id===prefix&&(row.clinic_id===actor.clinic_id||row.requested_by===actor.user_id));
         if(!allowed) return result(null,{message:'STORAGE_RESERVATION_NOT_ALLOWED'});
-        if(args._size_bytes>1000) return result(null,{message:'STORAGE_QUOTA_EXCEEDED'});
-        const file_id=randomUUID();reservations.set(file_id,{...args,owner:actor.user_id});return result([{file_id}]);
+        const used=[...reservations.values()].filter(r=>r.owner===actor.user_id).reduce((n,r)=>n+r._size_bytes,0);
+        if(args._size_bytes>1000||(!options.allowOverdraft&&used+args._size_bytes>1000)) return result(null,{message:'STORAGE_QUOTA_EXCEEDED'});
+        const file_id=randomUUID();reservations.set(file_id,{...args,owner:actor.user_id,clinic_id:actor.clinic_id});
+        if(options.ambiguousReservation&&!ambiguityUsed&&args._object_path.includes('-resilience-parallel-')) {
+          ambiguityUsed=true;throw new Error('Response lost after committed fixture reservation');
+        }
+        return result([{file_id}]);
       }
       const reservation=reservations.get(args._file_id);
+      if(!reservation&&name==='cancel_storage_upload') return result(null);
       if(!reservation||reservation.owner!==actor.user_id) return result(null,{message:'Unknown reservation'});
       const key=`${reservation._bucket}/${reservation._object_path}`;
       if(name==='complete_storage_upload') {
-        if(!objects.has(key)) return result(null,{message:'Object missing'});return result(null);
+        if(!objects.has(key)) return result(null,{message:'STORAGE_OBJECT_SIZE_MISMATCH'});return result(null);
       }
       if(name==='cancel_storage_upload') {
-        if(objects.has(key)) return result(null,{message:'STORAGE_OBJECT_STILL_EXISTS'});
+        if(objects.has(key)&&!options.allowPrematureRelease) return result(null,{message:'STORAGE_OBJECT_STILL_EXISTS'});
         reservations.delete(args._file_id);return result(null);
       }
       throw new Error('Manager-only RPC called');
@@ -77,7 +90,7 @@ function environment(options:{failUpload?:boolean;failDelete?:boolean}={}) {
     storage:{from:(bucket:string)=>({
       upload:async (path:string,bytes:Buffer)=>{
         userCalls.push({storage:'upload',bucket,actor:actor.user_id});
-        if(options.failUpload||![...reservations.values()].some(r=>r.owner===actor.user_id&&r._bucket===bucket&&r._object_path===path)) return result(null,{message:'Upload denied'});
+        if(options.failUpload||![...reservations.values()].some(r=>r.owner===actor.user_id&&r._bucket===bucket&&r._object_path===path&&(options.allowSizeMismatch||r._size_bytes===bytes.length))) return result(null,{message:'Upload denied'});
         objects.set(`${bucket}/${path}`,{owner:actor.user_id,bytes});return result({path});
       },
       download:async (path:string)=>{
@@ -108,7 +121,9 @@ describe('storage acceptance with unprivileged case participants',()=>{
     expect(env.adminCalls.filter(c=>c.table==='cases'&&c.operation==='update').every(c=>c.filters.requested_by===null&&c.filters.patient_id&&c.filters.id)).toBe(true);
     expect(env.adminCalls.filter(c=>c.operation==='delete').every(c=>c.filters.id)).toBe(true);
     expect(env.userCalls.some(c=>c.rpc==='delete_managed_storage_file')).toBe(false);
-    expect(env.userCalls.filter(c=>c.storage==='upload')).toHaveLength(10);
+    expect(env.userCalls.filter(c=>c.storage==='upload')).toHaveLength(14);
+    expect(checks.filter(c=>c.check==='parallel_quota_single_winner'&&c.passed)).toHaveLength(2);
+    expect(checks.filter(c=>c.check==='resilience_quota_restored'&&c.passed)).toHaveLength(2);
     expect(env.tables.patients).toHaveLength(0);expect(env.tables.cases).toHaveLength(0);
     expect(env.tables.case_attachments).toHaveLength(0);expect(env.tables.patient_attachments).toHaveLength(0);
     expect(env.reservations.size).toBe(0);expect(env.objects.size).toBe(0);
@@ -127,5 +142,23 @@ describe('storage acceptance with unprivileged case participants',()=>{
     expect(env.objects.size).toBe(4);expect(env.reservations.size).toBe(4);
     expect(env.tables.patients).toHaveLength(1);expect(env.tables.cases).toHaveLength(1);
     expect(env.adminCalls.some(c=>c.operation==='delete')).toBe(false);
+  });
+  it.each([
+    [{allowOverdraft:true},'parallel_quota_single_winner'],
+    [{allowSizeMismatch:true},'actual_size_mismatch_upload_denied'],
+    [{allowPrematureRelease:true},'existing_bytes_prevent_quota_release'],
+  ] as const)('refuses a broken reservation contract and cleans only its job paths (%j)',async(options,failedCheck)=>{
+    const env=environment(options);const checks=await runFixtureStorage(job);
+    expect(checks).toContainEqual(expect.objectContaining({check:failedCheck,passed:false}));
+    expect(env.objects.size).toBe(0);expect(env.reservations.size).toBe(0);
+    expect(env.tables.patients).toHaveLength(0);expect(env.tables.cases).toHaveLength(0);
+    expect(env.adminCalls.every(call=>['patients','cases'].includes(call.table))).toBe(true);
+  });
+  it('reports an ambiguous committed reservation as unresolved when catalog RLS hides readback',async()=>{
+    const env=environment({ambiguousReservation:true});const checks=await runFixtureStorage(job);
+    expect(checks).toContainEqual({check:'storage_resilience_flow',passed:false,code:'FIXTURE_RESERVATION_TRANSPORT_AMBIGUOUS'});
+    expect(checks).toContainEqual(expect.objectContaining({check:'resilience_quota_restored',passed:false}));
+    expect(env.reservations.size).toBe(1);expect(env.objects.size).toBe(0);
+    expect(env.adminCalls.every(call=>['patients','cases'].includes(call.table))).toBe(true);
   });
 });

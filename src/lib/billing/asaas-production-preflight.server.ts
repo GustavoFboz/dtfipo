@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { loadAsaasProductionPreflightSecrets } from "./asaas.server";
+import { summarizeWebhookQueueAlert } from "./asaas-webhook-queue-diagnostic";
 
 export const PRODUCTION_PREFLIGHT_CONTRACT = "dentalflow-production-preflight-v2";
 export const PRODUCTION_WEBHOOK_PREFLIGHT_CONTRACT = "dentalflow-production-webhook-preflight-v2";
@@ -10,7 +11,8 @@ const reviewEvents = ["PAYMENT_PARTIALLY_REFUNDED", "PAYMENT_REFUND_IN_PROGRESS"
   "PAYMENT_CHARGEBACK_DISPUTE", "PAYMENT_AWAITING_CHARGEBACK_REVERSAL", "SUBSCRIPTION_DELETED"];
 const knownEvents = new Set([...automatedEvents, ...reviewEvents]);
 const webhookListSchema = z.object({ hasMore: z.boolean(), data: z.array(z.object({
-  id: z.string().max(100).nullish(), url: z.string().max(2048), enabled: z.boolean(), interrupted: z.boolean(),
+  id: z.string().max(100).nullish(), name: z.string().max(500).nullish(),
+  url: z.string().max(2048), enabled: z.boolean(), interrupted: z.boolean(),
   apiVersion: z.number().int().min(1).max(99), sendType: z.string().max(32),
   authToken: z.string().max(255).nullish(), events: z.array(z.string().max(160)).max(300),
 })).max(100) });
@@ -122,6 +124,11 @@ export async function inspectAsaasProductionWebhook(request: Request, dependenci
         code: response.status === 401 || response.status === 403 ? "PRODUCTION_CREDENTIAL_REFUSED" : "PRODUCTION_PROVIDER_UNAVAILABLE" }, 502);
       const parsed = webhookListSchema.safeParse(await response.json());
       if (!parsed.success) return json({ available: false, code: "PRODUCTION_WEBHOOK_STATUS_INVALID", provider_http_status: 200 }, 502);
+      if (new URL(request.url).searchParams.get("check") === "production-queue-alert") {
+        return json({ available: true, contract: "dentalflow-production-queue-alert-v1", environment: "production",
+          checked_at: new Date((dependencies.now ?? Date.now)()).toISOString(),
+          ...summarizeWebhookQueueAlert(parsed.data.data, parsed.data.hasMore) }, 200);
+      }
       const webhooks = parsed.data.data.filter((item) => item.url === "https://dtfipo.lovable.app/api/billing/asaas-webhook").map((item) => {
         const supplied = item.authToken;
         let tokenMatches: boolean | null = null;
