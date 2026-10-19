@@ -1,5 +1,12 @@
 # Etapa técnica 10 — conexão Asaas Produção e liberação
 
+Atualização de 19/10/2026, 01h33 Manaus: primeiro pagamento real de R$5
+confirmado no ledger, checkout pago, entrega normal `PAYMENT_RECEIVED`
+processada sem erro e Inicial ativo. Titular confirmou acesso e plano.
+**Item 7.3 concluído; 6/23, 0/7 etapas encerradas.** O alerta operacional de
+Produção e os demais aceites continuam pendentes.
+[Recibo, revisão e limites](evidence/first-production-payment-20261019.md).
+
 Atualização de 18/10/2026: Produção e webhook ativos. A tentativa real de R$1
 foi recusada com `invalid_value`; o mínimo oficial do Asaas é R$5. O titular
 autorizou R$5/mês às 18h00 e o catálogo foi ajustado às 18h01m52s. Recebimento,
