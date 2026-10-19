@@ -6,20 +6,23 @@ para manter o histórico; não são um segundo protocolo.
 
 **Restam 7 de 7 etapas com aceites em aberto.** Há código e provas parciais
 em todas elas; um incremento aprovado não encerra automaticamente a etapa.
-Frente atual: **7/7 — primeiro pagamento real confirmado e validação operacional**.
+Frente atual: **7/7 — primeiro pagamento e monitoramento de Produção comprovados**.
 Em 19/10, às 01h33 Manaus, o backend confirmou o pagamento real de R$5 do
 Inicial, checkout pago, evento normal `PAYMENT_RECEIVED` processado sem erro e
 assinatura ativa. Laboratório e cota correspondem ao plano; o titular confirmou
-acesso e seleção corretos. O item 7.3 está concluído. O alerta operacional de
-Produção ainda mantém o item 7.2 parcial; a decisão de vendas permanece pendente.
-**Aceites atuais: 6/23 (26,09%), 17 em aberto/parciais, 0/7 etapas encerradas.**
+acesso e seleção corretos. O item 7.3 está concluído. Às 02h24 Manaus, o ensaio
+de alerta autorizado, sua notificação real e a inspeção saudável posterior
+concluíram o item 7.2. A decisão de vendas permanece pendente.
+**Aceites atuais: 7/23 (30,43%), 16 em aberto/parciais, 0/7 etapas encerradas.**
 Ver [primeiro recebimento real, revisão e limites](evidence/first-production-payment-20261019.md).
 
-Frente operacional em andamento: correção do falso alerta de webhook
-desativado e preparação de um ensaio de notificação em cópia isolada do
-snapshot. O monitor não deve exigir desligar um webhook de Produção saudável.
-Ensaio externo ainda não disparado; 7.2 parcial e contador 6/23 preservados.
-Ver [revisão do monitor](evidence/production-monitor-preparation-20261019.md).
+Frente operacional concluída para 7.2: diagnóstico corrigido para webhook
+ativo; ensaio #96 alterou somente uma cópia do snapshot, gerou a falha esperada
+e teve notificação recebida na INBOX. A inspeção normal #97 passou depois.
+Cron, ledger e assinatura paga permaneceram intactos. Os demais estados do
+ciclo, dados/backup, aparelhos e decisão comercial continuam em aberto.
+Ver [prova do alerta e limites](evidence/production-alert-20261019.md) e
+[diagnóstico anterior](evidence/production-monitor-preparation-20261019.md).
 
 Histórico da preparação em 18/10:
 Em 18/10, às 16h47 Manaus, a API confirmou o webhook de Produção ativo após
@@ -56,8 +59,9 @@ O agendador privado Sandbox foi registrado às 16h20. Entre 16h21 e 18h16,
 24 disparos ocorreram a cada cinco minutos, com 24 respostas HTTP 200 e
 telemetria saudável. O alerta real de heartbeat antigo chegou à caixa do
 operador às 16h19; o diagnóstico agendado posterior confirmou recuperação.
-O item 6.1 está aceito em Sandbox; agendamento/alertas de Produção continuam
-no gate 7.2. Ver [prova](evidence/database-scheduler-20261005.md).
+O item 6.1 foi aceito em Sandbox; naquele checkpoint, agendamento/alertas de
+Produção permaneciam no gate 7.2, agora concluído pela prova de 19/10 acima.
+Ver [prova histórica](evidence/database-scheduler-20261005.md).
 Os dois dead letters foram consultados no provedor: mesma cobrança Sandbox,
 RECEIVED, 500 centavos, vencimento 29/09, sem assinatura informada na resposta
 e sem pagamento local correspondente. Não autoriza atribuição de acesso ou
@@ -72,7 +76,7 @@ pendentes e nenhuma auditoria de conclusão. Frente independente registrada em 0
 **4/7, item 4.3**, referências, renovação e isolamento de arquivos privados.
 Ver [implementação e limites](PRIVATE-FILE-ACCESS.md); links históricos e
 validação autenticada publicada continuam pendentes, sem novo aceite integral.
-Aceites finais atuais: **6/23 — 26,09%**; restam 17 itens parciais/em aberto e nenhuma
+Aceites finais atuais: **7/23 — 30,43%**; restam 16 itens parciais/em aberto e nenhuma
 etapa inteira foi encerrada. A meta de pelo menos 20% do total foi atingida,
 sem alterar os 23 critérios. Ver [provas de 17/10](evidence/acceptance-20-20261017.md).
 Ver [prova e revisão](evidence/production-preflight-20261005.md) e
