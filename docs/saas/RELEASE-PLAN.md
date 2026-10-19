@@ -1,12 +1,21 @@
 # DentalFlow SaaS — sete etapas restantes até vendas
 
-Atualizado em 18/10/2026; as evidências novas registram horários UTC. Este é o contador de conclusão
+Atualizado em 19/10/2026; as evidências novas registram horários UTC. Este é o contador de conclusão
 apresentado ao responsável. Os IDs 00–10 dos documentos técnicos permanecem
 para manter o histórico; não são um segundo protocolo.
 
 **Restam 7 de 7 etapas com aceites em aberto.** Há código e provas parciais
 em todas elas; um incremento aprovado não encerra automaticamente a etapa.
-Frente atual: **7/7 — ativação técnica de Produção e preparação do teste real**.
+Frente atual: **7/7 — primeiro pagamento real confirmado e validação operacional**.
+Em 19/10, às 01h33 Manaus, o backend confirmou o pagamento real de R$5 do
+Inicial, checkout pago, evento normal `PAYMENT_RECEIVED` processado sem erro e
+assinatura ativa. Laboratório e cota correspondem ao plano; o titular confirmou
+acesso e seleção corretos. O item 7.3 está concluído. O alerta operacional de
+Produção ainda mantém o item 7.2 parcial; a decisão de vendas permanece pendente.
+**Aceites atuais: 6/23 (26,09%), 17 em aberto/parciais, 0/7 etapas encerradas.**
+Ver [primeiro recebimento real, revisão e limites](evidence/first-production-payment-20261019.md).
+
+Histórico da preparação em 18/10:
 Em 18/10, às 16h47 Manaus, a API confirmou o webhook de Produção ativo após
 ativação pelo titular no próprio navegador: fila não interrompida e 13 eventos
 corretos. Backend e GitHub estão alinhados em Produção, com cron ativo,
@@ -57,7 +66,7 @@ pendentes e nenhuma auditoria de conclusão. Frente independente registrada em 0
 **4/7, item 4.3**, referências, renovação e isolamento de arquivos privados.
 Ver [implementação e limites](PRIVATE-FILE-ACCESS.md); links históricos e
 validação autenticada publicada continuam pendentes, sem novo aceite integral.
-Aceites finais: **5/23 — 21,74%**; restam 18 itens parciais/em aberto e nenhuma
+Aceites finais atuais: **6/23 — 26,09%**; restam 17 itens parciais/em aberto e nenhuma
 etapa inteira foi encerrada. A meta de pelo menos 20% do total foi atingida,
 sem alterar os 23 critérios. Ver [provas de 17/10](evidence/acceptance-20-20261017.md).
 Ver [prova e revisão](evidence/production-preflight-20261005.md) e

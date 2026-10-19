@@ -1,5 +1,18 @@
 # Acesso direto ao Supabase e ativação Asaas
 
+## Primeiro pagamento real em 19/10/2026, 01h33 Manaus
+
+O titular confirmou pagamento, conta ativa e plano correto. A leitura do
+backend conferiu uma cobrança de R$5 em Produção, checkout `paid`, assinatura
+Inicial `active`, Laboratório ativo e cota correspondente. O evento normal
+`PAYMENT_RECEIVED` foi recebido às 05h07 UTC e processado às 05h11, sem erro.
+O cron continua HTTP 200 e o worker está saudável.
+
+**Item 7.3 concluído: 6/23 (26,09%), 0/7 etapas encerradas.** Não é necessário
+repetir a compra. O alerta operacional de Produção e a liberação para vendas
+mantêm aceites próprios. Ver [recibo e revisão](evidence/first-production-payment-20261019.md).
+Os registros abaixo documentam os checkpoints anteriores.
+
 ## Checkout real em 18/10/2026, 17h56 Manaus
 
 O titular chegou ao checkout com Inicial de R$1/mês. O cliente foi criado no

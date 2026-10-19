@@ -16,10 +16,19 @@ de server function. A correção foi integrada no PR160 e o job publicado passou
 25/25 verificações reais. Duplicatas/ordem e histórico/documentos têm agora
 prova completa. Armazenamento passou 50/50 checks reais após corrigir preparo
 e leitura de cache. [Provas da rodada de 20%](evidence/acceptance-20-20261017.md).
-**Aceites integrais: 5/23 — 21,74%. Restam 18 itens parciais/em aberto.
+**Aceites integrais: 6/23 — 26,09%. Restam 17 itens parciais/em aberto.
 Etapas inteiramente encerradas: 0/7.**
 Existe implementação e evidência parcial, descrita no RELEASE-PLAN.md; não
 reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data.
+
+Em 19/10, 01h33 Manaus, o primeiro pagamento real foi confirmado no backend:
+R$5 em Produção, checkout pago, `PAYMENT_RECEIVED` processado uma vez sem erro,
+assinatura Inicial ativa e Laboratório selecionado. O titular confirmou acesso
+e plano corretos. **Item 7.3 concluído; 6/23.** O item 7.2 permanece parcial
+somente pelo alerta operacional real de Produção, ainda sem aceite.
+[Prova, revisão e limites](evidence/first-production-payment-20261019.md).
+
+Os checkpoints de 18/10 abaixo são históricos.
 
 Em 18/10, 16h47 Manaus, a API confirmou o webhook de Produção ativo após
 ativação pelo titular no próprio navegador: fila não interrompida e 13 eventos
@@ -57,8 +66,8 @@ o valor insuficiente antes de criar recursos externos.
 | 6.3 | Onboarding, plataformas e capacidade piloto | Em aberto |
 | 6.4 | Documentos comerciais e privacidade revisados | Protocolo preparado; minutas/revisão pendentes |
 | 7.1 | Conta recebedora aprovada | Concluído em 05/10, 13h49 de Manaus: chave real autenticada e general=APPROVED; [prova e revisão](evidence/production-preflight-20261005.md). Pendência bancária registrada separadamente |
-| 7.2 | Secrets, webhook e agendamento de Produção | Parcial, 18/10, 16h47 Manaus: configuração publicada em Produção; cron Production ativo, HTTP 200 e processador saudável; cron Sandbox desativado. Webhook ativado pelo titular, confirmado pela API com 13 eventos corretos e fila não interrompida. Autenticação na entrega e alerta real de Produção continuam pendentes. [Prova e limites](evidence/production-webhook-activation-20261018.md) |
-| 7.3 | Recebimento, ledger e acesso reais comprovados | Em aberto: tentativa de R$1 recusada com invalid_value; mínimo oficial R$5. Titular autorizou R$5/mês às 18h00 e catálogo foi ajustado às 18h01m52s. Zero pagamentos/eventos de Produção na leitura das 17h56; falta titular concluir o checkout de R$5 e comprovar recebimento, evento, ledger e acesso. [Prova](evidence/production-checkout-minimum-20261018.md) |
+| 7.2 | Secrets, webhook e agendamento de Produção | Parcial, 19/10, 01h33 Manaus: Produção configurada; cron ativo, HTTP 200 e processador saudável. Entrega autenticada comprovada pelo evento normal PAYMENT_RECEIVED recebido e processado sem erro. Falta o alerta operacional real de Produção para o aceite integral. [Prova e limites](evidence/first-production-payment-20261019.md) |
+| 7.3 | Recebimento, ledger e acesso reais comprovados | Concluído em 19/10, 01h33 Manaus: pagamento real de R$5 em Produção, checkout pago, evento PAYMENT_RECEIVED processado uma vez sem erro e assinatura Inicial ativa. Valor, pagamento e assinatura conferem; Laboratório ativo, cota do plano correta e acesso/plano confirmados pelo titular. [Recibo e revisão](evidence/first-production-payment-20261019.md) |
 | 7.4 | Decisão de liberação para vendas | Pendente dos demais aceites |
 
 Um item aprovado vale 100/23 pontos percentuais. Etapas são encerradas somente
