@@ -1,9 +1,11 @@
 # Ensaio controlado da notificação operacional de Produção
 
-Estado em 19/10/2026: **preparado e testado localmente com dados fictícios;
-não disparado no GitHub**. A primeira assinatura paga e o cron continuam ativos.
-A autorização para trabalhar no monitor não é tratada como autorização para
-enviar uma nova notificação externa. O titular deve aprovar o disparo abaixo.
+Estado em 19/10/2026, 02h24 Manaus: **executado uma vez, notificação recebida
+e inspeção normal posterior saudável**. O titular autorizou o disparo às
+02h19m48s. A primeira assinatura paga e o cron permaneceram ativos.
+Ver [prova, revisão e limites](evidence/production-alert-20261019.md).
+Uma nova repetição deve ter necessidade e autorização próprias; o aceite
+registrado não depende de repetir a falha intencional.
 
 ## Execução concreta preparada
 
@@ -30,7 +32,7 @@ pago e acesso permanecem intactos. A cópia registra `live_data_modified=false`,
 já estiver indisponível, fora de Produção ou não estiver saudável, o ensaio
 é recusado para não confundir um incidente real com a simulação.
 
-## Conferência após autorização
+## Roteiro aplicado após autorização
 
 1. Disparar uma vez o workflow na branch exclusiva, pela sessão GitHub
    autorizada. Não usar o workflow de processamento financeiro.
@@ -45,7 +47,8 @@ já estiver indisponível, fora de Produção ou não estiver saudável, o ensai
 O teste local executa o Bash real do workflow com arquivos temporários e
 compara o predicado do ensaio ao da inspeção normal. Recusa snapshots Sandbox,
 contrato desconhecido, worker ausente/falho e heartbeat realmente antigo.
-Um teste local não comprova entrega de e-mail; o aceite ainda está pendente.
+Um teste local não comprova entrega de e-mail. O aceite registrado decorre
+da execução #96, da notificação real correspondente e da inspeção normal #97.
 
 O alerta antigo do diagnóstico de credenciais usava a regra de webhook
 desativado após a ativação. A entrega daquela notificação foi observada,

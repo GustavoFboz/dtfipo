@@ -16,7 +16,7 @@ de server function. A correção foi integrada no PR160 e o job publicado passou
 25/25 verificações reais. Duplicatas/ordem e histórico/documentos têm agora
 prova completa. Armazenamento passou 50/50 checks reais após corrigir preparo
 e leitura de cache. [Provas da rodada de 20%](evidence/acceptance-20-20261017.md).
-**Aceites integrais: 6/23 — 26,09%. Restam 17 itens parciais/em aberto.
+**Aceites integrais: 7/23 — 30,43%. Restam 16 itens parciais/em aberto.
 Etapas inteiramente encerradas: 0/7.**
 Existe implementação e evidência parcial, descrita no RELEASE-PLAN.md; não
 reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data.
@@ -24,15 +24,17 @@ reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data
 Em 19/10, 01h33 Manaus, o primeiro pagamento real foi confirmado no backend:
 R$5 em Produção, checkout pago, `PAYMENT_RECEIVED` processado uma vez sem erro,
 assinatura Inicial ativa e Laboratório selecionado. O titular confirmou acesso
-e plano corretos. **Item 7.3 concluído; 6/23.** O item 7.2 permanece parcial
-somente pelo alerta operacional real de Produção, ainda sem aceite.
+e plano corretos. **Naquele checkpoint, item 7.3 concluído; 6/23.** O item 7.2
+ainda aguardava o ensaio do alerta operacional de Produção.
 [Prova, revisão e limites](evidence/first-production-payment-20261019.md).
 
-Continuidade operacional de 19/10: corrigida a regra do diagnóstico que
-exigia webhook desativado após a ativação. Ensaio de alerta isolado preparado
-e validado com dados fictícios, sem execução externa. A entrega observada do
-falso positivo não encerra o teste operacional de falha. O item 7.2 e o total
-6/23 permanecem preservados. [Revisão e próximos passos](evidence/production-monitor-preparation-20261019.md).
+Continuidade operacional de 19/10, 02h24 Manaus: após autorização explícita,
+o ensaio #96 recusou a idade de 901s somente na cópia do snapshot de Produção.
+A notificação GitHub correspondente chegou à INBOX às 02h22m08s, fora de SPAM
+e com DKIM aprovado. A inspeção normal #97 passou às 02h24; cron e registros
+financeiros preservados. **Item 7.2 concluído; 7/23 (30,43%).** Não houve pausa
+real do serviço; backup/restauração, demais ciclos e vendas conservam seus
+aceites próprios. [Prova, revisão e limites](evidence/production-alert-20261019.md).
 
 Os checkpoints de 18/10 abaixo são históricos.
 
@@ -72,7 +74,7 @@ o valor insuficiente antes de criar recursos externos.
 | 6.3 | Onboarding, plataformas e capacidade piloto | Em aberto |
 | 6.4 | Documentos comerciais e privacidade revisados | Protocolo preparado; minutas/revisão pendentes |
 | 7.1 | Conta recebedora aprovada | Concluído em 05/10, 13h49 de Manaus: chave real autenticada e general=APPROVED; [prova e revisão](evidence/production-preflight-20261005.md). Pendência bancária registrada separadamente |
-| 7.2 | Secrets, webhook e agendamento de Produção | Parcial, 19/10, 01h33 Manaus: Produção configurada; cron ativo, HTTP 200 e processador saudável. Entrega autenticada comprovada pelo evento normal PAYMENT_RECEIVED recebido e processado sem erro. Falta o alerta operacional real de Produção para o aceite integral. [Prova e limites](evidence/first-production-payment-20261019.md) |
+| 7.2 | Secrets, webhook e agendamento de Produção | Concluído em 19/10, 02h24 Manaus: configuração ativa e entrega autenticada comprovadas; cron ativo, HTTP 200 e worker saudável. Ensaio #96 autorizado recusou heartbeat de 901s na cópia, notificação GitHub entregue à INBOX às 02h22m08s com DKIM aprovado e inspeção normal #97 saudável. Ledger/contratos preservados; sem pausa do serviço. [Prova, revisão e limites](evidence/production-alert-20261019.md) |
 | 7.3 | Recebimento, ledger e acesso reais comprovados | Concluído em 19/10, 01h33 Manaus: pagamento real de R$5 em Produção, checkout pago, evento PAYMENT_RECEIVED processado uma vez sem erro e assinatura Inicial ativa. Valor, pagamento e assinatura conferem; Laboratório ativo, cota do plano correta e acesso/plano confirmados pelo titular. [Recibo e revisão](evidence/first-production-payment-20261019.md) |
 | 7.4 | Decisão de liberação para vendas | Pendente dos demais aceites |
 

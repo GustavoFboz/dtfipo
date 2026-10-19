@@ -6,12 +6,13 @@ a regra legada exigia webhook desativado. O workflow passa a conferir o estado
 esperado pelo runtime e sua correspondência com as variáveis GitHub. A API
 v2 e o processamento financeiro são preservados.
 
-Há um [ensaio isolado preparado](PRODUCTION-ALERT-DRILL.md), somente manual na
-branch exclusiva, que altera uma cópia do snapshot e não para o processador.
-O disparo ainda depende de autorização explícita para a nova notificação
-externa. O e-mail já observado do falso positivo comprova aquele transporte,
-não o ensaio de falha do monitor. **7.2 parcial; 6/23 (26,09%), 0/7 etapas.**
-Ver [diagnóstico e revisão](evidence/production-monitor-preparation-20261019.md).
+O [ensaio isolado](PRODUCTION-ALERT-DRILL.md) foi autorizado e executado uma
+vez. A cópia com heartbeat de 901s foi recusada no run #96; a notificação
+GitHub chegou à INBOX às 02h22m08s Manaus. A inspeção normal #97 passou às
+02h24, sem pausa do processador nem mudança de ledger/contrato.
+**7.2 concluído; 7/23 (30,43%), 0/7 etapas.** O item 6.2 de backup/restauração
+operacional e rollback continua parcial: não houve indisponibilidade real.
+Ver [prova, revisão e limites](evidence/production-alert-20261019.md).
 As descrições anteriores abaixo mantêm o contexto de cada checkpoint.
 
 Escopo: monitoramento interno e recuperação controlada. A preparação avança com o backend existente; criação de cobranças e replay exigem seu próprio fluxo autorizado. A compra real de R$1 será realizada pelo responsável após os gates aplicáveis. DICOM aguarda a Radiologia. Este roteiro não libera Produção.
