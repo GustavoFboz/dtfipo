@@ -66,6 +66,7 @@ jobs:
           bun run check:saas:stage-09
           node scripts/check-saas-worker-workflows.mjs
           node scripts/check-asaas-production-preflight.mjs
+          node --test scripts/inspect-asaas-reported-queue.test.mjs
           node scripts/check-asaas-publication-alert-drill.mjs
           node scripts/check-asaas-database-scheduler.mjs
           bunx vitest run --configLoader runner src/lib/offline-access-policy.test.ts src/lib/desktop-local.offline-expiration.test.ts
