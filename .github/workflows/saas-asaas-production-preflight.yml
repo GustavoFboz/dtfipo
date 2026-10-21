@@ -231,6 +231,16 @@ jobs:
         run: |
           echo 'Production diagnostic not executed: BILLING_PRODUCTION_WORKER_TOKEN is not staged. This is not Production acceptance.'
 
+      - name: Set up Node for manual queue diagnostic
+        if: github.event_name == 'workflow_dispatch' && env.BILLING_PRODUCTION_WORKER_TOKEN != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Correlate reported webhook queue without changing it
+        if: github.event_name == 'workflow_dispatch' && env.BILLING_PRODUCTION_WORKER_TOKEN != ''
+        run: node scripts/inspect-asaas-reported-queue.mjs
+
       - name: Save sanitized account and webhook configuration evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -239,5 +249,6 @@ jobs:
           path: |
             production-preflight.json
             production-webhook-preflight.json
+            production-queue-alert.json
           if-no-files-found: ignore
           retention-days: 30

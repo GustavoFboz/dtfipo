@@ -1,5 +1,12 @@
 # Progresso dos aceites finais para vendas
 
+Retomada de 21/10/2026: o titular solicitou conclusão integral, com a meta
+de **100%**. O [roteiro dos 16 itens restantes](TARGET-100-PERCENT.md) distingue
+implementação, publicação, provas reais e decisões do responsável. A revisão
+automática bloqueou publicação e inspeção Cloud por exigir autorização
+específica; nenhuma nova publicação ou prova de aceite foi executada.
+**Total preservado: 7/23 (30,43%).**
+
 Baseline de 04/10/2026, 23h06 de Manaus. A porcentagem mede itens com aceite
 integral registrado, não linhas de código nem estimativa de esforço. O plano
 tem 23 itens, derivados das sete etapas apresentadas ao responsável.
