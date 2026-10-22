@@ -1,6 +1,12 @@
 import fs from "node:fs";
 
 const required = [
+  "docs/saas/COMPANY-DATA-OWNERSHIP.md",
+  "docs/saas/sql/stage-07-company-stock-assertions.sql",
+  "docs/saas/sql/stage-07-company-stock-rehearsal.sql",
+  "src/lib/stock-company-local.ts",
+  "src/lib/stock-company-local.test.ts",
+  "src/lib/qa/fixture-company-ownership.server.ts",
   "docs/saas/ADR-001-ASAAS-RECURRING-BILLING.md",
   "docs/saas/GO-LIVE-READINESS-2026-09-29.md",
   "docs/saas/STAGE-07-MASTER-ADMIN.md",
@@ -33,6 +39,10 @@ const required = [
 
 const missing = required.filter((p) => !fs.existsSync(p));
 if (missing.length) throw new Error("Stage 09 missing required artifacts: " + missing.join(", "));
+const ownershipMigration = "20261022160000_saas_company_stock_ownership_stage07.sql";
+if (fs.readFileSync(`supabase/migrations/${ownershipMigration}`, "utf8") !==
+    fs.readFileSync(`public/restore/migrations/${ownershipMigration}`, "utf8"))
+  throw new Error("Company ownership differs between migration and restore");
 const externalReviewMigration = "20261005223500_saas_master_external_test_review_stage07.sql";
 if (fs.readFileSync(`supabase/migrations/${externalReviewMigration}`, "utf8") !==
     fs.readFileSync(`public/restore/migrations/${externalReviewMigration}`, "utf8"))

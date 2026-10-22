@@ -226,6 +226,25 @@ jobs:
           docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
             < docs/saas/sql/stage-07-activity-read-rehearsal.sql | tee restore-stage-07-activity-read-rehearsal.log
 
+      - name: Verify and rehearse company stock ownership
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-07-company-stock-assertions.sql | tee restore-company-stock-assertions.log
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-07-company-stock-rehearsal.sql | tee restore-company-stock-rehearsal.log
+
+      - name: Verify ownership backfill preserves historical values
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat docs/saas/sql/company-stock-backfill-before.sql \
+            supabase/migrations/20261022160000_saas_company_stock_ownership_stage07.sql \
+            docs/saas/sql/company-stock-backfill-after.sql \
+            | docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            | tee restore-company-stock-backfill.log
+
       - name: Rehearse Stage 07 Master isolation and audited replay
         shell: bash
         run: |
@@ -322,6 +341,9 @@ jobs:
             restore-stage-06-recovery-concurrency.log
             restore-price-assertions.log
             restore-price-rehearsal.log
+            restore-company-stock-assertions.log
+            restore-company-stock-rehearsal.log
+            restore-company-stock-backfill.log
             restore-stage-07-master.log
             restore-stage-07-activity-read-assertions.log
             restore-stage-07-activity-read-rehearsal.log

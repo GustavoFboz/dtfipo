@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 const contract = 'dentalflow-fixture-acceptance-v1';
 const fixtureSchema = z.object({ user_id: z.string().uuid(), email: z.string().endsWith('@example.invalid'), clinic_id: z.string().uuid() });
-const jobSchema = z.object({ id: z.string().uuid(), kind: z.enum(['identity','storage','billing']), fixtures: z.array(fixtureSchema).length(2) });
+const jobSchema = z.object({ id: z.string().uuid(), kind: z.enum(['identity','storage','billing','ownership']), fixtures: z.array(fixtureSchema).length(2) });
 export type Job = z.infer<typeof jobSchema>;
 export type Check = { check: string; passed: boolean; http_status?: number; code?: string;
   resource_id?: string; state?: string; count?: number; amount_cents?: number; period_end?: string; digest?: string };
@@ -116,6 +116,7 @@ async function runJob(job: Job): Promise<Check[]> {
   if (job.kind === 'identity') return runIdentity(job);
   if (job.kind === 'billing') return (await import('./fixture-billing.server')).runFixtureBilling(job);
   if (job.kind === 'storage') return (await import('./fixture-storage.server')).runFixtureStorage(job);
+  if (job.kind === 'ownership') return (await import('./fixture-company-ownership.server')).runFixtureCompanyOwnership(job);
   throw new FixtureFailure('FIXTURE_JOB_NOT_IMPLEMENTED');
 }
 

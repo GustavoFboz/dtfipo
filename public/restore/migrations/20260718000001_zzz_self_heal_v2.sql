@@ -459,3 +459,79 @@ REVOKE ALL ON FUNCTION public.saas_claim_fixture_acceptance_job(uuid,text),
   public.saas_finish_fixture_acceptance_job(uuid,jsonb) FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.saas_claim_fixture_acceptance_job(uuid,text),
   public.saas_finish_fixture_acceptance_job(uuid,jsonb) TO service_role;
+
+-- Company ownership security must remain last after generic self-heal.
+CREATE OR REPLACE FUNCTION public.register_case_implant_tooth(_case_id uuid, _tooth_fdi integer, _stock_item_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE v_id uuid; v_sys uuid; v_user uuid := auth.uid();
+BEGIN
+  PERFORM public.saas_require_stock_case_pair(_case_id,_stock_item_id);
+  IF NOT public.can_access_case(_case_id) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Acesso negado');
+  END IF;
+
+  SELECT c.implant_system_id INTO v_sys
+    FROM public.stock_items si
+    LEFT JOIN public.implant_system_components c ON c.id = si.implant_system_component_id
+   WHERE si.id = _stock_item_id;
+
+  UPDATE public.case_implant_teeth SET reversed_at = now()
+   WHERE case_id = _case_id AND tooth_fdi = _tooth_fdi AND reversed_at IS NULL;
+
+  INSERT INTO public.case_implant_teeth (case_id, tooth_fdi, implant_system_id, stock_item_id, qty)
+  VALUES (_case_id, _tooth_fdi, v_sys, _stock_item_id, 1)
+  RETURNING id INTO v_id;
+
+  INSERT INTO public.stock_movements (stock_item_id, type, qty, qty_before, qty_after, case_id, user_id, notes)
+  VALUES (_stock_item_id, 'tooth_usage', -1, 0, 0, _case_id, v_user, 'Componente de implante no dente ' || _tooth_fdi);
+
+  RETURN jsonb_build_object('success', true, 'id', v_id);
+END $function$
+;
+CREATE OR REPLACE FUNCTION public.remove_case_implant_tooth(_id uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE t RECORD; v_user uuid := auth.uid();
+BEGIN
+  SELECT * INTO t FROM public.case_implant_teeth WHERE id = _id;
+  IF t IS NULL THEN RETURN jsonb_build_object('success', false, 'error', 'Registro não encontrado'); END IF;
+  IF NOT public.can_access_case(t.case_id) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Acesso negado');
+  END IF;
+  IF t.reversed_at IS NOT NULL THEN RETURN jsonb_build_object('success', true); END IF;
+
+  UPDATE public.case_implant_teeth SET reversed_at = now() WHERE id = _id;
+
+  IF t.stock_item_id IS NOT NULL THEN
+    INSERT INTO public.stock_movements (stock_item_id, type, qty, qty_before, qty_after, case_id, user_id, notes)
+    VALUES (t.stock_item_id, 'tooth_usage_reverse', COALESCE(t.qty, 1), 0, 0, t.case_id, v_user, 'Estorno de componente do dente ' || t.tooth_fdi);
+  END IF;
+
+  RETURN jsonb_build_object('success', true);
+END $function$
+;
+-- Remove direct anonymous access, including helpers after restore self-heal.
+DO $$ DECLARE f record; BEGIN
+ FOR f IN SELECT p.oid::regprocedure AS signature,p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+ WHERE n.nspname='public' AND (p.proname LIKE 'saas_company_%' OR p.proname IN ('saas_case_company_id','saas_owned_parent_company',
+ 'saas_assert_company_reference','saas_require_stock_case_pair','saas_guard_owned_record','saas_can_read_person',
+ 'saas_guard_person_directory','saas_guard_patient_company','saas_sync_person_company','add_implant_component','create_implant_system_with_stock',
+ 'register_case_implant_tooth','register_tooth_stock_usage','remove_case_implant_tooth','remove_tooth_stock_usage','case_requires_sintering','update_team_member')) LOOP
+  EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC,anon',f.signature);
+ END LOOP;
+END $$;
+GRANT EXECUTE ON FUNCTION public.saas_company_current_id(),public.saas_company_can_read(uuid),
+ public.saas_company_can_manage_stock(uuid),public.saas_company_can_manage_people(uuid),
+ public.saas_can_read_person(uuid,uuid,uuid,text) TO authenticated,service_role;
+REVOKE ALL ON FUNCTION public.saas_company_trusted_backend(),public.saas_case_company_id(uuid),
+ public.saas_owned_parent_company(text,uuid),public.saas_assert_company_reference(text,uuid,uuid),
+ public.saas_guard_owned_record(),public.saas_guard_person_directory(),public.saas_guard_patient_company(),public.saas_sync_person_company()
+ FROM authenticated,service_role;
+NOTIFY pgrst,'reload schema';

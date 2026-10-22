@@ -1,0 +1,20 @@
+-- DISPOSABLE CI ONLY. Concatenate after the exact ownership migration.
+DO $$ BEGIN
+ IF EXISTS(SELECT * FROM ownership_history_before EXCEPT (
+  SELECT 'item',to_jsonb(s)-'clinic_id' FROM public.stock_items s WHERE id='72400000-0000-4000-8000-000000000002'
+  UNION ALL SELECT 'movement',to_jsonb(m)-'clinic_id' FROM public.stock_movements m WHERE id='72400000-0000-4000-8000-000000000003')) THEN
+  RAISE EXCEPTION 'BACKFILL_CHANGED_HISTORY_OR_BALANCE';
+ END IF;
+ IF EXISTS(SELECT * FROM ownership_triggers_before EXCEPT SELECT tgrelid,tgname,tgenabled FROM pg_trigger) THEN
+  RAISE EXCEPTION 'BACKFILL_CHANGED_TRIGGER_STATE';
+ END IF;
+ IF (SELECT clinic_id FROM public.stock_items WHERE id='72400000-0000-4000-8000-000000000002') IS DISTINCT FROM 'ea00a3cd-6816-42f4-845d-56468c77414e'::uuid
+  OR (SELECT clinic_id FROM public.stock_movements WHERE id='72400000-0000-4000-8000-000000000003') IS DISTINCT FROM 'ea00a3cd-6816-42f4-845d-56468c77414e'::uuid THEN
+  RAISE EXCEPTION 'BACKFILL_DID_NOT_ASSIGN_CONFIRMED_COMPANY';
+ END IF;
+ IF (SELECT clinic_id FROM public.patients WHERE id='72400000-0000-4000-8000-000000000004') IS NOT NULL THEN
+  RAISE EXCEPTION 'BACKFILL_GUESSED_PATIENT_OWNERSHIP';
+ END IF;
+END $$;
+SELECT 'passed' AS company_backfill_preserves_history;
+ROLLBACK;
