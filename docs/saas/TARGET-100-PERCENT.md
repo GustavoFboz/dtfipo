@@ -3,23 +3,21 @@
 Retomada de 21/10/2026. O titular solicitou chegar a **100%** e ofereceu acesso
 à administração Lovable caso necessário. A meta substitui a antiga meta de
 50%; o denominador continua sendo **23 aceites finais**. Baseline comprovado:
-**7/23 (30,43%)**, 16 itens abertos/parciais e 0/7 etapas encerradas.
+**8/23 (34,78%)**, 15 itens abertos/parciais e 0/7 etapas encerradas, após a
+prova de identidade das 23h49 Manaus de 21/10.
 O [registro oficial](ACCEPTANCE-PROGRESS.md) conserva cada prova já aceita.
 
-## Publicação preparada e bloqueio atual
+## Publicação autorizada e identidade comprovada
 
-A revisão integrada `1e6116a40e1fde5ee06e924b74bdc184a4d45f70` contém a
-correlação privada da fila do alerta e o job ampliado de resiliência do Storage.
-GitHub e o projeto Cloud apontam para essa mesma revisão. CI/build e restauração
-passaram; isso não comprova a revisão atualmente servida em Produção.
-
-Em 21/10, a revisão automática rejeitou `deploy_project`: interpretou a oferta
-de acesso como insuficiente para autorizar esse deploy em Produção, que pode
-alterar o serviço em uso. A inspeção do painel também foi rejeitada. Não houve
-publicação ou ajuste global do Auth. Nenhuma das ações recusadas foi executada
-por outra rota. É necessária autorização específica para abrir a administração Cloud,
-publicar a revisão identificada e ajustar o mínimo global de senha para oito.
-Não atribuir essa pendência à necessidade de recriar chaves Asaas.
+O titular autorizou expressamente administrar o Lovable Cloud, publicar as
+atualizações SaaS em Produção e ajustar a política de senhas. A publicação nativa
+`486889a2-09b2-4874-9aa5-b68c4321cfc4` partiu da revisão integrada `ef31ce3`;
+o painel confirmou o site atualizado. O mínimo global de oito caracteres foi
+salvo e o job `dfebc679-bf17-4646-afab-2ee8171e4afc` passou 16/16 checks reais.
+O item 4.1 está concluído. A autorização anterior pendente está resolvida;
+seu checkpoint permanece como registro histórico. Nenhuma chave Asaas nova
+foi necessária. Desenvolvimento continua pelo GitHub, sem usar o builder AI.
+[Publicação, recibos e limites](evidence/authorized-publication-20261021.md).
 
 ## Diagnóstico operacional preparado pelo GitHub
 
@@ -43,7 +41,7 @@ os Logs de Webhooks nem altera filas: causa HTTP, retomada e prova de entrega
 têm verificações próprias. Não disparar este diagnóstico antes de comprovar a
 publicação do endpoint esperado.
 
-## Provas restantes dos 16 itens
+## Provas restantes dos 15 itens
 
 | Item | Trabalho para concluir e condição de aceite |
 | --- | --- |
@@ -54,7 +52,6 @@ publicação do endpoint esperado.
 | 2.3 | Validar acesso online, expiração/limpeza do cache em 72h e retomada nos aplicativos disponíveis. Builds e emuladores não substituem os testes em aparelhos; registrar limites da homologação iOS. |
 | 3.2 | Publicar e executar a resiliência ampliada, revisar individualmente as nove reservas históricas e usar recuperação autenticada do gestor quando cabível. Não excluir metadados históricos diretamente por SQL nem liberar cota com bytes existentes. |
 | 3.3 | Executar upload, leitura, limite, falha e exclusão em Web, Windows e Android disponíveis. DICOM aguarda a liberação de Radiologia. |
-| 4.1 | Aplicar o mínimo global de oito caracteres no Auth e repetir o job de identidade. Ele precisa passar também a recusa direta de senha curta, além de cadastro/confirmação/recuperação/logout. |
 | 4.2 | Provar sessões reais, MFA, isolamento, recusa de elevação e replay financeiro em AAL1; concluir o fluxo autorizado com Master/AAL2 real. |
 | 4.3 | Tratar e comprovar a revogação das referências assinadas históricas, incluindo as 38 já identificadas, além de leitura, recusa, expiração e renovação autenticadas na publicação. Substituir uma referência não revoga um token já emitido. |
 | 5.2 | Executar o cancelamento aprovado uma vez no Asaas e concluir troca de plano/preço por vigência. A execução de troca ainda requer implementação e prova; o executor de cancelamento existente não a substitui. |
@@ -71,6 +68,6 @@ evento Production falho/dead letter e nove reservas antigas. Às 14h24 UTC, o
 worker Production tinha status `ok`, com último heartbeat saudável às 14h21.
 Nenhuma dessas leituras executou um novo job nem encerrou um dos itens acima.
 
-O [checkpoint desta retomada](evidence/continuity-20261021.json) registra a
-autorização pendente, observações e limites. Preservar os aceites já concluídos,
+O [checkpoint inicial desta retomada](evidence/continuity-20261021.json) registra
+a autorização então pendente, agora resolvida. Preservar os aceites já concluídos,
 preço Inicial de teste de R$5, contratos históricos de R$1, IPO e janela offline.

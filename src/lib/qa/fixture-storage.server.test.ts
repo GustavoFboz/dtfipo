@@ -11,7 +11,7 @@ const job:Job={id:'8a0cbd19-6b52-4db9-991b-66711337e61b',kind:'storage',fixtures
   {user_id:'24e7cdf9-457e-4af2-b1cb-cf366abbddb0',email:'dentalflow-acceptance-20261004-237e6ef4-9893-43d2-b9a3-311f8708aa3d@example.invalid',clinic_id:'3fc86c40-697e-4725-a9e9-633fc882aadc'},
 ]};
 type Row=Record<string,any>;
-function environment(options:{failUpload?:boolean;failDelete?:boolean;allowOverdraft?:boolean;allowSizeMismatch?:boolean;allowPrematureRelease?:boolean;ambiguousReservation?:boolean}={}) {
+function environment(options:{failUpload?:boolean;failDelete?:boolean;allowOverdraft?:boolean;rejectSizeMismatchAtUpload?:boolean;allowMismatchedCompletion?:boolean;allowPrematureRelease?:boolean;ambiguousReservation?:boolean}={}) {
   const tables:Record<string,Row[]>={patients:[],cases:[],case_attachments:[],patient_attachments:[],
     profiles:job.fixtures.map(f=>({id:f.user_id,clinic_id:f.clinic_id,role:'USER',avatar_url:null}))};
   const reservations=new Map<string,Row>(),objects=new Map<string,{owner:string;bytes:Buffer}>();
@@ -79,7 +79,9 @@ function environment(options:{failUpload?:boolean;failDelete?:boolean;allowOverd
       if(!reservation||reservation.owner!==actor.user_id) return result(null,{message:'Unknown reservation'});
       const key=`${reservation._bucket}/${reservation._object_path}`;
       if(name==='complete_storage_upload') {
-        if(!objects.has(key)) return result(null,{message:'STORAGE_OBJECT_SIZE_MISMATCH'});return result(null);
+        const object=objects.get(key);
+        if(!object||(!options.allowMismatchedCompletion&&object.bytes.length!==reservation._size_bytes)) return result(null,{message:'STORAGE_OBJECT_SIZE_MISMATCH'});
+        return result(null);
       }
       if(name==='cancel_storage_upload') {
         if(objects.has(key)&&!options.allowPrematureRelease) return result(null,{message:'STORAGE_OBJECT_STILL_EXISTS'});
@@ -90,7 +92,7 @@ function environment(options:{failUpload?:boolean;failDelete?:boolean;allowOverd
     storage:{from:(bucket:string)=>({
       upload:async (path:string,bytes:Buffer)=>{
         userCalls.push({storage:'upload',bucket,actor:actor.user_id});
-        if(options.failUpload||![...reservations.values()].some(r=>r.owner===actor.user_id&&r._bucket===bucket&&r._object_path===path&&(options.allowSizeMismatch||r._size_bytes===bytes.length))) return result(null,{message:'Upload denied'});
+        if(options.failUpload||![...reservations.values()].some(r=>r.owner===actor.user_id&&r._bucket===bucket&&r._object_path===path&&(!options.rejectSizeMismatchAtUpload||r._size_bytes===bytes.length))) return result(null,{message:'Upload denied'});
         objects.set(`${bucket}/${path}`,{owner:actor.user_id,bytes});return result({path});
       },
       download:async (path:string)=>{
@@ -123,11 +125,22 @@ describe('storage acceptance with unprivileged case participants',()=>{
     expect(env.userCalls.some(c=>c.rpc==='delete_managed_storage_file')).toBe(false);
     expect(env.userCalls.filter(c=>c.storage==='upload')).toHaveLength(14);
     expect(checks.filter(c=>c.check==='parallel_quota_single_winner'&&c.passed)).toHaveLength(2);
+    expect(checks.filter(c=>c.check==='actual_size_mismatch_completion_denied'&&c.passed)).toHaveLength(2);
+    expect(checks.filter(c=>c.check==='mismatch_actual_bytes_verified'&&c.passed)).toHaveLength(2);
+    expect(checks.filter(c=>c.check==='mismatch_bytes_prevent_quota_release'&&c.passed)).toHaveLength(2);
     expect(checks.filter(c=>c.check==='resilience_quota_restored'&&c.passed)).toHaveLength(2);
     expect(env.tables.patients).toHaveLength(0);expect(env.tables.cases).toHaveLength(0);
     expect(env.tables.case_attachments).toHaveLength(0);expect(env.tables.patient_attachments).toHaveLength(0);
     expect(env.reservations.size).toBe(0);expect(env.objects.size).toBe(0);
     expect(env.tables.profiles.map(p=>[p.role,p.avatar_url])).toEqual([['USER',null],['USER',null]]);
+  });
+  it('also verifies completion refusal when Storage rejects the mismatched upload early',async()=>{
+    const env=environment({rejectSizeMismatchAtUpload:true});const checks=await runFixtureStorage(job);
+    expect(checks.every(check=>check.passed)).toBe(true);
+    expect(checks.filter(c=>c.check==='actual_size_mismatch_completion_denied'&&c.passed)).toHaveLength(2);
+    expect(checks.filter(c=>c.check==='mismatch_actual_bytes_verified')).toHaveLength(0);
+    expect(checks.filter(c=>c.check==='mismatch_quota_restored'&&c.passed)).toHaveLength(2);
+    expect(env.objects.size).toBe(0);expect(env.reservations.size).toBe(0);
   });
   it('releases the user reservation and removes only job records after an upload failure',async()=>{
     const env=environment({failUpload:true});const checks=await runFixtureStorage(job);
@@ -145,8 +158,9 @@ describe('storage acceptance with unprivileged case participants',()=>{
   });
   it.each([
     [{allowOverdraft:true},'parallel_quota_single_winner'],
-    [{allowSizeMismatch:true},'actual_size_mismatch_upload_denied'],
-    [{allowPrematureRelease:true},'existing_bytes_prevent_quota_release'],
+    [{allowMismatchedCompletion:true},'actual_size_mismatch_completion_denied'],
+    [{allowPrematureRelease:true},'mismatch_bytes_prevent_quota_release'],
+    [{allowPrematureRelease:true,rejectSizeMismatchAtUpload:true},'existing_bytes_prevent_quota_release'],
   ] as const)('refuses a broken reservation contract and cleans only its job paths (%j)',async(options,failedCheck)=>{
     const env=environment(options);const checks=await runFixtureStorage(job);
     expect(checks).toContainEqual(expect.objectContaining({check:failedCheck,passed:false}));

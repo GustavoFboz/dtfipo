@@ -1,11 +1,13 @@
 # Progresso dos aceites finais para vendas
 
-Retomada de 21/10/2026: o titular solicitou conclusão integral, com a meta
-de **100%**. O [roteiro dos 16 itens restantes](TARGET-100-PERCENT.md) distingue
-implementação, publicação, provas reais e decisões do responsável. A revisão
-automática bloqueou publicação e inspeção Cloud por exigir autorização
-específica; nenhuma nova publicação ou prova de aceite foi executada.
-**Total preservado: 7/23 (30,43%).**
+Atualização de 21/10/2026, 23h49 Manaus: após autorização explícita para
+administrar Cloud, publicar em Produção e ajustar a política de senhas, a revisão
+`ef31ce3` foi publicada e o mínimo global de oito caracteres salvo. O job real de
+identidade passou **16/16 verificações**, incluindo a recusa HTTP422 de senha
+curta, confirmação, recuperação, login e logout. **Item 4.1 concluído; 8/23
+(34,78%), 15 em aberto/parciais e 0/7 etapas encerradas.**
+[Prova e limites](evidence/authorized-publication-20261021.md).
+O [roteiro para 100%](TARGET-100-PERCENT.md) mantém os demais aceites próprios.
 
 Baseline de 04/10/2026, 23h06 de Manaus. A porcentagem mede itens com aceite
 integral registrado, não linhas de código nem estimativa de esforço. O plano
@@ -70,7 +72,7 @@ o valor insuficiente antes de criar recursos externos.
 | 3.1 | Upload/exclusão de casos, pacientes, fotos e avatar | Concluído pelas APIs autenticadas em 17/10, 15h06 Manaus: 50/50 checks reais nas duas fixtures USER, quatro buckets, tamanho/hash/cota consistentes, excesso e acesso estrangeiro recusados, oito exclusões e cota zero. Preparo clínico descartável administrativo; sem promoção de papéis. Aparelhos, concorrência/resíduos e links históricos mantêm aceites próprios. [Recibo e revisão](evidence/acceptance-20-20261017.md) |
 | 3.2 | Concorrência, falhas e reservas históricas | Parcial: ensaios; revisão histórica pendente |
 | 3.3 | Armazenamento nas plataformas disponíveis | Pendente de aparelhos |
-| 4.1 | Cadastro, confirmação e recuperação de senha | Parcial: em 17/10, 15/16 checks reais passaram, incluindo cadastro, confirmação, recuperação e login. Auth ainda aceitou senha de sete caracteres; ajuste global e nova prova negativa pendentes. [Recibo](evidence/continuity-20261017.md) |
+| 4.1 | Cadastro, confirmação e recuperação de senha | Concluído em 21/10, 23h49 Manaus: mínimo global de oito caracteres salvo no Auth; job real publicado passou 16/16 checks de cadastro, confirmação, login, recuperação, token único, isolamento e logout. Senha de sete caracteres recusada com HTTP422. Usuário descartável removido; contas existentes preservadas. MFA e arquivos conservam aceites próprios. [Recibo e revisão](evidence/authorized-publication-20261021.md) |
 | 4.2 | Sessões, MFA, isolamento e replay financeiro | Parcial: fixtures/testes; replay real pendente |
 | 4.3 | Arquivos privados e validade dos links | Parcial: referências sem bearer persistente, assinatura de cinco minutos, renovação, isolamento de sessão e espelho instalado limitado a 72h implementados; 38 referências históricas ainda requerem tratamento/revogação e prova autenticada publicada. [Implementação e limites](PRIVATE-FILE-ACCESS.md) |
 | 5.1 | Histórico e documentos de cobrança | Concluído em Sandbox, 17/10, 14h45 Manaus: sessões gestoras das duas fixtures consultaram histórico e abriram documento do pagamento validado no provedor (HTTP200); outra clínica foi recusada no histórico e documento (HTTP403). [Recibo e revisão](evidence/acceptance-20-20261017.md) |
