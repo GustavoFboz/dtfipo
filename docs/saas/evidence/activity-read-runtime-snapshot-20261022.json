@@ -1,0 +1,21 @@
+{
+  "acceptance_job": {
+    "capability_consumed": true,
+    "check_count": 112,
+    "completed_at": "2026-10-22T14:43:24.401404+00:00",
+    "id": "181a23b4-03e5-425b-aefb-2d3ff6a66dcc",
+    "passed": true,
+    "status": "completed"
+  },
+  "activity_count": 1336,
+  "fixture_activity_rows": 0,
+  "fixture_storage_rows": 0,
+  "observed_at": "2026-10-22 14:44:44.831455+00",
+  "production_failed_events": 0,
+  "production_payments": 1,
+  "read_marker_count": 775,
+  "worker": {
+    "last_healthy_at": "2026-10-22T14:41:04.174423+00:00",
+    "status": "ok"
+  }
+}

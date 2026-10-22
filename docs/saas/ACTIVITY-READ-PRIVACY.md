@@ -35,7 +35,7 @@ cadistas não ganham acesso a marcadores do histórico anterior à atribuição.
 Upsert da própria leitura continua compatível com o contrato da interface Web,
 Windows e Android. Não foi introduzida uma dependência de UI somente Web.
 
-## Validação preparada
+## Validação
 
 O restore inclui a mesma migração antes do self-heal. A asserção somente leitura
 confere RLS, política restritiva e ausência de SELECT irrestrito. O ensaio
@@ -55,6 +55,8 @@ Não cria operador, não inventa AAL2 nem envia e-mail/menções.
 
 Os testes locais passaram: 211 em 11 arquivos, TypeScript, gates 05/06/09,
 restore determinístico de 177 migrações, bootstrap e quatro testes Desktop.
-CI/restauração, aplicação no backend ativo, publicação e execução real precisam
-ser comprovadas antes de tratar a correção como entregue em Produção.
-As outras onze tabelas com leitura ampla conservam sua revisão individual.
+CI Web e restauração limpa passaram. A PR183 foi integrada e publicada; a
+migração confirmou preservação integral de 1.336 atividades e 775 marcadores.
+O job publicado passou 112/112 checks reais (84 de Storage e 28 de privacidade
+e autorização), com limpeza total das fixtures. [Prova e limites](evidence/activity-read-publication-20261022.md).
+As outras onze tabelas conservam sua [revisão individual](evidence/legacy-table-review-20261022.md).
