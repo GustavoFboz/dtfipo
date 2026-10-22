@@ -1,19 +1,25 @@
 # DentalFlow SaaS — sete etapas restantes até vendas
 
-Atualizado em 19/10/2026; as evidências novas registram horários UTC. Este é o contador de conclusão
+Atualizado em 21/10/2026; as evidências novas registram horários UTC e Manaus. Este é o contador de conclusão
 apresentado ao responsável. Os IDs 00–10 dos documentos técnicos permanecem
 para manter o histórico; não são um segundo protocolo.
 
 **Restam 7 de 7 etapas com aceites em aberto.** Há código e provas parciais
 em todas elas; um incremento aprovado não encerra automaticamente a etapa.
-Frente atual: **7/7 — primeiro pagamento e monitoramento de Produção comprovados**.
+Frente atual: **4/7 — identidade e política de senhas comprovadas em Produção**.
+Em 21/10, 23h49 Manaus, após autorização explícita e publicação de `ef31ce3`,
+o Auth com mínimo global de oito caracteres passou 16/16 checks reais. O item
+4.1 está concluído. **Aceites atuais: 8/23 (34,78%), 15 em aberto/parciais,
+0/7 etapas encerradas.** [Prova e limites](evidence/authorized-publication-20261021.md).
+
+Checkpoint financeiro de 19/10:
 Em 19/10, às 01h33 Manaus, o backend confirmou o pagamento real de R$5 do
 Inicial, checkout pago, evento normal `PAYMENT_RECEIVED` processado sem erro e
 assinatura ativa. Laboratório e cota correspondem ao plano; o titular confirmou
 acesso e seleção corretos. O item 7.3 está concluído. Às 02h24 Manaus, o ensaio
 de alerta autorizado, sua notificação real e a inspeção saudável posterior
 concluíram o item 7.2. A decisão de vendas permanece pendente.
-**Aceites atuais: 7/23 (30,43%), 16 em aberto/parciais, 0/7 etapas encerradas.**
+**Aceites naquele checkpoint: 7/23 (30,43%).**
 Ver [primeiro recebimento real, revisão e limites](evidence/first-production-payment-20261019.md).
 
 Frente operacional concluída para 7.2: diagnóstico corrigido para webhook
@@ -76,7 +82,7 @@ pendentes e nenhuma auditoria de conclusão. Frente independente registrada em 0
 **4/7, item 4.3**, referências, renovação e isolamento de arquivos privados.
 Ver [implementação e limites](PRIVATE-FILE-ACCESS.md); links históricos e
 validação autenticada publicada continuam pendentes, sem novo aceite integral.
-Aceites finais atuais: **7/23 — 30,43%**; restam 16 itens parciais/em aberto e nenhuma
+Aceites finais no checkpoint de 19/10: **7/23 — 30,43%**; restavam 16 itens parciais/em aberto e nenhuma
 etapa inteira foi encerrada. A meta de pelo menos 20% do total foi atingida,
 sem alterar os 23 critérios. Ver [provas de 17/10](evidence/acceptance-20-20261017.md).
 Ver [prova e revisão](evidence/production-preflight-20261005.md) e

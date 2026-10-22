@@ -231,6 +231,12 @@ jobs:
         run: |
           echo 'Production diagnostic not executed: BILLING_PRODUCTION_WORKER_TOKEN is not staged. This is not Production acceptance.'
 
+      - name: Checkout selected revision for manual queue diagnostic
+        if: github.event_name == 'workflow_dispatch' && env.BILLING_PRODUCTION_WORKER_TOKEN != ''
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
       - name: Set up Node for manual queue diagnostic
         if: github.event_name == 'workflow_dispatch' && env.BILLING_PRODUCTION_WORKER_TOKEN != ''
         uses: actions/setup-node@v4

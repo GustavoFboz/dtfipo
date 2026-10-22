@@ -74,9 +74,26 @@ export async function exerciseFixtureStorageResilience(fixture: FixtureSession, 
 
     const mismatch = await required(paths[3], png.length - 1);
     const oversized = await storage.upload(paths[3], png, { contentType: 'image/png', upsert: false });
-    record('actual_size_mismatch_upload_denied', !!oversized.error);
+    // Storage can omit size while checking INSERT permission. The deployed
+    // contract checks authoritative persisted bytes at completion instead;
+    // accepting the transport alone must never make a mismatched file ready.
+    const mismatchedCompletion = await fixture.client.rpc('complete_storage_upload', {
+      _file_id: mismatch, _source_id: fixture.user_id,
+    });
+    record('actual_size_mismatch_completion_denied', !!mismatchedCompletion.error
+      && mismatchedCompletion.error.message.includes('STORAGE_OBJECT_SIZE_MISMATCH'));
     record('mismatch_does_not_inflate_quota', (await usage()).used === baseline.used + png.length - 1);
+    if (!oversized.error) {
+      const actual = requireResult(await storage.download(paths[3]), 'FIXTURE_MISMATCH_READ_FAILED');
+      record('mismatch_actual_bytes_verified', Buffer.from(await actual.arrayBuffer()).equals(png));
+      const prematureMismatch = await fixture.client.rpc('cancel_storage_upload', { _file_id: mismatch });
+      record('mismatch_bytes_prevent_quota_release', !!prematureMismatch.error
+        && prematureMismatch.error.message.includes('STORAGE_OBJECT_STILL_EXISTS'));
+      requireResult(await storage.remove([paths[3]]), 'FIXTURE_MISMATCH_DELETE_FAILED');
+    }
+    record('mismatched_object_absent_before_release', !!(await storage.download(paths[3])).error);
     await release(mismatch);
+    record('mismatch_quota_restored', sameUsage(await usage(), baseline));
 
     const present = await required(paths[4], png.length);
     requireResult(await storage.upload(paths[4], png, { contentType: 'image/png', upsert: false }), 'FIXTURE_RESILIENCE_UPLOAD_FAILED');
