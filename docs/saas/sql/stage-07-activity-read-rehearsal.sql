@@ -9,12 +9,17 @@ VALUES
 INSERT INTO public.clinics(id,name,owner_id,billing_exempt) VALUES
  ('72200000-0000-4000-8000-000000000010','Read privacy A','72200000-0000-4000-8000-000000000001',false),
  ('72200000-0000-4000-8000-000000000020','Read privacy B','72200000-0000-4000-8000-000000000002',false);
+-- Trusted setup in this disposable transaction normalizes the profiles created
+-- by the Auth insert trigger. Restore the escalation guard before any RLS test;
+-- no application or policy is evaluated while it is disabled.
+ALTER TABLE public.profiles DISABLE TRIGGER trg_prevent_profile_privilege_escalation;
 INSERT INTO public.profiles(id,clinic_id,role,account_subtype,is_default_admin) VALUES
  ('72200000-0000-4000-8000-000000000001','72200000-0000-4000-8000-000000000010','USER','USER',false),
  ('72200000-0000-4000-8000-000000000002','72200000-0000-4000-8000-000000000020','USER','USER',false),
  ('72200000-0000-4000-8000-000000000003','72200000-0000-4000-8000-000000000010','CADISTA','CADISTA',false)
 ON CONFLICT(id) DO UPDATE SET clinic_id=excluded.clinic_id,role=excluded.role,
   account_subtype=excluded.account_subtype,is_default_admin=false;
+ALTER TABLE public.profiles ENABLE TRIGGER trg_prevent_profile_privilege_escalation;
 INSERT INTO public.clinic_members(clinic_id,user_id,role,status) VALUES
  ('72200000-0000-4000-8000-000000000010','72200000-0000-4000-8000-000000000001','USER','active'),
  ('72200000-0000-4000-8000-000000000020','72200000-0000-4000-8000-000000000002','USER','active'),
