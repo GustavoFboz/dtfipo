@@ -1,5 +1,12 @@
 # Arquivos privados: referências, renovação e cache por conta
 
+Conferência de 22/10/2026, somente leitura e sem retornar links/tokens:
+**34 fotos e seis avatares**, todos com tokens ainda não vencidos e validade
+até 2036. As emissões vistas foram até 07/10 para fotos e 11/09 para avatares.
+O código atual foi reconferido gravando referências e assinaturas curtas;
+as 40 referências anteriores ainda exigem tratamento e prova de revogação.
+Nenhuma foto, avatar ou referência histórica foi alterada nesta conferência.
+
 Incremento de 05/10/2026, horário de Manaus, preparado na frente 4/7, item 4.3.
 Não encerra o aceite integral de arquivos privados nem os testes em aparelhos.
 
@@ -40,7 +47,8 @@ foto usava outro formato. Não houve renomeação, exclusão ou alteração dos
 objetos, metadados, reservas, perfis ou pacientes no banco vivo.
 
 **Referenciar e deixar de reutilizar um token antigo não revoga cópias do token
-que já foram emitidas.** O tratamento/revogação das 38 referências históricas,
+que já foram emitidas.** O tratamento/revogação das 38 referências históricas
+identificadas em 06/10 (40 na conferência de 22/10),
 a revisão da leitura de avatares entre empresas e a prova autenticada de
 leitura/recusa/renovação na versão publicada seguem abertos. Não registrar
 4.3 como concluído por compilação, mocks ou pela configuração privada do bucket.

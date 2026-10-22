@@ -217,6 +217,15 @@ jobs:
             < docs/saas/sql/stage-06-reservation-recovery-rehearsal.sql | tee restore-stage-06-recovery.log
           bash docs/saas/sql/stage-06-reservation-recovery-concurrency.sh | tee restore-stage-06-recovery-concurrency.log
 
+      - name: Verify and rehearse Stage 07 activity read privacy
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-07-activity-read-assertions.sql | tee restore-stage-07-activity-read-assertions.log
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-07-activity-read-rehearsal.sql | tee restore-stage-07-activity-read-rehearsal.log
+
       - name: Rehearse Stage 07 Master isolation and audited replay
         shell: bash
         run: |
@@ -314,6 +323,8 @@ jobs:
             restore-price-assertions.log
             restore-price-rehearsal.log
             restore-stage-07-master.log
+            restore-stage-07-activity-read-assertions.log
+            restore-stage-07-activity-read-rehearsal.log
             restore-stage-07-external-test.log
             restore-stage-08-history.log
             restore-stage-08-request-assertions.log

@@ -3,9 +3,10 @@ import {randomUUID} from 'node:crypto';
 import {runFixtureStorage} from './fixture-storage.server';
 import type {Job} from './fixture-acceptance.server';
 
-const runtime=vi.hoisted(()=>({sessions:[] as any[],admin:{} as any}));
+const runtime=vi.hoisted(()=>({sessions:[] as any[],admin:{} as any,privacy:vi.fn()}));
 vi.mock('./fixture-sessions.server',()=>({withFixtureSessions:async (_job:unknown,run:any)=>run(runtime.sessions)}));
 vi.mock('@/integrations/supabase/client.server',()=>({get supabaseAdmin(){return runtime.admin;}}));
+vi.mock('./fixture-activity-reads.server',()=>({exerciseFixtureActivityReadPrivacy:(...args:unknown[])=>runtime.privacy(...args)}));
 const job:Job={id:'8a0cbd19-6b52-4db9-991b-66711337e61b',kind:'storage',fixtures:[
   {user_id:'ee083f63-1621-4b82-b7a4-fd13427c0b14',email:'dentalflow-acceptance-20261004-e0537565-4015-4ffe-a249-5da489824e6e@example.invalid',clinic_id:'081d3db4-1606-40f7-a878-19b51556317d'},
   {user_id:'24e7cdf9-457e-4af2-b1cb-cf366abbddb0',email:'dentalflow-acceptance-20261004-237e6ef4-9893-43d2-b9a3-311f8708aa3d@example.invalid',clinic_id:'3fc86c40-697e-4725-a9e9-633fc882aadc'},
@@ -111,7 +112,7 @@ function environment(options:{failUpload?:boolean;failDelete?:boolean;allowOverd
 }
 
 describe('storage acceptance with unprivileged case participants',()=>{
-  beforeEach(()=>vi.clearAllMocks());
+  beforeEach(()=>{vi.clearAllMocks();runtime.privacy.mockResolvedValue([{check:'activity_read_privacy_fixture_stub',passed:true}]);});
   it('uses administration only for disposable clinical setup and cleanup, and users for all bytes and reservations',async()=>{
     const env=environment();const checks=await runFixtureStorage(job);
     expect(checks.filter(check=>check.check.endsWith('_real_upload_size'))).toHaveLength(8);
@@ -129,6 +130,11 @@ describe('storage acceptance with unprivileged case participants',()=>{
     expect(checks.filter(c=>c.check==='mismatch_actual_bytes_verified'&&c.passed)).toHaveLength(2);
     expect(checks.filter(c=>c.check==='mismatch_bytes_prevent_quota_release'&&c.passed)).toHaveLength(2);
     expect(checks.filter(c=>c.check==='resilience_quota_restored'&&c.passed)).toHaveLength(2);
+    expect(runtime.privacy).toHaveBeenCalledTimes(2);
+    for(const [actor,foreign,jobId,caseId] of runtime.privacy.mock.calls) {
+      expect(actor.user_id).not.toBe(foreign.user_id);expect(jobId).toBe(job.id);
+      expect(env.adminCalls.some(call=>call.table==='cases'&&call.operation==='insert'&&call.values.id===caseId)).toBe(true);
+    }
     expect(env.tables.patients).toHaveLength(0);expect(env.tables.cases).toHaveLength(0);
     expect(env.tables.case_attachments).toHaveLength(0);expect(env.tables.patient_attachments).toHaveLength(0);
     expect(env.reservations.size).toBe(0);expect(env.objects.size).toBe(0);
