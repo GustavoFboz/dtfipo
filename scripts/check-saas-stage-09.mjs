@@ -23,6 +23,12 @@ const required = [
   "docs/saas/sql/stage-07-external-test-rehearsal.sql",
   "docs/saas/STAGE-07-EXTERNAL-TEST-REVIEW.md",
   "src/components/master/MasterExternalTestReview.tsx",
+  "supabase/migrations/20261022050000_saas_activity_read_privacy_stage07.sql",
+  "public/restore/migrations/20261022050000_saas_activity_read_privacy_stage07.sql",
+  "docs/saas/sql/stage-07-activity-read-assertions.sql",
+  "docs/saas/sql/stage-07-activity-read-rehearsal.sql",
+  "src/lib/qa/fixture-activity-reads.server.ts",
+  "src/lib/qa/fixture-activity-reads.server.test.ts",
 ];
 
 const missing = required.filter((p) => !fs.existsSync(p));
@@ -31,6 +37,10 @@ const externalReviewMigration = "20261005223500_saas_master_external_test_review
 if (fs.readFileSync(`supabase/migrations/${externalReviewMigration}`, "utf8") !==
     fs.readFileSync(`public/restore/migrations/${externalReviewMigration}`, "utf8"))
   throw new Error("External-test review differs between migration and restore");
+const readPrivacyMigration = "20261022050000_saas_activity_read_privacy_stage07.sql";
+if (fs.readFileSync(`supabase/migrations/${readPrivacyMigration}`, "utf8") !==
+    fs.readFileSync(`public/restore/migrations/${readPrivacyMigration}`, "utf8"))
+  throw new Error("Activity read privacy differs between migration and restore");
 
 const forbiddenTracked = [".env.production", ".env.prod", "asaas-production.key"];
 for (const p of forbiddenTracked) {

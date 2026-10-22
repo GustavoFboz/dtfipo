@@ -60,7 +60,7 @@ desativá-la por ser chamada “Teste”. [Recibo e limites](evidence/authorized
 | 3.2 | A resiliência ampliada publicada passou 84/84 verificações reais. Falta revisar individualmente as nove reservas históricas e usar recuperação autenticada do gestor quando cabível. Não excluir metadados históricos diretamente por SQL nem liberar cota com bytes existentes. |
 | 3.3 | Executar upload, leitura, limite, falha e exclusão em Web, Windows e Android disponíveis. DICOM aguarda a liberação de Radiologia. |
 | 4.2 | Provar sessões reais, MFA, isolamento, recusa de elevação e replay financeiro em AAL1; concluir o fluxo autorizado com Master/AAL2 real. |
-| 4.3 | Tratar e comprovar a revogação das referências assinadas históricas, incluindo as 38 já identificadas, além de leitura, recusa, expiração e renovação autenticadas na publicação. Substituir uma referência não revoga um token já emitido. |
+| 4.3 | Tratar e comprovar a revogação das referências assinadas históricas: 40 reconferidas em 22/10 (34 fotos e seis avatares), ainda válidas até 2036. Comprovar também leitura, recusa, expiração e renovação autenticadas na publicação. Substituir uma referência não revoga um token já emitido. |
 | 5.2 | Executar o cancelamento aprovado uma vez no Asaas e concluir troca de plano/preço por vigência. A execução de troca ainda requer implementação e prova; o executor de cancelamento existente não a substitui. |
 | 5.3 | Validar downgrade, cota, preço/data efetiva e retomada após falha ambígua, com lease/readback e sem POST financeiro repetido cegamente. |
 | 6.2 | Fazer backup/restauração operacional de dados e arquivos em destino isolado, comparar integridade e ensaiar incidente/rollback. Restauração limpa só de schema é parcial. |
