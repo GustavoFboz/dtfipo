@@ -6,6 +6,15 @@ BEGIN
     OR NOT EXISTS (SELECT 1 FROM pg_class WHERE oid='public.case_activity'::regclass AND relrowsecurity) THEN
     RAISE EXCEPTION 'ACTIVITY_READ_RLS_NOT_ENABLED';
   END IF;
+  IF (SELECT count(*) FROM pg_policies WHERE schemaname='public' AND tablename='case_activity'
+      AND permissive='RESTRICTIVE' AND policyname IN ('case_activity_visibility_boundary',
+        'case_activity_insert_boundary','case_activity_update_boundary','case_activity_delete_boundary'))<>4 THEN
+    RAISE EXCEPTION 'PARENT_ACTIVITY_CANONICAL_BOUNDARIES_MISSING';
+  END IF;
+  IF has_function_privilege('anon','public.case_cadista_assignment_started_at(uuid,uuid)','execute')
+    OR has_function_privilege('anon','public.case_activity_visible_to_user(uuid,timestamptz,uuid)','execute') THEN
+    RAISE EXCEPTION 'ACTIVITY_PRIVILEGED_HELPERS_EXPOSED';
+  END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
     WHERE schemaname='public' AND tablename='case_activity_reads'

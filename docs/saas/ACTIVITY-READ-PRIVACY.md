@@ -16,8 +16,17 @@ para uma atividade cujo ID fosse conhecido, sem exigir sua visibilidade.
 A migração `20261022050000_saas_activity_read_privacy_stage07.sql` substitui a
 leitura ampla por um EXISTS sobre a atividade visto pela sessão do chamador.
 Uma política restritiva para todas as operações intersecta as permissões
-legadas e também exige dono próprio na escrita. Não cria função definer nem
-grants novos, não modifica comentários e não apaga ou reescreve marcadores.
+legadas e também exige dono próprio na escrita. O marcador consulta o pai pela
+RLS do chamador, sem helper privilegiado próprio. Não apaga nem reescreve
+comentários ou marcadores.
+
+O pacote de recuperação ainda tinha as políticas antigas de atividade baseadas
+em staff e não continha a tabela de marcadores nem as funções canônicas da
+0.6.4 vistas no banco ativo. O primeiro CI isolado detectou a tabela ausente.
+A migração reproduz a estrutura canônica, essas duas funções e as permissões vigentes de atividade,
+acrescenta interseções restritivas e retira EXECUTE anônimo dos helpers. Isso
+conserva o limite por empresa e por atribuição também após restauração limpa,
+sem importar migrações históricas que reescrevem dados de pessoas.
 
 O subselect aplica as regras existentes de `case_activity`, incluindo empresa,
 caso autorizado, período operacional e intervalo atual do cadista. Leitores

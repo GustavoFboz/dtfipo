@@ -27,16 +27,23 @@ VALUES ('company','72200000-0000-4000-8000-000000000010','company_initial','acti
 INSERT INTO public.patients(id,name,clinic_id) VALUES
  ('72200000-0000-4000-8000-000000000011','Disposable patient A','72200000-0000-4000-8000-000000000010'),
  ('72200000-0000-4000-8000-000000000021','Disposable patient B','72200000-0000-4000-8000-000000000020');
-INSERT INTO public.cadistas(id,name,user_id) VALUES
- ('72200000-0000-4000-8000-000000000004','Disposable CAD','72200000-0000-4000-8000-000000000003');
+INSERT INTO public.cadistas(id,name,user_id)
+SELECT '72200000-0000-4000-8000-000000000004','Disposable CAD','72200000-0000-4000-8000-000000000003'
+WHERE NOT EXISTS (SELECT 1 FROM public.cadistas WHERE user_id='72200000-0000-4000-8000-000000000003');
 INSERT INTO public.cases(id,patient_id,requested_by,cadista_id,delivery_date,status,created_at) VALUES
- ('72200000-0000-4000-8000-000000000012','72200000-0000-4000-8000-000000000011','72200000-0000-4000-8000-000000000001','72200000-0000-4000-8000-000000000004',current_date+7,'em_andamento',now()),
+ ('72200000-0000-4000-8000-000000000012','72200000-0000-4000-8000-000000000011','72200000-0000-4000-8000-000000000001',
+  (SELECT id FROM public.cadistas WHERE user_id='72200000-0000-4000-8000-000000000003'),current_date+7,'em_andamento',now()-interval '2 days'),
  ('72200000-0000-4000-8000-000000000022','72200000-0000-4000-8000-000000000021','72200000-0000-4000-8000-000000000002',null,current_date+7,'em_andamento',now());
 -- A dedicated non-notifying kind exercises the same row policies without chat delivery.
 INSERT INTO public.case_activity(id,case_id,user_id,kind,content,created_at) VALUES
  ('72200000-0000-4000-8000-000000000013','72200000-0000-4000-8000-000000000012','72200000-0000-4000-8000-000000000001','qa_read_boundary','old',now()-interval '1 day'),
  ('72200000-0000-4000-8000-000000000014','72200000-0000-4000-8000-000000000012','72200000-0000-4000-8000-000000000001','qa_read_boundary','current',now()+interval '1 second'),
  ('72200000-0000-4000-8000-000000000023','72200000-0000-4000-8000-000000000022','72200000-0000-4000-8000-000000000002','qa_read_boundary','other',now());
+-- The case existed before assignment; metadata records the current CAD join.
+INSERT INTO public.case_activity(id,case_id,user_id,kind,metadata,created_at) VALUES
+ ('72200000-0000-4000-8000-000000000017','72200000-0000-4000-8000-000000000012','72200000-0000-4000-8000-000000000001',
+  'case_edit',jsonb_build_object('changes',jsonb_build_array(jsonb_build_object('field','cadista_id','to',
+    (SELECT id::text FROM public.cadistas WHERE user_id='72200000-0000-4000-8000-000000000003')))),now());
 INSERT INTO public.case_activity_reads(id,activity_id,user_id) VALUES
  ('72200000-0000-4000-8000-000000000015','72200000-0000-4000-8000-000000000013','72200000-0000-4000-8000-000000000001'),
  ('72200000-0000-4000-8000-000000000016','72200000-0000-4000-8000-000000000014','72200000-0000-4000-8000-000000000001'),
