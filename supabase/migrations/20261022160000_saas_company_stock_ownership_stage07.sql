@@ -664,7 +664,11 @@ BEGIN
 END $function$
 ;
 
-CREATE OR REPLACE FUNCTION public.update_team_member(p_user_id uuid, p_full_name text, p_email text, p_phone text, p_role text, p_category_ids uuid[] DEFAULT ARRAY[]::uuid[])
+DO $team_compat$
+DECLARE result_type text:=COALESCE(pg_get_function_result(to_regprocedure('public.update_team_member(uuid,text,text,text,text,uuid[])')),'json');
+BEGIN
+ IF result_type NOT IN ('json','jsonb') THEN RAISE EXCEPTION 'UNEXPECTED_TEAM_RETURN_TYPE'; END IF;
+ EXECUTE replace($team_definition$CREATE OR REPLACE FUNCTION public.update_team_member(p_user_id uuid, p_full_name text, p_email text, p_phone text, p_role text, p_category_ids uuid[] DEFAULT ARRAY[]::uuid[])
  RETURNS json
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -731,9 +735,14 @@ BEGIN
   RETURN json_build_object('success', true);
 END;
 $function$
-;
+;$team_definition$,E' RETURNS json\n',' RETURNS '||result_type||E'\n');
+END $team_compat$;
 
-CREATE OR REPLACE FUNCTION public.update_team_member(p_user_id uuid, p_full_name text, p_email text, p_phone text, p_role text, p_category_ids uuid[] DEFAULT ARRAY[]::uuid[], p_additional_roles text[] DEFAULT ARRAY[]::text[])
+DO $team_compat$
+DECLARE result_type text:=COALESCE(pg_get_function_result(to_regprocedure('public.update_team_member(uuid,text,text,text,text,uuid[],text[])')),'json');
+BEGIN
+ IF result_type NOT IN ('json','jsonb') THEN RAISE EXCEPTION 'UNEXPECTED_TEAM_RETURN_TYPE'; END IF;
+ EXECUTE replace($team_definition$CREATE OR REPLACE FUNCTION public.update_team_member(p_user_id uuid, p_full_name text, p_email text, p_phone text, p_role text, p_category_ids uuid[] DEFAULT ARRAY[]::uuid[], p_additional_roles text[] DEFAULT ARRAY[]::text[])
  RETURNS json
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -830,7 +839,8 @@ BEGIN
   RETURN json_build_object('success', true);
 END;
 $function$
-;
+;$team_definition$,E' RETURNS json\n',' RETURNS '||result_type||E'\n');
+END $team_compat$;
 
 DO $$ BEGIN
  IF NOT EXISTS(SELECT 1 FROM pg_trigger WHERE tgrelid='public.resin_weighings'::regclass AND tgfoid='public.apply_resin_weighing()'::regprocedure) THEN
