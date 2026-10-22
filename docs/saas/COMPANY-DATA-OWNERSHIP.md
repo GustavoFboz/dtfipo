@@ -51,8 +51,35 @@ troca de empresa, referência estrangeira, consumo por RPC, reversão idempotent
 edição de equipe estrangeira e suspensão. Essas identidades SQL são simulações.
 O novo job privado `ownership` mantém as duas fixtures fixas e sessões USER
 reais, sem promoção. O preparo administrativo usa UUIDs exclusivos do job;
-as leituras, recusas e consumo/reversão usam os clientes reais. Sua execução
-publicada e a preservação do banco ainda precisam de prova antes da entrega.
+as leituras, recusas e consumo/reversão usam os clientes reais. A migração foi
+aplicada à base ativa em 22/10/2026, após CI e restore aprovados. A transação
+comparou hashes de todas as linhas antes/depois, excluindo somente o novo
+`clinic_id` nas tabelas migradas: saldos, autores, datas e demais campos
+históricos foram preservados. A asserção de schema ativo também passou.
+
+A leitura independente das 17:12 UTC confirmou as 22 tabelas sem registros
+operacionais fora da IPO ou sem empresa, e os 14 profissionais com diretório
+e perfil concordantes. O snapshot agregado está em
+`docs/saas/evidence/company-ownership-live-20261022.json`; não contém fichas,
+nomes de pacientes, credenciais ou links de acesso.
+
+Validação: 218 testes locais e TypeScript; gates 06/09, cobrança, quatro
+regressões de entitlement Desktop e restore determinístico de 178 migrações.
+No GitHub, Web, restore completo/backfill e build Windows passaram. Android
+API 35 compilou e iniciou no emulador; o ensaio experimental API 37 falhou
+com queda do sistema do emulador. Esses resultados não substituem aparelhos
+reais nem representam novos instaladores permanentes publicados.
+
+A publicação de aplicação foi solicitada sob o deployment
+`53112bd2-363b-4ecb-b791-401aa7d7f969`, para o merge
+`c5ed0a22026614573b6132ce040edc4d554db640`. O conector confirma o SHA
+sincronizado e o projeto ready/is_published, mas isso não prova a conclusão
+desse deployment. O ambiente de terminal/navegador perdeu a conexão durante
+a conferência. A sonda HTTP alternativa recebeu 403, sem comprovar a versão.
+A confirmação visual da publicação, o job real `ownership` e as regressões
+reais de Auth/Storage após esta migração **continuam pendentes**. Nenhum job
+novo nem token de execução foi criado enquanto a versão publicada não pôde
+ser confirmada. O painel privado também não foi republicado nessa interrupção.
 
 A revisão mais ampla também encontrou 12 pacientes sem empresa nem casos
 associados. Sua origem não pode ser determinada pelos vínculos existentes;
