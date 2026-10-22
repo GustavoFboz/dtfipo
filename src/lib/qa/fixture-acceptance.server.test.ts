@@ -51,6 +51,13 @@ describe('private fixture acceptance boundary',()=>{
     expect(d.claim).toHaveBeenCalledWith(id,createHash('sha256').update(token).digest('hex'));expect(d.run).toHaveBeenCalledExactlyOnceWith(job);
     expect(r.status).toBe(200);const body=await r.text();expect(body).not.toContain(token);expect(body).not.toContain('@');
   });
+  it('selects ownership validation only from the claimed backend job',async()=>{
+    const d=dependencies();d.claim.mockResolvedValue({...job,kind:'ownership'});
+    const r=await handleFixtureAcceptance(request(),d);
+    expect(r.status).toBe(200);expect(d.run).toHaveBeenCalledExactlyOnceWith({...job,kind:'ownership'});
+    expect((await r.json()).receipt.kind).toBe('ownership');
+    expect((await handleFixtureAcceptance(request({jobId:id,kind:'ownership'}),dependencies())).status).toBe(400);
+  });
   it.each([
     {...job,id:'be819fd7-c5bf-49f0-93e0-6f647f0b9c27'},
     {...job,fixtures:[{...job.fixtures[0],user_id:'be819fd7-c5bf-49f0-93e0-6f647f0b9c27'},job.fixtures[1]]},
