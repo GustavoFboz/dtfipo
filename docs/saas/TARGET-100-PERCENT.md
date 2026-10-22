@@ -41,6 +41,13 @@ os Logs de Webhooks nem altera filas: causa HTTP, retomada e prova de entrega
 têm verificações próprias. Não disparar este diagnóstico antes de comprovar a
 publicação do endpoint esperado.
 
+Execução real concluída em 22/10, 00h05 Manaus: workflow #18, revisão `0bdc69d`,
+listagem completa de duas filas. A fila “Teste Webhook Unika POS” aponta para
+outro endpoint e está interrompida; a do DentalFlow está ativa, sem interrupção,
+API v3, sequencial e com 13 eventos. Nenhuma fila foi alterada. A causa HTTP e
+o tratamento da integração externa dependem dos seus logs e finalidade; não
+desativá-la por ser chamada “Teste”. [Recibo e limites](evidence/authorized-runtime-validation-20261022.md).
+
 ## Provas restantes dos 15 itens
 
 | Item | Trabalho para concluir e condição de aceite |
@@ -50,7 +57,7 @@ publicação do endpoint esperado.
 | 2.1 | Executar renovação, atraso/carência, suspensão, estorno/contestação, cancelamento e reativação com estados reais do provedor. Ensaios SQL e mocks permanecem regressões. |
 | 2.2 | Conferir dados clínicos, contratos, ledger, limites e período pago antes/depois dos fluxos reais. A isenção IPO e dados de outras empresas devem permanecer preservados. |
 | 2.3 | Validar acesso online, expiração/limpeza do cache em 72h e retomada nos aplicativos disponíveis. Builds e emuladores não substituem os testes em aparelhos; registrar limites da homologação iOS. |
-| 3.2 | Publicar e executar a resiliência ampliada, revisar individualmente as nove reservas históricas e usar recuperação autenticada do gestor quando cabível. Não excluir metadados históricos diretamente por SQL nem liberar cota com bytes existentes. |
+| 3.2 | A resiliência ampliada publicada passou 84/84 verificações reais. Falta revisar individualmente as nove reservas históricas e usar recuperação autenticada do gestor quando cabível. Não excluir metadados históricos diretamente por SQL nem liberar cota com bytes existentes. |
 | 3.3 | Executar upload, leitura, limite, falha e exclusão em Web, Windows e Android disponíveis. DICOM aguarda a liberação de Radiologia. |
 | 4.2 | Provar sessões reais, MFA, isolamento, recusa de elevação e replay financeiro em AAL1; concluir o fluxo autorizado com Master/AAL2 real. |
 | 4.3 | Tratar e comprovar a revogação das referências assinadas históricas, incluindo as 38 já identificadas, além de leitura, recusa, expiração e renovação autenticadas na publicação. Substituir uma referência não revoga um token já emitido. |

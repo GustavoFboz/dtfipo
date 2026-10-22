@@ -1,5 +1,9 @@
 # Publicação autorizada e identidade — 21/10/2026
 
+Continuidade posterior: o job de Storage corrigido e publicado passou 84/84
+verificações em 22/10; a fila do alerta foi correlacionada a outro endpoint.
+Ver [novos recibos e limites](authorized-runtime-validation-20261022.md).
+
 O titular autorizou expressamente administrar o Lovable Cloud do DentalFlow,
 publicar as atualizações necessárias em Produção e ajustar a política de senhas.
 A autorização resolveu o bloqueio registrado no checkpoint anterior.
@@ -31,7 +35,7 @@ memória no servidor e não fazem parte das provas.
 inteiramente encerradas.** MFA, replay administrativo e arquivos privados
 conservam seus critérios próprios.
 
-## Storage e diagnóstico operacional
+## Storage e diagnóstico operacional — primeira rodada
 
 O primeiro job ampliado de Storage, `958113e9-f464-4384-a373-4c21c6412961`,
 concluiu em 03:50:57 UTC com **64/68 checks aprovados**, sem novo aceite.
