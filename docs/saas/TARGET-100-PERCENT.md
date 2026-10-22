@@ -7,6 +7,11 @@ Retomada de 21/10/2026. O titular solicitou chegar a **100%** e ofereceu acesso
 prova de identidade das 23h49 Manaus de 21/10.
 O [registro oficial](ACCEPTANCE-PROGRESS.md) conserva cada prova já aceita.
 
+Em 22/10, 10h43 Manaus, a correção de marcadores de leitura foi publicada e
+passou 112/112 verificações reais (84 de Storage e 28 novas de privacidade e
+autorização), preservando todo o histórico. Sem aceite novo: 8/23 mantidos.
+[Publicação e limites](evidence/activity-read-publication-20261022.md).
+
 ## Publicação autorizada e identidade comprovada
 
 O titular autorizou expressamente administrar o Lovable Cloud, publicar as
@@ -59,7 +64,7 @@ desativá-la por ser chamada “Teste”. [Recibo e limites](evidence/authorized
 | 2.3 | Validar acesso online, expiração/limpeza do cache em 72h e retomada nos aplicativos disponíveis. Builds e emuladores não substituem os testes em aparelhos; registrar limites da homologação iOS. |
 | 3.2 | A resiliência ampliada publicada passou 84/84 verificações reais. Falta revisar individualmente as nove reservas históricas e usar recuperação autenticada do gestor quando cabível. Não excluir metadados históricos diretamente por SQL nem liberar cota com bytes existentes. |
 | 3.3 | Executar upload, leitura, limite, falha e exclusão em Web, Windows e Android disponíveis. DICOM aguarda a liberação de Radiologia. |
-| 4.2 | Provar sessões reais, MFA, isolamento, recusa de elevação e replay financeiro em AAL1; concluir o fluxo autorizado com Master/AAL2 real. |
+| 4.2 | Após a correção publicada de marcadores e recusa USER/AAL1 real, concluir Master/MFA e replay positivos reais e tratar as onze tabelas legadas. Definir a propriedade por empresa dos dados de estoque antes da migração; a estrutura atual não identifica o dono. |
 | 4.3 | Tratar e comprovar a revogação das referências assinadas históricas: 40 reconferidas em 22/10 (34 fotos e seis avatares), ainda válidas até 2036. Comprovar também leitura, recusa, expiração e renovação autenticadas na publicação. Substituir uma referência não revoga um token já emitido. |
 | 5.2 | Executar o cancelamento aprovado uma vez no Asaas e concluir troca de plano/preço por vigência. A execução de troca ainda requer implementação e prova; o executor de cancelamento existente não a substitui. |
 | 5.3 | Validar downgrade, cota, preço/data efetiva e retomada após falha ambígua, com lease/readback e sem POST financeiro repetido cegamente. |

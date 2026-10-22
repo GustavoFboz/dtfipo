@@ -1,9 +1,10 @@
 # Validação real das duas identidades fictícias
 
-Preparação de 22/10: o job Storage incorpora a validação de privacidade dos
+Publicação de 22/10: o job Storage incorpora a validação de privacidade dos
 marcadores de leitura, com atividades descartáveis sem notificações, sessões
 USER/AAL1 reais, recusa de Master/replay e limpeza por IDs exatos. Esse conjunto
-aguarda execução publicada. [Contrato e limites](ACTIVITY-READ-PRIVACY.md).
+passou no job publicado: 112/112 checks, sendo 84 de Storage e 28 de privacidade
+e autorização. [Prova e limites](evidence/activity-read-publication-20261022.md).
 
 A execução usa exclusivamente as duas fixtures mantidas por decisão do titular,
 com IDs e e-mails exatos verificados no Auth, nas empresas e nos perfis. Nunca
