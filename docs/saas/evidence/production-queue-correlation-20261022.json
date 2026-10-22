@@ -1,0 +1,38 @@
+{
+  "runtime_commit": "0bdc69d5ad666e4014053a9d88eb076dfc192dd2",
+  "workflow_url": "https://github.com/GustavoFboz/dtfipo/actions/runs/39720405987",
+  "job_id": 119632308976,
+  "result": {
+    "available": true,
+    "contract": "dentalflow-production-queue-alert-v1",
+    "environment": "production",
+    "checked_at": "2026-10-22T04:05:37.375Z",
+    "listing_complete": true,
+    "total_webhooks": 2,
+    "correlation": "different_queue",
+    "conclusion": "reported_queue_targets_other_endpoint",
+    "dentalflow": [
+      {
+        "enabled": true,
+        "interrupted": false,
+        "targets_dentalflow": true,
+        "api_version": 3,
+        "send_type": "SEQUENTIALLY",
+        "event_count": 13
+      }
+    ],
+    "reported_test_queue": [
+      {
+        "enabled": true,
+        "interrupted": true,
+        "targets_dentalflow": false,
+        "api_version": 3,
+        "send_type": "NON_SEQUENTIALLY",
+        "event_count": 5
+      }
+    ],
+    "delivery_logs_checked": false,
+    "webhook_configuration_changed": false,
+    "financial_processing_invoked": false
+  }
+}

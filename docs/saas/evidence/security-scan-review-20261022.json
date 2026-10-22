@@ -1,0 +1,72 @@
+{
+  "source": "Lovable Cloud Quick security scan and pg_policies; metadata only",
+  "full_acceptance": false,
+  "findings": {
+    "unrestricted_authenticated_select": [
+      {
+        "table": "cadistas",
+        "policy": "cadistas_select_solicitante",
+        "roles": "{authenticated}"
+      },
+      {
+        "table": "case_activity_reads",
+        "policy": "case_activity_reads_select",
+        "roles": "{authenticated}"
+      },
+      {
+        "table": "case_types",
+        "policy": "case_types_select_solicitante",
+        "roles": "{authenticated}"
+      },
+      {
+        "table": "component_categories",
+        "policy": "component_categories_select_solicitante",
+        "roles": "{authenticated}"
+      },
+      {
+        "table": "components",
+        "policy": "components_select_solicitante",
+        "roles": "{authenticated}"
+      },
+      {
+        "table": "doctors",
+        "policy": "doctors_select_solicitante",
+        "roles": "{authenticated}"
+      },
+      {
+        "table": "implant_systems",
+        "policy": "implant_systems_select_solicitante",
+        "roles": "{authenticated}"
+      },
+      {
+        "table": "proteticos",
+        "policy": "Proteticos readable by authenticated",
+        "roles": "{authenticated}"
+      },
+      {
+        "table": "scan_jigs",
+        "policy": "scan_jigs_select_solicitante",
+        "roles": "{authenticated}"
+      },
+      {
+        "table": "stock_items",
+        "policy": "stock_items_select_solicitante",
+        "roles": "{authenticated}"
+      },
+      {
+        "table": "tooth_colors",
+        "policy": "tooth_colors_select_solicitante",
+        "roles": "{authenticated}"
+      },
+      {
+        "table": "workflow_templates",
+        "policy": "workflow_templates_select",
+        "roles": "{authenticated}"
+      }
+    ],
+    "avatar_read": "Scanner flags an uploader condition; deployed restrictive company policy and authenticated Storage isolation proofs require joint review.",
+    "clinic_insert": "Scanner flags authenticated INSERT; onboarding and protected-column triggers require joint review."
+  },
+  "changes_applied": false,
+  "recorded_at": "2026-10-22 04:08:12.452849+00"
+}

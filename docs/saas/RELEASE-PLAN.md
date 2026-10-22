@@ -1,6 +1,6 @@
 # DentalFlow SaaS — sete etapas restantes até vendas
 
-Atualizado em 21/10/2026; as evidências novas registram horários UTC e Manaus. Este é o contador de conclusão
+Atualizado em 22/10/2026; as evidências novas registram horários UTC e Manaus. Este é o contador de conclusão
 apresentado ao responsável. Os IDs 00–10 dos documentos técnicos permanecem
 para manter o histórico; não são um segundo protocolo.
 
@@ -11,6 +11,13 @@ Em 21/10, 23h49 Manaus, após autorização explícita e publicação de `ef31ce
 o Auth com mínimo global de oito caracteres passou 16/16 checks reais. O item
 4.1 está concluído. **Aceites atuais: 8/23 (34,78%), 15 em aberto/parciais,
 0/7 etapas encerradas.** [Prova e limites](evidence/authorized-publication-20261021.md).
+
+Continuidade de 22/10, 00h05 Manaus: PR181 publicada; Storage passou 84/84
+checks reais, com concorrência, falhas, tamanho e cota comprovados. A consulta
+privada do Asaas identificou a fila do alerta em outro endpoint, interrompida;
+a fila DentalFlow está ativa e não interrompida. Nenhuma fila foi alterada.
+As reservas históricas e os demais critérios continuam abertos; total 8/23.
+[Recibos e observações de segurança](evidence/authorized-runtime-validation-20261022.md).
 
 Checkpoint financeiro de 19/10:
 Em 19/10, às 01h33 Manaus, o backend confirmou o pagamento real de R$5 do
