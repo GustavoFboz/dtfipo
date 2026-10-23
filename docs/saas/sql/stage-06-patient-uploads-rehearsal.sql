@@ -163,27 +163,43 @@ begin
   delete from storage.objects where bucket_id='patient-photos' and name=v_photo_path;
   perform public.cancel_storage_upload(v_photo);
   if (select used_bytes from public.get_storage_usage()) <> 0 then raise exception 'Patient cleanup left charged bytes'; end if;
+  -- A client cannot manufacture a collaboration to obtain a foreign patient.
+  v_rejected := false;
+  begin
+    insert into public.cases(patient_id,requested_by,status,delivery_date)
+    values(v_other,auth.uid(),'pendente',current_date+7);
+  exception when insufficient_privilege then v_rejected := true; end;
+  if not v_rejected then raise exception 'Client attached a foreign patient without prior access'; end if;
 end $$;
 reset role;
+-- Trusted preparation of an explicit collaboration, separate from actor claims.
+select set_config('request.jwt.claim.sub','',true);
+select set_config('request.jwt.claim.role','',true);
+select set_config('request.jwt.claims','{}',true);
 -- Cross-company case participation stays explicit and follows approval.
 insert into auth.users (id,instance_id,aud,role,email,encrypted_password,created_at,updated_at)
 values ('65000000-0000-4000-8000-000000000063','00000000-0000-0000-0000-000000000000',
         'authenticated','authenticated','stage06-specialist@test.invalid','',now(),now());
+-- Disposable identity provisioning needs the profile-admin trigger disabled.
+ALTER TABLE public.profiles DISABLE TRIGGER trg_prevent_profile_privilege_escalation;
 insert into public.profiles (id,clinic_id,role,account_subtype,is_default_admin)
 values ('65000000-0000-4000-8000-000000000063','65000000-0000-4000-8000-000000000060','CADISTA','CADISTA',false)
 on conflict (id) do update set clinic_id=excluded.clinic_id,role=excluded.role,
   account_subtype=excluded.account_subtype,is_default_admin=false;
+ALTER TABLE public.profiles ENABLE TRIGGER trg_prevent_profile_privilege_escalation;
 insert into public.user_roles (user_id,role)
 values ('65000000-0000-4000-8000-000000000063','cadista');
-insert into public.cadistas (id,name,user_id)
+insert into public.cadistas (id,name,user_id,clinic_id)
 select '65000000-0000-4000-8000-000000000064'::uuid,'Assigned specialist fixture',
-       '65000000-0000-4000-8000-000000000063'::uuid
+       '65000000-0000-4000-8000-000000000063'::uuid,'65000000-0000-4000-8000-000000000060'::uuid
 where not exists(select 1 from public.cadistas where user_id='65000000-0000-4000-8000-000000000063');
 insert into public.cases (id,patient_id,requested_by,cadista_id,delivery_date,status)
 values ('65000000-0000-4000-8000-000000000065','65000000-0000-4000-8000-000000000072',
         '65000000-0000-4000-8000-000000000061',
         (select id from public.cadistas where user_id='65000000-0000-4000-8000-000000000063'),
         current_date+7,'pendente');
+select set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000061',true);
+select set_config('request.jwt.claim.role','authenticated',true);
 set local role authenticated;
 do $$ begin
   if not public.can_access_patient('65000000-0000-4000-8000-000000000072') then

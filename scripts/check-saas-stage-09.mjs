@@ -1,6 +1,12 @@
 import fs from "node:fs";
 
 const required = [
+  "docs/saas/COMPANY-WORKFLOW-CONFIGURATION.md",
+  "docs/saas/sql/stage-07-company-workflow-assertions.sql",
+  "docs/saas/sql/stage-07-company-workflow-rehearsal.sql",
+  "src/lib/qa/fixture-configuration.server.ts",
+  "src/lib/workflow-company-boundary.test.ts",
+  "src/lib/workflow-company-queue.test.ts",
   "docs/saas/COMPANY-DATA-OWNERSHIP.md",
   "docs/saas/sql/stage-07-company-stock-assertions.sql",
   "docs/saas/sql/stage-07-company-stock-rehearsal.sql",
@@ -40,6 +46,10 @@ const required = [
 const missing = required.filter((p) => !fs.existsSync(p));
 if (missing.length) throw new Error("Stage 09 missing required artifacts: " + missing.join(", "));
 const ownershipMigration = "20261022160000_saas_company_stock_ownership_stage07.sql";
+const workflowMigration = "20261023140000_saas_company_workflow_configuration_stage07.sql";
+if (fs.readFileSync(`supabase/migrations/${workflowMigration}`, "utf8") !==
+    fs.readFileSync(`public/restore/migrations/${workflowMigration}`, "utf8"))
+  throw new Error("Company workflow configuration differs between migration and restore");
 if (fs.readFileSync(`supabase/migrations/${ownershipMigration}`, "utf8") !==
     fs.readFileSync(`public/restore/migrations/${ownershipMigration}`, "utf8"))
   throw new Error("Company ownership differs between migration and restore");

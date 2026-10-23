@@ -6,10 +6,16 @@ export class StockCompanyScopeError extends Error {}
 
 /** Local identity only. The existing device reader enforces the 72h limit. */
 export async function stockCompanyScope():Promise<StockCompanyScope> {
-  const {data}=await supabase.auth.getSession();
   const device=await getProvisionedDesktopIdentity();
-  if(!device?.clinic_id||device.user_id!==data.session?.user?.id)
+  if(!device?.clinic_id)
     throw new StockCompanyScopeError('Conecte-se para confirmar a empresa deste dispositivo.');
+  // The finite-lived provision is the offline authorization. getSession can
+  // attempt a token refresh, so an offline read must not depend on that call.
+  if(typeof navigator==='undefined'||navigator.onLine!==false) {
+    const {data}=await supabase.auth.getSession();
+    if(device.user_id!==data.session?.user?.id)
+      throw new StockCompanyScopeError('Conecte-se para confirmar a empresa deste dispositivo.');
+  }
   return Object.freeze({ownerId:device.user_id,clinicId:device.clinic_id});
 }
 export async function assertStockCompany(scope:StockCompanyScope) {
@@ -26,7 +32,9 @@ export async function companyStockCacheGet<T>(scope:StockCompanyScope,name:strin
 }
 export async function companyStockCachePut<T>(scope:StockCompanyScope,name:string,key:string,payload:T) {
   await assertStockCompany(scope);
-  return localCachePut(scope.ownerId,namespace(scope,name),key,payload);
+  const result=await localCachePut(scope.ownerId,namespace(scope,name),key,payload);
+  await assertStockCompany(scope);
+  return result;
 }
 type QueueInput=Omit<Parameters<typeof enqueueOutbox>[0],'ownerId'|'payload'>&{scope:StockCompanyScope;payload:Record<string,unknown>};
 export async function enqueueCompanyStock({scope,payload,...input}:QueueInput) {

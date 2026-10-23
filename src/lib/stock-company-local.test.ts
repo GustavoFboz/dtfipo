@@ -1,11 +1,20 @@
 import {beforeEach,describe,expect,it,vi} from 'vitest';
-const state=vi.hoisted(()=>({user:'a',clinic:'one',deviceUser:'a',cacheGet:vi.fn(),cachePut:vi.fn(),queue:vi.fn()}));
-vi.mock('@/integrations/supabase/client',()=>({supabase:{auth:{getSession:async()=>({data:{session:{user:{id:state.user}}}})}}}));
+const state=vi.hoisted(()=>({user:'a',clinic:'one',deviceUser:'a',getSession:vi.fn(),cacheGet:vi.fn(),cachePut:vi.fn(),queue:vi.fn()}));
+vi.mock('@/integrations/supabase/client',()=>({supabase:{auth:{getSession:state.getSession}}}));
 vi.mock('./desktop-local',()=>({getProvisionedDesktopIdentity:async()=>state.clinic?{user_id:state.deviceUser,clinic_id:state.clinic}:null,
  localCacheGet:(...args:unknown[])=>state.cacheGet(...args),localCachePut:(...args:unknown[])=>state.cachePut(...args),enqueueOutbox:(...args:unknown[])=>state.queue(...args)}));
 import {stockCompanyScope,companyStockCacheGet,companyStockCachePut,enqueueCompanyStock,companyStockPayload} from './stock-company-local';
 describe('stock ownership in installed clients',()=>{
- beforeEach(()=>{vi.clearAllMocks();Object.assign(state,{user:'a',clinic:'one',deviceUser:'a'});state.cacheGet.mockResolvedValue({payload:[]});});
+ beforeEach(()=>{vi.unstubAllGlobals();vi.clearAllMocks();Object.assign(state,{user:'a',clinic:'one',deviceUser:'a'});state.cacheGet.mockResolvedValue({payload:[]});state.getSession.mockImplementation(async()=>({data:{session:{user:{id:state.user}}}}));});
+ it('reads offline using the finite device provision without an Auth refresh',async()=>{
+  vi.stubGlobal('navigator',{onLine:false});state.getSession.mockRejectedValue(new Error('offline'));
+  expect(await stockCompanyScope()).toEqual({ownerId:'a',clinicId:'one'});expect(state.getSession).not.toHaveBeenCalled();
+  state.clinic='';await expect(stockCompanyScope()).rejects.toThrow();expect(state.getSession).not.toHaveBeenCalled();
+ });
+ it('rejects a write result arriving after a company switch',async()=>{
+  const scope=await stockCompanyScope();state.cachePut.mockImplementationOnce(async()=>{state.clinic='two';});
+  await expect(companyStockCachePut(scope,'items','all',[])).rejects.toThrow();
+ });
  it('uses company and user namespaces with no legacy cache fallback',async()=>{
   const first=await stockCompanyScope();await companyStockCacheGet(first,'stock-items:v1','all');
   expect(state.cacheGet).toHaveBeenCalledWith('a','stock-items:v1:company-v1:one','all');

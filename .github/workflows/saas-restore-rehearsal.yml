@@ -235,6 +235,15 @@ jobs:
           docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
             < docs/saas/sql/stage-07-company-stock-rehearsal.sql | tee restore-company-stock-rehearsal.log
 
+      - name: Verify and rehearse company workflow configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-07-company-workflow-assertions.sql | tee restore-company-workflow-assertions.log
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/stage-07-company-workflow-rehearsal.sql | tee restore-company-workflow-rehearsal.log
+
       - name: Verify ownership backfill preserves historical values
         shell: bash
         run: |
@@ -344,6 +353,8 @@ jobs:
             restore-company-stock-assertions.log
             restore-company-stock-rehearsal.log
             restore-company-stock-backfill.log
+            restore-company-workflow-assertions.log
+            restore-company-workflow-rehearsal.log
             restore-stage-07-master.log
             restore-stage-07-activity-read-assertions.log
             restore-stage-07-activity-read-rehearsal.log
