@@ -176,6 +176,7 @@
   "20261018220200_saas_plan_price_company_initial_500c.sql",
   "20261022050000_saas_activity_read_privacy_stage07.sql",
   "20261022160000_saas_company_stock_ownership_stage07.sql",
+  "20260904203000_workflow_templates_v2.sql",
   "20261023140000_saas_company_workflow_configuration_stage07.sql",
   "20260718000001_zzz_self_heal_v2.sql"
 ]

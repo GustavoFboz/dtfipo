@@ -1,5 +1,6 @@
 -- Company-owned workflow definitions. Existing IPO IDs and case progress stay intact.
 -- case_types/tooth_colors are confirmed original dictionaries, shared read-only.
+ALTER TABLE public.case_types ADD COLUMN IF NOT EXISTS position integer NOT NULL DEFAULT 0;
 DO $$ DECLARE t text; BEGIN
  FOREACH t IN ARRAY ARRAY['phases','stages','phase_assignments','stage_assignments',
  'stage_return_reasons','workflow_templates','workflow_settings'] LOOP

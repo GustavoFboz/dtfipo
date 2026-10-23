@@ -26,6 +26,9 @@ com padrões do repositório, sem copiar as personalizações ou responsáveis I
 As empresas de teste existentes recebem esses mesmos padrões independentes.
 Os dois catálogos originais continuam compartilhados para leitura; escritas
 de clientes são recusadas por RLS e gatilho, inclusive em funções privilegiadas.
+A coluna de ordenação esperada pela interface é acrescentada aos tipos de caso,
+sem alterar IDs ou rótulos. O restore também passa a incluir a migração canônica
+dos quatro fluxos versionados, ausente do pacote anterior.
 
 RLS e gatilhos conferem empresa, pai, responsável e referências entre etapas.
 O gerenciamento exige o papel administrativo da própria empresa com acesso
