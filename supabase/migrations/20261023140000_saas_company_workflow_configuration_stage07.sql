@@ -1,6 +1,10 @@
 -- Company-owned workflow definitions. Existing IPO IDs and case progress stay intact.
 -- case_types/tooth_colors are confirmed original dictionaries, shared read-only.
 ALTER TABLE public.case_types ADD COLUMN IF NOT EXISTS position integer NOT NULL DEFAULT 0;
+-- Some historical schema bundles added these only in the final self-heal.
+-- Provisioning the versioned defaults needs the canonical columns beforehand.
+ALTER TABLE public.stages ADD COLUMN IF NOT EXISTS requirements jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE public.stages ADD COLUMN IF NOT EXISTS requires_implant_components boolean NOT NULL DEFAULT false;
 DO $$ DECLARE t text; BEGIN
  FOREACH t IN ARRAY ARRAY['phases','stages','phase_assignments','stage_assignments',
  'stage_return_reasons','workflow_templates','workflow_settings'] LOOP
