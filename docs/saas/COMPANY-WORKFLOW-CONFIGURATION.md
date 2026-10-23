@@ -69,5 +69,8 @@ retorno autorizado, limpando tudo ao final. Os fluxos positivos de edição por
 gestor continuam identificados como ensaios SQL, até terem prova real própria.
 Não há operação financeira nem alteração de ambiente Asaas.
 
-Neste registro inicial, CI/restore, aplicação ativa, publicação e execução real
-ainda precisam ser comprovados. O item 4.2 continua parcial e o total 8/23.
+CI/restore de 180 migrações, aplicação ativa com hashes históricos em 20 tabelas
+e publicação foram comprovados em 23/10. O novo job passou 41/41 verificações
+reais; as regressões elevaram a rodada a 227/227, com limpeza confirmada.
+[Publicação, recibos e limites](evidence/company-workflow-publication-20261023.md).
+O item 4.2 continua parcial e o total 8/23.

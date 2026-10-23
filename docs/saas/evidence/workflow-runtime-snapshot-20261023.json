@@ -1,0 +1,293 @@
+{
+  "activity_count": 1353,
+  "cases": 86,
+  "companies_without_workflow": 0,
+  "current_configuration_test_rows": 0,
+  "directory_company_mismatches": 0,
+  "fixture_default_templates": 8,
+  "fixture_storage_active_records": 0,
+  "historical_storage_reservations": 9,
+  "non_ipo_cases": 0,
+  "observed_at": "2026-10-23 15:13:41.728215+00",
+  "owned_table_counts": [
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 0,
+      "table_name": "burr_usages",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 0,
+      "table_name": "burrs",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 4,
+      "table_name": "cadistas",
+      "total": 4,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 29,
+      "table_name": "case_implant_teeth",
+      "total": 29,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 2,
+      "table_name": "case_stock_consumptions",
+      "total": 2,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 0,
+      "table_name": "case_tooth_stock_usage",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 9,
+      "table_name": "component_categories",
+      "total": 9,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 0,
+      "table_name": "components",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 7,
+      "table_name": "doctors",
+      "total": 7,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 0,
+      "table_name": "holders",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 1,
+      "table_name": "implant_component_types",
+      "total": 1,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 39,
+      "table_name": "implant_system_components",
+      "total": 39,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 4,
+      "table_name": "implant_systems",
+      "total": 4,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": null,
+      "ipo": 0,
+      "table_name": "phase_assignments",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": null,
+      "ipo": 10,
+      "table_name": "phases",
+      "total": 15,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 3,
+      "table_name": "proteticos",
+      "total": 3,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 0,
+      "table_name": "resin_pots",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 0,
+      "table_name": "resin_weighings",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 0,
+      "table_name": "scan_jigs",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": null,
+      "ipo": 3,
+      "table_name": "stage_assignments",
+      "total": 3,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": null,
+      "ipo": 4,
+      "table_name": "stage_return_reasons",
+      "total": 24,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": null,
+      "ipo": 46,
+      "table_name": "stages",
+      "total": 226,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 2,
+      "table_name": "stock_consumption_rules",
+      "total": 2,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 45,
+      "table_name": "stock_item_custom_fields",
+      "total": 45,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 107,
+      "table_name": "stock_items",
+      "total": 107,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 47,
+      "table_name": "stock_movements",
+      "total": 47,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": 0,
+      "ipo": 0,
+      "table_name": "user_stock_access",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": null,
+      "ipo": 1,
+      "table_name": "workflow_settings",
+      "total": 6,
+      "unowned": 0
+    },
+    {
+      "disposable_stock_rows": null,
+      "ipo": 4,
+      "table_name": "workflow_templates",
+      "total": 24,
+      "unowned": 0
+    }
+  ],
+  "production_failed_events": 0,
+  "production_payments": 1,
+  "read_marker_count": 775,
+  "running_acceptance_jobs": 0,
+  "unowned_patients": 12,
+  "unowned_patients_with_cases": 0,
+  "worker": {
+    "last_healthy_at": "2026-10-23T15:11:04.356795+00:00",
+    "status": "ok"
+  },
+  "current_job_storage_objects": 0,
+  "schema_assertion": "passed",
+  "application_publication": {
+    "deployment_id": "8e33c71d-c4a9-43e2-82ef-d36134c375a1",
+    "revision": "91983700eaa9873c7835790e821888cc5b43b09e",
+    "migration_blob": "e292d03d504fe590a04b41eb839fe53575342289",
+    "native_ui": "Seu site foi atualizado",
+    "confirmed": true
+  },
+  "application_history_guard": {
+    "tables": 20,
+    "historical_fields_preserved": true
+  },
+  "acceptance_jobs": [
+    {
+      "capability_consumed": true,
+      "claimed_at": "2026-10-23 15:09:26.304091+00",
+      "completed_at": "2026-10-23 15:09:38.19611+00",
+      "id": "c4b93b9e-4c31-4d88-ba9e-b03620c74eab",
+      "kind": "configuration",
+      "status": "completed",
+      "passed": true,
+      "check_count": 41
+    },
+    {
+      "capability_consumed": true,
+      "claimed_at": "2026-10-23 15:10:25.291468+00",
+      "completed_at": "2026-10-23 15:10:41.619725+00",
+      "id": "698d8d0b-72a2-48a6-b824-a585b45af53b",
+      "kind": "ownership",
+      "status": "completed",
+      "passed": true,
+      "check_count": 58
+    },
+    {
+      "capability_consumed": true,
+      "claimed_at": "2026-10-23 15:11:26.232731+00",
+      "completed_at": "2026-10-23 15:11:30.963111+00",
+      "id": "4f7d9310-4782-47a3-a9cf-87ba2a8a43a0",
+      "kind": "identity",
+      "status": "completed",
+      "passed": true,
+      "check_count": 16
+    },
+    {
+      "capability_consumed": true,
+      "claimed_at": "2026-10-23 15:12:06.933628+00",
+      "completed_at": "2026-10-23 15:12:47.188149+00",
+      "id": "64fb002f-0b97-4d29-8275-1bf30542c0e8",
+      "kind": "storage",
+      "status": "completed",
+      "passed": true,
+      "check_count": 112
+    }
+  ],
+  "acceptance_summary": {
+    "checks": 227,
+    "configuration": 41,
+    "ownership": 58,
+    "identity": 16,
+    "storage": 84,
+    "activity_privacy_authorization": 28,
+    "completed_criteria": 8,
+    "total_criteria": 23,
+    "criterion_4_2_closed": false
+  }
+}
