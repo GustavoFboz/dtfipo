@@ -4,6 +4,7 @@ import type { WorkflowStage } from "@/lib/workflow";
 export type WorkflowKey = "common" | "provisional" | "mockup" | "mockup_provisional";
 
 export type WorkflowTemplate = {
+  clinic_id?: string | null;
   flow_key: WorkflowKey;
   name: string;
   active_version: number;
@@ -40,6 +41,14 @@ export const FLOW_LABELS: Record<WorkflowKey, { title: string; description: stri
 export const FLOW_KEYS = Object.keys(FLOW_LABELS) as WorkflowKey[];
 const WORKFLOW_KEY_SET = new Set<WorkflowKey>(FLOW_KEYS);
 
+/** Collaboration may expose two companies' definitions. Select by the case's
+ * actual current stage; without an unambiguous company, never mix sequences. */
+export function workflowCompanyStages(stages: WorkflowStageV2[], currentStageId?: string | null) {
+  const company = stages.find((stage) => stage.id === currentStageId)?.clinic_id;
+  if (company) return stages.filter((stage) => stage.clinic_id === company);
+  return new Set(stages.map((stage) => stage.clinic_id).filter(Boolean)).size > 1 ? [] : stages;
+}
+
 export function deriveWorkflowKey(row: { has_mockup?: boolean | null; has_provisional?: boolean | null }): WorkflowKey {
   if (row.has_mockup && row.has_provisional) return "mockup_provisional";
   if (row.has_mockup) return "mockup";
@@ -67,6 +76,7 @@ export function getCaseWorkflowStages(
   },
   options: { requiresSintering?: boolean } = {},
 ): WorkflowStageV2[] {
+  allStages = workflowCompanyStages(allStages, row.current_stage_id);
   const currentStageId = row.current_stage_id ?? null;
   const currentRecord = allStages.find((stage) => stage.id === currentStageId);
   const currentFlow = currentRecord?.flow_key;
@@ -78,7 +88,8 @@ export function getCaseWorkflowStages(
       : deriveWorkflowKey(row);
 
   const candidates = allStages.filter(
-    (stage) => stage.flow_key === effectiveFlow && Boolean(stage.stage_key),
+    (stage) => stage.flow_key === effectiveFlow && Boolean(stage.stage_key)
+      && (!currentRecord?.clinic_id || stage.clinic_id === currentRecord.clinic_id),
   );
   if (!candidates.length) return [];
 
@@ -107,7 +118,7 @@ export function getCaseWorkflowStages(
 export async function fetchWorkflowTemplates(): Promise<WorkflowTemplate[]> {
   const { data, error } = await supabase
     .from("workflow_templates" as any)
-    .select("flow_key,name,active_version,updated_at,updated_by")
+    .select("clinic_id,flow_key,name,active_version,updated_at,updated_by")
     .order("flow_key");
   if (error) throw error;
   return (data ?? []) as unknown as WorkflowTemplate[];
@@ -123,7 +134,7 @@ export async function fetchWorkflowTemplates(): Promise<WorkflowTemplate[]> {
 export async function fetchWorkflowStagesV2(): Promise<WorkflowStageV2[]> {
   const full = await supabase
     .from("stages" as any)
-    .select("id,name,color,position,phase_id,requires_implant_components,requirements,condition_key,flow_key,workflow_version,stage_key")
+    .select("id,clinic_id,name,color,position,phase_id,requires_implant_components,requirements,condition_key,flow_key,workflow_version,stage_key")
     .order("position");
 
   if (!full.error) return (full.data ?? []) as unknown as WorkflowStageV2[];
@@ -133,7 +144,7 @@ export async function fetchWorkflowStagesV2(): Promise<WorkflowStageV2[]> {
 
   const versionedCore = await supabase
     .from("stages" as any)
-    .select("id,name,color,position,phase_id,requires_implant_components,requirements,flow_key,workflow_version,stage_key")
+    .select("id,clinic_id,name,color,position,phase_id,requires_implant_components,requirements,flow_key,workflow_version,stage_key")
     .order("position");
 
   if (!versionedCore.error) {
@@ -204,8 +215,11 @@ export function getActiveStages(
   templates: WorkflowTemplate[],
   flowKey: WorkflowKey,
 ): WorkflowStageV2[] {
-  const activeVersion = templates.find((template) => template.flow_key === flowKey)?.active_version;
-  const candidates = allStages.filter((stage) => stage.flow_key === flowKey && stage.stage_key);
+  const template = templates.find((template) => template.flow_key === flowKey);
+  const activeVersion = template?.active_version;
+  const source = template?.clinic_id ? allStages.filter((stage) => stage.clinic_id === template.clinic_id)
+    : workflowCompanyStages(allStages);
+  const candidates = source.filter((stage) => stage.flow_key === flowKey && stage.stage_key);
   const version = activeVersion ?? Math.max(0, ...candidates.map((stage) => Number(stage.workflow_version ?? 0)));
   return candidates
     .filter((stage) => Number(stage.workflow_version ?? 1) === (version || 1))
