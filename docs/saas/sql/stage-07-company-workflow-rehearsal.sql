@@ -67,6 +67,33 @@ DO $$ DECLARE refused boolean; BEGIN
  IF EXISTS(SELECT 1 FROM public.workflow_templates WHERE clinic_id='72400000-0000-4000-8000-000000000010') THEN RAISE EXCEPTION 'GLOBAL_ADMIN_READ_FOREIGN_CONFIG'; END IF;
 END $$;
 RESET ROLE; SELECT set_config('request.jwt.claims','{}',true); SELECT set_config('request.jwt.claim.sub','',true);
+-- A company manager who is also an explicit external CAD collaborator sees
+-- the case's workflow, never unrelated flows or management rights in its owner.
+INSERT INTO auth.users(id,instance_id,aud,role,email,encrypted_password,created_at,updated_at)
+VALUES('72400000-0000-4000-8000-000000000004','00000000-0000-0000-0000-000000000000','authenticated','authenticated','configuration-collaborator@example.invalid','',now(),now());
+INSERT INTO public.clinic_members(clinic_id,user_id,role,status)
+VALUES('72400000-0000-4000-8000-000000000020','72400000-0000-4000-8000-000000000004','CEO','active');
+ALTER TABLE public.profiles DISABLE TRIGGER trg_prevent_profile_privilege_escalation;
+UPDATE public.profiles SET clinic_id='72400000-0000-4000-8000-000000000020',role='CADISTA',account_subtype='CADISTA',is_default_admin=true
+WHERE id='72400000-0000-4000-8000-000000000004';
+ALTER TABLE public.profiles ENABLE TRIGGER trg_prevent_profile_privilege_escalation;
+INSERT INTO public.user_roles(user_id,role) VALUES('72400000-0000-4000-8000-000000000004','admin') ON CONFLICT DO NOTHING;
+UPDATE public.cases SET cadista_id=(SELECT id FROM public.cadistas WHERE user_id='72400000-0000-4000-8000-000000000004' LIMIT 1),status='em_andamento'
+WHERE id='72400000-0000-4000-8000-000000000014';
+SELECT set_config('request.jwt.claims','{"role":"authenticated","sub":"72400000-0000-4000-8000-000000000004"}',true);
+SELECT set_config('request.jwt.claim.sub','72400000-0000-4000-8000-000000000004',true);
+SET LOCAL ROLE authenticated;
+DO $$ DECLARE n bigint; BEGIN
+ IF NOT public.current_user_can_manage_workflow() OR NOT public.can_access_case('72400000-0000-4000-8000-000000000014') THEN RAISE EXCEPTION 'COLLABORATION_FIXTURE_INVALID'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.stages WHERE clinic_id='72400000-0000-4000-8000-000000000010' AND flow_key='common')
+  OR EXISTS(SELECT 1 FROM public.stages WHERE clinic_id='72400000-0000-4000-8000-000000000010' AND flow_key<>'common')
+  OR EXISTS(SELECT 1 FROM public.workflow_settings WHERE clinic_id='72400000-0000-4000-8000-000000000010') THEN RAISE EXCEPTION 'COLLABORATION_WORKFLOW_READ_BOUNDARY_INVALID'; END IF;
+ UPDATE public.stages SET name='not applied by collaborator' WHERE clinic_id='72400000-0000-4000-8000-000000000010'; GET DIAGNOSTICS n=ROW_COUNT;
+ IF n<>0 THEN RAISE EXCEPTION 'COLLABORATOR_UPDATED_OWNER_WORKFLOW'; END IF;
+ DELETE FROM public.stages WHERE clinic_id='72400000-0000-4000-8000-000000000010'; GET DIAGNOSTICS n=ROW_COUNT;
+ IF n<>0 THEN RAISE EXCEPTION 'COLLABORATOR_DELETED_OWNER_WORKFLOW'; END IF;
+END $$;
+RESET ROLE; SELECT set_config('request.jwt.claims','{}',true); SELECT set_config('request.jwt.claim.sub','',true);
 UPDATE public.account_subscriptions SET status='suspended' WHERE clinic_id='72400000-0000-4000-8000-000000000010';
 SELECT set_config('request.jwt.claims','{"role":"authenticated","sub":"72400000-0000-4000-8000-000000000001"}',true);
 SELECT set_config('request.jwt.claim.sub','72400000-0000-4000-8000-000000000001',true);

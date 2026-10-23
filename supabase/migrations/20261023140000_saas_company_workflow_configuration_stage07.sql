@@ -14,7 +14,7 @@ DO $$ DECLARE t text; BEGIN
  END LOOP;
 END $$;
 
--- The old singleton/global keys must not collide between companies. The old
+-- Older restores had a globally unique return-reason label.
 ALTER TABLE public.stage_return_reasons DROP CONSTRAINT IF EXISTS stage_return_reasons_label_key;
 CREATE INDEX IF NOT EXISTS stage_return_reasons_company_label_idx ON public.stage_return_reasons(clinic_id,label);
 -- The old singleton/global keys must not collide between companies. The old
@@ -82,7 +82,32 @@ $$;
 CREATE OR REPLACE FUNCTION public.saas_can_read_workflow_company(_clinic uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
  SELECT public.saas_company_can_read(_clinic) OR EXISTS(SELECT 1 FROM public.cases c
-  WHERE public.saas_case_company_id(c.id)=_clinic AND public.can_access_case(c.id));
+  WHERE public.saas_case_company_id(c.id)=_clinic AND public.can_modify_case(c.id));
+$$;
+
+-- Uncorrelated policy subqueries collect explicit foreign-case definitions
+-- once per statement instead of resolving access separately for every stage.
+CREATE OR REPLACE FUNCTION public.saas_shared_workflow_stage_ids()
+RETURNS uuid[] LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
+ WITH authorized AS MATERIALIZED (
+  SELECT c.id,c.current_stage_id,c.workflow_key,c.workflow_version,
+   COALESCE(r.clinic_id,p.clinic_id,cp.clinic_id,dp.clinic_id) AS company
+  FROM public.cases c LEFT JOIN public.profiles r ON r.id=c.requested_by
+  LEFT JOIN public.patients p ON p.id=c.patient_id
+  LEFT JOIN public.cadistas cd ON cd.id=c.cadista_id LEFT JOIN public.profiles cp ON cp.id=cd.user_id
+  LEFT JOIN public.doctors dd ON dd.id=c.doctor_id LEFT JOIN public.profiles dp ON dp.id=dd.user_id
+  WHERE (cd.user_id=auth.uid() OR dd.user_id=auth.uid())
+   AND COALESCE(r.clinic_id,p.clinic_id,cp.clinic_id,dp.clinic_id) IS DISTINCT FROM public.saas_company_current_id()
+   AND public.can_access_case(c.id)
+ )
+ SELECT COALESCE(array_agg(DISTINCT s.id),'{}'::uuid[]) FROM public.stages s JOIN authorized a ON s.clinic_id=a.company
+  AND (s.id=a.current_stage_id OR (s.flow_key=a.workflow_key AND s.workflow_version=a.workflow_version)
+   OR EXISTS(SELECT 1 FROM public.case_stages cs WHERE cs.case_id=a.id AND cs.stage_id=s.id));
+$$;
+CREATE OR REPLACE FUNCTION public.saas_shared_workflow_phase_ids()
+RETURNS uuid[] LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
+ SELECT COALESCE(array_agg(DISTINCT phase_id) FILTER(WHERE phase_id IS NOT NULL),'{}'::uuid[])
+ FROM public.stages WHERE id=ANY(public.saas_shared_workflow_stage_ids());
 $$;
 
 CREATE OR REPLACE FUNCTION public.saas_guard_workflow_configuration()
@@ -146,7 +171,12 @@ END $$;
 DO $$ DECLARE t text; q text; w text; BEGIN
  FOREACH t IN ARRAY ARRAY['phases','stages','phase_assignments','stage_assignments',
  'stage_return_reasons','workflow_templates','workflow_settings'] LOOP
-  q:=CASE WHEN t IN ('workflow_templates','workflow_settings') THEN 'public.saas_company_can_read(clinic_id)'
+  q:=CASE
+   WHEN t IN ('workflow_templates','workflow_settings') THEN 'public.saas_company_can_read(clinic_id)'
+   WHEN t='stages' THEN 'public.saas_company_can_read(clinic_id) OR id IN (SELECT unnest(public.saas_shared_workflow_stage_ids()))'
+   WHEN t='phases' THEN 'public.saas_company_can_read(clinic_id) OR id IN (SELECT unnest(public.saas_shared_workflow_phase_ids()))'
+   WHEN t='stage_assignments' THEN 'public.saas_company_can_read(clinic_id) OR stage_id IN (SELECT unnest(public.saas_shared_workflow_stage_ids()))'
+   WHEN t='phase_assignments' THEN 'public.saas_company_can_read(clinic_id) OR phase_id IN (SELECT unnest(public.saas_shared_workflow_phase_ids()))'
    ELSE 'public.saas_can_read_workflow_company(clinic_id)' END;
   w:='public.saas_company_can_manage_workflow(clinic_id)';
   EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY',t);
@@ -154,6 +184,9 @@ DO $$ DECLARE t text; q text; w text; BEGIN
   EXECUTE format('GRANT SELECT,INSERT,UPDATE,DELETE ON public.%I TO authenticated',t);
   EXECUTE format('GRANT ALL ON public.%I TO service_role',t);
   EXECUTE format('CREATE POLICY saas_workflow_company_boundary ON public.%I AS RESTRICTIVE FOR ALL TO authenticated USING (%s) WITH CHECK (clinic_id=public.saas_company_current_id())',t,q);
+  EXECUTE format('CREATE POLICY saas_workflow_insert_boundary ON public.%I AS RESTRICTIVE FOR INSERT TO authenticated WITH CHECK (%s)',t,w);
+  EXECUTE format('CREATE POLICY saas_workflow_update_boundary ON public.%I AS RESTRICTIVE FOR UPDATE TO authenticated USING (%s) WITH CHECK (%s)',t,w,w);
+  EXECUTE format('CREATE POLICY saas_workflow_delete_boundary ON public.%I AS RESTRICTIVE FOR DELETE TO authenticated USING (%s)',t,w);
   EXECUTE format('CREATE POLICY saas_workflow_company_read ON public.%I FOR SELECT TO authenticated USING (%s)',t,q);
   EXECUTE format('CREATE POLICY saas_workflow_company_write ON public.%I FOR ALL TO authenticated USING (%s) WITH CHECK (%s)',t,w,w);
   EXECUTE format('CREATE TRIGGER aaa_saas_workflow_company_guard BEFORE INSERT OR UPDATE OR DELETE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.saas_guard_workflow_configuration()',t);
@@ -550,11 +583,13 @@ CREATE TRIGGER zzz_saas_tooth_usage_stage_reference BEFORE INSERT OR UPDATE ON p
 REVOKE ALL ON FUNCTION public.saas_case_company_id(uuid),public.saas_seed_company_workflow(uuid),public.saas_on_clinic_seed_workflow(),
  public.saas_guard_workflow_configuration(),public.saas_guard_case_workflow_references(),public.saas_guard_shared_dictionary()
  FROM PUBLIC,anon,authenticated,service_role;
-REVOKE ALL ON FUNCTION public.saas_company_can_manage_workflow(uuid),public.saas_can_read_workflow_company(uuid),
+REVOKE ALL ON FUNCTION public.saas_shared_workflow_stage_ids(),public.saas_shared_workflow_phase_ids(),
+ public.saas_company_can_manage_workflow(uuid),public.saas_can_read_workflow_company(uuid),
  public.current_user_can_manage_workflow(),public.user_can_advance(uuid,uuid,uuid),public.update_company_workflow_settings(jsonb,uuid),
  public.save_workflow_template(text,jsonb,boolean),public.reset_default_workflows(boolean),
  public.advance_case_workflow(uuid,uuid),public.return_case_workflow(uuid,uuid,text,uuid) FROM PUBLIC,anon;
-GRANT EXECUTE ON FUNCTION public.saas_company_can_manage_workflow(uuid),public.saas_can_read_workflow_company(uuid),
+GRANT EXECUTE ON FUNCTION public.saas_shared_workflow_stage_ids(),public.saas_shared_workflow_phase_ids(),
+ public.saas_company_can_manage_workflow(uuid),public.saas_can_read_workflow_company(uuid),
  public.current_user_can_manage_workflow(),public.user_can_advance(uuid,uuid,uuid),public.update_company_workflow_settings(jsonb,uuid),
  public.save_workflow_template(text,jsonb,boolean),public.reset_default_workflows(boolean),
  public.advance_case_workflow(uuid,uuid),public.return_case_workflow(uuid,uuid,text,uuid) TO authenticated;
