@@ -19558,6 +19558,9 @@ DO $$ DECLARE t text; BEGIN
 END $$;
 
 -- The old singleton/global keys must not collide between companies. The old
+ALTER TABLE public.stage_return_reasons DROP CONSTRAINT IF EXISTS stage_return_reasons_label_key;
+CREATE INDEX IF NOT EXISTS stage_return_reasons_company_label_idx ON public.stage_return_reasons(clinic_id,label);
+-- The old singleton/global keys must not collide between companies. The old
 -- business columns remain unchanged. Null legacy rows in schema-only restores
 -- remain quarantined; provisioning never copies them into a new company.
 ALTER TABLE public.workflow_templates ADD COLUMN IF NOT EXISTS company_config_id uuid NOT NULL DEFAULT gen_random_uuid();
