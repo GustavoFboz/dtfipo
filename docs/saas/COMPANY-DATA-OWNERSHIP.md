@@ -1,5 +1,12 @@
 # Vínculo de dados por empresa
 
+Atualização de 23/10/2026: publicação confirmada e **186/186 verificações reais**
+aprovadas: 58 de propriedade, 16 de identidade e 112 de arquivos/privacidade.
+A leitura independente confirmou os totais IPO, ausência de resíduos das
+fixtures e zero divergência entre diretórios e perfis. O bloqueio de ambiente
+do checkpoint abaixo foi resolvido. [Prova e limites](evidence/company-ownership-publication-20261023.md).
+O contador continua 8/23; o item 4.2 permanece parcial pelos demais aceites.
+
 Em 22/10/2026, o titular confirmou que o estoque existente pertence
 integralmente à IPO; as demais contas são de teste. A conferência encontrou
 107 itens, 47 movimentações, 45 campos personalizados, duas regras, dois
@@ -76,8 +83,8 @@ A publicação de aplicação foi solicitada sob o deployment
 sincronizado e o projeto ready/is_published, mas isso não prova a conclusão
 desse deployment. O ambiente de terminal/navegador perdeu a conexão durante
 a conferência. A sonda HTTP alternativa recebeu 403, sem comprovar a versão.
-A confirmação visual da publicação, o job real `ownership` e as regressões
-reais de Auth/Storage após esta migração **continuam pendentes**. Nenhum job
+Aquele checkpoint deixou a confirmação visual da publicação, o job real `ownership` e as regressões
+reais de Auth/Storage após esta migração **pendentes em 22/10, resolvidas em 23/10**. Nenhum job
 novo nem token de execução foi criado enquanto a versão publicada não pôde
 ser confirmada. O painel privado também não foi republicado nessa interrupção.
 
