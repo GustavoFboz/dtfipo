@@ -1,0 +1,224 @@
+{
+  "acceptance_jobs": [
+    {
+      "capability_consumed": true,
+      "check_count": 58,
+      "claimed_at": "2026-10-23T13:21:25.261474+00:00",
+      "completed_at": "2026-10-23T13:21:43.350305+00:00",
+      "id": "ca15b924-134a-4700-aa6b-d48742c1bd3c",
+      "kind": "ownership",
+      "passed": true,
+      "status": "completed"
+    },
+    {
+      "capability_consumed": true,
+      "check_count": 16,
+      "claimed_at": "2026-10-23T13:22:49.082222+00:00",
+      "completed_at": "2026-10-23T13:22:54.027479+00:00",
+      "id": "977c0da7-bafd-42ab-be8d-233ca226a91f",
+      "kind": "identity",
+      "passed": true,
+      "status": "completed"
+    },
+    {
+      "capability_consumed": true,
+      "check_count": 112,
+      "claimed_at": "2026-10-23T13:23:55.703666+00:00",
+      "completed_at": "2026-10-23T13:24:33.175227+00:00",
+      "id": "bac26085-5913-438a-96e5-dd3c12022bf0",
+      "kind": "storage",
+      "passed": true,
+      "status": "completed"
+    }
+  ],
+  "activity_count": 1353,
+  "fixture_storage_active_records": 0,
+  "historical_storage_reservations": 9,
+  "observed_at": "2026-10-23 13:25:26.586827+00",
+  "owned_table_counts": [
+    {
+      "fixture_records": 0,
+      "ipo": 0,
+      "table_name": "burr_usages",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 0,
+      "table_name": "burrs",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 4,
+      "table_name": "cadistas",
+      "total": 4,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 29,
+      "table_name": "case_implant_teeth",
+      "total": 29,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 2,
+      "table_name": "case_stock_consumptions",
+      "total": 2,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 0,
+      "table_name": "case_tooth_stock_usage",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 9,
+      "table_name": "component_categories",
+      "total": 9,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 0,
+      "table_name": "components",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 7,
+      "table_name": "doctors",
+      "total": 7,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 0,
+      "table_name": "holders",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 1,
+      "table_name": "implant_component_types",
+      "total": 1,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 39,
+      "table_name": "implant_system_components",
+      "total": 39,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 4,
+      "table_name": "implant_systems",
+      "total": 4,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 3,
+      "table_name": "proteticos",
+      "total": 3,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 0,
+      "table_name": "resin_pots",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 0,
+      "table_name": "resin_weighings",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 0,
+      "table_name": "scan_jigs",
+      "total": 0,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 2,
+      "table_name": "stock_consumption_rules",
+      "total": 2,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 45,
+      "table_name": "stock_item_custom_fields",
+      "total": 45,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 107,
+      "table_name": "stock_items",
+      "total": 107,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 47,
+      "table_name": "stock_movements",
+      "total": 47,
+      "unowned": 0
+    },
+    {
+      "fixture_records": 0,
+      "ipo": 0,
+      "table_name": "user_stock_access",
+      "total": 0,
+      "unowned": 0
+    }
+  ],
+  "production_failed_events": 0,
+  "production_payments": 1,
+  "read_marker_count": 775,
+  "running_acceptance_jobs": 0,
+  "unowned_patients": 12,
+  "unowned_patients_with_cases": 0,
+  "worker": {
+    "last_healthy_at": "2026-10-23T13:21:03.461874+00:00",
+    "status": "ok"
+  },
+  "current_job_storage_objects": 0,
+  "directory_company_mismatches": 0,
+  "schema_assertion": "passed",
+  "application_publication": {
+    "deployment_id": "19c804bd-80ad-4ed0-9bf8-e97e155c013e",
+    "commit_sha": "b2a115fa806c9ac8b89a3864c9f7d76755d9b553",
+    "confirmed": true,
+    "editor_message": "Seu site foi atualizado",
+    "published_migration_blob_sha": "88d1063d4a1a3b964b555df10e391ad5f15304f1"
+  },
+  "acceptance_summary": {
+    "checks": 186,
+    "ownership": 58,
+    "identity": 16,
+    "storage": 84,
+    "activity_privacy_authorization": 28,
+    "completed_criteria": 8,
+    "total_criteria": 23,
+    "criterion_4_2_closed": false
+  }
+}

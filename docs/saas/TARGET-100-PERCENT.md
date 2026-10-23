@@ -1,5 +1,12 @@
 # Conclusão integral do protocolo SaaS
 
+Em 23/10/2026, 09h25 Manaus, a propriedade de estoque e diretórios em 22
+tabelas foi confirmada na publicação. Passaram 186/186 verificações reais:
+58 de propriedade, 16 de identidade e 112 de arquivos/privacidade, com limpeza
+das fixtures. O bloqueio do ambiente de 22/10 foi resolvido. Total 8/23 mantido;
+os 12 pacientes sem origem e os demais aceites não foram atribuídos por suposição.
+[Publicação e limites](evidence/company-ownership-publication-20261023.md).
+
 Retomada de 21/10/2026. O titular solicitou chegar a **100%** e ofereceu acesso
 à administração Lovable caso necessário. A meta substitui a antiga meta de
 50%; o denominador continua sendo **23 aceites finais**. Baseline comprovado:
@@ -64,7 +71,7 @@ desativá-la por ser chamada “Teste”. [Recibo e limites](evidence/authorized
 | 2.3 | Validar acesso online, expiração/limpeza do cache em 72h e retomada nos aplicativos disponíveis. Builds e emuladores não substituem os testes em aparelhos; registrar limites da homologação iOS. |
 | 3.2 | A resiliência ampliada publicada passou 84/84 verificações reais. Falta revisar individualmente as nove reservas históricas e usar recuperação autenticada do gestor quando cabível. Não excluir metadados históricos diretamente por SQL nem liberar cota com bytes existentes. |
 | 3.3 | Executar upload, leitura, limite, falha e exclusão em Web, Windows e Android disponíveis. DICOM aguarda a liberação de Radiologia. |
-| 4.2 | Após a correção publicada de marcadores e recusa USER/AAL1 real, concluir Master/MFA e replay positivos reais e tratar as onze tabelas legadas. Definir a propriedade por empresa dos dados de estoque antes da migração; a estrutura atual não identifica o dono. |
+| 4.2 | Propriedade IPO em 22 tabelas, isolamento de estoque/diretórios e privacidade de marcadores publicados, com sessões USER reais aprovadas em 23/10. Concluir Master/MFA e replay positivos reais e a revisão de tipos de caso, cores, workflows e demais configurações globais. Confirmar origem dos 12 pacientes sem empresa, preservados. |
 | 4.3 | Tratar e comprovar a revogação das referências assinadas históricas: 40 reconferidas em 22/10 (34 fotos e seis avatares), ainda válidas até 2036. Comprovar também leitura, recusa, expiração e renovação autenticadas na publicação. Substituir uma referência não revoga um token já emitido. |
 | 5.2 | Executar o cancelamento aprovado uma vez no Asaas e concluir troca de plano/preço por vigência. A execução de troca ainda requer implementação e prova; o executor de cancelamento existente não a substitui. |
 | 5.3 | Validar downgrade, cota, preço/data efetiva e retomada após falha ambígua, com lease/readback e sem POST financeiro repetido cegamente. |
