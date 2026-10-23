@@ -25,6 +25,13 @@ ALTER TABLE public.workflow_templates DROP CONSTRAINT IF EXISTS workflow_templat
 ALTER TABLE public.workflow_templates ADD PRIMARY KEY(company_config_id);
 ALTER TABLE public.workflow_templates ADD CONSTRAINT workflow_templates_company_flow_key UNIQUE(clinic_id,flow_key);
 
+-- Match the existing case/storage authority: requester, then patient,
+-- then explicitly assigned professionals. Patient ownership remains separate.
+CREATE OR REPLACE FUNCTION public.saas_case_company_id(_case uuid)
+RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
+ SELECT public.resolve_case_clinic_id(_case);
+$$;
+
 DO $$ DECLARE t text; state jsonb; states jsonb; ipo uuid:='ea00a3cd-6816-42f4-845d-56468c77414e'; BEGIN
  IF NOT EXISTS(SELECT 1 FROM public.clinics WHERE id=ipo AND billing_exempt) THEN RETURN; END IF;
  IF EXISTS(SELECT 1 FROM public.cases WHERE public.saas_case_company_id(id) IS DISTINCT FROM ipo)
@@ -200,11 +207,14 @@ RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 DECLARE company uuid; key text; version integer; active integer; semantic text;
  requested public.stages%ROWTYPE; target public.stages%ROWTYPE; changed boolean;
 BEGIN
- SELECT COALESCE(p.clinic_id,r.clinic_id) INTO company
+ SELECT COALESCE(r.clinic_id,p.clinic_id,cp.clinic_id,dp.clinic_id) INTO company
   FROM (SELECT NEW.patient_id AS patient_id,NEW.requested_by AS requested_by) x
-  LEFT JOIN public.patients p ON p.id=x.patient_id LEFT JOIN public.profiles r ON r.id=x.requested_by;
+  LEFT JOIN public.patients p ON p.id=x.patient_id LEFT JOIN public.profiles r ON r.id=x.requested_by
+  LEFT JOIN public.cadistas cd ON cd.id=NEW.cadista_id LEFT JOIN public.profiles cp ON cp.id=cd.user_id
+  LEFT JOIN public.doctors dd ON dd.id=NEW.doctor_id LEFT JOIN public.profiles dp ON dp.id=dd.user_id;
  IF company IS NULL THEN RAISE EXCEPTION 'CASE_WORKFLOW_COMPANY_REQUIRED' USING ERRCODE='42501'; END IF;
  IF NOT public.saas_company_trusted_backend() THEN
+  IF TG_OP='INSERT' AND NEW.patient_id IS NOT NULL AND EXISTS(SELECT 1 FROM public.patients WHERE id=NEW.patient_id AND clinic_id IS DISTINCT FROM company) AND NOT public.can_access_patient(NEW.patient_id) THEN RAISE EXCEPTION 'FOREIGN_CASE_PATIENT_REFERENCE' USING ERRCODE='42501'; END IF;
   IF TG_OP='INSERT' AND NOT public.saas_company_can_read(company) THEN RAISE EXCEPTION 'FOREIGN_CASE_WORKFLOW_COMPANY' USING ERRCODE='42501'; END IF;
   IF TG_OP='UPDATE' AND company IS DISTINCT FROM public.saas_case_company_id(OLD.id) THEN RAISE EXCEPTION 'CASE_WORKFLOW_COMPANY_IMMUTABLE' USING ERRCODE='42501'; END IF;
  END IF;
@@ -241,8 +251,10 @@ RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 DECLARE company uuid; stage uuid; phase uuid; case_id uuid;
 BEGIN
  IF TG_TABLE_NAME='cases' THEN
-  SELECT COALESCE(p.clinic_id,r.clinic_id) INTO company FROM (SELECT NEW.patient_id AS patient_id,NEW.requested_by AS requested_by) x
-   LEFT JOIN public.patients p ON p.id=x.patient_id LEFT JOIN public.profiles r ON r.id=x.requested_by;
+  SELECT COALESCE(r.clinic_id,p.clinic_id,cp.clinic_id,dp.clinic_id) INTO company FROM (SELECT NEW.patient_id AS patient_id,NEW.requested_by AS requested_by) x
+   LEFT JOIN public.patients p ON p.id=x.patient_id LEFT JOIN public.profiles r ON r.id=x.requested_by
+  LEFT JOIN public.cadistas cd ON cd.id=NEW.cadista_id LEFT JOIN public.profiles cp ON cp.id=cd.user_id
+  LEFT JOIN public.doctors dd ON dd.id=NEW.doctor_id LEFT JOIN public.profiles dp ON dp.id=dd.user_id;
   stage:=NEW.current_stage_id; phase:=NEW.current_phase_id;
  ELSE
   company:=public.saas_case_company_id(NEW.case_id); stage:=NEW.stage_id;
@@ -535,7 +547,7 @@ CREATE TRIGGER zzz_saas_tooth_usage_stage_reference BEFORE INSERT OR UPDATE ON p
  FOR EACH ROW EXECUTE FUNCTION public.saas_guard_case_workflow_references();
 
 -- END COMPANY WORKFLOW PUBLICATION GUARDS
-REVOKE ALL ON FUNCTION public.saas_seed_company_workflow(uuid),public.saas_on_clinic_seed_workflow(),
+REVOKE ALL ON FUNCTION public.saas_case_company_id(uuid),public.saas_seed_company_workflow(uuid),public.saas_on_clinic_seed_workflow(),
  public.saas_guard_workflow_configuration(),public.saas_guard_case_workflow_references(),public.saas_guard_shared_dictionary()
  FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.saas_company_can_manage_workflow(uuid),public.saas_can_read_workflow_company(uuid),

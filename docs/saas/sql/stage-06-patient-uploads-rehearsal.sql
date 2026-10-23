@@ -163,8 +163,19 @@ begin
   delete from storage.objects where bucket_id='patient-photos' and name=v_photo_path;
   perform public.cancel_storage_upload(v_photo);
   if (select used_bytes from public.get_storage_usage()) <> 0 then raise exception 'Patient cleanup left charged bytes'; end if;
+  -- A client cannot manufacture a collaboration to obtain a foreign patient.
+  v_rejected := false;
+  begin
+    insert into public.cases(patient_id,requested_by,status,delivery_date)
+    values(v_other,auth.uid(),'pendente',current_date+7);
+  exception when insufficient_privilege then v_rejected := true; end;
+  if not v_rejected then raise exception 'Client attached a foreign patient without prior access'; end if;
 end $$;
 reset role;
+-- Trusted preparation of an explicit collaboration, separate from actor claims.
+select set_config('request.jwt.claim.sub','',true);
+select set_config('request.jwt.claim.role','',true);
+select set_config('request.jwt.claims','{}',true);
 -- Cross-company case participation stays explicit and follows approval.
 insert into auth.users (id,instance_id,aud,role,email,encrypted_password,created_at,updated_at)
 values ('65000000-0000-4000-8000-000000000063','00000000-0000-0000-0000-000000000000',
@@ -184,6 +195,8 @@ values ('65000000-0000-4000-8000-000000000065','65000000-0000-4000-8000-00000000
         '65000000-0000-4000-8000-000000000061',
         (select id from public.cadistas where user_id='65000000-0000-4000-8000-000000000063'),
         current_date+7,'pendente');
+select set_config('request.jwt.claim.sub','65000000-0000-4000-8000-000000000061',true);
+select set_config('request.jwt.claim.role','authenticated',true);
 set local role authenticated;
 do $$ begin
   if not public.can_access_patient('65000000-0000-4000-8000-000000000072') then

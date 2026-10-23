@@ -35,6 +35,9 @@ O gerenciamento exige o papel administrativo da própria empresa com acesso
 operacional; papel global antigo não concede administração em outra empresa.
 Colaboração explícita conserva a leitura das definições necessárias ao caso,
 sem permitir editar a configuração da empresa colaboradora.
+A autoridade do caso acompanha o resolvedor existente de cobrança/armazenamento
+(solicitante primeiro, paciente como fallback); a empresa do paciente continua
+separada. Um cliente não pode anexar paciente estrangeiro sem acesso prévio.
 
 ## Versões e clientes
 
