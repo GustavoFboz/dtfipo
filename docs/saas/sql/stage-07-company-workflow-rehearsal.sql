@@ -29,6 +29,9 @@ INSERT INTO public.cases(id,patient_id,requested_by,status,delivery_date,finishe
  ('72400000-0000-4000-8000-000000000014','72400000-0000-4000-8000-000000000013','72400000-0000-4000-8000-000000000001','pendente',current_date+7,NULL),
  ('72400000-0000-4000-8000-000000000015','72400000-0000-4000-8000-000000000013','72400000-0000-4000-8000-000000000001','finalizado',current_date+7,now()),
  ('72400000-0000-4000-8000-000000000024','72400000-0000-4000-8000-000000000023','72400000-0000-4000-8000-000000000002','pendente',current_date+7,NULL);
+CREATE FUNCTION public.saas_dictionary_definer_fixture() RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+BEGIN UPDATE public.case_types SET name='not written' WHERE name='Coroa'; END $$;
+GRANT EXECUTE ON FUNCTION public.saas_dictionary_definer_fixture() TO authenticated;
 CREATE TEMP TABLE config_rehearsal_ids AS SELECT clinic_id,id AS entry_id,phase_id FROM public.stages WHERE stage_key='entry' AND flow_key='common' AND clinic_id IN ('72400000-0000-4000-8000-000000000010','72400000-0000-4000-8000-000000000020');
 GRANT SELECT ON config_rehearsal_ids TO authenticated;
 CREATE TEMP TABLE config_rehearsal_before AS SELECT id,to_jsonb(c) AS row FROM public.cases c WHERE id IN ('72400000-0000-4000-8000-000000000015','72400000-0000-4000-8000-000000000024');
@@ -39,6 +42,9 @@ DO $$ DECLARE r jsonb; refused boolean; other uuid; own uuid; payload jsonb; n b
  IF NOT public.current_user_can_manage_workflow() OR (SELECT count(*) FROM public.workflow_templates)<>4 OR (SELECT count(*) FROM public.workflow_settings)<>1 THEN RAISE EXCEPTION 'COMPANY_CONFIG_BOOTSTRAP_OR_READ_FAILED'; END IF;
  IF EXISTS(SELECT 1 FROM public.phases WHERE clinic_id='72400000-0000-4000-8000-000000000020') OR EXISTS(SELECT 1 FROM public.workflow_templates WHERE clinic_id='72400000-0000-4000-8000-000000000020') THEN RAISE EXCEPTION 'FOREIGN_CONFIG_EXPOSED'; END IF;
  PERFORM public.update_company_workflow_settings('{"progress_bar_enabled":false}');
+ INSERT INTO public.workflow_settings(id,progress_bar_enabled,updated_at) VALUES(true,false,now())
+ ON CONFLICT(clinic_id,id) DO UPDATE SET progress_bar_enabled=excluded.progress_bar_enabled,updated_at=excluded.updated_at;
+ refused:=false; BEGIN PERFORM public.update_company_workflow_settings('{"progress_bar_enabled":true}','72400000-0000-4000-8000-000000000020'); EXCEPTION WHEN insufficient_privilege THEN refused:=true; END; IF NOT refused THEN RAISE EXCEPTION 'STALE_COMPANY_SETTINGS_ACCEPTED'; END IF;
  IF (SELECT progress_bar_enabled FROM public.workflow_settings) THEN RAISE EXCEPTION 'OWN_SETTINGS_NOT_UPDATED'; END IF;
  SELECT entry_id INTO other FROM config_rehearsal_ids WHERE clinic_id='72400000-0000-4000-8000-000000000020';
  UPDATE public.stages SET name='not applied' WHERE id=other; GET DIAGNOSTICS n=ROW_COUNT; IF n<>0 THEN RAISE EXCEPTION 'FOREIGN_STAGE_UPDATED'; END IF;
@@ -52,6 +58,9 @@ DO $$ DECLARE r jsonb; refused boolean; other uuid; own uuid; payload jsonb; n b
  r:=public.save_workflow_template('common',payload,true); IF r->>'success'<>'true' OR (SELECT workflow_version FROM public.cases WHERE id='72400000-0000-4000-8000-000000000014')<>3 THEN RAISE EXCEPTION 'OWN_OPEN_CASE_NOT_MIGRATED'; END IF;
  refused:=false; BEGIN INSERT INTO public.stage_assignments(stage_id,user_id) VALUES(own,'72400000-0000-4000-8000-000000000002'); EXCEPTION WHEN insufficient_privilege THEN refused:=true; END; IF NOT refused THEN RAISE EXCEPTION 'FOREIGN_PROFESSIONAL_ASSIGNED'; END IF;
  refused:=false; BEGIN INSERT INTO public.case_types(name) VALUES('Must not become a shared catalog'); EXCEPTION WHEN insufficient_privilege THEN refused:=true; END; IF NOT refused THEN RAISE EXCEPTION 'SHARED_DICTIONARY_WRITABLE'; END IF;
+ UPDATE public.case_types SET name='not applied' WHERE name='Coroa'; GET DIAGNOSTICS n=ROW_COUNT; IF n<>0 THEN RAISE EXCEPTION 'SHARED_CASE_TYPE_UPDATED'; END IF;
+ DELETE FROM public.tooth_colors WHERE code='A1'; GET DIAGNOSTICS n=ROW_COUNT; IF n<>0 THEN RAISE EXCEPTION 'SHARED_COLOR_DELETED'; END IF;
+ refused:=false; BEGIN PERFORM public.saas_dictionary_definer_fixture(); EXCEPTION WHEN insufficient_privilege THEN refused:=true; END; IF NOT refused THEN RAISE EXCEPTION 'DEFINER_CHANGED_SHARED_DICTIONARY'; END IF;
 END $$;
 RESET ROLE;
 SELECT set_config('request.jwt.claims','{}',true); SELECT set_config('request.jwt.claim.sub','',true);
@@ -78,6 +87,9 @@ UPDATE public.profiles SET clinic_id='72400000-0000-4000-8000-000000000020',role
 WHERE id='72400000-0000-4000-8000-000000000004';
 ALTER TABLE public.profiles ENABLE TRIGGER trg_prevent_profile_privilege_escalation;
 INSERT INTO public.user_roles(user_id,role) VALUES('72400000-0000-4000-8000-000000000004','admin') ON CONFLICT DO NOTHING;
+INSERT INTO public.cadistas(id,name,user_id,clinic_id)
+SELECT '72400000-0000-4000-8000-000000000044'::uuid,'External workflow fixture','72400000-0000-4000-8000-000000000004'::uuid,'72400000-0000-4000-8000-000000000020'::uuid
+WHERE NOT EXISTS(SELECT 1 FROM public.cadistas WHERE user_id='72400000-0000-4000-8000-000000000004');
 UPDATE public.cases SET cadista_id=(SELECT id FROM public.cadistas WHERE user_id='72400000-0000-4000-8000-000000000004' LIMIT 1),status='em_andamento'
 WHERE id='72400000-0000-4000-8000-000000000014';
 SELECT set_config('request.jwt.claims','{"role":"authenticated","sub":"72400000-0000-4000-8000-000000000004"}',true);

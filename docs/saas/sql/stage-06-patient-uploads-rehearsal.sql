@@ -180,15 +180,18 @@ select set_config('request.jwt.claims','{}',true);
 insert into auth.users (id,instance_id,aud,role,email,encrypted_password,created_at,updated_at)
 values ('65000000-0000-4000-8000-000000000063','00000000-0000-0000-0000-000000000000',
         'authenticated','authenticated','stage06-specialist@test.invalid','',now(),now());
+-- Disposable identity provisioning needs the profile-admin trigger disabled.
+ALTER TABLE public.profiles DISABLE TRIGGER trg_prevent_profile_privilege_escalation;
 insert into public.profiles (id,clinic_id,role,account_subtype,is_default_admin)
 values ('65000000-0000-4000-8000-000000000063','65000000-0000-4000-8000-000000000060','CADISTA','CADISTA',false)
 on conflict (id) do update set clinic_id=excluded.clinic_id,role=excluded.role,
   account_subtype=excluded.account_subtype,is_default_admin=false;
+ALTER TABLE public.profiles ENABLE TRIGGER trg_prevent_profile_privilege_escalation;
 insert into public.user_roles (user_id,role)
 values ('65000000-0000-4000-8000-000000000063','cadista');
-insert into public.cadistas (id,name,user_id)
+insert into public.cadistas (id,name,user_id,clinic_id)
 select '65000000-0000-4000-8000-000000000064'::uuid,'Assigned specialist fixture',
-       '65000000-0000-4000-8000-000000000063'::uuid
+       '65000000-0000-4000-8000-000000000063'::uuid,'65000000-0000-4000-8000-000000000060'::uuid
 where not exists(select 1 from public.cadistas where user_id='65000000-0000-4000-8000-000000000063');
 insert into public.cases (id,patient_id,requested_by,cadista_id,delivery_date,status)
 values ('65000000-0000-4000-8000-000000000065','65000000-0000-4000-8000-000000000072',
