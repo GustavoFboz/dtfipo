@@ -1,5 +1,14 @@
 # Progresso dos aceites finais para vendas
 
+Atualização de 23/10/2026, 11h13 Manaus: fluxos e configurações agora separados
+por empresa, publicados e comprovados em 41 testes novos; com as regressões,
+**227/227 verificações reais** passaram. Histórico conferido por hash em 20
+tabelas; IPO conserva 86 casos, 107 itens e 47 movimentações. São 29 tabelas
+com propriedade e dois catálogos padrão somente para leitura. Master/MFA e
+replay positivos reais e origem dos 12 pacientes continuam pendentes.
+**8/23 (34,78%), 15 em aberto/parciais, 0/7 etapas encerradas.**
+[Publicação, recibos e limites](evidence/company-workflow-publication-20261023.md).
+
 Atualização de 23/10/2026, 09h25 Manaus: estoque e diretórios por empresa
 publicados; **186/186 verificações reais** passaram (58 de propriedade,
 16 de identidade e 112 de arquivos/privacidade). IPO com 107 itens e 47
@@ -90,7 +99,7 @@ o valor insuficiente antes de criar recursos externos.
 | 3.2 | Concorrência, falhas e reservas históricas | Parcial: job publicado passou 84/84 checks reais em 22/10, 00h05 Manaus, incluindo concorrência, envio interrompido, tamanho divergente recusado na conclusão, bytes presentes impedindo liberação e limpeza exata da cota. As nove reservas históricas ainda exigem revisão individual autenticada pelo gestor. [Recibo e limites](evidence/authorized-runtime-validation-20261022.md) |
 | 3.3 | Armazenamento nas plataformas disponíveis | Pendente de aparelhos |
 | 4.1 | Cadastro, confirmação e recuperação de senha | Concluído em 21/10, 23h49 Manaus: mínimo global de oito caracteres salvo no Auth; job real publicado passou 16/16 checks de cadastro, confirmação, login, recuperação, token único, isolamento e logout. Senha de sete caracteres recusada com HTTP422. Usuário descartável removido; contas existentes preservadas. MFA e arquivos conservam aceites próprios. [Recibo e revisão](evidence/authorized-publication-20261021.md) |
-| 4.2 | Sessões, MFA, isolamento e replay financeiro | Parcial: propriedade IPO aplicada e publicada em 22 tabelas; 58 verificações reais de isolamento, consumo/reversão passaram em 23/10, junto das regressões de identidade e arquivos/privacidade (186/186). Histórico e totais IPO preservados. Master/MFA e replay positivos reais, configurações globais e origem de 12 pacientes continuam abertos. [Prova e limites](evidence/company-ownership-publication-20261023.md) |
+| 4.2 | Sessões, MFA, isolamento e replay financeiro | Parcial: propriedade em 29 tabelas e dois catálogos padrão somente para leitura. Fluxos por empresa publicados em 23/10: 41 verificações novas e regressões de estoque, identidade e arquivos passaram (227/227). Históricos IPO preservados. Master/MFA e replay positivos reais e origem de 12 pacientes continuam abertos. [Prova e limites](evidence/company-workflow-publication-20261023.md) |
 | 4.3 | Arquivos privados e validade dos links | Parcial: referências sem bearer persistente, assinatura de cinco minutos, renovação, isolamento de sessão e espelho instalado limitado a 72h implementados. Em 22/10 foram reconferidas 40 referências antigas (34 fotos e seis avatares), todas com tokens ainda válidos até 2036; tratamento/revogação e prova autenticada publicada seguem pendentes. [Implementação e limites](PRIVATE-FILE-ACCESS.md) |
 | 5.1 | Histórico e documentos de cobrança | Concluído em Sandbox, 17/10, 14h45 Manaus: sessões gestoras das duas fixtures consultaram histórico e abriram documento do pagamento validado no provedor (HTTP200); outra clínica foi recusada no histórico e documento (HTTP403). [Recibo e revisão](evidence/acceptance-20-20261017.md) |
 | 5.2 | Solicitações executadas no Asaas | Parcial: executor de cancelamento com revisão Master/AAL2, lease, auditoria e readback implementado; execução autenticada real e troca de plano por vigência ainda pendentes. [Contrato e limites](STAGE-08-BILLING-CENTER.md) |

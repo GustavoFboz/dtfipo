@@ -1,5 +1,10 @@
 # Vínculo de dados por empresa
 
+Atualização de 23/10/2026, 11h13 Manaus: a separação foi ampliada aos sete
+domínios de configuração. São 29 tabelas com propriedade e dois catálogos
+padrão somente para leitura. Passaram 227/227 verificações reais, com históricos
+IPO preservados. [Publicação e limites](evidence/company-workflow-publication-20261023.md).
+
 Atualização de 23/10/2026: publicação confirmada e **186/186 verificações reais**
 aprovadas: 58 de propriedade, 16 de identidade e 112 de arquivos/privacidade.
 A leitura independente confirmou os totais IPO, ausência de resíduos das
@@ -91,7 +96,7 @@ ser confirmada. O painel privado também não foi republicado nessa interrupçã
 A revisão mais ampla também encontrou 12 pacientes sem empresa nem casos
 associados. Sua origem não pode ser determinada pelos vínculos existentes;
 permanecem reservados para revisão, sem exclusão nem atribuição por suposição.
-Novos pacientes exigem empresa. Tipos de caso, cores e configuração de workflow
-conservam revisão própria de catálogo/configuração compartilhada. Esta entrega
+Novos pacientes exigem empresa. A revisão de tipos de caso, cores e fluxos foi
+concluída na publicação de 23/10, descrita em [configurações por empresa](COMPANY-WORKFLOW-CONFIGURATION.md). Esta entrega
 não afirma isolamento integral de todos os módulos nem encerra MFA/Master,
 links assinados históricos, testes em aparelhos ou o item 4.2. Contador: 8/23.
