@@ -153,6 +153,15 @@ Referência do comportamento do provedor consultada em 06/10:
 
 ## Calendário da renovação, 24/10
 
+O executor administrativo de cancelamento pode selecionar explicitamente a
+configuração Sandbox separada enquanto o runtime regular continua em Produção.
+A escolha ainda precisa concordar com o contrato e a solicitação no claim SQL,
+que exige a sessão Master/AAL2 real antes de qualquer GET/PUT ao provedor.
+Produção mantém o ambiente ativo e a liberação explícita como requisitos.
+Não há fallback entre grupos de chaves, alteração global ou troca de cron.
+Essa correção permite homologar o executor sem mudar a conta paga; não executa
+cancelamentos e não fecha 5.2/5.3 sem seus recibos e troca de plano por vigência.
+
 A abertura da próxima cobrança seleciona a primeira fatura não paga com
 vencimento igual ou posterior ao fim do período pago. A seleção fica limitada
 a 31 dias do período e do dia atual, acompanhando a janela do processador.

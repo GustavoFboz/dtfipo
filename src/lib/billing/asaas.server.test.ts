@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { AsaasApiError, AsaasClient, loadAsaasConfig, loadAsaasWorkerToken, loadAsaasReplayToken, loadAsaasProductionPreflightSecrets, type AsaasConfig } from "./asaas.server";
+import { AsaasApiError, AsaasClient, loadAsaasConfig, loadAsaasAdministrativeConfig, loadAsaasWorkerToken, loadAsaasReplayToken, loadAsaasProductionPreflightSecrets, type AsaasConfig } from "./asaas.server";
 
 const sandboxEnv = {
   ASAAS_ENVIRONMENT: "sandbox",
@@ -124,6 +124,36 @@ describe("loadAsaasConfig", () => {
     expect(loadAsaasWorkerToken(env)).toBe(stagedEnv.BILLING_WORKER_TOKEN);
     expect(loadAsaasReplayToken(env)).toBe(stagedEnv.BILLING_REPLAY_TOKEN);
     expect(() => loadAsaasProductionPreflightSecrets(env)).toThrow(/ASAAS_PRODUCTION_API_KEY/);
+  });
+});
+
+describe("explicit administrative environment", () => {
+  const production = { ...stagedEnv, ASAAS_ENVIRONMENT: "production", ASAAS_PRODUCTION_ENABLED: "true" };
+  it("uses only Sandbox credentials without changing the active Production runtime", () => {
+    const source = Object.freeze({ ...production });
+    expect(loadAsaasAdministrativeConfig("sandbox", source)).toMatchObject({
+      environment: "sandbox", baseUrl: "https://api-sandbox.asaas.com/v3",
+      apiKey: sandboxEnv.ASAAS_API_KEY, webhookToken: sandboxEnv.ASAAS_WEBHOOK_TOKEN,
+      timeoutMs: 2500, maxGetRetries: 0,
+    });
+    expect(loadAsaasConfig(source).apiKey).toBe(stagedEnv.ASAAS_PRODUCTION_API_KEY);
+    expect(loadAsaasWorkerToken(source)).toBe(stagedEnv.BILLING_PRODUCTION_WORKER_TOKEN);
+    expect(source.ASAAS_ENVIRONMENT).toBe("production");
+  });
+  it.each([
+    { ...production, ASAAS_API_KEY: undefined },
+    { ...production, ASAAS_API_KEY: production.ASAAS_PRODUCTION_API_KEY },
+    { ...production, ASAAS_WEBHOOK_TOKEN: undefined },
+  ])("never fills an incomplete Sandbox group with Production secrets", source => {
+    expect(() => loadAsaasAdministrativeConfig("sandbox", source)).toThrow();
+  });
+  it("cannot select Production while the regular runtime is Sandbox or blocked", () => {
+    expect(() => loadAsaasAdministrativeConfig("production", { ...stagedEnv, ASAAS_PRODUCTION_ENABLED: "true" })).toThrow("ASAAS_ADMIN_ENVIRONMENT_MISMATCH");
+    expect(() => loadAsaasAdministrativeConfig("production", { ...production, ASAAS_PRODUCTION_ENABLED: "false" })).toThrow();
+  });
+  it("retains the normal Production gates and rejects an unknown environment", () => {
+    expect(loadAsaasAdministrativeConfig("production", production)).toEqual(loadAsaasConfig(production));
+    expect(() => loadAsaasAdministrativeConfig("other" as never, production)).toThrow("ASAAS_ADMIN_ENVIRONMENT_MISMATCH");
   });
 });
 

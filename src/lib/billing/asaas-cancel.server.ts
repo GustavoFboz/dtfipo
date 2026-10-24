@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AsaasClient, loadAsaasConfig, type AsaasSubscription } from "./asaas.server";
+import { AsaasClient, loadAsaasAdministrativeConfig, type AsaasSubscription } from "./asaas.server";
 import { readCheckoutBody, requestOriginAllowed } from "./asaas-checkout.server";
 
 const inputSchema = z.object({ requestId: z.string().uuid(), environment: z.enum(["sandbox", "production"]),
@@ -32,7 +32,7 @@ function verifiedResource(value: AsaasSubscription, claim: Claim): AsaasSubscrip
   return value;
 }
 
-async function loadDependencies(request: Request): Promise<Dependencies> {
+async function loadDependencies(request: Request, environment: CancelInput["environment"]): Promise<Dependencies> {
   const token = /^Bearer ([A-Za-z0-9._~-]{20,4096})$/.exec(request.headers.get("authorization") ?? "")?.[1];
   if (!token || token.split(".").length !== 3) throw new Error("BILLING_CANCEL_FORBIDDEN");
   const url = process.env.SUPABASE_URL;
@@ -45,7 +45,7 @@ async function loadDependencies(request: Request): Promise<Dependencies> {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
   const { data: actor, error: actorError } = await actorClient.auth.getUser(token);
   if (actorError || !actor.user) throw new Error("BILLING_CANCEL_FORBIDDEN");
-  const config = loadAsaasConfig();
+  const config = loadAsaasAdministrativeConfig(environment);
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const call = async (client: typeof actorClient, name: string, args: Record<string, unknown>) => {
     const { data, error } = await client.rpc(name, args);
@@ -86,7 +86,7 @@ export async function executeAsaasCancelRequest(request: Request, input: unknown
   let deps: Dependencies | undefined;
   let writeAttempted = false;
   try {
-    deps = dependencies ?? await loadDependencies(request);
+    deps = dependencies ?? await loadDependencies(request, parsed.data.environment);
     if (parsed.data.environment !== deps.environment) throw new Error("BILLING_CANCEL_NOT_ELIGIBLE");
     const raw = await deps.claim(parsed.data);
     if (raw && typeof raw === "object" && "done" in raw && raw.done === true
