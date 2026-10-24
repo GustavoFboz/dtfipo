@@ -1,4 +1,4 @@
-import {describe,it,expect,vi,afterEach} from 'vitest';
+import {describe,it,expect,vi,beforeEach,afterEach} from 'vitest';
 import {loadIsolatedSandboxConfig,selectFixtureRenewal,fixtureRenewalApplied,generateFixtureRenewal,fixtureReconciliationWorker} from './fixture-reconciliation.server';
 import {processAsaasInbox} from '@/lib/billing/asaas-webhook.server';
 
@@ -9,6 +9,7 @@ const c={id:'92400000-0000-4000-8000-000000000010',clinic_id:'081d3db4-1606-40f7
  provider_environment:'sandbox',external_customer_id:'cus_scopeA',external_subscription_id:'sub_scopeA',status:'active',
  plan_code:'company_growth',current_period_start:'2026-10-16T00:00:00Z',current_period_end:'2026-11-16T00:00:00Z'};
 const p={id:'pay_scopeA',customer:'cus_scopeA',subscription:'sub_scopeA',value:449,status:'PENDING',dueDate:'2026-11-16'};
+beforeEach(()=>{vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-24T12:00:00Z'));});
 afterEach(()=>vi.useRealTimers());
 
 describe('isolated Sandbox configuration and exact renewal selection',()=>{
@@ -23,6 +24,11 @@ describe('isolated Sandbox configuration and exact renewal selection',()=>{
  it('selects only the invoice for the next paid-period boundary',()=>{
   expect(selectFixtureRenewal([{...p,id:'pay_old',dueDate:'2026-10-16',status:'RECEIVED'},p],c)).toEqual(p);
   expect(selectFixtureRenewal([{...p,dueDate:'2026-12-16'}],c)).toBeNull();
+ });
+ it('uses the first real provider date after a shifted initial due day',()=>{
+  expect(selectFixtureRenewal([{...p,dueDate:'2026-11-17'}],c)?.dueDate).toBe('2026-11-17');
+  expect(selectFixtureRenewal([{...p,dueDate:'2026-11-15'}],c)).toBeNull();
+  expect(selectFixtureRenewal([{...p,dueDate:'2026-11-25'}],c)).toBeNull();
  });
  it.each([{...p,value:5},{...p,customer:'cus_foreign'},{...p,subscription:'sub_foreign'},
   {...p,deleted:true},{...p,status:'REFUNDED'},{...p,id:'../../production'}])('rejects a mismatched renewal before any simulation',x=>expect(()=>selectFixtureRenewal([x],c)).toThrow());

@@ -49,16 +49,33 @@ function parseContext(value: unknown): RenewalContext {
   return context as RenewalContext;
 }
 
-/** Only an unpaid invoice for the immediately upcoming paid period is payable here. */
+/** The provider's calendar can differ after an overdue simulation, a changed
+ * due day or a short month. Never select a prior paid period or an invoice
+ * beyond the lifecycle processor's 31-day prepayment window. */
+export function upcomingMonthlyInvoices(payments: AsaasPayment[], periodEnd: string, now = Date.now()): AsaasPayment[] {
+  const start = Date.parse(periodEnd.slice(0, 10) + "T00:00:00Z");
+  if (!Number.isFinite(start) || !Number.isFinite(now)) throw new Error("BILLING_RENEWAL_CONTEXT_INVALID");
+  const last = Math.min(start + 31 * 86400000, now + 31 * 86400000);
+  return payments.filter(payment => {
+    if (!DATE.test(payment.dueDate ?? "")) return false;
+    const due = Date.parse(payment.dueDate + "T00:00:00Z");
+    return Number.isFinite(due) && new Date(due).toISOString().slice(0, 10) === payment.dueDate
+      && due >= start && due <= last;
+  }).sort((a,b) => a.dueDate!.localeCompare(b.dueDate!));
+}
+
+/** Only the earliest unpaid invoice on the upcoming provider calendar. */
 export function selectRenewalInvoice(input: {
   payments: AsaasPayment[];
   context: RenewalContext;
   validateUrl: (value: string) => string;
+  now?: number;
 }): RenewalInvoice | null {
   const { context } = input;
-  const due = context.current_period_end.slice(0, 10);
-  const candidates = input.payments.filter((payment) =>
-    payment.dueDate === due && ["PENDING", "OVERDUE"].includes(payment.status ?? ""));
+  const upcoming = upcomingMonthlyInvoices(input.payments, context.current_period_end, input.now)
+    .filter(payment => ["PENDING", "OVERDUE"].includes(payment.status ?? ""));
+  const due = upcoming[0]?.dueDate;
+  const candidates = upcoming.filter(payment => payment.dueDate === due);
   if (candidates.length === 0) return null;
   if (candidates.length !== 1) throw new Error("BILLING_RENEWAL_AMBIGUOUS_INVOICE");
   const payment = candidates[0];
@@ -66,13 +83,13 @@ export function selectRenewalInvoice(input: {
     payment.subscription !== context.external_subscription_id ||
     !Number.isFinite(payment.value) ||
     Math.round(Number(payment.value) * 100) !== context.monthly_price_cents ||
-    !payment.invoiceUrl) {
+    payment.deleted || !payment.invoiceUrl) {
     throw new Error("BILLING_RENEWAL_INVOICE_MISMATCH");
   }
   return {
     paymentId: payment.id,
     paymentUrl: input.validateUrl(payment.invoiceUrl),
-    dueDate: due,
+    dueDate: payment.dueDate!,
     amountCents: context.monthly_price_cents,
     environment: context.provider_environment,
   };
@@ -124,14 +141,15 @@ export async function executeAsaasRenewalRequest(request: Request, subscriptionI
     const payments = await client.listPaymentsForReconciliation(
       context.external_subscription_id, context.current_period_end.slice(0, 10),
     );
-    return {
-      ok: true,
-      invoice: selectRenewalInvoice({
+    const invoice = selectRenewalInvoice({
         payments,
         context,
         validateUrl: (url) => client.validatePaymentUrl(url),
-      }),
-      nextPeriodDate: context.current_period_end.slice(0, 10),
+      });
+    return {
+      ok: true,
+      invoice,
+      nextPeriodDate: invoice?.dueDate ?? context.current_period_end.slice(0, 10),
       billingType: subscription.billingType,
     };
   } catch (error) {

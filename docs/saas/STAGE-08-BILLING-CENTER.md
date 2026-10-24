@@ -150,3 +150,14 @@ para provar a implementação.
 
 Referência do comportamento do provedor consultada em 06/10:
 [Atualizar assinatura existente](https://docs.asaas.com/reference/atualizar-assinatura-existente).
+
+## Calendário da renovação, 24/10
+
+A abertura da próxima cobrança seleciona a primeira fatura não paga com
+vencimento igual ou posterior ao fim do período pago. A seleção fica limitada
+a 31 dias do período e do dia atual, acompanhando a janela do processador.
+Uma mudança do dia de cobrança ou um mês curto não precisa coincidir exatamente
+com o dia calculado no período local. A resposta usa o vencimento real do Asaas.
+Cobrança anterior, excluída, duplicada no primeiro dia, de outro contrato ou com
+preço divergente não é oferecida. A regra não gera nem confirma pagamentos.
+O aceite financeiro depende do recibo da execução isolada, registrado à parte.

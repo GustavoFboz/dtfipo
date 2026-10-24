@@ -2,6 +2,7 @@ import {randomBytes} from 'node:crypto';
 import type {SupabaseClient} from '@supabase/supabase-js';
 import {AsaasClient,AsaasApiError,loadAsaasConfig,type AsaasConfig,type AsaasPayment} from '@/lib/billing/asaas.server';
 import {processAsaasInbox,type WorkerDependencies} from '@/lib/billing/asaas-webhook.server';
+import {upcomingMonthlyInvoices} from '@/lib/billing/asaas-renewal.server';
 import {FixtureFailure,requireResult,type Check,type Job} from './fixture-acceptance.server';
 import {assertFixturePayment,simulateFixturePayment} from './fixture-billing.server';
 import {withFixtureSessions} from './fixture-sessions.server';
@@ -21,7 +22,8 @@ export function selectFixtureRenewal(payments:AsaasPayment[],contract:Contract):
  const due=contract.current_period_end?.slice(0,10);
  if(!companies.includes(contract.clinic_id)||contract.provider_environment!=='sandbox'||contract.plan_code!=='company_growth'
   ||contract.status!=='active'||!/^\d{4}-\d{2}-\d{2}$/.test(due??''))throw new FixtureFailure('FIXTURE_RENEWAL_CONTRACT_INVALID');
- const found=payments.filter(p=>p.dueDate===due);
+ const upcoming=upcomingMonthlyInvoices(payments,contract.current_period_end);
+ const found=upcoming.filter(p=>p.dueDate===upcoming[0]?.dueDate);
  if(found.length===0)return null;
  if(found.length!==1)throw new FixtureFailure('FIXTURE_RENEWAL_AMBIGUOUS');
  assertFixturePayment(found[0],contract);
@@ -56,7 +58,7 @@ export async function generateFixtureRenewal(config:AsaasConfig,subscriptionId:s
  // A document redirect is never followed with API credentials. Invoice GET,
  // rather than a downloaded PDF, must prove whether generation committed.
  if(!response.ok&&![302,303].includes(response.status))throw new FixtureFailure('FIXTURE_RENEWAL_GENERATION_FAILED',response.status);
- await response.body?.cancel().catch(()=>undefined);
+ try{await response.body?.cancel();}catch{ /* Only invoice GET establishes the financial result. */ }
 }
 
 /** The production algorithm with real Asaas GETs and SQL lifecycle writes.
@@ -107,13 +109,13 @@ export async function runFixtureReconciliation(job:Job):Promise<Check[]> {
     .order('created_at',{ascending:false}).limit(1),'FIXTURE_RENEWAL_CONTRACT_READ_FAILED') as Contract[];
    const c=contracts[0];if(!c||!companies.includes(c.clinic_id)||c.current_period_end==null)throw new FixtureFailure('FIXTURE_RENEWAL_CONTRACT_INVALID');
    selectFixtureRenewal([],c);
-   const due=c.current_period_end.slice(0,10);
+   let due=c.current_period_end.slice(0,10);
    if(Date.parse(due+'T00:00:00Z')<Date.now())throw new FixtureFailure('FIXTURE_NEXT_PERIOD_OUTSIDE_WINDOW');
    const customer=await provider.getCustomer(c.external_customer_id);
    record('fixture_notifications_disabled',customer.id===c.external_customer_id&&customer.notificationDisabled===true&&customer.externalReference===`dentalflow:company:${c.clinic_id}`);
    const subscription=await provider.getSubscription(c.external_subscription_id);
    record('fixture_recurring_contract_verified',subscription.id===c.external_subscription_id&&subscription.customer===customer.id&&subscription.externalReference===`dentalflow:subscription:${c.id}`
-    &&subscription.status==='ACTIVE'&&subscription.cycle==='MONTHLY'&&!subscription.deleted&&Math.round(Number(subscription.value)*100)===44900);
+    &&subscription.status==='ACTIVE'&&subscription.cycle==='MONTHLY'&&!subscription.deleted&&Math.round(Number(subscription.value)*100)===44900,{state:subscription.nextDueDate});
    if(Date.parse(due+'T00:00:00Z')>Date.now()+31*86400000){
     const paid=requireResult(await admin.from('billing_payments').select('id').eq('subscription_id',c.id).eq('provider_environment','sandbox')
      .eq('status','paid').eq('amount_cents',44900).eq('period_end',c.current_period_end),'FIXTURE_PREPAID_PERIOD_READ_FAILED');
@@ -131,7 +133,8 @@ export async function runFixtureReconciliation(job:Job):Promise<Check[]> {
     record('invoice_generation_readback_without_retry',!!payment);
    }
    if(!payment)throw new FixtureFailure('FIXTURE_RENEWAL_INVOICE_MISSING');
-   record('fixture_provider_renewal_invoice',true,{resource_id:payment.id,amount_cents:44900});
+   due=payment.dueDate!;
+   record('fixture_provider_renewal_invoice',true,{resource_id:payment.id,amount_cents:44900,state:due});
    const previous=requireResult(await admin.from('billing_payments').select('*').eq('subscription_id',c.id).eq('status','paid').order('id'),'FIXTURE_PAID_HISTORY_READ_FAILED') as any[];
    record('fixture_renewal_not_in_ledger',previous.length>0&&(await rows(payment.id)).length===0,{resource_id:payment.id,count:0});
    record('fixture_resource_registered',requireResult(await admin.rpc('saas_register_fixture_reconciliation_resource' as any,{p_job_id:job.id,p_subscription_id:c.id,p_payment_id:payment.id}),'FIXTURE_RESOURCE_REGISTRATION_FAILED')===true);
