@@ -316,6 +316,13 @@ jobs:
           docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
             < docs/saas/sql/fixture-acceptance-jobs-rehearsal.sql | tee restore-fixture-capabilities.log
 
+      - name: Rehearse isolated Sandbox resource leases
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/isolated-sandbox-rehearsal.sql | tee restore-isolated-sandbox.log
+
       - name: Record sanitized restored-schema audit
         shell: bash
         run: |
@@ -367,6 +374,7 @@ jobs:
             restore-stage-09-health.log
             restore-database-scheduler.log
             restore-fixture-capabilities.log
+            restore-isolated-sandbox.log
             restore-audit.log
 
       - name: Stop isolated database

@@ -1018,3 +1018,13 @@ GRANT ALL ON public.case_types,public.tooth_colors TO service_role;
 REVOKE ALL ON public.saas_legacy_workflow_settings_archive FROM PUBLIC,anon,authenticated,service_role;
 REVOKE INSERT,UPDATE,DELETE ON public.workflow_templates FROM authenticated;
 REVOKE DELETE ON public.workflow_settings FROM authenticated;
+
+-- Fixed Sandbox acceptance helpers remain private after broad legacy grants.
+REVOKE ALL ON public.saas_fixture_reconciliation_resources FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.saas_assert_fixture_reconciliation_job(uuid),
+ public.saas_register_fixture_reconciliation_resource(uuid,uuid,text),public.saas_enqueue_fixture_asaas_recovery(uuid,text,text),
+ public.saas_claim_fixture_asaas_events(uuid),public.saas_fixture_business_fingerprint(uuid) FROM PUBLIC,anon,authenticated,service_role;
+GRANT EXECUTE ON FUNCTION public.saas_register_fixture_reconciliation_resource(uuid,uuid,text),
+ public.saas_enqueue_fixture_asaas_recovery(uuid,text,text),public.saas_claim_fixture_asaas_events(uuid),
+ public.saas_fixture_business_fingerprint(uuid) TO service_role;
+NOTIFY pgrst,'reload schema';

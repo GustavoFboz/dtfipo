@@ -1,0 +1,62 @@
+# Recuperação financeira isolada no Sandbox
+
+Implementação de 24/10/2026. A aplicação principal continua em Produção;
+o teste privado usa exclusivamente a chave Sandbox já configurada, as duas
+fixtures autorizadas e recursos cadastrados para o seu job. Não há parâmetro
+HTTP para escolher ambiente, empresa, assinatura ou cobrança.
+
+## Execução
+
+O job `reconciliation` usa a capacidade privada de uso único existente. Confere
+Auth real, empresa, assinatura Growth, preço contratado de R$449 no Sandbox,
+cliente sem notificações e referência do provedor. Seleciona somente a fatura
+da próxima vigência, limitada aos próximos 31 dias. Caso ainda não exista, o
+recurso oficial de carnê pode antecipar sua geração até aquele mês. Esse GET
+tem efeito no Sandbox e é chamado uma única vez, sem repetição automática.
+
+A confirmação usa somente o simulador oficial Sandbox, uma vez. Uma retomada
+encontra um pagamento já confirmado por GET; não repete a confirmação. O teste
+exige observar o pagamento no provedor sem lançamento nem evento de pagamento
+na inbox local, antes da recuperação. Não apaga webhook nem esconde evento para
+fabricar essa condição. Se o webhook chegar, a ausência não fica comprovada.
+
+O mesmo `processAsaasInbox` da aplicação executa a descoberta, seguida do
+processamento normal com GET do Asaas e `billing_apply_asaas_payment_lifecycle`.
+A seleção e o lease são restritos à assinatura/cobrança registrada para o job.
+Uma terceira execução confere idempotência. Datas, preço, histórico anterior,
+acesso da sessão e recusa de leitura estrangeira precisam concordar.
+
+## Fronteiras
+
+As tabelas e funções de preparo são privadas; clientes comuns e operadores não
+ganham acesso direto. Os auxiliares exigem `service_role`, job em execução,
+capacidade já consumida e prazo válido. O registro confere as duas identidades
+fixas, ausência de operador/isenção/contrato Production e vínculo Sandbox.
+Eventos de outras empresas, Produção e dead letters manuais ficam fora do lease.
+Não há alteração de MFA, promoção de usuário, chamada ao worker global, escrita
+de telemetria/cadência nem mudança de configuração Asaas/cron.
+
+Um fingerprint de 33 tabelas, excluindo somente as duas empresas de teste,
+compara contas, ledger, pacientes, casos, estoque, profissionais e configuração
+antes/depois. Dados clínicos não saem no recibo: somente contagens de checks,
+hashes, IDs de teste, valores Sandbox, estados e datas. As novas renovações e
+recursos do job ficam como auditoria; registros financeiros não são apagados.
+
+## Verificação e aceite
+
+Testes unitários conferem a projeção de configuração sem chave Production,
+escopo de recursos, data mensal, fatura ambígua, ausência de repetição e o
+mesmo algoritmo de recuperação. O ensaio SQL descartável verifica grants,
+registro imutável, expiração, lease exclusivo, inbox idempotente e preservação
+de eventos fora do escopo. Não executar o ensaio na base ativa.
+
+CI/restore, publicação e execução real ainda aguardam seus recibos neste
+registro inicial. Não fechar 1.3 com testes simulados; renovação parcial não
+encerra todo o ciclo de atraso, suspensão, estorno, cancelamento e reativação.
+Master/AAL2, preço por vigência, aparelhos e demais aceites continuam próprios.
+
+Referências oficiais consultadas em 24/10/2026:
+
+- [Confirmar pagamento no Sandbox](https://docs.asaas.com/reference/confirmar-pagamento).
+- [Gerar carnê e cobranças futuras no Sandbox](https://docs.asaas.com/reference/gerar-carne-de-assinatura).
+- [Listar cobranças da assinatura](https://docs.asaas.com/reference/listar-cobrancas-de-uma-assinatura).

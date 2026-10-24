@@ -1,6 +1,10 @@
 import fs from "node:fs";
 
 const required = [
+  "docs/saas/ISOLATED-SANDBOX-RECONCILIATION.md",
+  "docs/saas/sql/isolated-sandbox-rehearsal.sql",
+  "src/lib/qa/fixture-reconciliation.server.ts",
+  "src/lib/qa/fixture-reconciliation.server.test.ts",
   "docs/saas/COMPANY-WORKFLOW-CONFIGURATION.md",
   "docs/saas/sql/stage-07-company-workflow-assertions.sql",
   "docs/saas/sql/stage-07-company-workflow-rehearsal.sql",
@@ -45,6 +49,10 @@ const required = [
 
 const missing = required.filter((p) => !fs.existsSync(p));
 if (missing.length) throw new Error("Stage 09 missing required artifacts: " + missing.join(", "));
+const reconciliationMigration = "20261024193000_saas_isolated_sandbox_reconciliation.sql";
+if (fs.readFileSync(`supabase/migrations/${reconciliationMigration}`, "utf8") !==
+    fs.readFileSync(`public/restore/migrations/${reconciliationMigration}`, "utf8"))
+  throw new Error("Isolated Sandbox boundary differs between migration and restore");
 const ownershipMigration = "20261022160000_saas_company_stock_ownership_stage07.sql";
 const workflowMigration = "20261023140000_saas_company_workflow_configuration_stage07.sql";
 if (fs.readFileSync(`supabase/migrations/${workflowMigration}`, "utf8") !==
