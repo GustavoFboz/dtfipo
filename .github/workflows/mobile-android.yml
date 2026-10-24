@@ -58,9 +58,13 @@ jobs:
           - api: "35"
             target: default
             experimental: false
+            gpu: swiftshader_indirect
           - api: "37.0"
             target: google_apis
             experimental: true
+            # Modern system images require the current software backend; the
+            # deprecated indirect renderer aborts in the graphics encoder.
+            gpu: software
     continue-on-error: ${{ matrix.experimental }}
     timeout-minutes: 45
     env:
@@ -144,7 +148,7 @@ jobs:
           disable-linux-hw-accel: false
           ram-size: 4096M
           disk-size: 6G
-          emulator-options: -no-window -gpu swiftshader_indirect -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none -partition-size 6144
+          emulator-options: -no-window -gpu ${{ matrix.gpu }} -feature -Vulkan -no-snapshot -noaudio -no-boot-anim -camera-back none -partition-size 6144
           # The emulator action evaluates each inline line in a separate `sh -c`.
           # Keep stateful variables and checks in one versioned POSIX script.
           script: sh scripts/smoke-test-android.sh
