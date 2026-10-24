@@ -1,5 +1,14 @@
 # Conclusão integral do protocolo SaaS
 
+Em 24/10/2026, 16h38 Manaus, os itens **1.1 e 1.3 foram concluídos**:
+revisões externas individuais no Master com MFA real/auditoria e recuperação
+real de pagamentos sem webhook no Sandbox. Passaram **155/155 verificações
+nas três execuções concluídas**. Total atual **10/23 (43,48%), 13 restantes,
+1/7 etapas encerradas**. Master/MFA positivos estão comprovados; replay positivo
+e demais critérios continuam abertos.
+[Publicação, recibos, decisões e limites](evidence/events-recovery-master-20261024.md).
+Os registros anteriores abaixo são checkpoints históricos.
+
 Em 23/10/2026, 11h13 Manaus, fluxos e configurações por empresa foram aplicados
 e publicados. Passaram **227/227 verificações reais**, incluindo 41 novas de
 configuração; 29 tabelas agora possuem empresa, com históricos IPO preservados.
@@ -66,18 +75,16 @@ API v3, sequencial e com 13 eventos. Nenhuma fila foi alterada. A causa HTTP e
 o tratamento da integração externa dependem dos seus logs e finalidade; não
 desativá-la por ser chamada “Teste”. [Recibo e limites](evidence/authorized-runtime-validation-20261022.md).
 
-## Provas restantes dos 15 itens
+## Provas restantes dos 13 itens
 
 | Item | Trabalho para concluir e condição de aceite |
 | --- | --- |
-| 1.1 | O titular revisa os dois eventos manuais Sandbox com sessão Master/AAL2 real, usando a decisão auditada existente. Não atribuir o pagamento externo a uma empresa nem inventar AAL2. |
-| 1.3 | Preparar execução financeira isolada em Sandbox e observar uma falta real de webhook, seguida de reconciliação com GET do provedor, uma única linha no ledger e período correto. O job atual recusa runtime Production; não trocar globalmente o ambiente da conta paga. |
-| 2.1 | Executar renovação, atraso/carência, suspensão, estorno/contestação, cancelamento e reativação com estados reais do provedor. Ensaios SQL e mocks permanecem regressões. |
+| 2.1 | Renovação real comprovada em 24/10. Executar atraso/carência, suspensão, estorno/contestação, cancelamento e reativação com estados reais do provedor. Ensaios SQL e mocks permanecem regressões. |
 | 2.2 | Conferir dados clínicos, contratos, ledger, limites e período pago antes/depois dos fluxos reais. A isenção IPO e dados de outras empresas devem permanecer preservados. |
 | 2.3 | Validar acesso online, expiração/limpeza do cache em 72h e retomada nos aplicativos disponíveis. Builds e emuladores não substituem os testes em aparelhos; registrar limites da homologação iOS. |
 | 3.2 | A resiliência ampliada publicada passou 84/84 verificações reais. Falta revisar individualmente as nove reservas históricas e usar recuperação autenticada do gestor quando cabível. Não excluir metadados históricos diretamente por SQL nem liberar cota com bytes existentes. |
 | 3.3 | Executar upload, leitura, limite, falha e exclusão em Web, Windows e Android disponíveis. DICOM aguarda a liberação de Radiologia. |
-| 4.2 | Estoque, diretórios e fluxos possuem empresa em 29 tabelas; catálogos originais protegidos. Publicação de 23/10 passou 227 verificações reais com sessões USER e limpeza. Concluir Master/MFA e replay positivos reais e confirmar a origem dos 12 pacientes sem empresa, preservados. [Prova e limites](evidence/company-workflow-publication-20261023.md). |
+| 4.2 | Master/MFA positivos e duas decisões individuais auditadas foram comprovados em 24/10. Concluir replay financeiro positivo (continua zero), cenários restantes de sessão e origem dos 12 pacientes sem empresa. Estoque/diretórios/fluxos continuam protegidos em 29 tabelas e catálogos originais somente leitura. [Prova e limites](evidence/events-recovery-master-20261024.md). |
 | 4.3 | Tratar e comprovar a revogação das referências assinadas históricas: 40 reconferidas em 22/10 (34 fotos e seis avatares), ainda válidas até 2036. Comprovar também leitura, recusa, expiração e renovação autenticadas na publicação. Substituir uma referência não revoga um token já emitido. |
 | 5.2 | Executar o cancelamento aprovado uma vez no Asaas e concluir troca de plano/preço por vigência. A execução de troca ainda requer implementação e prova; o executor de cancelamento existente não a substitui. |
 | 5.3 | Validar downgrade, cota, preço/data efetiva e retomada após falha ambígua, com lease/readback e sem POST financeiro repetido cegamente. |

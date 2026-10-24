@@ -1,5 +1,12 @@
 # Etapa 07 — administração Master
 
+Atualização de 24/10/2026: login Master e autenticador reais comprovados no
+aplicativo publicado; duas revisões de testes externos concluídas individualmente
+com confirmação MFA e auditoria. Nenhuma promoção ou claim fabricada.
+Replay financeiro positivo continua zero e mantém aceite próprio.
+[Publicação, decisões e limites](evidence/events-recovery-master-20261024.md).
+As pendências anteriores de login/MFA abaixo são checkpoints históricos.
+
 Contador de conclusão em 04/10: **4/7**, junto à revisão de segurança indicada
 em RELEASE-PLAN.md. As correções de senha/isolamento de empresa desta rodada
 estão em evidence/READINESS-PASSWORD-STORAGE-2026-10-04.md. Configurar e provar a
