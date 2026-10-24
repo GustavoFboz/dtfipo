@@ -11,6 +11,14 @@ positivo e os demais critérios de 4.2 continuam pendentes. IPO conferida com
 86 casos, 122 itens e 48 movimentações, fingerprint idêntico ao job concluído.
 [Publicação, recibos, decisões e limites](evidence/events-recovery-master-20261024.md).
 
+Continuidade de 24/10, 17h00 Manaus: PR195 publicada, permitindo o executor
+Master usar o Sandbox separado com Produção ativa, sob o mesmo claim AAL2.
+Passaram 123 testes, tipos e CI/restore. Nove reservas antigas conferidas
+individualmente na sessão gestora e por presença/vínculos: zero objetos,
+zero vínculos, 1,04 GiB; liberação aguarda confirmação de abandono. API37
+voltou a falhar no próprio system_server e a PR194 ficou em rascunho.
+**10/23 mantidos**. [Recibos e limites](evidence/administrative-continuity-20261024.md).
+
 Os checkpoints anteriores abaixo conservam seus totais e pendências históricos.
 
 Atualização de 23/10/2026, 11h13 Manaus: fluxos e configurações agora separados
@@ -109,13 +117,13 @@ o valor insuficiente antes de criar recursos externos.
 | 2.2 | Dados e período pago preservados | Parcial: renovação preservou histórico, vigência e hash de 33 tabelas fora das fixtures. Aceite dos demais ciclos continua pendente. [Prova e limites](evidence/events-recovery-master-20261024.md) |
 | 2.3 | Acesso nas plataformas e janela offline de 72 horas | Parcial: código, CI/restore, instalador Windows e limpeza offline nos emuladores Android; recuperação API 37/distribuição/aparelhos/iOS pendentes |
 | 3.1 | Upload/exclusão de casos, pacientes, fotos e avatar | Concluído pelas APIs autenticadas em 17/10, 15h06 Manaus: 50/50 checks reais nas duas fixtures USER, quatro buckets, tamanho/hash/cota consistentes, excesso e acesso estrangeiro recusados, oito exclusões e cota zero. Preparo clínico descartável administrativo; sem promoção de papéis. Aparelhos, concorrência/resíduos e links históricos mantêm aceites próprios. [Recibo e revisão](evidence/acceptance-20-20261017.md) |
-| 3.2 | Concorrência, falhas e reservas históricas | Parcial: job publicado passou 84/84 checks reais em 22/10, 00h05 Manaus, incluindo concorrência, envio interrompido, tamanho divergente recusado na conclusão, bytes presentes impedindo liberação e limpeza exata da cota. As nove reservas históricas ainda exigem revisão individual autenticada pelo gestor. [Recibo e limites](evidence/authorized-runtime-validation-20261022.md) |
+| 3.2 | Concorrência, falhas e reservas históricas | Parcial: 84 verificações reais de resiliência passaram novamente em 24/10 dentro do job 112/112. Nove reservas históricas conferidas na sessão gestora e por presença/vínculos: todas sem objeto ou anexo, 1,04 GiB. Liberação aguarda confirmação do titular sobre abandono; nenhuma exclusão executada. [Revisão e limites](evidence/administrative-continuity-20261024.md) |
 | 3.3 | Armazenamento nas plataformas disponíveis | Pendente de aparelhos |
 | 4.1 | Cadastro, confirmação e recuperação de senha | Concluído em 21/10, 23h49 Manaus: mínimo global de oito caracteres salvo no Auth; job real publicado passou 16/16 checks de cadastro, confirmação, login, recuperação, token único, isolamento e logout. Senha de sete caracteres recusada com HTTP422. Usuário descartável removido; contas existentes preservadas. MFA e arquivos conservam aceites próprios. [Recibo e revisão](evidence/authorized-publication-20261021.md) |
 | 4.2 | Sessões, MFA, isolamento e replay financeiro | Parcial: 29 tabelas possuem empresa e dois catálogos padrão são somente leitura. Master/MFA positivos e duas decisões auditadas comprovados com login real em 24/10; regressões identidade e arquivos/privacidade 128/128. Replay financeiro positivo continua zero; origem dos 12 pacientes sem empresa e demais cenários de sessão permanecem pendentes. [Prova e limites](evidence/events-recovery-master-20261024.md) |
 | 4.3 | Arquivos privados e validade dos links | Parcial: referências sem bearer persistente, assinatura de cinco minutos, renovação, isolamento de sessão e espelho instalado limitado a 72h implementados. Em 22/10 foram reconferidas 40 referências antigas (34 fotos e seis avatares), todas com tokens ainda válidos até 2036; tratamento/revogação e prova autenticada publicada seguem pendentes. [Implementação e limites](PRIVATE-FILE-ACCESS.md) |
 | 5.1 | Histórico e documentos de cobrança | Concluído em Sandbox, 17/10, 14h45 Manaus: sessões gestoras das duas fixtures consultaram histórico e abriram documento do pagamento validado no provedor (HTTP200); outra clínica foi recusada no histórico e documento (HTTP403). [Recibo e revisão](evidence/acceptance-20-20261017.md) |
-| 5.2 | Solicitações executadas no Asaas | Parcial: executor de cancelamento com revisão Master/AAL2, lease, auditoria e readback implementado; execução autenticada real e troca de plano por vigência ainda pendentes. [Contrato e limites](STAGE-08-BILLING-CENTER.md) |
+| 5.2 | Solicitações executadas no Asaas | Parcial: executor de cancelamento com Master/AAL2, lease, auditoria e readback publicado; PR195 permite Sandbox separado com Produção ativa, mantendo autorização por contrato. Execução real e troca de plano/preço por vigência continuam pendentes. [Publicação e limites](evidence/administrative-continuity-20261024.md) |
 | 5.3 | Downgrade, falhas e execução única | Parcial: inativação única e retomada somente por GET implementadas; ensaios não substituem falhas reais, downgrade e preço por vigência |
 | 6.1 | Processador regular e alertas comprovados | Concluído em Sandbox, 05/10, 18h17 de Manaus: 24 disparos a cada 5 minutos, 24 respostas HTTP 200 com telemetria saudável, alerta real de heartbeat antigo entregue à caixa do operador e recuperação observada. Produção permanece no gate 7.2. [Prova e limites](evidence/database-scheduler-20261005.md) |
 | 6.2 | Backup, restauração e incidente | Parcial: restore limpo e recuperação de heartbeat real comprovados; backup/restauração operacional de dados e rollback ainda pendentes |
