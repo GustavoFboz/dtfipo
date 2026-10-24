@@ -48,7 +48,7 @@ type WebhookDependencies = {
   }) => Promise<void>;
 };
 
-type WorkerDependencies = {
+export type WorkerDependencies = {
   environment: AsaasProviderEnvironment;
   workerToken: string;
   recordHealth?: (runId: string, status: "running" | "ok" | "review" | "failed", counters: Record<string, number>) => Promise<boolean>;
