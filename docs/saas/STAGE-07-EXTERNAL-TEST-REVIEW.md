@@ -35,9 +35,14 @@ evento em processamento, repetição e preservação integral das tabelas financ
 Os testes de sessão/interface verificam pinagem do JWT, recusa do backend,
 confirmação individual e descarte após troca de conta/login.
 
-A implantação não executa a revisão dos dois eventos existentes. Eles permanecem
-preservados até uma decisão na sessão real Master/AAL2. O item 1.1 continua
-parcial; o replay financeiro real permanece um aceite separado de 4.2.
+A implantação não executa a revisão dos eventos existentes. Em 24/10, as duas
+decisões foram concluídas individualmente pelo fluxo publicado com login e
+autenticador Master reais. Payload, seis tentativas e uma auditoria por evento
+foram preservados; ambos ficaram ignored/EXTERNAL_MANUAL_SANDBOX_TEST, sem
+vínculo financeiro e sem replay. Item 1.1 concluído. A conferência Asaas usada
+é a de 05/10, acompanhada da confirmação de origem pelo titular; não se alegou
+consulta atual ao provedor. Replay financeiro real continua separado em 4.2.
+[Decisões, recibos e limites](evidence/events-recovery-master-20261024.md).
 
 A revisão foi integrada, instalada e confirmada na publicação em 05/10,
 18h54–18h57 de Manaus. CI e dois restores passaram; 286 testes locais passaram.

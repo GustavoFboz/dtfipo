@@ -56,10 +56,15 @@ mesmo algoritmo de recuperação. O ensaio SQL descartável verifica grants,
 registro imutável, expiração, lease exclusivo, inbox idempotente e preservação
 de eventos fora do escopo. Não executar o ensaio na base ativa.
 
-CI/restore, publicação e execução real ainda aguardam seus recibos neste
-registro inicial. Não fechar 1.3 com testes simulados; renovação parcial não
-encerra todo o ciclo de atraso, suspensão, estorno, cancelamento e reativação.
-Master/AAL2, preço por vigência, aparelhos e demais aceites continuam próprios.
+CI/restore (181 migrações), publicação e execução real foram concluídos em
+24/10. O job final passou 27/27 verificações; as duas tentativas falhas e a
+recuperação parcial anterior permanecem no histórico. Pagamento recebido sem
+webhook/ledger foi observado, descoberto pela reconciliação normal e aplicado
+uma vez, preservando vigência/histórico e hash de 33 tabelas fora das fixtures.
+Item 1.3 concluído. Renovação não encerra atraso, suspensão, estorno,
+cancelamento e reativação. Master/AAL2 real também foi comprovado nessa rodada;
+replay financeiro positivo, preço por vigência e aparelhos continuam próprios.
+[Publicação, recibos e limites](evidence/events-recovery-master-20261024.md).
 
 Referências oficiais consultadas em 24/10/2026:
 

@@ -1,5 +1,18 @@
 # Progresso dos aceites finais para vendas
 
+Atualização de 24/10/2026, 16h38 Manaus: revisão dos dois eventos externos
+concluída individualmente no Master com MFA real e auditoria; webhook ausente
+recuperado pela reconciliação normal no Sandbox, com efeito único e histórico
+preservado. Recuperação, identidade e arquivos passaram **155/155 verificações
+nas três execuções concluídas**; duas tentativas anteriores falhas estão
+preservadas. **Itens 1.1 e 1.3 concluídos; 10/23 (43,48%), 13 restantes,
+1/7 etapas encerradas.** Master/MFA positivos agora têm prova; replay financeiro
+positivo e os demais critérios de 4.2 continuam pendentes. IPO conferida com
+86 casos, 122 itens e 48 movimentações, fingerprint idêntico ao job concluído.
+[Publicação, recibos, decisões e limites](evidence/events-recovery-master-20261024.md).
+
+Os checkpoints anteriores abaixo conservam seus totais e pendências históricos.
+
 Atualização de 23/10/2026, 11h13 Manaus: fluxos e configurações agora separados
 por empresa, publicados e comprovados em 41 testes novos; com as regressões,
 **227/227 verificações reais** passaram. Histórico conferido por hash em 20
@@ -89,17 +102,17 @@ o valor insuficiente antes de criar recursos externos.
 
 | Item | Resultado exigido | Status atual |
 | --- | --- | --- |
-| 1.1 | Dois dead letters reconciliados individualmente com o Asaas | Parcial: Asaas confirmou a mesma cobrança Sandbox RECEIVED de R$5, vencimento 29/09; responsável confirmou criação manual externa. Sem ledger/checkout local. Revisão auditada Master/AAL2 preparada; decisão real dos dois eventos ainda pendente. [Prova](evidence/inbox-review-20261005.md) e [fluxo](STAGE-07-EXTERNAL-TEST-REVIEW.md) |
+| 1.1 | Dois dead letters reconciliados individualmente com o Asaas | Concluído em 24/10, 16h35 Manaus: origem manual externa confirmada pelo titular e diagnóstico Asaas de 05/10; cada evento recebeu decisão real Master/AAL2 e auditoria própria. Ambos ignored/EXTERNAL_MANUAL_SANDBOX_TEST, payload e seis tentativas preservados, zero vínculos e sem replay financeiro. [Decisões e limites](evidence/events-recovery-master-20261024.md) |
 | 1.2 | Duplicatas e eventos fora de ordem | Concluído em Sandbox, 17/10, 14h45 Manaus: duas entregas idênticas adicionais por fixture conservaram uma linha e exatamente a vigência paga. Aviso OVERDUE antigo foi ignorado por SUPERSEDED_PROVIDER_STATUS após GET atual; recuperação e confirmação convergiram para uma linha. [Recibo e revisão](evidence/acceptance-20-20261017.md) |
-| 1.3 | Webhook perdido recuperado | Parcial: reconciliação implementada |
-| 2.1 | Estados do ciclo financeiro | Parcial: ensaios; provedor pendente |
-| 2.2 | Dados e período pago preservados | Parcial: regras/testes; aceite do fluxo pendente |
+| 1.3 | Webhook perdido recuperado | Concluído em 24/10, 16h10 Manaus: pagamento recebido no Asaas Sandbox sem evento nem ledger local observado; reconciliação normal descobriu e aplicou uma vez, repetição preservou ledger e período. Job final 27/27; primeira recuperação B preservada na tentativa parcial e conferida sem nova escrita. Produção mantida. [Recibos e limites](evidence/events-recovery-master-20261024.md) |
+| 2.1 | Estados do ciclo financeiro | Parcial: renovação real Sandbox recuperada e conferida em 24/10; atraso/carência, suspensão, estorno/contestação, cancelamento e reativação ainda exigem prova. [Renovação](evidence/events-recovery-master-20261024.md) |
+| 2.2 | Dados e período pago preservados | Parcial: renovação preservou histórico, vigência e hash de 33 tabelas fora das fixtures. Aceite dos demais ciclos continua pendente. [Prova e limites](evidence/events-recovery-master-20261024.md) |
 | 2.3 | Acesso nas plataformas e janela offline de 72 horas | Parcial: código, CI/restore, instalador Windows e limpeza offline nos emuladores Android; recuperação API 37/distribuição/aparelhos/iOS pendentes |
 | 3.1 | Upload/exclusão de casos, pacientes, fotos e avatar | Concluído pelas APIs autenticadas em 17/10, 15h06 Manaus: 50/50 checks reais nas duas fixtures USER, quatro buckets, tamanho/hash/cota consistentes, excesso e acesso estrangeiro recusados, oito exclusões e cota zero. Preparo clínico descartável administrativo; sem promoção de papéis. Aparelhos, concorrência/resíduos e links históricos mantêm aceites próprios. [Recibo e revisão](evidence/acceptance-20-20261017.md) |
 | 3.2 | Concorrência, falhas e reservas históricas | Parcial: job publicado passou 84/84 checks reais em 22/10, 00h05 Manaus, incluindo concorrência, envio interrompido, tamanho divergente recusado na conclusão, bytes presentes impedindo liberação e limpeza exata da cota. As nove reservas históricas ainda exigem revisão individual autenticada pelo gestor. [Recibo e limites](evidence/authorized-runtime-validation-20261022.md) |
 | 3.3 | Armazenamento nas plataformas disponíveis | Pendente de aparelhos |
 | 4.1 | Cadastro, confirmação e recuperação de senha | Concluído em 21/10, 23h49 Manaus: mínimo global de oito caracteres salvo no Auth; job real publicado passou 16/16 checks de cadastro, confirmação, login, recuperação, token único, isolamento e logout. Senha de sete caracteres recusada com HTTP422. Usuário descartável removido; contas existentes preservadas. MFA e arquivos conservam aceites próprios. [Recibo e revisão](evidence/authorized-publication-20261021.md) |
-| 4.2 | Sessões, MFA, isolamento e replay financeiro | Parcial: propriedade em 29 tabelas e dois catálogos padrão somente para leitura. Fluxos por empresa publicados em 23/10: 41 verificações novas e regressões de estoque, identidade e arquivos passaram (227/227). Históricos IPO preservados. Master/MFA e replay positivos reais e origem de 12 pacientes continuam abertos. [Prova e limites](evidence/company-workflow-publication-20261023.md) |
+| 4.2 | Sessões, MFA, isolamento e replay financeiro | Parcial: 29 tabelas possuem empresa e dois catálogos padrão são somente leitura. Master/MFA positivos e duas decisões auditadas comprovados com login real em 24/10; regressões identidade e arquivos/privacidade 128/128. Replay financeiro positivo continua zero; origem dos 12 pacientes sem empresa e demais cenários de sessão permanecem pendentes. [Prova e limites](evidence/events-recovery-master-20261024.md) |
 | 4.3 | Arquivos privados e validade dos links | Parcial: referências sem bearer persistente, assinatura de cinco minutos, renovação, isolamento de sessão e espelho instalado limitado a 72h implementados. Em 22/10 foram reconferidas 40 referências antigas (34 fotos e seis avatares), todas com tokens ainda válidos até 2036; tratamento/revogação e prova autenticada publicada seguem pendentes. [Implementação e limites](PRIVATE-FILE-ACCESS.md) |
 | 5.1 | Histórico e documentos de cobrança | Concluído em Sandbox, 17/10, 14h45 Manaus: sessões gestoras das duas fixtures consultaram histórico e abriram documento do pagamento validado no provedor (HTTP200); outra clínica foi recusada no histórico e documento (HTTP403). [Recibo e revisão](evidence/acceptance-20-20261017.md) |
 | 5.2 | Solicitações executadas no Asaas | Parcial: executor de cancelamento com revisão Master/AAL2, lease, auditoria e readback implementado; execução autenticada real e troca de plano por vigência ainda pendentes. [Contrato e limites](STAGE-08-BILLING-CENTER.md) |
