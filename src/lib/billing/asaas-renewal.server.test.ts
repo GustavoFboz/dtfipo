@@ -68,6 +68,21 @@ describe("Asaas renewal invoice handoff", () => {
     expect(selectRenewalInvoice({ context, validateUrl, payments: [] })).toBeNull();
   });
 
+  it("uses the actual provider day after a shifted boundary and returns that day", () => {
+    const result = selectRenewalInvoice({context, validateUrl, now: Date.parse('2026-10-24T12:00:00Z'),
+      payments: [{...validPayment,dueDate:'2026-10-30'}]});
+    expect(result?.dueDate).toBe('2026-10-30');
+    expect(result?.paymentId).toBe('pay_RENEWAL');
+  });
+
+  it("selects the earliest payable period and refuses excessive prepayment or overlaps", () => {
+    const now=Date.parse('2026-10-24T12:00:00Z');
+    expect(selectRenewalInvoice({context,validateUrl,now,payments:[{...validPayment,dueDate:'2026-11-23'},validPayment]})?.dueDate).toBe('2026-10-29');
+    expect(selectRenewalInvoice({context,validateUrl,now,payments:[{...validPayment,dueDate:'2026-11-25'}]})).toBeNull();
+    expect(selectRenewalInvoice({context,validateUrl,now,payments:[{...validPayment,dueDate:'2026-10-28'}]})).toBeNull();
+    expect(()=>selectRenewalInvoice({context,validateUrl,now,payments:[{...validPayment,deleted:true}]})).toThrow(/MISMATCH/);
+  });
+
   it("blocks duplicate invoices, wrong amounts and payment URLs outside Asaas", () => {
     expect(() => selectRenewalInvoice({
       context, validateUrl, payments: [validPayment, { ...validPayment, id: "pay_DUPLICATE" }],

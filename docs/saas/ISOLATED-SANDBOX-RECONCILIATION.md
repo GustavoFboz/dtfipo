@@ -10,7 +10,9 @@ HTTP para escolher ambiente, empresa, assinatura ou cobrança.
 O job `reconciliation` usa a capacidade privada de uso único existente. Confere
 Auth real, empresa, assinatura Growth, preço contratado de R$449 no Sandbox,
 cliente sem notificações e referência do provedor. Seleciona somente a fatura
-da próxima vigência, limitada aos próximos 31 dias. Caso ainda não exista, o
+com o primeiro vencimento igual ou posterior ao fim do período pago, limitada
+aos próximos 31 dias. A data real do Asaas é preservada: o dia da recorrência
+pode diferir do fim local após um vencimento alterado ou um mês curto. Caso ainda não exista, o
 recurso oficial de carnê pode antecipar sua geração até aquele mês. Esse GET
 tem efeito no Sandbox e é chamado uma única vez, sem repetição automática.
 O PDF não é baixado e redirecionamentos não são seguidos. Depois de uma resposta
