@@ -21,6 +21,10 @@ ALTER TABLE public.profiles ENABLE TRIGGER trg_prevent_profile_privilege_escalat
 INSERT INTO public.account_subscriptions(id,scope_type,clinic_id,plan_code,status,billing_day,current_period_start,current_period_end,billing_provider,provider_environment,external_customer_id,external_subscription_id)
 VALUES('92400000-0000-4000-8000-000000000010','company','081d3db4-1606-40f7-a878-19b51556317d','company_growth','active',24,now(),now()+interval '1 month','asaas','sandbox','cus_scopeA','sub_scopeA'),
 ('92400000-0000-4000-8000-000000000020','company','3fc86c40-697e-4725-a9e9-633fc882aadc','company_growth','active',24,now(),now()+interval '1 month','asaas','sandbox','cus_scopeB','sub_scopeB');
+-- The contract guard deliberately uses a paid price snapshot, never the catalog.
+INSERT INTO public.billing_payments(subscription_id,clinic_id,amount_cents,currency,status,provider,provider_environment,provider_payment_id,paid_at,period_start,period_end)
+SELECT id,clinic_id,44900,'BRL','paid','asaas','sandbox',CASE WHEN id='92400000-0000-4000-8000-000000000010' THEN 'pay_initialScopeA' ELSE 'pay_initialScopeB' END,now(),current_period_start,current_period_end
+FROM public.account_subscriptions WHERE id IN('92400000-0000-4000-8000-000000000010','92400000-0000-4000-8000-000000000020');
 INSERT INTO public.saas_fixture_acceptance_jobs(id,kind,expires_at,status,claimed_at)
 VALUES('92400000-0000-4000-8000-000000000001','reconciliation',now()+interval '10 minutes','running',now());
 DO $$ BEGIN
