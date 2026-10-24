@@ -265,6 +265,31 @@ export function loadAsaasConfig(
   };
 }
 
+/** Explicit administrative Sandbox scope. This is not the regular checkout or
+ * worker configuration: callers must authorize the real operator and the exact
+ * contract before any provider request. Production still requires the active
+ * Production runtime and its existing explicit release gate. */
+export function loadAsaasAdministrativeConfig(
+  environment: AsaasProviderEnvironment,
+  source: Record<string, string | undefined> = process.env,
+): AsaasConfig {
+  if (environment === "production") {
+    const config = loadAsaasConfig(source);
+    if (config.environment !== "production") throw new Error("ASAAS_ADMIN_ENVIRONMENT_MISMATCH");
+    return config;
+  }
+  if (environment !== "sandbox") throw new Error("ASAAS_ADMIN_ENVIRONMENT_MISMATCH");
+  // No spread, Production secret fallback, global env mutation or worker token.
+  return loadAsaasConfig({
+    ASAAS_ENVIRONMENT: "sandbox",
+    ASAAS_API_KEY: source.ASAAS_API_KEY,
+    ASAAS_WEBHOOK_TOKEN: source.ASAAS_WEBHOOK_TOKEN,
+    ASAAS_USER_AGENT: source.ASAAS_USER_AGENT,
+    ASAAS_TIMEOUT_MS: "2500",
+    ASAAS_MAX_GET_RETRIES: "0",
+  });
+}
+
 function redactProviderText(value: unknown): string {
   return String(value ?? "")
     .replace(/\$aact_[A-Za-z0-9_$-]+/g, "[REDACTED_KEY]")
