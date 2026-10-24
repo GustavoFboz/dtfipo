@@ -45,7 +45,7 @@ describe('bounded Sandbox-only invoice generation',()=>{
   await generateFixtureRenewal(loadIsolatedSandboxConfig(source),'sub_scopeA','2026-11-16',transport);
   expect(transport).toHaveBeenCalledTimes(1);const [url,init]=transport.mock.calls[0];
   expect(String(url)).toBe('https://api-sandbox.asaas.com/v3/subscriptions/sub_scopeA/paymentBook?month=11&year=2026');
-  expect(init?.method).toBe('GET');expect(init).not.toHaveProperty('body');expect(init?.redirect).toBe('error');
+  expect(init?.method).toBe('GET');expect(init).not.toHaveProperty('body');expect(init?.redirect).toBe('manual');
  });
  it.each(['2026-12-24','2026-02-30','2026-10-01','not-a-date'])('refuses an unbounded or invalid period %s',async due=>{
   vi.useFakeTimers();vi.setSystemTime(new Date('2026-10-24T12:00:00Z'));

@@ -50,12 +50,13 @@ export async function generateFixtureRenewal(config:AsaasConfig,subscriptionId:s
   throw new FixtureFailure('FIXTURE_RENEWAL_GENERATION_FORBIDDEN');
  const url=new URL(`${config.baseUrl}/subscriptions/${subscriptionId}/paymentBook`);
  url.searchParams.set('month',String(Number(due.slice(5,7))));url.searchParams.set('year',due.slice(0,4));
- const response=await transport(url,{method:'GET',headers:{accept:'application/pdf','User-Agent':config.userAgent,access_token:config.apiKey},
-  signal:AbortSignal.timeout(10000),redirect:'error'});
- if(!response.ok)throw new FixtureFailure('FIXTURE_RENEWAL_GENERATION_FAILED',response.status);
- const reader=response.body?.getReader();if(!reader)throw new FixtureFailure('FIXTURE_RENEWAL_GENERATION_FAILED');
- let size=0;while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;
-  if(size>1048576){await reader.cancel();throw new FixtureFailure('FIXTURE_RENEWAL_GENERATION_TOO_LARGE');}}
+ let response:Response;
+ try{response=await transport(url.toString(),{method:'GET',headers:{accept:'application/pdf','User-Agent':config.userAgent,access_token:config.apiKey},
+  signal:AbortSignal.timeout(10000),redirect:'manual'});}catch{throw new FixtureFailure('FIXTURE_RENEWAL_GENERATION_UNCONFIRMED');}
+ // A document redirect is never followed with API credentials. Invoice GET,
+ // rather than a downloaded PDF, must prove whether generation committed.
+ if(!response.ok&&![302,303].includes(response.status))throw new FixtureFailure('FIXTURE_RENEWAL_GENERATION_FAILED',response.status);
+ await response.body?.cancel().catch(()=>undefined);
 }
 
 /** The production algorithm with real Asaas GETs and SQL lifecycle writes.
@@ -92,7 +93,7 @@ export async function runFixtureReconciliation(job:Job):Promise<Check[]> {
  const {supabaseAdmin}=await import('@/integrations/supabase/client.server'),admin=supabaseAdmin as SupabaseClient;
  const checks:Check[]=[];const runtime=process.env.ASAAS_ENVIRONMENT;
  const record=(check:string,passed:boolean,extra:Partial<Check>={})=>{checks.push({check,passed,...extra});if(!passed)throw new FixtureFailure(check.toUpperCase());};
- let before:string|undefined;
+ let before:string|undefined;let recovered=0;let phase='SETUP';
  const fingerprint=async()=>requireResult(await admin.rpc('saas_fixture_business_fingerprint' as any,{p_job_id:job.id}),'FIXTURE_BUSINESS_FINGERPRINT_FAILED') as string;
  const rows=async(paymentId:string)=>requireResult(await admin.from('billing_payments').select('id,provider_payment_id,status,amount_cents,period_start,period_end')
   .eq('provider_environment','sandbox').eq('provider_payment_id',paymentId),'FIXTURE_RENEWAL_LEDGER_READ_FAILED') as any[];
@@ -105,16 +106,30 @@ export async function runFixtureReconciliation(job:Job):Promise<Check[]> {
    const contracts=requireResult(await admin.from('account_subscriptions').select('*').eq('clinic_id',actor.clinic_id).eq('provider_environment','sandbox')
     .order('created_at',{ascending:false}).limit(1),'FIXTURE_RENEWAL_CONTRACT_READ_FAILED') as Contract[];
    const c=contracts[0];if(!c||!companies.includes(c.clinic_id)||c.current_period_end==null)throw new FixtureFailure('FIXTURE_RENEWAL_CONTRACT_INVALID');
+   selectFixtureRenewal([],c);
    const due=c.current_period_end.slice(0,10);
-   if(Date.parse(due+'T00:00:00Z')<Date.now()||Date.parse(due+'T00:00:00Z')>Date.now()+31*86400000)throw new FixtureFailure('FIXTURE_NEXT_PERIOD_OUTSIDE_WINDOW');
+   if(Date.parse(due+'T00:00:00Z')<Date.now())throw new FixtureFailure('FIXTURE_NEXT_PERIOD_OUTSIDE_WINDOW');
    const customer=await provider.getCustomer(c.external_customer_id);
    record('fixture_notifications_disabled',customer.id===c.external_customer_id&&customer.notificationDisabled===true&&customer.externalReference===`dentalflow:company:${c.clinic_id}`);
    const subscription=await provider.getSubscription(c.external_subscription_id);
    record('fixture_recurring_contract_verified',subscription.id===c.external_subscription_id&&subscription.customer===customer.id&&subscription.externalReference===`dentalflow:subscription:${c.id}`
     &&subscription.status==='ACTIVE'&&subscription.cycle==='MONTHLY'&&!subscription.deleted&&Math.round(Number(subscription.value)*100)===44900);
-   const since=c.current_period_start.slice(0,10);
+   if(Date.parse(due+'T00:00:00Z')>Date.now()+31*86400000){
+    const paid=requireResult(await admin.from('billing_payments').select('id').eq('subscription_id',c.id).eq('provider_environment','sandbox')
+     .eq('status','paid').eq('amount_cents',44900).eq('period_end',c.current_period_end),'FIXTURE_PREPAID_PERIOD_READ_FAILED');
+    record('already_renewed_fixture_no_extra_charge',(paid as any[]).length===1,{period_end:c.current_period_end,state:'NO_EXTRA_PROVIDER_WRITE'});continue;
+   }
+   const since=c.current_period_start.slice(0,10);phase='RENEWAL_LIST_READ';
    let payment=selectFixtureRenewal(await provider.listPaymentsForReconciliation(c.external_subscription_id,since),c);
-   if(!payment){await generateFixtureRenewal(config,c.external_subscription_id,due);payment=selectFixtureRenewal(await provider.listPaymentsForReconciliation(c.external_subscription_id,since),c);}
+   if(!payment){
+    phase='RENEWAL_GENERATION';
+    try{await generateFixtureRenewal(config,c.external_subscription_id,due);}catch(error){
+     if(!(error instanceof FixtureFailure)||!['FIXTURE_RENEWAL_GENERATION_UNCONFIRMED','FIXTURE_RENEWAL_GENERATION_FAILED'].includes(error.safeCode))throw error;
+     // Read back after an ambiguous response; never call paymentBook again.
+    }
+    phase='RENEWAL_GENERATION_READBACK';payment=selectFixtureRenewal(await provider.listPaymentsForReconciliation(c.external_subscription_id,since),c);
+    record('invoice_generation_readback_without_retry',!!payment);
+   }
    if(!payment)throw new FixtureFailure('FIXTURE_RENEWAL_INVOICE_MISSING');
    record('fixture_provider_renewal_invoice',true,{resource_id:payment.id,amount_cents:44900});
    const previous=requireResult(await admin.from('billing_payments').select('*').eq('subscription_id',c.id).eq('status','paid').order('id'),'FIXTURE_PAID_HISTORY_READ_FAILED') as any[];
@@ -145,9 +160,10 @@ export async function runFixtureReconciliation(job:Job):Promise<Check[]> {
    record('real_fixture_session_keeps_full_access',own.active_clinic_id===c.clinic_id&&own.effective_access==='full'&&own.company?.subscription_id===c.id);
    const foreign=sessions.find(s=>s.clinic_id!==actor.clinic_id)!;
    const denied=await foreign.client.from('billing_payments').select('id').eq('id',applied[0].id);
-   record('foreign_company_cannot_read_renewal',!denied.error&&denied.data?.length===0);
+   record('foreign_company_cannot_read_renewal',!denied.error&&denied.data?.length===0);recovered++;
   }});
- }catch(error){checks.push({check:'isolated_reconciliation_flow',passed:false,code:error instanceof FixtureFailure?error.safeCode:error instanceof AsaasApiError?'FIXTURE_PROVIDER_REQUEST_FAILED':'FIXTURE_RECONCILIATION_FAILED',
+  record('at_least_one_missing_payment_recovered',recovered>0,{count:recovered});
+ }catch(error){checks.push({check:'isolated_reconciliation_flow',passed:false,code:error instanceof FixtureFailure?error.safeCode:error instanceof AsaasApiError?'FIXTURE_PROVIDER_REQUEST_FAILED':`FIXTURE_${phase}_FAILED`,state:phase,
   ...(error instanceof FixtureFailure&&error.httpStatus?{http_status:error.httpStatus}:error instanceof AsaasApiError&&error.status?{http_status:error.status}:{})});}
  finally{
   if(before){try{const after=await fingerprint();checks.push({check:'non_fixture_business_data_preserved',passed:before===after,digest:after});}

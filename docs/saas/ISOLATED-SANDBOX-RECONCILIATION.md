@@ -13,6 +13,10 @@ cliente sem notificações e referência do provedor. Seleciona somente a fatura
 da próxima vigência, limitada aos próximos 31 dias. Caso ainda não exista, o
 recurso oficial de carnê pode antecipar sua geração até aquele mês. Esse GET
 tem efeito no Sandbox e é chamado uma única vez, sem repetição automática.
+O PDF não é baixado e redirecionamentos não são seguidos. Depois de uma resposta
+inconclusiva, somente a consulta das faturas decide se a geração foi concluída.
+Uma fixture já renovada além dos próximos 31 dias é apenas conferida, sem nova
+confirmação. A rodada exige pelo menos uma recuperação efetivamente concluída.
 
 A confirmação usa somente o simulador oficial Sandbox, uma vez. Uma retomada
 encontra um pagamento já confirmado por GET; não repete a confirmação. O teste
