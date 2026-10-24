@@ -17,11 +17,14 @@ on:
       - "vite.desktop.config.ts"
       - "scripts/prepare-notification-sound.mjs"
       - "docs/releases/**"
+      - "scripts/publish-native-release.mjs"
+      - "scripts/test-native-release-publication.mjs"
       - "mobile/audio/exact/**"
       - ".github/workflows/desktop-windows.yml"
   pull_request:
     branches:
       - main
+      - "saas/stage-03-asaas-checkout"
       - feature/desktop-tauri-foundation
     paths:
       - "src/**"
@@ -31,6 +34,8 @@ on:
       - "bun.lock"
       - "vite.desktop.config.ts"
       - "docs/releases/**"
+      - "scripts/publish-native-release.mjs"
+      - "scripts/test-native-release-publication.mjs"
       - ".github/workflows/desktop-windows.yml"
 
 permissions:
@@ -61,13 +66,21 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Verify release metadata 0.6.6
+      - name: Verify safe native publication
+        run: node scripts/test-native-release-publication.mjs
+
+      - name: Verify atomic offline cache and outbox expiration
+        run: |
+          node scripts/prepare-notification-sound.mjs
+          cargo test --manifest-path src-tauri/Cargo.toml offline_expiration_tests
+
+      - name: Verify release metadata 0.6.8
         shell: pwsh
         run: |
           $tauriConfig = Get-Content "src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json
           $cargo = Get-Content "src-tauri/Cargo.toml" -Raw
           $version = [string]$tauriConfig.version
-          if ($version -ne '0.6.6') { throw "Tauri release must be 0.6.6: $version" }
+          if ($version -ne '0.6.8') { throw "Tauri release must be 0.6.8: $version" }
           $escaped = [regex]::Escape($version)
           if ($cargo -notmatch "(?m)^version\s*=\s*`"$escaped`"") { throw "Rust package version does not match Tauri $version" }
           Write-Host "DentalFlow Desktop release: $version"
@@ -76,8 +89,8 @@ jobs:
         id: codesign
         shell: pwsh
         env:
-          WINDOWS_CERTIFICATE: ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') && secrets.WINDOWS_CERTIFICATE || '' }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main') && secrets.WINDOWS_CERTIFICATE_PASSWORD || '' }}
+          WINDOWS_CERTIFICATE: ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/native-20261017')) && secrets.WINDOWS_CERTIFICATE || '' }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/native-20261017')) && secrets.WINDOWS_CERTIFICATE_PASSWORD || '' }}
         run: |
           if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE) -or [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PASSWORD)) {
             "ready=false" >> $env:GITHUB_OUTPUT
@@ -159,7 +172,7 @@ jobs:
       - name: Upload Windows build
         uses: actions/upload-artifact@v4
         with:
-          name: DentalFlow-Windows-0.6.6
+          name: DentalFlow-Windows-0.6.8
           if-no-files-found: error
           retention-days: 14
           path: |
@@ -167,8 +180,11 @@ jobs:
             ${{ steps.release.outputs.checksum }}
 
   publish-windows-release:
+    concurrency:
+      group: dentalflow-publish-windows
+      cancel-in-progress: false
     name: Publish permanent Windows installer
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/release/native-20261017')
     needs: windows
     runs-on: ubuntu-latest
     permissions:
@@ -181,7 +197,7 @@ jobs:
       - name: Download verified Windows installer
         uses: actions/download-artifact@v4
         with:
-          name: DentalFlow-Windows-0.6.6
+          name: DentalFlow-Windows-0.6.8
           path: release
 
       - name: Publish permanent Windows installer
@@ -189,22 +205,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
-          RELEASE_VERSION="$(node -p "require('./src-tauri/tauri.conf.json').version")"
-          RELEASE_TAG="windows-v${RELEASE_VERSION}"
-          RELEASE_INSTALLER="release/DentalFlow_Windows_${RELEASE_VERSION}_x64-setup.exe"
-          RELEASE_CHECKSUM="release/DentalFlow_Windows_${RELEASE_VERSION}_x64-setup.sha256"
-          RELEASE_NOTES="docs/releases/windows-${RELEASE_VERSION}.md"
-          test -s "$RELEASE_INSTALLER"
-          test -s "$RELEASE_CHECKSUM"
-          test -f "$RELEASE_NOTES"
-          if ! gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$RELEASE_TAG" \
-              --repo "$GITHUB_REPOSITORY" \
-              --target "$GITHUB_SHA" \
-              --title "DentalFlow Windows $RELEASE_VERSION" \
-              --notes-file "$RELEASE_NOTES"
-          fi
-          gh release upload "$RELEASE_TAG" "$RELEASE_INSTALLER" "$RELEASE_CHECKSUM" \
-            --repo "$GITHUB_REPOSITORY" \
-            --clobber
+          node scripts/publish-native-release.mjs windows

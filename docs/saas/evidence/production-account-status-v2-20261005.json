@@ -1,0 +1,20 @@
+{
+  "available": true,
+  "contract": "dentalflow-production-preflight-v2",
+  "environment": "production",
+  "checked_at": "2026-10-05T18:13:45.653Z",
+  "configuration_valid": true,
+  "credentials_valid": true,
+  "account": {
+    "general": "APPROVED",
+    "commercialInfo": "APPROVED",
+    "bankAccountInfo": "PENDING",
+    "documentation": "APPROVED"
+  },
+  "account_approved": true,
+  "account_setup_complete": false,
+  "runtime_environment": "sandbox",
+  "production_enabled": false,
+  "webhook_delivery_verified": false,
+  "financial_processing_invoked": false
+}

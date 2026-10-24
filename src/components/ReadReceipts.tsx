@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
@@ -31,7 +32,7 @@ function readTime(iso?: string | null) {
 
 function Avatar({ r, className }: { r: Reader; className?: string }) {
   return r.avatarUrl ? (
-    <img
+    <PrivateImage
       src={r.avatarUrl}
       alt={r.name}
       className={cn("rounded-full object-cover border border-background", className)}

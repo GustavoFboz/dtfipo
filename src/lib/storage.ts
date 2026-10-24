@@ -1,10 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
 import { isDentalFlowDesktop, localCacheGet, localCachePut } from "@/lib/desktop-local";
 import { resolveDesktopOwnerId } from "@/lib/desktop-identity";
+import { withDesktopCloudTimeout } from "@/lib/desktop-cloud";
 
 export const DEFAULT_STORAGE_LIMIT_BYTES = 1024 * 1024 * 1024;
 export const STORAGE_WARNING_RATIO = 0.85;
 export const STORAGE_CRITICAL_RATIO = 0.95;
+export const STORAGE_RESERVATION_REVIEW_AGE_MS = 24 * 60 * 60 * 1000;
 
 const STORAGE_USAGE_NS = "storage-usage:v1";
 const STORAGE_USAGE_KEY = "current";
@@ -185,6 +187,53 @@ export async function fetchStorageFiles(): Promise<ManagedStorageFile[]> {
   return (data ?? []) as unknown as ManagedStorageFile[];
 }
 
+export async function fetchStorageUploadReservations(clinicId: string): Promise<ManagedStorageFile[]> {
+  if (!clinicId) return [];
+  const { data, error } = await withDesktopCloudTimeout("envios pendentes", Promise.resolve(supabase.from("storage_files" as never).select("*")
+    .eq("clinic_id", clinicId).eq("status", "reserved")
+    .order("created_at", { ascending: true }).limit(200)));
+  if (error) throw error;
+  return (data ?? []) as unknown as ManagedStorageFile[];
+}
+
+export function canReviewStorageReservation(file: ManagedStorageFile, now = Date.now()) {
+  const created = Date.parse(file.created_at);
+  return file.status === "reserved" && Number.isFinite(created) && now - created >= STORAGE_RESERVATION_REVIEW_AGE_MS;
+}
+
+export async function releaseStorageUploadReservation(file: ManagedStorageFile): Promise<{ released: boolean; releasedBytes: number }> {
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    throw new Error("Conecte-se à internet para verificar e liberar este envio pendente.");
+  }
+  if (!canReviewStorageReservation(file)) {
+    throw new Error("Somente envios pendentes há pelo menos 24 horas podem ser revisados.");
+  }
+  const { data, error } = await withDesktopCloudTimeout("recuperação do envio", Promise.resolve(supabase.rpc("release_storage_upload_reservation" as never, {
+    _file_id: file.id, _clinic_id: file.clinic_id,
+  } as never))).catch(() => {
+    throw new Error("O servidor não confirmou a liberação. Atualize a lista antes de tentar novamente.");
+  });
+  if (error) {
+    const message = String(error.message ?? "");
+    if (message.includes("STORAGE_OBJECT_STILL_EXISTS")) throw new Error("O arquivo já existe. A reserva foi preservada; atualize a lista antes de tentar novamente.");
+    if (message.includes("STORAGE_RESERVATION_HAS_SOURCE")) throw new Error("Este envio possui um registro vinculado e precisa de revisão. O espaço foi preservado.");
+    if (message.includes("STORAGE_RESERVATION_TOO_RECENT")) throw new Error("Este envio ainda é recente. Aguarde 24 horas antes de revisá-lo.");
+    if (message.includes("STORAGE_RESERVATION_NOT_PENDING")) throw new Error("Este envio já foi concluído. Atualize a lista.");
+    if (message.includes("STORAGE_MANAGEMENT_NOT_ALLOWED") || message.includes("NOT_AUTHENTICATED")) throw new Error("Entre com um administrador autorizado desta organização para liberar o envio.");
+    if (isMissingStorageBackend(error)) throw new Error("A recuperação de envios pendentes está indisponível. Tente novamente mais tarde.");
+    throw new Error("Não foi possível verificar o envio no servidor. O espaço foi preservado; tente novamente.");
+  }
+  const row = data as unknown as { id?: unknown; released?: unknown; released_bytes?: unknown } | null;
+  if (row?.id !== file.id || typeof row.released !== "boolean" || typeof row.released_bytes !== "number"
+      || !Number.isSafeInteger(row.released_bytes) || row.released_bytes < 0
+      || (row.released ? row.released_bytes !== Number(file.size_bytes) : row.released_bytes !== 0)) {
+    throw new Error("O servidor não confirmou a liberação. Atualize a lista antes de tentar novamente.");
+  }
+  // Never adjust quota optimistically or delete an object. The caller refreshes
+  // the authoritative measurement only after a valid, idempotent server result.
+  return { released: row.released, releasedBytes: row.released_bytes };
+}
+
 export async function reserveStorageUpload(input: {
   sizeBytes: number;
   bucket: string;
@@ -209,7 +258,7 @@ export async function reserveStorageUpload(input: {
   if (error) {
     if (isMissingStorageBackend(error)) {
       applyOptimisticStorageDelta(-input.sizeBytes);
-      return { reservationId: null, quotaEnforced: false };
+      throw new Error("A reserva de armazenamento está indisponível. Tente enviar o arquivo novamente mais tarde.");
     }
     applyOptimisticStorageDelta(-input.sizeBytes);
     if (String(error.message).includes("STORAGE_QUOTA_EXCEEDED")) {
@@ -218,7 +267,12 @@ export async function reserveStorageUpload(input: {
     throw error;
   }
   const row: any = Array.isArray(data) ? data[0] : data;
-  return { reservationId: row?.file_id ?? row?.id ?? (typeof data === "string" ? data : null), quotaEnforced: true };
+  const reservationId = row?.file_id ?? row?.id ?? (typeof data === "string" ? data : null);
+  if (!reservationId) {
+    applyOptimisticStorageDelta(-input.sizeBytes);
+    throw new Error("Não foi possível confirmar a reserva de armazenamento.");
+  }
+  return { reservationId, quotaEnforced: true };
 }
 
 export async function completeStorageUpload(reservationId: string | null, sourceId?: string | null) {
@@ -230,30 +284,25 @@ export async function completeStorageUpload(reservationId: string | null, source
     _file_id: reservationId,
     _source_id: sourceId ?? null,
   } as never);
-  if (error && !isMissingStorageBackend(error)) throw error;
+  if (error) throw error;
   void refreshStorageUsage().catch(() => undefined);
 }
 
-export async function cancelStorageUpload(reservationId: string | null, sizeBytes: number) {
-  applyOptimisticStorageDelta(-Math.max(0, sizeBytes));
+export async function cancelStorageUpload(reservationId: string | null, _sizeBytes: number) {
   if (!reservationId) return;
-  const { error } = await supabase.rpc("cancel_storage_upload" as never, { _file_id: reservationId } as never);
-  if (error && !isMissingStorageBackend(error)) console.warn("storage reservation cleanup failed", error);
+  const { error } = await withDesktopCloudTimeout("cancelamento do envio", Promise.resolve(supabase.rpc("cancel_storage_upload" as never, { _file_id: reservationId } as never)));
+  if (error) throw error;
+  // Only a new authoritative measurement frees visible quota. This also avoids
+  // subtracting twice when the idempotent RPC is retried after a lost response.
   void refreshStorageUsage().catch(() => undefined);
 }
 
 export async function deleteManagedStorageFile(file: ManagedStorageFile) {
+  const { error: storageError } = await supabase.storage.from(file.bucket).remove([file.object_path]);
+  if (storageError) throw storageError;
+  const { error } = await supabase.rpc("delete_managed_storage_file" as never, { _file_id: file.id } as never);
+  if (error) throw error;
   applyOptimisticStorageDelta(-Math.max(0, Number(file.size_bytes || 0)));
-  const { data, error } = await supabase.rpc("delete_managed_storage_file" as never, { _file_id: file.id } as never);
-  if (error) {
-    applyOptimisticStorageDelta(Math.max(0, Number(file.size_bytes || 0)));
-    throw error;
-  }
-  const payload: any = Array.isArray(data) ? data[0] : data;
-  const bucket = payload?.bucket ?? file.bucket;
-  const objectPath = payload?.object_path ?? file.object_path;
-  const { error: storageError } = await supabase.storage.from(bucket).remove([objectPath]);
-  if (storageError) console.warn("managed storage object cleanup failed", storageError);
   void refreshStorageUsage().catch(() => undefined);
 }
 
@@ -265,7 +314,8 @@ export function formatStorageBytes(bytes: number) {
   let i = 0;
   while (n >= 1024 && i < units.length - 1) { n /= 1024; i += 1; }
   const digits = n >= 100 ? 0 : n >= 10 ? 1 : 2;
-  return `${n.toFixed(digits).replace(".00", "").replace(".0", "")} ${units[i]}`;
+  const amount = n.toFixed(digits).replace(/(\.\d*?[1-9])0+$|\.0+$/, "$1");
+  return `${amount} ${units[i]}`;
 }
 
 export function storageSourceLabel(source: string) {

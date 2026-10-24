@@ -1,0 +1,135 @@
+{
+  "contract": "dentalflow-active-production-webhook-checkpoint-v1",
+  "checked_at": "2026-10-18T20:47:56.632135Z",
+  "activation_reported_by_owner": true,
+  "changed_by_agent": false,
+  "provider_read": {
+    "production-preflight.json": {
+      "available": true,
+      "contract": "dentalflow-production-preflight-v2",
+      "environment": "production",
+      "checked_at": "2026-10-18T20:47:29.896Z",
+      "configuration_valid": true,
+      "credentials_valid": true,
+      "account": {
+        "general": "APPROVED",
+        "commercialInfo": "APPROVED",
+        "bankAccountInfo": "PENDING",
+        "documentation": "APPROVED"
+      },
+      "account_approved": true,
+      "account_setup_complete": false,
+      "runtime_environment": "production",
+      "production_enabled": true,
+      "webhook_delivery_verified": false,
+      "financial_processing_invoked": false
+    },
+    "production-webhook-preflight.json": {
+      "available": true,
+      "contract": "dentalflow-production-webhook-preflight-v2",
+      "environment": "production",
+      "checked_at": "2026-10-18T20:47:30.881Z",
+      "configuration_valid": true,
+      "credentials_valid": true,
+      "listing_complete": true,
+      "matching_webhooks": 1,
+      "webhook_configuration_valid": false,
+      "token_verification": "requires_delivery",
+      "webhook_prepared": false,
+      "webhooks": [
+        {
+          "id": "ee2af07c-ec23-4224-893b-390efbc85c8f",
+          "enabled": true,
+          "interrupted": false,
+          "api_version": 3,
+          "send_type": "SEQUENTIALLY",
+          "token_matches": null,
+          "configured_events": [
+            "PAYMENT_REFUNDED",
+            "PAYMENT_OVERDUE",
+            "PAYMENT_CONFIRMED",
+            "PAYMENT_CHARGEBACK_REQUESTED",
+            "SUBSCRIPTION_DELETED",
+            "PAYMENT_AWAITING_CHARGEBACK_REVERSAL",
+            "SUBSCRIPTION_UPDATED",
+            "PAYMENT_REFUND_IN_PROGRESS",
+            "PAYMENT_PARTIALLY_REFUNDED",
+            "PAYMENT_CHARGEBACK_DISPUTE",
+            "SUBSCRIPTION_INACTIVATED",
+            "SUBSCRIPTION_CREATED",
+            "PAYMENT_RECEIVED"
+          ],
+          "missing_automated_events": [],
+          "missing_review_events": [],
+          "unknown_events_count": 0
+        }
+      ],
+      "webhook_delivery_verified": false,
+      "financial_processing_invoked": false
+    }
+  },
+  "review": {
+    "active_configuration_confirmed": true,
+    "expected_webhook_id": "ee2af07c-ec23-4224-893b-390efbc85c8f",
+    "authentication_requires_real_delivery": true,
+    "delivery_verified": false,
+    "payment_receipt_verified": false
+  },
+  "diagnostic": {
+    "run_id": 39160671286,
+    "run_attempt": 2,
+    "job_id": 117785699445,
+    "job_conclusion": "failure",
+    "account_read_conclusion": "success",
+    "webhook_read_http_status": 200,
+    "reason": "Legacy staging check expects enabled=false; provider read confirms enabled=true after owner activation.",
+    "artifact_id": 12149864427,
+    "artifact_sha256": "850d6cc7b1f3c22a6e18e979c54c56367009823ab4f7c2d2b222f145d9502c7f"
+  },
+  "runtime_and_catalog": {
+    "checked_at": "2026-10-18 20:47:56.632135+00",
+    "initial_plan": {
+      "code": "company_initial",
+      "currency": "BRL",
+      "monthly_price_cents": 100
+    },
+    "production_events": 0,
+    "production_payments": 0,
+    "production_scheduler": {
+      "configured_at": "2026-10-18T20:00:47.230114+00:00",
+      "cron_active": true,
+      "cron_job_id": 2,
+      "enabled": true,
+      "last_dispatched_at": "2026-10-18T20:46:00.433974+00:00",
+      "last_response_http_status": 200,
+      "last_response_timed_out": false,
+      "provider_environment": "production",
+      "schedule": "1-59/5 * * * *"
+    },
+    "production_worker": {
+      "counters": {
+        "failed": 0,
+        "graceReview": 0,
+        "ignored": 0,
+        "processed": 0,
+        "reconciliationQueued": 0,
+        "reconciliationReview": 0,
+        "reconciliationScanned": 0,
+        "recoveryQueued": 0,
+        "suspended": 0,
+        "workerReview": 0
+      },
+      "last_healthy_at": "2026-10-18T20:46:03.442671+00:00",
+      "status": "ok"
+    }
+  },
+  "acceptance": {
+    "completed": 5,
+    "total": 23,
+    "completed_stages": 0,
+    "total_stages": 7,
+    "criterion_7_2": "partial",
+    "criterion_7_3": "pending"
+  },
+  "next_action": "Owner creates the Initial R$1/month checkout in an ordinary company and completes payment on the official Asaas payment page; then verify delivery, ledger and access."
+}

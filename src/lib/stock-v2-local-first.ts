@@ -3,14 +3,13 @@ import * as cloud from "./stock-v2";
 import type { StockCategory, StockItemV2 } from "./stock-v2";
 import {
   clearDoneOutbox,
-  enqueueOutbox,
   getPendingOutbox,
   isDentalFlowDesktop,
-  localCacheGet,
-  localCachePut,
   markOutbox,
   type OutboxEntry,
 } from "./desktop-local";
+
+import {stockCompanyScope, companyStockCacheGet, companyStockCachePut, enqueueCompanyStock, companyStockPayload, StockCompanyScopeError, type StockCompanyScope} from './stock-company-local';
 
 const CATEGORIES_NS = "stock-v2-categories:v1";
 const ITEMS_NS = "stock-v2-items:v1";
@@ -43,36 +42,27 @@ function uuid() {
   throw new Error("Este dispositivo não oferece geração segura de identificadores locais.");
 }
 
-async function ownerId() {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.user?.id ?? null;
-}
+async function requireOwnerId() { return stockCompanyScope(); }
 
-async function requireOwnerId() {
-  const id = await ownerId();
-  if (!id) throw new Error("Sua sessão local não está disponível. Conecte-se novamente para revalidar este dispositivo.");
-  return id;
-}
-
-async function readCategories(owner: string) {
-  const entry = await localCacheGet<StockCategory[]>(owner, CATEGORIES_NS, ALL_KEY);
+async function readCategories(owner: StockCompanyScope) {
+  const entry = await companyStockCacheGet<StockCategory[]>(owner, CATEGORIES_NS, ALL_KEY);
   return Array.isArray(entry?.payload) ? entry.payload : [];
 }
 
-async function writeCategories(owner: string, rows: StockCategory[]) {
-  await localCachePut(owner, CATEGORIES_NS, ALL_KEY, [...rows].sort((a, b) => a.position - b.position || a.name.localeCompare(b.name, "pt-BR")));
+async function writeCategories(owner: StockCompanyScope, rows: StockCategory[]) {
+  await companyStockCachePut(owner, CATEGORIES_NS, ALL_KEY, [...rows].sort((a, b) => a.position - b.position || a.name.localeCompare(b.name, "pt-BR")));
 }
 
-async function readItems(owner: string) {
-  const entry = await localCacheGet<StockItemV2[]>(owner, ITEMS_NS, ALL_KEY);
+async function readItems(owner: StockCompanyScope) {
+  const entry = await companyStockCacheGet<StockItemV2[]>(owner, ITEMS_NS, ALL_KEY);
   return Array.isArray(entry?.payload) ? entry.payload : [];
 }
 
-async function writeItems(owner: string, rows: StockItemV2[]) {
-  await localCachePut(owner, ITEMS_NS, ALL_KEY, [...rows].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
+async function writeItems(owner: StockCompanyScope, rows: StockItemV2[]) {
+  await companyStockCachePut(owner, ITEMS_NS, ALL_KEY, [...rows].sort((a, b) => a.name.localeCompare(b.name, "pt-BR")));
 }
 
-async function upsertCategory(owner: string, row: StockCategory) {
+async function upsertCategory(owner: StockCompanyScope, row: StockCategory) {
   const current = await readCategories(owner);
   const next = current.some((item) => item.id === row.id)
     ? current.map((item) => (item.id === row.id ? row : item))
@@ -80,7 +70,7 @@ async function upsertCategory(owner: string, row: StockCategory) {
   await writeCategories(owner, next);
 }
 
-async function upsertItem(owner: string, row: StockItemV2) {
+async function upsertItem(owner: StockCompanyScope, row: StockItemV2) {
   const current = await readItems(owner);
   const next = current.some((item) => item.id === row.id)
     ? current.map((item) => (item.id === row.id ? row : item))
@@ -133,7 +123,7 @@ export async function createStockCategoryV2LocalFirst(name: string, position = 1
 
   const queue = async () => {
     await upsertCategory(owner, local);
-    await enqueueOutbox({ ownerId: owner, entityType: CATEGORY_ENTITY, entityId: local.id, operation: "create", payload: local });
+    await enqueueCompanyStock({ scope: owner, entityType: CATEGORY_ENTITY, entityId: local.id, operation: "create", payload: local });
     return local;
   };
 
@@ -156,7 +146,7 @@ export async function updateStockCategoryV2LocalFirst(id: string, patch: Partial
   const local = { ...existing, ...patch, id, updated_at: new Date().toISOString() };
   const queue = async () => {
     await upsertCategory(owner, local);
-    await enqueueOutbox({ ownerId: owner, entityType: CATEGORY_ENTITY, entityId: id, operation: "update", payload: patch });
+    await enqueueCompanyStock({ scope: owner, entityType: CATEGORY_ENTITY, entityId: id, operation: "update", payload: patch });
   };
   if (!online()) return queue();
   try {
@@ -173,7 +163,7 @@ export async function deleteStockCategoryV2LocalFirst(id: string) {
   const owner = await requireOwnerId();
   const queue = async () => {
     await writeCategories(owner, (await readCategories(owner)).filter((row) => row.id !== id));
-    await enqueueOutbox({ ownerId: owner, entityType: CATEGORY_ENTITY, entityId: id, operation: "delete", payload: { id } });
+    await enqueueCompanyStock({ scope: owner, entityType: CATEGORY_ENTITY, entityId: id, operation: "delete", payload: { id } });
   };
   if (!online()) return queue();
   try {
@@ -211,7 +201,7 @@ export async function createStockItemV2LocalFirst(input: Parameters<typeof cloud
 
   const queue = async () => {
     await upsertItem(owner, local);
-    await enqueueOutbox({ ownerId: owner, entityType: ITEM_ENTITY, entityId: id, operation: "create", payload: { id, input } });
+    await enqueueCompanyStock({ scope: owner, entityType: ITEM_ENTITY, entityId: id, operation: "create", payload: { id, input } });
     return id;
   };
 
@@ -252,7 +242,7 @@ export async function updateStockItemV2LocalFirst(
 
   const queue = async () => {
     await upsertItem(owner, local);
-    await enqueueOutbox({ ownerId: owner, entityType: ITEM_ENTITY, entityId: id, operation: "update", payload: { patch, custom_fields: customFields ?? null } });
+    await enqueueCompanyStock({ scope: owner, entityType: ITEM_ENTITY, entityId: id, operation: "update", payload: { patch, custom_fields: customFields ?? null } });
   };
 
   if (!online()) return queue();
@@ -270,7 +260,7 @@ export async function deleteStockItemV2LocalFirst(id: string) {
   const owner = await requireOwnerId();
   const queue = async () => {
     await writeItems(owner, (await readItems(owner)).filter((row) => row.id !== id));
-    await enqueueOutbox({ ownerId: owner, entityType: ITEM_ENTITY, entityId: id, operation: "delete", payload: { id } });
+    await enqueueCompanyStock({ scope: owner, entityType: ITEM_ENTITY, entityId: id, operation: "delete", payload: { id } });
   };
   if (!online()) return queue();
   try {
@@ -293,7 +283,7 @@ export async function adjustStockV2LocalFirst(itemId: string, delta: number, not
 
   const queue = async () => {
     await upsertItem(owner, { ...existing, qty_on_hand: nextQty, updated_at: new Date().toISOString(), last_restocked_at: delta > 0 ? new Date().toISOString() : existing.last_restocked_at });
-    await enqueueOutbox({ ownerId: owner, entityType: ADJUST_ENTITY, entityId: uuid(), operation: "create", payload: { itemId, delta, notes: notes ?? null } });
+    await enqueueCompanyStock({ scope: owner, entityType: ADJUST_ENTITY, entityId: uuid(), operation: "create", payload: { itemId, delta, notes: notes ?? null } });
   };
 
   if (!online()) return queue();
@@ -314,8 +304,8 @@ export async function linkStockItemToImplantSystemLocalFirst(itemId: string, ite
 
   const queue = async () => {
     if (existing && !systemId) await upsertItem(owner, { ...existing, implant_system_component_id: null, updated_at: new Date().toISOString() });
-    await enqueueOutbox({
-      ownerId: owner,
+    await enqueueCompanyStock({
+      scope: owner,
       entityType: LINK_IMPLANT_ENTITY,
       entityId: itemId,
       operation: "set",
@@ -333,18 +323,19 @@ export async function linkStockItemToImplantSystemLocalFirst(itemId: string, ite
   }
 }
 
-async function syncEntry(owner: string, entry: OutboxEntry<Record<string, any>>) {
-  await markOutbox(owner, entry.id, "syncing");
+async function syncEntry(owner: StockCompanyScope, entry: OutboxEntry<Record<string, any>>) {
+  await markOutbox(owner.ownerId, entry.id, "syncing");
   try {
+    entry = {...entry, payload: await companyStockPayload(owner,entry.payload)};
     if (entry.entity_type === CATEGORY_ENTITY) {
       const id = entry.entity_id ?? entry.payload.id;
       if (!id) throw new Error("Categoria local sem identificador.");
       if (entry.operation === "create") {
-        const { data, error } = await (supabase as any).from(CATEGORY_ENTITY).upsert({ ...entry.payload, id }, { onConflict: "id" }).select().single();
+        const { data, error } = await (supabase as any).from(CATEGORY_ENTITY).upsert({ ...entry.payload, id, clinic_id: owner.clinicId }, { onConflict: "id" }).select().single();
         if (error) throw error;
         await upsertCategory(owner, data as StockCategory);
       } else if (entry.operation === "update") {
-        const { data, error } = await (supabase as any).from(CATEGORY_ENTITY).update(entry.payload).eq("id", id).select().maybeSingle();
+        const { data, error } = await (supabase as any).from(CATEGORY_ENTITY).update({...entry.payload,clinic_id:owner.clinicId}).eq("id", id).select().maybeSingle();
         if (error) throw error;
         if (!data) return await conflict(owner, entry, "A categoria não existe mais no servidor.");
         await upsertCategory(owner, data as StockCategory);
@@ -358,7 +349,7 @@ async function syncEntry(owner: string, entry: OutboxEntry<Record<string, any>>)
       if (entry.operation === "create") {
         const input = entry.payload.input ?? {};
         const itemPayload = {
-          id,
+          id, clinic_id:owner.clinicId,
           category_id: input.category_id,
           category: categoryEnum(input.category_name),
           name: input.name,
@@ -407,7 +398,7 @@ async function syncEntry(owner: string, entry: OutboxEntry<Record<string, any>>)
         qty: Number(delta),
         qty_before: 0,
         qty_after: 0,
-        user_id: owner,
+        user_id: owner.ownerId,
         notes: notes ?? (Number(delta) > 0 ? "Reposição" : "Ajuste"),
       }, { onConflict: "id" });
       if (error) throw error;
@@ -418,27 +409,31 @@ async function syncEntry(owner: string, entry: OutboxEntry<Record<string, any>>)
       return "skip" as const;
     }
 
-    await markOutbox(owner, entry.id, "done");
+    await markOutbox(owner.ownerId, entry.id, "done");
     return "done" as const;
   } catch (error) {
+    if (error instanceof StockCompanyScopeError) {
+      await markOutbox(owner.ownerId,entry.id,"conflict",error.message);
+      return "conflict" as const;
+    }
     const message = String((error as any)?.message ?? error ?? "Erro de sincronização do estoque v2");
     if (transient(error)) {
-      await markOutbox(owner, entry.id, "pending", message);
+      await markOutbox(owner.ownerId, entry.id, "pending", message);
       return "network" as const;
     }
-    await markOutbox(owner, entry.id, "error", message);
+    await markOutbox(owner.ownerId, entry.id, "error", message);
     return "error" as const;
   }
 }
 
-async function conflict(owner: string, entry: OutboxEntry, message: string) {
-  await markOutbox(owner, entry.id, "conflict", message);
+async function conflict(owner: StockCompanyScope, entry: OutboxEntry, message: string) {
+  await markOutbox(owner.ownerId, entry.id, "conflict", message);
   return "conflict" as const;
 }
 
 export async function warmStockV2LocalCache(): Promise<{ categoriesCached: number; itemsCached: number }> {
   if (!isDentalFlowDesktop() || !online()) return { categoriesCached: 0, itemsCached: 0 };
-  const owner = await ownerId();
+  const owner = await stockCompanyScope().catch(() => null);
   if (!owner) return { categoriesCached: 0, itemsCached: 0 };
   let categoriesCached = 0;
   let itemsCached = 0;
@@ -461,10 +456,10 @@ export async function warmStockV2LocalCache(): Promise<{ categoriesCached: numbe
 
 export async function syncPendingStockV2Changes(): Promise<StockV2OfflineSyncSummary> {
   if (!isDentalFlowDesktop() || !online()) return { processed: 0, failed: 0, conflicts: 0, categoriesCached: 0, itemsCached: 0 };
-  const owner = await ownerId();
+  const owner = await stockCompanyScope().catch(() => null);
   if (!owner) return { processed: 0, failed: 0, conflicts: 0, categoriesCached: 0, itemsCached: 0 };
   const supported = new Set([CATEGORY_ENTITY, ITEM_ENTITY, ADJUST_ENTITY, LINK_IMPLANT_ENTITY]);
-  const entries = (await getPendingOutbox<Record<string, any>>(owner, 500)).filter((entry) => supported.has(entry.entity_type));
+  const entries = (await getPendingOutbox<Record<string, any>>(owner.ownerId, 500)).filter((entry) => supported.has(entry.entity_type));
   let processed = 0;
   let failed = 0;
   let conflicts = 0;
@@ -475,7 +470,7 @@ export async function syncPendingStockV2Changes(): Promise<StockV2OfflineSyncSum
     if (result === "conflict") conflicts += 1;
     if (result === "network") break;
   }
-  if (processed > 0) await clearDoneOutbox(owner);
+  if (processed > 0) await clearDoneOutbox(owner.ownerId);
   const warmed = await warmStockV2LocalCache();
   return { processed, failed, conflicts, ...warmed };
 }

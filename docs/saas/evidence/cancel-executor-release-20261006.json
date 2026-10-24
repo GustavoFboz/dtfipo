@@ -1,0 +1,176 @@
+{
+  "contract": "dentalflow-cancel-release-v1",
+  "reported_at": "2026-10-06 04:13:24.675722+00",
+  "scope": "Stage 5/7, partial criteria 5.2 and 5.3; cancellation only",
+  "repository": "GustavoFboz/dtfipo",
+  "pull_request": 147,
+  "base_sha": "fb9db46e1fd4c2b437ffe09aefdbf2ef20c33e41",
+  "candidate_sha": "1a863299c65bf7a9822cccff01f1849e0e78aa61",
+  "merge_sha": "a11f8dfc90da472a9f28bead1e2cc994d5b21b75",
+  "scoped_files": 24,
+  "source_and_blob_hashes_verified": true,
+  "unexpected_files": 0,
+  "migration": {
+    "name": "20261006040000_saas_cancel_executor_stage08.sql",
+    "restore_migrations": 173,
+    "claim_exists": true,
+    "client_can_read_executions": false,
+    "installed_at": "2026-10-06 04:09:50.111906+00",
+    "service_can_claim": false,
+    "user_can_finish": false
+  },
+  "deployment": {
+    "status": "pending",
+    "deployment_id": "39215e77-e54f-4eff-a8e3-df7185219c44",
+    "url": "https://dtfipo.lovable.app",
+    "preview_url": "https://id-preview--a8b717e3-87ad-482d-8d4a-de81679507e0.lovable.app",
+    "publication_proof": "Observed new published Master asset and denied unauthenticated API request; pending API status alone is not completion",
+    "master_asset": "/assets/master-Dnjx8i__.js",
+    "html": {
+      "billing_paths": [
+        "/assets/billing-change-requests-bdKwxcSo.js"
+      ],
+      "error_msg": null,
+      "id": 107,
+      "inspected_at": "2026-10-06 04:12:14.225267+00",
+      "master_paths": [
+        "/assets/master-Dnjx8i__.js"
+      ],
+      "response_record_created_at": "2026-10-06 04:11:41.389569+00",
+      "status_code": 200,
+      "timed_out": false
+    },
+    "runtime_probes": [
+      {
+        "cancel_adapter_present": false,
+        "cancel_review_present": false,
+        "denied_without_auth": true,
+        "error_msg": null,
+        "id": 108,
+        "inspected_at": "2026-10-06 04:13:24.675722+00",
+        "paid_period_copy_present": false,
+        "reconciliation_instruction_present": false,
+        "response_record_created_at": "2026-10-06 04:12:25.595593+00",
+        "status_code": 403,
+        "timed_out": false
+      },
+      {
+        "cancel_adapter_present": true,
+        "cancel_review_present": true,
+        "denied_without_auth": false,
+        "error_msg": null,
+        "id": 109,
+        "inspected_at": "2026-10-06 04:13:24.675722+00",
+        "paid_period_copy_present": true,
+        "reconciliation_instruction_present": true,
+        "response_record_created_at": "2026-10-06 04:12:34.802819+00",
+        "status_code": 200,
+        "timed_out": false
+      }
+    ],
+    "timestamp_note": "response_record_created_at is pg_net record creation time, not independently proven HTTP completion time"
+  },
+  "validation": {
+    "local_tests": {
+      "files": 20,
+      "passed": 259
+    },
+    "typescript": "passed",
+    "web_build": "passed",
+    "desktop_static_build": "passed",
+    "mobile_static_build": "passed",
+    "stage_06_08_09_contracts": "passed",
+    "desktop_entitlement_bootstrap": "passed",
+    "candidate_runs": [
+      {
+        "id": 37412217696,
+        "name": "DentalFlow SaaS Restore Rehearsal",
+        "head_sha": "1a863299c65bf7a9822cccff01f1849e0e78aa61",
+        "conclusion": "success"
+      },
+      {
+        "id": 37412170940,
+        "name": "DentalFlow SaaS Restore Rehearsal",
+        "head_sha": "1a863299c65bf7a9822cccff01f1849e0e78aa61",
+        "conclusion": "success"
+      },
+      {
+        "id": 37412170965,
+        "name": "Dental Flow CI",
+        "head_sha": "1a863299c65bf7a9822cccff01f1849e0e78aa61",
+        "conclusion": "success"
+      }
+    ],
+    "merged_runs": [
+      {
+        "id": 37412350210,
+        "name": "DentalFlow SaaS Restore Rehearsal",
+        "head_sha": "a11f8dfc90da472a9f28bead1e2cc994d5b21b75",
+        "conclusion": "success"
+      },
+      {
+        "id": 37412350229,
+        "name": "Dental Flow CI",
+        "head_sha": "a11f8dfc90da472a9f28bead1e2cc994d5b21b75",
+        "conclusion": "success"
+      }
+    ],
+    "sql_cancel_rehearsal": [
+      {
+        "name": "Rehearse Stage 08 cancellation lease, MFA and paid-period preservation",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "preservation": {
+    "baseline": {
+      "business_contract_hash": "f2ab61f2b02c4091d86668d4ad5492d8",
+      "change_request_count": 0,
+      "checked_at": "2026-10-06 04:08:44.811869+00",
+      "external_review_audits": 0,
+      "payment_ledger_hash": "d55c78a72d5186254aff4e0323637628",
+      "production_payments_count": 0,
+      "sandbox_dead_letters": 2
+    },
+    "after": {
+      "business_contract_hash": "f2ab61f2b02c4091d86668d4ad5492d8",
+      "change_request_count": 0,
+      "checked_at": "2026-10-06 04:13:16.02393+00",
+      "execution_count": 0,
+      "external_review_audits": 0,
+      "payment_ledger_hash": "d55c78a72d5186254aff4e0323637628",
+      "production_payments_count": 0,
+      "sandbox_dead_letters": 2
+    },
+    "payment_ledger_unchanged": true,
+    "business_contract_unchanged": true,
+    "business_hash_definition": "md5 of ordered account_subscriptions JSON where status <> pending_checkout, excluding metadata, updated_at and reconciliation_checked_at",
+    "ledger_hash_definition": "md5 of ordered full billing_payments JSON",
+    "telemetry_note": "reconciliation_checked_at changes during scheduled readback and is not a contract price, status or paid-period mutation"
+  },
+  "live_actions": {
+    "provider_calls_invoked_by_this_release_validation": false,
+    "provider_financial_writes": false,
+    "financial_replay": false,
+    "real_charge": false,
+    "business_request_execution_count": 0,
+    "auth_sessions_fabricated": false,
+    "clinical_object_delete_or_move": false
+  },
+  "acceptance": {
+    "accepted": 2,
+    "total": 23,
+    "percent": 8.695652173913043,
+    "whole_stages_closed": 0,
+    "remaining": 21,
+    "additional_to_target_10": 8,
+    "criteria_5_2": "partial",
+    "criteria_5_3": "partial"
+  },
+  "remaining": [
+    "Real authenticated Sandbox cancellation and failure evidence",
+    "Effective-date pricing and handling of existing invoices for plan changes/downgrades",
+    "Master/AAL2 completion of two unrelated manual external Sandbox events",
+    "Other unchanged acceptance requirements"
+  ]
+}

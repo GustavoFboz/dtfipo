@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-22",
+  "source": "Readonly aggregated JWT metadata; URLs and token values were not returned",
+  "rows": [
+    {
+      "earliest_expiry": "2036-07-29 02:52:01+00",
+      "latest_expiry": "2036-09-08 22:02:44+00",
+      "latest_issued": "2026-09-11 22:02:44+00",
+      "not_expired": 6,
+      "references": 6,
+      "source": "avatar"
+    },
+    {
+      "earliest_expiry": "2036-08-05 19:05:03+00",
+      "latest_expiry": "2036-10-04 15:36:33+00",
+      "latest_issued": "2026-10-07 15:36:33+00",
+      "not_expired": 34,
+      "references": 34,
+      "source": "patient_photo"
+    }
+  ],
+  "objects_changed": false,
+  "references_changed": false,
+  "revocation_verified": false,
+  "acceptance_4_3": "partial"
+}
