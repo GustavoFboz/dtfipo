@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { FixtureFailure, requireResult, type Check, type Job } from './fixture-acceptance.server';
 import { withFixtureSessions, type FixtureSession } from './fixture-sessions.server';
 import { exerciseFixtureStorageResilience } from './fixture-storage-resilience.server';
+import { exerciseFixturePrivateFiles } from './fixture-private-files.server';
 import { exerciseFixtureActivityReadPrivacy } from './fixture-activity-reads.server';
 
 const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a6BYAAAAASUVORK5CYII=','base64');
@@ -129,6 +130,7 @@ export async function runFixtureStorage(job:Job):Promise<Check[]> {
           const foreignCase=await foreign.client.from('cases').select('id').eq('id',clinical.caseId);
           checks.push({check:'populated_company_clinical_isolation',passed:!foreignPatient.error&&foreignPatient.data.length===0&&!foreignCase.error&&foreignCase.data.length===0});
           checks.push(...await exerciseFixtureActivityReadPrivacy(fixture,foreign,job.id,clinical.caseId));
+          checks.push(...await exerciseFixturePrivateFiles(fixture,foreign,job.id,uploads.find(u=>u.source==='user_avatar')!));
         } finally {
           for(const upload of [...uploads].reverse()) {
             try {

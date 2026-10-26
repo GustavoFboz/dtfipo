@@ -1037,3 +1037,16 @@ REVOKE ALL ON FUNCTION public.create_patient_idempotent_v1(uuid,uuid,jsonb),
  public.create_case_idempotent_v1(uuid,jsonb) FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.create_patient_idempotent_v1(uuid,uuid,jsonb),
  public.create_case_idempotent_v1(uuid,jsonb) TO authenticated;
+
+-- Legacy private files: administrative migration and history aliases stay private.
+REVOKE ALL ON TABLE public.private_file_rotation_jobs,public.private_file_rotation_targets FROM PUBLIC,anon,authenticated,service_role;
+GRANT SELECT ON TABLE public.private_file_rotation_jobs,public.private_file_rotation_targets TO service_role;
+REVOKE ALL ON FUNCTION public.claim_private_file_rotation(uuid,text),public.activate_private_file_rotation(uuid,uuid,uuid,text,bigint),
+ public.verify_private_file_rotation(uuid,uuid,uuid,text,integer),public.finish_private_file_rotation(uuid,uuid),
+ public.prepare_fixture_private_file_rotation(uuid,uuid,text,text),public.resolve_rotated_private_file(text,text),
+ public.private_file_path_is_retired(text,text) FROM PUBLIC,anon,authenticated,service_role;
+GRANT EXECUTE ON FUNCTION public.claim_private_file_rotation(uuid,text),public.activate_private_file_rotation(uuid,uuid,uuid,text,bigint),
+ public.verify_private_file_rotation(uuid,uuid,uuid,text,integer),public.finish_private_file_rotation(uuid,uuid),
+ public.prepare_fixture_private_file_rotation(uuid,uuid,text,text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.resolve_rotated_private_file(text,text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.private_file_path_is_retired(text,text) TO authenticated,service_role;

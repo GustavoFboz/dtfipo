@@ -168,12 +168,30 @@ export async function resolvePrivateFile(value: string, expected?: Scope): Promi
     assertScope(expected);
     if (authError || !auth.session || auth.session.user.id !== expected.ownerId) throw new Error("PRIVATE_FILE_SESSION_CHANGED");
     const startedAt = Date.now();
-    const { data, error } = await withDesktopCloudTimeout("acesso ao arquivo", Promise.resolve(
+    let effectiveReference = reference;
+    let { data, error } = await withDesktopCloudTimeout("acesso ao arquivo", Promise.resolve(
       supabase.storage.from(reference.bucket).createSignedUrl(reference.path, PRIVATE_FILE_URL_TTL_SECONDS)), 12_000);
     assertScope(expected);
+    if ((error || !data?.signedUrl) && ["patient-photos", "avatars"].includes(reference.bucket)) {
+      const rpc = supabase.rpc.bind(supabase) as unknown as (name: string, args: Record<string,string>) =>
+        PromiseLike<{data: {bucket?: unknown; path?: unknown} | null; error: unknown}>;
+      const alias = await withDesktopCloudTimeout("referência do arquivo", Promise.resolve(
+        rpc("resolve_rotated_private_file", {_bucket: reference.bucket, _path: reference.path})), 12_000);
+      assertScope(expected);
+      const mapped = alias.data;
+      if (alias.error || mapped?.bucket !== reference.bucket || typeof mapped.path !== "string"
+        || mapped.path.split("/")[0] !== reference.path.split("/")[0] || mapped.path === reference.path)
+        throw new Error("PRIVATE_FILE_ACCESS_DENIED");
+      const parsed = parsePrivateFileReference(`storage://${reference.bucket}/${mapped.path}`, storageOrigin());
+      if (!parsed) throw new Error("PRIVATE_FILE_RESPONSE_INVALID");
+      effectiveReference = parsed;
+      ({data, error} = await withDesktopCloudTimeout("acesso ao arquivo", Promise.resolve(
+        supabase.storage.from(parsed.bucket).createSignedUrl(parsed.path, PRIVATE_FILE_URL_TTL_SECONDS)), 12_000));
+      assertScope(expected);
+    }
     if (error || !data?.signedUrl) throw new Error("PRIVATE_FILE_ACCESS_DENIED");
     const signed = parsePrivateFileReference(data.signedUrl, storageOrigin());
-    if (!signed || signed.bucket !== reference.bucket || signed.path !== reference.path) throw new Error("PRIVATE_FILE_RESPONSE_INVALID");
+    if (!signed || signed.bucket !== effectiveReference.bucket || signed.path !== effectiveReference.path) throw new Error("PRIVATE_FILE_RESPONSE_INVALID");
     const renewed = { url: data.signedUrl, renewAt: startedAt + (PRIVATE_FILE_URL_TTL_SECONDS - 30) * 1000 };
     if (renewed.renewAt <= Date.now()) throw new Error("PRIVATE_FILE_RESPONSE_EXPIRED");
     if (memory.size >= MAX_MEMORY_ENTRIES) memory.delete(memory.keys().next().value!);

@@ -110,3 +110,19 @@ if (!review.includes('request.method !== "GET"') || !review.includes('isAsaasWor
   || /\.(?:rpc|insert|update|delete|upsert|createCustomer|createSubscription|updateSubscription)\s*\(/.test(review))
   throw new Error("Inbox review must remain a private bounded Sandbox read without financial writes");
 console.log("Stage 09 static production and operational gates: OK");
+
+const privateRotation = "20261026153000_private_file_reference_rotation.sql";
+const privateRotationSource = fs.readFileSync(`supabase/migrations/${privateRotation}`, "utf8");
+if (privateRotationSource !== fs.readFileSync(`public/restore/migrations/${privateRotation}`, "utf8"))
+ throw new Error("Private file rotation restore differs");
+for (const path of ["src/lib/private-file-rotation.server.ts", "src/lib/private-file-rotation.server.test.ts",
+ "src/lib/qa/fixture-private-files.server.ts", "docs/saas/sql/private-file-rotation-rehearsal.sql"])
+ if (!fs.existsSync(path)) throw new Error(`Private rotation artifact missing: ${path}`);
+const rotationSelfHeal=fs.readFileSync("public/restore/migrations/20260718000001_zzz_self_heal_v2.sql","utf8");
+for(const marker of ["public.private_file_rotation_jobs,public.private_file_rotation_targets",
+ "public.claim_private_file_rotation(uuid,text)","public.resolve_rotated_private_file(text,text)",
+ "public.prepare_fixture_private_file_rotation(uuid,uuid,text,text)"])
+ if(!rotationSelfHeal.includes(marker)) throw new Error(`Private rotation grant not resealed: ${marker}`);
+if (/\b(?:update|insert\s+into|delete\s+from)\s+public\.(?:account_subscriptions|billing_payments|billing_plans)\b/i.test(privateRotationSource))
+ throw new Error("Private file migration may not mutate financial contracts");
+console.log("Private file rotation and retired path boundary: OK");

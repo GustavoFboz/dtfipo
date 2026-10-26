@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ getSession: vi.fn(), onAuth: vi.fn(), sign: vi.fn(), bucket: vi.fn(),
+const mocks = vi.hoisted(() => ({ getSession: vi.fn(), rpc: vi.fn(), onAuth: vi.fn(), sign: vi.fn(), bucket: vi.fn(),
   installed: vi.fn(), identity: vi.fn(), read: vi.fn(), write: vi.fn(), list: vi.fn(), remove: vi.fn(), readImage: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {
-  auth: { getSession: mocks.getSession, onAuthStateChange: mocks.onAuth }, storage: { from: mocks.bucket },
+  rpc: mocks.rpc, auth: { getSession: mocks.getSession, onAuthStateChange: mocks.onAuth }, storage: { from: mocks.bucket },
 } }));
 vi.mock("./desktop-local", () => ({
   isDentalFlowDesktop: mocks.installed, getProvisionedDesktopIdentity: mocks.identity,
@@ -20,6 +20,7 @@ let api: typeof import("./private-file-access");
 beforeEach(async () => {
   vi.resetModules(); vi.clearAllMocks(); vi.stubEnv("VITE_SUPABASE_URL", "https://project.supabase.co");
   mocks.getSession.mockResolvedValue(session("alice"));
+  mocks.rpc.mockResolvedValue({data:null,error:null});
   mocks.onAuth.mockImplementation((callback) => { listener = callback; return { data: { subscription: { unsubscribe: vi.fn() } } }; });
   mocks.bucket.mockReturnValue({ createSignedUrl: mocks.sign });
   mocks.sign.mockResolvedValue({ data: { signedUrl: signed }, error: null });
@@ -48,6 +49,18 @@ describe("private file signatures belong to the current account", () => {
   it("does not render the old bearer if current Storage authorization fails", async () => {
     mocks.sign.mockResolvedValue({ data: null, error: { status: 403 } });
     await expect(api.resolvePrivateFile(signed.replace("new-token", "old-token"))).rejects.toThrow("PRIVATE_FILE_ACCESS_DENIED");
+  });
+  it("resolves a retired legacy path only through the authorized alias and a fresh Storage signature", async () => {
+    mocks.sign.mockResolvedValueOnce({data:null,error:{status:404}}).mockResolvedValueOnce({data:{signedUrl:signed.replace("photo.jpg","rotated.jpg")},error:null});
+    mocks.rpc.mockResolvedValue({data:{bucket:"patient-photos",path:"patient/rotated.jpg"},error:null});
+    expect((await api.resolvePrivateFile(source)).url).toContain("patient/rotated.jpg");
+    expect(mocks.sign).toHaveBeenLastCalledWith("patient/rotated.jpg",300);
+  });
+  it("does not accept an alias for another patient", async () => {
+    mocks.sign.mockResolvedValue({data:null,error:{status:404}});
+    mocks.rpc.mockResolvedValue({data:{bucket:"patient-photos",path:"other/photo.jpg"},error:null});
+    await expect(api.resolvePrivateFile(source)).rejects.toThrow("PRIVATE_FILE_ACCESS_DENIED");
+    expect(mocks.sign).toHaveBeenCalledTimes(1);
   });
   it("rejects a signed result for a different path", async () => {
     mocks.sign.mockResolvedValue({ data: { signedUrl: signed.replace("patient/photo.jpg", "other/photo.jpg") }, error: null });

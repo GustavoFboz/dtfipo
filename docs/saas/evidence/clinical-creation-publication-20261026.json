@@ -1,0 +1,97 @@
+{
+  "recorded_at": "2026-10-26T14:02:37.682Z",
+  "pull_request": 197,
+  "head": "06b96aa04e3dd5c4e79cc6b269fd8ca166e60f43",
+  "merge": {
+    "sha": "3d45318a5cef29a6d07f2692d34646e016134bc5",
+    "merged": true,
+    "message": "Pull Request successfully merged"
+  },
+  "checks": {
+    "local_tests": 167,
+    "typecheck": "passed",
+    "web_ci": {
+      "run_id": 40329757492,
+      "conclusion": "success"
+    },
+    "restore": {
+      "run_id": 40329757519,
+      "conclusion": "success"
+    },
+    "previous_restore_attempt": {
+      "run_id": 40328894520,
+      "conclusion": "failure",
+      "reason": "Caller RLS on initial patient insert/return; fixed and revalidated"
+    }
+  },
+  "deployment": {
+    "status": "pending",
+    "deployment_id": "040f93a3-b0fd-4860-9bd0-149a85f3bc8d",
+    "url": "https://dtfipo.lovable.app",
+    "preview_url": "https://id-preview--a8b717e3-87ad-482d-8d4a-de81679507e0.lovable.app"
+  },
+  "before": {
+    "rows": [
+      {
+        "cases_count": 86,
+        "cases_hash": "361db91ee99473d50a244ae999d36fa7",
+        "checked_at": "2026-10-26 13:23:03.032445+00",
+        "patients_count": 104,
+        "patients_hash": "82607c46d209337c710196b49c45c39c",
+        "payments_hash": "4af9ac1e35877e3c2924c731404f10db",
+        "production_payments": 1,
+        "storage_hash": "fe98c85c64dce0e1cf6162f5d71348af",
+        "subscriptions_hash": "d95cde9efa9f9a3d33947b273daaea02"
+      }
+    ]
+  },
+  "after": {
+    "rows": [
+      {
+        "cases_count": 86,
+        "cases_hash": "361db91ee99473d50a244ae999d36fa7",
+        "checked_at": "2026-10-26 13:24:11.855394+00",
+        "creation_permissions": [
+          {
+            "anonymous_execute": false,
+            "authenticated_execute": true,
+            "name": "create_patient_idempotent_v1",
+            "security_definer": false,
+            "service_execute": false
+          },
+          {
+            "anonymous_execute": false,
+            "authenticated_execute": true,
+            "name": "create_case_idempotent_v1",
+            "security_definer": false,
+            "service_execute": false
+          }
+        ],
+        "patients_count": 104,
+        "patients_hash": "82607c46d209337c710196b49c45c39c",
+        "payments_hash": "4af9ac1e35877e3c2924c731404f10db",
+        "production_payments": 1,
+        "storage_hash": "fe98c85c64dce0e1cf6162f5d71348af",
+        "subscriptions_hash": "d95cde9efa9f9a3d33947b273daaea02"
+      }
+    ]
+  },
+  "publication_observation": {
+    "html_request_id": 5757,
+    "api_request_id": 5758,
+    "asset_path": "/assets/api-C85r1z33.js",
+    "http_status": 200,
+    "confirmed_edit_code": true,
+    "unavailable_result_code": true
+  },
+  "acceptance": {
+    "completed": 10,
+    "total": 23,
+    "remaining": 13,
+    "percent": 43.47826086956522
+  },
+  "limits": [
+    "No new SaaS acceptance assigned for a clinical regression repair",
+    "Physical devices and a real manager session retain their own checks"
+  ]
+}
