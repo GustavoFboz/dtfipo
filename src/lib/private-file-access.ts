@@ -50,6 +50,18 @@ export function subscribePrivateFileScope(listener: () => void) {
 export const getPrivateFileScope = () => scope;
 export const getServerPrivateFileScope = () => emptyScope;
 
+/** Drop only this account's short signature after an image load failure. A
+ * replaced in-flight request cannot repopulate the cache with its late URL. */
+export function invalidatePrivateFileReference(value: string): boolean {
+  if (!scope.ready || !scope.ownerId) return false;
+  let reference: PrivateFileReference | null;
+  try { reference = parsePrivateFileReference(value, storageOrigin()); } catch { return false; }
+  if (!reference) return false;
+  const key = JSON.stringify([scope.ownerId, scope.generation, reference.bucket, reference.path]);
+  memory.delete(key); pending.delete(key);
+  return true;
+}
+
 function assertScope(expected: Scope) {
   if (!expected.ownerId || scope !== expected) throw new Error("PRIVATE_FILE_SESSION_CHANGED");
 }
@@ -163,7 +175,7 @@ export async function resolvePrivateFile(value: string, expected?: Scope): Promi
   if (cached && cached.renewAt > Date.now()) return cached;
   const inflight = pending.get(key);
   if (inflight) return inflight;
-  const task = (async () => {
+  const task: Promise<Resolution> = Promise.resolve().then(async () => {
     const { data: auth, error: authError } = await supabase.auth.getSession();
     assertScope(expected);
     if (authError || !auth.session || auth.session.user.id !== expected.ownerId) throw new Error("PRIVATE_FILE_SESSION_CHANGED");
@@ -194,10 +206,11 @@ export async function resolvePrivateFile(value: string, expected?: Scope): Promi
     if (!signed || signed.bucket !== effectiveReference.bucket || signed.path !== effectiveReference.path) throw new Error("PRIVATE_FILE_RESPONSE_INVALID");
     const renewed = { url: data.signedUrl, renewAt: startedAt + (PRIVATE_FILE_URL_TTL_SECONDS - 30) * 1000 };
     if (renewed.renewAt <= Date.now()) throw new Error("PRIVATE_FILE_RESPONSE_EXPIRED");
+    if (pending.get(key) !== task) throw new Error("PRIVATE_FILE_REQUEST_REPLACED");
     if (memory.size >= MAX_MEMORY_ENTRIES) memory.delete(memory.keys().next().value!);
     memory.set(key, renewed);
     void cacheInstalledImage(reference, renewed.url, expected);
     return renewed;
-  })().finally(() => { if (pending.get(key) === task) pending.delete(key); });
+  }).finally(() => { if (pending.get(key) === task) pending.delete(key); });
   pending.set(key, task); return task;
 }

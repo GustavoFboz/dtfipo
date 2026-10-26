@@ -1,7 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { getPrivateFileScope, getServerPrivateFileScope, resolvePrivateFile, subscribePrivateFileScope } from "@/lib/private-file-access";
 
-export function usePrivateFileUrl(reference: string | null | undefined) {
+export function usePrivateFileUrl(reference: string | null | undefined, retry = 0) {
   const scope = useSyncExternalStore(subscribePrivateFileScope, getPrivateFileScope, getServerPrivateFileScope);
   const [result, setResult] = useState<{ reference: string; scope: typeof scope; url: string } | null>(null);
   useEffect(() => {
@@ -26,6 +26,6 @@ export function usePrivateFileUrl(reference: string | null | undefined) {
     void load();
     window.addEventListener("online", reload); window.addEventListener("offline", reload);
     return () => { active = false; clearTimeout(timer); release?.(); window.removeEventListener("online", reload); window.removeEventListener("offline", reload); };
-  }, [reference, scope]);
+  }, [reference, scope, retry]);
   return result && result.reference === reference && result.scope === scope ? result.url : undefined;
 }

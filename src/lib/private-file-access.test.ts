@@ -36,6 +36,18 @@ beforeEach(async () => {
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("private file signatures belong to the current account", () => {
+  it("invalidates a failed signature and rejects an older in-flight replacement", async () => {
+    let release!: (value: unknown) => void;
+    mocks.sign.mockImplementationOnce(() => new Promise(resolve => {release=resolve;}));
+    const old=api.resolvePrivateFile(source);
+    await vi.waitFor(()=>expect(mocks.sign).toHaveBeenCalledTimes(1));
+    expect(api.invalidatePrivateFileReference(source)).toBe(true);
+    mocks.sign.mockResolvedValue({data:{signedUrl:signed.replace('new-token','fresh-token')},error:null});
+    const fresh=await api.resolvePrivateFile(source);
+    const failed=expect(old).rejects.toThrow('PRIVATE_FILE_REQUEST_REPLACED');
+    release({data:{signedUrl:signed},error:null});await failed;
+    expect((await api.resolvePrivateFile(source)).url).toBe(fresh.url);
+  });
   it("deduplicates a repeated path and requests only five minutes", async () => {
     const [a, b] = await Promise.all([api.resolvePrivateFile(source), api.resolvePrivateFile(source)]);
     expect(a.url).toBe(signed); expect(b).toEqual(a);

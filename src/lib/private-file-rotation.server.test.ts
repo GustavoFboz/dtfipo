@@ -11,7 +11,7 @@ function operations(){
  let copied=false,removed=false;
  return {origin:'https://project.supabase.co',read:vi.fn(async(_bucket:string,path:string)=>path===target.new_path?(copied?source:null):(removed?null:source)),
   upload:vi.fn(async()=>{copied=true;}),activate:vi.fn(async()=>{}),remove:vi.fn(async()=>{removed=true;}),
-  oldStatus:vi.fn(async()=>removed?404:200),verify:vi.fn(async()=>{}),pause:vi.fn(async()=>{})};
+  oldStatus:vi.fn(async():Promise<number>=>removed?404:200),verify:vi.fn(async()=>{}),pause:vi.fn(async()=>{})};
 }
 describe('private file rotation',()=>{
  it('verifies a copied file before switching references and retiring the issued URL',async()=>{

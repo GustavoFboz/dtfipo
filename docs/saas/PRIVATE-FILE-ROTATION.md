@@ -44,3 +44,16 @@ válida. Não promove fixtures e não usa essa preparação para ações Master.
 O critério 4.3 só pode ser encerrado após a execução publicada e a revogação dos
 quarenta links históricos, com bytes/cotas preservados e recibos autenticados.
 Rollback do código nunca deve recolocar objetos nos endereços aposentados.
+
+A verificação pública de publicação é um GET sem banco nem execução de
+trabalho. O POST continua exigindo a capacidade privada. Em 26/10, a revisão
+automática recusou até um POST vazio de verificação por considerar possível
+iniciar alterações reais; a execução dos quarenta endereços históricos depende
+de autorização específica do titular. O GET e os arquivos descartáveis são
+validados separadamente. Nenhum arquivo histórico foi movido por essa tentativa.
+
+Imagens que falharem após uma assinatura antiga recebem uma retentativa
+limitada, com invalidação somente daquela referência e conta. Uma resposta
+anterior que chegar tarde não volta ao cache. Isso evita esperar o prazo normal
+da assinatura para resolver o endereço novo. A operação não renova as 72h nem
+apaga o espelho instalado de imagens.
