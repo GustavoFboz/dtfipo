@@ -1,5 +1,12 @@
 # Protocolo SaaS DentalFlow
 
+Contador vigente em 26/10/2026: **10/23 (43,48%), 13 critérios restantes,
+1/7 etapas encerradas**. Criação/edição de casos e proteção de imagens
+publicadas; 134/134 verificações reais com arquivos descartáveis aprovadas.
+Nove reservas vazias e quarenta links históricos conservam as ações de aceite
+descritas no [checkpoint de publicação](evidence/private-file-publication-20261026.md).
+Os registros datados abaixo preservam o histórico e não substituem este total.
+
 Status: iniciado em 2026-09-19
 
 Contador de conclusão atualizado em 04/10/2026: **7 etapas restantes, 0/7

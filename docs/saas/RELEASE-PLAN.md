@@ -1,5 +1,13 @@
 # DentalFlow SaaS — sete etapas restantes até vendas
 
+**Contador vigente em 26/10/2026: 10/23 (43,48%), 13 critérios restantes e
+1/7 etapas encerradas.** A etapa de eventos foi concluída em 24/10; restam seis
+etapas com critérios abertos. Casos recuperados e imagens protegidas foram
+publicados; 134/134 testes reais com arquivos descartáveis passaram. Reservas
+históricas e rotação dos quarenta links reais mantêm seus aceites próprios.
+[Checkpoint, evidências e ações restantes](evidence/private-file-publication-20261026.md).
+Os totais datados abaixo são checkpoints históricos.
+
 Atualizado em 22/10/2026; as evidências novas registram horários UTC e Manaus. Este é o contador de conclusão
 apresentado ao responsável. Os IDs 00–10 dos documentos técnicos permanecem
 para manter o histórico; não são um segundo protocolo.

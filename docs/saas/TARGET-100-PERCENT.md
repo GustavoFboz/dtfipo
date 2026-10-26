@@ -1,5 +1,14 @@
 # Conclusão integral do protocolo SaaS
 
+Em 26/10/2026, a recuperação de criação/edição de casos foi publicada e o job
+de arquivos passou **134/134 verificações reais**, incluindo os links dos dois
+avatares descartáveis. O total permanece **10/23 (43,48%), 13 restantes,
+1/7 etapas encerradas**. Para ultrapassar 50%, é preciso concluir integralmente
+dois critérios adicionais. A liberação das nove reservas já foi autorizada e
+depende da sessão gestora real; a rotação dos 34 arquivos de foto e seis
+avatares históricos depende de autorização específica após revisão automática.
+[Publicação, recibos e limites](evidence/private-file-publication-20261026.md).
+
 Em 24/10/2026, 16h38 Manaus, os itens **1.1 e 1.3 foram concluídos**:
 revisões externas individuais no Master com MFA real/auditoria e recuperação
 real de pagamentos sem webhook no Sandbox. Passaram **155/155 verificações
