@@ -300,6 +300,13 @@ jobs:
           docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
             < docs/saas/sql/clinical-creation-rehearsal.sql | tee restore-clinical-creation.log
 
+      - name: Rehearse private file rotation and retired-path guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/private-file-rotation-rehearsal.sql | tee restore-private-file-rotation.log
+
       - name: Verify and rehearse Stage 09 private operational monitoring
         shell: bash
         run: |
@@ -362,6 +369,7 @@ jobs:
             restore-stage-06-recovery-assertions.log
             restore-stage-06-recovery.log
             restore-stage-06-recovery-concurrency.log
+            restore-private-file-rotation.log
             restore-clinical-creation.log
             restore-price-assertions.log
             restore-price-rehearsal.log

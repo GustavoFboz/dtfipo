@@ -73,6 +73,7 @@ import { Route as ApiBillingAsaasRenewalRouteImport } from './routes/api/billing
 import { Route as ApiBillingAsaasReplayRouteImport } from './routes/api/billing/asaas-replay'
 import { Route as ApiBillingAsaasWebhookRouteImport } from './routes/api/billing/asaas-webhook'
 import { Route as ApiBillingAsaasWorkerRouteImport } from './routes/api/billing/asaas-worker'
+import { Route as ApiMaintenancePrivateFileRotationRouteImport } from './routes/api/maintenance/private-file-rotation'
 import { Route as ApiQaFixtureAcceptanceRouteImport } from './routes/api/qa/fixture-acceptance'
 import { Route as AuthenticatedClinicaPacientesPatientIdRouteImport } from './routes/_authenticated/clinica.pacientes.$patientId'
 import { Route as ApiPublicHooksCleanupCaseFilesRouteImport } from './routes/api/public/hooks/cleanup-case-files'
@@ -426,6 +427,12 @@ const ApiBillingAsaasWorkerRoute = ApiBillingAsaasWorkerRouteImport.update({
   path: '/api/billing/asaas-worker',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMaintenancePrivateFileRotationRoute =
+  ApiMaintenancePrivateFileRotationRouteImport.update({
+    id: '/api/maintenance/private-file-rotation',
+    path: '/api/maintenance/private-file-rotation',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiQaFixtureAcceptanceRoute = ApiQaFixtureAcceptanceRouteImport.update({
   id: '/api/qa/fixture-acceptance',
   path: '/api/qa/fixture-acceptance',
@@ -508,6 +515,7 @@ export interface FileRoutesByFullPath {
   '/api/billing/asaas-replay': typeof ApiBillingAsaasReplayRoute
   '/api/billing/asaas-webhook': typeof ApiBillingAsaasWebhookRoute
   '/api/billing/asaas-worker': typeof ApiBillingAsaasWorkerRoute
+  '/api/maintenance/private-file-rotation': typeof ApiMaintenancePrivateFileRotationRoute
   '/api/qa/fixture-acceptance': typeof ApiQaFixtureAcceptanceRoute
   '/clinica/pacientes/$patientId': typeof AuthenticatedClinicaPacientesPatientIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
@@ -576,6 +584,7 @@ export interface FileRoutesByTo {
   '/api/billing/asaas-replay': typeof ApiBillingAsaasReplayRoute
   '/api/billing/asaas-webhook': typeof ApiBillingAsaasWebhookRoute
   '/api/billing/asaas-worker': typeof ApiBillingAsaasWorkerRoute
+  '/api/maintenance/private-file-rotation': typeof ApiMaintenancePrivateFileRotationRoute
   '/api/qa/fixture-acceptance': typeof ApiQaFixtureAcceptanceRoute
   '/clinica/pacientes/$patientId': typeof AuthenticatedClinicaPacientesPatientIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
@@ -646,6 +655,7 @@ export interface FileRoutesById {
   '/api/billing/asaas-replay': typeof ApiBillingAsaasReplayRoute
   '/api/billing/asaas-webhook': typeof ApiBillingAsaasWebhookRoute
   '/api/billing/asaas-worker': typeof ApiBillingAsaasWorkerRoute
+  '/api/maintenance/private-file-rotation': typeof ApiMaintenancePrivateFileRotationRoute
   '/api/qa/fixture-acceptance': typeof ApiQaFixtureAcceptanceRoute
   '/_authenticated/clinica/pacientes/$patientId': typeof AuthenticatedClinicaPacientesPatientIdRoute
   '/api/public/hooks/cleanup-case-files': typeof ApiPublicHooksCleanupCaseFilesRoute
@@ -716,6 +726,7 @@ export interface FileRouteTypes {
     | '/api/billing/asaas-replay'
     | '/api/billing/asaas-webhook'
     | '/api/billing/asaas-worker'
+    | '/api/maintenance/private-file-rotation'
     | '/api/qa/fixture-acceptance'
     | '/clinica/pacientes/$patientId'
     | '/api/public/hooks/cleanup-case-files'
@@ -784,6 +795,7 @@ export interface FileRouteTypes {
     | '/api/billing/asaas-replay'
     | '/api/billing/asaas-webhook'
     | '/api/billing/asaas-worker'
+    | '/api/maintenance/private-file-rotation'
     | '/api/qa/fixture-acceptance'
     | '/clinica/pacientes/$patientId'
     | '/api/public/hooks/cleanup-case-files'
@@ -853,6 +865,7 @@ export interface FileRouteTypes {
     | '/api/billing/asaas-replay'
     | '/api/billing/asaas-webhook'
     | '/api/billing/asaas-worker'
+    | '/api/maintenance/private-file-rotation'
     | '/api/qa/fixture-acceptance'
     | '/_authenticated/clinica/pacientes/$patientId'
     | '/api/public/hooks/cleanup-case-files'
@@ -874,6 +887,7 @@ export interface RootRouteChildren {
   ApiBillingAsaasReplayRoute: typeof ApiBillingAsaasReplayRoute
   ApiBillingAsaasWebhookRoute: typeof ApiBillingAsaasWebhookRoute
   ApiBillingAsaasWorkerRoute: typeof ApiBillingAsaasWorkerRoute
+  ApiMaintenancePrivateFileRotationRoute: typeof ApiMaintenancePrivateFileRotationRoute
   ApiQaFixtureAcceptanceRoute: typeof ApiQaFixtureAcceptanceRoute
   ApiPublicHooksCleanupCaseFilesRoute: typeof ApiPublicHooksCleanupCaseFilesRoute
 }
@@ -1328,6 +1342,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiBillingAsaasWorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/maintenance/private-file-rotation': {
+      id: '/api/maintenance/private-file-rotation'
+      path: '/api/maintenance/private-file-rotation'
+      fullPath: '/api/maintenance/private-file-rotation'
+      preLoaderRoute: typeof ApiMaintenancePrivateFileRotationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/qa/fixture-acceptance': {
       id: '/api/qa/fixture-acceptance'
       path: '/api/qa/fixture-acceptance'
@@ -1565,6 +1586,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiBillingAsaasReplayRoute: ApiBillingAsaasReplayRoute,
   ApiBillingAsaasWebhookRoute: ApiBillingAsaasWebhookRoute,
   ApiBillingAsaasWorkerRoute: ApiBillingAsaasWorkerRoute,
+  ApiMaintenancePrivateFileRotationRoute:
+    ApiMaintenancePrivateFileRotationRoute,
   ApiQaFixtureAcceptanceRoute: ApiQaFixtureAcceptanceRoute,
   ApiPublicHooksCleanupCaseFilesRoute: ApiPublicHooksCleanupCaseFilesRoute,
 }

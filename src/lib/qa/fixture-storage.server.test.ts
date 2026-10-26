@@ -6,6 +6,7 @@ import type {Job} from './fixture-acceptance.server';
 const runtime=vi.hoisted(()=>({sessions:[] as any[],admin:{} as any,privacy:vi.fn()}));
 vi.mock('./fixture-sessions.server',()=>({withFixtureSessions:async (_job:unknown,run:any)=>run(runtime.sessions)}));
 vi.mock('@/integrations/supabase/client.server',()=>({get supabaseAdmin(){return runtime.admin;}}));
+vi.mock('./fixture-private-files.server',()=>({exerciseFixturePrivateFiles:async()=>[{check:'private_rotation_fixture_stub',passed:true}]}));
 vi.mock('./fixture-activity-reads.server',()=>({exerciseFixtureActivityReadPrivacy:(...args:unknown[])=>runtime.privacy(...args)}));
 const job:Job={id:'8a0cbd19-6b52-4db9-991b-66711337e61b',kind:'storage',fixtures:[
   {user_id:'ee083f63-1621-4b82-b7a4-fd13427c0b14',email:'dentalflow-acceptance-20261004-e0537565-4015-4ffe-a249-5da489824e6e@example.invalid',clinic_id:'081d3db4-1606-40f7-a878-19b51556317d'},
