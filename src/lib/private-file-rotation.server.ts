@@ -37,7 +37,8 @@ export async function rotatePrivateTarget(target:RotationTarget,ops:Operations) 
  if(target.status==='verified')return;
  let copied=await ops.read(target.bucket,target.new_path),hash:string;
  if(target.status==='prepared') {
-  if(await ops.oldStatus(target.old_signed_url)!==200)throw new PrivateRotationFailure('ROTATION_ORIGINAL_URL_UNVERIFIED');
+  const initialStatus=await ops.oldStatus(target.old_signed_url);
+  if(![200,400,401,403,404,410].includes(initialStatus))throw new PrivateRotationFailure('ROTATION_ORIGINAL_URL_UNVERIFIED');
   const original=await ops.read(target.bucket,target.old_path);
   if(!original||original.bytes.length!==target.size_bytes||!/^image\/(jpeg|png|gif|webp)$/.test(original.mime))
    throw new PrivateRotationFailure('ROTATION_SOURCE_UNVERIFIED');

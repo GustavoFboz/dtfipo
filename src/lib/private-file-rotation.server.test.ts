@@ -44,6 +44,15 @@ describe('private file rotation',()=>{
   await expect(rotatePrivateTarget(target,ops)).rejects.toThrow('ROTATION_OLD_URL_STILL_USABLE');
   expect(ops.pause).toHaveBeenCalledTimes(4);expect(ops.verify).not.toHaveBeenCalled();
  });
+ it('also retires an already-expired bearer while preserving the verified object',async()=>{
+  const ops=operations();ops.oldStatus.mockResolvedValueOnce(400).mockResolvedValueOnce(404);
+  await rotatePrivateTarget(target,ops);expect(ops.verify).toHaveBeenCalledWith(target,hash,404);
+ });
+ it('preserves the source if its original URL has an inconclusive server error',async()=>{
+  const ops=operations();ops.oldStatus.mockResolvedValue(503);
+  await expect(rotatePrivateTarget(target,ops)).rejects.toThrow('ROTATION_ORIGINAL_URL_UNVERIFIED');
+  expect(ops.upload).not.toHaveBeenCalled();expect(ops.remove).not.toHaveBeenCalled();
+ });
  it.each([
   {...target,old_signed_url:target.old_signed_url.replace('project.supabase.co','other.invalid')},
   {...target,new_path:'another-user/new.png'},
