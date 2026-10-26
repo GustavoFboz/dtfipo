@@ -17,7 +17,7 @@ UPDATE public.profiles SET clinic_id=CASE WHEN id='72600000-0000-4000-8000-00000
  account_subtype=CASE WHEN id='72600000-0000-4000-8000-000000000003' THEN 'USER' ELSE 'CEO' END,is_default_admin=false
  WHERE id IN ('72600000-0000-4000-8000-000000000001','72600000-0000-4000-8000-000000000002','72600000-0000-4000-8000-000000000003');
 ALTER TABLE public.profiles ENABLE TRIGGER trg_prevent_profile_privilege_escalation;
-INSERT INTO public.user_roles(user_id,role) VALUES ('72600000-0000-4000-8000-000000000002','admin') ON CONFLICT DO NOTHING;
+INSERT INTO public.user_roles(user_id,role) VALUES ('72600000-0000-4000-8000-000000000001','admin'),('72600000-0000-4000-8000-000000000002','admin') ON CONFLICT DO NOTHING;
 INSERT INTO public.account_subscriptions(scope_type,clinic_id,plan_code,status,billing_day,current_period_start,current_period_end,billing_provider,provider_environment)
 VALUES ('company','72600000-0000-4000-8000-000000000010','company_initial','active',22,now(),now()+interval '1 month','asaas','sandbox'),
  ('company','72600000-0000-4000-8000-000000000020','company_initial','active',22,now(),now()+interval '1 month','asaas','sandbox');
@@ -120,6 +120,16 @@ DO $$ BEGIN
  BEGIN
   PERFORM public.create_case_idempotent_v1('72600000-0000-4000-8000-000000000061',current_setting('test.creation_input')::jsonb);
   RAISE EXCEPTION 'FOREIGN_PATIENT_CASE_CREATED';
+ EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+END $$;
+RESET ROLE;
+SELECT set_config('request.jwt.claims','{"role":"authenticated","sub":"72600000-0000-4000-8000-000000000003"}',true);
+SELECT set_config('request.jwt.claim.sub','72600000-0000-4000-8000-000000000003',true);
+SET LOCAL ROLE authenticated;
+DO $$ BEGIN
+ BEGIN
+  PERFORM public.create_patient_idempotent_v1('72600000-0000-4000-8000-000000000071','72600000-0000-4000-8000-000000000072','{"name":"Unauthorized staff"}');
+  RAISE EXCEPTION 'USER_BYPASSED_PATIENT_INSERT_RLS';
  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 END $$;
 RESET ROLE;

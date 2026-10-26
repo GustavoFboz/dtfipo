@@ -65,7 +65,11 @@ begin
  insert into public.patients(id,clinic_id,name,first_name,last_name,age,birth_date,gender,cpf,rg,phone,email,address,
   medical_history,allergies,medications,clinical_notes,notes)
  values(_id,company,btrim(p.name),p.first_name,p.last_name,coalesce(p.age,0),p.birth_date,p.gender,p.cpf,p.rg,p.phone,p.email,p.address,
-  p.medical_history,p.allergies,p.medications,p.clinical_notes,p.notes) returning * into p;
+  p.medical_history,p.allergies,p.medications,p.clinical_notes,p.notes);
+ -- The existing patient read policy resolves ownership through a STABLE
+ -- helper. Re-read in the next statement, after the insert is visible to it.
+ select * into p from public.patients where id=_id;
+ if not found then raise exception 'CREATION_RESULT_UNAVAILABLE'; end if;
  insert into public.clinical_creation_requests(actor_id,clinic_id,kind,request_key,input_hash,result_ids)
  values(actor,company,'patient',_key,fingerprint,array[p.id]);
  return to_jsonb(p);
