@@ -293,6 +293,13 @@ jobs:
           docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
             < docs/saas/sql/stage-08-cancel-executor-rehearsal.sql | tee restore-stage-08-cancel-executor.log
 
+      - name: Rehearse clinical creation, retry, links and caller RLS
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/clinical-creation-rehearsal.sql | tee restore-clinical-creation.log
+
       - name: Verify and rehearse Stage 09 private operational monitoring
         shell: bash
         run: |
@@ -355,6 +362,7 @@ jobs:
             restore-stage-06-recovery-assertions.log
             restore-stage-06-recovery.log
             restore-stage-06-recovery-concurrency.log
+            restore-clinical-creation.log
             restore-price-assertions.log
             restore-price-rehearsal.log
             restore-company-stock-assertions.log

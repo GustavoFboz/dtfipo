@@ -17,6 +17,7 @@ async function call<T>(name: string, args: Record<string, unknown>): Promise<T> 
     }
     if (error.message.includes("PATIENT_NAME_MATCH")) throw new Error("Existe paciente com esse nome. Selecione o existente ou informe CPF, RG ou telefone diferente.");
     if (error.message.includes("CREATION_KEY_CONFLICT")) throw new Error("Esta tentativa já foi enviada com outros dados. Recupere o cadastro anterior antes de iniciar outro.");
+    if (error.message.includes("CREATION_RESULT_UNAVAILABLE")) throw new Error("O cadastro desta tentativa foi excluído ou seu acesso mudou. Atualize a lista antes de iniciar outro cadastro.");
     throw error;
   }
   if (!data) throw new Error("O servidor não confirmou a criação. Tente novamente com a mesma tentativa.");
