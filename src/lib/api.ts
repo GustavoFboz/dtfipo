@@ -766,7 +766,7 @@ export async function createCase(input: CreateCaseInput & { also_arch?: "superio
   // The supplied id is also the durable key for legacy outbox entries.
   const key = input.idempotency_key ?? input.id ?? crypto.randomUUID();
   const { idempotency_key: _key, ...values } = input;
-  const result = await createCaseConfirmed(values, key);
+  const result = await createCaseConfirmed({ ...values, id: values.id ?? key }, key);
   for (const row of result.cases) {
     try { broadcastEntity("cases", "insert", { id: row.id }); } catch { /* RLS realtime remains authoritative */ }
   }
@@ -791,11 +791,11 @@ export const updateCase = async (id: string, patch: Record<string, unknown>) => 
 
   // Existing viewers may update immediately, but no full case/patient data is
   // ever broadcast to users who do not already have the row.
-  try { broadcastEntity("cases", "update", { id, ...patch, updated_at: new Date().toISOString() }); } catch { /* ignore */ }
+
 
   const optionalFeatureKeys = ["has_mockup", "prosthesis_groups"] as const;
   let updatePatch: Record<string, unknown> = { ...patch };
-  let updateResult = await supabase.from("cases").update(updatePatch as never).eq("id", id);
+  let updateResult = await supabase.from("cases").update(updatePatch as never).eq("id", id).select("id").maybeSingle();
 
   for (let attempt = 0; attempt < optionalFeatureKeys.length && updateResult.error; attempt += 1) {
     const message = String(updateResult.error.message || "");
@@ -807,10 +807,12 @@ export const updateCase = async (id: string, patch: Record<string, unknown>) => 
     );
     if (!missingOptionalKey) break;
     delete updatePatch[missingOptionalKey];
-    updateResult = await supabase.from("cases").update(updatePatch as never).eq("id", id);
+    updateResult = await supabase.from("cases").update(updatePatch as never).eq("id", id).select("id").maybeSingle();
   }
 
   if (updateResult.error) throw updateResult.error;
+  if (!updateResult.data) throw new Error("O caso não foi alterado. Atualize a lista e confira seu acesso.");
+  try { broadcastEntity("cases", "update", { id }); } catch { /* Realtime remains authoritative. */ }
 
   if (assignmentChanged) {
     try {

@@ -69,6 +69,7 @@ jobs:
           node --test scripts/inspect-asaas-reported-queue.test.mjs
           node scripts/check-asaas-publication-alert-drill.mjs
           node scripts/check-asaas-database-scheduler.mjs
+          bunx vitest run --configLoader runner src/lib/creation-attempt.test.ts src/lib/creation-rpc.test.ts
           bunx vitest run --configLoader runner src/lib/offline-access-policy.test.ts src/lib/desktop-local.offline-expiration.test.ts
           node scripts/test-native-release-publication.mjs
           bunx vitest run --configLoader runner src/lib/billing/asaas-native-origin.server.test.ts

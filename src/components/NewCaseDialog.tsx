@@ -31,10 +31,12 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   fetchPatients, fetchDoctors, fetchCadistas, fetchCaseTypes, fetchToothColors,
   fetchStages, fetchImplantSystems, fetchScanJigs, createImplantSystem, createScanJig,
-  createCase, updateCase, syncCaseTypes, adminCreate, adminUpdate, uploadPatientPhoto, fetchProfile,
+  createCase, updateCase, syncCaseTypes, adminUpdate, uploadPatientPhoto, fetchProfile,
   fetchTiBaseOptions, updateCaseTiBases,
 } from "@/lib/api";
 
+import { savePatientLocalFirst } from "@/lib/patients-local-first";
+import { loadCreationAttempt, clearCreationAttempt, newCreationAttempt, type CreationAttempt } from "@/lib/creation-attempt";
 import { compressSquareImage } from "@/lib/image";
 import { StageBadge } from "./StageBadge";
 import { TeethSelector, IMPLANT_COLOR_SCALE } from "./TeethSelector";
@@ -162,6 +164,8 @@ export function NewCaseDialog({
   // Descartar tudo: usado pelo botão Cancelar e após salvar com sucesso.
   const discardAndClose = () => {
     clearSessionSnapshot(persistOpenKey, persistFormKey);
+    if (isCreate && typeof window !== "undefined") clearCreationAttempt(sessionStorage, `case:${profile?.id}:${profile?.clinic_id}`);
+    caseAttempt.current = null;
     onOpenChange?.(false);
     if (openProp === undefined) setOpenState(false);
   };
@@ -181,6 +185,13 @@ export function NewCaseDialog({
 
   const [patientId, setPatientId] = useState<string>(initialPatientId ?? "");
   const [newPatientName, setNewPatientName] = useState("");
+  const [newPatientPhone, setNewPatientPhone] = useState("");
+  const caseAttempt = useRef<CreationAttempt | null>(null);
+  const getCaseAttempt = () => {
+    if (!profile?.id || !profile.clinic_id) throw new Error("Aguarde a identificação da sua empresa.");
+    return caseAttempt.current ??= typeof window === "undefined" ? newCreationAttempt()
+      : loadCreationAttempt(sessionStorage, `case:${profile.id}:${profile.clinic_id}`);
+  };
   const [newPatientPhoto, setNewPatientPhoto] = useState<File | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const [doctorId, setDoctorId] = useState<string>("");
@@ -247,7 +258,7 @@ export function NewCaseDialog({
   // Persiste apenas campos serializáveis — arquivos (File) e refs são ignorados.
   const formSnapshot = useMemo(
     () => ({
-      patientId, newPatientName,
+      patientId, newPatientName, newPatientPhone,
       doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
       entryDate, deliveryDate, stageId, arch,
       implantSystemId, additionalSystemIds, implantTeeth,
@@ -257,7 +268,7 @@ export function NewCaseDialog({
       toothTypeMap, prosthesisGroups, toothEnceramento, toothImplantSystemMap,
     }),
     [
-      patientId, newPatientName, doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
+      patientId, newPatientName, newPatientPhone, doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
       entryDate, deliveryDate, stageId, arch, implantSystemId, additionalSystemIds, implantTeeth,
       arcadaMode, scanJigId, hasProvisional, hasMockup, notes, teeth, zirTeeth, disTeeth,
       gumMode, gumColor, gumNotes, toothTypeMap, prosthesisGroups, toothEnceramento, toothImplantSystemMap,
@@ -266,6 +277,7 @@ export function NewCaseDialog({
   useSessionSnapshot(persistFormKey, !!persistFormKey && open, formSnapshot, (d) => {
     if (d.patientId !== undefined) setPatientId(d.patientId as string);
     if (d.newPatientName !== undefined) setNewPatientName(d.newPatientName as string);
+    if (d.newPatientPhone !== undefined) setNewPatientPhone(d.newPatientPhone as string);
     if (d.doctorId !== undefined) setDoctorId(d.doctorId as string);
     if (d.cadistaId !== undefined) setCadistaId(d.cadistaId as string);
     if (d.caseTypeIds !== undefined) setCaseTypeIds(d.caseTypeIds as string[]);
@@ -438,7 +450,7 @@ export function NewCaseDialog({
   });
 
   const reset = () => {
-    setPatientId(initialPatientId ?? ""); setNewPatientName(""); setNewPatientPhoto(null);
+    setPatientId(initialPatientId ?? ""); setNewPatientName(""); setNewPatientPhone(""); setNewPatientPhoto(null);
     setDoctorId(""); setCadistaId(""); setCaseTypeIds([]);
     setToothColorId(""); setCaseLabel(""); setEntryDate(today); setDeliveryDate(today);
     setStageId(""); setArch(""); setImplantSystemId(""); setAdditionalSystemIds([]); setImplantTeeth([]); setScanJigId(""); setHasProvisional(false); setHasMockup(false);
@@ -637,18 +649,20 @@ export function NewCaseDialog({
 
   const submit = useMutation({
     mutationFn: async () => {
+      const attempt = isEdit ? null : getCaseAttempt();
       let pid = patientId;
       if (!pid && newPatientName.trim()) {
-        await adminCreate("patients", { name: newPatientName.trim() });
-        const fresh = await fetchPatients();
-        const found = fresh.find((p) => p.name === newPatientName.trim());
-        if (!found) throw new Error("Não foi possível criar o paciente");
-        pid = found.id;
-        if (newPatientPhoto) {
-          const blob = await compressSquareImage(newPatientPhoto);
-          const url = await uploadPatientPhoto(pid, blob);
-          await adminUpdate("patients", pid, { photo_url: url });
-        }
+        const saved = await savePatientLocalFirst({ name: newPatientName.trim(), phone: newPatientPhone.trim() || null }, null,
+          attempt ? { key: attempt.key, patientId: attempt.patientId } : undefined);
+        pid = saved.patient.id;
+        setPatientId(pid);
+        qc.setQueryData(["patient", pid], saved.patient);
+        void qc.invalidateQueries({ queryKey: ["patients"] });
+      }
+      if (pid && newPatientPhoto && newPatientName.trim()) {
+        const blob = await compressSquareImage(newPatientPhoto);
+        const url = await uploadPatientPhoto(pid, blob);
+        await adminUpdate("patients", pid, { photo_url: url });
       }
       if (!pid) throw new Error("Selecione ou cadastre um paciente");
       if (!deliveryDate) throw new Error("Informe a data de entrega");
@@ -753,13 +767,12 @@ export function NewCaseDialog({
         // case_type_ids não é coluna de `cases` (vive em case_types_link via syncCaseTypes)
         const { case_type_ids: _cti, ...patchForUpdate } = patch;
         void _cti;
-        // Optimistic: reflete no cache local e propaga para peers ANTES do round-trip.
+        await updateCase(editCase.id, patchForUpdate);
+        await syncCaseTypes(editCase.id, caseTypeIds);
         const optimisticRow = { ...editCase, ...(patch as unknown as CaseRow), id: editCase.id } as CaseRow;
         applyCasePatchToCache(qc, optimisticRow as any);
         qc.setQueryData<CaseRow | null>(["case", editCase.id], (old) => (old ? { ...old, ...optimisticRow } : optimisticRow));
-        broadcastEntity("cases", "update", optimisticRow);
-        await updateCase(editCase.id, patchForUpdate);
-        await syncCaseTypes(editCase.id, caseTypeIds);
+
 
         // Human-readable edit history. We preserve old/new values instead of
         // overwriting the story of the case (especially delivery changes).
@@ -817,11 +830,11 @@ export function NewCaseDialog({
         createdId = editCase.id;
       } else if (derivedArch) {
         // Unified case: uma arcada, ambas ("both") ou nenhuma — sempre 1 caso só.
-        const a = await createCase({ ...base, arch: derivedArch });
+        const a = await createCase({ ...base, arch: derivedArch, idempotency_key: attempt!.key, id: attempt!.key });
         createdCase = a as CaseRow;
         createdId = (a as any)?.id ?? null;
       } else {
-        const a = await createCase(base);
+        const a = await createCase({ ...base, idempotency_key: attempt!.key, id: attempt!.key });
         createdCase = a as CaseRow;
         createdId = (a as any)?.id ?? null;
       }
@@ -875,7 +888,8 @@ export function NewCaseDialog({
         qc.getQueriesData<CaseRow[]>({ queryKey: ["cases"] }).forEach(([key, old]) => {
           if (!Array.isArray(old)) return;
           const statusFilter = Array.isArray(key) ? key[1] : undefined;
-          if ((statusFilter === "active" || statusFilter === "finished") && row.status !== statusFilter) return;
+          if (statusFilter === "active" && ["finalizado", "cancelado"].includes(row.status)) return;
+          if (statusFilter === "finished" && row.status !== "finalizado") return;
           const next = old.some((item) => item.id === row.id)
             ? old.map((item) => item.id === row.id ? { ...item, ...row } : item)
             : [row, ...old];
@@ -887,8 +901,9 @@ export function NewCaseDialog({
         (isEdit ? "Caso atualizado" : "Caso cadastrado") +
         (queued > 0 ? ` · ${queued} arquivo(s) enviando em segundo plano` : "")
       );
-      await qc.invalidateQueries();
-      await qc.refetchQueries({ queryKey: ["cases"], type: "active" });
+      // The confirmed row is already in the cache. Hydrate in the background.
+      void qc.invalidateQueries({ queryKey: ["cases"] });
+      if (createdCase?.id) void qc.invalidateQueries({ queryKey: ["case", createdCase.id] });
       if (!isEdit) reset();
       discardAndClose();
 
@@ -999,6 +1014,9 @@ export function NewCaseDialog({
                   />
                 </div>
                 {newPatientName && !patientId && (
+                  <div className="space-y-2">
+                  <Label htmlFor="inline-patient-phone">Telefone para distinguir pacientes com o mesmo nome</Label>
+                  <Input id="inline-patient-phone" type="tel" value={newPatientPhone} onChange={e => setNewPatientPhone(e.target.value)} placeholder="Opcional, salvo quando já existe esse nome" />
                   <div className="flex gap-2 items-center">
                     <div className="text-xs text-muted-foreground flex-1">
                       Será cadastrado como novo paciente: <b>{newPatientName}</b>
@@ -1010,6 +1028,7 @@ export function NewCaseDialog({
                       <Camera className="h-4 w-4" />
                       {newPatientPhoto ? "Foto ok" : "Foto"}
                     </Button>
+                  </div>
                   </div>
                 )}
               </div>

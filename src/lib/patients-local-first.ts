@@ -247,7 +247,8 @@ export async function savePatientLocalFirst(
     const profile = await fetchProfileLocalFirst();
     if (!profile?.clinic_id) throw new Error("Empresa não identificada para cadastrar paciente.");
     values = { ...values, clinic_id: profile.clinic_id };
-    assertDistinctPatient(values, possiblePatientMatches(await fetchPatientsLocalFirst(), String(values.name ?? ""), profile.clinic_id));
+    assertDistinctPatient(values, possiblePatientMatches(await fetchPatientsLocalFirst(), String(values.name ?? ""), profile.clinic_id)
+      .filter(patient => patient.id !== id));
   }
   const localPatient = buildLocalPatient(id, values, existing);
 

@@ -7,19 +7,21 @@ export function newCreationAttempt(): CreationAttempt {
 
 export function loadCreationAttempt(storage: Pick<Storage, "getItem" | "setItem">, scope: string): CreationAttempt {
   const name = `dentalflow:create-attempt:${scope}`;
-  const raw = storage.getItem(name);
-  if (raw) {
-    const parsed = JSON.parse(raw) as CreationAttempt;
+  try {
+   const raw = storage.getItem(name);
+   if (raw) {
+    const parsed = JSON.parse(raw) as CreationAttempt | null;
     const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (uuid.test(parsed.key) && uuid.test(parsed.patientId)) return parsed;
-  }
+    if (parsed && uuid.test(parsed.key) && uuid.test(parsed.patientId)) return parsed;
+   }
+  } catch { /* A corrupt draft must not block a new local attempt. */ }
   const attempt = newCreationAttempt();
-  storage.setItem(name, JSON.stringify(attempt));
+  try { storage.setItem(name, JSON.stringify(attempt)); } catch { /* Retained in the form for this session. */ }
   return attempt;
 }
 
 export function clearCreationAttempt(storage: Pick<Storage, "removeItem">, scope: string) {
-  storage.removeItem(`dentalflow:create-attempt:${scope}`);
+  try { storage.removeItem(`dentalflow:create-attempt:${scope}`); } catch { /* Storage can be disabled. */ }
 }
 
 /** A second click shares the in-flight promise, including its failure. */

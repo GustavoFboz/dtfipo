@@ -179,5 +179,6 @@
   "20261022160000_saas_company_stock_ownership_stage07.sql",
   "20261023140000_saas_company_workflow_configuration_stage07.sql",
   "20261024193000_saas_isolated_sandbox_reconciliation.sql",
+  "20261026133000_clinical_creation_recovery.sql",
   "20260718000001_zzz_self_heal_v2.sql"
 ]

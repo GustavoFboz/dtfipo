@@ -1028,3 +1028,12 @@ GRANT EXECUTE ON FUNCTION public.saas_register_fixture_reconciliation_resource(u
  public.saas_enqueue_fixture_asaas_recovery(uuid,text,text),public.saas_claim_fixture_asaas_events(uuid),
  public.saas_fixture_business_fingerprint(uuid) TO service_role;
 NOTIFY pgrst,'reload schema';
+
+-- Creation RPCs retain caller RLS and append-only, actor-bound retry receipts.
+REVOKE ALL ON TABLE public.clinical_creation_requests FROM PUBLIC,anon,authenticated,service_role;
+GRANT SELECT,INSERT ON TABLE public.clinical_creation_requests TO authenticated;
+GRANT SELECT ON TABLE public.clinical_creation_requests TO service_role;
+REVOKE ALL ON FUNCTION public.create_patient_idempotent_v1(uuid,uuid,jsonb),
+ public.create_case_idempotent_v1(uuid,jsonb) FROM PUBLIC,anon,authenticated,service_role;
+GRANT EXECUTE ON FUNCTION public.create_patient_idempotent_v1(uuid,uuid,jsonb),
+ public.create_case_idempotent_v1(uuid,jsonb) TO authenticated;
