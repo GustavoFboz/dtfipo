@@ -35,6 +35,12 @@ camada instalada conserva o teto de 72 horas; os testes em aparelhos mantêm
 seu aceite separado. Bytes já baixados anteriormente não podem ser apagados de
 cópias externas por essa operação.
 
+A manutenção processa um arquivo por vez, sem concorrência entre os alvos.
+Ao primeiro erro, interrompe os próximos arquivos e registra o recibo parcial;
+os alvos ainda não iniciados permanecem preparados para revisão. A conferência
+de cópia, hash, referência e recusa do endereço antigo continua obrigatória.
+Essa execução sequencial limita as requisições durante o uso normal do sistema.
+
 A validação cobre o SQL em banco descartável com rollback, o adapter e a ordem
 de efeitos sob falhas. O job privado de Storage usa sessões USER reais e gira
 somente seu avatar descartável, incluindo assinatura curta, vencimento,
