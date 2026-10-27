@@ -1,5 +1,13 @@
 # Arquivos privados: referências, renovação e cache por conta
 
+Conferência final de 27/10/2026, 12h42 Manaus: as quarenta referências históricas
+foram substituídas após autorização explícita e cópia verificada; cada URL
+original foi recusada com HTTP400 e seu objeto antigo está ausente. Conteúdo,
+propriedade, vínculos e cota foram preservados. **Critério 4.3 concluído**;
+aparelhos e demais cenários de segurança mantêm seus aceites próprios.
+[Quarenta recibos e limites](evidence/private-file-rotation-20261027.md).
+As conferências anteriores abaixo preservam seu contexto histórico.
+
 Conferência de 22/10/2026, somente leitura e sem retornar links/tokens:
 **34 fotos e seis avatares**, todos com tokens ainda não vencidos e validade
 até 2036. As emissões vistas foram até 07/10 para fotos e 11/09 para avatares.

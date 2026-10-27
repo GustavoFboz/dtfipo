@@ -1,6 +1,11 @@
 # Protocolo SaaS DentalFlow
 
-Contador vigente em 27/10/2026: **11/23 (47,83%), 12 critérios restantes,
+Contador vigente em 27/10/2026, **12h42 Manaus: 12/23 (52,17%), 11 critérios
+restantes, 1/7 etapas encerradas**. Critérios 3.2 e 4.3 concluídos: nove reservas
+vazias liberadas e quarenta links históricos revogados com cópias verificadas,
+conteúdo, vínculos e cotas preservados. [Recibos e limites](evidence/private-file-rotation-20261027.md).
+
+Checkpoint de 27/10/2026, 11h08 Manaus: **11/23 (47,83%), 12 critérios restantes,
 1/7 etapas encerradas**. Critério 3.2 concluído após nove liberações individuais
 autenticadas, com 1,04 GiB recuperado e arquivos/dados preservados.
 [Recibo e limites da continuidade](evidence/reservation-release-20261027.md).

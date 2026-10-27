@@ -1,5 +1,11 @@
 # Conclusão integral do protocolo SaaS
 
+Em 27/10/2026, **12h42 Manaus**, os quarenta links históricos autorizados foram
+revogados com cópias verificadas e conteúdo, vínculos e cotas preservados.
+**4.3 concluído: 12/23 (52,17%), 11 restantes, 1/7 etapas encerradas.**
+A meta de ultrapassar 50% foi comprovada, sem arredondar itens parciais.
+[Recibos, preservação e retomada após 503](evidence/private-file-rotation-20261027.md).
+
 Em 27/10/2026, 11h08 Manaus, as nove reservas vazias foram liberadas pela
 sessão gestora real e conferidas antes/depois, encerrando **3.2**. Total:
 **11/23 (47,83%), 12 restantes, 1/7 etapas encerradas**. Falta um critério
@@ -91,7 +97,7 @@ API v3, sequencial e com 13 eventos. Nenhuma fila foi alterada. A causa HTTP e
 o tratamento da integração externa dependem dos seus logs e finalidade; não
 desativá-la por ser chamada “Teste”. [Recibo e limites](evidence/authorized-runtime-validation-20261022.md).
 
-## Provas restantes dos 12 itens
+## Provas restantes dos 11 itens
 
 | Item | Trabalho para concluir e condição de aceite |
 | --- | --- |
@@ -100,7 +106,6 @@ desativá-la por ser chamada “Teste”. [Recibo e limites](evidence/authorized
 | 2.3 | Validar acesso online, expiração/limpeza do cache em 72h e retomada nos aplicativos disponíveis. Builds e emuladores não substituem os testes em aparelhos; registrar limites da homologação iOS. |
 | 3.3 | Executar upload, leitura, limite, falha e exclusão em Web, Windows e Android disponíveis. DICOM aguarda a liberação de Radiologia. |
 | 4.2 | Master/MFA positivos e duas decisões individuais auditadas foram comprovados em 24/10. Concluir replay financeiro positivo (continua zero), cenários restantes de sessão e origem dos 12 pacientes sem empresa. Estoque/diretórios/fluxos continuam protegidos em 29 tabelas e catálogos originais somente leitura. [Prova e limites](evidence/events-recovery-master-20261024.md). |
-| 4.3 | Tratar e comprovar a revogação das referências assinadas históricas: 40 reconferidas em 22/10 (34 fotos e seis avatares), ainda válidas até 2036. Comprovar também leitura, recusa, expiração e renovação autenticadas na publicação. Substituir uma referência não revoga um token já emitido. |
 | 5.2 | Executor de cancelamento Sandbox agora pode operar sob Master/AAL2 enquanto Produção permanece ativa (PR195 publicada). Executar o pedido aprovado uma vez no Asaas e concluir troca de plano/preço por vigência, ainda com implementação e prova próprias. [Publicação e limites](evidence/administrative-continuity-20261024.md). |
 | 5.3 | Validar downgrade, cota, preço/data efetiva e retomada após falha ambígua, com lease/readback e sem POST financeiro repetido cegamente. |
 | 6.2 | Fazer backup/restauração operacional de dados e arquivos em destino isolado, comparar integridade e ensaiar incidente/rollback. Restauração limpa só de schema é parcial. |
