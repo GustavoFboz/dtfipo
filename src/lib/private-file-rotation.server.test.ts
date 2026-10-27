@@ -1,6 +1,6 @@
 import {createHash} from 'node:crypto';
 import {describe,expect,it,vi} from 'vitest';
-import {assertRotationTarget,handlePrivateFileRotation,rotatePrivateTarget,type RotationTarget} from './private-file-rotation.server';
+import {assertRotationTarget,executePrivateFileRotation,handlePrivateFileRotation,rotatePrivateTarget,type RotationTarget} from './private-file-rotation.server';
 const subject='11111111-1111-4111-8111-111111111111';
 const target:RotationTarget={id:'22222222-2222-4222-8222-222222222222',bucket:'avatars',subject_id:subject,
  old_path:subject+'/old.png',new_path:subject+'/new.png',old_signed_url:`https://project.supabase.co/storage/v1/object/sign/avatars/${subject}/old.png?token=legacy`,
@@ -63,5 +63,64 @@ describe('private file rotation',()=>{
  it('requires a capability and refuses browser-origin requests before loading admin access',async()=>{
   expect((await handlePrivateFileRotation(new Request('https://app.invalid',{method:'POST'}))).status).toBe(403);
   expect((await handlePrivateFileRotation(new Request('https://app.invalid',{method:'POST',headers:{Origin:'https://app.invalid',Authorization:'Bearer '+'a'.repeat(64)}}))).status).toBe(403);
+ });
+});
+
+describe('maintenance request budget',()=>{
+ const second:RotationTarget={...target,id:'33333333-3333-4333-8333-333333333333',
+  old_path:subject+'/second-old.png',new_path:subject+'/second-new.png',
+  old_signed_url:target.old_signed_url.replace('old.png','second-old.png')};
+ const claim={id:'44444444-4444-4444-8444-444444444444',
+  lease_token:'55555555-5555-4555-8555-555555555555',targets:[target,second]};
+ function storageAdmin(failFirst=false){
+  const objects=new Map([[target.old_path,source],[second.old_path,source]]);
+  const reads:string[]=[];
+  const storage={
+   download:vi.fn(async(path:string)=>{
+    reads.push(path);
+    // Yield to reveal concurrent file work, rather than synchronously hiding it.
+    await Promise.resolve();
+    if(failFirst&&path===target.new_path)return {error:{statusCode:503,message:'unavailable'}};
+    const object=objects.get(path);
+    return object?{data:new Blob([object.bytes],{type:object.mime}),error:null}
+     :{error:{statusCode:404,message:'not found'}};
+   }),
+   upload:vi.fn(async(path:string,bytes:Uint8Array,options:{contentType:string})=>{
+    objects.set(path,{bytes:new Uint8Array(bytes),mime:options.contentType});return {error:null};
+   }),
+   remove:vi.fn(async(paths:string[])=>{paths.forEach(path=>objects.delete(path));return {error:null};}),
+  };
+  const rpc=vi.fn(async(name:string)=>({error:null,data:name==='finish_private_file_rotation'
+   ?{passed:!failFirst,total:2,verified:failFirst?0:2}:true}));
+  return {admin:{storage:{from:()=>storage},rpc},reads,objects,storage};
+ }
+ it('finishes every operation for one file before requesting another',async()=>{
+  const test=storageAdmin();
+  vi.stubEnv('SUPABASE_URL','https://project.supabase.co');
+  vi.stubGlobal('fetch',vi.fn(async(url:string)=>new Response(null,{status:
+   test.objects.has(url.includes('second-old.png')?second.old_path:target.old_path)?200:404})));
+  try{
+   const result=await executePrivateFileRotation(claim,test.admin);
+   expect(result.failures).toEqual([]);
+   const firstSecondRead=test.reads.findIndex(path=>path===second.new_path||path===second.old_path);
+   expect(firstSecondRead).toBeGreaterThan(0);
+   expect(test.reads.slice(firstSecondRead)).not.toContain(target.new_path);
+   expect(test.reads.slice(firstSecondRead)).not.toContain(target.old_path);
+   expect(test.admin.rpc.mock.calls.filter(([name])=>name==='verify_private_file_rotation')).toHaveLength(2);
+  }finally{vi.unstubAllGlobals();vi.unstubAllEnvs();}
+ });
+ it('stops after a failed read and preserves every later file without more requests',async()=>{
+  const test=storageAdmin(true);
+  vi.stubEnv('SUPABASE_URL','https://project.supabase.co');
+  try{
+   const result=await executePrivateFileRotation(claim,test.admin);
+   expect(result.failures).toEqual([{id:target.id,code:'ROTATION_OBJECT_READ_FAILED'}]);
+   expect(test.reads).toEqual([target.new_path]);
+   expect(test.storage.upload).not.toHaveBeenCalled();
+   expect(test.storage.remove).not.toHaveBeenCalled();
+   expect(test.objects.has(second.old_path)).toBe(true);
+   expect(test.admin.rpc).toHaveBeenCalledExactlyOnceWith('finish_private_file_rotation',{
+    _job:claim.id,_lease:claim.lease_token});
+  }finally{vi.unstubAllEnvs();}
  });
 });

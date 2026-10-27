@@ -94,10 +94,15 @@ export async function executePrivateFileRotation(claim:Claim,admin:any) {
    try{await r.body?.cancel();}catch{} return r.status;},
   verify:(t,hash,status)=>rpc('verify_private_file_rotation',{_job:claim.id,_lease:claim.lease_token,_target:t.id,_hash:hash,_old_http_status:status})};
  const failures:{id:string;code:string}[]=[];
- for(let start=0;start<claim.targets.length;start+=4) {
-  const batch=claim.targets.slice(start,start+4);
-  const results=await Promise.allSettled(batch.map(t=>rotatePrivateTarget(t,ops)));
-  results.forEach((r,i)=>{if(r.status==='rejected')failures.push({id:batch[i].id,code:r.reason instanceof PrivateRotationFailure?r.reason.code:'ROTATION_EXECUTION_FAILED'});});
+ // Keep maintenance below the live application's load: complete each file
+ // before starting the next. A failed proof stops the job; untouched targets
+ // stay prepared for review instead of generating more requests under failure.
+ for(const target of claim.targets) {
+  try{await rotatePrivateTarget(target,ops);}
+  catch(error){
+   failures.push({id:target.id,code:error instanceof PrivateRotationFailure?error.code:'ROTATION_EXECUTION_FAILED'});
+   break;
+  }
  }
  const finished=await admin.rpc('finish_private_file_rotation',{_job:claim.id,_lease:claim.lease_token});
  if(finished.error||!finished.data)throw new PrivateRotationFailure('ROTATION_RECEIPT_NOT_PERSISTED');
