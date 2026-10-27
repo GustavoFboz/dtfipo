@@ -1,5 +1,10 @@
 # Protocolo SaaS DentalFlow
 
+Contador vigente em 27/10/2026: **11/23 (47,83%), 12 critérios restantes,
+1/7 etapas encerradas**. Critério 3.2 concluído após nove liberações individuais
+autenticadas, com 1,04 GiB recuperado e arquivos/dados preservados.
+[Recibo e limites da continuidade](evidence/reservation-release-20261027.md).
+
 Contador vigente em 26/10/2026: **10/23 (43,48%), 13 critérios restantes,
 1/7 etapas encerradas**. Criação/edição de casos e proteção de imagens
 publicadas; 134/134 verificações reais com arquivos descartáveis aprovadas.

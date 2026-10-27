@@ -1,5 +1,13 @@
 # Progresso dos aceites finais para vendas
 
+Checkpoint de 27/10/2026, 11h08 Manaus: as nove reservas vazias foram liberadas
+individualmente pela sessão gestora real, recuperando 1,04 GiB. Arquivos prontos,
+casos, pacientes e pagamentos preservados por conferência antes/depois.
+**Item 3.2 concluído: 11/23 (47,83%), 12 restantes, 1/7 etapas encerradas.**
+A manutenção passa a tratar um arquivo por vez e parar ao primeiro erro.
+Os quarenta links históricos continuam intactos: a revisão automática recusou
+a preparação sem autorização específica. [Recibo e limites](evidence/reservation-release-20261027.md).
+
 Checkpoint de 26/10/2026, 11h16 Manaus: criação/edição de casos recuperadas e
 publicadas; proteção de imagens publicada e **134/134 verificações reais**
 aprovadas somente com arquivos descartáveis. Nove reservas vazias seguem
@@ -128,7 +136,7 @@ o valor insuficiente antes de criar recursos externos.
 | 2.2 | Dados e período pago preservados | Parcial: renovação preservou histórico, vigência e hash de 33 tabelas fora das fixtures. Aceite dos demais ciclos continua pendente. [Prova e limites](evidence/events-recovery-master-20261024.md) |
 | 2.3 | Acesso nas plataformas e janela offline de 72 horas | Parcial: código, CI/restore, instalador Windows e limpeza offline nos emuladores Android; recuperação API 37/distribuição/aparelhos/iOS pendentes |
 | 3.1 | Upload/exclusão de casos, pacientes, fotos e avatar | Concluído pelas APIs autenticadas em 17/10, 15h06 Manaus: 50/50 checks reais nas duas fixtures USER, quatro buckets, tamanho/hash/cota consistentes, excesso e acesso estrangeiro recusados, oito exclusões e cota zero. Preparo clínico descartável administrativo; sem promoção de papéis. Aparelhos, concorrência/resíduos e links históricos mantêm aceites próprios. [Recibo e revisão](evidence/acceptance-20-20261017.md) |
-| 3.2 | Concorrência, falhas e reservas históricas | Parcial: resiliência passou novamente no job 134/134 de 26/10. Nove reservas históricas sem objeto ou vínculo, 1,04 GiB, continuam presentes. Liberação já autorizada pelo titular; falta executar com a sessão gestora real e conferir o resultado. Nenhuma exclusão direta foi executada. [Provas e ação restante](evidence/private-file-publication-20261026.md) |
+| 3.2 | Concorrência, falhas e reservas históricas | Concluído em 27/10, 11h08 Manaus: resiliência publicada comprovada em 26/10; nove liberações individuais na sessão gestora real recuperaram 1.112.944.862 bytes. Zero reservas históricas, mesmos 685 arquivos prontos e hashes de metadados/casos/pacientes/pagamentos preservados. Sem exclusão direta por SQL. [Recibo e limites](evidence/reservation-release-20261027.md) |
 | 3.3 | Armazenamento nas plataformas disponíveis | Pendente de aparelhos |
 | 4.1 | Cadastro, confirmação e recuperação de senha | Concluído em 21/10, 23h49 Manaus: mínimo global de oito caracteres salvo no Auth; job real publicado passou 16/16 checks de cadastro, confirmação, login, recuperação, token único, isolamento e logout. Senha de sete caracteres recusada com HTTP422. Usuário descartável removido; contas existentes preservadas. MFA e arquivos conservam aceites próprios. [Recibo e revisão](evidence/authorized-publication-20261021.md) |
 | 4.2 | Sessões, MFA, isolamento e replay financeiro | Parcial: 29 tabelas possuem empresa e dois catálogos padrão são somente leitura. Master/MFA positivos e duas decisões auditadas comprovados com login real em 24/10; regressões identidade e arquivos/privacidade 128/128. Replay financeiro positivo continua zero; origem dos 12 pacientes sem empresa e demais cenários de sessão permanecem pendentes. [Prova e limites](evidence/events-recovery-master-20261024.md) |
