@@ -1,6 +1,12 @@
 # DentalFlow SaaS — sete etapas restantes até vendas
 
-**Contador vigente em 27/10/2026: 11/23 (47,83%), 12 critérios restantes e
+**Contador vigente em 27/10/2026, 12h42 Manaus: 12/23 (52,17%), 11 critérios
+restantes e 1/7 etapas encerradas.** Critério 4.3 concluído: 34 fotos e seis
+avatares preservados em cópias verificadas e quarenta URLs originais recusadas
+com HTTP400. Conteúdo, vínculos e cotas conferem antes/depois.
+[Recibos e limites](evidence/private-file-rotation-20261027.md).
+
+**Checkpoint de 27/10/2026, 11h08 Manaus: 11/23 (47,83%), 12 critérios restantes e
 1/7 etapas encerradas.** Critério 3.2 concluído: nove reservas históricas
 liberadas individualmente pela sessão gestora real, com 1,04 GiB recuperado
 e integridade conferida. Os quarenta links antigos aguardam autorização

@@ -1,5 +1,13 @@
 # Rotação dos endereços privados antigos
 
+Concluída em 27/10/2026, 12h42 Manaus, após autorização explícita: 34 fotos e
+seis avatares com cópias verificadas, referências e cotas preservadas, origens
+ausentes e quarenta URLs originais recusadas com HTTP400. **Critério 4.3
+concluído; 12/23 (52,17%)**. Uma resposta 503 foi recuperada somente após a
+trava expirar, reutilizando alvo/hash e sem repetir os catorze jobs concluídos.
+[Prova, integridade e limites](evidence/private-file-rotation-20261027.md).
+Os registros datados abaixo conservam a preparação e os limites anteriores.
+
 Implementação de 26/10/2026, ainda sujeita às provas publicadas. O inventário
 confirmou 34 fotos e seis avatares, todos com objeto e exatamente um registro
 de cota. A preparação desta implementação não revoga links e não encerra o

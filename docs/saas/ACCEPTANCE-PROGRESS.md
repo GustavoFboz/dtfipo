@@ -1,5 +1,14 @@
 # Progresso dos aceites finais para vendas
 
+Checkpoint de 27/10/2026, **12h42 Manaus**: troca autorizada dos 34 arquivos de
+foto e seis avatares concluída. Quarenta cópias com tamanho/hash conferidos,
+quarenta URLs originais recusadas com HTTP400, origens ausentes e mesmos IDs,
+vínculos e cotas. Os 685 arquivos prontos e os hashes clínicos/financeiros
+permanecem preservados. **Item 4.3 concluído: 12/23 (52,17%), 11 restantes,
+1/7 etapas encerradas.** Uma resposta 503 e sua retomada após a trava expirar
+foram preservadas; nenhum job concluído foi repetido.
+[Quarenta recibos, integridade e limites](evidence/private-file-rotation-20261027.md).
+
 Checkpoint de 27/10/2026, 11h08 Manaus: as nove reservas vazias foram liberadas
 individualmente pela sessão gestora real, recuperando 1,04 GiB. Arquivos prontos,
 casos, pacientes e pagamentos preservados por conferência antes/depois.
@@ -140,7 +149,7 @@ o valor insuficiente antes de criar recursos externos.
 | 3.3 | Armazenamento nas plataformas disponíveis | Pendente de aparelhos |
 | 4.1 | Cadastro, confirmação e recuperação de senha | Concluído em 21/10, 23h49 Manaus: mínimo global de oito caracteres salvo no Auth; job real publicado passou 16/16 checks de cadastro, confirmação, login, recuperação, token único, isolamento e logout. Senha de sete caracteres recusada com HTTP422. Usuário descartável removido; contas existentes preservadas. MFA e arquivos conservam aceites próprios. [Recibo e revisão](evidence/authorized-publication-20261021.md) |
 | 4.2 | Sessões, MFA, isolamento e replay financeiro | Parcial: 29 tabelas possuem empresa e dois catálogos padrão são somente leitura. Master/MFA positivos e duas decisões auditadas comprovados com login real em 24/10; regressões identidade e arquivos/privacidade 128/128. Replay financeiro positivo continua zero; origem dos 12 pacientes sem empresa e demais cenários de sessão permanecem pendentes. [Prova e limites](evidence/events-recovery-master-20261024.md) |
-| 4.3 | Arquivos privados e validade dos links | Parcial: rotação, resolução autorizada, assinatura de cinco minutos e recuperação limitada de cache publicadas; 22 verificações novas passaram nos dois avatares descartáveis dentro do job 134/134. Offline mantém 72h. Inventário de 26/10 confirma 34 fotos e seis avatares históricos intactos, com objeto/cota; rotação real e recusa dos links originalmente emitidos dependem de autorização específica após revisão automática. [Prova e limites](evidence/private-file-publication-20261026.md) |
+| 4.3 | Arquivos privados e validade dos links | Concluído em 27/10, 12h42 Manaus: 34 fotos e seis avatares autorizados, 40 cópias verificadas e URLs originais recusadas com HTTP400, origens ausentes e caminhos aposentados. Mesmos 685 arquivos prontos, bytes, metadados de propriedade/vínculo e hashes clínicos/financeiros. As 22 verificações autenticadas de assinatura curta, expiração, renovação e recusa entre empresas foram comprovadas em 26/10. Offline permanece 72h e aparelhos mantêm aceite separado. [Recibos e limites](evidence/private-file-rotation-20261027.md) |
 | 5.1 | Histórico e documentos de cobrança | Concluído em Sandbox, 17/10, 14h45 Manaus: sessões gestoras das duas fixtures consultaram histórico e abriram documento do pagamento validado no provedor (HTTP200); outra clínica foi recusada no histórico e documento (HTTP403). [Recibo e revisão](evidence/acceptance-20-20261017.md) |
 | 5.2 | Solicitações executadas no Asaas | Parcial: executor de cancelamento com Master/AAL2, lease, auditoria e readback publicado; PR195 permite Sandbox separado com Produção ativa, mantendo autorização por contrato. Execução real e troca de plano/preço por vigência continuam pendentes. [Publicação e limites](evidence/administrative-continuity-20261024.md) |
 | 5.3 | Downgrade, falhas e execução única | Parcial: inativação única e retomada somente por GET implementadas; ensaios não substituem falhas reais, downgrade e preço por vigência |
