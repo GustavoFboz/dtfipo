@@ -27,6 +27,9 @@ INSERT INTO public.profiles(id,clinic_id,role) VALUES
 ON CONFLICT(id) DO UPDATE SET clinic_id=EXCLUDED.clinic_id;
 INSERT INTO public.saas_fixture_acceptance_jobs(id,kind,token_hash,expires_at)
  VALUES('8a0cbd19-6b52-4db9-991b-66711337e61b','identity',repeat('a',64),now()+interval '10 minutes');
+-- The additional job kind does not change any identity/financial grants.
+INSERT INTO public.saas_fixture_acceptance_jobs(id,kind,token_hash,expires_at)
+ VALUES('8a0cbd19-6b52-4db9-991b-66711337e61c','cancellation',repeat('c',64),now()+interval '10 minutes');
 SELECT set_config('request.jwt.claims','{"role":"service_role"}',true);
 SET LOCAL ROLE service_role;
 DO $$ DECLARE j jsonb; denied boolean; BEGIN

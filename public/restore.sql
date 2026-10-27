@@ -20628,6 +20628,14 @@ revoke all on function public.prepare_fixture_private_file_rotation(uuid,uuid,te
 grant execute on function public.prepare_fixture_private_file_rotation(uuid,uuid,text,text) to service_role;
 notify pgrst,'reload schema';
 
+-- ===== 20261027180000_saas_fixture_cancellation.sql =====
+
+-- Adds preparation/readback for one existing disposable Sandbox fixture.
+-- No operator enrollment, MFA change, financial executor or table grant.
+ALTER TABLE public.saas_fixture_acceptance_jobs DROP CONSTRAINT saas_fixture_acceptance_jobs_kind_check;
+ALTER TABLE public.saas_fixture_acceptance_jobs ADD CONSTRAINT saas_fixture_acceptance_jobs_kind_check
+ CHECK(kind IN('identity','storage','billing','ownership','configuration','reconciliation','cancellation'));
+
 -- ===== 20260718000001_zzz_self_heal_v2.sql =====
 
 -- =====================================================================

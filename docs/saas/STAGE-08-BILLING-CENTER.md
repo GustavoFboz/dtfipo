@@ -1,5 +1,21 @@
 # Etapa 08 — centro de cobrança da empresa
 
+## Homologação isolada do cancelamento, 27/10
+
+O job privado `cancellation` prepara uma única solicitação normal para a fixture
+Sandbox A já autorizada e, depois, permite observar seu resultado. A sessão da
+fixture é verificada pelo Auth; o pedido usa as mesmas RPCs do gestor. A fixture
+B conserva sua assinatura para os próximos testes. Não há promoção de papel,
+claim MFA simulada, escrita no Asaas ou cancelamento automático nesse job.
+
+Antes e depois da ação Master, guardar e comparar os hashes do ledger, contrato
+preservado e lista completa de cobranças do provedor. O recibo de preparo com
+`AWAITING_MASTER` não é prova de cancelamento concluído. A execução exige login
+Master real, autenticador e revisão explícita na interface existente. O readback
+confere `INACTIVE`, auditoria de uma escrita, acesso pago e histórico do gestor.
+As chamadas são sequenciais, sem repetição automática de mutações. Resultado
+ambíguo exige consultar o pedido antes de uma nova ação.
+
 Status: histórico, limite de acesso financeiro e links de cobrança preparados.
 Solicitações auditadas de cancelamento e troca de plano implementadas em 03/10.
 O executor de cancelamento foi implementado em 06/10; sua publicação e prova
