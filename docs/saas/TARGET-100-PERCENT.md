@@ -1,5 +1,12 @@
 # Conclusão integral do protocolo SaaS
 
+Em 27/10/2026, 11h08 Manaus, as nove reservas vazias foram liberadas pela
+sessão gestora real e conferidas antes/depois, encerrando **3.2**. Total:
+**11/23 (47,83%), 12 restantes, 1/7 etapas encerradas**. Falta um critério
+integral para ultrapassar 50%. Os quarenta links antigos permanecem intactos,
+com preparação bloqueada pela revisão automática até autorização específica.
+[Liberação, preservação e limites](evidence/reservation-release-20261027.md).
+
 Em 26/10/2026, a recuperação de criação/edição de casos foi publicada e o job
 de arquivos passou **134/134 verificações reais**, incluindo os links dos dois
 avatares descartáveis. O total permanece **10/23 (43,48%), 13 restantes,
@@ -84,14 +91,13 @@ API v3, sequencial e com 13 eventos. Nenhuma fila foi alterada. A causa HTTP e
 o tratamento da integração externa dependem dos seus logs e finalidade; não
 desativá-la por ser chamada “Teste”. [Recibo e limites](evidence/authorized-runtime-validation-20261022.md).
 
-## Provas restantes dos 13 itens
+## Provas restantes dos 12 itens
 
 | Item | Trabalho para concluir e condição de aceite |
 | --- | --- |
 | 2.1 | Renovação real comprovada em 24/10. Executar atraso/carência, suspensão, estorno/contestação, cancelamento e reativação com estados reais do provedor. Ensaios SQL e mocks permanecem regressões. |
 | 2.2 | Conferir dados clínicos, contratos, ledger, limites e período pago antes/depois dos fluxos reais. A isenção IPO e dados de outras empresas devem permanecer preservados. |
 | 2.3 | Validar acesso online, expiração/limpeza do cache em 72h e retomada nos aplicativos disponíveis. Builds e emuladores não substituem os testes em aparelhos; registrar limites da homologação iOS. |
-| 3.2 | Resiliência 84/84 novamente comprovada em 24/10. Nove reservas históricas conferidas pela sessão gestora e presença/vínculos: nenhuma possui objeto ou anexo. Falta confirmação de abandono do titular e liberação individual autenticada, somando 1,04 GiB. Não excluir metadados por SQL nem liberar cota com bytes existentes. [Revisão](evidence/administrative-continuity-20261024.md). |
 | 3.3 | Executar upload, leitura, limite, falha e exclusão em Web, Windows e Android disponíveis. DICOM aguarda a liberação de Radiologia. |
 | 4.2 | Master/MFA positivos e duas decisões individuais auditadas foram comprovados em 24/10. Concluir replay financeiro positivo (continua zero), cenários restantes de sessão e origem dos 12 pacientes sem empresa. Estoque/diretórios/fluxos continuam protegidos em 29 tabelas e catálogos originais somente leitura. [Prova e limites](evidence/events-recovery-master-20261024.md). |
 | 4.3 | Tratar e comprovar a revogação das referências assinadas históricas: 40 reconferidas em 22/10 (34 fotos e seis avatares), ainda válidas até 2036. Comprovar também leitura, recusa, expiração e renovação autenticadas na publicação. Substituir uma referência não revoga um token já emitido. |
