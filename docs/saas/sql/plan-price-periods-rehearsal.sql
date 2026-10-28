@@ -135,10 +135,20 @@ RESET ROLE;
 -- Resolve only the disposable excess and observe a local activation, not a new charge.
 UPDATE public.storage_files SET size_bytes=1 WHERE id='92800000-0000-4000-8000-000000000060';
 SET LOCAL ROLE service_role;
-DO $$ BEGIN
- IF public.billing_refresh_subscription_plan('92800000-0000-4000-8000-000000000040')<>'activated'
+DO $$ DECLARE outcome text;diagnostic jsonb; BEGIN
+ outcome:=public.billing_refresh_subscription_plan('92800000-0000-4000-8000-000000000040');
+ IF outcome<>'activated'
  OR (SELECT plan_code FROM public.account_subscriptions WHERE id='92800000-0000-4000-8000-000000000040')<>'company_initial'
- OR (SELECT status FROM public.account_subscriptions WHERE id='92800000-0000-4000-8000-000000000040')<>'active' THEN RAISE EXCEPTION 'Paid due plan did not activate after limits resolved'; END IF;
+ OR (SELECT status FROM public.account_subscriptions WHERE id='92800000-0000-4000-8000-000000000040')<>'active' THEN
+ SELECT jsonb_build_object('outcome',outcome,'status',s.status,'plan',s.plan_code,'metadata',s.metadata,
+  'used',(SELECT sum(size_bytes) FROM public.storage_files WHERE clinic_id=s.clinic_id),
+  'paid',(SELECT amount_cents FROM public.billing_payments WHERE provider_payment_id='pay_NewPeriod'),
+  'target_amount',t.amount_cents,'target_members',t.quote_snapshot->'target_max_members','actual_members_limit',p.max_members,
+  'target_sessions',t.quote_snapshot->'target_max_sessions','actual_sessions_limit',p.max_sessions,
+  'target_features',t.quote_snapshot->'target_features','actual_features',p.features)
+ INTO diagnostic FROM public.account_subscriptions s JOIN public.billing_plan_periods t ON t.subscription_id=s.id
+ JOIN public.billing_plans p ON p.code=t.plan_code WHERE s.id='92800000-0000-4000-8000-000000000040';
+ RAISE EXCEPTION 'Paid due plan did not activate: %',diagnostic; END IF;
  IF (SELECT amount_cents FROM public.billing_payments WHERE provider_payment_id='pay_OldPeriod')<>44900 THEN RAISE EXCEPTION 'Historical invoice was repriced'; END IF;
  IF public.billing_refresh_subscription_plan('92800000-0000-4000-8000-000000000040')<>'unchanged' THEN RAISE EXCEPTION 'Activation repeated'; END IF;
 END $$;
