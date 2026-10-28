@@ -3,10 +3,11 @@ import {handleAsaasCheckoutOptions,handleAsaasCheckoutRequest} from './asaas-che
 import {handleAsaasRenewalRequest} from './asaas-renewal.server';
 import {handleAsaasDocumentRequest} from './asaas-document.server';
 import {handleAsaasCancelRequest} from './asaas-cancel.server';
+import {handleAsaasPlanChange} from './asaas-plan-change.server';
 
 const handlers=[
   ['checkout',handleAsaasCheckoutOptions],['renewal',handleAsaasRenewalRequest],
-  ['document',handleAsaasDocumentRequest],['cancel',handleAsaasCancelRequest],
+  ['document',handleAsaasDocumentRequest],['cancel',handleAsaasCancelRequest],['plan change',handleAsaasPlanChange],
 ] as const;
 const origins=['http://tauri.localhost','https://tauri.localhost','https://localhost','tauri://localhost','capacitor://localhost'];
 const untrusted=['https://localhost.evil.example','http://tauri.localhost.evil.example','https://example.com',

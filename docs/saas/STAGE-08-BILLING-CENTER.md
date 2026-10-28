@@ -1,5 +1,16 @@
 # Etapa 08 — centro de cobrança da empresa
 
+## Troca por vigência, 28/10
+
+Executor Master/AAL2, termos de preço por data, renovação e cancelamento
+compatíveis, aplicação local após pagamento/início e revisão de limites estão
+implementados em `PLAN-PRICE-PERIODS.md`. Preservam períodos e cobranças
+existentes, com bloqueio quando fatura futura ou calendário exigir revisão.
+Produção permanece atrás de rollout explícito após validação Sandbox. Código,
+testes/restore e aceite financeiro real são provas distintas; os parágrafos
+datados abaixo conservam seus estados históricos.
+[Contrato, limites e roteiro](PLAN-PRICE-PERIODS.md).
+
 ## Homologação isolada do cancelamento, 27/10
 
 O job privado `cancellation` prepara uma única solicitação normal para a fixture

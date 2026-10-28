@@ -1,5 +1,6 @@
 import { AsaasClient, loadAsaasConfig, type AsaasPayment } from "./asaas.server";
 import { AsaasProvisioningError } from "./asaas-provisioning.server";
+import { z } from "zod";
 import {
   loadAuthenticatedUserId,
   readCheckoutBody,
@@ -19,7 +20,20 @@ type RenewalContext = {
   provider_environment: "sandbox" | "production";
   monthly_price_cents: number;
   current_period_end: string;
+  provider_price_cents?: number;
+  price_periods?: { effective_date: string; amount_cents: number }[];
 };
+
+const priceContextSchema = z.object({ provider_amount_cents: z.number().int().positive(),
+  periods: z.array(z.object({ effective_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), amount_cents: z.number().int().positive() })).max(100)
+}).refine(p => new Set(p.periods.map(v => v.effective_date)).size === p.periods.length
+  && p.periods.every(v => Number.isFinite(Date.parse(v.effective_date + "T00:00:00Z"))
+    && new Date(v.effective_date + "T00:00:00Z").toISOString().slice(0,10) === v.effective_date));
+export function parseRenewalPriceContext(value: unknown) { return priceContextSchema.parse(value); }
+function expectedInvoiceAmount(context: RenewalContext, due: string): number {
+  const period = context.price_periods?.filter(v => v.effective_date <= due).sort((a,b) => b.effective_date.localeCompare(a.effective_date))[0];
+  return period?.amount_cents ?? context.monthly_price_cents;
+}
 
 export type RenewalInvoice = {
   paymentId: string;
@@ -79,10 +93,11 @@ export function selectRenewalInvoice(input: {
   if (candidates.length === 0) return null;
   if (candidates.length !== 1) throw new Error("BILLING_RENEWAL_AMBIGUOUS_INVOICE");
   const payment = candidates[0];
+  const expectedAmount = expectedInvoiceAmount(context, payment.dueDate!);
   if (!PAYMENT.test(payment.id) || payment.customer !== context.external_customer_id ||
     payment.subscription !== context.external_subscription_id ||
     !Number.isFinite(payment.value) ||
-    Math.round(Number(payment.value) * 100) !== context.monthly_price_cents ||
+    Math.round(Number(payment.value) * 100) !== expectedAmount ||
     payment.deleted || !payment.invoiceUrl) {
     throw new Error("BILLING_RENEWAL_INVOICE_MISMATCH");
   }
@@ -90,7 +105,7 @@ export function selectRenewalInvoice(input: {
     paymentId: payment.id,
     paymentUrl: input.validateUrl(payment.invoiceUrl),
     dueDate: payment.dueDate!,
-    amountCents: context.monthly_price_cents,
+    amountCents: expectedAmount,
     environment: context.provider_environment,
   };
 }
@@ -126,7 +141,11 @@ export async function executeAsaasRenewalRequest(request: Request, subscriptionI
       .eq("subscription_id", subscriptionId).eq("provider", "asaas")
       .eq("provider_environment", config.environment).eq("status", "paid").limit(1);
     if (paidError || !paid?.length) throw new Error("BILLING_RENEWAL_NOT_AVAILABLE");
-    const context = parseContext({ ...data, current_period_end: stored.current_period_end });
+    const { data: prices, error: priceError } = await (supabaseAdmin as any).rpc("billing_subscription_price_context", { p_subscription_id: subscriptionId });
+    if (priceError) throw new Error("BILLING_RENEWAL_PRICE_REVIEW");
+    const pricing = parseRenewalPriceContext(prices);
+    const context = parseContext({ ...data, current_period_end: stored.current_period_end,
+      provider_price_cents: pricing.provider_amount_cents, price_periods: pricing.periods });
     if (context.provider_environment !== config.environment) throw new Error("BILLING_RENEWAL_ENVIRONMENT_MISMATCH");
     const client = new AsaasClient(config);
     const subscription = await client.getSubscription(context.external_subscription_id);
@@ -135,7 +154,7 @@ export async function executeAsaasRenewalRequest(request: Request, subscriptionI
       subscription.cycle !== "MONTHLY" || subscription.status !== "ACTIVE" ||
       subscription.deleted ||
       subscription.externalReference !== `dentalflow:subscription:${context.subscription_id}` ||
-      Math.round(Number(subscription.value) * 100) !== context.monthly_price_cents) {
+      Math.round(Number(subscription.value) * 100) !== (context.provider_price_cents ?? context.monthly_price_cents)) {
       throw new Error("BILLING_RENEWAL_SUBSCRIPTION_MISMATCH");
     }
     const payments = await client.listPaymentsForReconciliation(

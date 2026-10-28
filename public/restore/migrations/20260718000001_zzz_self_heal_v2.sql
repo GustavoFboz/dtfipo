@@ -1050,3 +1050,18 @@ GRANT EXECUTE ON FUNCTION public.claim_private_file_rotation(uuid,text),public.a
  public.prepare_fixture_private_file_rotation(uuid,uuid,text,text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.resolve_rotated_private_file(text,text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.private_file_path_is_retired(text,text) TO authenticated,service_role;
+
+-- Plan price periods and audited execution stay private after legacy grants.
+REVOKE ALL ON public.billing_plan_periods,public.billing_plan_change_executions FROM PUBLIC,anon,authenticated,service_role;
+GRANT SELECT ON public.billing_plan_periods,public.billing_plan_change_executions TO service_role;
+REVOKE ALL ON FUNCTION public.billing_subscription_base_amount(uuid),public.billing_subscription_period_amount(uuid,date),
+ public.billing_subscription_contract_amount(uuid),public.billing_subscription_provider_amount(uuid),public.billing_subscription_price_context(uuid),
+ public.billing_change_request_quote_base(uuid,text,text),public.billing_plan_request_frozen(uuid),public.billing_plan_request_ready(uuid),
+ public.platform_master_claim_plan_change(uuid,text,text,boolean),public.platform_master_begin_plan_change_write(uuid,uuid),
+ public.billing_finish_plan_change(uuid,uuid,jsonb,text),public.billing_refresh_subscription_plan(uuid),public.billing_refresh_due_plan_periods(text)
+ FROM PUBLIC,anon,authenticated,service_role;
+GRANT EXECUTE ON FUNCTION public.billing_subscription_period_amount(uuid,date),public.billing_subscription_contract_amount(uuid),
+ public.billing_subscription_provider_amount(uuid),public.billing_subscription_price_context(uuid),public.billing_finish_plan_change(uuid,uuid,jsonb,text),
+ public.billing_refresh_subscription_plan(uuid),public.billing_refresh_due_plan_periods(text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.platform_master_claim_plan_change(uuid,text,text,boolean),public.platform_master_begin_plan_change_write(uuid,uuid) TO authenticated;
+NOTIFY pgrst,'reload schema';

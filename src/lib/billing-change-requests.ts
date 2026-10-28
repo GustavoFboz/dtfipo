@@ -18,7 +18,7 @@ const quoteSchema = z.object({
   target_plan_code: z.string().min(1).nullable(), target_plan_name: z.string().min(1).nullable(),
   target_amount_cents: amount.nullable(), target_max_members: count.nullable(), target_max_sessions: count.nullable(),
   target_storage_bytes: count.nullable(), storage_used_bytes: count.nullable(), members_used: count.nullable(), sessions_used: count.nullable(),
-  block_reason: z.enum(["paid_period_required", "storage_limit", "member_limit", "session_limit"]).nullable(),
+  block_reason: z.enum(["paid_period_required", "storage_limit", "member_limit", "session_limit", "scheduled_change"]).nullable(),
   quote_token: z.string().regex(/^[a-f0-9]{32}$/),
 }).refine((q) => q.kind === "cancel"
   ? q.target_plan_code === null && q.target_plan_name === null && q.target_amount_cents === null
@@ -32,6 +32,7 @@ const requestSchema = z.object({
   target_plan_name: z.string().min(1).nullable(), target_amount_cents: amount.nullable(), currency: z.literal("BRL"),
   paid_period_end: timestamp.nullable(), effective_not_before: timestamp, created_at: timestamp, withdrawn_at: timestamp.nullable(),
   completed_at: timestamp.nullable().optional(), last_error_code: z.string().regex(/^[A-Z_]{1,80}$/).nullable().optional(),
+  can_withdraw: z.boolean().optional(), plan_activation_state: z.enum(["scheduled", "active", "review_required"]).nullable().optional(),
 }).refine((r) => (r.kind === "cancel" ? r.target_plan_name === null && r.target_amount_cents === null
   : r.target_plan_name !== null && r.target_amount_cents !== null)
   && (r.status === "withdrawn" ? r.withdrawn_at !== null : r.withdrawn_at === null),
@@ -115,7 +116,8 @@ export async function fetchMasterBillingChangeRequests(scope: BillingSessionScop
   search: string, signal?: AbortSignal): Promise<MasterBillingChangeRequest[]> {
   const data = await financialRpc(scope, isCurrent, "platform_master_billing_change_requests", { p_search: search }, signal);
   const parsed = z.array(requestSchema.and(z.object({ clinic_name: z.string().min(1) }))).safeParse(data);
-  if (!parsed.success || parsed.data.some((r) => !["awaiting_provider", "processing", "review_required"].includes(r.status))) throw new Error("Não foi possível conferir a fila de solicitações.");
+  if (!parsed.success || parsed.data.some((r) => !["awaiting_provider", "processing", "review_required"].includes(r.status)
+    && !(r.kind === "change_plan" && r.status === "completed" && r.plan_activation_state === "review_required"))) throw new Error("Não foi possível conferir a fila de solicitações.");
   return parsed.data;
 }
 
