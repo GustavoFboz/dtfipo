@@ -1,0 +1,387 @@
+{
+  "checkpoint_local": "2026-10-28T18:00:03-04:00",
+  "source": {
+    "pr": 206,
+    "base_commit": "2d9986389dcbbf45dc0e8bd5ac4b3fec8ff5648b",
+    "commit": "506183b3edfb1cd1898c96fd6e9ace00b97c262b",
+    "merge_commit": "d98fe9c77393e77eeb288d5f7bdc497b022a3cd1"
+  },
+  "publication": {
+    "requested": {
+      "status": "pending",
+      "deployment_id": "5e330202-8ad8-4abe-b9d7-bf6e608d4524",
+      "url": "https://dtfipo.lovable.app",
+      "preview_url": "https://id-preview--a8b717e3-87ad-482d-8d4a-de81679507e0.lovable.app"
+    },
+    "live_manifest": {
+      "checked_at": "2026-10-28T21:58:27.314769+00:00",
+      "http_status": 200,
+      "count": 185,
+      "new_migration_present": true
+    },
+    "confirmed_live": true,
+    "confirmed_by": "manifest_185_and_new_price_context_and_plan_route_denial_in_real_receipt"
+  },
+  "local_validation": {
+    "tests_passed": 413,
+    "test_files": 21,
+    "typescript": "passed",
+    "production_build": "passed",
+    "stage_06": "passed",
+    "stage_08": "passed",
+    "stage_09": "passed",
+    "plan_periods_static_contract": "passed",
+    "restore_migrations": 185,
+    "diff_check": "passed"
+  },
+  "ci": [
+    {
+      "id": 40774767399,
+      "name": "DentalFlow Windows Desktop",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 40774767462,
+      "name": "DentalFlow SaaS Restore Rehearsal",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 40774767428,
+      "name": "Dental Flow CI",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 40774767383,
+      "name": "DentalFlow Android Mobile",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "android_jobs": [
+    {
+      "id": 123121045912,
+      "name": "Build Android APK 0.3.1 (35, default, false)",
+      "status": "completed",
+      "conclusion": "success",
+      "failed_steps": []
+    },
+    {
+      "id": 123121046187,
+      "name": "Build Android APK 0.3.1 (37.0, google_apis, true)",
+      "status": "completed",
+      "conclusion": "failure",
+      "failed_steps": [
+        "Smoke-test installed Android app"
+      ]
+    },
+    {
+      "id": 123124736236,
+      "name": "Publish permanent Android installer",
+      "status": "completed",
+      "conclusion": "skipped",
+      "failed_steps": []
+    }
+  ],
+  "retained_failed_restore_attempts": [
+    {
+      "commit": "a72133e170f7e2de44748dece93b0b65ba546705",
+      "run_id": 40773429828,
+      "job_id": 123116382493,
+      "failed_step": "Apply consolidated restore",
+      "correction": "Use CREATE OR REPLACE for the copied cancellation lifecycle functions"
+    },
+    {
+      "commit": "7b32ce77a63416178ebfde90ddd23edbea85b506",
+      "run_id": 40773785761,
+      "job_id": 123117642900,
+      "failed_step": "Plan periods SQL rehearsal: capacity assertion",
+      "correction": "Use effective quoted capacity, including courtesy and active add-ons; separate mutation and assertion"
+    },
+    {
+      "commit": "1850a34963096b972c7084a7431a7f8595a0f0cc",
+      "run_id": 40774205768,
+      "job_id": 123119081452,
+      "failed_step": "Plan periods SQL rehearsal: activation assertion",
+      "correction": "Run activation and then read the result in separate SQL statements; final runtime code unchanged"
+    }
+  ],
+  "schema_validation": {
+    "migration": "20261028210000_saas_plan_price_periods.sql",
+    "live_readonly_private_contract": "passed",
+    "live_rehearsal_with_synthetic_claims": false,
+    "financial_worker_authority_added": false,
+    "new_production_execution_rollout_enabled_this_round": false
+  },
+  "before": {
+    "cancel_execution_count": 0,
+    "cancellation_kind_enabled": true,
+    "cases_hash": "419b08f5b8905de5caa4fa9616ed4db6",
+    "connections": 53,
+    "fixture_contracts": [
+      {
+        "amount_cents": 44900,
+        "clinic_id": "081d3db4-1606-40f7-a878-19b51556317d",
+        "environment": "sandbox",
+        "id": "f089af79-cea4-4821-8497-0e594e67f3cf",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "period_start": "2026-11-18T00:00:00+00:00",
+        "plan_code": "company_growth",
+        "preserved_hash": "0656091b2b0d0f43068a12d24cc2781c",
+        "status": "active"
+      },
+      {
+        "amount_cents": 44900,
+        "clinic_id": "3fc86c40-697e-4725-a9e9-633fc882aadc",
+        "environment": "sandbox",
+        "id": "4579343f-7ba7-49a0-b316-638ef16fbcc5",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "period_start": "2026-11-18T00:00:00+00:00",
+        "plan_code": "company_growth",
+        "preserved_hash": "7f99182ee0568d2ed0a7b8c934c9cf25",
+        "status": "active"
+      }
+    ],
+    "nonfixture_contracts_hash": "5f93ae8a05622562813e88f6797b522d",
+    "observed_at": "2026-10-28T21:50:32.174349+00:00",
+    "patients_hash": "d1573a1878b4cc6ab9f2d2b3143b3f2d",
+    "payments_hash": "b2c430d6aaed7c02409aca88b4b649ea",
+    "plan_tables_present": false,
+    "production_health": {
+      "last_healthy_at": "2026-10-28T21:46:03.535106+00:00",
+      "status": "ok"
+    },
+    "requests": [
+      {
+        "clinic_id": "081d3db4-1606-40f7-a878-19b51556317d",
+        "completed_at": null,
+        "created_at": "2026-10-28T19:56:52.124431+00:00",
+        "environment": "sandbox",
+        "id": "5cd49826-9cec-421d-b511-98519ecdd80e",
+        "kind": "cancel",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "status": "awaiting_provider",
+        "write_attempted": false
+      }
+    ],
+    "running_qa_jobs": 0,
+    "storage_hash": "e6d2b3b7155123e1c0b6f184f9f50fa1",
+    "storage_ready_bytes": 8357682562,
+    "storage_ready_files": 700,
+    "storage_reservations": 0,
+    "waiting_locks": 0,
+    "contract_prices_count": 4,
+    "contract_prices_digest_sha256": "14129259a80e7605e8e3606459d0e4f3ceb535bf2d0774591b22f92a57d6f4d4"
+  },
+  "after": {
+    "cancel_execution_count": 0,
+    "cancellation_kind_enabled": true,
+    "cases_hash": "419b08f5b8905de5caa4fa9616ed4db6",
+    "connections": 51,
+    "fixture_contracts": [
+      {
+        "amount_cents": 44900,
+        "clinic_id": "081d3db4-1606-40f7-a878-19b51556317d",
+        "environment": "sandbox",
+        "id": "f089af79-cea4-4821-8497-0e594e67f3cf",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "period_start": "2026-11-18T00:00:00+00:00",
+        "plan_code": "company_growth",
+        "preserved_hash": "0656091b2b0d0f43068a12d24cc2781c",
+        "status": "active"
+      },
+      {
+        "amount_cents": 44900,
+        "clinic_id": "3fc86c40-697e-4725-a9e9-633fc882aadc",
+        "environment": "sandbox",
+        "id": "4579343f-7ba7-49a0-b316-638ef16fbcc5",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "period_start": "2026-11-18T00:00:00+00:00",
+        "plan_code": "company_growth",
+        "preserved_hash": "7f99182ee0568d2ed0a7b8c934c9cf25",
+        "status": "active"
+      }
+    ],
+    "nonfixture_contracts_hash": "5f93ae8a05622562813e88f6797b522d",
+    "observed_at": "2026-10-28T22:00:03.692234+00:00",
+    "patients_hash": "d1573a1878b4cc6ab9f2d2b3143b3f2d",
+    "payments_hash": "b2c430d6aaed7c02409aca88b4b649ea",
+    "plan_tables_present": true,
+    "production_health": {
+      "last_healthy_at": "2026-10-28T21:56:32.398437+00:00",
+      "status": "ok"
+    },
+    "requests": [
+      {
+        "clinic_id": "081d3db4-1606-40f7-a878-19b51556317d",
+        "completed_at": null,
+        "created_at": "2026-10-28T19:56:52.124431+00:00",
+        "environment": "sandbox",
+        "id": "5cd49826-9cec-421d-b511-98519ecdd80e",
+        "kind": "cancel",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "status": "awaiting_provider",
+        "write_attempted": false
+      }
+    ],
+    "running_qa_jobs": 0,
+    "storage_hash": "e6d2b3b7155123e1c0b6f184f9f50fa1",
+    "storage_ready_bytes": 8357682562,
+    "storage_ready_files": 700,
+    "storage_reservations": 0,
+    "waiting_locks": 0,
+    "contract_prices_count": 4,
+    "contract_prices_digest_sha256": "14129259a80e7605e8e3606459d0e4f3ceb535bf2d0774591b22f92a57d6f4d4"
+  },
+  "preserved_fields": [
+    "storage_ready_files",
+    "storage_ready_bytes",
+    "storage_reservations",
+    "storage_hash",
+    "cases_hash",
+    "patients_hash",
+    "payments_hash",
+    "nonfixture_contracts_hash",
+    "fixture_contracts",
+    "contract_prices",
+    "requests",
+    "cancel_execution_count"
+  ],
+  "all_preserved_fields_equal": true,
+  "plan_periods": 0,
+  "plan_executions": 0,
+  "job": {
+    "capability_consumed": true,
+    "claimed_at": "2026-10-28T21:59:13.173493+00:00",
+    "completed_at": "2026-10-28T21:59:42.089774+00:00",
+    "created_at": "2026-10-28T21:58:50.249604+00:00",
+    "id": "5ffcdc35-a88c-42de-85a6-17f08a5a5453",
+    "kind": "cancellation",
+    "receipt": {
+      "checked_at": "2026-10-28T21:59:40.175Z",
+      "checks": [
+        {
+          "check": "fixed_sandbox_paid_contract",
+          "passed": true,
+          "period_end": "2026-12-18T00:00:00+00:00",
+          "resource_id": "f089af79-cea4-4821-8497-0e594e67f3cf"
+        },
+        {
+          "check": "paid_ledger_snapshot",
+          "count": 2,
+          "digest": "c93407aa753d8ac9dbfa28eff153fe2659599e38fb8571e2bfedc6a691cd9cd2",
+          "passed": true
+        },
+        {
+          "check": "sandbox_delivery_disabled",
+          "passed": true
+        },
+        {
+          "amount_cents": 44900,
+          "check": "provider_contract_verified",
+          "passed": true,
+          "state": "ACTIVE"
+        },
+        {
+          "check": "period_price_context_preserves_fixture_contract",
+          "passed": true
+        },
+        {
+          "check": "provider_invoice_snapshot",
+          "count": 3,
+          "digest": "e4958ee9ad0a9578701141286615e435409644964738a7c5564c84e380ef057d",
+          "passed": true
+        },
+        {
+          "check": "request_history_unambiguous",
+          "passed": true
+        },
+        {
+          "check": "authenticated_customer_request",
+          "passed": true,
+          "resource_id": "5cd49826-9cec-421d-b511-98519ecdd80e",
+          "state": "awaiting_provider"
+        },
+        {
+          "check": "foreign_company_request_history_denied",
+          "passed": true
+        },
+        {
+          "check": "ordinary_fixture_cannot_execute_master_action",
+          "http_status": 403,
+          "passed": true
+        },
+        {
+          "check": "ordinary_fixture_cannot_execute_plan_change",
+          "http_status": 403,
+          "passed": true
+        },
+        {
+          "check": "authenticated_paid_access_preserved",
+          "passed": true
+        },
+        {
+          "check": "customer_paid_history_preserved",
+          "passed": true
+        },
+        {
+          "check": "preparation_has_no_financial_execution",
+          "count": 0,
+          "passed": true
+        },
+        {
+          "check": "cancellation_phase",
+          "passed": true,
+          "resource_id": "5cd49826-9cec-421d-b511-98519ecdd80e",
+          "state": "AWAITING_MASTER"
+        },
+        {
+          "check": "ledger_unchanged_during_observation",
+          "digest": "c93407aa753d8ac9dbfa28eff153fe2659599e38fb8571e2bfedc6a691cd9cd2",
+          "passed": true
+        },
+        {
+          "check": "contract_unchanged_during_observation",
+          "passed": true
+        },
+        {
+          "check": "global_environment_unchanged",
+          "passed": true
+        }
+      ],
+      "contract": "dentalflow-fixture-acceptance-v1",
+      "fixture_ids": [
+        "24e7cdf9-457e-4af2-b1cb-cf366abbddb0",
+        "ee083f63-1621-4b82-b7a4-fd13427c0b14"
+      ],
+      "kind": "cancellation",
+      "passed": true
+    },
+    "status": "completed"
+  },
+  "http_observation": {
+    "status": 200,
+    "repeated": false,
+    "local_capability_removed": true
+  },
+  "acceptance": {
+    "completed": 12,
+    "total": 23,
+    "percentage": 52.17,
+    "remaining": 11,
+    "stages_completed": 1,
+    "stages_total": 7,
+    "new_full_criteria": 0
+  },
+  "limits": [
+    "18 checks observe the existing request; the fresh submission/quote check from the earlier 17-check job is not repeated. Two new checks verify price context and denial at the plan route.",
+    "No positive Master/AAL2 financial execution, payment, plan activation or real downgrade in this checkpoint.",
+    "The request remains AWAITING_MASTER; no cancellation or plan change was executed.",
+    "Synthetic identity/provider evidence exists only in the disposable CI rehearsal and is not real acceptance.",
+    "Android API37 startup failed with an ANR/input-dispatch timeout despite overall workflow success; API35 passed. No permanent installers published by this PR, physical devices and offline acceptance remain pending.",
+    "Clean schema restore does not prove operational backup/restore of production data and files.",
+    "Connection counts and no observed lock waits are a bounded observation, not capacity certification."
+  ]
+}

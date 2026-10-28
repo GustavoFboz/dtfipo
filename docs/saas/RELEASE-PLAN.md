@@ -1,5 +1,14 @@
 # DentalFlow SaaS — sete etapas restantes até vendas
 
+**Checkpoint vigente em 28/10/2026, 18h00 Manaus: 12/23 (52,17%), 11 critérios
+restantes e 1/7 etapas encerradas.** PR206 integrada/publicada com preço por
+vigência, execução Master única e aplicação após pagamento/data/limites.
+413 testes, restore limpo de 185 migrações e 18/18 verificações reais de
+observação/autorização passaram; os 700 arquivos, dados, preços e pedido anterior
+permanecem iguais. Nenhuma execução financeira; próximo aceite depende de
+Master/autenticador real no Sandbox. Android API35 passou; API37 falhou no smoke.
+[Publicação, recibo e limites](evidence/plan-price-periods-20261028.md).
+
 **Checkpoint vigente em 28/10/2026, 15h57 Manaus: 12/23 (52,17%), 11 critérios
 restantes e 1/7 etapas encerradas.** PR204 integrada/publicada; preparo do
 cancelamento Sandbox passou 17/17 verificações reais e preservou os 700 arquivos,
