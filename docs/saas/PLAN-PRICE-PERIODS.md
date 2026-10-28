@@ -1,6 +1,10 @@
 # Troca de plano e preço por vigência
 
-Implementação de 28/10/2026, preparada para validação Master no Sandbox.
+Implementação de 28/10/2026 integrada pela PR206 e publicada, preparada para
+validação financeira Master no Sandbox. Passaram 413 testes locais, restore
+limpo de 185 migrações e 18/18 checks reais de observação/autorização; nenhum
+novo termo, execução financeira ou aceite integral foi criado.
+[Publicação, integridade e limites](evidence/plan-price-periods-20261028.md).
 Produção exige o rollout explícito `ASAAS_PLAN_CHANGES_PRODUCTION_ENABLED=true`
 após a homologação; esse sinalizador não substitui Master, AAL2 ou sessão Auth.
 Publicar o código não executa solicitações existentes. O total de aceites não

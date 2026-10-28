@@ -1,5 +1,13 @@
 # Conclusão integral do protocolo SaaS
 
+Em 28/10/2026, **18h00 Manaus**, a PR206 publicou troca de plano e preço por
+vigência. Passaram 413 testes locais, restore limpo de 185 migrações e 18/18
+checks reais de observação/autorização. Dados, 700 arquivos, quatro preços e
+pedido anterior preservados; nenhuma execução financeira. **12/23 (52,17%),
+11 restantes, 1/7 etapas encerradas**. A próxima prova exige Master/autenticador
+real, escrita única, pagamento e aplicação na data correta no Sandbox; o rollout
+da nova ação em Produção permanece fechado. [Prova e limites](evidence/plan-price-periods-20261028.md).
+
 Em 28/10/2026, **15h57 Manaus**, a PR204 foi integrada e publicada. Um pedido
 de cancelamento foi preparado pela sessão real da fixture Sandbox: **17/17**
 verificações, AWAITING_MASTER e nenhuma execução financeira. Dados clínicos,
@@ -115,8 +123,8 @@ desativá-la por ser chamada “Teste”. [Recibo e limites](evidence/authorized
 | 2.3 | Validar acesso online, expiração/limpeza do cache em 72h e retomada nos aplicativos disponíveis. Builds e emuladores não substituem os testes em aparelhos; registrar limites da homologação iOS. |
 | 3.3 | Executar upload, leitura, limite, falha e exclusão em Web, Windows e Android disponíveis. DICOM aguarda a liberação de Radiologia. |
 | 4.2 | Master/MFA positivos e duas decisões individuais auditadas foram comprovados em 24/10. Concluir replay financeiro positivo (continua zero), cenários restantes de sessão e origem dos 12 pacientes sem empresa. Estoque/diretórios/fluxos continuam protegidos em 29 tabelas e catálogos originais somente leitura. [Prova e limites](evidence/events-recovery-master-20261024.md). |
-| 5.2 | Executor de cancelamento Sandbox agora pode operar sob Master/AAL2 enquanto Produção permanece ativa (PR195 publicada). Executar o pedido aprovado uma vez no Asaas e concluir troca de plano/preço por vigência, ainda com implementação e prova próprias. [Publicação e limites](evidence/administrative-continuity-20261024.md). |
-| 5.3 | Validar downgrade, cota, preço/data efetiva e retomada após falha ambígua, com lease/readback e sem POST financeiro repetido cegamente. |
+| 5.2 | Cancelamento e troca de plano/preço por vigência publicados sob Master/AAL2. Executar o pedido de cancelamento existente uma vez e comprovar troca em fixture independente, com pagamento e aplicação na data contratada. Não criar prova financeira por SQL. [Publicação e limites](evidence/plan-price-periods-20261028.md). |
+| 5.3 | Validar downgrade, cota, preço/data efetiva e retomada após falha ambígua reais. Lease, escrita única, GET e bloqueio/retomada por excesso estão implementados e ensaiados em banco descartável; não encerram o aceite financeiro. |
 | 6.2 | Fazer backup/restauração operacional de dados e arquivos em destino isolado, comparar integridade e ensaiar incidente/rollback. Restauração limpa só de schema é parcial. |
 | 6.3 | Concluir onboarding de empresa nova no Sandbox, paridade de plataformas e medição da capacidade do lote piloto. A meta futura de 10 mil usuários não é capacidade comprovada. |
 | 6.4 | Preparar documentos comerciais/privacidade com dados reais do responsável, suporte e regras do serviço; obter a revisão aplicável antes da oferta. Minuta técnica não equivale a revisão jurídica concluída. |

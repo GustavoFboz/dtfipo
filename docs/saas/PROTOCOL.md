@@ -1,5 +1,13 @@
 # Protocolo SaaS DentalFlow
 
+Checkpoint vigente em 28/10/2026, **18h00 Manaus: 12/23 (52,17%), 11 critérios
+restantes, 1/7 etapas encerradas**. PR206 integrada/publicada: preço por
+vigência, execução Master única e aplicação condicionada a pagamento/data/limites.
+413 testes, restore limpo de 185 migrações e 18/18 checks reais de observação
+aprovados; dados e preços preservados, nenhuma execução financeira.
+Master/AAL2 financeiro, pagamento/aplicação e downgrade reais continuam parciais.
+[Recibo e limites](evidence/plan-price-periods-20261028.md).
+
 Checkpoint vigente em 28/10/2026, **15h57 Manaus: 12/23 (52,17%), 11 critérios
 restantes, 1/7 etapas encerradas**. Cancelamento Sandbox preparado e publicado
 pela PR204: 17/17 verificações reais, pedido único AWAITING_MASTER, zero escrita
@@ -95,7 +103,8 @@ O protocolo preserva as decisões de produto já codificadas:
 
 | Assunto | Autoridade |
 | --- | --- |
-| Plano, preço e limite | `public.billing_plans` |
+| Catálogo de planos, preços e limites | `public.billing_plans` |
+| Preço contratado por período | `public.billing_plan_periods`; fallback histórico de checkout/ledger para contratos anteriores |
 | Cliente, assinatura e ocorrência financeira externa | Asaas |
 | Estado de acesso projetado | `public.account_subscriptions` |
 | Tentativa de compra | `public.checkout_intents` |

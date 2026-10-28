@@ -1,5 +1,14 @@
 # Progresso dos aceites finais para vendas
 
+Checkpoint de 28/10/2026, **18h00 Manaus**: plano e preço por vigência
+integrados/publicados pela PR206. Passaram **413 testes locais**, restauração
+limpa de **185 migrações** e **18/18 verificações reais** de observação e
+autorização. Os 700 arquivos, dados, quatro preços e pedido anterior permanecem
+iguais; zero novos termos ou execuções financeiras. **12/23 (52,17%), 11
+restantes, 1/7 etapas encerradas**. Master/AAL2 positivo, pagamento/aplicação,
+downgrade real e aparelhos conservam aceites próprios; API37 falhou no smoke.
+[Publicação, recibo e próximos passos](evidence/plan-price-periods-20261028.md).
+
 Checkpoint de 28/10/2026, **15h57 Manaus**: PR204 integrada e publicada;
 preparo de um cancelamento Sandbox passou **17/17 verificações reais**.
 Pedido autenticado único `awaiting_provider / AWAITING_MASTER`, nenhuma escrita
@@ -161,8 +170,8 @@ o valor insuficiente antes de criar recursos externos.
 | 4.2 | Sessões, MFA, isolamento e replay financeiro | Parcial: 29 tabelas possuem empresa e dois catálogos padrão são somente leitura. Master/MFA positivos e duas decisões auditadas comprovados com login real em 24/10; regressões identidade e arquivos/privacidade 128/128. Replay financeiro positivo continua zero; origem dos 12 pacientes sem empresa e demais cenários de sessão permanecem pendentes. [Prova e limites](evidence/events-recovery-master-20261024.md) |
 | 4.3 | Arquivos privados e validade dos links | Concluído em 27/10, 12h42 Manaus: 34 fotos e seis avatares autorizados, 40 cópias verificadas e URLs originais recusadas com HTTP400, origens ausentes e caminhos aposentados. Mesmos 685 arquivos prontos, bytes, metadados de propriedade/vínculo e hashes clínicos/financeiros. As 22 verificações autenticadas de assinatura curta, expiração, renovação e recusa entre empresas foram comprovadas em 26/10. Offline permanece 72h e aparelhos mantêm aceite separado. [Recibos e limites](evidence/private-file-rotation-20261027.md) |
 | 5.1 | Histórico e documentos de cobrança | Concluído em Sandbox, 17/10, 14h45 Manaus: sessões gestoras das duas fixtures consultaram histórico e abriram documento do pagamento validado no provedor (HTTP200); outra clínica foi recusada no histórico e documento (HTTP403). [Recibo e revisão](evidence/acceptance-20-20261017.md) |
-| 5.2 | Solicitações executadas no Asaas | Parcial: executor Master/AAL2 e Sandbox separado publicados. Em 28/10 a PR204 preparou um único pedido autenticado, 17/17 checks reais e dados preservados; permanece AWAITING_MASTER, zero execução financeira. Cancelamento final e troca de plano/preço por vigência continuam pendentes. [Publicação, recibo e limites](evidence/cancellation-preparation-20261028.md) |
-| 5.3 | Downgrade, falhas e execução única | Parcial: inativação única e retomada somente por GET implementadas; ensaios não substituem falhas reais, downgrade e preço por vigência |
+| 5.2 | Solicitações executadas no Asaas | Parcial: cancelamento e troca de plano/preço por vigência Master/AAL2 publicados. PR206 passou 413 testes, restore de 185 migrações e 18/18 checks reais de observação/autorização. Pedido anterior AWAITING_MASTER, zero execução financeira; faltam cancelamento final, troca real, pagamento e aplicação na vigência. [Publicação, recibo e limites](evidence/plan-price-periods-20261028.md) |
+| 5.3 | Downgrade, falhas e execução única | Parcial: escrita única, retomada somente por GET, limites e ativação por período implementados e ensaiados em CI descartável; falhas reais, downgrade e aplicação financeira ainda exigem prova própria. [Implementação e limites](PLAN-PRICE-PERIODS.md) |
 | 6.1 | Processador regular e alertas comprovados | Concluído em Sandbox, 05/10, 18h17 de Manaus: 24 disparos a cada 5 minutos, 24 respostas HTTP 200 com telemetria saudável, alerta real de heartbeat antigo entregue à caixa do operador e recuperação observada. Produção permanece no gate 7.2. [Prova e limites](evidence/database-scheduler-20261005.md) |
 | 6.2 | Backup, restauração e incidente | Parcial: restore limpo e recuperação de heartbeat real comprovados; backup/restauração operacional de dados e rollback ainda pendentes |
 | 6.3 | Onboarding, plataformas e capacidade piloto | Em aberto |
