@@ -51,6 +51,7 @@ type WebhookDependencies = {
 export type WorkerDependencies = {
   environment: AsaasProviderEnvironment;
   workerToken: string;
+  refreshPlanPeriods?: () => Promise<{ activated: number; review: number }>;
   recordHealth?: (runId: string, status: "running" | "ok" | "review" | "failed", counters: Record<string, number>) => Promise<boolean>;
   claim: () => Promise<InboxEvent[]>;
   getPayment: (id: string) => Promise<AsaasPayment>;
@@ -613,6 +614,11 @@ export async function processAsaasInbox(
       deps = {
         environment: config.environment,
         workerToken,
+        refreshPlanPeriods: async () => {
+          const { data, error } = await (await admin() as any).rpc("billing_refresh_due_plan_periods", { p_environment: config.environment });
+          if (error || !data || !Number.isInteger(data.review) || !Number.isInteger(data.activated)) throw new Error("BILLING_PLAN_REFRESH_FAILED");
+          return data;
+        },
         recordHealth: async (runId, status, counters) => {
           const { data, error } = await (await admin()).rpc("billing_record_worker_health", {
             p_environment: config.environment, p_run_id: runId, p_status: status, p_counters: counters,
@@ -786,6 +792,10 @@ export async function processAsaasInbox(
       console.error("[Asaas worker] RECONCILIATION_SCAN_FAILED");
     }
     Object.assign(totals, counts, grace, reconciliation);
+    if (deps.refreshPlanPeriods) {
+      try { totals.workerReview += (await deps.refreshPlanPeriods()).review; }
+      catch { totals.workerReview += 1; console.error("[Asaas worker] PLAN_PERIOD_REFRESH_FAILED"); }
+    }
     const incomplete = totals.reconciliationReview > 0 || totals.graceReview > 0 || totals.workerReview > 0;
     return json({ ...totals, ...await monitoring(incomplete || totals.failed > 0 ? "review" : "ok", totals) }, incomplete ? 503 : 200);
   } catch {

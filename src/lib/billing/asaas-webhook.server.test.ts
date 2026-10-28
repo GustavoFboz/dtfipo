@@ -47,6 +47,28 @@ const confirmed = {
   status: "CONFIRMED",
 };
 
+describe("local activation of verified plan periods", () => {
+  const deps = () => ({environment:"sandbox" as const,workerToken,claim:vi.fn().mockResolvedValue([]),
+    getPayment:vi.fn(),getSubscription:vi.fn(),applyPayment:vi.fn(),applySubscription:vi.fn(),
+    listExpiredGrace:vi.fn().mockResolvedValue([]),suspendGrace:vi.fn(),claimReconciliation:vi.fn().mockResolvedValue([]),
+    listPaymentsForReconciliation:vi.fn(),enqueueRecovery:vi.fn(),finish:vi.fn(),recordHealth:vi.fn().mockResolvedValue(true),
+    refreshPlanPeriods:vi.fn().mockResolvedValue({activated:1,review:0})});
+  it("uses one bounded local refresh without authorizing a provider write or extending offline grants",async()=>{
+    const d=deps();expect((await processAsaasInbox(worker(),d)).status).toBe(200);
+    expect(d.refreshPlanPeriods).toHaveBeenCalledTimes(1);expect(d.getPayment).not.toHaveBeenCalled();expect(d.getSubscription).not.toHaveBeenCalled();
+  });
+  it("reports over-limit application or refresh failure through existing worker review telemetry",async()=>{
+    const d=deps();d.refreshPlanPeriods.mockResolvedValue({activated:0,review:2});
+    const result=await processAsaasInbox(worker(),d);expect(result.status).toBe(503);expect((await result.json()).workerReview).toBe(2);
+    expect(d.recordHealth).toHaveBeenLastCalledWith(expect.any(String),"review",expect.objectContaining({workerReview:2}));
+    d.refreshPlanPeriods.mockRejectedValue(new Error("private backend detail"));
+    expect((await processAsaasInbox(worker(),d)).status).toBe(503);
+  });
+  it("cannot apply a due plan before worker authentication",async()=>{
+    const d=deps();expect((await processAsaasInbox(worker("wrong"),d)).status).toBe(401);expect(d.refreshPlanPeriods).not.toHaveBeenCalled();
+  });
+});
+
 describe("Asaas webhook inbox", () => {
   it("rejects unauthenticated deliveries before reading or writing data", async () => {
     const receive = vi.fn();

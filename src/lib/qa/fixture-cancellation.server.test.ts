@@ -33,7 +33,7 @@ function setup(canceled=false){
   getSubscription:vi.fn().mockResolvedValue({id:c.external_subscription_id,customer:c.external_customer_id,value:449,deleted:false,
    cycle:'MONTHLY',externalReference:`dentalflow:subscription:${c.id}`,status:canceled?'INACTIVE':'ACTIVE'}),
   listPaymentsForReconciliation:vi.fn().mockResolvedValue(invoices),updateSubscription:update},
-  readContract:vi.fn().mockResolvedValue(contract),readLedger:vi.fn().mockResolvedValue(ledger),
+  readContract:vi.fn().mockResolvedValue(contract),readLedger:vi.fn().mockResolvedValue(ledger),readPrices:vi.fn().mockResolvedValue({provider_amount_cents:44900,periods:[]}),
   readAudit:vi.fn().mockResolvedValue(canceled?[{outcome:'completed',provider_write_started_at:'2030-10-27T00:00:00Z',provider_proof_hash:'a'.repeat(32),reconcile_only:false}]:[]),
   sessions:vi.fn(async(run:(sessions:FixtureSession[])=>Promise<void>)=>run(sessions)),
   post:vi.fn().mockResolvedValue({status:403,body:{ok:false}})};
@@ -45,7 +45,8 @@ describe('fixed Sandbox cancellation preparation and observation',()=>{
   expect(checks.every(c=>c.passed)).toBe(true);
   expect(x.actorRpc.mock.calls.filter(([name])=>name==='billing_submit_change_request')).toHaveLength(1);
   expect(x.foreignRpc).toHaveBeenCalledWith('billing_company_change_context',{p_clinic_id:company});
-  expect(x.deps.post).toHaveBeenCalledTimes(1);expect(x.deps.post.mock.calls[0][2]).toMatchObject({requestId:x.request.id,reconcileOnly:true});
+  expect(x.deps.post).toHaveBeenCalledTimes(2);expect(x.deps.post.mock.calls[0][2]).toMatchObject({requestId:x.request.id,reconcileOnly:true});
+  expect(x.deps.post.mock.calls[1][0]).toBe('/api/billing/asaas-plan-change');
   expect(x.update).not.toHaveBeenCalled();
   expect(checks).toContainEqual(expect.objectContaining({check:'cancellation_phase',state:'AWAITING_MASTER'}));
  });

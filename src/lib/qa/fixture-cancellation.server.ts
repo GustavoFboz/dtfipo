@@ -17,6 +17,7 @@ type Contract=z.infer<typeof contractSchema>;
 type Dependencies={provider:Pick<AsaasClient,'getCustomer'|'getSubscription'|'listPaymentsForReconciliation'>;
  readContract:()=>Promise<unknown>;readLedger:()=>Promise<unknown[]>;
  readAudit:(id:string)=>Promise<any[]>;
+ readPrices:(id:string)=>Promise<any>;
  sessions:(run:(sessions:FixtureSession[])=>Promise<void>)=>Promise<void>;
  post:typeof fixtureAppPost};
 const digest=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
@@ -45,6 +46,7 @@ async function dependencies(job:Job):Promise<Dependencies>{
   readLedger:async()=>requireResult(await admin.from('billing_payments').select('*').eq('clinic_id',company).order('id'),'FIXTURE_CANCEL_LEDGER_READ_FAILED') as any[],
   readAudit:async id=>requireResult(await admin.from('billing_cancel_executions').select('outcome,provider_write_started_at,provider_proof_hash,reconcile_only')
    .eq('request_id',id).order('created_at'),'FIXTURE_CANCEL_AUDIT_READ_FAILED') as any[],
+  readPrices:async id=>requireResult(await admin.rpc('billing_subscription_price_context',{p_subscription_id:id}),'FIXTURE_CANCEL_PRICE_CONTEXT_FAILED'),
   sessions:run=>withFixtureSessions(job,run),post:fixtureAppPost};
 }
 
@@ -69,6 +71,8 @@ export async function runFixtureCancellation(job:Job,injected?:Dependencies):Pro
    &&customer.deleted===false&&customer.notificationDisabled===true);
   const subscription=await deps.provider.getSubscription(c.external_subscription_id);verifyProvider(subscription,c);
   record('provider_contract_verified',true,{state:subscription.status,amount_cents:44900});
+  const pricing=await deps.readPrices(c.id);
+  record('period_price_context_preserves_fixture_contract',pricing?.provider_amount_cents===44900&&Array.isArray(pricing.periods)&&pricing.periods.length===0);
   const invoices=await deps.provider.listPaymentsForReconciliation(c.external_subscription_id,'2000-01-01');
   record('provider_invoice_snapshot',true,{count:invoices.length,digest:cancellationInvoiceDigest(invoices,c)});
   await deps.sessions(async sessions=>{
@@ -99,6 +103,9 @@ export async function runFixtureCancellation(job:Job,injected?:Dependencies):Pro
    const cancel=await deps.post('/api/billing/asaas-cancel',actor,{requestId:request.id,environment:'sandbox',
     reason:'Teste Sandbox: gestor comum não pode executar cancelamento Master',reconcileOnly:true});
    record('ordinary_fixture_cannot_execute_master_action',cancel.status===403&&cancel.body?.ok===false,{http_status:cancel.status});
+   const plan=await deps.post('/api/billing/asaas-plan-change',actor,{requestId:request.id,environment:'sandbox',
+    reason:'Teste Sandbox: gestor comum não pode executar troca financeira Master',reconcileOnly:true});
+   record('ordinary_fixture_cannot_execute_plan_change',plan.status===403&&plan.body?.ok===false,{http_status:plan.status});
    const access=requireResult(await actor.client.rpc('my_subscription_context'),'FIXTURE_CANCEL_ACCESS_READ_FAILED') as any;
    record('authenticated_paid_access_preserved',access.active_clinic_id===company&&access.effective_access==='full'
     &&access.company?.subscription_id===c.id&&access.company?.access_mode==='full');

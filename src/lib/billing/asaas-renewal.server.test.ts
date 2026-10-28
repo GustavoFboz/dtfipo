@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { executeAsaasRenewalRequest, selectRenewalInvoice } from "./asaas-renewal.server";
+import { executeAsaasRenewalRequest, selectRenewalInvoice, parseRenewalPriceContext } from "./asaas-renewal.server";
 
 const context = {
   subscription_id: "85c18580-3fa7-4fb0-8101-e0625f1fd875",
@@ -28,6 +28,19 @@ const validateUrl = (value: string) => {
 };
 
 describe("Asaas renewal invoice handoff", () => {
+  it("keeps an issued invoice on its own period price while a later period has a new recurring price", () => {
+    const periodContext = {...context, provider_price_cents: 44900, price_periods: [{effective_date:'2026-11-29',amount_cents:44900}]};
+    expect(selectRenewalInvoice({context:periodContext,validateUrl,payments:[validPayment]})?.amountCents).toBe(24900);
+    expect(selectRenewalInvoice({context:{...periodContext,current_period_end:'2026-11-29T00:00:00Z'},validateUrl,
+      now:Date.parse('2026-11-20T00:00:00Z'),payments:[{...validPayment,dueDate:'2026-11-29',value:449}]})?.amountCents).toBe(44900);
+    expect(()=>selectRenewalInvoice({context:{...periodContext,current_period_end:'2026-11-29T00:00:00Z'},validateUrl,
+      now:Date.parse('2026-11-20T00:00:00Z'),payments:[{...validPayment,dueDate:'2026-11-29',value:249}]})).toThrow(/MISMATCH/);
+  });
+  it("rejects duplicate/invalid dates and noninteger prices in the private price context", () => {
+    expect(()=>parseRenewalPriceContext({provider_amount_cents:44900,periods:[{effective_date:'2026-02-30',amount_cents:44900}]})).toThrow();
+    expect(()=>parseRenewalPriceContext({provider_amount_cents:44900,periods:[{effective_date:'2026-11-29',amount_cents:44900},{effective_date:'2026-11-29',amount_cents:24900}]})).toThrow();
+    expect(()=>parseRenewalPriceContext({provider_amount_cents:449.5,periods:[]})).toThrow();
+  });
   it("requires an authenticated company manager before querying Asaas", async () => {
     const result = await executeAsaasRenewalRequest(
       new Request("https://dtfipo.lovable.app/api/billing/asaas-renewal", {

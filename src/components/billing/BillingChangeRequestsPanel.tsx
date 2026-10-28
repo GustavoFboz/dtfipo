@@ -13,7 +13,8 @@ import {
 const date = (value: string) => new Date(value).toLocaleDateString("pt-BR");
 const blockLabels = { paid_period_required: "A troca exige um período pago vigente.",
   storage_limit: "O armazenamento e os envios pendentes excedem este plano.",
-  member_limit: "A equipe excede o limite deste plano.", session_limit: "Os ambientes ativos excedem o limite deste plano." };
+  member_limit: "A equipe excede o limite deste plano.", session_limit: "Os ambientes ativos excedem o limite deste plano.",
+  scheduled_change: "Já existe uma troca programada ou em revisão. Acompanhe a vigência antes de solicitar outra." };
 
 export function BillingChangeRequestsPanel({ clinicId }: { clinicId: string }) {
   const { ready, scope, isCurrent } = useBillingSession();
@@ -100,11 +101,11 @@ export function BillingChangeRequests({ clinicId, scope, isCurrent }: {
         {data.requests.map((request) => <li key={request.id} className="rounded-xl border p-3">
           <p className="font-medium">{request.kind === "cancel" ? "Cancelamento solicitado" : `Troca para ${request.target_plan_name} · ${formatPlanPrice(request.target_amount_cents!, "BRL")}/mês`}</p>
           <p className="mt-1 text-xs text-slate-500">{{ awaiting_provider: "Aguardando confirmação no Asaas", withdrawn: "Solicitação retirada",
-            processing: "Conferindo cancelamento", review_required: "Cancelamento precisa de revisão",
-            completed: "Renovação encerrada no Asaas" }[request.status]} · {date(request.created_at)} · {request.provider_environment === "sandbox" ? "Teste" : "Produção"}</p>
-          {request.status === "completed" && <p className="mt-1 text-xs text-slate-500">O período já pago permanece disponível até {request.paid_period_end ? date(request.paid_period_end) : "o prazo contratado"}. Cobranças já emitidas foram preservadas.</p>}
+            processing: "Conferindo solicitação", review_required: "Solicitação precisa de revisão",
+            completed: request.kind === "cancel" ? "Renovação encerrada no Asaas" : request.plan_activation_state === "active" ? "Novo plano em vigor" : request.plan_activation_state === "review_required" ? "Uso precisa de revisão para aplicar o novo plano" : "Troca programada no Asaas" }[request.status]} · {date(request.created_at)} · {request.provider_environment === "sandbox" ? "Teste" : "Produção"}</p>
+          {request.status === "completed" && <p className="mt-1 text-xs text-slate-500">{request.kind === "cancel" ? `O período já pago permanece disponível até ${request.paid_period_end ? date(request.paid_period_end) : "o prazo contratado"}. Cobranças já emitidas foram preservadas.` : "O novo plano depende do início e do pagamento do período correspondente. O período anterior e as cobranças já emitidas permanecem preservados."}</p>}
           <p className="mt-1 text-xs text-slate-500">Vigência pretendida a partir de {date(request.effective_not_before)}</p>
-          {request.status === "awaiting_provider" && <button type="button" disabled={busy} onClick={() => { void withdrawRequest(request); }} className="mt-2 text-xs text-[#15988f] underline disabled:opacity-50">Retirar solicitação</button>}
+          {(request.can_withdraw ?? request.status === "awaiting_provider") && <button type="button" disabled={busy} onClick={() => { void withdrawRequest(request); }} className="mt-2 text-xs text-[#15988f] underline disabled:opacity-50">Retirar solicitação</button>}
         </li>)}
       </ul>
     </>}

@@ -45,6 +45,12 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("billing request identity and response boundary", () => {
+  it("keeps a completed financial instruction visible only when its local plan activation needs review",async()=>{
+    const review={...request,kind:"change_plan",target_plan_name:"Inicial",target_amount_cents:500,
+      status:"completed",plan_activation_state:"review_required",clinic_name:"Fixture"};
+    response([review]);expect(await fetchMasterBillingChangeRequests(scope,()=>true,"")).toEqual([review]);
+    response([{...review,plan_activation_state:"active"}]);await expect(fetchMasterBillingChangeRequests(scope,()=>true,"")).rejects.toThrow("fila");
+  });
   it("checks the cloud user and pins the captured JWT on every platform", async () => {
     const data = await fetchBillingChangeContext(scope, () => true, clinic);
     expect(data.cancellation_quote?.current_amount_cents).toBe(74900);

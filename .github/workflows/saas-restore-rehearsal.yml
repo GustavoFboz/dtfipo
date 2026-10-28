@@ -337,6 +337,16 @@ jobs:
           docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
             < docs/saas/sql/isolated-sandbox-rehearsal.sql | tee restore-isolated-sandbox.log
 
+      - name: Rehearse plan prices by period without real Auth or Asaas
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/check-saas-plan-periods.mjs
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/plan-price-periods-assertions.sql | tee restore-plan-periods-assertions.log
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/plan-price-periods-rehearsal.sql | tee restore-plan-periods-rehearsal.log
+
       - name: Record sanitized restored-schema audit
         shell: bash
         run: |
@@ -373,6 +383,8 @@ jobs:
             restore-clinical-creation.log
             restore-price-assertions.log
             restore-price-rehearsal.log
+            restore-plan-periods-assertions.log
+            restore-plan-periods-rehearsal.log
             restore-company-stock-assertions.log
             restore-company-stock-rehearsal.log
             restore-company-stock-backfill.log
