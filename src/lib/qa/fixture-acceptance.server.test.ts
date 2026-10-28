@@ -51,7 +51,7 @@ describe('private fixture acceptance boundary',()=>{
     expect(d.claim).toHaveBeenCalledWith(id,createHash('sha256').update(token).digest('hex'));expect(d.run).toHaveBeenCalledExactlyOnceWith(job);
     expect(r.status).toBe(200);const body=await r.text();expect(body).not.toContain(token);expect(body).not.toContain('@');
   });
-  it.each(['ownership','configuration','reconciliation'] as const)('selects %s validation only from the claimed backend job',async(kind)=>{
+  it.each(['ownership','configuration','reconciliation','cancellation'] as const)('selects %s validation only from the claimed backend job',async(kind)=>{
     const d=dependencies();d.claim.mockResolvedValue({...job,kind});
     const r=await handleFixtureAcceptance(request(),d);
     expect(r.status).toBe(200);expect(d.run).toHaveBeenCalledExactlyOnceWith({...job,kind});

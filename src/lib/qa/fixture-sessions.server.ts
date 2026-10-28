@@ -28,7 +28,7 @@ export async function withFixtureSessions<T>(job: Job, run: (sessions: FixtureSe
   }
 }
 
-export async function fixtureAppPost(path: '/api/billing/asaas-checkout' | '/api/billing/asaas-document', fixture: FixtureSession, body: object) {
+export async function fixtureAppPost(path: '/api/billing/asaas-checkout' | '/api/billing/asaas-document' | '/api/billing/asaas-cancel', fixture: FixtureSession, body: object) {
   const response = await fetch(`https://dtfipo.lovable.app${path}`, { method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${fixture.session.access_token}` },
     body: JSON.stringify(body), signal: AbortSignal.timeout(45000) });
