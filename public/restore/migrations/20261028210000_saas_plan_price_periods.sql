@@ -660,7 +660,7 @@ returns jsonb language sql stable security definer set search_path = pg_catalog,
     'plan_activation_state',(SELECT state FROM public.billing_plan_periods WHERE request_id=r.id))
   from public.billing_change_requests r where r.id = p_request_id;
 $$;
-create function public.platform_master_claim_cancel_request(
+create or replace function public.platform_master_claim_cancel_request(
   p_request_id uuid, p_environment text, p_reason text, p_reconcile_only boolean
 ) returns jsonb language plpgsql security definer set search_path = pg_catalog, public as $$
 declare r public.billing_change_requests%rowtype; s public.account_subscriptions%rowtype;
@@ -711,7 +711,7 @@ begin
     'environment',p_environment,'reconcile_only',v_readonly);
 end $$;
 
-create function public.billing_finish_cancel_request(
+create or replace function public.billing_finish_cancel_request(
   p_request_id uuid, p_lease_token uuid, p_verified_subscription jsonb, p_error_code text
 ) returns text language plpgsql security definer set search_path = pg_catalog, public as $$
 declare r public.billing_change_requests%rowtype; s public.account_subscriptions%rowtype;
