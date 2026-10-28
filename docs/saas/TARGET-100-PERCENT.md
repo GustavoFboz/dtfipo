@@ -1,5 +1,14 @@
 # Conclusão integral do protocolo SaaS
 
+Em 28/10/2026, **15h57 Manaus**, a PR204 foi integrada e publicada. Um pedido
+de cancelamento foi preparado pela sessão real da fixture Sandbox: **17/17**
+verificações, AWAITING_MASTER e nenhuma execução financeira. Dados clínicos,
+pagamentos e os 700 arquivos do início da rodada permanecem preservados.
+**12/23 (52,17%), 11 restantes, 1/7 etapas encerradas.** Login/autenticador
+Master, execução única e readback financeiro continuam necessários para fechar
+esse teste; implementação de plano/preço pode avançar independentemente.
+[Publicação, recibo e limites](evidence/cancellation-preparation-20261028.md).
+
 Em 27/10/2026, **12h42 Manaus**, os quarenta links históricos autorizados foram
 revogados com cópias verificadas e conteúdo, vínculos e cotas preservados.
 **4.3 concluído: 12/23 (52,17%), 11 restantes, 1/7 etapas encerradas.**

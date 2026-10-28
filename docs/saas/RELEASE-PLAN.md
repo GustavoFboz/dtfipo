@@ -1,5 +1,13 @@
 # DentalFlow SaaS — sete etapas restantes até vendas
 
+**Checkpoint vigente em 28/10/2026, 15h57 Manaus: 12/23 (52,17%), 11 critérios
+restantes e 1/7 etapas encerradas.** PR204 integrada/publicada; preparo do
+cancelamento Sandbox passou 17/17 verificações reais e preservou os 700 arquivos,
+dados e pagamentos. Um pedido AWAITING_MASTER; nenhuma execução financeira.
+Próximo aceite: ação Master/autenticador real e observação, sem repetição cega.
+Troca de plano/preço e demais ciclos conservam seus critérios próprios.
+[Publicação, recibo e limites](evidence/cancellation-preparation-20261028.md).
+
 **Contador vigente em 27/10/2026, 12h42 Manaus: 12/23 (52,17%), 11 critérios
 restantes e 1/7 etapas encerradas.** Critério 4.3 concluído: 34 fotos e seis
 avatares preservados em cópias verificadas e quarenta URLs originais recusadas

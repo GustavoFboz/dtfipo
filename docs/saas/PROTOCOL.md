@@ -1,5 +1,11 @@
 # Protocolo SaaS DentalFlow
 
+Checkpoint vigente em 28/10/2026, **15h57 Manaus: 12/23 (52,17%), 11 critérios
+restantes, 1/7 etapas encerradas**. Cancelamento Sandbox preparado e publicado
+pela PR204: 17/17 verificações reais, pedido único AWAITING_MASTER, zero escrita
+financeira e dados preservados. Cancelamento final, plano/preço por vigência e
+demais ciclos continuam parciais. [Recibo e limites](evidence/cancellation-preparation-20261028.md).
+
 Contador vigente em 27/10/2026, **12h42 Manaus: 12/23 (52,17%), 11 critérios
 restantes, 1/7 etapas encerradas**. Critérios 3.2 e 4.3 concluídos: nove reservas
 vazias liberadas e quarenta links históricos revogados com cópias verificadas,
