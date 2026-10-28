@@ -121,12 +121,15 @@ UPDATE public.account_subscriptions SET current_period_start=current_date-1,curr
 -- actual object is uploaded and no such mutation is run against the live DB.
 INSERT INTO public.storage_files(id,clinic_id,bucket,object_path,source_type,original_name,size_bytes,status,uploaded_by)
 SELECT '92800000-0000-4000-8000-000000000060','92800000-0000-4000-8000-000000000030','case-files','period-rehearsal/quota',
- 'other','quota-fixture',storage_bytes+1,'reserved','92800000-0000-4000-8000-000000000010' FROM public.billing_plans WHERE code='company_initial';
+ 'other','quota-fixture',(quote_snapshot->>'target_storage_bytes')::bigint+1,'reserved','92800000-0000-4000-8000-000000000010'
+ FROM public.billing_plan_periods WHERE subscription_id='92800000-0000-4000-8000-000000000040';
 SET LOCAL ROLE service_role;
-DO $$ BEGIN
- IF public.billing_refresh_subscription_plan('92800000-0000-4000-8000-000000000040')<>'review_required'
- OR (SELECT status FROM public.account_subscriptions WHERE id='92800000-0000-4000-8000-000000000040')<>'suspended'
- OR NOT EXISTS(SELECT 1 FROM public.storage_files WHERE id='92800000-0000-4000-8000-000000000060') THEN RAISE EXCEPTION 'Over-limit activation did not block non-destructively'; END IF;
+DO $$ DECLARE outcome text;stored_status text;preserved boolean; BEGIN
+ outcome:=public.billing_refresh_subscription_plan('92800000-0000-4000-8000-000000000040');
+ SELECT status INTO stored_status FROM public.account_subscriptions WHERE id='92800000-0000-4000-8000-000000000040';
+ SELECT EXISTS(SELECT 1 FROM public.storage_files WHERE id='92800000-0000-4000-8000-000000000060') INTO preserved;
+ IF outcome<>'review_required' OR stored_status<>'suspended' OR NOT preserved THEN
+ RAISE EXCEPTION 'Over-limit activation expected review/suspended/preserved, got %/%/%',outcome,stored_status,preserved; END IF;
 END $$;
 RESET ROLE;
 -- Resolve only the disposable excess and observe a local activation, not a new charge.
