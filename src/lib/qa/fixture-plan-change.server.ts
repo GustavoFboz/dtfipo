@@ -15,7 +15,7 @@ const contractSchema=z.object({id:z.string().uuid(),clinic_id:z.literal(company)
  external_subscription_id:z.string().regex(/^sub_[A-Za-z0-9]+$/),external_customer_id:z.string().regex(/^cus_[A-Za-z0-9]+$/),
  current_period_start:z.string().datetime({offset:true}),current_period_end:z.string().datetime({offset:true})});
 type Dependencies={provider:Pick<AsaasClient,'getCustomer'|'getSubscription'|'listPaymentsForReconciliation'>;
- readContract:()=>Promise<unknown>;readLedger:()=>Promise<any[]>;readPrices:(id:string)=>Promise<any>;
+ readContract:()=>Promise<unknown>;readLedger:()=>Promise<any[]>;readPrices:(id:string)=>Promise<any>;readAudit:(id:string)=>Promise<any[]>;
  sessions:(run:(sessions:FixtureSession[])=>Promise<void>)=>Promise<void>};
 const digest=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
@@ -25,6 +25,8 @@ async function dependencies(job:Job):Promise<Dependencies>{
   readContract:async()=>requireResult(await admin.from('account_subscriptions').select('*').eq('clinic_id',company).single(),'FIXTURE_PLAN_CONTRACT_READ_FAILED'),
   readLedger:async()=>requireResult(await admin.from('billing_payments').select('*').eq('clinic_id',company).order('id'),'FIXTURE_PLAN_LEDGER_READ_FAILED') as any[],
   readPrices:async id=>requireResult(await admin.rpc('billing_subscription_price_context',{p_subscription_id:id}),'FIXTURE_PLAN_PRICE_READ_FAILED'),
+  readAudit:async id=>requireResult(await admin.from('billing_plan_change_executions').select('outcome,provider_write_started_at,provider_proof_hash,invoice_digest,invoice_count')
+   .eq('request_id',id).order('created_at'),'FIXTURE_PLAN_AUDIT_READ_FAILED') as any[],
   sessions:run=>withFixtureSessions(job,run)};
 }
 
@@ -46,13 +48,18 @@ export async function runFixturePlanChange(job:Job,injected?:Dependencies):Promi
   record('paid_ledger_snapshot',ledger.length>=2&&ledger.every(p=>p.subscription_id===c.id&&p.clinic_id===company
    &&p.provider==='asaas'&&p.provider_environment==='sandbox'&&p.amount_cents===44900&&p.status==='paid'),{count:ledger.length,digest:ledgerHash});
   const pricing=await deps.readPrices(c.id);
-  record('no_prior_price_instruction',pricing?.provider_amount_cents===44900&&Array.isArray(pricing.periods)&&pricing.periods.length===0);
+  const effective=new Date(c.current_period_end).toISOString().slice(0,10);
+  const scheduled=Array.isArray(pricing?.periods)&&pricing.periods.length===1
+   &&pricing.periods[0].effective_date===effective&&Number.isInteger(pricing.periods[0].amount_cents)
+   &&pricing.periods[0].amount_cents>=500&&pricing.periods[0].amount_cents<44900
+   &&pricing.provider_amount_cents===pricing.periods[0].amount_cents;
+  record('price_context_consistent',scheduled||(pricing?.provider_amount_cents===44900&&Array.isArray(pricing.periods)&&pricing.periods.length===0));
   const customer=await deps.provider.getCustomer(c.external_customer_id);
   record('sandbox_delivery_disabled',customer.id===c.external_customer_id&&customer.externalReference===`dentalflow:company:${company}`
    &&customer.deleted===false&&customer.notificationDisabled===true);
   const subscription=await deps.provider.getSubscription(c.external_subscription_id);
   record('provider_contract_verified',subscription.id===c.external_subscription_id&&subscription.customer===c.external_customer_id
-   &&subscription.externalReference===`dentalflow:subscription:${c.id}`&&subscription.value===449&&subscription.cycle==='MONTHLY'
+   &&subscription.externalReference===`dentalflow:subscription:${c.id}`&&subscription.value===pricing.provider_amount_cents/100&&subscription.cycle==='MONTHLY'
    &&subscription.deleted===false&&subscription.status==='ACTIVE');
   record('provider_calendar_read',/^\d{4}-\d{2}-\d{2}$/.test(subscription.nextDueDate??''),{state:subscription.nextDueDate});
   const invoices=await deps.provider.listPaymentsForReconciliation(c.external_subscription_id,'2000-01-01');
@@ -82,13 +89,26 @@ export async function runFixturePlanChange(job:Job,injected?:Dependencies):Promi
     &&access.company?.subscription_id===c.id&&access.company?.access_mode==='full');
    if(existing.length){
     record('existing_customer_request',z.string().uuid().safeParse(existing[0]?.id).success,{resource_id:existing[0]?.id,state:existing[0]?.status});
+    if(scheduled||existing[0].status==='completed'){
+     record('scheduled_term_matches_completed_request',scheduled&&existing[0].status==='completed'
+      &&pricing.provider_amount_cents===existing[0].target_amount_cents&&Date.parse(existing[0].paid_period_end)===Date.parse(c.current_period_end));
+     const audit=await deps.readAudit(existing[0].id);
+     record('master_single_write_and_confirmed_audit',audit.length>=1&&audit.filter(e=>e.provider_write_started_at).length===1
+      &&audit.some(e=>e.outcome==='completed'&&/^[a-f0-9]{32}$/.test(e.provider_proof_hash??'')
+       &&/^[a-f0-9]{64}$/.test(e.invoice_digest??'')&&Number.isInteger(e.invoice_count)),{count:audit.length});
+     record('provider_future_price_and_calendar',subscription.value===existing[0].target_amount_cents/100&&subscription.nextDueDate===effective,
+      {amount_cents:existing[0].target_amount_cents,state:subscription.nextDueDate});
+     record('paid_plan_not_applied_early',access.company?.plan_code==='company_growth'&&access.company?.monthly_price_cents===44900
+      &&Date.parse(c.current_period_end)>Date.now());
+     record('plan_change_phase',true,{state:'COMPLETED_SCHEDULED'});return;
+    }
     record('plan_change_phase',true,{state:'EXISTING_REQUEST_REQUIRES_MASTER_REVIEW'});return;
    }
+   record('scheduled_term_has_completed_request',!scheduled);
    if(quote.block_reason!==null){
     record('customer_quote_guard',typeof quote.block_reason==='string'&&['storage_limit','member_limit','session_limit','paid_period_required','scheduled_change'].includes(quote.block_reason),{state:quote.block_reason});
     record('plan_change_phase',true,{state:'BLOCKED_CUSTOMER_LIMITS'});return;
    }
-   const effective=new Date(c.current_period_end).toISOString().slice(0,10);
    if(subscription.nextDueDate!==effective){
     record('provider_calendar_guard',true,{period_end:c.current_period_end,state:subscription.nextDueDate});
     record('plan_change_phase',true,{state:'BLOCKED_PROVIDER_CALENDAR'});return;
