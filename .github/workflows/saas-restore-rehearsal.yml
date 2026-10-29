@@ -346,6 +346,8 @@ jobs:
             < docs/saas/sql/plan-price-periods-assertions.sql | tee restore-plan-periods-assertions.log
           docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
             < docs/saas/sql/plan-price-periods-rehearsal.sql | tee restore-plan-periods-rehearsal.log
+          docker exec -i "$RESTORE_DB_CONTAINER" psql -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            < docs/saas/sql/plan-fixture-assertions.sql | tee restore-plan-fixture-assertions.log
 
       - name: Record sanitized restored-schema audit
         shell: bash
@@ -385,6 +387,7 @@ jobs:
             restore-price-rehearsal.log
             restore-plan-periods-assertions.log
             restore-plan-periods-rehearsal.log
+            restore-plan-fixture-assertions.log
             restore-company-stock-assertions.log
             restore-company-stock-rehearsal.log
             restore-company-stock-backfill.log

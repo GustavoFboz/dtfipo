@@ -6,8 +6,8 @@ import { fetchMasterBillingChangeRequests, friendlyBillingChangeError, masterBil
   type BillingSessionScope, type BillingSessionCheck, type MasterBillingChangeRequest } from "@/lib/billing-change-requests";
 import { formatPlanPrice } from "@/lib/subscriptions";
 
-export function MasterBillingRequests({ scope, isCurrent, search }: {
-  scope: BillingSessionScope; isCurrent: BillingSessionCheck; search: string;
+export function MasterBillingRequests({ scope, isCurrent, search, onCompleted }: {
+  scope: BillingSessionScope; isCurrent: BillingSessionCheck; search: string; onCompleted?: () => void;
 }) {
   const [selected, setSelected] = useState<MasterBillingChangeRequest | null>(null);
   const [result, setResult] = useState("");
@@ -41,14 +41,14 @@ export function MasterBillingRequests({ scope, isCurrent, search }: {
           request={selected} scope={scope} isCurrent={isCurrent} onClose={() => setSelected(null)} onCompleted={(status) => {
             if (!isCurrent(scope)) return;
             setResult(status === "completed" ? "Troca programada; o novo plano depende do início e pagamento do período correspondente." : "A troca precisa de revisão. Atualize e confira o resultado antes de qualquer nova tentativa.");
-            setSelected(null); void requests.refetch();
+            setSelected(null); void requests.refetch(); onCompleted?.();
           }} />}
         {selected?.id === r.id && r.kind === "cancel" && <MasterCancelRequest key={`${scope.generation}:${scope.sessionId}:${r.id}`}
           request={selected} scope={scope} isCurrent={isCurrent} onClose={() => setSelected(null)} onCompleted={(status) => {
             if (!isCurrent(scope)) return;
             setResult(status === "completed" ? "Renovação encerrada no Asaas; período pago preservado."
               : "Resultado ainda não confirmado. O pedido permanece em revisão.");
-            setSelected(null); void requests.refetch();
+            setSelected(null); void requests.refetch(); onCompleted?.();
           }} />}
       </li>)}
       {requests.data.length === 50 && <li className="text-xs text-slate-500">Exibindo as 50 solicitações mais antigas. Use a busca por empresa.</li>}
