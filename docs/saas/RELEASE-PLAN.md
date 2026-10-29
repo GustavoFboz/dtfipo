@@ -1,4 +1,12 @@
-# DentalFlow SaaS — sete etapas restantes até vendas
+# DentalFlow SaaS — sete etapas até vendas
+
+**Checkpoint vigente em 28/10/2026, 20h48 Manaus: 13/23 (56,52%), 10 critérios
+restantes e 1/7 etapas encerradas.** Item 5.2 concluído: cancelamento A e troca
+de plano/preço B executados uma vez por pedido no Sandbox com Master/MFA reais.
+54/54 checks reais e 495 testes locais; 701 arquivos, dados, pagamentos, faturas
+e planos pagos atuais preservados. A aplicação do downgrade na vigência de
+18/12 UTC e a recuperação de falhas reais seguem em 5.3. Falta um aceite integral
+para ultrapassar 60%. [Provas e limites](evidence/master-plan-change-20261028.md).
 
 **Checkpoint vigente em 28/10/2026, 20h11 Manaus: 12/23 (52,17%), 11 critérios
 restantes e 1/7 etapas encerradas.** Cancelamento real Sandbox A concluído

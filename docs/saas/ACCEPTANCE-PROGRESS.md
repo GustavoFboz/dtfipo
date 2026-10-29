@@ -1,5 +1,14 @@
 # Progresso dos aceites finais para vendas
 
+Checkpoint de 28/10/2026, **20h48 Manaus**: **5.2 concluído — 13/23 (56,52%),
+10 restantes, 1/7 etapas encerradas**. Cancelamento A e troca de plano/preço B
+executados no Asaas Sandbox com desafios Master/MFA reais, uma escrita por
+pedido e readback. Três jobs passaram **54/54 checks reais**; 701 arquivos,
+dados, pagamentos, faturas e planos pagos atuais preservados. B tem recorrência
+futura de R$5 e termo para 18/12 UTC; permanece Growth/R$449 até a vigência e
+pagamento. A aplicação do downgrade e falhas reais continuam em 5.3. Falta um
+aceite integral para 14/23 (60,87%). [Provas e limites](evidence/master-plan-change-20261028.md).
+
 Checkpoint de 28/10/2026, **20h11 Manaus**: cancelamento Sandbox A concluído
 uma vez com login Master/autenticador reais. Asaas INACTIVE, auditoria única,
 job posterior **18/18**, período pago, três cobranças, ledger e dados preservados;
@@ -178,8 +187,8 @@ o valor insuficiente antes de criar recursos externos.
 | 4.2 | Sessões, MFA, isolamento e replay financeiro | Parcial: 29 tabelas possuem empresa e dois catálogos padrão são somente leitura. Master/MFA positivos e duas decisões auditadas comprovados com login real em 24/10; regressões identidade e arquivos/privacidade 128/128. Replay financeiro positivo continua zero; origem dos 12 pacientes sem empresa e demais cenários de sessão permanecem pendentes. [Prova e limites](evidence/events-recovery-master-20261024.md) |
 | 4.3 | Arquivos privados e validade dos links | Concluído em 27/10, 12h42 Manaus: 34 fotos e seis avatares autorizados, 40 cópias verificadas e URLs originais recusadas com HTTP400, origens ausentes e caminhos aposentados. Mesmos 685 arquivos prontos, bytes, metadados de propriedade/vínculo e hashes clínicos/financeiros. As 22 verificações autenticadas de assinatura curta, expiração, renovação e recusa entre empresas foram comprovadas em 26/10. Offline permanece 72h e aparelhos mantêm aceite separado. [Recibos e limites](evidence/private-file-rotation-20261027.md) |
 | 5.1 | Histórico e documentos de cobrança | Concluído em Sandbox, 17/10, 14h45 Manaus: sessões gestoras das duas fixtures consultaram histórico e abriram documento do pagamento validado no provedor (HTTP200); outra clínica foi recusada no histórico e documento (HTTP403). [Recibo e revisão](evidence/acceptance-20-20261017.md) |
-| 5.2 | Solicitações executadas no Asaas | Parcial: cancelamento A concluído uma vez com Master/MFA reais em 28/10, Asaas INACTIVE e 18/18 checks posteriores; período, ledger, cobranças e dados preservados. Troca de plano/preço está publicada, faltando execução real, pagamento e aplicação na vigência. [Auditoria, recibo e limites](evidence/master-cancellation-20261028.md) |
-| 5.3 | Downgrade, falhas e execução única | Parcial: escrita única, retomada somente por GET, limites e ativação por período implementados e ensaiados em CI descartável; falhas reais, downgrade e aplicação financeira ainda exigem prova própria. [Implementação e limites](PLAN-PRICE-PERIODS.md) |
+| 5.2 | Solicitações executadas no Asaas | Concluído em 28/10, 20h48 Manaus: cancelamento A e troca Growth→Inicial/R$5 de B confirmados no Asaas com Master/MFA reais, uma escrita por pedido e 54/54 checks reais em três jobs. Preço/data futuros confirmados; faturas, ledger, dados e plano pago atual preservados. Aplicação e pagamento futuros conservam os aceites de 5.3 e ciclo financeiro. [Auditoria, recibos e limites](evidence/master-plan-change-20261028.md) |
+| 5.3 | Downgrade, falhas e execução única | Parcial: downgrade B programado no provedor para 18/12 UTC, limites atuais válidos e execução única comprovada. Growth/R$449 permanece até a vigência/pagamento; faltam aplicação real, limites nessa aplicação e recuperação após falha real ambígua. Ensaios descartáveis continuam regressões. [Prova e limites](evidence/master-plan-change-20261028.md) |
 | 6.1 | Processador regular e alertas comprovados | Concluído em Sandbox, 05/10, 18h17 de Manaus: 24 disparos a cada 5 minutos, 24 respostas HTTP 200 com telemetria saudável, alerta real de heartbeat antigo entregue à caixa do operador e recuperação observada. Produção permanece no gate 7.2. [Prova e limites](evidence/database-scheduler-20261005.md) |
 | 6.2 | Backup, restauração e incidente | Parcial: restore limpo e recuperação de heartbeat real comprovados; backup/restauração operacional de dados e rollback ainda pendentes |
 | 6.3 | Onboarding, plataformas e capacidade piloto | Em aberto |

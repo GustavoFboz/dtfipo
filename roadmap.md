@@ -10,9 +10,10 @@
 - [ ] Completar os demais ciclos financeiros e a preservação do período pago/dados (2.1, 2.2).
 - [ ] Homologar acesso, armazenamento, expiração/limpeza offline em 72h e retomada nos aparelhos (2.3, 3.3).
 - [ ] Concluir replay financeiro positivo, cenários de sessão restantes e comprovar a origem dos doze pacientes históricos sem empresa (4.2).
-- [ ] Concluir e comprovar cancelamento, troca de plano/preço por vigência, downgrade e recuperação após falha (5.2, 5.3).
+- [x] Aceite 5.2 concluído em 28/10, 20h48 Manaus: cancelamento A e troca de plano/preço B executados no Asaas Sandbox com Master/MFA reais, uma escrita por pedido e 54/54 verificações reais; período, faturas, ledger e 701 arquivos preservados.
+- [ ] Comprovar pagamento/aplicação do downgrade programado para 18/12 UTC, limites nessa vigência e recuperação após falha real ambígua (5.3).
 - [ ] Backup/restauração operacional e rollback (6.2); onboarding e capacidade piloto (6.3); documentos comerciais/privacidade e revisão (6.4).
 - [ ] Aprovação comercial final após os demais critérios (7.4).
 
-Contador vigente: **12/23 (52,17%), 11 restantes, 1/7 etapas encerradas**.
-Evidências: `docs/saas/evidence/reservation-release-20261027.md`, `docs/saas/evidence/private-file-rotation-20261027.md`, `docs/saas/evidence/cancellation-preparation-20261028.md` e `docs/saas/evidence/plan-price-periods-20261028.md`.
+Contador vigente: **13/23 (56,52%), 10 restantes, 1/7 etapas encerradas**. Falta um aceite integral para 14/23 (60,87%).
+Evidências: `docs/saas/evidence/reservation-release-20261027.md`, `docs/saas/evidence/private-file-rotation-20261027.md`, `docs/saas/evidence/cancellation-preparation-20261028.md`, `docs/saas/evidence/plan-price-periods-20261028.md` e `docs/saas/evidence/master-plan-change-20261028.md`.
