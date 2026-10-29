@@ -93,7 +93,9 @@ function MasterDashboard({ scope, isCurrent }: { scope: MasterSessionScope; isCu
           </table></div>
         </section>
         <MasterOperationalHealth scope={scope} isCurrent={isCurrent} />
-        <MasterBillingRequests scope={scope} isCurrent={isCurrent} search={search} />
+        <MasterBillingRequests scope={scope} isCurrent={isCurrent} search={search} onCompleted={() => {
+          if (isCurrent(scope)) void queryClient.invalidateQueries({ queryKey: masterDashboardKey(scope) });
+        }} />
         <section className="grid gap-5 lg:grid-cols-2">
           <div className="rounded-xl border bg-white p-5 dark:bg-slate-900">
             <h2 className="font-semibold">Fila Asaas</h2>

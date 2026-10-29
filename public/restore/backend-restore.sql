@@ -21443,6 +21443,15 @@ GRANT EXECUTE ON FUNCTION public.billing_subscription_period_amount(uuid,date),p
 GRANT EXECUTE ON FUNCTION public.platform_master_claim_plan_change(uuid,text,text,boolean),public.platform_master_begin_plan_change_write(uuid,uuid) TO authenticated;
 NOTIFY pgrst,'reload schema';
 
+-- ===== 20261029002000_saas_fixture_plan_change.sql =====
+
+-- Fixed Sandbox fixture preparation only. The job can inspect provider GETs
+-- and submit a normal customer request, never execute financial instructions.
+-- The existing allowlist, expiring one-use capabilities and private grants stay.
+ALTER TABLE public.saas_fixture_acceptance_jobs DROP CONSTRAINT saas_fixture_acceptance_jobs_kind_check;
+ALTER TABLE public.saas_fixture_acceptance_jobs ADD CONSTRAINT saas_fixture_acceptance_jobs_kind_check
+ CHECK(kind IN('identity','storage','billing','ownership','configuration','reconciliation','cancellation','plan_change'));
+
 -- ===== 20260718000001_zzz_self_heal_v2.sql =====
 
 -- =====================================================================

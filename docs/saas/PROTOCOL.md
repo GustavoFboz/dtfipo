@@ -1,5 +1,12 @@
 # Protocolo SaaS DentalFlow
 
+Checkpoint vigente em 28/10/2026, **20h11 Manaus: 12/23 (52,17%), 11 critérios
+restantes, 1/7 etapas encerradas**. Cancelamento Sandbox A executado uma vez
+com Master/MFA reais; Asaas INACTIVE, auditoria única e observação 18/18.
+701 arquivos, dados, período pago, cobranças e B preservados. Cancelamento
+comprovado como parte de 5.2; troca/preço e downgrade conservam aceite próprio.
+[Auditoria e limites](evidence/master-cancellation-20261028.md).
+
 Checkpoint vigente em 28/10/2026, **18h00 Manaus: 12/23 (52,17%), 11 critérios
 restantes, 1/7 etapas encerradas**. PR206 integrada/publicada: preço por
 vigência, execução Master única e aplicação condicionada a pagamento/data/limites.

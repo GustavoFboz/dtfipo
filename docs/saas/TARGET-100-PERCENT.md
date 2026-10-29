@@ -1,5 +1,12 @@
 # Conclusão integral do protocolo SaaS
 
+Em 28/10/2026, **20h11 Manaus**, o pedido Sandbox A foi concluído uma vez
+com Master e MFA reais. Asaas INACTIVE, auditoria única e 18/18 checks
+posteriores; 701 arquivos, período pago, cobranças, ledger e B preservados.
+**12/23 (52,17%) mantidos**: cancelamento é uma parte de 5.2; para ultrapassar
+60% faltam dois critérios completos, incluindo troca/preço e downgrade/falhas.
+[Prova e limites](evidence/master-cancellation-20261028.md).
+
 Em 28/10/2026, **18h00 Manaus**, a PR206 publicou troca de plano e preço por
 vigência. Passaram 413 testes locais, restore limpo de 185 migrações e 18/18
 checks reais de observação/autorização. Dados, 700 arquivos, quatro preços e
@@ -118,12 +125,12 @@ desativá-la por ser chamada “Teste”. [Recibo e limites](evidence/authorized
 
 | Item | Trabalho para concluir e condição de aceite |
 | --- | --- |
-| 2.1 | Renovação real comprovada em 24/10. Executar atraso/carência, suspensão, estorno/contestação, cancelamento e reativação com estados reais do provedor. Ensaios SQL e mocks permanecem regressões. |
+| 2.1 | Renovação real comprovada em 24/10 e cancelamento Master/MFA em 28/10. Executar atraso/carência, suspensão, estorno/contestação e reativação com estados reais do provedor. Ensaios SQL e mocks permanecem regressões. |
 | 2.2 | Conferir dados clínicos, contratos, ledger, limites e período pago antes/depois dos fluxos reais. A isenção IPO e dados de outras empresas devem permanecer preservados. |
 | 2.3 | Validar acesso online, expiração/limpeza do cache em 72h e retomada nos aplicativos disponíveis. Builds e emuladores não substituem os testes em aparelhos; registrar limites da homologação iOS. |
 | 3.3 | Executar upload, leitura, limite, falha e exclusão em Web, Windows e Android disponíveis. DICOM aguarda a liberação de Radiologia. |
 | 4.2 | Master/MFA positivos e duas decisões individuais auditadas foram comprovados em 24/10. Concluir replay financeiro positivo (continua zero), cenários restantes de sessão e origem dos 12 pacientes sem empresa. Estoque/diretórios/fluxos continuam protegidos em 29 tabelas e catálogos originais somente leitura. [Prova e limites](evidence/events-recovery-master-20261024.md). |
-| 5.2 | Cancelamento e troca de plano/preço por vigência publicados sob Master/AAL2. Executar o pedido de cancelamento existente uma vez e comprovar troca em fixture independente, com pagamento e aplicação na data contratada. Não criar prova financeira por SQL. [Publicação e limites](evidence/plan-price-periods-20261028.md). |
+| 5.2 | Cancelamento A concluído uma vez, com Master/MFA reais, Asaas INACTIVE e dados preservados. Comprovar troca/preço em B, com pagamento e aplicação na data contratada, após conferir cotação, calendário e cobranças emitidas. Não criar prova financeira por SQL. [Prova e limites](evidence/master-cancellation-20261028.md). |
 | 5.3 | Validar downgrade, cota, preço/data efetiva e retomada após falha ambígua reais. Lease, escrita única, GET e bloqueio/retomada por excesso estão implementados e ensaiados em banco descartável; não encerram o aceite financeiro. |
 | 6.2 | Fazer backup/restauração operacional de dados e arquivos em destino isolado, comparar integridade e ensaiar incidente/rollback. Restauração limpa só de schema é parcial. |
 | 6.3 | Concluir onboarding de empresa nova no Sandbox, paridade de plataformas e medição da capacidade do lote piloto. A meta futura de 10 mil usuários não é capacidade comprovada. |

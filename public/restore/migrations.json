@@ -183,5 +183,6 @@
   "20261026153000_private_file_reference_rotation.sql",
   "20261027180000_saas_fixture_cancellation.sql",
   "20261028210000_saas_plan_price_periods.sql",
+  "20261029002000_saas_fixture_plan_change.sql",
   "20260718000001_zzz_self_heal_v2.sql"
 ]

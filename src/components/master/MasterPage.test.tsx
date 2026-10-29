@@ -11,6 +11,8 @@ const client = vi.hoisted(() => ({
     listFactors: vi.fn(), enroll: vi.fn(), challengeAndVerify: vi.fn(), getAuthenticatorAssuranceLevel: vi.fn(), unenroll: vi.fn(),
   } }, rpc: vi.fn(),
 }));
+const financial = vi.hoisted(() => ({ cancel: vi.fn() }));
+vi.mock("@/lib/billing-cancel-request", () => ({ executeBillingCancellation: financial.cancel }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: client }));
 vi.mock("@tanstack/react-router", async () => {
   const { createElement } = await import("react");
@@ -42,6 +44,7 @@ let host: HTMLDivElement;
 let root: Root;
 let cache: QueryClient;
 let billingRequests: unknown[];
+let dashboardResult: typeof dashboard;
 const operationalHealth = { generated_at: "2026-10-04T01:00:00Z", environments: ["sandbox", "production"].map((environment) => ({
   environment, worker: null, queue: { waiting: 0, processing: 0, failed: 0, dead_letter: environment === "sandbox" ? 2 : 0,
     expired_leases: 0, late_due: 0, oldest_due_at: null }, checkout: { failed_24h: 0, uncertain: 0, expired_leases: 0 },
@@ -73,7 +76,7 @@ async function render() {
 
 beforeEach(() => {
   vi.clearAllMocks(); current = session(); listeners = new Set(); verifiedFactor = true;
-  billingRequests = [];
+  billingRequests = []; dashboardResult = dashboard; financial.cancel.mockReset();
   pendingDashboard = null; pendingMfa = null; pendingEnrollment = null;
   client.auth.getSession.mockImplementation(async () => ({ data: { session: current }, error: null }));
   client.auth.getUser.mockImplementation(async () => ({ data: { user: current?.user ?? null }, error: null }));
@@ -105,7 +108,7 @@ beforeEach(() => {
       const response = delayed?.promise ?? Promise.resolve(ownerId === "operator"
         ? { data: name === "platform_master_close_external_sandbox_test" ? true
           : name === "platform_master_billing_change_requests" ? billingRequests
-          : name === "platform_master_operational_health" ? operationalHealth : dashboard, error: null } : { data: null, error: new Error("PLATFORM_MASTER_FORBIDDEN") });
+          : name === "platform_master_operational_health" ? operationalHealth : dashboardResult, error: null } : { data: null, error: new Error("PLATFORM_MASTER_FORBIDDEN") });
       return response.then(resolve, reject);
     } }; return request;
   });
@@ -117,6 +120,26 @@ afterEach(async () => {
 });
 
 describe("Master dashboard UI across accounts and sessions", () => {
+  it("refreshes the company status once after an authenticated cancellation without repeating the financial action", async () => {
+    billingRequests = [{ id: "78000000-0000-4000-8000-000000000012", subscription_id: "78000000-0000-4000-8000-000000000011",
+      kind: "cancel", status: "awaiting_provider", provider_environment: "sandbox", current_plan_name: "Inicial", current_amount_cents: 500,
+      target_plan_name: null, target_amount_cents: null, currency: "BRL", paid_period_end: "2040-01-01T00:00:00Z",
+      effective_not_before: "2040-01-01T00:00:00Z", created_at: "2026-10-28T23:35:00Z", withdrawn_at: null, clinic_name: "Empresa protegida" }];
+    financial.cancel.mockImplementation(async () => {
+      billingRequests = []; dashboardResult = { ...dashboard, companies: dashboard.companies.map(c => ({ ...c, status: "canceled" })) };
+      return "completed";
+    });
+    await render(); const initialCalls = client.rpc.mock.calls.filter(([name]) => name === "platform_master_dashboard").length;
+    await click("Revisar cancelamento"); await fill("Justificativa", "Homologação Sandbox com período pago preservado");
+    await act(async () => host.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click()); await settle();
+    expect(button("Confirmar cancelamento").disabled).toBe(true);
+    await fill("Código de seis dígitos", "123456"); await click("Confirmar identidade"); await click("Confirmar cancelamento");
+    expect(financial.cancel).toHaveBeenCalledTimes(1);
+    expect(host.querySelector("tbody tr")?.textContent).toContain("canceled");
+    expect(client.rpc.mock.calls.filter(([name]) => name === "platform_master_dashboard")).toHaveLength(initialCalls + 1);
+    expect(text()).toContain("Renovação encerrada no Asaas; período pago preservado.");
+    expect(text()).toContain("Nenhuma solicitação pendente.");
+  });
   it("requires individual MFA and explicit manual-test confirmation before closing a review", async () => {
     await render(); await click("Revisar teste externo");
     await fill("Justificativa da revisão", "Manual Sandbox test checked in Asaas");
