@@ -139,7 +139,7 @@ export async function restore({ input, key, targetUrl, guardToken, filesOutput, 
         const flush = async () => {
           if (!batch.length) return;
           await tx.unsafe(`INSERT INTO ${relation(table)} (${columns}) OVERRIDING SYSTEM VALUE
-            SELECT ${columns} FROM jsonb_populate_recordset(NULL::${relation(table)},$1::jsonb)`, ['[' + batch.join(',') + ']']);
+            SELECT ${columns} FROM jsonb_populate_recordset(NULL::${relation(table)},$1::text::jsonb)`, ['[' + batch.join(',') + ']']);
           batch = [];
         };
         for await (const line of lines(unseal(join(input, entry.name), key, entry.name))) {

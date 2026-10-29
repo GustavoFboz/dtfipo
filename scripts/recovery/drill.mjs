@@ -49,7 +49,7 @@ try {
     await writeFile(path, payloads[index], { mode: 0o600 });
     await source`INSERT INTO storage.buckets(id,name,public) VALUES('avatars','avatars',false) ON CONFLICT(id) DO NOTHING`;
     await source`INSERT INTO storage.objects(bucket_id,name,metadata,owner_id) VALUES('avatars',${name},
-      ${JSON.stringify({ size: payloads[index].length, mimetype: 'application/octet-stream' })}::jsonb,'92900000-0000-4000-8000-000000000001')`;
+      ${JSON.stringify({ size: payloads[index].length, mimetype: 'application/octet-stream' })}::text::jsonb,'92900000-0000-4000-8000-000000000001')`;
     await source`INSERT INTO public.storage_files(clinic_id,bucket,object_path,source_type,original_name,size_bytes,status,uploaded_by)
       VALUES('92900000-0000-4000-8000-000000000010','avatars',${name},'user_avatar',${`recovery-${index}.bin`},${payloads[index].length},'ready','92900000-0000-4000-8000-000000000001')`;
   }
