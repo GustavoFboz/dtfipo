@@ -29,6 +29,7 @@ continuam separados. O rollout da ação em Produção permanece fechado.
 | `BLOCKED_FUTURE_INVOICE` | Já existe uma fatura a partir da vigência pretendida. |
 | `EXISTING_REQUEST_REQUIRES_MASTER_REVIEW` | Há pedido anterior; não foi repetido. |
 | `AWAITING_MASTER` | Um pedido normal foi confirmado; falta a ação Master. |
+| `COMPLETED_SCHEDULED` | Preço futuro confirmado por GET, uma escrita Master auditada, faturas antigas e plano pago atual preservados; não cria pedido nem aplica o plano antecipadamente. |
 
 Um job verde em uma fase de bloqueio comprova a conferência e o respeito ao
 limite, não uma troca executada ou um novo aceite. O recibo contém hashes,
@@ -37,3 +38,9 @@ payloads do provedor. A assertiva `sql/plan-fixture-assertions.sql` confere os
 oito tipos e os grants privados somente por leitura; a restauração completa
 contém 186 migrações. A migração amplia somente o enum do job privado, sem
 adicionar autoridade financeira ao worker.
+
+Depois da ação Master, outro job de uso único pode observar o termo programado.
+Confere o preço e calendário atuais por GET, todas as faturas antigas, histórico
+e plano atual na sessão normal do gestor e auditoria com uma única escrita.
+`COMPLETED_SCHEDULED` não equivale a pagamento do novo período nem à aplicação
+do plano na data futura; esses resultados conservam suas provas próprias.

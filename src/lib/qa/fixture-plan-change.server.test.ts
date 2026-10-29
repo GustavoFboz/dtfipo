@@ -23,7 +23,7 @@ function setup(){
  const actorRpc=vi.fn(async(name:string):Promise<any>=>{
   if(name==='billing_company_change_context')return {data:context,error:null};
   if(name==='billing_submit_change_request')return {data:request,error:null};
-  if(name==='my_subscription_context')return {data:{active_clinic_id:company,effective_access:'full',company:{subscription_id:c.id,access_mode:'full'}},error:null};
+  if(name==='my_subscription_context')return {data:{active_clinic_id:company,effective_access:'full',company:{subscription_id:c.id,access_mode:'full',plan_code:'company_growth',monthly_price_cents:44900}},error:null};
   throw Error('Unexpected customer RPC');
  });
  const foreignRpc=vi.fn().mockResolvedValue({data:null,error:{message:'BILLING_CHANGE_FORBIDDEN'}});
@@ -37,11 +37,36 @@ function setup(){
   listPaymentsForReconciliation:vi.fn().mockResolvedValue(invoices),updateSubscription:update},
   readContract:vi.fn<()=>Promise<unknown>>().mockResolvedValue(c),readLedger:vi.fn().mockResolvedValue(ledger),
   readPrices:vi.fn().mockResolvedValue({provider_amount_cents:44900,periods:[]}),
+  readAudit:vi.fn().mockResolvedValue([]),
   sessions:vi.fn(async(run:(sessions:FixtureSession[])=>Promise<void>)=>run(sessions))};
  return {deps,actorRpc,foreignRpc,context,quote,request,ledger,invoices,update};
 }
 const submissions=(x:ReturnType<typeof setup>)=>x.actorRpc.mock.calls.filter(([name])=>name==='billing_submit_change_request');
+async function scheduledSetup(){
+ const x=setup();x.context.requests=[{...x.request,status:'completed'}];x.quote.block_reason='scheduled_change';
+ x.deps.readPrices.mockResolvedValue({provider_amount_cents:500,periods:[{effective_date:'2030-12-18',amount_cents:500}]});
+ x.deps.provider.getSubscription.mockResolvedValue({...await x.deps.provider.getSubscription(),value:5});
+ x.deps.readAudit.mockResolvedValue([{outcome:'completed',provider_write_started_at:'2030-10-28T00:00:00Z',provider_proof_hash:'a'.repeat(32),invoice_digest:'b'.repeat(64),invoice_count:1}]);
+ return x;
+}
 describe('fixed Sandbox plan-change preparation',()=>{
+ it('independently reads the completed future price, old invoices, customer plan and single Master write without submitting anything',async()=>{
+  const x=await scheduledSetup();const checks=await runFixturePlanChange(job,x.deps);
+  expect(checks.every(c=>c.passed)).toBe(true);expect(submissions(x)).toHaveLength(0);expect(x.update).not.toHaveBeenCalled();
+  expect(checks).toContainEqual(expect.objectContaining({check:'plan_change_phase',state:'COMPLETED_SCHEDULED'}));
+  expect(checks).toContainEqual(expect.objectContaining({check:'paid_plan_not_applied_early',passed:true}));
+  expect(x.deps.readAudit).toHaveBeenCalledExactlyOnceWith(x.request.id);
+ });
+ it('does not accept a completed term with two financial writes',async()=>{
+  const x=await scheduledSetup();const row=(await x.deps.readAudit())[0];x.deps.readAudit.mockResolvedValue([row,row]);
+  expect(await runFixturePlanChange(job,x.deps)).toContainEqual(expect.objectContaining({check:'master_single_write_and_confirmed_audit',passed:false}));
+  expect(submissions(x)).toHaveLength(0);expect(x.update).not.toHaveBeenCalled();
+ });
+ it('rejects a future term with no completed customer instruction before creating another request',async()=>{
+  const x=await scheduledSetup();x.context.requests=[];
+  expect(await runFixturePlanChange(job,x.deps)).toContainEqual(expect.objectContaining({check:'scheduled_term_has_completed_request',passed:false}));
+  expect(submissions(x)).toHaveLength(0);
+ });
  it('submits one normal customer instruction after quote/calendar/invoice checks, never a provider write',async()=>{
   const x=setup(),checks=await runFixturePlanChange(job,x.deps);
   expect(checks.every(c=>c.passed)).toBe(true);expect(submissions(x)).toHaveLength(1);
