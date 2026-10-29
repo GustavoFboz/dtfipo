@@ -90,7 +90,9 @@ node scripts/operational-recovery.mjs restore /destino/privado/copia-nova /desti
 ```
 
 Provisionar o Supabase PostgreSQL isolado, aplicar as mesmas migrations/restore
-e renomear seu banco antes da restauração. O operador cria no destino o schema
+e criar o banco com nome de recuperação antes da restauração. Manter o banco
+`postgres` que os serviços internos do Supabase usam; o CI clona sua estrutura
+inicial num banco separado, com dados clínicos vazios e sem jobs ativos. O operador cria no destino o schema
 `recovery_guard`, sem acesso de clientes, e a tabela `destination(singleton
 boolean primary key check(singleton), mode text not null, token_hash text not
 null)`. Inserir uma linha `true`, `isolated-offline-no-runtime` e SHA-256 do token
@@ -124,3 +126,32 @@ Referências oficiais consultadas:
   do banco não incluem os bytes dos objetos do Storage.
 - [Supabase — backup/restore](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore): banco,
   objetos, configurações e chaves de criptografia têm etapas próprias.
+
+## Prova executada em 28/10, 22h50 Manaus
+
+O [ensaio 40808635407](https://github.com/GustavoFboz/dtfipo/actions/runs/40808635407)
+passou **16/16 verificações**, recuperando **158 tabelas, 269 registros e três
+arquivos reais (2.097.208 bytes)** em destinos descartáveis. Foram verificadas
+268 chaves estrangeiras, precisão de bigint/colunas geradas, sequências, ledger
+e preço futuro programado sem ativação antecipada. Falha de vínculo e término
+real da conexão PostgreSQL produziram rollback; uma recuperação íntegra passou
+em seguida. O tempo de 7.214 ms é do ensaio pequeno, não previsão para a origem.
+
+Transações usam conexão explicitamente reservada, conferência de geração e
+recusa de continuar após desconexão. O teste cobre a queda real do backend e a
+não reconexão durante uma operação parcial; a versão do driver do aplicativo
+não foi alterada. Ver [recibo e limites](evidence/operational-recovery-20261028.md).
+
+No Cloud, foram observados 14 backups diários e a opção nativa Export data.
+A abertura da exportação excedeu o prazo do navegador; não há confirmação das
+etapas Export/Start export nem de download novo. O único objeto de exportação
+identificado por metadados é de 05/09 UTC, anterior a esta implementação.
+O navegador e o ambiente de execução ficaram indisponíveis nesta rodada.
+Não restaurar um backup sobre o ambiente ativo para contornar essa limitação.
+A exportação nativa do banco e os arquivos separados continuam como caminho
+para a cópia real; não é necessário esperar pela vigência financeira de B.
+
+Referência atual do fornecedor: [Lovable — backups e exportação](https://docs.lovable.dev/features/database-backups).
+O export nativo contém estrutura e dados, incluindo contas/hashes de senha;
+não inclui arquivos, segredos ou configurações de autenticação. A documentação
+informa um export a cada 24 horas; nenhuma solicitação concluída foi presumida.
