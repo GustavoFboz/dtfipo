@@ -97,13 +97,14 @@ jobs:
           CREATE TABLE recovery_guard.disposable_source(singleton boolean PRIMARY KEY CHECK(singleton),purpose text NOT NULL CHECK(purpose='synthetic-ci-only'));
           INSERT INTO recovery_guard.disposable_source VALUES(true,'synthetic-ci-only');
           SQL
-          # The destination must carry a recovery-only database name. Block
-          # reconnection before renaming the disposable initialized database.
+          # Keep postgres available for Supabase's extension workers. Clone
+          # its empty initialized schema into the separately named recovery
+          # database while briefly preventing new template connections.
           docker exec -i supabase_db_dtfipo_recovery_target psql -U supabase_admin -d template1 -v ON_ERROR_STOP=1 <<'SQL'
           ALTER DATABASE postgres ALLOW_CONNECTIONS false;
           SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='postgres';
-          ALTER DATABASE postgres RENAME TO dentalflow_recovery_drill;
-          ALTER DATABASE dentalflow_recovery_drill ALLOW_CONNECTIONS true;
+          CREATE DATABASE dentalflow_recovery_drill TEMPLATE postgres;
+          ALTER DATABASE postgres ALLOW_CONNECTIONS true;
           SQL
       - name: Back up, provoke a restore failure, roll back and recover data and real file bytes
         shell: bash
