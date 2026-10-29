@@ -1,5 +1,14 @@
 # Etapa 08 — centro de cobrança da empresa
 
+## Execuções Sandbox comprovadas, 28/10, 20h48 Manaus
+
+Item 5.2 concluído: cancelamento A e troca de plano/preço B executados com
+Master/MFA reais, uma escrita por pedido e readback; três jobs passaram 54/54
+checks. Dados, período pago e cobranças preservados. B mantém Growth/R$449;
+Inicial/R$5 está programado para 18/12 UTC, com pagamento/aplicação e falhas
+reais ainda pendentes em 5.3. Total 13/23 (56,52%).
+[Auditoria, recibos e limites](evidence/master-plan-change-20261028.md).
+
 ## Troca por vigência, 28/10
 
 Executor Master/AAL2, termos de preço por data, renovação e cancelamento
