@@ -1,5 +1,11 @@
 # Operação e recuperação do SaaS
 
+Preparação de 28/10/2026: a [rotina operacional](OPERATIONAL-RECOVERY.md) acrescenta
+backup criptografado de registros e bytes, restauração num destino local isolado
+e ensaio de rollback após falha de integridade. O CI usa dados descartáveis; a
+cópia/recuperação do ambiente Cloud e seu aceite 6.2 continuam pendentes. Não
+confundir o JSON da tela de Backup ou a restauração de schema com essa prova.
+
 Atualização de 19/10/2026: Produção tem cron ativo e a primeira compra de R$5
 está comprovada. O diagnóstico de credenciais gerou um falso alerta porque
 a regra legada exigia webhook desativado. O workflow passa a conferir o estado

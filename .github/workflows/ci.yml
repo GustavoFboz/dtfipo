@@ -68,6 +68,7 @@ jobs:
           node scripts/check-saas-worker-workflows.mjs
           node scripts/check-asaas-production-preflight.mjs
           node --test scripts/inspect-asaas-reported-queue.test.mjs
+          node --test scripts/recovery/recovery.test.mjs
           node scripts/check-asaas-publication-alert-drill.mjs
           node scripts/check-asaas-database-scheduler.mjs
           bunx vitest run --configLoader runner src/lib/creation-attempt.test.ts src/lib/creation-rpc.test.ts
