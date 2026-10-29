@@ -33,6 +33,19 @@ INSERT INTO public.account_subscriptions(id,scope_type,clinic_id,plan_code,statu
 INSERT INTO public.billing_payments(id,subscription_id,clinic_id,amount_cents,currency,status,provider,provider_environment,provider_payment_id,paid_at,period_start,period_end) VALUES
  ('92900000-0000-4000-8000-000000000031','92900000-0000-4000-8000-000000000030','92900000-0000-4000-8000-000000000010',44900,'BRL','paid','asaas','sandbox','pay_DisposableRecoveryA',now(),current_date-10,current_date+20),
  ('92900000-0000-4000-8000-000000000041','92900000-0000-4000-8000-000000000040','92900000-0000-4000-8000-000000000020',500,'BRL','paid','asaas','sandbox','pay_DisposableRecoveryB',now(),current_date-10,current_date+20);
+-- Preserve a scheduled price agreement as data; this is not evidence of a
+-- provider write, real approval, MFA or calendar activation.
+INSERT INTO public.billing_change_requests(id,clinic_id,subscription_id,requested_by,kind,status,provider_environment,
+ current_plan_code,current_plan_name,current_amount_cents,target_plan_code,target_plan_name,target_amount_cents,
+ currency,paid_period_end,effective_not_before,quote_token,quote_snapshot,completed_at) VALUES
+ ('92900000-0000-4000-8000-000000000050','92900000-0000-4000-8000-000000000010','92900000-0000-4000-8000-000000000030',
+ '92900000-0000-4000-8000-000000000001','change_plan','completed','sandbox','company_growth','Growth',44900,
+ 'company_initial','Initial',500,'BRL',current_date+20,current_date+20,repeat('f',64),'{"disposable_recovery":true}',now());
+INSERT INTO public.billing_plan_periods(id,request_id,subscription_id,clinic_id,provider_environment,effective_date,
+ previous_plan_code,previous_amount_cents,plan_code,amount_cents,quote_snapshot,state) VALUES
+ ('92900000-0000-4000-8000-000000000051','92900000-0000-4000-8000-000000000050','92900000-0000-4000-8000-000000000030',
+ '92900000-0000-4000-8000-000000000010','sandbox',current_date+20,'company_growth',44900,'company_initial',500,
+ '{"disposable_recovery":true}','scheduled');
 -- An independent bigint and generated-column sentinel detects JSON Number
 -- truncation and incorrect generated-column writes in the database round trip.
 CREATE TABLE public.recovery_bigint_sentinel(id bigint PRIMARY KEY, amount bigint NOT NULL,

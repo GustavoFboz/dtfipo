@@ -130,7 +130,7 @@ export async function sequenceStates(sql) {
     }
     value.next = next.toString();
   }
-  return values;
+  return [...values];
 }
 
 export async function assertTargetGuard(sql, token) {

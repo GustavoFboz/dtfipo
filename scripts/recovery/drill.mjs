@@ -102,6 +102,14 @@ try {
   record('bigint_and_generated_values_preserved_exactly');
   const [financial] = await target`SELECT count(*)::int AS payments,sum(amount_cents)::int AS cents FROM public.billing_payments WHERE id IN('92900000-0000-4000-8000-000000000031','92900000-0000-4000-8000-000000000041')`;
   assert.deepEqual(financial, { payments: 2, cents: 45400 }); record('paid_history_and_contracts_preserved');
+  const [scheduled] = await target`SELECT s.plan_code,s.status,p.state,p.amount_cents,
+    public.billing_subscription_contract_amount(s.id) AS current_cents,
+    public.billing_subscription_provider_amount(s.id) AS future_cents,p.activated_at IS NULL AS not_activated
+    FROM public.account_subscriptions s JOIN public.billing_plan_periods p ON p.subscription_id=s.id
+    WHERE s.id='92900000-0000-4000-8000-000000000030'`;
+  assert.deepEqual(scheduled, { plan_code: 'company_growth', status: 'active', state: 'scheduled', amount_cents: 500,
+    current_cents: 44900, future_cents: 500, not_activated: true });
+  record('future_plan_price_preserved_without_early_activation');
   await assert.rejects(restore({ input: bundle, key, targetUrl, guardToken, filesOutput: join(root, 'second-restore'), restoreSql: schema }), /GUARD_MISMATCH/);
   record('repeat_restore_into_used_destination_denied');
   const badEntry = manifest.entries.find(e => e.kind === 'object');
