@@ -87,6 +87,7 @@ jobs:
             docker exec -i "$container" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 <<'SQL'
           BEGIN;
           SET LOCAL session_replication_role = replica;
+          SELECT cron.unschedule(jobid) FROM cron.job;
           TRUNCATE auth.users,public.patients,public.account_subscriptions,storage.objects CASCADE;
           COMMIT;
           SQL
