@@ -3,14 +3,51 @@ import postgres from 'postgres';
 import { fail, sha256 } from './archive.mjs';
 
 const schemas = ['public', 'auth', 'storage', 'supabase_migrations'];
+const connections = new WeakMap();
 export const identifier = name => '"' + String(name).replaceAll('"', '""') + '"';
 export const relation = table => `${identifier(table.schema)}.${identifier(table.name)}`;
 
 export function connect(url, readOnly = true) {
-  return postgres(url, { max: 1, connect_timeout: 10, idle_timeout: 20, prepare: false,
-    onnotice() {}, connection: { application_name: 'dentalflow-operational-recovery',
+  const state = { generation: 0 };
+  const sql = postgres(url, { max: 1, connect_timeout: 10, idle_timeout: 20, prepare: false,
+    onnotice() {}, onclose() { state.generation++; }, connection: { application_name: 'dentalflow-operational-recovery',
       statement_timeout: 60_000, lock_timeout: 2_000, timezone: 'UTC',
       ...(readOnly ? { default_transaction_read_only: 'on' } : {}) } });
+  connections.set(sql, state);
+  return sql;
+}
+
+// postgres@3.4.9 begin() can continue its callback and attempt ROLLBACK on a
+// dead reserved connection (#1248 upstream). Reserve explicitly, fence the
+// connection generation and never send another command after disconnect.
+// There is no reconnect/retry of a partially executed recovery transaction.
+export async function transaction(sql, options, fn) {
+  if (!['', 'isolation level repeatable read read only'].includes(options)) fail('RECOVERY_TRANSACTION_OPTIONS_INVALID');
+  const session = await sql.reserve(), state = connections.get(sql), generation = state.generation;
+  let broken = false, began = false;
+  const check = () => { if (broken || state.generation !== generation) fail('RECOVERY_TRANSACTION_CONNECTION_LOST'); };
+  const tx = new Proxy(session, {
+    apply(target, receiver, args) { check(); return Reflect.apply(target, receiver, args); },
+    get(target, name) {
+      const value = Reflect.get(target, name);
+      return typeof value === 'function' ? (...args) => { check(); return Reflect.apply(value, target, args); } : value;
+    },
+  });
+  try {
+    await tx.unsafe('BEGIN ' + options).simple(); began = true;
+    const result = await fn(tx);
+    const committed = await tx.unsafe('COMMIT').simple();
+    if (committed.command !== 'COMMIT') fail('RECOVERY_TRANSACTION_NOT_COMMITTED');
+    return result;
+  } catch (error) {
+    broken = state.generation !== generation || /^(?:CONNECTION_|CONNECT_TIMEOUT|08|57P0)/.test(error?.code ?? '')
+      || error?.message === 'RECOVERY_TRANSACTION_CONNECTION_LOST';
+    if (began && !broken) {
+      try { await tx.unsafe('ROLLBACK').simple(); }
+      catch { broken = true; }
+    }
+    throw error;
+  } finally { if (!broken && state.generation === generation) session.release(); }
 }
 
 export function assertTargetUrl(value) {

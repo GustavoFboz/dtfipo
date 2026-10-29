@@ -4,7 +4,7 @@ import { dirname, join, resolve } from 'node:path';
 import { setTimeout as pause } from 'node:timers/promises';
 import { collect, digest, fail, lines, seal, unseal } from './archive.mjs';
 import { assertStorageConsistent, assertTargetGuard, assertTargetUrl, connect, identifier, inventory,
-  objectDigest, objects, relation, schemaDigest, sequenceStates, tableChunks, tableDigest, validateForeignKeys } from './database.mjs';
+  objectDigest, objects, relation, schemaDigest, sequenceStates, tableChunks, tableDigest, transaction, validateForeignKeys } from './database.mjs';
 import { objectPath } from './storage.mjs';
 
 const contract = 'dentalflow-operational-recovery-v1';
@@ -24,7 +24,7 @@ export async function backup({ sourceUrl, output, key, readObject, restoreSql, i
       // Recovery is offline. Secrets, extension jobs and external platform
       // settings are deliberately not transferred or activated by this tool.
       excluded: ['vault', 'cron', 'net', 'external-secrets-and-service-settings'] };
-    await sql.begin('isolation level repeatable read read only', async tx => {
+    await transaction(sql, 'isolation level repeatable read read only', async tx => {
       await assertStorageConsistent(tx);
       manifest.tables = await inventory(tx);
       manifest.schema_sha256 = schemaDigest(manifest.tables);
@@ -125,7 +125,7 @@ export async function restore({ input, key, targetUrl, guardToken, filesOutput, 
       finally { await file.close(); }
       assertEqual(await digest(createReadStream(path)), entry);
     }
-    const result = await sql.begin(async tx => {
+    const result = await transaction(sql, '', async tx => {
       await assertTargetGuard(tx, guardToken);
       onProgress?.('destination_guard_verified');
       const targetTables = await inventory(tx);

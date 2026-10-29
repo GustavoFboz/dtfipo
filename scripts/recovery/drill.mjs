@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { digest, sha256 } from './archive.mjs';
 import { backup, readManifest, restore, verify } from './operations.mjs';
-import { assertTargetUrl, connect, inventory, schemaDigest, tableDigest } from './database.mjs';
+import { assertTargetUrl, connect, inventory, schemaDigest, sequenceStates, tableDigest } from './database.mjs';
 import { filesystemSource, objectPath } from './storage.mjs';
 
 const sourceUrl = process.env.DENTALFLOW_RECOVERY_SOURCE_DB_URL;
@@ -55,6 +55,7 @@ try {
       VALUES('92900000-0000-4000-8000-000000000010','avatars',${name},'user_avatar',${`recovery-${index}.bin`},${payloads[index].length},'ready','92900000-0000-4000-8000-000000000001')`;
   }
   const sourceBefore = await databaseHash(source), targetBefore = await databaseHash(target);
+  const originalSequences = await sequenceStates(target);
   const backupReceipt = await backup({ sourceUrl, output: bundle, key, readObject: filesystemSource(sourceFiles), restoreSql: schema,
     intervalMs: 0, revision: process.env.GITHUB_SHA ?? 'local-isolated-drill' });
   assert.equal(sourceBefore, await databaseHash(source)); record('backup_did_not_mutate_source_database');
@@ -73,10 +74,24 @@ try {
     onProgress,
     beforeValidate: tx => tx`UPDATE public.cases SET patient_id='92900000-0000-4000-8000-000000000099' WHERE id='92900000-0000-4000-8000-000000000012'` }), /FOREIGN_KEY_BROKEN/);
   assert.equal(targetBefore, await databaseHash(target));
+  assert.deepEqual(await sequenceStates(target), originalSequences);
   await assert.rejects(stat(join(root, 'failed-files')), { code: 'ENOENT' });
   record('failed_restore_rolled_back_database_and_removed_only_its_staged_files');
+  // A real disconnected backend must fail closed without resuming inserts or
+  // sending ROLLBACK on a dead connection. The server rolls back this session.
+  await assert.rejects(restore({ input: bundle, key, targetUrl, guardToken, filesOutput: join(root, 'disconnected-files'), restoreSql: schema, onProgress,
+    beforeValidate: async tx => {
+      const [{ pid }] = await tx`SELECT pg_backend_pid() AS pid`;
+      await target`SELECT pg_terminate_backend(${pid})`;
+      await tx`SELECT 1`;
+    } }));
+  assert.equal(targetBefore, await databaseHash(target));
+  assert.deepEqual(await sequenceStates(target), originalSequences);
+  await assert.rejects(stat(join(root, 'disconnected-files')), { code: 'ENOENT' });
+  record('terminated_backend_rolled_back_without_reconnecting_or_partial_recovery');
   const restoreReceipt = await restore({ input: bundle, key, targetUrl, guardToken, filesOutput: output, restoreSql: schema, onProgress });
   assert.equal(await databaseHash(target), sourceBefore); record('all_table_counts_and_sha256_match_source');
+  assert.deepEqual(await sequenceStates(target), manifest.sequences); record('sequence_next_values_preserved');
   for (const entry of manifest.entries.filter(e => e.kind === 'object')) {
     const object = manifest.objects[entry.object];
     assert.deepEqual(await digest(createReadStream(objectPath(output, object.bucket, object.name))), { bytes: entry.bytes, sha256: entry.sha256 });
