@@ -103,13 +103,14 @@ export async function verify({ input, key }) {
 // Restores data into a pre-provisioned local Supabase PostgreSQL database and
 // all object bytes into a new private offline file vault. It does not connect
 // an app, issue signed URLs, start Auth or replay billing events.
-export async function restore({ input, key, targetUrl, guardToken, filesOutput, restoreSql, beforeValidate }) {
+export async function restore({ input, key, targetUrl, guardToken, filesOutput, restoreSql, beforeValidate, onProgress }) {
   assertTargetUrl(targetUrl);
   const manifest = await readManifest(input, key);
   const expectedSchema = manifest.entries.find(e => e.kind === 'schema');
   assertEqual(await digest(createReadStream(restoreSql)), expectedSchema);
   // Authenticate ALL entries before contacting or changing the destination.
   await verify({ input, key });
+  onProgress?.('archive_authenticated');
   const sql = connect(targetUrl, false); let created = false, committed = false;
   const staging = resolve(filesOutput);
   try {
@@ -126,12 +127,14 @@ export async function restore({ input, key, targetUrl, guardToken, filesOutput, 
     }
     const result = await sql.begin(async tx => {
       await assertTargetGuard(tx, guardToken);
+      onProgress?.('destination_guard_verified');
       const targetTables = await inventory(tx);
       if (schemaDigest(targetTables) !== manifest.schema_sha256) fail('RECOVERY_TARGET_SCHEMA_MISMATCH');
       const targetSequences = await sequenceStates(tx);
       if (JSON.stringify(targetSequences.map(({ next, ...s }) => s)) !== JSON.stringify(manifest.sequences.map(({ next, ...s }) => s))) fail('RECOVERY_TARGET_SEQUENCE_MISMATCH');
       await tx.unsafe('SET LOCAL session_replication_role = replica');
       await tx.unsafe(`TRUNCATE ${manifest.tables.map(relation).join(',')} RESTART IDENTITY`);
+      onProgress?.('destination_tables_truncated');
       for (const table of manifest.tables) {
         const entry = manifest.entries.find(e => e.kind === 'table' && e.table === tableKey(table));
         const columns = table.columns.filter(c => !c.generated).map(c => identifier(c.name)).join(',');
@@ -149,14 +152,17 @@ export async function restore({ input, key, targetUrl, guardToken, filesOutput, 
         await flush();
         if (rowCount !== entry.rows) fail('RECOVERY_TABLE_ROW_COUNT_MISMATCH');
       }
+      onProgress?.('all_rows_inserted');
       // A failed process or validation rolls back TRUNCATE, INSERT and the
       // transactional sequence RESTART together. setval() is not used here.
       for (const seq of manifest.sequences) {
         if (!/^-?\d+$/.test(seq.next)) fail('RECOVERY_SEQUENCE_INVALID');
         await tx.unsafe(`ALTER SEQUENCE ${relation(seq)} RESTART WITH ${seq.next}`);
       }
+      onProgress?.('sequences_restarted');
       if (beforeValidate) await beforeValidate(tx); // Only imported by the isolated CI drill; no CLI flag.
       const foreignKeys = await validateForeignKeys(tx, targetTables);
+      onProgress?.('foreign_keys_validated');
       for (const table of targetTables) {
         const entry = manifest.entries.find(e => e.kind === 'table' && e.table === tableKey(table));
         const actual = await tableDigest(tx, table);
@@ -164,12 +170,14 @@ export async function restore({ input, key, targetUrl, guardToken, filesOutput, 
         if (actual.rows !== entry.rows) fail('RECOVERY_TABLE_ROW_COUNT_MISMATCH');
       }
       await assertStorageConsistent(tx);
+      onProgress?.('database_integrity_verified');
       await tx.unsafe('SET LOCAL session_replication_role = origin');
       await tx`UPDATE recovery_guard.destination SET mode='restored-offline-no-runtime' WHERE singleton=true`;
       return { ...summary(manifest), foreign_keys_validated: foreignKeys, restored_at: new Date().toISOString(),
         target: 'isolated-local-postgres-and-offline-file-vault', external_jobs_activated: false };
     });
     committed = true;
+    onProgress?.('database_committed');
     await open(join(staging, 'RECOVERY-VERIFIED.json'), 'wx', 0o600).then(async file => {
       try { await file.writeFile(JSON.stringify(result, null, 2) + '\n'); } finally { await file.close(); }
     });

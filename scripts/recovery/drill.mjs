@@ -20,7 +20,8 @@ if (sourceAddress.hostname !== '127.0.0.1' || sourceAddress.port !== '54324'
 const root = await mkdtemp(join(tmpdir(), 'dentalflow-operational-recovery-'));
 const source = connect(sourceUrl, false), target = connect(targetUrl, false);
 const checks = [];
-const record = name => { checks.push({ check: name, passed: true }); };
+const record = name => { checks.push({ check: name, passed: true }); console.log('RECOVERY_CHECK_PASSED', name); };
+const onProgress = stage => console.log('RECOVERY_RESTORE_PHASE', stage);
 const key = randomBytes(32), guardToken = randomBytes(32).toString('hex');
 const schema = 'public/restore.sql', bundle = join(root, 'encrypted-backup');
 const sourceFiles = join(root, 'source-files'), output = join(root, 'restored-files');
@@ -69,11 +70,12 @@ try {
   assert.equal(targetBefore, await databaseHash(target)); record('incorrect_guard_did_not_change_destination');
   // Cause a real validation failure after TRUNCATE and all table inserts.
   await assert.rejects(restore({ input: bundle, key, targetUrl, guardToken, filesOutput: join(root, 'failed-files'), restoreSql: schema,
+    onProgress,
     beforeValidate: tx => tx`UPDATE public.cases SET patient_id='92900000-0000-4000-8000-000000000099' WHERE id='92900000-0000-4000-8000-000000000012'` }), /FOREIGN_KEY_BROKEN/);
   assert.equal(targetBefore, await databaseHash(target));
   await assert.rejects(stat(join(root, 'failed-files')), { code: 'ENOENT' });
   record('failed_restore_rolled_back_database_and_removed_only_its_staged_files');
-  const restoreReceipt = await restore({ input: bundle, key, targetUrl, guardToken, filesOutput: output, restoreSql: schema });
+  const restoreReceipt = await restore({ input: bundle, key, targetUrl, guardToken, filesOutput: output, restoreSql: schema, onProgress });
   assert.equal(await databaseHash(target), sourceBefore); record('all_table_counts_and_sha256_match_source');
   for (const entry of manifest.entries.filter(e => e.kind === 'object')) {
     const object = manifest.objects[entry.object];

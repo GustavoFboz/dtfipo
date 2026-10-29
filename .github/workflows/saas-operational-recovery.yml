@@ -109,7 +109,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/recovery/drill.mjs | tee operational-recovery-drill.log
+          if ! node scripts/recovery/drill.mjs | tee operational-recovery-drill.log; then
+            docker logs --tail 120 supabase_db_dtfipo_recovery_target 2>&1 | grep -E 'FATAL|ERROR|PANIC|terminat|signal|database system' || true
+            exit 1
+          fi
       - name: Upload sanitized proof only
         if: always()
         uses: actions/upload-artifact@v4
