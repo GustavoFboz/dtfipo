@@ -81,6 +81,15 @@ jobs:
             fi
             docker exec -i "$container" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 \
               -c "ALTER ROLE supabase_admin WITH LOGIN PASSWORD 'recovery-ci-only'"
+            # Historical schema migrations contain sample users/patients.
+            # Clear them ONLY in these freshly created disposable containers,
+            # before the drill's empty-source/destination checks and fixtures.
+            docker exec -i "$container" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          BEGIN;
+          SET LOCAL session_replication_role = replica;
+          TRUNCATE auth.users,public.patients,public.account_subscriptions,storage.objects CASCADE;
+          COMMIT;
+          SQL
           done
           docker exec -i supabase_db_dtfipo_recovery_source psql -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
           CREATE SCHEMA recovery_guard;
