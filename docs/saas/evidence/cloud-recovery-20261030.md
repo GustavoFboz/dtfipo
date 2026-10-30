@@ -70,11 +70,41 @@ manifesto criptografado, gravar partes retomáveis num bucket administrativo
 privado já existente e conferir readback/descriptografia em um cofre novo.
 
 <!-- SERVER-CHECKPOINT-BEGIN -->
-Consulta somente leitura de 30/10/2026, 03h11m05s UTC, confirmou **16 novos
-objetos administrativos / 3.018.130.922 bytes gravados**, com a gravação mais
-recente às 03h10m07s UTC. A execução ainda não devolveu recibo final. Essa
-contagem é de artefatos administrativos, não de arquivos clínicos recuperados;
-não comprova por si só integridade, cobertura total ou cópia fora da origem.
+A auditoria somente leitura de 30/10/2026, **08h54 Manaus**, encontrou 20
+partes privadas, totalizando 3.844.347.416 bytes, mas o diretório temporário,
+a chave, o inventário e o checkpoint anteriores já não existiam no terminal.
+Não há readback/autenticação comprovados dessa tentativa. Esses volumes
+**não contam como arquivos recuperáveis**; a contagem anterior de 315
+processados não representa recuperação aceita. A chave dessa série era
+diferente da chave da cópia externa e não deve ser substituída por ela.
+
+A revisão do código registrado também encontrou checkpoint de parte ainda
+não persistida e nomes em texto claro no cabeçalho externo. A instrução para
+corrigir e continuar essa gravação foi recusada pela revisão automática por
+falta de autorização específica para dados, destino e guarda da chave. A ação
+recusada não foi executada; a auditoria posterior foi estritamente de leitura.
+
+Foi adotado um caminho com outra distribuição dos dados: leitura pelo controle
+nativo de download do painel, criptografia local imediata com a chave já
+guardada separadamente e salvamento dos volumes conferidos no mesmo destino
+externo privado usado anteriormente. Nenhuma chave foi enviada ao Cloud e
+nenhum novo backup foi gravado no bucket de origem por esse caminho.
+
+Na conferência independente de **09h00m18s Manaus**, os dois volumes externos
+originais recuperaram 91 arquivos / 505.418.505 bytes num cofre novo, com
+autenticação, SHA-256 e tamanho conferidos; duração medida de 10,681 segundos.
+As novas cópias também são recuperadas com o programa entregue antes de salvar.
+
+O quarto volume salvo elevou a cobertura externa a **108 arquivos /
+585.518.164 bytes**, com índice e instruções atualizados para a versão 3.
+Há 116 arquivos / 637.684.868 bytes conferidos localmente nesse checkpoint.
+Não somar essas coberturas nem considerar a cópia integral concluída.
+
+O inventário lido às **09h19m03s Manaus** conservou os 708 objetos da lista
+anterior, com mesmos IDs, caminhos, versões, tamanhos, ETags e MIME; zero novos
+objetos ou objetos anteriores alterados/ausentes. Isso permite continuar a
+conferência dos arquivos contra o inventário escolhido, sem reescrever a data
+do banco.
 <!-- SERVER-CHECKPOINT-END -->
 
 A operação não autoriza mudar rotas, RLS, credenciais de acesso, usuários,
