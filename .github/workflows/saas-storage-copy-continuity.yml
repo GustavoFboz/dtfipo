@@ -1,0 +1,26 @@
+name: DentalFlow Storage Copy Continuity
+
+on:
+  pull_request:
+    branches: [main, "saas/stage-03-asaas-checkout"]
+    paths:
+      - "scripts/recovery/audit-external-copy.mjs"
+      - "scripts/recovery/audit-external-copy.test.mjs"
+      - "scripts/recovery/archive.mjs"
+      - ".github/workflows/saas-storage-copy-continuity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Exercise encrypted checkpoint reader with fictitious data
+        run: node --test scripts/recovery/audit-external-copy.test.mjs
