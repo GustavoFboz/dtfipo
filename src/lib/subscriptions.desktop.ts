@@ -14,6 +14,7 @@ import {
   getOfflineAccessRevision,
 } from "./desktop-local";
 import { hasOfflineAccess } from "./offline-access-policy";
+import { restrictOfflineSubscriptionContext } from "./subscription-offline-policy";
 import {
   resolveDesktopIdentity,
   resolveDesktopOwnerId,
@@ -28,33 +29,24 @@ export * from "./subscriptions";
 
 const SUBSCRIPTION_CACHE_NAMESPACE = "subscription-context:v2";
 const SUBSCRIPTION_CACHE_KEY = "current";
-export function locallySafeContext(context: MySubscriptionContext): MySubscriptionContext {
-  if (context.effective_access !== "full") return context;
-
-  const periodEnd = context.company?.current_period_end ?? null;
-  const endMs = periodEnd ? Date.parse(periodEnd) : Number.NaN;
-  if (Number.isFinite(endMs) && endMs >= Date.now()) return context;
-
-  // Never let a stale/local snapshot extend paid access beyond the last period
-  // verified by the server. This is also the fail-closed path for malformed old
-  // snapshots that had full access without a current_period_end.
-  return {
-    ...context,
-    effective_access: "billing_only",
-    company: context.company
-      ? { ...context.company, access_mode: "billing_only" }
-      : context.company,
-  };
-}
+export const locallySafeContext = restrictOfflineSubscriptionContext;
 
 async function readCachedContext(ownerId: string | null) {
   if (!ownerId) return null;
+  // A cached receipt is not an identity grant. The native device must still
+  // be authorized within 72 hours, with browser cleanup completed and with
+  // the same owner. An expired identity may only be renewed by the server.
+  const device = await getProvisionedDesktopIdentity().catch(() => null);
+  if (!device || device.user_id !== ownerId || !hasOfflineAccess(device)) return null;
   const entry = await localCacheGet<MySubscriptionContext>(
     ownerId,
     SUBSCRIPTION_CACHE_NAMESPACE,
     SUBSCRIPTION_CACHE_KEY,
   ).catch(() => null);
-  if (!entry?.payload || !hasOfflineAccess({ validated_at: entry.updated_at, valid_until: Number.MAX_SAFE_INTEGER })) return null;
+  if (!entry?.payload || !hasOfflineAccess({
+    validated_at: entry.updated_at,
+    valid_until: device.valid_until,
+  })) return null;
   return locallySafeContext(entry.payload);
 }
 
