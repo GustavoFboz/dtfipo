@@ -1,0 +1,131 @@
+name: DentalFlow Operational Recovery Drill
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main, "saas/stage-03-asaas-checkout"]
+    paths:
+      - "scripts/operational-recovery.mjs"
+      - "scripts/recovery/**"
+      - "docs/saas/OPERATIONAL-RECOVERY.md"
+      - "docs/saas/sql/operational-recovery-fixture.sql"
+      - "public/restore.sql"
+      - "supabase/migrations/**"
+      - ".github/workflows/saas-operational-recovery.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dentalflow-operational-recovery-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  operational-recovery:
+    name: Recover real rows and file bytes in two disposable databases
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SUPABASE_USE_SLIM_IMAGES: "true"
+      DENTALFLOW_RECOVERY_SOURCE_DB_URL: postgresql://supabase_admin:recovery-ci-only@127.0.0.1:54324/postgres
+      DENTALFLOW_RECOVERY_TARGET_DB_URL: postgresql://supabase_admin:recovery-ci-only@127.0.0.1:54326/dentalflow_recovery_drill
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install pinned operator dependency without app scripts
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/recovery-dependencies" --ignore-scripts --no-audit --no-fund postgres@3.4.9
+          ln -s "$RUNNER_TEMP/recovery-dependencies/node_modules" node_modules
+      - name: Verify archive, destination and private object transport protections
+        run: node --test scripts/recovery/recovery.test.mjs
+      - name: Verify consolidated schema matches all migrations
+        run: node scripts/build-restore-bundle.mjs --check
+      - uses: supabase/setup-cli@v1
+        with:
+          version: "2.119.0"
+      - name: Start two isolated Supabase PostgreSQL containers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/recovery-source/supabase" "$RUNNER_TEMP/recovery-target/supabase"
+          cat > "$RUNNER_TEMP/recovery-source/supabase/config.toml" <<'CONFIG'
+          project_id = "dtfipo_recovery_source"
+          [db]
+          port = 54324
+          shadow_port = 54325
+          major_version = 17
+          CONFIG
+          cat > "$RUNNER_TEMP/recovery-target/supabase/config.toml" <<'CONFIG'
+          project_id = "dtfipo_recovery_target"
+          [db]
+          port = 54326
+          shadow_port = 54327
+          major_version = 17
+          CONFIG
+          (cd "$RUNNER_TEMP/recovery-source" && supabase db start)
+          (cd "$RUNNER_TEMP/recovery-target" && supabase db start)
+          docker inspect --format '{{.State.Health.Status}}' supabase_db_dtfipo_recovery_source | grep -qx healthy
+          docker inspect --format '{{.State.Health.Status}}' supabase_db_dtfipo_recovery_target | grep -qx healthy
+      - name: Apply the same consolidated schema in both disposable databases
+        shell: bash
+        run: |
+          set -euo pipefail
+          for container in supabase_db_dtfipo_recovery_source supabase_db_dtfipo_recovery_target; do
+            if ! docker exec -i "$container" psql -U postgres -d postgres -v ON_ERROR_STOP=1 < public/restore.sql > "$container-schema.log" 2>&1; then
+              tail -n 120 "$container-schema.log"
+              exit 1
+            fi
+            docker exec -i "$container" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 \
+              -c "ALTER ROLE supabase_admin WITH LOGIN PASSWORD 'recovery-ci-only'"
+            # Historical schema migrations contain sample users/patients.
+            # Clear them ONLY in these freshly created disposable containers,
+            # before the drill's empty-source/destination checks and fixtures.
+            docker exec -i "$container" psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          BEGIN;
+          SET LOCAL session_replication_role = replica;
+          SELECT cron.unschedule(jobid) FROM cron.job;
+          TRUNCATE auth.users,public.patients,public.account_subscriptions,storage.objects CASCADE;
+          COMMIT;
+          SQL
+          done
+          docker exec -i supabase_db_dtfipo_recovery_source psql -U postgres -d postgres -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE SCHEMA recovery_guard;
+          CREATE TABLE recovery_guard.disposable_source(singleton boolean PRIMARY KEY CHECK(singleton),purpose text NOT NULL CHECK(purpose='synthetic-ci-only'));
+          INSERT INTO recovery_guard.disposable_source VALUES(true,'synthetic-ci-only');
+          SQL
+          # Keep postgres available for Supabase's extension workers. Clone
+          # its empty initialized schema into the separately named recovery
+          # database while briefly preventing new template connections.
+          docker exec -i supabase_db_dtfipo_recovery_target psql -U supabase_admin -d template1 -v ON_ERROR_STOP=1 <<'SQL'
+          ALTER DATABASE postgres ALLOW_CONNECTIONS false;
+          SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='postgres';
+          CREATE DATABASE dentalflow_recovery_drill TEMPLATE postgres;
+          ALTER DATABASE postgres ALLOW_CONNECTIONS true;
+          SQL
+      - name: Back up, provoke a restore failure, roll back and recover data and real file bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! node scripts/recovery/drill.mjs | tee operational-recovery-drill.log; then
+            docker logs --tail 120 supabase_db_dtfipo_recovery_target 2>&1 | grep -E 'FATAL|ERROR|PANIC|terminat|signal|database system' || true
+            exit 1
+          fi
+      - name: Upload sanitized proof only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: operational-recovery-proof-${{ github.run_id }}
+          if-no-files-found: warn
+          retention-days: 30
+          path: |
+            operational-recovery-drill.json
+            operational-recovery-drill.log
+      - name: Stop only the two disposable database containers
+        if: always()
+        shell: bash
+        run: |
+          docker rm -f supabase_db_dtfipo_recovery_source supabase_db_dtfipo_recovery_target || true

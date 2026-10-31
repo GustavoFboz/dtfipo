@@ -1,0 +1,28 @@
+name: DentalFlow SaaS Implementation Progress
+
+on:
+  pull_request:
+    branches: [main, "saas/stage-03-asaas-checkout"]
+    paths:
+      - "docs/saas/IMPLEMENTATION-PROGRESS.json"
+      - "scripts/saas-implementation-progress.mjs"
+      - "scripts/saas-implementation-progress.test.mjs"
+      - ".github/workflows/saas-implementation-progress.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-metrics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate strict evidence ledger and its regression tests
+        run: |
+          node --test scripts/saas-implementation-progress.test.mjs
+          node scripts/saas-implementation-progress.mjs

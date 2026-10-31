@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { Link, Outlet, useLocation, useNavigate, useRouter } from "@tanstack/react-router";
 import { PageTransition } from "@/components/PageTransition";
 import {
@@ -393,7 +394,7 @@ export function AppShell() {
           </Link>
         </div>
 
-        <div className="flex-1 max-w-2xl px-4">
+        <div className="flex-1 max-w-2xl px-4 flex justify-center">
           <GlobalSearch />
         </div>
 
@@ -443,7 +444,7 @@ export function AppShell() {
                     isCollapsed ? "h-[28px] w-[28px]" : "h-12 w-12"
                   }`}>
                     {profile.avatar_url ? (
-                      <img
+                      <PrivateImage
                         src={profile.avatar_url}
                         alt={profile.full_name ?? "Perfil"}
                         className="h-full w-full object-cover"
@@ -639,6 +640,14 @@ export function AppShell() {
           </div>
         </div>
         <div className="flex items-center gap-1 ml-auto shrink-0">
+          <button
+            aria-label="Buscar paciente"
+            title="Buscar paciente"
+            onClick={() => window.dispatchEvent(new Event("dentalflow:open-global-search"))}
+            className="h-10 w-10 grid place-items-center text-slate-500 dark:text-slate-300 active:scale-90 transition-transform"
+          >
+            <SearchIcon className="h-[21px] w-[21px] stroke-[1.55px]" />
+          </button>
           <NativeUpdateCenterButton />
           {/* Sino próprio do mobile — dispara o mesmo trigger do painel global */}
           <button
@@ -662,7 +671,7 @@ export function AppShell() {
             className="h-11 w-11 rounded-full overflow-hidden bg-gradient-to-br from-[#2D7FF9] to-[#4a9bff] shadow-sm grid place-items-center text-white text-sm font-semibold"
           >
             {profile?.avatar_url ? (
-              <img
+              <PrivateImage
                 src={profile.avatar_url}
                 alt={profile?.full_name ?? "Perfil"}
                 className="h-full w-full object-cover"
@@ -768,7 +777,7 @@ export function AppShell() {
                 >
                   <div className="h-11 w-11 rounded-xl overflow-hidden bg-white dark:bg-slate-800 grid place-items-center text-sm font-semibold text-primary border border-primary/10">
                     {profile.avatar_url ? (
-                      <img src={profile.avatar_url} alt={profile.full_name ?? "Perfil"} className="h-full w-full object-cover" />
+                      <PrivateImage src={profile.avatar_url} alt={profile.full_name ?? "Perfil"} className="h-full w-full object-cover" />
                     ) : (
                       <span>{profile.full_name?.[0]?.toUpperCase() ?? "U"}</span>
                     )}

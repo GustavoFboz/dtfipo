@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
@@ -30,10 +31,12 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   fetchPatients, fetchDoctors, fetchCadistas, fetchCaseTypes, fetchToothColors,
   fetchStages, fetchImplantSystems, fetchScanJigs, createImplantSystem, createScanJig,
-  createCase, updateCase, syncCaseTypes, adminCreate, adminUpdate, uploadPatientPhoto, fetchProfile,
+  createCase, updateCase, syncCaseTypes, adminUpdate, uploadPatientPhoto, fetchProfile,
   fetchTiBaseOptions, updateCaseTiBases,
 } from "@/lib/api";
 
+import { savePatientLocalFirst } from "@/lib/patients-local-first";
+import { loadCreationAttempt, clearCreationAttempt, newCreationAttempt, type CreationAttempt } from "@/lib/creation-attempt";
 import { compressSquareImage } from "@/lib/image";
 import { StageBadge } from "./StageBadge";
 import { TeethSelector, IMPLANT_COLOR_SCALE } from "./TeethSelector";
@@ -54,6 +57,7 @@ import { addCaseActivity, notifyCaseStakeholders } from "@/lib/case-activity";
 import { Paperclip, MessageSquare, PlusCircle } from "lucide-react";
 import { AttachButton, AttachFilesIcon, AttachImagesIcon } from "./AttachButton";
 import { useSessionSnapshot, clearSessionSnapshot } from "@/hooks/use-session-snapshot";
+import { ensureCaseProfessionalDirectoryLinks } from "@/lib/case-assignment.functions";
 import {
   NEW_CASE_OPEN_KEY,
   NEW_CASE_FORM_KEY,
@@ -118,10 +122,13 @@ export function NewCaseDialog({
   onOpenChange?: (o: boolean) => void;
 }) {
   const qc = useQueryClient();
+  const ensureProfessionalLinksFn = useServerFn(ensureCaseProfessionalDirectoryLinks);
   const { data: profile } = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
-  const isCadista = profile?.role === "CADISTA";
+  const effectiveProfileType = String(profile?.account_subtype || profile?.role || "").toUpperCase();
+  const canManageAssignments = Boolean(profile?.is_default_admin) || ["CEO", "ADMIN", "PROTETICO"].includes(effectiveProfileType);
+  const isCadista = effectiveProfileType === "CADISTA";
   const isView = !!viewCase;
-  const isSolicitante = profile?.role === "SOLICITANTE";
+  const isSolicitante = effectiveProfileType === "SOLICITANTE";
   // Solicitantes can create cases and see all fields, but only see their own requests
   const isEdit = !!editCase && !isView;
   const isCreate = !isView && !isEdit;
@@ -157,6 +164,8 @@ export function NewCaseDialog({
   // Descartar tudo: usado pelo botão Cancelar e após salvar com sucesso.
   const discardAndClose = () => {
     clearSessionSnapshot(persistOpenKey, persistFormKey);
+    if (isCreate && typeof window !== "undefined") clearCreationAttempt(sessionStorage, `case:${profile?.id}:${profile?.clinic_id}`);
+    caseAttempt.current = null;
     onOpenChange?.(false);
     if (openProp === undefined) setOpenState(false);
   };
@@ -176,6 +185,13 @@ export function NewCaseDialog({
 
   const [patientId, setPatientId] = useState<string>(initialPatientId ?? "");
   const [newPatientName, setNewPatientName] = useState("");
+  const [newPatientPhone, setNewPatientPhone] = useState("");
+  const caseAttempt = useRef<CreationAttempt | null>(null);
+  const getCaseAttempt = () => {
+    if (!profile?.id || !profile.clinic_id) throw new Error("Aguarde a identificação da sua empresa.");
+    return caseAttempt.current ??= typeof window === "undefined" ? newCreationAttempt()
+      : loadCreationAttempt(sessionStorage, `case:${profile.id}:${profile.clinic_id}`);
+  };
   const [newPatientPhoto, setNewPatientPhoto] = useState<File | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const [doctorId, setDoctorId] = useState<string>("");
@@ -242,7 +258,7 @@ export function NewCaseDialog({
   // Persiste apenas campos serializáveis — arquivos (File) e refs são ignorados.
   const formSnapshot = useMemo(
     () => ({
-      patientId, newPatientName,
+      patientId, newPatientName, newPatientPhone,
       doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
       entryDate, deliveryDate, stageId, arch,
       implantSystemId, additionalSystemIds, implantTeeth,
@@ -252,7 +268,7 @@ export function NewCaseDialog({
       toothTypeMap, prosthesisGroups, toothEnceramento, toothImplantSystemMap,
     }),
     [
-      patientId, newPatientName, doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
+      patientId, newPatientName, newPatientPhone, doctorId, cadistaId, caseTypeIds, toothColorId, caseLabel,
       entryDate, deliveryDate, stageId, arch, implantSystemId, additionalSystemIds, implantTeeth,
       arcadaMode, scanJigId, hasProvisional, hasMockup, notes, teeth, zirTeeth, disTeeth,
       gumMode, gumColor, gumNotes, toothTypeMap, prosthesisGroups, toothEnceramento, toothImplantSystemMap,
@@ -261,6 +277,7 @@ export function NewCaseDialog({
   useSessionSnapshot(persistFormKey, !!persistFormKey && open, formSnapshot, (d) => {
     if (d.patientId !== undefined) setPatientId(d.patientId as string);
     if (d.newPatientName !== undefined) setNewPatientName(d.newPatientName as string);
+    if (d.newPatientPhone !== undefined) setNewPatientPhone(d.newPatientPhone as string);
     if (d.doctorId !== undefined) setDoctorId(d.doctorId as string);
     if (d.cadistaId !== undefined) setCadistaId(d.cadistaId as string);
     if (d.caseTypeIds !== undefined) setCaseTypeIds(d.caseTypeIds as string[]);
@@ -433,7 +450,7 @@ export function NewCaseDialog({
   });
 
   const reset = () => {
-    setPatientId(initialPatientId ?? ""); setNewPatientName(""); setNewPatientPhoto(null);
+    setPatientId(initialPatientId ?? ""); setNewPatientName(""); setNewPatientPhone(""); setNewPatientPhoto(null);
     setDoctorId(""); setCadistaId(""); setCaseTypeIds([]);
     setToothColorId(""); setCaseLabel(""); setEntryDate(today); setDeliveryDate(today);
     setStageId(""); setArch(""); setImplantSystemId(""); setAdditionalSystemIds([]); setImplantTeeth([]); setScanJigId(""); setHasProvisional(false); setHasMockup(false);
@@ -577,60 +594,42 @@ export function NewCaseDialog({
   };
 
   const handleWorkToothClick = (tooth: number, mods: { ctrl: boolean; shift: boolean }) => {
-    const current = new Set(teeth);
     const anchor = selectionAnchorRef.current ?? focusedTooth ?? lastConfiguredTooth;
 
-    const clearToothConfig = (target: number) => {
-      setToothTypeMap((map) => {
-        const next = { ...map };
-        delete next[target];
-        return next;
-      });
-      setToothEnceramento((map) => {
-        const next = { ...map };
-        delete next[target];
-        return next;
-      });
-      setZirTeeth((items) => items.filter((item) => item !== target));
-      setDisTeeth((items) => items.filter((item) => item !== target));
-      setImplantTeeth((items) => items.filter((item) => item !== target));
-      setToothImplantSystemMap((map) => {
-        const next = { ...map };
-        delete next[target];
-        return next;
-      });
-      setProsthesisGroups((groups) =>
-        groups
-          .map((group) => ({ ...group, teeth: group.teeth.filter((item) => item !== target) }))
-          .filter((group) => group.teeth.length > 1),
-      );
-    };
-
-    const modifierSelection = applyToothModifierSelection(teeth, tooth, anchor, mods);
+    const modifierSelection = applyToothModifierSelection(configGroup, tooth, anchor, mods);
     if (modifierSelection) {
       // Ctrl/Cmd always makes the clicked tooth the next Shift anchor, even
       // after an earlier range selection. Shift deliberately keeps that anchor.
       selectionAnchorRef.current = modifierSelection.anchor;
-      modifierSelection.removed.forEach(clearToothConfig);
-      setTeeth(sortTeeth(modifierSelection.next));
+      if (modifierSelection.added.length > 0) {
+        setTeeth((items) => sortTeeth(Array.from(new Set([...items, ...modifierSelection.added]))));
+      }
+      if (modifierSelection.removed.length > 0) {
+        const temporaryRemoved = new Set(
+          modifierSelection.removed.filter((item) => !toothHasConfig(item)),
+        );
+        setTeeth((items) => items.filter((item) => !temporaryRemoved.has(item)));
+      }
+      // Keep the work-parameter target group identical to the complete modifier
+      // selection. This preserves an existing Shift range when Ctrl/Cmd adds
+      // more teeth, so every selected tooth receives the shared parameters.
+      setConfigGroup(sortTeeth(modifierSelection.next));
 
       if (modifierSelection.kind === "toggle-add") {
         setFocusedTooth(tooth);
-        setConfigGroup([tooth]);
-        setJustAddedTeeth([tooth]);
+        setJustAddedTeeth(toothHasConfig(tooth) ? [] : [tooth]);
       } else if (modifierSelection.kind === "toggle-remove") {
-        setConfigGroup((group) => group.filter((item) => item !== tooth));
         setJustAddedTeeth((items) => items.filter((item) => item !== tooth));
-        if (focusedTooth === tooth) setFocusedTooth(null);
+        if (focusedTooth === tooth) setFocusedTooth(modifierSelection.next[0] ?? null);
       } else if (modifierSelection.kind === "range-add") {
-        setConfigGroup(modifierSelection.affected);
         setFocusedTooth(tooth);
-        setJustAddedTeeth(modifierSelection.added);
+        setJustAddedTeeth(modifierSelection.added.filter((item) => !toothHasConfig(item)));
       } else {
         const removed = new Set(modifierSelection.removed);
-        setConfigGroup((group) => group.filter((item) => !removed.has(item)));
         setJustAddedTeeth((items) => items.filter((item) => !removed.has(item)));
-        if (focusedTooth != null && removed.has(focusedTooth)) setFocusedTooth(null);
+        if (focusedTooth != null && removed.has(focusedTooth)) {
+          setFocusedTooth(modifierSelection.next[0] ?? null);
+        }
       }
       return;
     }
@@ -650,18 +649,20 @@ export function NewCaseDialog({
 
   const submit = useMutation({
     mutationFn: async () => {
+      const attempt = isEdit ? null : getCaseAttempt();
       let pid = patientId;
       if (!pid && newPatientName.trim()) {
-        await adminCreate("patients", { name: newPatientName.trim() });
-        const fresh = await fetchPatients();
-        const found = fresh.find((p) => p.name === newPatientName.trim());
-        if (!found) throw new Error("Não foi possível criar o paciente");
-        pid = found.id;
-        if (newPatientPhoto) {
-          const blob = await compressSquareImage(newPatientPhoto);
-          const url = await uploadPatientPhoto(pid, blob);
-          await adminUpdate("patients", pid, { photo_url: url });
-        }
+        const saved = await savePatientLocalFirst({ name: newPatientName.trim(), phone: newPatientPhone.trim() || null }, null,
+          attempt ? { key: attempt.key, patientId: attempt.patientId } : undefined);
+        pid = saved.patient.id;
+        setPatientId(pid);
+        qc.setQueryData(["patient", pid], saved.patient);
+        void qc.invalidateQueries({ queryKey: ["patients"] });
+      }
+      if (pid && newPatientPhoto && newPatientName.trim()) {
+        const blob = await compressSquareImage(newPatientPhoto);
+        const url = await uploadPatientPhoto(pid, blob);
+        await adminUpdate("patients", pid, { photo_url: url });
       }
       if (!pid) throw new Error("Selecione ou cadastre um paciente");
       if (!deliveryDate) throw new Error("Informe a data de entrega");
@@ -702,6 +703,23 @@ export function NewCaseDialog({
         for (const t of cleanImplantTeeth) {
           const sid = toothImplantSystemMap[t] ?? implantSystemId;
           if (sid) tis[String(t)] = sid;
+        }
+      }
+
+      // Before committing an assignment, guarantee that the selected directory
+      // rows are linked to real active team accounts. Legacy name-only CAD/doctor
+      // rows used to make the UI look assigned while RLS had no user identity to
+      // grant the case to.
+      if (canManageAssignments && (cadistaId || doctorId)) {
+        const result = await ensureProfessionalLinksFn({
+          data: {
+            cadista_id: cadistaId || null,
+            doctor_id: doctorId || null,
+          },
+        });
+        const response = result as { success?: boolean; error?: string };
+        if (response?.success === false) {
+          throw new Error(response.error || "Não foi possível validar os profissionais selecionados.");
         }
       }
 
@@ -749,13 +767,12 @@ export function NewCaseDialog({
         // case_type_ids não é coluna de `cases` (vive em case_types_link via syncCaseTypes)
         const { case_type_ids: _cti, ...patchForUpdate } = patch;
         void _cti;
-        // Optimistic: reflete no cache local e propaga para peers ANTES do round-trip.
+        await updateCase(editCase.id, patchForUpdate);
+        await syncCaseTypes(editCase.id, caseTypeIds);
         const optimisticRow = { ...editCase, ...(patch as unknown as CaseRow), id: editCase.id } as CaseRow;
         applyCasePatchToCache(qc, optimisticRow as any);
         qc.setQueryData<CaseRow | null>(["case", editCase.id], (old) => (old ? { ...old, ...optimisticRow } : optimisticRow));
-        broadcastEntity("cases", "update", optimisticRow);
-        await updateCase(editCase.id, patchForUpdate);
-        await syncCaseTypes(editCase.id, caseTypeIds);
+
 
         // Human-readable edit history. We preserve old/new values instead of
         // overwriting the story of the case (especially delivery changes).
@@ -813,11 +830,11 @@ export function NewCaseDialog({
         createdId = editCase.id;
       } else if (derivedArch) {
         // Unified case: uma arcada, ambas ("both") ou nenhuma — sempre 1 caso só.
-        const a = await createCase({ ...base, arch: derivedArch });
+        const a = await createCase({ ...base, arch: derivedArch, idempotency_key: attempt!.key, id: attempt!.key });
         createdCase = a as CaseRow;
         createdId = (a as any)?.id ?? null;
       } else {
-        const a = await createCase(base);
+        const a = await createCase({ ...base, idempotency_key: attempt!.key, id: attempt!.key });
         createdCase = a as CaseRow;
         createdId = (a as any)?.id ?? null;
       }
@@ -871,7 +888,8 @@ export function NewCaseDialog({
         qc.getQueriesData<CaseRow[]>({ queryKey: ["cases"] }).forEach(([key, old]) => {
           if (!Array.isArray(old)) return;
           const statusFilter = Array.isArray(key) ? key[1] : undefined;
-          if ((statusFilter === "active" || statusFilter === "finished") && row.status !== statusFilter) return;
+          if (statusFilter === "active" && ["finalizado", "cancelado"].includes(row.status)) return;
+          if (statusFilter === "finished" && row.status !== "finalizado") return;
           const next = old.some((item) => item.id === row.id)
             ? old.map((item) => item.id === row.id ? { ...item, ...row } : item)
             : [row, ...old];
@@ -883,8 +901,9 @@ export function NewCaseDialog({
         (isEdit ? "Caso atualizado" : "Caso cadastrado") +
         (queued > 0 ? ` · ${queued} arquivo(s) enviando em segundo plano` : "")
       );
-      await qc.invalidateQueries();
-      await qc.refetchQueries({ queryKey: ["cases"], type: "active" });
+      // The confirmed row is already in the cache. Hydrate in the background.
+      void qc.invalidateQueries({ queryKey: ["cases"] });
+      if (createdCase?.id) void qc.invalidateQueries({ queryKey: ["case", createdCase.id] });
       if (!isEdit) reset();
       discardAndClose();
 
@@ -995,6 +1014,9 @@ export function NewCaseDialog({
                   />
                 </div>
                 {newPatientName && !patientId && (
+                  <div className="space-y-2">
+                  <Label htmlFor="inline-patient-phone">Telefone para distinguir pacientes com o mesmo nome</Label>
+                  <Input id="inline-patient-phone" type="tel" value={newPatientPhone} onChange={e => setNewPatientPhone(e.target.value)} placeholder="Opcional, salvo quando já existe esse nome" />
                   <div className="flex gap-2 items-center">
                     <div className="text-xs text-muted-foreground flex-1">
                       Será cadastrado como novo paciente: <b>{newPatientName}</b>
@@ -1006,6 +1028,7 @@ export function NewCaseDialog({
                       <Camera className="h-4 w-4" />
                       {newPatientPhoto ? "Foto ok" : "Foto"}
                     </Button>
+                  </div>
                   </div>
                 )}
               </div>
@@ -1537,6 +1560,7 @@ export function NewCaseDialog({
               open={focusedTooth != null && teeth.includes(focusedTooth)}
               tooth={focusedTooth}
               configuredTeeth={configGroup}
+              toothTypeIds={configGroup.map((tooth) => toothTypeMap[tooth] ?? "")}
               caseTypes={TOOTH_WORK_TYPES}
               toothTypeId={focusedTooth != null ? (toothTypeMap[focusedTooth] ?? "") : ""}
               onToothTypeChange={(id) => {
@@ -1556,15 +1580,15 @@ export function NewCaseDialog({
                   ));
                 }
               }}
-              hasEnceramento={focusedTooth != null && !!toothEnceramento[focusedTooth]}
+              hasEnceramento={configGroup.length > 0 && configGroup.every((tooth) => !!toothEnceramento[tooth])}
               onEnceramentoToggle={() => {
                 if (focusedTooth == null) return;
                 const targets = configGroup.length ? configGroup : [focusedTooth];
-                const anyOn = targets.some((t) => toothEnceramento[t]);
+                const allOn = targets.every((t) => toothEnceramento[t]);
                 setToothEnceramento((m) => {
                   const n = { ...m };
                   targets.forEach((t) => {
-                    if (anyOn) delete n[t];
+                    if (allOn) delete n[t];
                     else n[t] = true;
                   });
                   return n;
@@ -1579,6 +1603,9 @@ export function NewCaseDialog({
                       ? "dissilicato"
                       : ""
               }
+              millingValues={configGroup.map((tooth) =>
+                zirTeeth.includes(tooth) ? "zirconia" : disTeeth.includes(tooth) ? "dissilicato" : ""
+              )}
               onMillingChange={(m) => {
                 if (focusedTooth == null) return;
                 const targets = configGroup.length ? configGroup : [focusedTooth];
@@ -1599,6 +1626,9 @@ export function NewCaseDialog({
                   : ""
               }
               hasImplant={focusedTooth != null && implantTeeth.includes(focusedTooth)}
+              activeImplantSystemIds={configGroup.map((tooth) =>
+                implantTeeth.includes(tooth) ? (toothImplantSystemMap[tooth] ?? implantSystemId) : ""
+              )}
               implantSystemOptions={
                 allSystemIds.length > 0
                   ? allSystemIds
@@ -1624,8 +1654,8 @@ export function NewCaseDialog({
               onImplantToggle={() => {
                 if (focusedTooth == null) return;
                 const targets = configGroup.length ? configGroup : [focusedTooth];
-                const anyOn = targets.some((t) => implantTeeth.includes(t));
-                if (anyOn) {
+                const allOn = targets.every((t) => implantTeeth.includes(t));
+                if (allOn) {
                   setImplantTeeth((s) => s.filter((x) => !targets.includes(x)));
                   setToothImplantSystemMap((m) => {
                     const n = { ...m };

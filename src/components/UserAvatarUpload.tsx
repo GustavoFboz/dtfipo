@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { uploadUserAvatar } from "@/lib/api";
@@ -43,7 +44,7 @@ export function UserAvatarUpload({ avatarUrl, fullName, email }: Props) {
     <div className="flex items-center gap-4">
       <div className="relative h-16 w-16 rounded-full overflow-hidden bg-gradient-to-br from-[#2D7FF9] to-[#4a9bff] grid place-items-center text-white text-lg font-semibold shrink-0">
         {avatarUrl ? (
-          <img src={avatarUrl} alt={fullName ?? "Perfil"} className="h-full w-full object-cover" />
+          <PrivateImage src={avatarUrl} alt={fullName ?? "Perfil"} className="h-full w-full object-cover" />
         ) : (
           <span>{initials}</span>
         )}

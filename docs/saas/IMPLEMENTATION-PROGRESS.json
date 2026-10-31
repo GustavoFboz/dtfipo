@@ -1,0 +1,105 @@
+{
+  "schema": "dentalflow-saas-implementation-evidence-v1",
+  "recorded_at": "2026-10-31",
+  "source": "docs/saas/ACCEPTANCE-PROGRESS.md",
+  "purpose": "Conservative, evidence-based engineering progress indicator separate from the 23 official acceptance decisions.",
+  "denominator": 23,
+  "official_acceptance": {
+    "accepted_ids": [
+      "1.1",
+      "1.2",
+      "1.3",
+      "3.1",
+      "3.2",
+      "4.1",
+      "4.3",
+      "5.1",
+      "5.2",
+      "6.1",
+      "7.1",
+      "7.2",
+      "7.3"
+    ],
+    "evidence": "docs/saas/ACCEPTANCE-PROGRESS.md"
+  },
+  "remaining_ids": [
+    "2.1",
+    "2.2",
+    "2.3",
+    "3.3",
+    "4.2",
+    "5.3",
+    "6.2",
+    "6.3",
+    "6.4",
+    "7.4"
+  ],
+  "reviewed_partial_gates": {
+    "2.3": [
+      {
+        "id": "72h-policy",
+        "complete": true,
+        "description": "Shared 72-hour device-access policy and expiry regression tests",
+        "evidence": "docs/saas/OFFLINE-72-HOURS.md"
+      },
+      {
+        "id": "native-compilation",
+        "complete": true,
+        "description": "Windows native build and Android API35 smoke; Android API37 smoke is NOT accepted",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/actions/runs/41231161715"
+      },
+      {
+        "id": "consistent-entitlement-guard",
+        "complete": true,
+        "description": "Desktop/shared subscription cache authorization unified, positive CI and merge",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/213"
+      },
+      {
+        "id": "physical-device-expiry",
+        "complete": false,
+        "description": "72h expiry, retry and cleanup in physical Windows and Android devices"
+      },
+      {
+        "id": "physical-device-reauth",
+        "complete": false,
+        "description": "Physical-device reauthentication, downgrade, suspended subscription and release distribution acceptance"
+      }
+    ],
+    "6.2": [
+      {
+        "id": "encrypted-operations-drill",
+        "complete": true,
+        "description": "Encrypted database and real file-byte recovery in isolated disposable databases; failure rollback",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/actions/runs/40808635407"
+      },
+      {
+        "id": "historical-real-db-offline-restore",
+        "complete": true,
+        "description": "29/10 native database export decrypted and independently restored offline: 125 tables, 14,024 rows, 202 foreign keys (historical snapshot only)",
+        "evidence": "docs/saas/STORAGE-COPY-CONTINUITY-20261031.md"
+      },
+      {
+        "id": "storage-full-copy",
+        "complete": false,
+        "description": "All 708 objects of 29/10 frozen inventory copied and authenticated; 592 verified/116 missing"
+      },
+      {
+        "id": "full-isolated-recovery",
+        "complete": false,
+        "description": "All database rows and bytes restored and validated together from a consistent snapshot"
+      },
+      {
+        "id": "current-runtime-reconciliation",
+        "complete": false,
+        "description": "Current Cloud delta reconciled, access and rollback/incident plan validated without touching production"
+      }
+    ]
+  },
+  "scoring_policy": {
+    "method": "accepted-criteria-plus-verified-partial-gate-fractions",
+    "detail": "Each fully accepted criterion contributes 1 point. For reviewed but unaccepted items, each independently documented technical gate contributes 1/N point, capped below 1 until official acceptance. Unreviewed items remain unscored, not claimed to be 0% implemented. All 23 criteria have equal weight for this indicator; this is not an effort, SLA, readiness-for-sales, or release metric.",
+    "rounding": "two-decimal-percent",
+    "no_double_count": "An officially accepted item must not appear under reviewed_partial_gates.",
+    "caveat": "The technical indicator is a conservative evidence floor, not objective global completion and must never replace the formal acceptance denominator."
+  }
+}

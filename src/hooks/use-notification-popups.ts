@@ -177,7 +177,7 @@ export function useNotificationPopups() {
 
       if (showExternalWebNotification(n)) return;
       playSound();
-      setPopups((old) => old.some((item) => item.id === n.id) ? old : [n, ...old].slice(0, 5));
+      setPopups((old) => old.some((item) => item.id === n.id) ? old : [n, ...old].slice(0, 3));
     };
 
     const pollDesktopNotifications = async () => {

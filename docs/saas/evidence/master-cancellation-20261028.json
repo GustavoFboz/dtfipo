@@ -1,0 +1,306 @@
+{
+  "checkpoint_local": "2026-10-28T20:11:18-04:00",
+  "source": {
+    "code_pr": 206,
+    "published_code_merge": "d98fe9c77393e77eeb288d5f7bdc497b022a3cd1",
+    "documentation_base": "04d68f3be593701bc721c0f0a1e8b438a689ed16"
+  },
+  "action": {
+    "request_id": "5cd49826-9cec-421d-b511-98519ecdd80e",
+    "environment": "sandbox",
+    "fixture": "A",
+    "real_master_signin": true,
+    "real_mfa_challenge": true,
+    "synthetic_mfa_claims": false,
+    "ui_submission_count": 1,
+    "financial_write_count": 1,
+    "completed_at": "2026-10-29T00:06:20.316957+00:00"
+  },
+  "audit": [
+    {
+      "actor_fingerprint": "9e14a2673a8a0bd6561eab2d8a5392c1",
+      "actor_session_present": true,
+      "created_at": "2026-10-29T00:06:18.21841+00:00",
+      "environment": "sandbox",
+      "error_code": null,
+      "finished_at": "2026-10-29T00:06:20.316957+00:00",
+      "outcome": "completed",
+      "provider_proof_hash": "f0bcbd155462467a836f95f96ec07027",
+      "reason": "Homologação autorizada no Sandbox: encerrar somente a renovação da fixture A, preservando período pago, cobranças emitidas e dados.",
+      "reconcile_only": false,
+      "request_id": "5cd49826-9cec-421d-b511-98519ecdd80e",
+      "write_started_at": "2026-10-29T00:06:18.980669+00:00"
+    }
+  ],
+  "before": {
+    "cancel_execution_count": 0,
+    "cancellation_kind_enabled": true,
+    "cases_hash": "419b08f5b8905de5caa4fa9616ed4db6",
+    "connections": 52,
+    "fixture_contracts": [
+      {
+        "amount_cents": 44900,
+        "clinic_id": "081d3db4-1606-40f7-a878-19b51556317d",
+        "environment": "sandbox",
+        "id": "f089af79-cea4-4821-8497-0e594e67f3cf",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "period_start": "2026-11-18T00:00:00+00:00",
+        "plan_code": "company_growth",
+        "preserved_hash": "0656091b2b0d0f43068a12d24cc2781c",
+        "status": "active"
+      },
+      {
+        "amount_cents": 44900,
+        "clinic_id": "3fc86c40-697e-4725-a9e9-633fc882aadc",
+        "environment": "sandbox",
+        "id": "4579343f-7ba7-49a0-b316-638ef16fbcc5",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "period_start": "2026-11-18T00:00:00+00:00",
+        "plan_code": "company_growth",
+        "preserved_hash": "7f99182ee0568d2ed0a7b8c934c9cf25",
+        "status": "active"
+      }
+    ],
+    "nonfixture_contracts_hash": "5f93ae8a05622562813e88f6797b522d",
+    "observed_at": "2026-10-29T00:06:06.012436+00:00",
+    "patients_hash": "d1573a1878b4cc6ab9f2d2b3143b3f2d",
+    "payments_hash": "b2c430d6aaed7c02409aca88b4b649ea",
+    "plan_tables_present": true,
+    "production_health": {
+      "last_healthy_at": "2026-10-29T00:06:02.928289+00:00",
+      "status": "ok"
+    },
+    "requests": [
+      {
+        "clinic_id": "081d3db4-1606-40f7-a878-19b51556317d",
+        "completed_at": null,
+        "created_at": "2026-10-28T19:56:52.124431+00:00",
+        "environment": "sandbox",
+        "id": "5cd49826-9cec-421d-b511-98519ecdd80e",
+        "kind": "cancel",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "status": "awaiting_provider",
+        "write_attempted": false
+      }
+    ],
+    "running_qa_jobs": 0,
+    "storage_hash": "14ddf47d3f3a030d26a698aafc8643d5",
+    "storage_ready_bytes": 8374117446,
+    "storage_ready_files": 701,
+    "storage_reservations": 0,
+    "waiting_locks": 0,
+    "contract_prices_count": 4,
+    "contract_plan_price_digest_sha256": "f6ed785b8af966a9e2bf145a27fe98b93754b374f916317a6e6c13bfa81e7b28"
+  },
+  "after": {
+    "cancel_execution_count": 1,
+    "cancellation_kind_enabled": true,
+    "cases_hash": "419b08f5b8905de5caa4fa9616ed4db6",
+    "connections": 51,
+    "fixture_contracts": [
+      {
+        "amount_cents": 44900,
+        "clinic_id": "081d3db4-1606-40f7-a878-19b51556317d",
+        "environment": "sandbox",
+        "id": "f089af79-cea4-4821-8497-0e594e67f3cf",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "period_start": "2026-11-18T00:00:00+00:00",
+        "plan_code": "company_growth",
+        "preserved_hash": "0656091b2b0d0f43068a12d24cc2781c",
+        "status": "canceled"
+      },
+      {
+        "amount_cents": 44900,
+        "clinic_id": "3fc86c40-697e-4725-a9e9-633fc882aadc",
+        "environment": "sandbox",
+        "id": "4579343f-7ba7-49a0-b316-638ef16fbcc5",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "period_start": "2026-11-18T00:00:00+00:00",
+        "plan_code": "company_growth",
+        "preserved_hash": "7f99182ee0568d2ed0a7b8c934c9cf25",
+        "status": "active"
+      }
+    ],
+    "nonfixture_contracts_hash": "5f93ae8a05622562813e88f6797b522d",
+    "observed_at": "2026-10-29T00:11:18.470526+00:00",
+    "patients_hash": "d1573a1878b4cc6ab9f2d2b3143b3f2d",
+    "payments_hash": "b2c430d6aaed7c02409aca88b4b649ea",
+    "plan_tables_present": true,
+    "production_health": {
+      "last_healthy_at": "2026-10-29T00:11:02.733845+00:00",
+      "status": "ok"
+    },
+    "requests": [
+      {
+        "clinic_id": "081d3db4-1606-40f7-a878-19b51556317d",
+        "completed_at": "2026-10-29T00:06:20.316957+00:00",
+        "created_at": "2026-10-28T19:56:52.124431+00:00",
+        "environment": "sandbox",
+        "id": "5cd49826-9cec-421d-b511-98519ecdd80e",
+        "kind": "cancel",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "status": "completed",
+        "write_attempted": true
+      }
+    ],
+    "running_qa_jobs": 0,
+    "storage_hash": "14ddf47d3f3a030d26a698aafc8643d5",
+    "storage_ready_bytes": 8374117446,
+    "storage_ready_files": 701,
+    "storage_reservations": 0,
+    "waiting_locks": 0,
+    "contract_prices_count": 4,
+    "contract_plan_price_digest_sha256": "f6ed785b8af966a9e2bf145a27fe98b93754b374f916317a6e6c13bfa81e7b28"
+  },
+  "preserved_fields": [
+    "storage_ready_files",
+    "storage_ready_bytes",
+    "storage_reservations",
+    "storage_hash",
+    "cases_hash",
+    "patients_hash",
+    "payments_hash",
+    "nonfixture_contracts_hash"
+  ],
+  "expected_changes": [
+    "fixture_A_status_active_to_canceled",
+    "existing_request_awaiting_provider_to_completed",
+    "one_authorized_cancellation_execution"
+  ],
+  "contract_plan_prices_unchanged": true,
+  "fixture_B_unchanged": true,
+  "no_new_plan_periods": true,
+  "no_plan_executions": true,
+  "job": {
+    "capability_consumed": true,
+    "claimed_at": "2026-10-29T00:09:21.798345+00:00",
+    "completed_at": "2026-10-29T00:09:27.000745+00:00",
+    "created_at": "2026-10-29T00:09:11.227937+00:00",
+    "id": "4aa814a2-6e2c-4dfa-90b8-b3898df628d6",
+    "kind": "cancellation",
+    "receipt": {
+      "checked_at": "2026-10-29T00:09:26.920Z",
+      "checks": [
+        {
+          "check": "fixed_sandbox_paid_contract",
+          "passed": true,
+          "period_end": "2026-12-18T00:00:00+00:00",
+          "resource_id": "f089af79-cea4-4821-8497-0e594e67f3cf"
+        },
+        {
+          "check": "paid_ledger_snapshot",
+          "count": 2,
+          "digest": "c93407aa753d8ac9dbfa28eff153fe2659599e38fb8571e2bfedc6a691cd9cd2",
+          "passed": true
+        },
+        {
+          "check": "sandbox_delivery_disabled",
+          "passed": true
+        },
+        {
+          "amount_cents": 44900,
+          "check": "provider_contract_verified",
+          "passed": true,
+          "state": "INACTIVE"
+        },
+        {
+          "check": "period_price_context_preserves_fixture_contract",
+          "passed": true
+        },
+        {
+          "check": "provider_invoice_snapshot",
+          "count": 3,
+          "digest": "e4958ee9ad0a9578701141286615e435409644964738a7c5564c84e380ef057d",
+          "passed": true
+        },
+        {
+          "check": "request_history_unambiguous",
+          "passed": true
+        },
+        {
+          "check": "authenticated_customer_request",
+          "passed": true,
+          "resource_id": "5cd49826-9cec-421d-b511-98519ecdd80e",
+          "state": "completed"
+        },
+        {
+          "check": "foreign_company_request_history_denied",
+          "passed": true
+        },
+        {
+          "check": "ordinary_fixture_cannot_execute_master_action",
+          "http_status": 403,
+          "passed": true
+        },
+        {
+          "check": "ordinary_fixture_cannot_execute_plan_change",
+          "http_status": 403,
+          "passed": true
+        },
+        {
+          "check": "authenticated_paid_access_preserved",
+          "passed": true
+        },
+        {
+          "check": "customer_paid_history_preserved",
+          "passed": true
+        },
+        {
+          "check": "master_single_write_and_confirmed_audit",
+          "count": 1,
+          "passed": true
+        },
+        {
+          "check": "cancellation_phase",
+          "passed": true,
+          "resource_id": "5cd49826-9cec-421d-b511-98519ecdd80e",
+          "state": "COMPLETED"
+        },
+        {
+          "check": "ledger_unchanged_during_observation",
+          "digest": "c93407aa753d8ac9dbfa28eff153fe2659599e38fb8571e2bfedc6a691cd9cd2",
+          "passed": true
+        },
+        {
+          "check": "contract_unchanged_during_observation",
+          "passed": true
+        },
+        {
+          "check": "global_environment_unchanged",
+          "passed": true
+        }
+      ],
+      "contract": "dentalflow-fixture-acceptance-v1",
+      "fixture_ids": [
+        "24e7cdf9-457e-4af2-b1cb-cf366abbddb0",
+        "ee083f63-1621-4b82-b7a4-fd13427c0b14"
+      ],
+      "kind": "cancellation",
+      "passed": true
+    },
+    "status": "completed"
+  },
+  "http_observation": {
+    "status": 200,
+    "repeated": false,
+    "local_capability_removed": true
+  },
+  "screenshot": "screenshots/sandbox-cancellation-master-20261028.jpg",
+  "acceptance": {
+    "completed": 12,
+    "total": 23,
+    "percentage": 52.17,
+    "remaining": 11,
+    "stages_completed": 1,
+    "stages_total": 7,
+    "new_full_criteria": 0,
+    "partial_5_2": "cancellation_completed; plan_change_still_required"
+  },
+  "limits": [
+    "No Production financial change, new plan request, payment, downgrade or reactivation in this receipt.",
+    "Cancelling fixture A completes only the cancellation part of 5.2 and one lifecycle state of 2.1.",
+    "Paid access remains full until the preserved paid end; no refund or deletion.",
+    "Current baseline is 701 files; earlier checkpoints of 700 and 685 are historical.",
+    "The Master company list needed a fresh query after success; a scoped one-time invalidation is being added and tested, without another financial execution."
+  ]
+}

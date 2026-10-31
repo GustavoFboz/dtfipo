@@ -1,0 +1,125 @@
+{
+  "contract": "dentalflow-first-production-payment-acceptance-v1",
+  "published_source_revision": "e83824a6ae5c5da5c651b196a822f2bd767ac6c5",
+  "checked_at": "2026-10-19T05:33:45.353522Z",
+  "owner_reported_at": "2026-10-19T01:32:42-04:00",
+  "owner_report": {
+    "payment_completed": true,
+    "account_active": true,
+    "selected_plan_matches": true
+  },
+  "observation": {
+    "checked_at": "2026-10-19 05:33:45.353522+00",
+    "company_sessions": [
+      {
+        "session_type": "laboratory",
+        "status": "active"
+      }
+    ],
+    "matching_companies": 1,
+    "payments": [
+      {
+        "amount_cents": 500,
+        "checkout_amount_matches": true,
+        "checkout_provider_payment_matches": true,
+        "checkout_status": "paid",
+        "currency": "BRL",
+        "environment": "production",
+        "paid_at": "2026-10-19T05:11:02.728047+00:00",
+        "period_end": "2026-11-20T00:00:00+00:00",
+        "period_start": "2026-10-20T00:00:00+00:00",
+        "status": "paid",
+        "subscription_matches": true
+      }
+    ],
+    "production_events": [
+      {
+        "attempt_count": 1,
+        "error_code": null,
+        "event_type": "SUBSCRIPTION_CREATED",
+        "matches_payment": false,
+        "processed_at": "2026-10-19T05:06:02.569559+00:00",
+        "received_at": "2026-10-19T05:01:21.012148+00:00",
+        "reconciliation_source": null,
+        "status": "processed"
+      },
+      {
+        "attempt_count": 1,
+        "error_code": null,
+        "event_type": "PAYMENT_RECEIVED",
+        "matches_payment": true,
+        "processed_at": "2026-10-19T05:11:02.728047+00:00",
+        "received_at": "2026-10-19T05:07:20.860814+00:00",
+        "reconciliation_source": null,
+        "status": "processed"
+      }
+    ],
+    "scheduler": {
+      "configured_at": "2026-10-18T20:00:47.230114+00:00",
+      "cron_active": true,
+      "cron_job_id": 2,
+      "enabled": true,
+      "last_dispatched_at": "2026-10-19T05:31:01.024595+00:00",
+      "last_response_http_status": 200,
+      "last_response_timed_out": false,
+      "provider_environment": "production",
+      "schedule": "1-59/5 * * * *"
+    },
+    "subscription": [
+      {
+        "contract_amount_cents": 500,
+        "current_period_end": "2026-11-20T00:00:00+00:00",
+        "current_period_start": "2026-10-20T00:00:00+00:00",
+        "customer_bound": true,
+        "environment": "production",
+        "internal_exempt": false,
+        "plan_code": "company_initial",
+        "storage_limit_matches_plan": true,
+        "subscription_bound": true,
+        "subscription_status": "active",
+        "paid_period_not_expired": true
+      }
+    ],
+    "worker": {
+      "counters": {
+        "failed": 0,
+        "graceReview": 0,
+        "ignored": 0,
+        "processed": 0,
+        "reconciliationQueued": 0,
+        "reconciliationReview": 0,
+        "reconciliationScanned": 0,
+        "recoveryQueued": 0,
+        "suspended": 0,
+        "workerReview": 0
+      },
+      "last_healthy_at": "2026-10-19T05:31:04.025082+00:00",
+      "status": "ok"
+    }
+  },
+  "verification": {
+    "provider_receipt_confirmed_by": "Production worker GET/payment validation before atomic ledger application",
+    "new_provider_lookup_performed": false,
+    "normal_webhook_delivery_observed": true,
+    "reconciliation_event": false,
+    "webhook_authentication_basis": "Deployed receiveAsaasWebhook checks the Production secret before billing_receive_asaas_event. The matching normal PAYMENT_RECEIVED event was persisted and processed without errors.",
+    "new_financial_mutation_performed": false
+  },
+  "acceptance": {
+    "item": "7.3",
+    "status": "completed",
+    "completed_on": "2026-10-19",
+    "completed": 6,
+    "total": 23,
+    "exact_percent": 26.08695652173913,
+    "display_percent": 26.1,
+    "completed_stages": 0,
+    "total_stages": 7
+  },
+  "limits": {
+    "production_alert_delivery_still_pending": true,
+    "sales_release_approved": false,
+    "native_physical_acceptance_not_inferred": true,
+    "lifecycle_scenarios_not_inferred": true
+  }
+}
