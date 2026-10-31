@@ -1,9 +1,12 @@
 import { Capacitor } from "@capacitor/core";
 
 import { supabase } from "@/integrations/supabase/client";
+import { hasOfflineAccess } from "./offline-access-policy";
+import { restrictOfflineSubscriptionContext } from "./subscription-offline-policy";
 import {
   isDentalFlowDesktop,
   isDentalFlowWindowsDesktop,
+  getProvisionedDesktopIdentity,
   localCacheGet,
   localCachePut,
   openDesktopExternalUrl,
@@ -195,19 +198,6 @@ export const COMPANY_SESSION_LABEL: Record<CompanySessionType, string> = {
 const SUBSCRIPTION_CACHE_NAMESPACE = "subscription-context:v2";
 const SUBSCRIPTION_CACHE_KEY = "current";
 
-function normalizeOfflineContext(context: MySubscriptionContext): MySubscriptionContext {
-  const end = context.company?.current_period_end;
-  if (context.effective_access !== "full" || !end) return context;
-  const endMs = Date.parse(end);
-  if (!Number.isFinite(endMs) || endMs >= Date.now()) return context;
-  return {
-    ...context,
-    effective_access: "billing_only",
-    company: context.company
-      ? { ...context.company, access_mode: "billing_only" }
-      : context.company,
-  };
-}
 
 export async function fetchBillingPlans(): Promise<BillingPlan[]> {
   const { data, error } = await (supabase as any)
@@ -248,12 +238,20 @@ export async function fetchMySubscriptionContext(): Promise<MySubscriptionContex
     return context;
   } catch (error) {
     if (ownerId && isDentalFlowDesktop()) {
-      const cached = await localCacheGet<MySubscriptionContext>(
-        ownerId,
-        SUBSCRIPTION_CACHE_NAMESPACE,
-        SUBSCRIPTION_CACHE_KEY,
-      ).catch(() => null);
-      if (cached?.payload) return normalizeOfflineContext(cached.payload);
+      // The older shared facade also reaches installed clients. A local Auth
+      // session does not renew the 72-hour device grant or prove owner scope.
+      const device = await getProvisionedDesktopIdentity().catch(() => null);
+      if (device?.user_id === ownerId && hasOfflineAccess(device)) {
+        const cached = await localCacheGet<MySubscriptionContext>(
+          ownerId,
+          SUBSCRIPTION_CACHE_NAMESPACE,
+          SUBSCRIPTION_CACHE_KEY,
+        ).catch(() => null);
+        if (cached?.payload && hasOfflineAccess({
+          validated_at: cached.updated_at,
+          valid_until: device.valid_until,
+        })) return restrictOfflineSubscriptionContext(cached.payload);
+      }
     }
     throw error;
   }

@@ -2,6 +2,8 @@ import fs from "node:fs";
 
 const read = (path) => fs.readFileSync(path, "utf8");
 const subscriptions = read("src/lib/subscriptions.desktop.ts");
+const sharedSubscriptions = read("src/lib/subscriptions.ts");
+const offlineSubscriptionPolicy = read("src/lib/subscription-offline-policy.ts");
 const bootstrap = read("src/components/DesktopOfflineBootstrap.tsx");
 const gate = read("src/components/DesktopPrimarySyncGate.tsx");
 const sync = read("src/lib/desktop-sync.ts");
@@ -18,7 +20,17 @@ expect(currentVersion === "0.6.8", `Unexpected DentalFlow Desktop release versio
 expect(vite.includes("subscriptions.desktop.ts"), "Desktop build must route subscriptions through its local-first facade.");
 expect(subscriptions.includes('const SUBSCRIPTION_CACHE_NAMESPACE = "subscription-context:v2"'), "Desktop entitlement must use the durable subscription cache.");
 expect(subscriptions.includes("locallySafeContext"), "Cached subscription access must be normalized before offline use.");
-expect(subscriptions.includes("current_period_end"), "Offline paid access must remain bounded by the server-verified billing period.");
+expect(offlineSubscriptionPolicy.includes("current_period_end") && offlineSubscriptionPolicy.includes("now < endMs"),
+  "Offline paid access must remain bounded by the server-verified billing period.");
+expect(offlineSubscriptionPolicy.includes("internal_full_access === true")
+  && offlineSubscriptionPolicy.includes('context.effective_access !== "full"'),
+  "Courtesy access needs a previously verified full-access server snapshot, never an inferred grant.");
+expect(subscriptions.includes("hasOfflineAccess(device)")
+  && subscriptions.includes("device.user_id !== ownerId"),
+  "Desktop subscription cache must require unexpired matching native owner.");
+expect(sharedSubscriptions.includes("hasOfflineAccess(device)")
+  && sharedSubscriptions.includes("device?.user_id === ownerId"),
+  "Shared installed client fallback must require unexpired matching native owner.");
 expect(subscriptions.includes('identity.source !== "cloud"'), "A fresh entitlement snapshot must require a real validated online identity.");
 expect(subscriptions.includes("fetchVerifiedCloudContext"), "Desktop entitlement needs a strict server verification path.");
 expect(subscriptions.includes("if (offline)"), "A server-verified entitlement cache must remain available while offline.");
