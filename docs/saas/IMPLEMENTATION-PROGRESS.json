@@ -134,6 +134,94 @@
         "complete": false,
         "description": "Real authorized positive financial replay with idempotency and preservation of paid period, ledger and independent companies"
       }
+    ],
+    "2.1": [
+      {
+        "id": "renewal-real-provider",
+        "complete": true,
+        "description": "Authenticated real Sandbox renewal without prior webhook, reconciled to one payment/paid period; no live collection",
+        "evidence": "docs/saas/evidence/events-recovery-master-20261024.md"
+      },
+      {
+        "id": "cancellation-master-mfa",
+        "complete": true,
+        "description": "One real Sandbox cancellation with Master AAL2 and Asaas INACTIVE readback, 18/18 actual checks",
+        "evidence": "docs/saas/evidence/master-cancellation-20261028.md"
+      },
+      {
+        "id": "overdue-and-grace",
+        "complete": false,
+        "description": "Provider-confirmed overdue and grace state to billing-only, with evidence of expected access window"
+      },
+      {
+        "id": "refund-dispute-suspension",
+        "complete": false,
+        "description": "Actual authorized refund/dispute plus suspended access, ledger and charged period consistency"
+      },
+      {
+        "id": "reactivation",
+        "complete": false,
+        "description": "Real authorized reactivation after delinquency/cancellation, renewed access and billing reconciliation"
+      }
+    ],
+    "2.2": [
+      {
+        "id": "renewal-invariants",
+        "complete": true,
+        "description": "Sandbox renewal completed without missing historical payment/paid period or unexpected duplicated ledger",
+        "evidence": "docs/saas/evidence/events-recovery-master-20261024.md"
+      },
+      {
+        "id": "cancellation-preservation",
+        "complete": true,
+        "description": "Authenticated Sandbox cancel preserved 701 ready files, patient/case fingerprints, three invoices, ledger and paid-period access",
+        "evidence": "docs/saas/evidence/master-cancellation-20261028.md"
+      },
+      {
+        "id": "arrears-refund-preservation",
+        "complete": false,
+        "description": "Confirm bytes, histories, invoices, paid periods and access are preserved through real overdue/refund transitions"
+      },
+      {
+        "id": "reactivation-preservation",
+        "complete": false,
+        "description": "After real reactivation, independently reconcile clinical data and paid periods without duplicate events"
+      }
+    ],
+    "5.3": [
+      {
+        "id": "provider-future-schedule",
+        "complete": true,
+        "description": "Master MFA confirmed future Growth-to-Inicial R$5 recurrence in Sandbox Asaas, effective 18/12/2026 UTC, one scheduled local term",
+        "evidence": "docs/saas/evidence/master-plan-change-20261028.md"
+      },
+      {
+        "id": "one-write-audit",
+        "complete": true,
+        "description": "Single authorized Master operation audited with provider readback and three jobs totalling 54/54 checks",
+        "evidence": "docs/saas/evidence/master-plan-change-20261028.md"
+      },
+      {
+        "id": "no-early-activation",
+        "complete": true,
+        "description": "Observed Growth R$449 current period kept, future term scheduled, activated_at null and no future charge",
+        "evidence": "docs/saas/evidence/master-plan-change-20261028.md"
+      },
+      {
+        "id": "future-activation-real",
+        "complete": false,
+        "description": "After 18/12/2026, confirm actual paid new period and scheduled term activation in provider and app"
+      },
+      {
+        "id": "downgrade-quota-enforcement",
+        "complete": false,
+        "description": "Prove quota and access behavior on actual downgrade, without loss of existing clinical bytes"
+      },
+      {
+        "id": "ambiguous-failure-recovery",
+        "complete": false,
+        "description": "Verify real authorized ambiguous provider failure followed by single recovery and no duplicated financial operation"
+      }
     ]
   },
   "scoring_policy": {

@@ -11,17 +11,17 @@ test('formal acceptance stays at 13/23 while independently verified engineering 
   assert.equal(result.accepted_items,13);
   assert.equal(result.remaining_items,10);
   assert.equal(result.official_acceptance_percent,56.52);
-  assert.equal(result.engineering_evidence_percent,63.35);
-  assert.equal(result.verified_partial_gate_points,1.571429);
-  assert.deepEqual(result.reviewed_partial_items,['2.3','4.2','6.2']);
-  assert.equal(result.unreviewed_remaining_items.length,7);
+  assert.equal(result.engineering_evidence_percent,69.44);
+  assert.equal(result.verified_partial_gate_points,2.971429);
+  assert.deepEqual(result.reviewed_partial_items,['2.1','2.2','2.3','4.2','5.3','6.2']);
+  assert.equal(result.unreviewed_remaining_items.length,4);
 });
 
 test('technical score changes with documented gate but formal count cannot change', () => {
   const data = clone();
   data.reviewed_partial_gates['2.3'][2].complete = false;
   const next = summarizeImplementationProgress(data);
-  assert.equal(next.engineering_evidence_percent,62.48);
+  assert.equal(next.engineering_evidence_percent,68.57);
   assert.equal(next.official_acceptance_percent,56.52);
 });
 
@@ -29,7 +29,7 @@ test('4.2 security gate cannot be promoted by report without a completed evidenc
   const data = clone();
   data.reviewed_partial_gates['4.2'][1].complete = false;
   const scored = summarizeImplementationProgress(data);
-  assert.equal(scored.engineering_evidence_percent,62.73);
+  assert.equal(scored.engineering_evidence_percent,68.82);
   assert.equal(scored.official_acceptance_percent,56.52);
 });
 
@@ -37,7 +37,7 @@ test('new owner-cache milestone changes technical progress without crediting liv
   const data = clone();
   data.reviewed_partial_gates['4.2'][3].complete = false;
   const scored = summarizeImplementationProgress(data);
-  assert.equal(scored.engineering_evidence_percent,62.73);
+  assert.equal(scored.engineering_evidence_percent,68.82);
   assert.equal(scored.official_acceptance_percent,56.52);
 });
 
@@ -45,8 +45,21 @@ test('documented QA harness is technical progress, not real tenant isolation pro
   const data = clone();
   data.reviewed_partial_gates['4.2'][4].complete = false;
   const scored = summarizeImplementationProgress(data);
-  assert.equal(scored.engineering_evidence_percent,62.73);
+  assert.equal(scored.engineering_evidence_percent,68.82);
   assert.equal(scored.official_acceptance_percent,56.52);
+});
+
+test('financial historical proof is partial even with an audited provider transaction', () => {
+  const data=clone();
+  for (const id of ['2.1','2.2','5.3']) {
+    assert.ok(data.remaining_ids.includes(id));
+    assert.ok(data.reviewed_partial_gates[id].some(g=>g.complete));
+    assert.ok(data.reviewed_partial_gates[id].some(g=>!g.complete));
+  }
+  data.reviewed_partial_gates['5.3'][2].complete=false;
+  const next=summarizeImplementationProgress(data);
+  assert.equal(next.engineering_evidence_percent,68.72);
+  assert.equal(next.official_acceptance_percent,56.52);
 });
 
 test('rejects duplicated accepted items, changed denominator and invented criteria', () => {
