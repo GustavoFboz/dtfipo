@@ -222,6 +222,63 @@
         "complete": false,
         "description": "Verify real authorized ambiguous provider failure followed by single recovery and no duplicated financial operation"
       }
+    ],
+    "6.3": [
+      {
+        "id": "bounded-local-pilot-harness",
+        "complete": true,
+        "description": "Loopback-only GET capacity preflight capped at 40 requests, 4 concurrent and 3s per request; hermetic CI enforces refusal of Production/Cloud targets",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/223"
+      },
+      {
+        "id": "staging-journal-and-fixtures",
+        "complete": false,
+        "description": "Approved disposable staging environment with no PII or Asaas, two owned QA fixture journeys and repeatable audit log"
+      },
+      {
+        "id": "database-realtime-baseline",
+        "complete": false,
+        "description": "Measure Web, database, Realtime, CPU/RAM, connections, errors and cache before and after modest staging load"
+      },
+      {
+        "id": "native-onboarding-pilot",
+        "complete": false,
+        "description": "Confirm actual user onboarding and data/file operations from supported Windows and Android physical devices"
+      },
+      {
+        "id": "progressive-capacity-approval",
+        "complete": false,
+        "description": "Repeat load safely in stages with verified latency/error SLO, cost ceiling and explicit rollback/stop rules before scaling"
+      }
+    ],
+    "6.4": [
+      {
+        "id": "legal-operational-protocol",
+        "complete": true,
+        "description": "L01-L08 operational legal protocol and preliminary controller/processor role matrix drafted with no claimed regulatory signoff",
+        "evidence": "docs/saas/LEGAL-OPERATIONS-PROTOCOL.md"
+      },
+      {
+        "id": "internal-terms-privacy-dpa-drafts",
+        "complete": true,
+        "description": "Terms SaaS, Privacy Notice, DPA and legal review checklist created as conspicuously unapproved internal drafts with hermetic CI",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/222"
+      },
+      {
+        "id": "verified-supplier-retention-incident-register",
+        "complete": false,
+        "description": "Validate all subprocessors, hosting regions, retention table, controller support requests and incident procedure with accountable owners"
+      },
+      {
+        "id": "qualified-legal-business-review",
+        "complete": false,
+        "description": "Legal privacy/business responsible review and signoff for complete versions, real provider contracts, identity, taxes and commercial offer"
+      },
+      {
+        "id": "published-versioned-terms-acceptance",
+        "complete": false,
+        "description": "Approved contracts deployed with immutable version, representative identity, timestamp, plan price and retrieval evidence"
+      }
     ]
   },
   "scoring_policy": {

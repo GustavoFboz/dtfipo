@@ -4,10 +4,10 @@ O progresso técnico deve variar quando melhorias são implementadas e verificad
 
 | Indicador | Resultado | Critério |
 | --- | ---: | --- |
-| **Implementação — piso técnico comprovado** | **69,44%** (15,97 pontos / 23) | 13 aceites + 2/5 do 2.1, 2/4 do 2.2, 3/5 do 2.3, 4/7 do 4.2, 3/6 do 5.3 e 2/5 do 6.2. |
+| **Implementação — piso técnico comprovado** | **72,05%** (16,57 pontos / 23) | 13 aceites + marcos auditados 2.1, 2.2, 2.3, 4.2, 5.3, 6.2, 6.3 (1/5) e 6.4 (2/5). |
 | **Aceites finais para vendas** | **56,52%** (13 / 23) | Somente itens com homologação integral e recibo; 10 permanecem pendentes. |
 
-A implementação usa **crédito proporcional limitado a gates concluídos**, não porcentagem arbitrária dada pelo assistente. Cada um dos 23 itens tem peso igual. Neste registro, os quatro itens pendentes ainda não auditados no novo formato têm zero crédito **no cálculo conservador** (isso não significa que não tenham código). Para os seis itens auditados, cada gate completo recebe 1/N do item, e o último gate jamais pode somar 100% sem aceite oficial.
+A implementação usa **crédito proporcional limitado a gates concluídos**, não porcentagem arbitrária dada pelo assistente. Cada um dos 23 itens tem peso igual. Neste registro, os dois itens pendentes ainda não auditados no novo formato têm zero crédito **no cálculo conservador** (isso não significa que não tenham código). Para os oito itens auditados, cada gate completo recebe 1/N do item, e o último gate jamais pode somar 100% sem aceite oficial.
 
 Assim, o índice de implementação é **um piso técnico com escopo explicitamente limitado**, não previsão de horas restantes, prontidão comercial, percentual de trabalho real ou certificação de produção. O valor não substitui a porcentagem oficial de aceites do `ACCEPTANCE-PROGRESS.md`.
 
@@ -45,7 +45,15 @@ Assim, o índice de implementação é **um piso técnico com escopo explicitame
 - Comprovados: agenda real de downgrade Growth para Inicial/R$5 no Asaas Sandbox em 18/12/2026, operação única auditada por Master MFA, termo local ainda `scheduled` e sem ativação ou cobrança antecipada. [Evidência](evidence/master-plan-change-20261028.md).
 - Pendentes: confirmar vigência/pagamento futuro, cota pós-downgrade e falha financeira ambígua recuperada uma vez. **Não antecipar 18/12 nem modificar o contrato para obter aceites hoje.**
 
-Os demais itens ainda abertos (3.3, 6.3, 6.4 e 7.4) **não são estimados ou pontuados nesta revisão**. Serão auditados separadamente com marcos verificáveis, sem retirar nem inventar conclusões.
+**6.3 — 1 de 5 marcos técnicos**
+- Implementado script de pré-ensaio com alvo limitado a serviço HTTP descartável em 127.0.0.1, máximo de 40 GETs, concorrência 4 e timeout 3s. Testes herméticos de segurança e relatório de falha passaram na [PR223](https://github.com/GustavoFboz/dtfipo/pull/223).
+- **Não computados:** ambientes e usuários de QA de fato sem dados pessoais, baseline e carga progressiva em staging, testes físicos e comprovação de capacidade. Não há teste de 10 mil usuários nem promessa de desempenho. [Plano](evidence/isolated-capacity-pilot-20261101.md).
+
+**6.4 — 2 de 5 marcos técnicos**
+- Protocolo L01–L08 e mapa preliminar de responsabilidades foram preparados; três minutas internas (Termos SaaS, Aviso de Privacidade e DPA), checklist e controle em CI também estão prontos na [PR222](https://github.com/GustavoFboz/dtfipo/pull/222).
+- **Não computados:** inventário confirmado de fornecedores/retencão/incidentes, revisão jurídica/privacidade e aprovação comercial, publicação com aceite versionado. São minutas **não aprovadas**, não uma declaração de conformidade LGPD ou liberação para venda. [Checklist](legal/REVIEW-GATES.md).
+
+Os itens 3.3 (armazenamento nos aparelhos reais) e 7.4 (autorização de vendas) continuam pendentes, sem nota técnica pontuada nesta revisão. Serão auditados separadamente com marcos verificáveis, sem retirar nem inventar conclusões.
 
 ## Reproduzir e atualizar
 
@@ -53,6 +61,6 @@ O arquivo `docs/saas/IMPLEMENTATION-PROGRESS.json` guarda a lista de aceites ofi
 
     node scripts/saas-implementation-progress.mjs
 
-Os nove testes em `scripts/saas-implementation-progress.test.mjs` recusam marcos sem evidência, duplicações, mudança artificial do denominador, pontuação de critérios já aceitos e 100% técnico antes da homologação formal. A CI de progresso usa fixtures e dados de status, não acessa Cloud/Asaas, não baixa nenhum objeto nem publica o sistema.
+Os onze testes em `scripts/saas-implementation-progress.test.mjs` recusam marcos sem evidência, duplicações, mudança artificial do denominador, pontuação de critérios já aceitos e 100% técnico antes da homologação formal. A CI de progresso usa fixtures e dados de status, não acessa Cloud/Asaas, não baixa nenhum objeto nem publica o sistema.
 
 **Estado do produto após esta alteração:** proteções de guardas offline e continuidade de contas no cache do paciente foram integradas ao GitHub; os aplicativos instalados ainda não receberam a atualização e o requisito 2.3 segue sem aceite completo. O trabalho sobre o backup 6.2 continua independente e pendente de finalização. Para ultrapassar 60% **em aceites finais**, é obrigatório concluir integralmente 6.2 ou outro critério pendente, não apenas observar o índice técnico.
