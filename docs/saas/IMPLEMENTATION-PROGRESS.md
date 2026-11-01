@@ -1,10 +1,10 @@
 # DentalFlow — progresso único do Protocolo SaaS (01/11/2026)
 
-O painel Master apresenta **UMA porcentagem geral de implementação: 77,21%**. Essa é a referência oficial para acompanhar o trabalho até 100%, sem uma segunda barra concorrente.
+O painel Master apresenta **UMA porcentagem geral de implementação: 78,80%**. Essa é a referência oficial para acompanhar o trabalho até 100%, sem uma segunda barra concorrente.
 
 | Indicador único | Resultado | Como é calculado |
 | --- | ---: | --- |
-| **Progresso geral do Protocolo SaaS** | **77,21%** | Os 23 critérios têm peso igual. Cada critério homologado conta por inteiro; critérios em andamento recebem crédito proporcional apenas por marcos comprovados e auditados. |
+| **Progresso geral do Protocolo SaaS** | **78,80%** | Os 23 critérios têm peso igual. Cada critério homologado conta por inteiro; critérios em andamento recebem crédito proporcional apenas por marcos comprovados e auditados. |
 
 O acompanhamento mostra também **13 de 23 critérios integralmente validados**, como contagem de status, não como outra porcentagem. Os dez restantes seguem em implementação ou homologação. A contagem de aceites detalhados continua registrada, para auditoria histórica, em `ACCEPTANCE-PROGRESS.md`, mas **não é mais um indicador percentual separado no painel**.
 
@@ -48,14 +48,16 @@ A conclusão exige os 23 critérios integralmente homologados; nem o avanço de 
 - Comprovados: agenda real de downgrade Growth para Inicial/R$5 no Asaas Sandbox em 18/12/2026, operação única auditada por Master MFA, termo local ainda `scheduled` e sem ativação ou cobrança antecipada. [Evidência](evidence/master-plan-change-20261028.md).
 - Pendentes: confirmar vigência/pagamento futuro, cota pós-downgrade e falha financeira ambígua recuperada uma vez. **Não antecipar 18/12 nem modificar o contrato para obter aceites hoje.**
 
-**6.3 — 2 de 6 marcos técnicos**
+**6.3 — 3 de 6 marcos técnicos**
 - Baseline agregado da conexão real ao PostgreSQL coletado via duas consultas `SELECT` sem carga, com 15 conexões totais, uma ativa e nenhuma `idle in transaction`. Esse marco **não** prova capacidade, Realtime ou latência; o ensaio gradual continua pendente. [Recibo](evidence/db-readonly-baseline-20261101.md).
 - Implementado script de pré-ensaio com alvo limitado a serviço HTTP descartável em 127.0.0.1, máximo de 40 GETs, concorrência 4 e timeout 3s. Testes herméticos de segurança e relatório de falha passaram na [PR223](https://github.com/GustavoFboz/dtfipo/pull/223).
-- **Não computados:** ambientes e usuários de QA de fato sem dados pessoais, baseline e carga progressiva em staging, testes físicos e comprovação de capacidade. Não há teste de 10 mil usuários nem promessa de desempenho. [Plano](evidence/isolated-capacity-pilot-20261101.md).
+- **Novo marco PR236:** o banco restaurado descartável executou uma fixture de staging com 2 empresas, 2 papéis SQL autenticados, 4 pacientes e 4 casos fictícios, verificou controles positivos sem leituras cruzadas e reverteu tudo. [Diário](evidence/disposable-staging-fixtures-20261101.md). **Não é staging HTTP nem login real**, carga ou Realtime.
+- **Não computados:** benchmark do produto HTTP/Realtime real em staging, métricas completas de CPU/RAM/latência, testes físicos e aprovação de escala. Não há ensaio de 10 mil usuários nem promessa de desempenho. [Plano](evidence/isolated-capacity-pilot-20261101.md).
 
-**6.4 — 2 de 5 marcos técnicos**
+**6.4 — 3 de 5 marcos técnicos**
 - Protocolo L01–L08 e mapa preliminar de responsabilidades foram preparados; três minutas internas (Termos SaaS, Aviso de Privacidade e DPA), checklist e controle em CI também estão prontos na [PR222](https://github.com/GustavoFboz/dtfipo/pull/222).
-- **Não computados:** inventário confirmado de fornecedores/retencão/incidentes, revisão jurídica/privacidade e aprovação comercial, publicação com aceite versionado. São minutas **não aprovadas**, não uma declaração de conformidade LGPD ou liberação para venda. [Checklist](legal/REVIEW-GATES.md).
+- **Novo marco PR235:** inventário técnico de fornecedores encontrados no código (Supabase/Lovable/Asaas), janelas de acesso 72h e URLs 300s verificadas, registro-modelo de incidentes com ANPD e teste automático de consistência. **As regiões, contratos/DPA, subprocessadores, prazos clínicos e execução real de incidentes não estão aprovados**. [Registro](legal/SUPPLIERS-RETENTION-INCIDENT-REGISTER.md).
+- **Não computados:** revisão jurídica/privacidade e aprovação comercial, assinatura e publicação dos documentos com aceite versionado. São minutas **não aprovadas**, não uma declaração de conformidade LGPD ou liberação para venda. [Checklist](legal/REVIEW-GATES.md).
 
 **3.3 — 3 de 6 marcos técnicos**
 - A base compartilhada Web/Windows/Android e os builds nativos existentes foram verificados; a PR233 fortaleceu o cache por identidade/empresa, filtrou a própria consulta por clínica e passou em testes de troca de sessão, links privados, cota, rollback e exclusão. [Escopo](evidence/storage-company-platform-20261101.md).
