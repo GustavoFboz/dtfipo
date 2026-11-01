@@ -174,17 +174,26 @@ export async function refreshStorageUsage(): Promise<StorageUsage> {
   }
 }
 
-export async function fetchStorageFiles(): Promise<ManagedStorageFile[]> {
+/** Query namespace isolates owner swaps even if React Query retains old data. */
+export function storageFilesScopeKey(ownerId: string, clinicId: string) {
+  return ["storage_files", ownerId, clinicId] as const;
+}
+
+/** Client scoping is defense in depth; authoritative protection remains RLS. */
+export async function fetchStorageFiles(clinicId: string): Promise<ManagedStorageFile[]> {
+  if (!clinicId) return [];
   const { data, error } = await supabase
     .from("storage_files" as never)
     .select("*")
+    .eq("clinic_id", clinicId)
     .eq("status", "ready")
     .order("created_at", { ascending: false });
   if (error) {
     if (isMissingStorageBackend(error)) return [];
     throw error;
   }
-  return (data ?? []) as unknown as ManagedStorageFile[];
+  // Fail closed even if a response or stale cache unexpectedly contains foreign rows.
+  return ((data ?? []) as unknown as ManagedStorageFile[]).filter(row => row.clinic_id === clinicId);
 }
 
 export async function fetchStorageUploadReservations(clinicId: string): Promise<ManagedStorageFile[]> {
