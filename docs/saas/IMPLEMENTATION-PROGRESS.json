@@ -125,6 +125,12 @@
         "evidence": "https://github.com/GustavoFboz/dtfipo/pull/219"
       },
       {
+        "id": "two-company-rls-real-role-disposable",
+        "complete": true,
+        "description": "Disposable PostgreSQL actual authenticated SQL role regression verifies own patient positive controls, cross-company read/update/delete denial, no orphan direct inserts, ownership changes rejected and forged company blocked by creation RPC; no real JWT sessions",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/226"
+      },
+      {
         "id": "revocation-and-cross-company-live-probes",
         "complete": false,
         "description": "Authenticated multi-account/session revocation and negative cross-tenant access verified in the live permitted environment"
