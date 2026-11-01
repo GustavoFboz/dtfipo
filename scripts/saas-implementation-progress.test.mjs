@@ -89,7 +89,7 @@ test('legal draft and loopback probe do not count as reviewed contracts or actua
  }
  data.reviewed_partial_gates['6.3'][0].complete=false;
  assert.equal(summarizeImplementationProgress(data).overall_progress_percent,71.85);
- assert.equal(summarizeImplementationProgress(data).official_acceptance_percent,56.52);
+ assert.equal(summarizeImplementationProgress(data).accepted_items,13);
 });
 test('legal signoff cannot be inferred from unapproved draft', () => {
  const data=clone();data.reviewed_partial_gates['6.4'][1].complete=false;
