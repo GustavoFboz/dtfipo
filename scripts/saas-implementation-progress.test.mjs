@@ -58,7 +58,7 @@ test('financial historical proof is partial even with an audited provider transa
   }
   data.reviewed_partial_gates['5.3'][2].complete=false;
   const next=summarizeImplementationProgress(data);
-  assert.equal(next.engineering_evidence_percent,71.32);
+  assert.equal(next.engineering_evidence_percent,71.33);
   assert.equal(next.official_acceptance_percent,56.52);
 });
 
