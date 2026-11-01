@@ -63,3 +63,32 @@ test('encrypted index and one ZIP are authenticated without exposing paths', asy
     await assert.rejects(auditExternalCopy({ indexFile: wrong, keyFile, partsDirectory }), /ARCHIVE_MISMATCH/);
   } finally { await rm(root, { recursive: true, force: true }); }
 });
+
+test('all 33 independently hashed archives must match the authenticated index', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'dentalflow-33-checkpoint-'));
+  try {
+    const key = randomBytes(32), keyFile = join(root, 'key.bin'), indexFile = join(root, 'index.dfenc');
+    const partsDirectory = join(root, 'parts'); await mkdir(partsDirectory);
+    await writeFile(keyFile, key, { mode: 0o600 });
+    const source_catalog = [], files = [], parts = [];
+    for (let i = 1; i <= 33; i++) {
+      const row = obj('fictitious/object-' + i, 8);
+      const zip = Buffer.from('fake-archive-' + i);
+      source_catalog.push(row);
+      files.push(receipt(row, 8));
+      parts.push({ part: i, files: 1, bytes: zip.length, sha256: sha(zip), closed: true });
+      await writeFile(join(partsDirectory, 'DentalFlow_Anexos_2026-10-29_Parte_'
+        + String(i).padStart(2, '0') + '.zip'), zip);
+    }
+    const index = {version:1,source_objects:33,files_verified:33,bytes_verified:264,
+      complete:true,source_catalog,files,parts};
+    await seal([Buffer.from(JSON.stringify(index))], indexFile, key, 'dentalflow-storage-index-20261029');
+    const result = await auditExternalCopy({ indexFile, keyFile, partsDirectory });
+    assert.equal(result.zip_archives_hash_verified, 33);
+    assert.equal(result.missing_objects, 0);
+    assert.equal(result.catalog_coverage_complete, true);
+    assert.equal(result.operational_acceptance, false);
+    await writeFile(join(partsDirectory, 'DentalFlow_Anexos_2026-10-29_Parte_21.zip'), 'tampered archive');
+    await assert.rejects(auditExternalCopy({ indexFile, keyFile, partsDirectory }), /ARCHIVE_MISMATCH/);
+  } finally { await rm(root, {recursive:true,force:true}); }
+});

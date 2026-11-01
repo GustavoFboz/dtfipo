@@ -31,6 +31,12 @@ Uso com Node 22 e arquivos privados (fora do Git):
 
 Quando o diretório de volumes é informado, calcula o SHA-256 de cada ZIP sequencialmente, sem repetir downloads do Cloud. Sem o diretório, reporta que a verificação física dos volumes não foi feita. O resultado contém sempre operational_acceptance=false: somente a auditoria de índice NÃO encerra o critério 6.2.
 
+## Continuidade — auditoria física de 01/11/2026
+
+A rodada posterior conferiu de verdade **todos os 33 ZIPs** preservados na Biblioteca por leitura binária sequencial, comparando os SHA-256 e os tamanhos individuais com o índice criptografado autenticado. Resultado: **33/33 corretos, 6.489.970.080 bytes de ZIP, zero divergências**. A chave e os arquivos continuam fora do Git. [Recibo e limites](evidence/full-storage-volumes-hash-20261101.md).
+
+**O total de 592 objetos copiados, 116 objetos ausentes e 1.968.840.906 bytes faltantes não mudou.** Não declarar backup integral, restauração concluída nem 6.2 aceito.
+
 ## Próxima execução
 
 Usar o índice autenticado MAIS RECENTE (592 recibos), não o checkpoint operacional anterior (576). Obter somente os 116 objetos restantes, até quatro por lote e um download de origem por vez, preservando fragmentos criptografados antes de novas tentativas. Conciliar 21 exportações posteriores separadamente, em vez de misturá-las no snapshot histórico.
