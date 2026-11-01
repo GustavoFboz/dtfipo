@@ -128,22 +128,28 @@ async function readCachedPatient(ownerId: string, id: string): Promise<Patient |
  * user-initiated deletion is not blocked by this safety rail.
  */
 async function cachePatientSnapshot(ownerId: string, patients: Patient[]): Promise<Patient[]> {
+  await assertPatientOwner(ownerId);
   const current = await readCachedPatients(ownerId);
+  await assertPatientOwner(ownerId);
   if (patients.length === 0 && current && current.length > 0) {
     console.warn("[DentalFlow Desktop] Resposta vazia de pacientes ignorada para preservar o último snapshot local válido.");
     return current;
   }
 
   const sorted = [...patients].sort(patientSort);
+  await assertPatientOwner(ownerId);
   await localCachePut(ownerId, PATIENT_CACHE_NAMESPACE, PATIENT_LIST_KEY, sorted);
   await Promise.allSettled(
     sorted.map((patient) => localCachePut(ownerId, PATIENT_CACHE_NAMESPACE, patient.id, patient)),
   );
+  await assertPatientOwner(ownerId);
   return sorted;
 }
 
 async function upsertCachedPatient(ownerId: string, patient: Patient) {
+  await assertPatientOwner(ownerId);
   const current = (await readCachedPatients(ownerId)) ?? [];
+  await assertPatientOwner(ownerId);
   const next = current.some((item) => item.id === patient.id)
     ? current.map((item) => (item.id === patient.id ? patient : item))
     : [...current, patient];
@@ -203,14 +209,18 @@ export async function fetchPatientsLocalFirst(): Promise<Patient[]> {
 
   if (isOnline()) {
     try {
+      await assertPatientOwner(ownerId);
       const remote = await cloudFetchPatients();
+      await assertPatientOwner(ownerId);
       return await cachePatientSnapshot(ownerId, remote);
     } catch (error) {
       if (!isTransientNetworkError(error)) throw error;
     }
   }
 
+  await assertPatientOwner(ownerId);
   const cached = await readCachedPatients(ownerId);
+  await assertPatientOwner(ownerId);
   if (cached) return cached;
 
   throw new Error("Os pacientes ainda não foram sincronizados neste computador. Conecte-se à internet ao menos uma vez.");
@@ -224,10 +234,13 @@ export async function fetchPatientLocalFirst(id: string): Promise<Patient | null
 
   if (isOnline()) {
     try {
+      await assertPatientOwner(ownerId);
       const remote = await cloudFetchPatient(id);
+      await assertPatientOwner(ownerId);
       if (remote) await upsertCachedPatient(ownerId, remote);
       if (!remote) {
         const cached = await readCachedPatient(ownerId, id);
+        await assertPatientOwner(ownerId);
         if (cached) return cached;
       }
       return remote;
@@ -236,14 +249,19 @@ export async function fetchPatientLocalFirst(id: string): Promise<Patient | null
     }
   }
 
-  return readCachedPatient(ownerId, id);
+  await assertPatientOwner(ownerId);
+  const cached = await readCachedPatient(ownerId, id);
+  await assertPatientOwner(ownerId);
+  return cached;
 }
 
 export async function warmPatientLocalCache() {
   if (!isDentalFlowDesktop() || !isOnline()) return 0;
   const ownerId = await getOwnerId();
   if (!ownerId) return 0;
+  if (!await canSyncPatientOwner(ownerId)) return 0;
   const patients = await cloudFetchPatients();
+  await assertPatientOwner(ownerId);
   const snapshot = await cachePatientSnapshot(ownerId, patients);
   return snapshot.length;
 }
@@ -410,7 +428,7 @@ export async function syncPendingPatientChanges(): Promise<PatientSyncSummary> {
     if (result === "network" || result === "owner_changed") break;
   }
 
-  if (processed > 0) await clearDoneOutbox(ownerId);
+  if (processed > 0 && await canSyncPatientOwner(ownerId)) await clearDoneOutbox(ownerId);
 
   if (isOnline() && await canSyncPatientOwner(ownerId)) {
     try {
