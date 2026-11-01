@@ -39,7 +39,7 @@ export function MasterSaasProtocolProgress() {
     </p>
     <p role="status" className="mt-3 text-sm font-medium text-amber-700 dark:text-amber-300">
       {progress.sales_release_status === "blocked"
-        ? "Liberação comercial bloqueada enquanto houver critérios pendentes."
+        ? "Liberação comercial ainda não autorizada pelo protocolo. O checkout atual não é alterado por este aviso."
         : "Revisão final de publicação necessária antes de permitir vendas."}
     </p>
     <p className="mt-2 text-xs text-slate-500">
