@@ -10,7 +10,7 @@ Esta correção promove defesa em profundidade **sem mudar o banco**:
 
 1. `fetchStorageFiles(clinicId)` exige clínica, filtra `clinic_id` na consulta e rejeita qualquer linha cuja clínica não coincida na resposta.
 2. `storageFilesScopeKey(userId,clinicId)` separa cache e operações otimistas por identidade e empresa; evita que o resultado tardio de uma consulta entre na lista da nova empresa.
-3. A página só habilita a listagem com administrador identificado **e** `clinic_id`; métricas da memória global do Storage são ocultadas se pertencerem a outra clínica.
+3. A página só habilita a listagem com administrador identificado, `clinic_id` e **correspondência explícita com o usuário de Auth atual**; o cache de perfil da tela é separado por sessão. Métricas da memória global do Storage são ocultadas se pertencerem a outra clínica.
 4. Os testes acrescentados recusam consultas sem empresa, resposta de outra empresa e reaproveitamento de cache em trocas de usuário/empresa.
 5. CI agora exige os testes existentes de quota, cancelamento de reserva, link privado assinado/renovação, referências sem token persistido e listagem restrita.
 
