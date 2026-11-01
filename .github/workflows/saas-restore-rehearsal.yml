@@ -134,6 +134,15 @@ jobs:
             < docs/saas/sql/stage-05-lifecycle-rehearsal.sql \
             | tee restore-stage-05-lifecycle.log
 
+      - name: Rehearse 4.2 patient company isolation with two real SQL roles
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/patient-company-rls-disposable-rehearsal.sql \
+            | tee restore-patient-rls-two-company.log
+
       - name: Verify Stage 07 case ownership write boundary
         shell: bash
         run: |
