@@ -8,6 +8,8 @@ on:
       - "scripts/saas-implementation-progress.mjs"
       - "scripts/saas-implementation-progress.test.mjs"
       - "scripts/sync-saas-dashboard-progress.mjs"
+      - "scripts/saas-sales-release-gate.mjs"
+      - "scripts/saas-sales-release-gate.test.mjs"
       - "src/data/saas-protocol-progress.json"
       - "src/components/master/MasterSaasProtocolProgress.tsx"
       - ".github/workflows/saas-implementation-progress.yml"
@@ -27,6 +29,7 @@ jobs:
           node-version: "22"
       - name: Validate strict evidence ledger and its regression tests
         run: |
-          node --test scripts/saas-implementation-progress.test.mjs
+          node --test scripts/saas-implementation-progress.test.mjs scripts/saas-sales-release-gate.test.mjs
+          node scripts/saas-sales-release-gate.mjs
           node scripts/saas-implementation-progress.mjs
           node scripts/sync-saas-dashboard-progress.mjs --check
