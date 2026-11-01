@@ -4,7 +4,7 @@ O progresso técnico deve variar quando melhorias são implementadas e verificad
 
 | Indicador | Resultado | Critério |
 | --- | ---: | --- |
-| **Implementação — piso técnico comprovado** | **72,28%** (16,63 pontos / 23) | 13 aceites + marcos auditados 2.1, 2.2, 2.3, 4.2 (5/8), 5.3, 6.2, 6.3 (1/5) e 6.4 (2/5). |
+| **Implementação — piso técnico comprovado** | **72,72%** (16,73 pontos / 23) | 13 aceites + marcos auditados 2.1, 2.2, 2.3, 4.2 (5/8), 5.3, 6.2 (3/6), 6.3 (1/5) e 6.4 (2/5). |
 | **Aceites finais para vendas** | **56,52%** (13 / 23) | Somente itens com homologação integral e recibo; 10 permanecem pendentes. |
 
 A implementação usa **crédito proporcional limitado a gates concluídos**, não porcentagem arbitrária dada pelo assistente. Cada um dos 23 itens tem peso igual. Neste registro, os dois itens pendentes ainda não auditados no novo formato têm zero crédito **no cálculo conservador** (isso não significa que não tenham código). Para os oito itens auditados, cada gate completo recebe 1/N do item, e o último gate jamais pode somar 100% sem aceite oficial.
@@ -19,10 +19,11 @@ Assim, o índice de implementação é **um piso técnico com escopo explicitame
 - PR213 integrada: regra uniforme de validade de assinatura e identidade do cache; CI geral e builds positivos.
 - Não computados: testes completos de expiração/limpeza em aparelhos físicos; reautenticação/suspensão e distribuição em aparelhos reais. iOS continua fora da homologação.
 
-**6.2 — 2 de 5 marcos técnicos**
+**6.2 — 3 de 6 marcos técnicos**
 - Rotina de recuperação com criptografia e restauração descartável verificadas.
 - Cópia histórica do banco de 29/10 restaurada em ambiente isolado, com 125 tabelas, 14.024 linhas e 202 FKs.
-- Não computados: 116 arquivos ainda ausentes da cópia histórica, restauração conjunta de todos os bytes, conciliação de dados e validação operacional atual. Os 592 arquivos copiados não são considerados um gate completo.
+- Os **33 ZIPs privados** do snapshot histórico tiveram tamanho e SHA-256 dos **6.489.970.080 bytes de ZIP** confrontados com o índice AES-256-GCM autenticado, com 33/33 coincidências e nenhuma falha. Nenhum objeto clínico foi exposto ou alterado. [Recibo de integridade física](evidence/full-storage-volumes-hash-20261101.md).
+- Não computados: **116 objetos ainda ausentes (1.968.840.906 bytes)** da cópia histórica, restauração conjunta de todos os bytes, conciliação de dados e validação operacional atual. A verificação dos ZIPs não é restauração dos 592 objetos nem conclusão do Storage.
 
 **4.2 — 5 de 8 marcos técnicos**
 - Comprovados: login Master AAL2 e duas decisões de revisão individual auditadas em Sandbox em 24/10; teste de fronteira de etapas com cenário órfão/ausente entre empresas [PR #215](https://github.com/GustavoFboz/dtfipo/pull/215), [CI geral](https://github.com/GustavoFboz/dtfipo/actions/runs/41267138270).
@@ -62,6 +63,6 @@ O arquivo `docs/saas/IMPLEMENTATION-PROGRESS.json` guarda a lista de aceites ofi
 
     node scripts/saas-implementation-progress.mjs
 
-Os doze testes em `scripts/saas-implementation-progress.test.mjs` recusam marcos sem evidência, duplicações, mudança artificial do denominador, pontuação de critérios já aceitos e 100% técnico antes da homologação formal. A CI de progresso usa fixtures e dados de status, não acessa Cloud/Asaas, não baixa nenhum objeto nem publica o sistema.
+Os treze testes em `scripts/saas-implementation-progress.test.mjs` recusam marcos sem evidência, duplicações, mudança artificial do denominador, pontuação de critérios já aceitos e 100% técnico antes da homologação formal. A CI de progresso usa fixtures e dados de status, não acessa Cloud/Asaas, não baixa nenhum objeto nem publica o sistema.
 
 **Estado do produto após esta alteração:** proteções de guardas offline e continuidade de contas no cache do paciente foram integradas ao GitHub; os aplicativos instalados ainda não receberam a atualização e o requisito 2.3 segue sem aceite completo. O trabalho sobre o backup 6.2 continua independente e pendente de finalização. Para ultrapassar 60% **em aceites finais**, é obrigatório concluir integralmente 6.2 ou outro critério pendente, não apenas observar o índice técnico.
