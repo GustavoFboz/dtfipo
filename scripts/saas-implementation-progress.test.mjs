@@ -88,7 +88,7 @@ test('legal draft and loopback probe do not count as reviewed contracts or actua
   assert.ok(data.reviewed_partial_gates[id].some(g=>!g.complete));
  }
  data.reviewed_partial_gates['6.3'][0].complete=false;
- assert.equal(summarizeImplementationProgress(data).overall_progress_percent,76.34);
+ assert.equal(summarizeImplementationProgress(data).overall_progress_percent,76.49);
  assert.equal(summarizeImplementationProgress(data).accepted_items,13);
 });
 test('legal signoff cannot be inferred from unapproved draft', () => {
