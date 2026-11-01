@@ -11,18 +11,26 @@ test('formal acceptance stays at 13/23 while independently verified engineering 
   assert.equal(result.accepted_items,13);
   assert.equal(result.remaining_items,10);
   assert.equal(result.official_acceptance_percent,56.52);
-  assert.equal(result.engineering_evidence_percent,60.87);
-  assert.equal(result.verified_partial_gate_points,1);
-  assert.deepEqual(result.reviewed_partial_items,['2.3','6.2']);
-  assert.equal(result.unreviewed_remaining_items.length,8);
+  assert.equal(result.engineering_evidence_percent,62.61);
+  assert.equal(result.verified_partial_gate_points,1.4);
+  assert.deepEqual(result.reviewed_partial_items,['2.3','4.2','6.2']);
+  assert.equal(result.unreviewed_remaining_items.length,7);
 });
 
 test('technical score changes with documented gate but formal count cannot change', () => {
   const data = clone();
   data.reviewed_partial_gates['2.3'][2].complete = false;
   const next = summarizeImplementationProgress(data);
-  assert.equal(next.engineering_evidence_percent,60);
+  assert.equal(next.engineering_evidence_percent,61.74);
   assert.equal(next.official_acceptance_percent,56.52);
+});
+
+test('4.2 security gate cannot be promoted by report without a completed evidence receipt', () => {
+  const data = clone();
+  data.reviewed_partial_gates['4.2'][1].complete = false;
+  const scored = summarizeImplementationProgress(data);
+  assert.equal(scored.engineering_evidence_percent,61.74);
+  assert.equal(scored.official_acceptance_percent,56.52);
 });
 
 test('rejects duplicated accepted items, changed denominator and invented criteria', () => {
