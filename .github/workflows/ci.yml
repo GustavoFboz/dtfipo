@@ -45,6 +45,9 @@ jobs:
           bun scripts/check-desktop-entitlement-bootstrap-032.mjs
           bun test src/lib/subscriptions.desktop.test.ts
 
+      - name: Verify tenant-scoped patient and reference caches
+        run: bunx vitest run --configLoader runner src/lib/patients-local-first.owner-boundary.test.ts src/lib/reference-local-first.owner-boundary.test.ts
+
       - name: Verify Desktop case dialogs and offline case creation
         run: bun scripts/check-desktop-case-dialog-offline.mjs
 
