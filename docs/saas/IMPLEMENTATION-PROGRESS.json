@@ -81,8 +81,8 @@
       {
         "id": "historical-archive-physical-integrity",
         "complete": true,
-        "description": "Read-only audit of all 33 private historical ZIP volumes and 6,489,970,080 archive bytes against SHA-256 of the authenticated encrypted index; 116 original objects still missing and not considered complete backup",
-        "evidence": "docs/saas/evidence/full-storage-volumes-hash-20261101.md"
+        "description": "All 33 private historical ZIPs SHA-256 verified against AES-256-GCM index; additionally 33 manifests and all 592 preserved object payloads (6,489,242,325 content bytes) authenticated/decrypted in-memory and independently checked against hashes, with 116 objects still missing",
+        "evidence": "docs/saas/evidence/copied-592-content-aesgcm-20261101.md"
       },
       {
         "id": "storage-full-copy",

@@ -37,6 +37,12 @@ A rodada posterior conferiu de verdade **todos os 33 ZIPs** preservados na Bibli
 
 **O total de 592 objetos copiados, 116 objetos ausentes e 1.968.840.906 bytes faltantes não mudou.** Não declarar backup integral, restauração concluída nem 6.2 aceito.
 
+## Continuidade — autenticação dos objetos em 01/11/2026
+
+Os 33 ZIPs foram auditados por conteúdo: 33 manifestos AES-256-GCM abertos com autenticidade, **592/592 arquivos preservados validados em memória por descriptografia GCM + SHA-256** e 6.489.242.325 bytes originais íntegros. Os dados de pacientes não foram gravados em texto claro nem incluídos no Git. [Prova e limites](evidence/copied-592-content-aesgcm-20261101.md).
+
+Os **116 objetos e 1.968.840.906 bytes ainda não copiados continuam faltando**. Um plano criptografado de retomada com 29 lotes de até quatro objetos também foi preparado em cofre privado, porém nenhum download da origem foi realizado. [Recibo](evidence/encrypted-storage-resume-20261101.md).
+
 ## Próxima execução
 
 Usar o índice autenticado MAIS RECENTE (592 recibos), não o checkpoint operacional anterior (576). Obter somente os 116 objetos restantes, até quatro por lote e um download de origem por vez, preservando fragmentos criptografados antes de novas tentativas. Conciliar 21 exportações posteriores separadamente, em vez de misturá-las no snapshot histórico.

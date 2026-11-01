@@ -22,7 +22,7 @@ Assim, o índice de implementação é **um piso técnico com escopo explicitame
 **6.2 — 3 de 6 marcos técnicos**
 - Rotina de recuperação com criptografia e restauração descartável verificadas.
 - Cópia histórica do banco de 29/10 restaurada em ambiente isolado, com 125 tabelas, 14.024 linhas e 202 FKs.
-- Os **33 ZIPs privados** do snapshot histórico tiveram tamanho e SHA-256 dos **6.489.970.080 bytes de ZIP** confrontados com o índice AES-256-GCM autenticado, com 33/33 coincidências e nenhuma falha. Nenhum objeto clínico foi exposto ou alterado. [Recibo de integridade física](evidence/full-storage-volumes-hash-20261101.md).
+- Os **33 ZIPs privados** do snapshot histórico tiveram tamanho e SHA-256 dos **6.489.970.080 bytes de ZIP** validados. A prova foi ampliada: **33 manifestos autenticados e 592/592 objetos preservados descriptografados somente em memória e conferidos por SHA-256**, totalizando **6.489.242.325 bytes de conteúdo** íntegros. Nenhum prontuário foi escrito em texto claro. [Recibo físico](evidence/full-storage-volumes-hash-20261101.md) e [recibo do conteúdo](evidence/copied-592-content-aesgcm-20261101.md).
 - Não computados: **116 objetos ainda ausentes (1.968.840.906 bytes)** da cópia histórica, restauração conjunta de todos os bytes, conciliação de dados e validação operacional atual. A verificação dos ZIPs não é restauração dos 592 objetos nem conclusão do Storage.
 
 **4.2 — 5 de 8 marcos técnicos**
