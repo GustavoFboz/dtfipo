@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { MasterPage } from "./MasterPage";
+import protocolProgress from "@/data/saas-protocol-progress.json";
 
 const client = vi.hoisted(() => ({
   auth: { getSession: vi.fn(), getUser: vi.fn(), onAuthStateChange: vi.fn(), mfa: {
@@ -123,10 +124,10 @@ describe("Master dashboard UI across accounts and sessions", () => {
   it("shows one official SaaS protocol percentage only after Master authentication", async () => {
     await render();
     expect(text()).toContain("Protocolo SaaS — implementação");
-    expect(text()).toContain("72,72%");
+    expect(text()).toContain(new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(protocolProgress.overall_progress_percent) + "%");
     expect(text()).not.toContain("56,52%");
     expect(host.querySelectorAll('[role="progressbar"][aria-label="Implementação do Protocolo SaaS"]')).toHaveLength(1);
-    expect(host.querySelector('[aria-label="Implementação do Protocolo SaaS"]')?.getAttribute("aria-valuenow")).toBe("72.72");
+    expect(host.querySelector('[aria-label="Implementação do Protocolo SaaS"]')?.getAttribute("aria-valuenow")).toBe(String(protocolProgress.overall_progress_percent));
     expect(text()).toContain("13 de 23 critérios totalmente validados");
     expect(text()).toContain("Liberação comercial ainda não autorizada pelo protocolo.");
     await act(async () => emit("SIGNED_OUT",null));
