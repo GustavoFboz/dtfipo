@@ -128,6 +128,7 @@ describe("Master dashboard UI across accounts and sessions", () => {
     expect(host.querySelectorAll('[role="progressbar"][aria-label="Implementação do Protocolo SaaS"]')).toHaveLength(1);
     expect(host.querySelector('[aria-label="Implementação do Protocolo SaaS"]')?.getAttribute("aria-valuenow")).toBe("72.72");
     expect(text()).toContain("13 de 23 critérios totalmente validados");
+    expect(text()).toContain("Liberação comercial bloqueada enquanto houver critérios pendentes.");
     await act(async () => emit("SIGNED_OUT",null));
     await settle();
     expect(host.querySelector('[aria-label="Progresso do Protocolo SaaS"]')).toBeNull();
