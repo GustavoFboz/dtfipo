@@ -11,8 +11,8 @@ test('one unified protocol percentage represents accepted and verified partial w
   assert.equal(result.accepted_items,13);
   assert.equal(result.remaining_items,10);
   assert.equal(Object.hasOwn(result,'official_acceptance_percent'),false);
-  assert.equal(result.overall_progress_percent,77.21);
-  assert.equal(result.verified_partial_gate_points,4.758333);
+  assert.equal(result.overall_progress_percent,78.8);
+  assert.equal(result.verified_partial_gate_points,5.125);
   assert.deepEqual(result.reviewed_partial_items,['2.1','2.2','2.3','3.3','4.2','5.3','6.2','6.3','6.4','7.4']);
   assert.equal(result.unreviewed_remaining_items.length,0);
 });
@@ -21,7 +21,7 @@ test('technical score changes with documented gate but formal count cannot chang
   const data = clone();
   data.reviewed_partial_gates['2.3'][2].complete = false;
   const next = summarizeImplementationProgress(data);
-  assert.equal(next.overall_progress_percent,76.34);
+  assert.equal(next.overall_progress_percent,77.93);
   assert.equal(next.accepted_items,13);
 });
 
@@ -29,7 +29,7 @@ test('4.2 security gate cannot be promoted by report without a completed evidenc
   const data = clone();
   data.reviewed_partial_gates['4.2'][1].complete = false;
   const scored = summarizeImplementationProgress(data);
-  assert.equal(scored.overall_progress_percent,76.67);
+  assert.equal(scored.overall_progress_percent,78.26);
   assert.equal(scored.accepted_items,13);
 });
 
@@ -37,7 +37,7 @@ test('new owner-cache milestone changes technical progress without crediting liv
   const data = clone();
   data.reviewed_partial_gates['4.2'][3].complete = false;
   const scored = summarizeImplementationProgress(data);
-  assert.equal(scored.overall_progress_percent,76.67);
+  assert.equal(scored.overall_progress_percent,78.26);
   assert.equal(scored.accepted_items,13);
 });
 
@@ -45,14 +45,14 @@ test('documented QA harness is technical progress, not real tenant isolation pro
   const data = clone();
   data.reviewed_partial_gates['4.2'][4].complete = false;
   const scored = summarizeImplementationProgress(data);
-  assert.equal(scored.overall_progress_percent,76.67);
+  assert.equal(scored.overall_progress_percent,78.26);
   assert.equal(scored.accepted_items,13);
 });
 
 test('disposable real-role SQL RLS milestone cannot be mistaken for live JWT acceptance', () => {
   const data=clone();
   data.reviewed_partial_gates['4.2'][5].complete=false;
-  assert.equal(summarizeImplementationProgress(data).overall_progress_percent,76.67);
+  assert.equal(summarizeImplementationProgress(data).overall_progress_percent,78.26);
   assert.equal(summarizeImplementationProgress(data).accepted_items,13);
   assert.equal(data.reviewed_partial_gates['4.2'][6].complete,false);
 });
@@ -64,7 +64,7 @@ test('all-volume archive SHA evidence is independent of missing historical Stora
   assert.equal(data.reviewed_partial_gates['6.2'][4].complete,false);
   assert.equal(data.reviewed_partial_gates['6.2'][5].complete,false);
   data.reviewed_partial_gates['6.2'][2].complete=false;
-  assert.equal(summarizeImplementationProgress(data).overall_progress_percent,76.49);
+  assert.equal(summarizeImplementationProgress(data).overall_progress_percent,78.08);
   assert.equal(summarizeImplementationProgress(data).accepted_items,13);
 });
 
@@ -77,7 +77,7 @@ test('financial historical proof is partial even with an audited provider transa
   }
   data.reviewed_partial_gates['5.3'][2].complete=false;
   const next=summarizeImplementationProgress(data);
-  assert.equal(next.overall_progress_percent,76.49);
+  assert.equal(next.overall_progress_percent,78.08);
   assert.equal(next.accepted_items,13);
 });
 
@@ -88,12 +88,12 @@ test('legal draft and loopback probe do not count as reviewed contracts or actua
   assert.ok(data.reviewed_partial_gates[id].some(g=>!g.complete));
  }
  data.reviewed_partial_gates['6.3'][0].complete=false;
- assert.equal(summarizeImplementationProgress(data).overall_progress_percent,76.49);
+ assert.equal(summarizeImplementationProgress(data).overall_progress_percent,78.08);
  assert.equal(summarizeImplementationProgress(data).accepted_items,13);
 });
 test('legal signoff cannot be inferred from unapproved draft', () => {
  const data=clone();data.reviewed_partial_gates['6.4'][1].complete=false;
- assert.equal(summarizeImplementationProgress(data).overall_progress_percent,76.34);
+ assert.equal(summarizeImplementationProgress(data).overall_progress_percent,77.93);
 });
 test('Storage and commercial readiness milestones never imply physical approval or sales release', () => {
   const d=clone();
@@ -103,7 +103,7 @@ test('Storage and commercial readiness milestones never imply physical approval 
     assert.ok(d.remaining_ids.includes(id));
   }
   d.reviewed_partial_gates['3.3'][2].complete=false;
-  assert.equal(summarizeImplementationProgress(d).overall_progress_percent,76.49);
+  assert.equal(summarizeImplementationProgress(d).overall_progress_percent,78.08);
   assert.equal(summarizeImplementationProgress(d).accepted_items,13);
 });
 test('read-only DB snapshot is not equal to a validated Realtime capacity baseline', () => {
@@ -111,13 +111,31 @@ test('read-only DB snapshot is not equal to a validated Realtime capacity baseli
   assert.equal(d.reviewed_partial_gates['6.3'][1].complete,true);
   assert.equal(d.reviewed_partial_gates['6.3'][3].complete,false);
   d.reviewed_partial_gates['6.3'][1].complete=false;
-  assert.equal(summarizeImplementationProgress(d).overall_progress_percent,76.49);
+  assert.equal(summarizeImplementationProgress(d).overall_progress_percent,78.08);
+});
+
+test('verified technical supplier register cannot be mistaken for contracts or legally approved terms',()=>{
+ const d=clone();
+ assert.equal(d.reviewed_partial_gates['6.4'][2].complete,true);
+ assert.equal(d.reviewed_partial_gates['6.4'][3].complete,false);
+ assert.equal(d.reviewed_partial_gates['6.4'][4].complete,false);
+ d.reviewed_partial_gates['6.4'][2].complete=false;
+ assert.equal(summarizeImplementationProgress(d).overall_progress_percent,77.93);
+ assert.ok(d.remaining_ids.includes('6.4'));
+});
+test('disposable staging SQL fixture journal cannot be confused with real Realtime or load tests',()=>{
+ const d=clone();
+ assert.equal(d.reviewed_partial_gates['6.3'][2].complete,true);
+ for(const g of d.reviewed_partial_gates['6.3'].slice(3))assert.equal(g.complete,false);
+ d.reviewed_partial_gates['6.3'][2].complete=false;
+ assert.equal(summarizeImplementationProgress(d).overall_progress_percent,78.08);
+ assert.ok(d.remaining_ids.includes('6.3'));
 });
 
 test('the unified percentage is the ONLY percentage field, and 100% requires 23 accepted items', () => {
   const result = summarizeImplementationProgress(clone());
   assert.deepEqual(Object.keys(result).filter(key => key.endsWith('_percent')), ['overall_progress_percent']);
-  assert.equal(result.overall_progress_percent,77.21);
+  assert.equal(result.overall_progress_percent,78.8);
   const complete=clone();complete.official_acceptance.accepted_ids=[...complete.official_acceptance.accepted_ids,...complete.remaining_ids];
   complete.remaining_ids=[];
   complete.reviewed_partial_gates={};
