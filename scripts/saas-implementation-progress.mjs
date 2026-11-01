@@ -40,20 +40,18 @@ export function summarizeImplementationProgress(ledger) {
     if (completed === gates.length) throw new Error('PROGRESS_UNACCEPTED_FULL_SCORE');
     partialPoints += completed / gates.length;
   }
-  const acceptance = accepted.length / ledger.denominator;
   const technical = (accepted.length + partialPoints) / ledger.denominator;
   return {
-    methodology: 'conservative-evidence-floor',
+    methodology: 'single-evidence-based-protocol-progress',
+    overall_progress_percent: percent(technical),
     accepted_items: accepted.length,
     total_items: ledger.denominator,
     remaining_items: remaining.length,
-    official_acceptance_percent: percent(acceptance),
-    engineering_evidence_percent: percent(technical),
     accepted_points: accepted.length,
     verified_partial_gate_points: Number(partialPoints.toFixed(6)),
     reviewed_partial_items: Object.keys(partial).sort(),
     unreviewed_remaining_items: remaining.filter(id => !(id in partial)),
-    note: 'Technical evidence is not sales readiness, physical-device approval or formal acceptance; unreviewed items are not counted.',
+    note: 'One consolidated implementation indicator: accepted criteria plus verified partial gates. 100% requires all 23 formal acceptances. The percentage does not certify sales readiness, device tests or recovery before their specific acceptance.',
   };
 }
 
