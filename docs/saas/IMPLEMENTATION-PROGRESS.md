@@ -15,7 +15,7 @@ Assim, o índice de implementação é **um piso técnico com escopo explicitame
 
 **2.3 — 3 de 5 marcos técnicos**
 - Implementado e testado: política offline de 72 horas.
-- Compilação Windows e teste Android API35 aprovados; **Android API37 falhou no smoke**, apesar do workflow verde.
+- Compilação Windows, inicialização Android API35 e **API37 no emulador** aprovadas; a falha antiga do runner API37 foi corrigida na [PR225](https://github.com/GustavoFboz/dtfipo/pull/225), com os **dois jobs Android concluídos em success** na [run 41330255173](https://github.com/GustavoFboz/dtfipo/actions/runs/41330255173). A instalação física e o fluxo offline 72h ainda não foram homologados.
 - PR213 integrada: regra uniforme de validade de assinatura e identidade do cache; CI geral e builds positivos.
 - Não computados: testes completos de expiração/limpeza em aparelhos físicos; reautenticação/suspensão e distribuição em aparelhos reais. iOS continua fora da homologação.
 
@@ -33,7 +33,7 @@ Assim, o índice de implementação é **um piso técnico com escopo explicitame
 
 - PR226: ensaio transacional no PostgreSQL descartável com duas empresas e dois pacientes fictícios, papel SQL `authenticated` e controle positivo de acesso próprio; confirmou recusa de leitura/alteração/exclusão cruzadas e empresa forjada por INSERT/RPC. Foi executado pelo workflow de restauração com resultado aprovado. **Não é teste de JWT HTTP, revogação de token, MFA ou sessão real**. [Prova](evidence/patient-rls-sql-rehearsal-20261101.md).
 - PR219: implementado e testado o verificador de isolamento somente leitura, que exige controles positivos por empresa antes de conceder um resultado de acesso negativo. A CI isolada e geral, mais a restauração, passaram. **O ensaio autenticado real ainda não foi realizado**, pois as duas clínicas aprovadas de QA tinham 0 pacientes e 0 casos. Esse marco premia apenas a ferramenta comprovada, e mantém o teste autenticado como pendência separada. [Limites da evidência](evidence/tenant-readonly-positive-control-20261101.md).
-- Diagnóstico nativo das PRs anteriores: Windows e Android API35 passaram, porém o job experimental Android API37 falhou antes de rodar o smoke do aplicativo, por `adb shell input keyevent 82` no emulador. O workflow agregado verde não altera essa conclusão. [Evidência](evidence/tenant-readonly-positive-control-20261101.md).
+- Histórico da falha Android 37: o emulador originalmente falhava antes do smoke; a execução posterior da PR225 confirmou a configuração do AVD e o teste de inicialização do aplicativo no próprio emulador, sem dispensar a prova em aparelho físico. [Diagnóstico anterior](evidence/tenant-readonly-positive-control-20261101.md) e [resultado atual](evidence/android37-input-ready-smoke-20261101.md).
 
 **2.1 — 2 de 5 marcos técnicos**
 - Comprovados: renovação do período pago via reconciliação Sandbox sem webhook e cancelamento real de assinatura Sandbox com Master/MFA, uma escrita, provider INACTIVE e verificações 18/18. [Recibos de 24/10](evidence/events-recovery-master-20261024.md) e [28/10](evidence/master-cancellation-20261028.md).
