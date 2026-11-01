@@ -120,6 +120,19 @@ afterEach(async () => {
 });
 
 describe("Master dashboard UI across accounts and sessions", () => {
+  it("shows one official SaaS protocol percentage only after Master authentication", async () => {
+    await render();
+    expect(text()).toContain("Protocolo SaaS — implementação");
+    expect(text()).toContain("72,72%");
+    expect(text()).not.toContain("56,52%");
+    expect(host.querySelectorAll('[role="progressbar"][aria-label="Implementação do Protocolo SaaS"]')).toHaveLength(1);
+    expect(host.querySelector('[aria-label="Implementação do Protocolo SaaS"]')?.getAttribute("aria-valuenow")).toBe("72.72");
+    expect(text()).toContain("13 de 23 critérios totalmente validados");
+    await act(async () => emit("SIGNED_OUT",null));
+    await settle();
+    expect(host.querySelector('[aria-label="Progresso do Protocolo SaaS"]')).toBeNull();
+  });
+
   it("refreshes the company status once after an authenticated cancellation without repeating the financial action", async () => {
     billingRequests = [{ id: "78000000-0000-4000-8000-000000000012", subscription_id: "78000000-0000-4000-8000-000000000011",
       kind: "cancel", status: "awaiting_provider", provider_environment: "sandbox", current_plan_name: "Inicial", current_amount_cents: 500,
