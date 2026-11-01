@@ -119,6 +119,12 @@
         "evidence": "https://github.com/GustavoFboz/dtfipo/actions/runs/41276846127"
       },
       {
+        "id": "positive-control-readonly-qa-harness",
+        "complete": true,
+        "description": "Verified read-only, real-JWT tenant-isolation probe requires accessible patient from each approved QA company before testing cross-tenant denial; isolated hermetic CI is positive, live fixture execution remains pending",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/219"
+      },
+      {
         "id": "revocation-and-cross-company-live-probes",
         "complete": false,
         "description": "Authenticated multi-account/session revocation and negative cross-tenant access verified in the live permitted environment"
