@@ -250,8 +250,9 @@
       },
       {
         "id": "staging-journal-and-fixtures",
-        "complete": false,
-        "description": "Approved disposable staging environment with no PII or Asaas, two owned QA fixture journeys and repeatable audit log"
+        "complete": true,
+        "description": "Real restored PostgreSQL disposable staging journal: 2 synthetic companies, 2 SQL-authenticated roles, 4 fake patients and 4 cases; positive own-only reads and rollback verified in CI. This is DB fixture readiness, not HTTP staging, Realtime or capacity proof.",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/236"
       },
       {
         "id": "database-realtime-baseline",
@@ -284,8 +285,9 @@
       },
       {
         "id": "verified-supplier-retention-incident-register",
-        "complete": false,
-        "description": "Validate all subprocessors, hosting regions, retention table, controller support requests and incident procedure with accountable owners"
+        "complete": true,
+        "description": "Audited source-grounded register for actual Supabase/Lovable/Asaas integrations, code TTLs (72h and 300s), ANPD incident minimum record and notification triage, automated tests and explicit unapproved contracts/regions/clinical retention. Not legal review or compliant incident operation.",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/235"
       },
       {
         "id": "qualified-legal-business-review",
