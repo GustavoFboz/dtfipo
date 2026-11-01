@@ -9,7 +9,7 @@ O arquivo [`SUPPLIERS-RETENTION-INCIDENT-REGISTER.json`](SUPPLIERS-RETENTION-INC
 | Integração | Comprovação de código | Região, contrato e suboperadores |
 | --- | --- | --- |
 | **Supabase** — login, PostgreSQL e Storage | `src/integrations/supabase/client.ts`: `createClient` e credenciais apenas via env | **Não validados contratualmente**; endereço de serviço e URL de API não comprovam datacenter ou transferência internacional |
-| **Lovable** — hospedagem/desenvolvimento conectado | `docs/saas/IMPLEMENTATION-PROGRESS.md` e projeto Cloud publicado; não implica dono legal do tratamento | **Não validados contratualmente**, localidade e cadeia de fornecedores pendentes |
+| **Lovable** — hospedagem/desenvolvimento conectado | `docs/saas/GO-LIVE-READINESS-2026-09-29.md` e projeto Cloud publicado; não implica dono legal do tratamento | **Não validados contratualmente**, localidade e cadeia de fornecedores pendentes |
 | **Asaas** — cobrança e notificações | `src/routes/api/billing/asaas-webhook.ts`, `receiveAsaasWebhook` | **Não validados contratualmente**, confirmar quais dados da clínica são transmitidos e obrigações fiscais |
 
 Serviços de e-mail, analytics, log e suporte requerem inspeção própria antes de declarar inventário exaustivo. O uso de provedores não autoriza, por si só, repasse de dados clínicos.
