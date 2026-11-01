@@ -8,6 +8,7 @@ on:
     paths:
       - "docs/saas/legal/**"
       - "scripts/saas-legal-drafts.test.mjs"
+      - "scripts/saas-legal-supplier-retention.test.mjs"
       - ".github/workflows/saas-legal-drafts.yml"
 
 permissions:
@@ -23,4 +24,4 @@ jobs:
         with:
           node-version: "22"
       - name: Assert contracts are unapproved internal drafts
-        run: node --test scripts/saas-legal-drafts.test.mjs
+        run: node --test scripts/saas-legal-drafts.test.mjs scripts/saas-legal-supplier-retention.test.mjs
