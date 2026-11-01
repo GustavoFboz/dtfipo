@@ -6,6 +6,8 @@ on:
     paths:
       - "scripts/recovery/audit-external-copy.mjs"
       - "scripts/recovery/audit-external-copy.test.mjs"
+      - "scripts/recovery/prepare-storage-resume.mjs"
+      - "scripts/recovery/prepare-storage-resume.test.mjs"
       - "scripts/recovery/archive.mjs"
       - ".github/workflows/saas-storage-copy-continuity.yml"
   workflow_dispatch:
@@ -23,4 +25,4 @@ jobs:
         with:
           node-version: "22"
       - name: Exercise encrypted checkpoint reader with fictitious data
-        run: node --test scripts/recovery/audit-external-copy.test.mjs
+        run: node --test scripts/recovery/audit-external-copy.test.mjs scripts/recovery/prepare-storage-resume.test.mjs
