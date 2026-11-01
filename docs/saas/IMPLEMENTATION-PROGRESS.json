@@ -45,8 +45,8 @@
       {
         "id": "native-compilation",
         "complete": true,
-        "description": "Windows native build and Android API35 smoke; Android API37 smoke is NOT accepted",
-        "evidence": "https://github.com/GustavoFboz/dtfipo/actions/runs/41231161715"
+        "description": "Windows native installer build, Android API35 and Android API37 emulated startup smoke both passed; physical devices, signed distribution and 72h expiration remain unaccepted",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/actions/runs/41330255173"
       },
       {
         "id": "consistent-entitlement-guard",
