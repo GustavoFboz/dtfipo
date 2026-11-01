@@ -105,9 +105,17 @@ BEGIN
   RAISE EXCEPTION 'ACTOR_A_REJECTED_ROW_PERSISTED';
  END IF;
  blocked:=false;
- BEGIN UPDATE public.patients SET clinic_id=foreign_company WHERE id=own;
- EXCEPTION WHEN OTHERS THEN blocked:=SQLERRM LIKE '%COMPANY%' OR SQLERRM LIKE '%clinic%'; END;
- IF NOT blocked THEN RAISE EXCEPTION 'ACTOR_A_COMPANY_MUTATED'; END IF;
+ n:=0;
+ BEGIN
+  UPDATE public.patients SET clinic_id=foreign_company WHERE id=own;
+  GET DIAGNOSTICS n=ROW_COUNT;
+ EXCEPTION WHEN insufficient_privilege THEN blocked:=true; END;
+ -- Either no row passes the UPDATE policy or an ownership guard rejects it.
+ -- A successful UPDATE affecting any row is never allowed.
+ IF n<>0 OR (NOT blocked AND
+   (SELECT clinic_id FROM public.patients WHERE id=own) IS DISTINCT FROM my_company) THEN
+  RAISE EXCEPTION 'ACTOR_A_COMPANY_MUTATED';
+ END IF;
 
  -- Idempotent RPC must reject a forged target company even if caller is CEO.
  blocked:=false;
