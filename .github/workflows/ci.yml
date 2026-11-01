@@ -46,7 +46,7 @@ jobs:
           bun test src/lib/subscriptions.desktop.test.ts
 
       - name: Verify private Storage and cross-company UI cache isolation
-        run: bunx vitest run --configLoader runner src/lib/storage.test.ts src/lib/api.storage.test.ts src/lib/private-file-reference.test.ts src/lib/private-file-access.test.ts src/components/StorageUploadReservations.test.tsx
+        run: bunx vitest run --configLoader runner src/lib/storage.test.ts src/lib/api.storage.test.ts src/lib/private-file-reference.test.ts src/lib/private-file-access.test.ts src/components/StorageUploadReservations.test.tsx src/components/StorageManagementPage.owner-boundary.test.tsx
 
       - name: Verify tenant-scoped patient and reference caches
         run: bunx vitest run --configLoader runner src/lib/patients-local-first.owner-boundary.test.ts src/lib/reference-local-first.owner-boundary.test.ts
