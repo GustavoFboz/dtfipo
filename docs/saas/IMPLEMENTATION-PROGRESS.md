@@ -4,10 +4,10 @@ O progresso técnico deve variar quando melhorias são implementadas e verificad
 
 | Indicador | Resultado | Critério |
 | --- | ---: | --- |
-| **Implementação — piso técnico comprovado** | **63,35%** (14,57 pontos / 23) | 13 critérios com aceite + 3 de 5 marcos do 2.3, 2 de 5 do 6.2 e 4 de 7 do 4.2. |
+| **Implementação — piso técnico comprovado** | **69,44%** (15,97 pontos / 23) | 13 aceites + 2/5 do 2.1, 2/4 do 2.2, 3/5 do 2.3, 4/7 do 4.2, 3/6 do 5.3 e 2/5 do 6.2. |
 | **Aceites finais para vendas** | **56,52%** (13 / 23) | Somente itens com homologação integral e recibo; 10 permanecem pendentes. |
 
-A implementação usa **crédito proporcional limitado a gates concluídos**, não porcentagem arbitrária dada pelo assistente. Cada um dos 23 itens tem peso igual. Neste registro, os sete itens pendentes ainda não auditados no novo formato têm zero crédito **no cálculo conservador** (isso não significa que não tenham código). Para os três itens auditados, cada gate completo recebe 1/N do item, e o último gate jamais pode somar 100% sem aceite oficial.
+A implementação usa **crédito proporcional limitado a gates concluídos**, não porcentagem arbitrária dada pelo assistente. Cada um dos 23 itens tem peso igual. Neste registro, os quatro itens pendentes ainda não auditados no novo formato têm zero crédito **no cálculo conservador** (isso não significa que não tenham código). Para os seis itens auditados, cada gate completo recebe 1/N do item, e o último gate jamais pode somar 100% sem aceite oficial.
 
 Assim, o índice de implementação é **um piso técnico com escopo explicitamente limitado**, não previsão de horas restantes, prontidão comercial, percentual de trabalho real ou certificação de produção. O valor não substitui a porcentagem oficial de aceites do `ACCEPTANCE-PROGRESS.md`.
 
@@ -33,7 +33,19 @@ Assim, o índice de implementação é **um piso técnico com escopo explicitame
 - PR219: implementado e testado o verificador de isolamento somente leitura, que exige controles positivos por empresa antes de conceder um resultado de acesso negativo. A CI isolada e geral, mais a restauração, passaram. **O ensaio autenticado real ainda não foi realizado**, pois as duas clínicas aprovadas de QA tinham 0 pacientes e 0 casos. Esse marco premia apenas a ferramenta comprovada, e mantém o teste autenticado como pendência separada. [Limites da evidência](evidence/tenant-readonly-positive-control-20261101.md).
 - Diagnóstico nativo das PRs anteriores: Windows e Android API35 passaram, porém o job experimental Android API37 falhou antes de rodar o smoke do aplicativo, por `adb shell input keyevent 82` no emulador. O workflow agregado verde não altera essa conclusão. [Evidência](evidence/tenant-readonly-positive-control-20261101.md).
 
-Os demais itens ainda abertos (2.1, 2.2, 3.3, 5.3, 6.3, 6.4 e 7.4) **não são estimados ou pontuados nesta revisão**. Serão auditados separadamente com marcos verificáveis, sem retirar nem inventar conclusões.
+**2.1 — 2 de 5 marcos técnicos**
+- Comprovados: renovação do período pago via reconciliação Sandbox sem webhook e cancelamento real de assinatura Sandbox com Master/MFA, uma escrita, provider INACTIVE e verificações 18/18. [Recibos de 24/10](evidence/events-recovery-master-20261024.md) e [28/10](evidence/master-cancellation-20261028.md).
+- Pendentes: atraso/carência real, estorno/contestação e suspensão, reativação. Nenhuma transição foi simulada como evento real.
+
+**2.2 — 2 de 4 marcos técnicos**
+- Comprovados: preservação do período e ledger na renovação; cancelamento que preservou 701 arquivos, dados clínicos, três cobranças, histórico e vigência paga, conferidos por observação independente.
+- Pendentes: preservar dados e cobrança em inadimplência/estorno e reativação. [Evidência](evidence/master-cancellation-20261028.md).
+
+**5.3 — 3 de 6 marcos técnicos**
+- Comprovados: agenda real de downgrade Growth para Inicial/R$5 no Asaas Sandbox em 18/12/2026, operação única auditada por Master MFA, termo local ainda `scheduled` e sem ativação ou cobrança antecipada. [Evidência](evidence/master-plan-change-20261028.md).
+- Pendentes: confirmar vigência/pagamento futuro, cota pós-downgrade e falha financeira ambígua recuperada uma vez. **Não antecipar 18/12 nem modificar o contrato para obter aceites hoje.**
+
+Os demais itens ainda abertos (3.3, 6.3, 6.4 e 7.4) **não são estimados ou pontuados nesta revisão**. Serão auditados separadamente com marcos verificáveis, sem retirar nem inventar conclusões.
 
 ## Reproduzir e atualizar
 
@@ -41,6 +53,6 @@ O arquivo `docs/saas/IMPLEMENTATION-PROGRESS.json` guarda a lista de aceites ofi
 
     node scripts/saas-implementation-progress.mjs
 
-Os oito testes em `scripts/saas-implementation-progress.test.mjs` recusam marcos sem evidência, duplicações, mudança artificial do denominador, pontuação de critérios já aceitos e 100% técnico antes da homologação formal. A CI de progresso usa fixtures e dados de status, não acessa Cloud/Asaas, não baixa nenhum objeto nem publica o sistema.
+Os nove testes em `scripts/saas-implementation-progress.test.mjs` recusam marcos sem evidência, duplicações, mudança artificial do denominador, pontuação de critérios já aceitos e 100% técnico antes da homologação formal. A CI de progresso usa fixtures e dados de status, não acessa Cloud/Asaas, não baixa nenhum objeto nem publica o sistema.
 
 **Estado do produto após esta alteração:** proteções de guardas offline e continuidade de contas no cache do paciente foram integradas ao GitHub; os aplicativos instalados ainda não receberam a atualização e o requisito 2.3 segue sem aceite completo. O trabalho sobre o backup 6.2 continua independente e pendente de finalização. Para ultrapassar 60% **em aceites finais**, é obrigatório concluir integralmente 6.2 ou outro critério pendente, não apenas observar o índice técnico.
