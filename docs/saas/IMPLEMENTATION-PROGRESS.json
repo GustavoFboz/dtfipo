@@ -79,6 +79,12 @@
         "evidence": "docs/saas/STORAGE-COPY-CONTINUITY-20261031.md"
       },
       {
+        "id": "historical-archive-physical-integrity",
+        "complete": true,
+        "description": "Read-only audit of all 33 private historical ZIP volumes and 6,489,970,080 archive bytes against SHA-256 of the authenticated encrypted index; 116 original objects still missing and not considered complete backup",
+        "evidence": "docs/saas/evidence/full-storage-volumes-hash-20261101.md"
+      },
+      {
         "id": "storage-full-copy",
         "complete": false,
         "description": "All 708 objects of 29/10 frozen inventory copied and authenticated; 592 verified/116 missing"
