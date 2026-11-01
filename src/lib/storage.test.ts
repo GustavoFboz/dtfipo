@@ -186,3 +186,30 @@ describe("manual recovery of abandoned upload reservations", () => {
     } finally { vi.unstubAllGlobals(); }
   });
 });
+
+describe("company-scoped managed files on web, desktop, and native app shared code", () => {
+  beforeEach(() => {
+    vi.resetModules(); vi.clearAllMocks();
+    query.select.mockReturnValue(query); query.eq.mockReturnValue(query);
+  });
+  it("never queries without a company", async () => {
+    const storage = await import("./storage");
+    await expect(storage.fetchStorageFiles("")).resolves.toEqual([]);
+    expect(from).not.toHaveBeenCalled();
+  });
+  it("queries only the requested company and drops leaked foreign rows", async () => {
+    const own = { id: "file-a", clinic_id: "clinic-a", status: "ready" };
+    const foreign = { id: "file-b", clinic_id: "clinic-b", status: "ready" };
+    query.order.mockResolvedValue({ data: [own, foreign], error: null });
+    const storage = await import("./storage");
+    expect(await storage.fetchStorageFiles("clinic-a")).toEqual([own]);
+    expect(query.eq.mock.calls).toEqual([["clinic_id", "clinic-a"], ["status", "ready"]]);
+    expect(query.order).toHaveBeenCalledWith("created_at", { ascending: false });
+  });
+  it("isolates cached lists across both owner and company changes", async () => {
+    const { storageFilesScopeKey } = await import("./storage");
+    expect(storageFilesScopeKey("actor-a", "clinic-a")).not.toEqual(storageFilesScopeKey("actor-b", "clinic-a"));
+    expect(storageFilesScopeKey("actor-a", "clinic-a")).not.toEqual(storageFilesScopeKey("actor-a", "clinic-b"));
+    expect(storageFilesScopeKey("actor-a", "clinic-a")).toEqual(["storage_files","actor-a","clinic-a"]);
+  });
+});
