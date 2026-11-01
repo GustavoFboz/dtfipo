@@ -3,7 +3,7 @@ import {test} from 'node:test';
 import {readFileSync} from 'node:fs';
 import {releaseDecision} from './saas-sales-release-gate.mjs';
 const ledger=JSON.parse(readFileSync('docs/saas/IMPLEMENTATION-PROGRESS.json','utf8'));
-test('blocks all sales at the current 72.72% without authorizing any production action',()=>{
+test('blocks all sales at any incomplete protocol percentage without production action',()=>{
  const result=releaseDecision(structuredClone(ledger));
  assert.equal(result.status,'blocked');
  assert.equal(result.release_authorized,false);
