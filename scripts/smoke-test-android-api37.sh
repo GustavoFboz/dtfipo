@@ -10,14 +10,14 @@ export ANDROID_AVD_HOME="${RUNNER_TEMP:-/tmp}/dentalflow-api37-avds"
 mkdir -p "$ANDROID_AVD_HOME"
 sdkmanager --install emulator 'platforms;android-37.0' \
   'system-images;android-37.0;google_apis;x86_64'
-printf 'no\\n' | avdmanager create avd --force --name dentalflow-api37 \
+printf 'no\n' | avdmanager create avd --force --name dentalflow-api37 \
   --package 'system-images;android-37.0;google_apis;x86_64' --device pixel_6 \
   --path "$ANDROID_AVD_HOME/dentalflow-api37.avd"
 test -s "$ANDROID_AVD_HOME/dentalflow-api37.avd/config.ini" || {
   echo "::error::Android37 AVD configuration missing"
   exit 1
 }
-printf 'avd.ini.encoding=UTF-8\\npath=%s\\ntarget=android-37.0\\n' \
+printf 'avd.ini.encoding=UTF-8\npath=%s\ntarget=android-37.0\n' \
   "$ANDROID_AVD_HOME/dentalflow-api37.avd" > "$ANDROID_AVD_HOME/dentalflow-api37.ini"
 "$ANDROID_HOME/emulator/emulator" -list-avds | grep -Fxq dentalflow-api37 || {
   echo "::error::Android37 emulator cannot discover AVD"
