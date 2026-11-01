@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { fetchProfile } from "@/lib/api";
+import { useAuthReady } from "@/hooks/use-auth-ready";
 import { confirm } from "@/lib/confirm";
 import { StorageUploadReservations } from "@/components/StorageUploadReservations";
 import {
@@ -50,14 +51,17 @@ function fmtDate(value: string) {
 export function StorageManagementPage({ context = "laboratory" }: { context?: "laboratory" | "clinic" }) {
   const clinicMode = context === "clinic";
   const qc = useQueryClient();
-  const profile = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
+  const auth = useAuthReady();
+  const profile = useQuery({ queryKey: ["profile", "storage", auth.userId], queryFn: fetchProfile,
+    enabled: auth.isReady && Boolean(auth.userId), staleTime: 0 });
   const storage = useSyncExternalStore(subscribeStorageUsage, getStorageUsageSnapshot, getStorageUsageSnapshot);
   const [search, setSearch] = useState("");
   const [source, setSource] = useState("all");
 
-  const ownerId = profile.data?.id ?? "";
+  const ownerId = auth.userId ?? "";
   const clinicId = profile.data?.clinic_id ?? "";
-  const allowed = canManageStorage(profile.data ?? null) && Boolean(ownerId && clinicId);
+  const allowed = auth.isReady && Boolean(ownerId && clinicId)
+    && profile.data?.id === ownerId && canManageStorage(profile.data ?? null);
   const filesKey = storageFilesScopeKey(ownerId, clinicId);
   const files = useQuery({ queryKey: filesKey, queryFn: () => fetchStorageFiles(clinicId), enabled: allowed, staleTime: 5_000 });
 
@@ -105,7 +109,9 @@ export function StorageManagementPage({ context = "laboratory" }: { context?: "l
   const accentBg = clinicMode ? "bg-[#1e8f87]" : "bg-primary";
   const focusRing = clinicMode ? "focus:ring-[#1e8f87]/15 focus:border-[#1e8f87]/30" : "focus:ring-primary/15 focus:border-primary/30";
 
-  if (profile.isLoading) return <div className="p-8 text-sm text-muted-foreground">Carregando armazenamento…</div>;
+  if (!auth.isReady || profile.isLoading || (auth.userId && profile.isPending)) {
+    return <div className="p-8 text-sm text-muted-foreground">Carregando armazenamento…</div>;
+  }
 
   if (!allowed) {
     return (
