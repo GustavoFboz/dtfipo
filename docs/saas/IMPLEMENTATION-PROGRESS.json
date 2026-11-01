@@ -243,6 +243,12 @@
         "evidence": "https://github.com/GustavoFboz/dtfipo/pull/223"
       },
       {
+        "id": "aggregate-db-readonly-baseline",
+        "complete": true,
+        "description": "Actual read-only minimal Cloud PostgreSQL snapshot of current connections, idle transactions and cumulative counters, using reproducible two-SELECT query, with no performance claims",
+        "evidence": "docs/saas/evidence/db-readonly-baseline-20261101.md"
+      },
+      {
         "id": "staging-journal-and-fixtures",
         "complete": false,
         "description": "Approved disposable staging environment with no PII or Asaas, two owned QA fixture journeys and repeatable audit log"
@@ -290,6 +296,70 @@
         "id": "published-versioned-terms-acceptance",
         "complete": false,
         "description": "Approved contracts deployed with immutable version, representative identity, timestamp, plan price and retrieval evidence"
+      }
+    ],
+    "3.3": [
+      {
+        "id": "shared-web-native-storage-app",
+        "complete": true,
+        "description": "Existing shared Storage pages and attachment clients included in web, Tauri Windows and Android builds; native Android 35/37 startup and Windows installer builds verified, but no physical device file transfer",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/actions/runs/41330255173"
+      },
+      {
+        "id": "private-file-and-quota-contract-in-ci",
+        "complete": true,
+        "description": "Current CI explicitly reruns private reference signing/expiry, upload reservations, quota and deletion fail-closed on shared client code, without claiming native device operations",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/233"
+      },
+      {
+        "id": "storage-tenant-cache-and-auth-owner-scope",
+        "complete": true,
+        "description": "Storage management now binds profile and file queries to Auth user+clinic, filters foreign rows, hides cross-clinic usage snapshots and tests delayed account-switch results",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/233"
+      },
+      {
+        "id": "real-android-storage-journey",
+        "complete": false,
+        "description": "Authenticated Android physical upload, download, open, quota failure and signed URL renewal verified"
+      },
+      {
+        "id": "real-windows-storage-journey",
+        "complete": false,
+        "description": "Authenticated Windows physical upload, download, open and native offline cached file verified"
+      },
+      {
+        "id": "offline-expiry-storage-and-owner-physical",
+        "complete": false,
+        "description": "Physical Windows and Android 72h expiration, re-login, owner swap and local clinical byte purge with unchanged source data"
+      }
+    ],
+    "7.4": [
+      {
+        "id": "manual-release-evidence-guard",
+        "complete": true,
+        "description": "Read-only fail-closed release audit checks all 23 acceptance IDs; partial progress never authorizes selling; even complete status requires human launch review",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/233"
+      },
+      {
+        "id": "master-release-readiness-disclosure",
+        "complete": true,
+        "description": "Authenticated Master progress panel displays one completion percentage and explicit not-authorized release status without falsely claiming checkout is technically disabled",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/233"
+      },
+      {
+        "id": "production-release-candidate-verified",
+        "complete": false,
+        "description": "Exact signed release candidate, native versioning, backend commit and recovery version parity jointly verified and approved"
+      },
+      {
+        "id": "commercial-and-legal-approvals",
+        "complete": false,
+        "description": "Approved offers, prices, final terms, privacy/DPA and account-owner acknowledgement signed"
+      },
+      {
+        "id": "authorized-pilot-and-sales-release",
+        "complete": false,
+        "description": "Real pilot/access reviews and signed owner decision authorize public beta or sales with rollback and monitoring"
       }
     ]
   },

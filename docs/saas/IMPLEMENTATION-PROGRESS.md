@@ -1,14 +1,14 @@
 # DentalFlow — progresso único do Protocolo SaaS (01/11/2026)
 
-O painel Master apresenta **UMA porcentagem geral de implementação: 72,72%**. Essa é a referência oficial para acompanhar o trabalho até 100%, sem uma segunda barra concorrente.
+O painel Master apresenta **UMA porcentagem geral de implementação: 77,21%**. Essa é a referência oficial para acompanhar o trabalho até 100%, sem uma segunda barra concorrente.
 
 | Indicador único | Resultado | Como é calculado |
 | --- | ---: | --- |
-| **Progresso geral do Protocolo SaaS** | **72,72%** | Os 23 critérios têm peso igual. Cada critério homologado conta por inteiro; critérios em andamento recebem crédito proporcional apenas por marcos comprovados e auditados. |
+| **Progresso geral do Protocolo SaaS** | **77,21%** | Os 23 critérios têm peso igual. Cada critério homologado conta por inteiro; critérios em andamento recebem crédito proporcional apenas por marcos comprovados e auditados. |
 
 O acompanhamento mostra também **13 de 23 critérios integralmente validados**, como contagem de status, não como outra porcentagem. Os dez restantes seguem em implementação ou homologação. A contagem de aceites detalhados continua registrada, para auditoria histórica, em `ACCEPTANCE-PROGRESS.md`, mas **não é mais um indicador percentual separado no painel**.
 
-A conclusão exige os 23 critérios integralmente homologados; nem o avanço de testes sintéticos, nem o preparo jurídico ou de backup permitem declarar 100% ou autorizar vendas antes das provas correspondentes. O cálculo é conservador e baseado em evidências, mas não estima com precisão o esforço ou o tempo restante. Os dois critérios ainda sem marcos parciais auditados (3.3 e 7.4) não recebem crédito presumido.
+A conclusão exige os 23 critérios integralmente homologados; nem o avanço de testes sintéticos, nem o preparo jurídico ou de backup permitem declarar 100% ou autorizar vendas antes das provas correspondentes. O cálculo é conservador e baseado em evidências, mas não estima com precisão o esforço ou o tempo restante. Agora os 23 critérios possuem uma trilha de evidência: 13 com homologação integral e dez com controles parciais auditados. Isso não significa que esses dez estejam homologados; as etapas físicas, jurídicas e financeiras ainda pendem.
 
 **Fonte única:** `docs/saas/IMPLEMENTATION-PROGRESS.json`. O script `scripts/saas-implementation-progress.mjs` calcula **somente `overall_progress_percent`**, e `scripts/sync-saas-dashboard-progress.mjs` sincroniza o resumo em `src/data/saas-protocol-progress.json`. O componente `MasterSaasProtocolProgress` exibe esse resumo na rota protegida `/master`. A CI rejeita um painel com snapshot diferente do registro. O valor visível corresponde à última **versão efetivamente publicada**; um merge no GitHub, por si só, não atualiza os aplicativos nem a página já publicada.
 
@@ -48,7 +48,8 @@ A conclusão exige os 23 critérios integralmente homologados; nem o avanço de 
 - Comprovados: agenda real de downgrade Growth para Inicial/R$5 no Asaas Sandbox em 18/12/2026, operação única auditada por Master MFA, termo local ainda `scheduled` e sem ativação ou cobrança antecipada. [Evidência](evidence/master-plan-change-20261028.md).
 - Pendentes: confirmar vigência/pagamento futuro, cota pós-downgrade e falha financeira ambígua recuperada uma vez. **Não antecipar 18/12 nem modificar o contrato para obter aceites hoje.**
 
-**6.3 — 1 de 5 marcos técnicos**
+**6.3 — 2 de 6 marcos técnicos**
+- Baseline agregado da conexão real ao PostgreSQL coletado via duas consultas `SELECT` sem carga, com 15 conexões totais, uma ativa e nenhuma `idle in transaction`. Esse marco **não** prova capacidade, Realtime ou latência; o ensaio gradual continua pendente. [Recibo](evidence/db-readonly-baseline-20261101.md).
 - Implementado script de pré-ensaio com alvo limitado a serviço HTTP descartável em 127.0.0.1, máximo de 40 GETs, concorrência 4 e timeout 3s. Testes herméticos de segurança e relatório de falha passaram na [PR223](https://github.com/GustavoFboz/dtfipo/pull/223).
 - **Não computados:** ambientes e usuários de QA de fato sem dados pessoais, baseline e carga progressiva em staging, testes físicos e comprovação de capacidade. Não há teste de 10 mil usuários nem promessa de desempenho. [Plano](evidence/isolated-capacity-pilot-20261101.md).
 
@@ -56,7 +57,15 @@ A conclusão exige os 23 critérios integralmente homologados; nem o avanço de 
 - Protocolo L01–L08 e mapa preliminar de responsabilidades foram preparados; três minutas internas (Termos SaaS, Aviso de Privacidade e DPA), checklist e controle em CI também estão prontos na [PR222](https://github.com/GustavoFboz/dtfipo/pull/222).
 - **Não computados:** inventário confirmado de fornecedores/retencão/incidentes, revisão jurídica/privacidade e aprovação comercial, publicação com aceite versionado. São minutas **não aprovadas**, não uma declaração de conformidade LGPD ou liberação para venda. [Checklist](legal/REVIEW-GATES.md).
 
-Os itens 3.3 (armazenamento nos aparelhos reais) e 7.4 (autorização de vendas) continuam pendentes, sem nota técnica pontuada nesta revisão. Serão auditados separadamente com marcos verificáveis, sem retirar nem inventar conclusões.
+**3.3 — 3 de 6 marcos técnicos**
+- A base compartilhada Web/Windows/Android e os builds nativos existentes foram verificados; a PR233 fortaleceu o cache por identidade/empresa, filtrou a própria consulta por clínica e passou em testes de troca de sessão, links privados, cota, rollback e exclusão. [Escopo](evidence/storage-company-platform-20261101.md).
+- **Não comprovados:** upload/download e abertura de arquivos em Android e Windows físicos, cache clínico offline e limpeza de 72h nesses aparelhos. Este marco não reconta o aceite 3.1; mede apenas a distribuição do mesmo contrato e a proteção da identidade na UI multiplataforma.
+
+**7.4 — 2 de 5 marcos técnicos**
+- Auditoria de liberação **somente leitura** e aviso Master foram integrados na PR233; dez critérios abertos continuam impedindo autorização de lançamento pelo protocolo. Mesmo com 23/23, será necessária decisão manual. O alerta **não bloqueia tecnicamente o checkout existente**. [Limites](evidence/saas-sales-guard-20261101.md).
+- **Não comprovados:** versão final e rollback aprovados, minutas jurídicas assinadas, piloto e decisão de abrir vendas. O produto NÃO está autorizado para liberação comercial por esta revisão.
+
+Todos os dez critérios ainda abertos foram auditados quanto aos marcos parciais, mas cada um mantém as exigências de homologação final. **Os 13 aceites integrais permanecem inalterados**, sem pontuação dupla e sem vender o SaaS antes da aprovação.
 
 ## Reproduzir e atualizar
 
