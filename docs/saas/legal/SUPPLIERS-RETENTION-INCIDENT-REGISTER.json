@@ -1,0 +1,118 @@
+{
+  "schema": "dentalflow-privacy-governance-source-register-v1",
+  "reviewed_at": "2026-11-01",
+  "status": "INTERNAL_UNAPPROVED",
+  "legal_approval": false,
+  "subprocessor_contracts_verified": false,
+  "customer_publication_allowed": false,
+  "suppliers": [
+    {
+      "id": "supabase",
+      "service": "Auth, PostgreSQL e Storage",
+      "observed_in": "src/integrations/supabase/client.ts",
+      "integration_verified": true,
+      "contract_verified": false,
+      "processing_region_verified": false,
+      "international_transfer_assessment": "PENDING",
+      "corporate_data_needed": "Contracting entity; region; DPA; subprocessors; access"
+    },
+    {
+      "id": "lovable",
+      "service": "Hospedagem Web/Cloud do DentalFlow",
+      "observed_in": "docs/saas/GO-LIVE-READINESS-2026-09-29.md",
+      "integration_verified": true,
+      "contract_verified": false,
+      "processing_region_verified": false,
+      "international_transfer_assessment": "PENDING",
+      "corporate_data_needed": "Hosting legal entity; region; processing roles; subcontractors"
+    },
+    {
+      "id": "asaas",
+      "service": "Checkout, webhook, assinaturas e cobranças",
+      "observed_in": "src/routes/api/billing/asaas-webhook.ts",
+      "integration_verified": true,
+      "contract_verified": false,
+      "processing_region_verified": false,
+      "international_transfer_assessment": "PENDING",
+      "corporate_data_needed": "Payment data categories; legal controller/processor split; retention; DPA"
+    }
+  ],
+  "retention": [
+    {
+      "id": "offline-device-access",
+      "category": "Installed device access window",
+      "value": 72,
+      "unit": "hours",
+      "source": "src/lib/offline-access-policy.ts",
+      "status": "CODE_VERIFIED",
+      "scope": "Access cutoff after online validation; not proof of physical purge or server deletion"
+    },
+    {
+      "id": "private-signed-file-url",
+      "category": "Private signed links",
+      "value": 300,
+      "unit": "seconds",
+      "source": "src/lib/private-file-reference.ts",
+      "status": "CODE_VERIFIED",
+      "scope": "Signed URL lifetime; not clinical content retention"
+    },
+    {
+      "id": "security-incident-record",
+      "category": "Confirmed personal-data security incident records",
+      "value": 5,
+      "unit": "years_minimum",
+      "source": "https://www.gov.br/anpd/pt-br/assuntos/noticias/anpd-aprova-o-regulamento-de-comunicacao-de-incidente-de-seguranca",
+      "status": "REGULATORY_BASELINE_NOT_IMPLEMENTATION",
+      "scope": "Controller registration obligation under ANPD Resolution 15/2024; verify additional preservation duties with counsel"
+    },
+    {
+      "id": "clinical-patient-data",
+      "category": "Clinical records and patient files",
+      "value": null,
+      "unit": "to_be_reviewed",
+      "source": "docs/saas/legal/DPA-DRAFT.md",
+      "status": "NOT_APPROVED",
+      "scope": "No automatic clinical purge or promised deletion timeline"
+    },
+    {
+      "id": "payment-ledger",
+      "category": "Payment and billing records",
+      "value": null,
+      "unit": "to_be_reviewed",
+      "source": "docs/saas/legal/PRIVACY-NOTICE-DRAFT.md",
+      "status": "NOT_APPROVED",
+      "scope": "Confirm tax/accounting obligations, not assumed based on current app code"
+    },
+    {
+      "id": "cloud-backups",
+      "category": "Backups and historical copies",
+      "value": null,
+      "unit": "to_be_reviewed",
+      "source": "docs/saas/evidence/copied-592-content-aesgcm-20261101.md",
+      "status": "NOT_APPROVED",
+      "scope": "116 objects missing from historical copy; no delete-on-request guarantees"
+    }
+  ],
+  "incidents": {
+    "registry_status": "INTERNAL_TEMPLATE_ONLY",
+    "contains_real_incidents": false,
+    "reporting_authority": "Controller following legal evaluation",
+    "external_deadline": "3 business days for qualifying incidents, subject to specific law and qualified legal exceptions",
+    "anpd_reference": "https://www.gov.br/anpd/pt-br/canais_atendimento/agente-de-tratamento/comunicado-de-incidente-de-seguranca-cis",
+    "minimum_fields": [
+      "detected_at",
+      "incident_description",
+      "affected_data_categories",
+      "affected_people_estimate",
+      "risk_assessment",
+      "containment_and_mitigation",
+      "notified_anpd_or_people",
+      "decision_rationale",
+      "incident_owner",
+      "legal_review"
+    ],
+    "preserve_minimum_years": 5,
+    "external_notification_automatic": false,
+    "legal_review_required": true
+  }
+}
