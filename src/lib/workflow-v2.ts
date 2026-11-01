@@ -41,12 +41,25 @@ export const FLOW_LABELS: Record<WorkflowKey, { title: string; description: stri
 export const FLOW_KEYS = Object.keys(FLOW_LABELS) as WorkflowKey[];
 const WORKFLOW_KEY_SET = new Set<WorkflowKey>(FLOW_KEYS);
 
-/** Collaboration may expose two companies' definitions. Select by the case's
- * actual current stage; without an unambiguous company, never mix sequences. */
+/**
+ * A shared-case read may contain multiple companies' workflow definitions.
+ * This is presentation isolation only; the database/RPCs still enforce actual
+ * authorization. A missing/retired case stage must NEVER fall back to another
+ * company's otherwise-unambiguous stage list.
+ */
 export function workflowCompanyStages(stages: WorkflowStageV2[], currentStageId?: string | null) {
-  const company = stages.find((stage) => stage.id === currentStageId)?.clinic_id;
-  if (company) return stages.filter((stage) => stage.clinic_id === company);
-  return new Set(stages.map((stage) => stage.clinic_id).filter(Boolean)).size > 1 ? [] : stages;
+  if (currentStageId) {
+    const current = stages.find((stage) => stage.id === currentStageId);
+    const owner = current?.clinic_id;
+    if (!owner) return [];
+    return stages.filter((stage) => stage.clinic_id === owner);
+  }
+
+  const owners = new Set(stages.map((stage) => stage.clinic_id).filter(Boolean));
+  if (owners.size !== 1) return [];
+  const [owner] = owners;
+  // A legacy/unowned stage is never silently treated as this company's row.
+  return stages.filter((stage) => stage.clinic_id === owner);
 }
 
 export function deriveWorkflowKey(row: { has_mockup?: boolean | null; has_provisional?: boolean | null }): WorkflowKey {
