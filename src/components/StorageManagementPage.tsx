@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { fetchProfile } from "@/lib/api";
+import { useAuthReady } from "@/hooks/use-auth-ready";
 import { confirm } from "@/lib/confirm";
 import { StorageUploadReservations } from "@/components/StorageUploadReservations";
 import {
@@ -24,6 +25,7 @@ import {
   getStorageUsageSnapshot,
   refreshStorageUsage,
   storageSourceLabel,
+  storageFilesScopeKey,
   subscribeStorageUsage,
   type ManagedStorageFile,
 } from "@/lib/storage";
@@ -49,13 +51,19 @@ function fmtDate(value: string) {
 export function StorageManagementPage({ context = "laboratory" }: { context?: "laboratory" | "clinic" }) {
   const clinicMode = context === "clinic";
   const qc = useQueryClient();
-  const profile = useQuery({ queryKey: ["profile"], queryFn: fetchProfile });
+  const auth = useAuthReady();
+  const profile = useQuery({ queryKey: ["profile", "storage", auth.userId], queryFn: fetchProfile,
+    enabled: auth.isReady && Boolean(auth.userId), staleTime: 0 });
   const storage = useSyncExternalStore(subscribeStorageUsage, getStorageUsageSnapshot, getStorageUsageSnapshot);
   const [search, setSearch] = useState("");
   const [source, setSource] = useState("all");
 
-  const allowed = canManageStorage(profile.data ?? null);
-  const files = useQuery({ queryKey: ["storage_files"], queryFn: fetchStorageFiles, enabled: allowed, staleTime: 5_000 });
+  const ownerId = auth.userId ?? "";
+  const clinicId = profile.data?.clinic_id ?? "";
+  const allowed = auth.isReady && Boolean(ownerId && clinicId)
+    && profile.data?.id === ownerId && canManageStorage(profile.data ?? null);
+  const filesKey = storageFilesScopeKey(ownerId, clinicId);
+  const files = useQuery({ queryKey: filesKey, queryFn: () => fetchStorageFiles(clinicId), enabled: allowed, staleTime: 5_000 });
 
   useEffect(() => {
     if (!allowed) return;
@@ -65,18 +73,18 @@ export function StorageManagementPage({ context = "laboratory" }: { context?: "l
   const del = useMutation({
     mutationFn: deleteManagedStorageFile,
     onMutate: async (file) => {
-      await qc.cancelQueries({ queryKey: ["storage_files"] });
-      const previous = qc.getQueryData<ManagedStorageFile[]>(["storage_files"]);
-      qc.setQueryData<ManagedStorageFile[]>(["storage_files"], (old) => (old ?? []).filter((row) => row.id !== file.id));
+      await qc.cancelQueries({ queryKey: filesKey });
+      const previous = qc.getQueryData<ManagedStorageFile[]>(filesKey);
+      qc.setQueryData<ManagedStorageFile[]>(filesKey, (old) => (old ?? []).filter((row) => row.id !== file.id));
       return { previous };
     },
     onError: (error: Error, _file, ctx) => {
-      if (ctx?.previous) qc.setQueryData(["storage_files"], ctx.previous);
+      if (ctx?.previous) qc.setQueryData(filesKey, ctx.previous);
       toast.error(error.message || "Não foi possível excluir o arquivo");
     },
     onSuccess: () => {
       toast.success("Arquivo removido");
-      void qc.invalidateQueries({ queryKey: ["storage_files"] });
+      void qc.invalidateQueries({ queryKey: filesKey });
       void refreshStorageUsage().catch(() => undefined);
     },
   });
@@ -84,23 +92,26 @@ export function StorageManagementPage({ context = "laboratory" }: { context?: "l
   const visible = useMemo(() => {
     const term = search.trim().toLowerCase();
     return (files.data ?? []).filter((file) => {
+      if (file.clinic_id !== clinicId) return false;
       if (source !== "all" && file.source_type !== source) return false;
       if (!term) return true;
       return [file.original_name, file.mime_type, storageSourceLabel(file.source_type)].filter(Boolean).join(" ").toLowerCase().includes(term);
     });
-  }, [files.data, search, source]);
+  }, [files.data, search, source, clinicId]);
 
   const bySource = useMemo(() => {
     const out = new Map<string, number>();
-    for (const file of files.data ?? []) out.set(file.source_type, (out.get(file.source_type) ?? 0) + 1);
+    for (const file of files.data ?? []) if (file.clinic_id === clinicId) out.set(file.source_type, (out.get(file.source_type) ?? 0) + 1);
     return Array.from(out.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [files.data]);
+  }, [files.data, clinicId]);
 
   const accentText = clinicMode ? "text-[#1e8f87]" : "text-primary";
   const accentBg = clinicMode ? "bg-[#1e8f87]" : "bg-primary";
   const focusRing = clinicMode ? "focus:ring-[#1e8f87]/15 focus:border-[#1e8f87]/30" : "focus:ring-primary/15 focus:border-primary/30";
 
-  if (profile.isLoading) return <div className="p-8 text-sm text-muted-foreground">Carregando armazenamento…</div>;
+  if (!auth.isReady || profile.isLoading || (auth.userId && profile.isPending)) {
+    return <div className="p-8 text-sm text-muted-foreground">Carregando armazenamento…</div>;
+  }
 
   if (!allowed) {
     return (
@@ -115,7 +126,8 @@ export function StorageManagementPage({ context = "laboratory" }: { context?: "l
     );
   }
 
-  const usage = storage.data;
+  // The global usage store may retain a previous account during a fast switch.
+  const usage = storage.data?.clinic_id === clinicId ? storage.data : null;
   const pct = usage ? Math.min(100, Math.max(0, usage.usage_ratio * 100)) : 0;
   const warning = !!usage?.almost_full;
   const full = !!usage?.full;

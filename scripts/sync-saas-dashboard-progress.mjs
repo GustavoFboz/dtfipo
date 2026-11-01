@@ -1,8 +1,10 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { summarizeImplementationProgress } from './saas-implementation-progress.mjs';
+import { releaseDecision } from './saas-sales-release-gate.mjs';
 
 const ledger=JSON.parse(readFileSync('docs/saas/IMPLEMENTATION-PROGRESS.json','utf8'));
 const result=summarizeImplementationProgress(ledger);
+const decision=releaseDecision(ledger);
 const data={
   schema:'dentalflow-saas-dashboard-progress-v1',
   recorded_at:ledger.recorded_at,
@@ -12,6 +14,7 @@ const data={
   remaining_items:result.remaining_items,
   pending_ids:[...ledger.remaining_ids],
   reviewed_partial_items:result.reviewed_partial_items.length,
+  sales_release_status:decision.status,
   note:'Indicador único do Protocolo SaaS: aceites integrais e marcos parciais comprovados; 100% depende dos 23 aceites. Dados correspondem à versão publicada.',
 };
 const output=JSON.stringify(data,null,2)+'\n';
