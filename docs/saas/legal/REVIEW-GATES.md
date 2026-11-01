@@ -9,11 +9,11 @@ Base: `docs/saas/LEGAL-OPERATIONS-PROTOCOL.md`, versão 0.1. Pacote de minutas:
 | Frente | Situação verificável | Evidência / próximo aceite |
 | --- | --- | --- |
 | L01 — identidade contratante/prestadora | PENDENTE | Razão social, CNPJ, contato fiscal/privacidade, representante e canal de suporte |
-| L02 — inventário de tratamento e fornecedores | PARCIAL | Matriz inicial no protocolo; confirmar dados sensíveis, fornecedores, regiões/transferências, retenção |
+| L02 — inventário de tratamento e fornecedores | INVENTÁRIO TÉCNICO REVISADO (não aprovado juridicamente) | [Registro de fornecedores, retenção e incidentes](SUPPLIERS-RETENTION-INCIDENT-REGISTER.md); integrações comprovadas no código, **contratos, regiões, transferências e cadeia de subprocessadores não verificados** |
 | L03 — termos SaaS | MINUTA | Revisão de preço comercial, suspensão, cancelamento, exportação e responsabilidades |
 | L04 — privacidade/DPA | MINUTA | Revisão das funções reais de controlador/operador, bases legais art. 11, subprocessadores |
-| L05 — direitos e retenção | PENDENTE | Canal oficial, tabela de retenção e procedimento de resposta aos titulares |
-| L06 — segurança/continuidade | PARCIAL | CI e offline 72h; armazenamento 6.2, dispositivos, rollback e incidente ainda sem aceite final |
+| L05 — direitos e retenção | PARCIAL (inventário de prazos efetivos) | Offline de 72 horas e URLs de 300s comprovados por código, obrigação de registro de incidentes por 5 anos distinguida de retenção de conteúdo; definição de prazos clínicos/financeiros, canal de direitos e testes operacionais pendentes |
+| L06 — segurança/continuidade | PARCIAL | Matriz interna de registro/triagem de incidente com campos obrigatórios e referência ANPD; **não é resposta real a incidente**, nem decisão do controlador. Backup integral, aparelhos e revisão legal pendentes |
 | L07 — SLA e onboarding | PENDENTE | Capacidade piloto, horários/contatos de suporte e métricas de recuperação |
 | L08 — revisão jurídica e aceite versionado | PENDENTE | Aprovações assinadas e infraestrutura para prova imutável de aceite |
 
@@ -25,9 +25,9 @@ Base: `docs/saas/LEGAL-OPERATIONS-PROTOCOL.md`, versão 0.1. Pacote de minutas:
 
 ## Critérios de liberação 6.4
 
-1. Inventário e roteiro de atribuições preparado — **parcialmente feito**, conferir fornecedores reais.
+1. Inventário técnico de integrações e roteiro de atribuições conferidos com código e testes — **feito somente no plano técnico**; regiões, contratos/DPA, transferências e prestadores adicionais continuam sujeitos a revisão real.
 2. Minutas de Termos, Aviso e DPA com lacunas explícitas — **preparadas como material interno**.
-3. Tabela de retenção, resposta a titulares e gestão de incidentes testadas e aprovadas — **pendente**.
+3. Matriz de prazos efetivos/legais e template de resposta a incidentes **preparados e validados contra código/ANPD**; prazo clínico, financeiro, resposta real, responsáveis e procedimento operacional **não aprovados**.
 4. Revisão jurídica + privacidade com assinatura, identidade da prestadora e aprovação comercial — **pendente**.
 5. Publicação versionada + aceites imutáveis e testes de contratação — **pendente**.
 
