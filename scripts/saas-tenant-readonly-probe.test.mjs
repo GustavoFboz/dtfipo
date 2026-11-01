@@ -80,6 +80,13 @@ describe("read-only tenant access with positive controls", () => {
       await code(runReadonlyTenantProbe({...config(env.fetchImpl),url}),"QA_ORIGIN_INVALID");
     assert.equal(env.calls.length,0);
   });
+  it("rejects legacy service-role JWTs even if they look like public keys", async()=>{
+    const env=mockApi();
+    const elevated = "header." + Buffer.from(JSON.stringify({role:"service_role"})).toString("base64url") + ".signature";
+    await code(runReadonlyTenantProbe({...config(env.fetchImpl),anonKey:elevated}),"QA_ADMIN_CREDENTIAL_FORBIDDEN");
+    await code(runReadonlyTenantProbe({...config(env.fetchImpl),jwtA:elevated}),"QA_ADMIN_CREDENTIAL_FORBIDDEN");
+    assert.equal(env.calls.length,0);
+  });
   it("never accepts secret-typed API keys", async()=>{
     const env=mockApi();
     await code(runReadonlyTenantProbe({...config(env.fetchImpl),anonKey:"sb_secret_should_not_be_used"}),"QA_ADMIN_CREDENTIAL_FORBIDDEN");
