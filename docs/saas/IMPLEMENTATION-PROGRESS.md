@@ -4,7 +4,7 @@ O progresso técnico deve variar quando melhorias são implementadas e verificad
 
 | Indicador | Resultado | Critério |
 | --- | ---: | --- |
-| **Implementação — piso técnico comprovado** | **63,04%** (14,50 pontos / 23) | 13 critérios com aceite + 3 de 5 marcos do 2.3, 2 de 5 do 6.2 e 3 de 6 do 4.2. |
+| **Implementação — piso técnico comprovado** | **63,35%** (14,57 pontos / 23) | 13 critérios com aceite + 3 de 5 marcos do 2.3, 2 de 5 do 6.2 e 4 de 7 do 4.2. |
 | **Aceites finais para vendas** | **56,52%** (13 / 23) | Somente itens com homologação integral e recibo; 10 permanecem pendentes. |
 
 A implementação usa **crédito proporcional limitado a gates concluídos**, não porcentagem arbitrária dada pelo assistente. Cada um dos 23 itens tem peso igual. Neste registro, os sete itens pendentes ainda não auditados no novo formato têm zero crédito **no cálculo conservador** (isso não significa que não tenham código). Para os três itens auditados, cada gate completo recebe 1/N do item, e o último gate jamais pode somar 100% sem aceite oficial.
@@ -24,11 +24,14 @@ Assim, o índice de implementação é **um piso técnico com escopo explicitame
 - Cópia histórica do banco de 29/10 restaurada em ambiente isolado, com 125 tabelas, 14.024 linhas e 202 FKs.
 - Não computados: 116 arquivos ainda ausentes da cópia histórica, restauração conjunta de todos os bytes, conciliação de dados e validação operacional atual. Os 592 arquivos copiados não são considerados um gate completo.
 
-**4.2 — 3 de 6 marcos técnicos**
+**4.2 — 4 de 7 marcos técnicos**
 - Comprovados: login Master AAL2 e duas decisões de revisão individual auditadas em Sandbox em 24/10; teste de fronteira de etapas com cenário órfão/ausente entre empresas [PR #215](https://github.com/GustavoFboz/dtfipo/pull/215), [CI geral](https://github.com/GustavoFboz/dtfipo/actions/runs/41267138270).
 - PR217/CI [workflow 41276846127](https://github.com/GustavoFboz/dtfipo/actions/runs/41276846127): proteção da continuidade da identidade no cache de perfis e pacientes instalados, criação offline e replay da outbox. Esse teste sintético foi separado dos testes de revogação real; é um marco técnico independente e **não substitui homologação Windows/Android**.
 - Leitura agregada em 01/11: 104 pacientes, 12 sem clínica e sem casos, mas um possui vínculo de agendamento com empresa existente e criador compatível. Nenhum consta do ledger de criação segura. Titularidade de qualquer registro permanece não confirmada. O backend já possui dois gatilhos e RPC que exigem empresa ao cadastrar pacientes; portanto não adicionamos regra redundante nem alteramos registros históricos. [Evidência](evidence/patient-owner-continuity-20261101.md).
 - Não computados: atribuição legítima dos 12 registros, provas reais de revogação/sessões e isolamento entre empresas e replay financeiro positivo autorizado. [Auditoria sem dados pessoais](evidence/tenant-security-review-20261031.md).
+
+- PR219: implementado e testado o verificador de isolamento somente leitura, que exige controles positivos por empresa antes de conceder um resultado de acesso negativo. A CI isolada e geral, mais a restauração, passaram. **O ensaio autenticado real ainda não foi realizado**, pois as duas clínicas aprovadas de QA tinham 0 pacientes e 0 casos. Esse marco premia apenas a ferramenta comprovada, e mantém o teste autenticado como pendência separada. [Limites da evidência](evidence/tenant-readonly-positive-control-20261101.md).
+- Diagnóstico nativo das PRs anteriores: Windows e Android API35 passaram, porém o job experimental Android API37 falhou antes de rodar o smoke do aplicativo, por `adb shell input keyevent 82` no emulador. O workflow agregado verde não altera essa conclusão. [Evidência](evidence/tenant-readonly-positive-control-20261101.md).
 
 Os demais itens ainda abertos (2.1, 2.2, 3.3, 5.3, 6.3, 6.4 e 7.4) **não são estimados ou pontuados nesta revisão**. Serão auditados separadamente com marcos verificáveis, sem retirar nem inventar conclusões.
 
@@ -38,6 +41,6 @@ O arquivo `docs/saas/IMPLEMENTATION-PROGRESS.json` guarda a lista de aceites ofi
 
     node scripts/saas-implementation-progress.mjs
 
-Os sete testes em `scripts/saas-implementation-progress.test.mjs` recusam marcos sem evidência, duplicações, mudança artificial do denominador, pontuação de critérios já aceitos e 100% técnico antes da homologação formal. A CI de progresso usa fixtures e dados de status, não acessa Cloud/Asaas, não baixa nenhum objeto nem publica o sistema.
+Os oito testes em `scripts/saas-implementation-progress.test.mjs` recusam marcos sem evidência, duplicações, mudança artificial do denominador, pontuação de critérios já aceitos e 100% técnico antes da homologação formal. A CI de progresso usa fixtures e dados de status, não acessa Cloud/Asaas, não baixa nenhum objeto nem publica o sistema.
 
 **Estado do produto após esta alteração:** proteções de guardas offline e continuidade de contas no cache do paciente foram integradas ao GitHub; os aplicativos instalados ainda não receberam a atualização e o requisito 2.3 segue sem aceite completo. O trabalho sobre o backup 6.2 continua independente e pendente de finalização. Para ultrapassar 60% **em aceites finais**, é obrigatório concluir integralmente 6.2 ou outro critério pendente, não apenas observar o índice técnico.
