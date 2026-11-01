@@ -14,6 +14,14 @@ const ACTORS = Object.freeze([
 ]);
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 
+function privilegedJwt(token) {
+  if (typeof token !== "string" || token.split(".").length !== 3) return false;
+  try {
+    const claims = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8"));
+    return claims.role === "service_role" || claims.role === "supabase_admin";
+  } catch { return false; }
+}
+
 export class TenantProbeError extends Error {
   constructor(code) { super(code); this.name = "TenantProbeError"; }
 }
@@ -31,7 +39,8 @@ function validate(config) {
   if (typeof anonKey !== "string" || !anonKey || typeof jwtA !== "string"
     || typeof jwtB !== "string" || !jwtA || !jwtB || jwtA === jwtB)
     deny("QA_CREDENTIALS_MISSING");
-  if (anonKey === jwtA || anonKey === jwtB || /^sb_secret_|^service_role/i.test(anonKey))
+  if (anonKey === jwtA || anonKey === jwtB || /^sb_secret_|^service_role/i.test(anonKey)
+    || privilegedJwt(anonKey) || privilegedJwt(jwtA) || privilegedJwt(jwtB))
     deny("QA_ADMIN_CREDENTIAL_FORBIDDEN");
   if (!UUID.test(patientA ?? "") || !UUID.test(patientB ?? "") || patientA === patientB)
     deny("QA_SEEDED_POSITIVE_CONTROLS_REQUIRED");
