@@ -133,7 +133,8 @@ jobs:
           sudo chown "$USER" /dev/kvm
           test -r /dev/kvm && test -w /dev/kvm
 
-      - name: Smoke-test installed Android app
+      - name: Smoke-test installed Android app (API 35)
+        if: matrix.api == '35'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api }}
@@ -149,6 +150,11 @@ jobs:
           # Keep stateful variables and checks in one versioned POSIX script.
           script: sh scripts/smoke-test-android.sh
 
+      - name: Smoke-test installed Android app (API 37 with input-ready retry)
+        if: matrix.api == '37.0'
+        shell: bash
+        run: bash scripts/smoke-test-android-api37.sh
+
       - name: Preserve Android startup diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -161,6 +167,7 @@ jobs:
             android-release-ui.xml
             android-renderer-recovery.xml
             android-native-exit.xml
+            android-emulator-api37.log
           if-no-files-found: warn
           retention-days: 7
 
