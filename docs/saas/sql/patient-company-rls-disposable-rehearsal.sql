@@ -87,12 +87,22 @@ BEGIN
  END;
  IF NOT blocked THEN RAISE EXCEPTION 'ACTOR_A_FOREIGN_INSERT_NOT_REJECTED'; END IF;
 
- -- Missing explicit company must *resolve* to the current company, never NULL.
- INSERT INTO public.patients(id,name,clinic_id) VALUES
- ('72600000-0000-4000-8000-000000000014','No company provided',NULL);
- IF (SELECT clinic_id FROM public.patients
+ -- The client must never persist an orphan: RLS may reject direct
+ -- INSERT entirely because the deployed app uses create_patient_idempotent_v1.
+ -- If it ever accepts direct INSERT, ownership MUST be resolved to A.
+ blocked:=false;
+ BEGIN
+  INSERT INTO public.patients(id,name,clinic_id) VALUES
+  ('72600000-0000-4000-8000-000000000014','No company provided',NULL);
+ EXCEPTION WHEN insufficient_privilege THEN blocked:=true; END;
+ IF NOT blocked AND
+     (SELECT clinic_id FROM public.patients
      WHERE id='72600000-0000-4000-8000-000000000014') IS DISTINCT FROM my_company THEN
   RAISE EXCEPTION 'ACTOR_A_ORPHAN_INSERTED';
+ END IF;
+ IF blocked AND EXISTS(SELECT 1 FROM public.patients
+   WHERE id='72600000-0000-4000-8000-000000000014') THEN
+  RAISE EXCEPTION 'ACTOR_A_REJECTED_ROW_PERSISTED';
  END IF;
  blocked:=false;
  BEGIN UPDATE public.patients SET clinic_id=foreign_company WHERE id=own;
