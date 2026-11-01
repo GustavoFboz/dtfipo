@@ -1,6 +1,6 @@
 {
   "schema": "dentalflow-saas-implementation-evidence-v1",
-  "recorded_at": "2026-10-31",
+  "recorded_at": "2026-11-01",
   "source": "docs/saas/ACCEPTANCE-PROGRESS.md",
   "purpose": "Conservative, evidence-based engineering progress indicator separate from the 23 official acceptance decisions.",
   "denominator": 23,
@@ -111,6 +111,12 @@
         "id": "unowned-patient-attribution",
         "complete": false,
         "description": "Determine legitimate ownership for 12 existing patients lacking clinic_id, verify evidence and resolve without guesswork"
+      },
+      {
+        "id": "cross-owner-local-cache-regressions",
+        "complete": true,
+        "description": "Installed profile and patient cache reject asynchronous account swaps, and patient outbox requires current real Cloud actor; covered by synthetic race regressions in general CI, not physical device homologation",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/actions/runs/41276846127"
       },
       {
         "id": "revocation-and-cross-company-live-probes",
