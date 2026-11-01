@@ -11,8 +11,8 @@ test('formal acceptance stays at 13/23 while independently verified engineering 
   assert.equal(result.accepted_items,13);
   assert.equal(result.remaining_items,10);
   assert.equal(result.official_acceptance_percent,56.52);
-  assert.equal(result.engineering_evidence_percent,72.28);
-  assert.equal(result.verified_partial_gate_points,3.625);
+  assert.equal(result.engineering_evidence_percent,72.72);
+  assert.equal(result.verified_partial_gate_points,3.725);
   assert.deepEqual(result.reviewed_partial_items,['2.1','2.2','2.3','4.2','5.3','6.2','6.3','6.4']);
   assert.equal(result.unreviewed_remaining_items.length,2);
 });
@@ -21,7 +21,7 @@ test('technical score changes with documented gate but formal count cannot chang
   const data = clone();
   data.reviewed_partial_gates['2.3'][2].complete = false;
   const next = summarizeImplementationProgress(data);
-  assert.equal(next.engineering_evidence_percent,71.41);
+  assert.equal(next.engineering_evidence_percent,71.85);
   assert.equal(next.official_acceptance_percent,56.52);
 });
 
@@ -29,7 +29,7 @@ test('4.2 security gate cannot be promoted by report without a completed evidenc
   const data = clone();
   data.reviewed_partial_gates['4.2'][1].complete = false;
   const scored = summarizeImplementationProgress(data);
-  assert.equal(scored.engineering_evidence_percent,71.74);
+  assert.equal(scored.engineering_evidence_percent,72.17);
   assert.equal(scored.official_acceptance_percent,56.52);
 });
 
@@ -37,7 +37,7 @@ test('new owner-cache milestone changes technical progress without crediting liv
   const data = clone();
   data.reviewed_partial_gates['4.2'][3].complete = false;
   const scored = summarizeImplementationProgress(data);
-  assert.equal(scored.engineering_evidence_percent,71.74);
+  assert.equal(scored.engineering_evidence_percent,72.17);
   assert.equal(scored.official_acceptance_percent,56.52);
 });
 
@@ -45,16 +45,27 @@ test('documented QA harness is technical progress, not real tenant isolation pro
   const data = clone();
   data.reviewed_partial_gates['4.2'][4].complete = false;
   const scored = summarizeImplementationProgress(data);
-  assert.equal(scored.engineering_evidence_percent,71.74);
+  assert.equal(scored.engineering_evidence_percent,72.17);
   assert.equal(scored.official_acceptance_percent,56.52);
 });
 
 test('disposable real-role SQL RLS milestone cannot be mistaken for live JWT acceptance', () => {
   const data=clone();
   data.reviewed_partial_gates['4.2'][5].complete=false;
-  assert.equal(summarizeImplementationProgress(data).engineering_evidence_percent,71.74);
+  assert.equal(summarizeImplementationProgress(data).engineering_evidence_percent,72.17);
   assert.equal(summarizeImplementationProgress(data).official_acceptance_percent,56.52);
   assert.equal(data.reviewed_partial_gates['4.2'][6].complete,false);
+});
+
+test('all-volume archive SHA evidence is independent of missing historical Storage objects', () => {
+  const data=clone();
+  assert.equal(data.reviewed_partial_gates['6.2'][2].complete,true);
+  assert.equal(data.reviewed_partial_gates['6.2'][3].complete,false);
+  assert.equal(data.reviewed_partial_gates['6.2'][4].complete,false);
+  assert.equal(data.reviewed_partial_gates['6.2'][5].complete,false);
+  data.reviewed_partial_gates['6.2'][2].complete=false;
+  assert.equal(summarizeImplementationProgress(data).engineering_evidence_percent,71.99);
+  assert.equal(summarizeImplementationProgress(data).official_acceptance_percent,56.52);
 });
 
 test('financial historical proof is partial even with an audited provider transaction', () => {
@@ -66,7 +77,7 @@ test('financial historical proof is partial even with an audited provider transa
   }
   data.reviewed_partial_gates['5.3'][2].complete=false;
   const next=summarizeImplementationProgress(data);
-  assert.equal(next.engineering_evidence_percent,71.56);
+  assert.equal(next.engineering_evidence_percent,71.99);
   assert.equal(next.official_acceptance_percent,56.52);
 });
 
@@ -77,12 +88,12 @@ test('legal draft and loopback probe do not count as reviewed contracts or actua
   assert.ok(data.reviewed_partial_gates[id].some(g=>!g.complete));
  }
  data.reviewed_partial_gates['6.3'][0].complete=false;
- assert.equal(summarizeImplementationProgress(data).engineering_evidence_percent,71.41);
+ assert.equal(summarizeImplementationProgress(data).engineering_evidence_percent,71.85);
  assert.equal(summarizeImplementationProgress(data).official_acceptance_percent,56.52);
 });
 test('legal signoff cannot be inferred from unapproved draft', () => {
  const data=clone();data.reviewed_partial_gates['6.4'][1].complete=false;
- assert.equal(summarizeImplementationProgress(data).engineering_evidence_percent,71.41);
+ assert.equal(summarizeImplementationProgress(data).engineering_evidence_percent,71.85);
 });
 test('rejects duplicated accepted items, changed denominator and invented criteria', () => {
   const a = clone();a.official_acceptance.accepted_ids[0] = a.official_acceptance.accepted_ids[1];
