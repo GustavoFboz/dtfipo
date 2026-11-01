@@ -143,6 +143,18 @@ jobs:
             < docs/saas/sql/patient-company-rls-disposable-rehearsal.sql \
             | tee restore-patient-rls-two-company.log
 
+      - name: Build 6.3 disposable staging fixture and sanitized journal
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -i "$RESTORE_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < docs/saas/sql/staging-63-fixture-journal.sql \
+            > restore-staging-63-journal.log
+          grep -Fq "STAGING_FIXTURE_VERIFIED:2_companies_2_SQL_roles_4_patients_4_cases_0_real_clients" \
+            restore-staging-63-journal.log
+          echo "SaaS 6.3 disposable fixture journal validated; SQL transaction rolled back."
+
       - name: Verify Stage 07 case ownership write boundary
         shell: bash
         run: |
