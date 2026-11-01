@@ -26,14 +26,15 @@ vi.mock("@/lib/storage",()=>({
   fetchStorageFiles:deps.fetchFiles,
   deleteManagedStorageFile:deps.deleteFile,
   refreshStorageUsage:deps.refresh,
-  getStorageUsageSnapshot:()=>({data:{clinic_id:"clinic-a",used_bytes:93450,limit_bytes:100000,
-    available_bytes:6550,usage_ratio:.93,file_count:4,almost_full:true,full:false,quota_enforced:true},loading:false,error:null,revision:0}),
+  getStorageUsageSnapshot:()=>fixedUsageSnapshot,
   subscribeStorageUsage:()=>()=>{},
   formatStorageBytes:(x:number)=>String(x)+" bytes",
   storageSourceLabel:(x:string)=>x,
 }));
 vi.mock("sonner",()=>({toast:{error:vi.fn(),success:vi.fn()}}));
 
+const fixedUsageSnapshot={data:{clinic_id:"clinic-a",used_bytes:93450,limit_bytes:100000,
+    available_bytes:6550,usage_ratio:.93,file_count:4,almost_full:true,full:false,quota_enforced:true},loading:false,error:null,revision:0};
 let host:HTMLDivElement,root:Root,cache:QueryClient;
 const owner=(userId:string,clinicId:string)=>({id:userId,clinic_id:clinicId,role:"CEO",account_subtype:"CEO",is_default_admin:false});
 const record=(clinic:string,name:string)=>({id:name,clinic_id:clinic,original_name:name,mime_type:"application/pdf",
