@@ -19,7 +19,7 @@
     {
       "id": "lovable",
       "service": "Hospedagem Web/Cloud do DentalFlow",
-      "observed_in": "docs/saas/IMPLEMENTATION-PROGRESS.md",
+      "observed_in": "docs/saas/GO-LIVE-READINESS-2026-09-29.md",
       "integration_verified": true,
       "contract_verified": false,
       "processing_region_verified": false,
