@@ -12,7 +12,7 @@ A restauração SQL já gera dados fictícios; adicionamos o ensaio `docs/saas/s
 
 1. Insere dois usuários e empresas sintéticas, com associação CEO e assinatura operacional fictícia. Cria um paciente fictício para **cada** empresa, como administrador do banco descartável.
 2. Assume o papel SQL **authenticated** com JWT claims simulados do ator A. Verifica que A consegue ler o próprio paciente (controle positivo) e não consegue selecionar, atualizar ou excluir o paciente B (controles negativos).
-3. Recusa a inserção com clinic_id explicitamente de B, confirma que `clinic_id=NULL` é preenchido pelo guard com A — não se torna paciente órfão — e recusa alterar o clinic_id do próprio paciente para B.
+3. Recusa a inserção com clinic_id explicitamente de B, confirma que o `clinic_id=NULL` enviado diretamente é negado por RLS **ou**, se permitido no futuro, é preenchido pelo guard com A; nenhum registro órfão pode surgir. A alteração da clínica do próprio paciente para B também precisa ser recusada, seja por erro ou por zero linhas alteradas.
 4. Exige que a RPC `create_patient_idempotent_v1` não aceite uma empresa estrangeira fornecida pelo cliente.
 5. Repete leitura própria, recusa de leitura/atualização/exclusão cruzadas na identidade B.
 6. Encerra com `ROLLBACK`. Não modifica registros externos, conta paga, paciente de verdade, armazenamento ou Asaas.
