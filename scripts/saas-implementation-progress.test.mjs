@@ -6,12 +6,12 @@ import { summarizeImplementationProgress } from './saas-implementation-progress.
 const original = JSON.parse(readFileSync('docs/saas/IMPLEMENTATION-PROGRESS.json','utf8'));
 const clone = () => structuredClone(original);
 
-test('formal acceptance stays at 13/23 while independently verified engineering gates move', () => {
+test('one unified protocol percentage represents accepted and verified partial work', () => {
   const result = summarizeImplementationProgress(clone());
   assert.equal(result.accepted_items,13);
   assert.equal(result.remaining_items,10);
-  assert.equal(result.official_acceptance_percent,56.52);
-  assert.equal(result.engineering_evidence_percent,72.72);
+  assert.equal(Object.hasOwn(result,'official_acceptance_percent'),false);
+  assert.equal(result.overall_progress_percent,72.72);
   assert.equal(result.verified_partial_gate_points,3.725);
   assert.deepEqual(result.reviewed_partial_items,['2.1','2.2','2.3','4.2','5.3','6.2','6.3','6.4']);
   assert.equal(result.unreviewed_remaining_items.length,2);
@@ -21,39 +21,39 @@ test('technical score changes with documented gate but formal count cannot chang
   const data = clone();
   data.reviewed_partial_gates['2.3'][2].complete = false;
   const next = summarizeImplementationProgress(data);
-  assert.equal(next.engineering_evidence_percent,71.85);
-  assert.equal(next.official_acceptance_percent,56.52);
+  assert.equal(next.overall_progress_percent,71.85);
+  assert.equal(next.accepted_items,13);
 });
 
 test('4.2 security gate cannot be promoted by report without a completed evidence receipt', () => {
   const data = clone();
   data.reviewed_partial_gates['4.2'][1].complete = false;
   const scored = summarizeImplementationProgress(data);
-  assert.equal(scored.engineering_evidence_percent,72.17);
-  assert.equal(scored.official_acceptance_percent,56.52);
+  assert.equal(scored.overall_progress_percent,72.17);
+  assert.equal(scored.accepted_items,13);
 });
 
 test('new owner-cache milestone changes technical progress without crediting live acceptance', () => {
   const data = clone();
   data.reviewed_partial_gates['4.2'][3].complete = false;
   const scored = summarizeImplementationProgress(data);
-  assert.equal(scored.engineering_evidence_percent,72.17);
-  assert.equal(scored.official_acceptance_percent,56.52);
+  assert.equal(scored.overall_progress_percent,72.17);
+  assert.equal(scored.accepted_items,13);
 });
 
 test('documented QA harness is technical progress, not real tenant isolation proof', () => {
   const data = clone();
   data.reviewed_partial_gates['4.2'][4].complete = false;
   const scored = summarizeImplementationProgress(data);
-  assert.equal(scored.engineering_evidence_percent,72.17);
-  assert.equal(scored.official_acceptance_percent,56.52);
+  assert.equal(scored.overall_progress_percent,72.17);
+  assert.equal(scored.accepted_items,13);
 });
 
 test('disposable real-role SQL RLS milestone cannot be mistaken for live JWT acceptance', () => {
   const data=clone();
   data.reviewed_partial_gates['4.2'][5].complete=false;
-  assert.equal(summarizeImplementationProgress(data).engineering_evidence_percent,72.17);
-  assert.equal(summarizeImplementationProgress(data).official_acceptance_percent,56.52);
+  assert.equal(summarizeImplementationProgress(data).overall_progress_percent,72.17);
+  assert.equal(summarizeImplementationProgress(data).accepted_items,13);
   assert.equal(data.reviewed_partial_gates['4.2'][6].complete,false);
 });
 
@@ -64,8 +64,8 @@ test('all-volume archive SHA evidence is independent of missing historical Stora
   assert.equal(data.reviewed_partial_gates['6.2'][4].complete,false);
   assert.equal(data.reviewed_partial_gates['6.2'][5].complete,false);
   data.reviewed_partial_gates['6.2'][2].complete=false;
-  assert.equal(summarizeImplementationProgress(data).engineering_evidence_percent,71.99);
-  assert.equal(summarizeImplementationProgress(data).official_acceptance_percent,56.52);
+  assert.equal(summarizeImplementationProgress(data).overall_progress_percent,71.99);
+  assert.equal(summarizeImplementationProgress(data).accepted_items,13);
 });
 
 test('financial historical proof is partial even with an audited provider transaction', () => {
@@ -77,8 +77,8 @@ test('financial historical proof is partial even with an audited provider transa
   }
   data.reviewed_partial_gates['5.3'][2].complete=false;
   const next=summarizeImplementationProgress(data);
-  assert.equal(next.engineering_evidence_percent,71.99);
-  assert.equal(next.official_acceptance_percent,56.52);
+  assert.equal(next.overall_progress_percent,71.99);
+  assert.equal(next.accepted_items,13);
 });
 
 test('legal draft and loopback probe do not count as reviewed contracts or actual capacity', () => {
@@ -88,13 +88,25 @@ test('legal draft and loopback probe do not count as reviewed contracts or actua
   assert.ok(data.reviewed_partial_gates[id].some(g=>!g.complete));
  }
  data.reviewed_partial_gates['6.3'][0].complete=false;
- assert.equal(summarizeImplementationProgress(data).engineering_evidence_percent,71.85);
- assert.equal(summarizeImplementationProgress(data).official_acceptance_percent,56.52);
+ assert.equal(summarizeImplementationProgress(data).overall_progress_percent,71.85);
+ assert.equal(summarizeImplementationProgress(data).accepted_items,13);
 });
 test('legal signoff cannot be inferred from unapproved draft', () => {
  const data=clone();data.reviewed_partial_gates['6.4'][1].complete=false;
- assert.equal(summarizeImplementationProgress(data).engineering_evidence_percent,71.85);
+ assert.equal(summarizeImplementationProgress(data).overall_progress_percent,71.85);
 });
+test('the unified percentage is the ONLY percentage field, and 100% requires 23 accepted items', () => {
+  const result = summarizeImplementationProgress(clone());
+  assert.deepEqual(Object.keys(result).filter(key => key.endsWith('_percent')), ['overall_progress_percent']);
+  assert.equal(result.overall_progress_percent,72.72);
+  const complete=clone();complete.official_acceptance.accepted_ids=[...complete.official_acceptance.accepted_ids,...complete.remaining_ids];
+  complete.remaining_ids=[];
+  complete.reviewed_partial_gates={};
+  const done=summarizeImplementationProgress(complete);
+  assert.equal(done.overall_progress_percent,100);
+  assert.equal(done.accepted_items,23);
+});
+
 test('rejects duplicated accepted items, changed denominator and invented criteria', () => {
   const a = clone();a.official_acceptance.accepted_ids[0] = a.official_acceptance.accepted_ids[1];
   assert.throws(()=>summarizeImplementationProgress(a),/PROGRESS_SCOPE_MISMATCH/);

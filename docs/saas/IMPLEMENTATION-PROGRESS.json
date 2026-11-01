@@ -2,7 +2,7 @@
   "schema": "dentalflow-saas-implementation-evidence-v1",
   "recorded_at": "2026-11-01",
   "source": "docs/saas/ACCEPTANCE-PROGRESS.md",
-  "purpose": "Conservative, evidence-based engineering progress indicator separate from the 23 official acceptance decisions.",
+  "purpose": "Único indicador oficial de progresso da implementação do Protocolo SaaS, apresentado no painel Master. Aceites integrais e gates parciais comprovados compõem o mesmo percentual.",
   "denominator": 23,
   "official_acceptance": {
     "accepted_ids": [
@@ -294,10 +294,11 @@
     ]
   },
   "scoring_policy": {
-    "method": "accepted-criteria-plus-verified-partial-gate-fractions",
-    "detail": "Each fully accepted criterion contributes 1 point. For reviewed but unaccepted items, each independently documented technical gate contributes 1/N point, capped below 1 until official acceptance. Unreviewed items remain unscored, not claimed to be 0% implemented. All 23 criteria have equal weight for this indicator; this is not an effort, SLA, readiness-for-sales, or release metric.",
+    "method": "single-overall-protocol-progress",
+    "detail": "Each of the 23 protocol criteria has equal weight. An accepted criterion counts 1; a reviewed but not fully accepted criterion counts only its independently verified partial gates as completed/N, never a full point until all required acceptance evidence exists. Unreviewed criteria receive no presumed progress. The result is ONE percentage for implementation tracking.",
     "rounding": "two-decimal-percent",
-    "no_double_count": "An officially accepted item must not appear under reviewed_partial_gates.",
-    "caveat": "The technical indicator is a conservative evidence floor, not objective global completion and must never replace the formal acceptance denominator."
+    "no_double_count": "An officially accepted item must not appear under reviewed_partial_gates. One evidence must not be scored twice.",
+    "completion_rule": "100% only when all 23 official criteria have formal acceptance; production readiness also requires final rollout authorization.",
+    "caveat": "This is an evidence-based tracking number, not an effort estimate, elapsed-time measure or proof of real device, full backup or provider behavior absent its specific test. The acceptance checklist remains an internal nonpercentage audit record."
   }
 }

@@ -4,6 +4,7 @@ import { Link } from "@tanstack/react-router";
 import { MasterMfaChallenge } from "@/components/master/MasterMfaChallenge";
 import { MasterBillingRequests } from "@/components/master/MasterBillingRequests";
 import { MasterOperationalHealth } from "@/components/master/MasterOperationalHealth";
+import { MasterSaasProtocolProgress } from "@/components/master/MasterSaasProtocolProgress";
 import { MasterExternalTestReview } from "@/components/master/MasterExternalTestReview";
 import { masterOperationalHealthKey } from "@/lib/master-operational-health";
 import { useMasterSession } from "@/hooks/use-master-session";
@@ -67,6 +68,7 @@ function MasterDashboard({ scope, isCurrent }: { scope: MasterSessionScope; isCu
       {snapshot.isPending && <p>Consultando a plataforma…</p>}
       {snapshot.isError && <MasterAccessUnavailable />}
       {isCurrent(scope) && !snapshot.isError && snapshot.data && <>
+        <MasterSaasProtocolProgress />
         <section className="rounded-xl border bg-white p-5 dark:bg-slate-900">
           <h2 className="font-semibold">Segurança da conta Master</h2>
           <p className="mt-2 text-sm">Configure ou confirme seu autenticador para proteger as ações administrativas.</p>

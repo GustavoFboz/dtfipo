@@ -1,15 +1,16 @@
-# DentalFlow SaaS — progresso técnico com evidências (01/11/2026)
+# DentalFlow — progresso único do Protocolo SaaS (01/11/2026)
 
-O progresso técnico deve variar quando melhorias são implementadas e verificadas pelo GitHub, mesmo que uma validação operacional final dependa do navegador Work ou de aparelho físico. Para não apagar os critérios anteriores nem anunciar vendas antes da hora, o Painel de Progresso passa a ter **dois indicadores de propósitos diferentes**.
+O painel Master apresenta **UMA porcentagem geral de implementação: 72,72%**. Essa é a referência oficial para acompanhar o trabalho até 100%, sem uma segunda barra concorrente.
 
-| Indicador | Resultado | Critério |
+| Indicador único | Resultado | Como é calculado |
 | --- | ---: | --- |
-| **Implementação — piso técnico comprovado** | **72,72%** (16,73 pontos / 23) | 13 aceites + marcos auditados 2.1, 2.2, 2.3, 4.2 (5/8), 5.3, 6.2 (3/6), 6.3 (1/5) e 6.4 (2/5). |
-| **Aceites finais para vendas** | **56,52%** (13 / 23) | Somente itens com homologação integral e recibo; 10 permanecem pendentes. |
+| **Progresso geral do Protocolo SaaS** | **72,72%** | Os 23 critérios têm peso igual. Cada critério homologado conta por inteiro; critérios em andamento recebem crédito proporcional apenas por marcos comprovados e auditados. |
 
-A implementação usa **crédito proporcional limitado a gates concluídos**, não porcentagem arbitrária dada pelo assistente. Cada um dos 23 itens tem peso igual. Neste registro, os dois itens pendentes ainda não auditados no novo formato têm zero crédito **no cálculo conservador** (isso não significa que não tenham código). Para os oito itens auditados, cada gate completo recebe 1/N do item, e o último gate jamais pode somar 100% sem aceite oficial.
+O acompanhamento mostra também **13 de 23 critérios integralmente validados**, como contagem de status, não como outra porcentagem. Os dez restantes seguem em implementação ou homologação. A contagem de aceites detalhados continua registrada, para auditoria histórica, em `ACCEPTANCE-PROGRESS.md`, mas **não é mais um indicador percentual separado no painel**.
 
-Assim, o índice de implementação é **um piso técnico com escopo explicitamente limitado**, não previsão de horas restantes, prontidão comercial, percentual de trabalho real ou certificação de produção. O valor não substitui a porcentagem oficial de aceites do `ACCEPTANCE-PROGRESS.md`.
+A conclusão exige os 23 critérios integralmente homologados; nem o avanço de testes sintéticos, nem o preparo jurídico ou de backup permitem declarar 100% ou autorizar vendas antes das provas correspondentes. O cálculo é conservador e baseado em evidências, mas não estima com precisão o esforço ou o tempo restante. Os dois critérios ainda sem marcos parciais auditados (3.3 e 7.4) não recebem crédito presumido.
+
+**Fonte única:** `docs/saas/IMPLEMENTATION-PROGRESS.json`. O script `scripts/saas-implementation-progress.mjs` calcula **somente `overall_progress_percent`**, e `scripts/sync-saas-dashboard-progress.mjs` sincroniza o resumo em `src/data/saas-protocol-progress.json`. O componente `MasterSaasProtocolProgress` exibe esse resumo na rota protegida `/master`. A CI rejeita um painel com snapshot diferente do registro. O valor visível corresponde à última **versão efetivamente publicada**; um merge no GitHub, por si só, não atualiza os aplicativos nem a página já publicada.
 
 ## Provas computadas neste marco
 
@@ -59,10 +60,10 @@ Os itens 3.3 (armazenamento nos aparelhos reais) e 7.4 (autorização de vendas)
 
 ## Reproduzir e atualizar
 
-O arquivo `docs/saas/IMPLEMENTATION-PROGRESS.json` guarda a lista de aceites oficiais e cada gate com status/evidência. Um script calcula ambos indicadores:
+O arquivo `docs/saas/IMPLEMENTATION-PROGRESS.json` guarda a lista de aceites oficiais e cada gate com status/evidência. Um script calcula o único percentual geral do protocolo:
 
     node scripts/saas-implementation-progress.mjs
 
-Os treze testes em `scripts/saas-implementation-progress.test.mjs` recusam marcos sem evidência, duplicações, mudança artificial do denominador, pontuação de critérios já aceitos e 100% técnico antes da homologação formal. A CI de progresso usa fixtures e dados de status, não acessa Cloud/Asaas, não baixa nenhum objeto nem publica o sistema.
+Os testes em `scripts/saas-implementation-progress.test.mjs` recusam marcos sem evidência, duplicações, mudança artificial do denominador, pontuação de critérios já aceitos e 100% de progresso antes da homologação formal. A CI de progresso usa fixtures e dados de status, não acessa Cloud/Asaas, não baixa nenhum objeto nem publica o sistema.
 
-**Estado do produto após esta alteração:** proteções de guardas offline e continuidade de contas no cache do paciente foram integradas ao GitHub; os aplicativos instalados ainda não receberam a atualização e o requisito 2.3 segue sem aceite completo. O trabalho sobre o backup 6.2 continua independente e pendente de finalização. Para ultrapassar 60% **em aceites finais**, é obrigatório concluir integralmente 6.2 ou outro critério pendente, não apenas observar o índice técnico.
+**Estado do produto após esta alteração:** proteções de guardas offline e continuidade de contas no cache do paciente foram integradas ao GitHub; os aplicativos instalados ainda não receberam a atualização e o requisito 2.3 segue sem aceite completo. O trabalho sobre o backup 6.2 continua independente e pendente de finalização. Para atingir 100% do indicador único, todos os 23 critérios devem estar integralmente homologados. O valor parcial do backup não significa que os 116 objetos faltantes estejam recuperados.
