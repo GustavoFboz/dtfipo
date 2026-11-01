@@ -1,0 +1,22 @@
+{
+  "schema": "dentalflow-saas-dashboard-progress-v1",
+  "recorded_at": "2026-11-01",
+  "overall_progress_percent": 72.72,
+  "accepted_items": 13,
+  "total_items": 23,
+  "remaining_items": 10,
+  "pending_ids": [
+    "2.1",
+    "2.2",
+    "2.3",
+    "3.3",
+    "4.2",
+    "5.3",
+    "6.2",
+    "6.3",
+    "6.4",
+    "7.4"
+  ],
+  "reviewed_partial_items": 8,
+  "note": "Indicador único do Protocolo SaaS: aceites integrais e marcos parciais comprovados; 100% depende dos 23 aceites. Dados correspondem à versão publicada."
+}
