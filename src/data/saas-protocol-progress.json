@@ -1,7 +1,7 @@
 {
   "schema": "dentalflow-saas-dashboard-progress-v1",
   "recorded_at": "2026-11-01",
-  "overall_progress_percent": 93.48,
+  "overall_progress_percent": 93.84,
   "progress_scope": "beta_implementation",
   "completed_implementation_criteria": 18,
   "remaining_implementation_ids": [
