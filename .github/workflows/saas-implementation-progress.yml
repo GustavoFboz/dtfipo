@@ -5,8 +5,12 @@ on:
     branches: [main, "saas/stage-03-asaas-checkout"]
     paths:
       - "docs/saas/IMPLEMENTATION-PROGRESS.json"
+      - "docs/saas/BETA-IMPLEMENTATION-SCOPE.json"
+      - "docs/saas/sql/unassigned-patients-readonly-summary.sql"
       - "scripts/saas-implementation-progress.mjs"
       - "scripts/saas-implementation-progress.test.mjs"
+      - "scripts/saas-beta-implementation-progress.mjs"
+      - "scripts/saas-beta-implementation-progress.test.mjs"
       - "scripts/sync-saas-dashboard-progress.mjs"
       - "scripts/saas-sales-release-gate.mjs"
       - "scripts/saas-sales-release-gate.test.mjs"
@@ -29,7 +33,8 @@ jobs:
           node-version: "22"
       - name: Validate strict evidence ledger and its regression tests
         run: |
-          node --test scripts/saas-implementation-progress.test.mjs scripts/saas-sales-release-gate.test.mjs
+          node --test scripts/saas-implementation-progress.test.mjs scripts/saas-sales-release-gate.test.mjs scripts/saas-beta-implementation-progress.test.mjs
+          node scripts/saas-beta-implementation-progress.mjs
           node scripts/saas-sales-release-gate.mjs
           node scripts/saas-implementation-progress.mjs
           node scripts/sync-saas-dashboard-progress.mjs --check
