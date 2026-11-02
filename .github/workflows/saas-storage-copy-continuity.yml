@@ -8,6 +8,8 @@ on:
       - "scripts/recovery/audit-external-copy.test.mjs"
       - "scripts/recovery/prepare-storage-resume.mjs"
       - "scripts/recovery/prepare-storage-resume.test.mjs"
+      - "scripts/recovery/download-missing-objects.mjs"
+      - "scripts/recovery/download-missing-objects.test.mjs"
       - "scripts/recovery/verify-zip-payloads.py"
       - "tests/recovery/test_verify_zip_payloads.py"
       - "scripts/recovery/archive.mjs"
@@ -36,3 +38,5 @@ jobs:
         run: python -m unittest discover -s tests/recovery -p "test_verify_zip_payloads.py" -v
       - name: Exercise encrypted checkpoint reader with fictitious data
         run: node --test scripts/recovery/audit-external-copy.test.mjs scripts/recovery/prepare-storage-resume.test.mjs
+      - name: Verify fail-closed missing-byte encrypted downloader with fake storage
+        run: node --test scripts/recovery/download-missing-objects.test.mjs
