@@ -9,7 +9,7 @@ const clone=x=>structuredClone(x);
 
 test('only one beta implementation percentage covers all original 23 criteria',()=>{
  const r=summarizeBetaImplementation(clone(ledger),clone(policy));
- assert.equal(r.overall_progress_percent,93.84);
+ assert.equal(r.overall_progress_percent,94.06);
  assert.equal(r.completed_implementation_criteria,18);
  assert.equal(r.total_items,23);
  assert.deepEqual(r.remaining_implementation_ids,['2.3','6.2','4.2','6.3','6.4','7.4'].filter(x=>x!=='2.3').sort((a,b)=>a.localeCompare(b))); // canonical remaining ledger order
@@ -22,15 +22,22 @@ test('verified release preflight only counts code readiness, not signing, rollba
  const gate=d.reviewed_partial_gates['7.4'].find(x=>x.id==='source-locked-beta-preflight-reproducible');
  assert.equal(gate.complete,true);
  assert.equal(d.reviewed_partial_gates['7.4'].find(x=>x.id==='production-release-candidate-verified').complete,false);
- assert.equal(summarizeBetaImplementation(d,p).overall_progress_percent,93.84);
+ assert.equal(summarizeBetaImplementation(d,p).overall_progress_percent,94.06);
  gate.complete=false;
- assert.equal(summarizeBetaImplementation(d,p).overall_progress_percent,92.75);
+ assert.equal(summarizeBetaImplementation(d,p).overall_progress_percent,92.97);
+ assert.equal(releaseDecision(d).release_authorized,false);
+});
+test('dormant SQL terms receipts cannot replace production approved texts',()=>{
+ const d=clone(ledger);const gates=d.reviewed_partial_gates['6.4'];
+ assert.equal(gates.find(x=>x.id==='dormant-versioned-receipt-contract-verified').complete,true);
+ assert.equal(gates.find(x=>x.id==='published-versioned-terms-acceptance').complete,false);
+ assert.equal(summarizeBetaImplementation(d,policy).overall_progress_percent,94.06);
  assert.equal(releaseDecision(d).release_authorized,false);
 });
 test('rebaseline never changes formal acceptance or authorizes real-patient beta and sales',()=>{
  const r=summarizeBetaImplementation(clone(ledger),clone(policy));
  const launch=releaseDecision(clone(ledger));
- assert.equal(r.overall_progress_percent,93.84);
+ assert.equal(r.overall_progress_percent,94.06);
  assert.equal(launch.status,'blocked');
  assert.equal(launch.release_authorized,false);
  assert.equal(policy.real_patient_data_beta_requires_signed_terms_and_lgpd_review,true);
