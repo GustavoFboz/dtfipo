@@ -15,7 +15,7 @@ Base: `docs/saas/LEGAL-OPERATIONS-PROTOCOL.md`, versão 0.1. Pacote de minutas:
 | L05 — direitos e retenção | PARCIAL (inventário de prazos efetivos) | Offline de 72 horas e URLs de 300s comprovados por código, obrigação de registro de incidentes por 5 anos distinguida de retenção de conteúdo; definição de prazos clínicos/financeiros, canal de direitos e testes operacionais pendentes |
 | L06 — segurança/continuidade | PARCIAL | Matriz interna de registro/triagem de incidente com campos obrigatórios e referência ANPD; **não é resposta real a incidente**, nem decisão do controlador. Backup integral, aparelhos e revisão legal pendentes |
 | L07 — SLA e onboarding | PENDENTE | Capacidade piloto, horários/contatos de suporte e métricas de recuperação |
-| L08 — revisão jurídica e aceite versionado | MECANISMO TÉCNICO ISOLADO (não publicado) | SQL/cliente e ensaio descartável [PR #240](https://github.com/GustavoFboz/dtfipo/pull/240) preparados; **aprovação assinada, conteúdo real, integração da UI e implantação seguem pendentes** |
+| L08 — revisão jurídica e aceite versionado | PENDENTE — mecanismo técnico isolado, não publicado | SQL/cliente e ensaio descartável [PR #240](https://github.com/GustavoFboz/dtfipo/pull/240) preparados; **aprovação assinada, conteúdo real, integração da UI e implantação seguem pendentes** |
 
 **Bloqueio jurídico:** até receber revisão por advogado responsável, validação empresarial, canal e documentação de fornecedores, nada deve ser apresentado como texto vigente ou política LGPD implementada. Dados de saúde são sensíveis e o enquadramento das hipóteses legais deve ser validado conforme operação; cuidado para não tratar consentimento como solução universal.
 
