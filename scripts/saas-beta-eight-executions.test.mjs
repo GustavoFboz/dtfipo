@@ -1,0 +1,56 @@
+import {readFileSync} from "node:fs";
+import assert from "node:assert/strict";
+import {describe,it} from "node:test";
+import {assessBetaExecutionPlan} from "./saas-beta-eight-executions.mjs";
+
+const plan=JSON.parse(readFileSync(new URL("../docs/saas/BETA-RELEASE-8-EXECUTIONS.json",import.meta.url)));
+const readiness=JSON.parse(readFileSync(new URL("../docs/saas/PAID-BETA-READINESS.json",import.meta.url)));
+const clone=v=>JSON.parse(JSON.stringify(v));
+
+describe("eight execution phases of limited paid beta",()=>{
+  it("reports one completed phase without unlocking sales",()=>{
+    const r=assessBetaExecutionPlan(plan,readiness);
+    assert.equal(r.completed_label,"1/8");
+    assert.equal(r.next_step,2);
+    assert.equal(r.next_status,"blocked");
+    assert.equal(r.release_state,"not_published");
+    assert.equal(r.release_authorized_by_this_script,false);
+    assert.equal(r.commercial_payments_authorized_by_this_script,false);
+  });
+  it("rejects an unsupported premature completion",()=>{
+    const p=clone(plan);
+    p.steps[1].status="done";
+    assert.throws(()=>assessBetaExecutionPlan(p,readiness),/BETA_EXECUTIONS_UNSUPPORTED_COMPLETE/);
+  });
+  it("rejects skipping a blocked step",()=>{
+    const p=clone(plan);
+    p.steps[2].status="done";
+    p.steps[2].evidence=["https://example.org/evidence"];
+    assert.throws(()=>assessBetaExecutionPlan(p,readiness),/BETA_EXECUTIONS_UNSUPPORTED_COMPLETE/);
+  });
+  it("rejects falsely stating production was published",()=>{
+    const p=clone(plan);
+    p.release_state="published";
+    p.release_url="https://example.org/";
+    assert.throws(()=>assessBetaExecutionPlan(p,readiness),/BETA_EXECUTIONS_FALSE_PUBLICATION/);
+  });
+  it("requires all eight P0 evidence checks even for a completed plan",()=>{
+    const p=clone(plan);
+    for(const phase of p.steps){
+      phase.status="done";
+      phase.evidence=["https://example.org/independent-evidence"];
+    }
+    p.release_state="published";
+    p.release_url="https://example.org/";
+    p.beta_approval_status="approved";
+    assert.throws(()=>assessBetaExecutionPlan(p,readiness),/BETA_EXECUTIONS_RELEASE_GATE_BLOCKED/);
+  });
+  it("prohibits duplicate/moved stages or invalid receipts",()=>{
+    const p=clone(plan);
+    p.steps[0].id=2;
+    assert.throws(()=>assessBetaExecutionPlan(p,readiness),/BETA_EXECUTIONS_STEP_INVALID/);
+    const q=clone(plan);
+    q.steps[0].evidence=["local-path-with-no-validated-source"];
+    assert.throws(()=>assessBetaExecutionPlan(q,readiness),/BETA_EXECUTIONS_STEP_INVALID/);
+  });
+});
