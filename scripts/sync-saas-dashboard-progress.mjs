@@ -1,9 +1,11 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { releaseDecision } from './saas-sales-release-gate.mjs';
+import { summarizeImplementationProgress } from './saas-implementation-progress.mjs';
 import { summarizeBetaImplementation } from './saas-beta-implementation-progress.mjs';
 
 const ledger=JSON.parse(readFileSync('docs/saas/IMPLEMENTATION-PROGRESS.json','utf8'));
 const decision=releaseDecision(ledger);
+const result=summarizeImplementationProgress(ledger);
 const scope=JSON.parse(readFileSync('docs/saas/BETA-IMPLEMENTATION-SCOPE.json','utf8'));
 const implementation=summarizeBetaImplementation(ledger,scope);
 const data={
