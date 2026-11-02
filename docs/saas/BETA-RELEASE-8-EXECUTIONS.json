@@ -1,0 +1,91 @@
+{
+  "schema": "dentalflow-beta-eight-executions-v1",
+  "target": "web-paid-invite-only",
+  "branch": "saas/stage-03-asaas-checkout",
+  "recorded_at": "2026-11-02",
+  "audited_code_sha": "dcbd8ecab67892593036c7008c194287ffd38023",
+  "release_state": "not_published",
+  "release_url": null,
+  "beta_approval_status": "pending",
+  "historical_formal_accepted": "13/23",
+  "historical_technical_progress_percent": 94.06,
+  "note": "A contagem x/8 é exclusivamente a trilha de execução do beta e NÃO altera aceites formais ou autoriza publicação/cobrança.",
+  "steps": [
+    {
+      "id": 1,
+      "code": "source-baseline",
+      "name": "Auditoria de versão, CI e integridade operacional",
+      "status": "done",
+      "owner_action": "Nenhuma",
+      "definition_of_done": "Branch GitHub igual ao SHA da origem Lovable; CI Web saudável; SELECT de RLS, pacientes e faturamento, sem mudanças financeiras ou clínicas.",
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/41491850676",
+        "https://github.com/GustavoFboz/dtfipo/pull/248",
+        "https://github.com/GustavoFboz/dtfipo/issues/241"
+      ]
+    },
+    {
+      "id": 2,
+      "code": "independent-backup-path",
+      "name": "Destino de backup independente e acesso seguro de origem",
+      "status": "blocked",
+      "owner_action": "Autorizar o acesso somente leitura ao Storage fora do chat do Lovable, e validar um destino persistente sob seu controle (Google Drive no Windows ou credencial segregada para execução privada). O OAuth do Drive no Lovable não é transferível automaticamente ao GitHub. Nunca enviar segredos neste chat.",
+      "definition_of_done": "Ambiente privado alcança origem e destino, guarda chave AES fora do Drive e passa upload/download criptografado de objeto fictício sem dados clínicos.",
+      "evidence": []
+    },
+    {
+      "id": 3,
+      "code": "recover-and-restore",
+      "name": "Completar 116 anexos, backup atual e recuperação isolada",
+      "status": "pending",
+      "owner_action": "Somente se necessário, disponibilizar espaço privado e confirmar a posse dos volumes antigos e chave, nunca publicá-los no GitHub.",
+      "definition_of_done": "116/116 objetos (1.968.840.906 bytes) recebidos e autenticados, 708/708 históricos reconciliados, alterações posteriores inventariadas, banco atual + anexos restaurados juntos em ambiente descartável e reversão de dados simulada.",
+      "evidence": []
+    },
+    {
+      "id": 4,
+      "code": "clinical-tenant-security",
+      "name": "Validar casos clínicos e isolamento entre empresas",
+      "status": "pending",
+      "owner_action": "Disponibilizar duas contas QA autorizadas ou aprovar fixtures totalmente fictícias em staging segregado.",
+      "definition_of_done": "Criar/abrir/editar caso no staging, testar permissões com duas empresas e tentativas de acesso cruzado; manter 1 paciente órfão vinculado a agendamento preservado, sem perda ou reatribuição arbitrária.",
+      "evidence": []
+    },
+    {
+      "id": 5,
+      "code": "asaas-critical-lifecycle",
+      "name": "Validar cobrança, renovação, cancelamento e bloqueios",
+      "status": "pending",
+      "owner_action": "Aprovar somente eventual teste financeiro real específico antes da cobrança; em geral usar Sandbox. Confirmar planos e valores pretendidos.",
+      "definition_of_done": "Webhooks idempotentes, plano/valor, cobrança, renovação, cancelamento, atraso, reativação, bloqueio de acesso, worker e desligamento de novas vendas verificados sem cobrança indevida.",
+      "evidence": []
+    },
+    {
+      "id": 6,
+      "code": "legal-privacy-beta-ops",
+      "name": "Termos, LGPD, suporte e convites controlados",
+      "status": "pending",
+      "owner_action": "Aprovar texto real dos termos e política de privacidade, preços e escopo do beta, aviso aos participantes, canal de suporte e número inicial de empresas convidadas.",
+      "definition_of_done": "Documentos legais efetivos aprovados, publicados e aceitos por versão; registros protegidos, telemetria sem dados clínicos, convites restritos e interruptor para novas adesões.",
+      "evidence": []
+    },
+    {
+      "id": 7,
+      "code": "staging-deploy-rollback",
+      "name": "Ensaiar publicação, comparação de SHA e reversão",
+      "status": "pending",
+      "owner_action": "Nenhuma se houver ambiente isolado seguro e prévia técnica; não conectar Asaas de produção ao remix.",
+      "definition_of_done": "Staging totalmente separado, sem secrets/copied cron de produção, com testes Web funcionais, SHA de frontend/backend provado, rollback real da hospedagem ensaiado; sem tocar dados de produção.",
+      "evidence": []
+    },
+    {
+      "id": 8,
+      "code": "paid-beta-publication",
+      "name": "Publicar beta Web por convite e conferir produção",
+      "status": "pending",
+      "owner_action": "Dar autorização operacional final para a publicação e abertura aos convidados após leitura do relatório de riscos residuais.",
+      "definition_of_done": "Oito critérios P0 de PAID-BETA-READINESS.json verificados com provas independentes, aprovação expressa, deploy identificado, smoke autenticado sem dados reais indevidos, suporte e rollback prontos; reportar URL e revisão publicada.",
+      "evidence": []
+    }
+  ]
+}
