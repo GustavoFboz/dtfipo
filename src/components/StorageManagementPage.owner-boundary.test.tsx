@@ -58,9 +58,11 @@ afterEach(async()=>{await act(async()=>root.unmount());cache.clear();host.remove
 describe("storage management cannot show another company's cached records",()=>{
   it("never displays the previous company's list or usage after an account switch",async()=>{
     await render();
-    expect(host.textContent).toContain("file-a.pdf");
+    // React Query updates asynchronously; don't assert before the authorized
+    // company response commits in a loaded CI runner.
+    await vi.waitFor(() => expect(host.textContent).toContain("file-a.pdf"), { timeout: 3000 });
     deps.owner="user-b";await render();
-    expect(host.textContent).toContain("file-b.pdf");
+    await vi.waitFor(() => expect(host.textContent).toContain("file-b.pdf"), { timeout: 3000 });
     expect(host.textContent).not.toContain("file-a.pdf");
     expect(host.textContent).not.toContain("93450 bytes");
     expect(deps.fetchFiles).toHaveBeenLastCalledWith("clinic-b");
@@ -80,7 +82,7 @@ describe("storage management cannot show another company's cached records",()=>{
     await render();
     deps.owner="user-b";await render();
     await act(async()=>first.resolve([record("clinic-a","late-file-a.pdf")]));await settle();
-    expect(host.textContent).toContain("file-b.pdf");
+    await vi.waitFor(() => expect(host.textContent).toContain("file-b.pdf"), { timeout: 3000 });
     expect(host.textContent).not.toContain("late-file-a.pdf");
   });
 });
