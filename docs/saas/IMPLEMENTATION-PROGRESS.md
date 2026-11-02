@@ -1,3 +1,9 @@
+# DentalFlow — avanço de engenharia de 02/11/2026
+
+**Indicador de implementação beta: 93,84%.** A PR #239 implementa verificador de versões Web/Windows/Android, hashes de arquivos relevantes e migrações, além de bloqueadores irremovíveis para assinatura, rollback, backup integral e termos legais. CI própria + testes de manipulação garantem que essa ferramenta não publica instaladores nem altera pagamentos. Este é um marco técnico de 7.4, **não** prova de candidato de distribuição assinado. A autorização comercial segue bloqueada.
+
+O indicador anterior de 93,48% permanece como referência de 01/11; a revisão não removeu tarefas nem adiou marcos adicionais.
+
 # DentalFlow — implementação para beta: novo escopo auditável (01/11/2026)
 
 **Indicador único no painel Master: 93,48% de IMPLEMENTAÇÃO PARA BETA.** Essa mudança representa uma **recalibração de escopo solicitada pelo responsável**, não a entrega de 14,68 pontos de código entre medições. O indicador anterior era 78,80% e incluía na fórmula testes reais e aprovações externas. Ambos os valores não medem a mesma coisa; apenas o novo indicador aparece na interface.
