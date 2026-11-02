@@ -45,7 +45,10 @@ test('100 implementation possible without provider future date but only after ev
    const excluded=new Set((policy.deferred_validation_gates[id]??[]).map(x=>x.gate_id));
    for(const g of gates)if(!excluded.has(g.id) && !g.complete){g.complete=true;g.evidence='internal://test-only-candidate';}
  }
- // Original completion guard forbids scoring all unaccepted gates and keeps real tests deferred.
+ // Original ledger requires 6.2 formal acceptance if every recovery gate passes.
+ d.reviewed_partial_gates['6.2'] && delete d.reviewed_partial_gates['6.2'];
+ d.remaining_ids=d.remaining_ids.filter(id=>id!=='6.2');
+ d.official_acceptance.accepted_ids.push('6.2');
  const r=summarizeBetaImplementation(d,policy);
  assert.equal(r.overall_progress_percent,100);
  assert.equal(releaseDecision(d).release_authorized,false);
