@@ -26,8 +26,26 @@ export function patientSearchRank(name: string, query: string): number {
 
   const queryParts = normalizedQuery.split(" ").filter(Boolean);
   const nameParts = normalizedName.split(" ").filter(Boolean);
-  if (queryParts.length && queryParts.every((part) => nameParts.some((token) => token.startsWith(part)))) return 2;
-  if (queryParts.length && queryParts.every((part) => normalizedName.includes(part))) return 3;
+
+  // Keep the typed token order: "Ana Cristina" must not return "Cristina Ana".
+  // Skipped middle names remain valid (for example, "Maria Per" -> "Maria ... Pereira").
+  let nextToken = 0;
+  const orderedWordPrefixes = queryParts.every((part) => {
+    const match = nameParts.findIndex((token, index) => index >= nextToken && token.startsWith(part));
+    if (match < 0) return false;
+    nextToken = match + 1;
+    return true;
+  });
+  if (orderedWordPrefixes) return 2;
+
+  let nextCharacter = 0;
+  const orderedSubstrings = queryParts.every((part) => {
+    const match = normalizedName.indexOf(part, nextCharacter);
+    if (match < 0) return false;
+    nextCharacter = match + part.length;
+    return true;
+  });
+  if (orderedSubstrings) return 3;
   if (normalizedName.includes(normalizedQuery)) return 4;
   return Number.POSITIVE_INFINITY;
 }
