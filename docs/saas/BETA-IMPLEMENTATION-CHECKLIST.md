@@ -18,7 +18,8 @@ Checkpoint 01/11/2026. Símbolos: `[x]` desenvolvido nesta PR ou previamente e t
 - [ ] (4.2 — 0/1) Resolver com evidências a procedência dos 12 cadastros históricos, sem alteração ou exclusão por suposição.
 - [ ] (6.2 — 0/3) Recuperar 116 objetos históricos, validar restauração bytes+banco e conciliar delta atual do Cloud.
 - [ ] (6.3 — 0/1) Medir Web, banco e Realtime em staging isolado com baseline de recursos; testes de carga reais ficam para piloto.
-- [ ] (6.4 — 0/1) Implementar e provar aceite por versão do texto final de termos aprovado por jurídico; não publicar minutas.
+- [x] (6.4 — 1/2) Contrato técnico de aceite versionado: documentos aprovados apenas, SHA-256, dono da clínica, carimbo do servidor, comprovante imutável e teste SQL isolado; inativo em produção. [PR #240](https://github.com/GustavoFboz/dtfipo/pull/240).
+- [ ] (6.4 — 1/2) Aplicar migração e integrar interface após revisão jurídica, com textos efetivamente aprovados e recibos de contratação.
 - [x] (7.4 — 1/2) Pré-verificador de código/versão/migrações/manifesto SHA-256, com bloqueio real de liberação e testes automatizados: [PR #239](https://github.com/GustavoFboz/dtfipo/pull/239).
 - [ ] (7.4 — 1/2) Artefatos assinados finais, paridade backend + rollback efetivamente testado, não apenas inventário.
 
@@ -39,3 +40,11 @@ Checkpoint 01/11/2026. Símbolos: `[x]` desenvolvido nesta PR ou previamente e t
 - [x] (1/1) CI específica executa caminho bloqueado e não publica.
 - [ ] (0/1) Concluir candidato efetivamente assinado, backup integral e rollback: o gatilho final de 7.4 permanece aberto.
 - **Indicador único de engenharia: 93,84%**, após a CI e integração da PR #239; corresponde a trabalho técnico distinto, não a um release homologado.
+
+## Checkpoint 02/11/2026 — mecanismo jurídico sem publicação
+
+- [x] (1/1) Esquema isolado de versões e aceite imutável com validação de empresa, hash e documento publicado.
+- [x] (1/1) Teste descartável rejeita rascunhos, empresa alheia, hash alterado e gravação direta.
+- [x] (1/1) Cliente de consulta/aceite implementado com recurso desativado por padrão.
+- [ ] (0/1) Aprovar documentos reais e implantar endpoint/UI em produção; **não é um aceite jurídico concedido pela CI**.
+- **Percentual único de implementação beta: 94,06%**, sujeito à validação final da CI/PR #240.
