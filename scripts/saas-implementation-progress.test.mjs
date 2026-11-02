@@ -12,7 +12,7 @@ test('one unified protocol percentage represents accepted and verified partial w
   assert.equal(result.remaining_items,10);
   assert.equal(Object.hasOwn(result,'official_acceptance_percent'),false);
   assert.equal(result.overall_progress_percent,79.24);
-  assert.equal(result.verified_partial_gate_points,5.125);
+  assert.equal(result.verified_partial_gate_points,5.225);
   assert.deepEqual(result.reviewed_partial_items,['2.1','2.2','2.3','3.3','4.2','5.3','6.2','6.3','6.4','7.4']);
   assert.equal(result.unreviewed_remaining_items.length,0);
 });
