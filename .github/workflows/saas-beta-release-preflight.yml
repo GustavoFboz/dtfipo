@@ -1,0 +1,44 @@
+name: DentalFlow SaaS Beta Release Preflight (No Publish)
+on:
+  pull_request:
+    branches: [main, "saas/stage-03-asaas-checkout"]
+    paths:
+      - "scripts/saas-beta-release-preflight.mjs"
+      - "scripts/saas-beta-release-preflight.test.mjs"
+      - "docs/saas/evidence/beta-release-preflight-20261102.md"
+      - "src-tauri/tauri.conf.json"
+      - "src-tauri/Cargo.toml"
+      - "scripts/prepare-android-release.py"
+      - "capacitor.config.ts"
+      - "supabase/migrations/**"
+      - "docs/saas/BETA-IMPLEMENTATION-SCOPE.json"
+      - "docs/saas/IMPLEMENTATION-PROGRESS.json"
+      - ".github/workflows/saas-beta-release-preflight.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  candidate-manifest-dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test source and version preflight
+        run: node --test scripts/saas-beta-release-preflight.test.mjs
+      - name: Produce blocked candidate manifest without release
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/saas-beta-release-preflight.mjs > "$RUNNER_TEMP/beta-preflight.json"
+          node - "$RUNNER_TEMP/beta-preflight.json" <<'NODE'
+          const fs=require('node:fs');
+          const x=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          if(x.release_authorized!==false || x.preflight_status!=='blocked'
+             || !x.blockers.includes('historical_backup_incomplete')
+             || !x.blockers.includes('signed_native_artifacts_not_verified'))
+            process.exit(2);
+          console.log('Verified blocked beta candidate preflight; no deployment or public artifact.');
+          NODE
