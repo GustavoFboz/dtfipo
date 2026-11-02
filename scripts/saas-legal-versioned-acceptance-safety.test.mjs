@@ -6,7 +6,8 @@ const fixture=readFileSync('docs/saas/sql/saas-legal-versioned-acceptance-rehear
 const workflow=readFileSync('.github/workflows/saas-restore-rehearsal.yml','utf8');
 const client=readFileSync('src/lib/saas-legal-acceptance.ts','utf8');
 test('legal schema exposes no automatic published docs or backfilled customer acceptance',()=>{
- assert.doesNotMatch(schema,/\bINSERT\s+INTO\b/i);
+ // DDL cannot seed records. The protected RPC necessarily contains its own INSERT.
+ assert.doesNotMatch(schema.split('CREATE OR REPLACE FUNCTION public.record_saas_legal_acceptance')[0],/\bINSERT\s+INTO\b/i);
  assert.match(schema,/status text NOT NULL DEFAULT 'draft'/);
  assert.match(schema,/status='published' AND approval_reference IS NOT NULL/);
  assert.match(schema,/CHECK\(body_sha256=encode\(sha256\(convert_to\(body_markdown/);
