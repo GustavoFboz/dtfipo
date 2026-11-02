@@ -1,0 +1,58 @@
+{
+  "schema": "dentalflow-paid-beta-prelaunch-evidence-v1",
+  "created_at": "2026-11-02",
+  "target": "paid-web-beta-invitations-only",
+  "not_general_release": true,
+  "formal_acceptances_remain_separate": true,
+  "production_changes_authorized": false,
+  "checks": [
+    {
+      "id": "production-billing-lifecycle",
+      "description": "Comprovar cobrança, renovação, cancelamento, inadimplência, reativação, deduplicação e plano/valor no ambiente de produção sem débito indevido.",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "clinical-case-and-tenant-safety",
+      "description": "Comprovar criação, abertura e edição dos casos com contas de QA e negar acesso entre empresas.",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "recoverable-backup-and-rollback",
+      "description": "Concluir cópia íntegra de banco e Storage, recuperação isolada e reversão da versão publicada.",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "approved-contract-and-versioned-consent",
+      "description": "Publicar documentos reais aprovados e exigir aceite por versão antes de contratação/dados clínicos reais.",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "deployment-source-and-environment-parity",
+      "description": "Verificar SHA/versões Web e backend, migrações e configuração do ambiente servido.",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "privacy-safe-beta-observability",
+      "description": "Registrar falhas e métricas sem dados de pacientes, com acesso restrito, retenção definida e aviso adequado.",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "support-invitations-and-emergency-stop",
+      "description": "Convites limitados, canal de suporte, alertas e interrupção imediata de novas vendas.",
+      "status": "pending",
+      "evidence": []
+    },
+    {
+      "id": "owner-authorized-paid-pilot",
+      "description": "Obter autorização operacional explícita para o escopo, preços, planos e comunicação de beta pago.",
+      "status": "pending",
+      "evidence": []
+    }
+  ]
+}

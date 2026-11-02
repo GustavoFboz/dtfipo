@@ -105,5 +105,14 @@ jobs:
       # A repo-wide lint gate currently reports thousands of legacy findings,
       # so enabling it here would make unrelated historical debt block this
       # stabilization PR. Track cleanup separately in docs/ROADMAP.md.
+      - name: Verify paid beta gating never authorizes a sale or deploy
+        run: |
+          node --test scripts/saas-paid-beta-pilot-gate.test.mjs
+          node scripts/saas-paid-beta-pilot-gate.mjs
+          if node scripts/saas-paid-beta-pilot-gate.mjs --require-review-eligible; then
+            echo "Expected blocked pilot gate"
+            exit 1
+          fi
+
       - name: Production build
         run: bun run build
