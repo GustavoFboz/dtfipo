@@ -2,7 +2,7 @@
   "schema": "dentalflow-saas-implementation-evidence-v1",
   "recorded_at": "2026-11-01",
   "source": "docs/saas/ACCEPTANCE-PROGRESS.md",
-  "purpose": "Único indicador oficial de progresso da implementação do Protocolo SaaS, apresentado no painel Master. Aceites integrais e gates parciais comprovados compõem o mesmo percentual.",
+  "purpose": "Registro histórico, imutável no status, dos 23 aceites formais e gates técnicos; a barra única Master agora usa também o escopo auditado BETA-IMPLEMENTATION-SCOPE.json, sem alterar os aceites reais.",
   "denominator": 23,
   "official_acceptance": {
     "accepted_ids": [
@@ -370,7 +370,9 @@
     "detail": "Each of the 23 protocol criteria has equal weight. An accepted criterion counts 1; a reviewed but not fully accepted criterion counts only its independently verified partial gates as completed/N, never a full point until all required acceptance evidence exists. Unreviewed criteria receive no presumed progress. The result is ONE percentage for implementation tracking.",
     "rounding": "two-decimal-percent",
     "no_double_count": "An officially accepted item must not appear under reviewed_partial_gates. One evidence must not be scored twice.",
-    "completion_rule": "100% only when all 23 official criteria have formal acceptance; production readiness also requires final rollout authorization.",
-    "caveat": "This is an evidence-based tracking number, not an effort estimate, elapsed-time measure or proof of real device, full backup or provider behavior absent its specific test. The acceptance checklist remains an internal nonpercentage audit record."
+    "completion_rule": "Este registro permanece vinculado aos 23 aceites formais originais, não ao 100% técnico da barra de implementação beta. Liberação de dados reais e comercialização mantêm autorizações externas obrigatórias.",
+    "caveat": "This is an evidence-based tracking number, not an effort estimate, elapsed-time measure or proof of real device, full backup or provider behavior absent its specific test. The acceptance checklist remains an internal nonpercentage audit record.",
+    "reference_scope": "legacy_full_acceptance_audit_not_dashboard",
+    "beta_implementation_scope": "docs/saas/BETA-IMPLEMENTATION-SCOPE.json"
   }
 }

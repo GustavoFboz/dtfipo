@@ -1,3 +1,24 @@
+# DentalFlow — implementação para beta: novo escopo auditável (01/11/2026)
+
+**Indicador único no painel Master: 93,48% de IMPLEMENTAÇÃO PARA BETA.** Essa mudança representa uma **recalibração de escopo solicitada pelo responsável**, não a entrega de 14,68 pontos de código entre medições. O indicador anterior era 78,80% e incluía na fórmula testes reais e aprovações externas. Ambos os valores não medem a mesma coisa; apenas o novo indicador aparece na interface.
+
+A fórmula mantém **os mesmos 23 critérios e o mesmo peso por critério**: 13 originalmente aceitos; dos dez restantes, considera somente os gates de engenharia verificáveis por código, testes repetíveis e preparo técnico. Existem **20 verificações externas adiadas do cálculo**, mas NÃO canceladas: testes Windows/Android físicos e de 72 horas, Asaas Sandbox/provider e vigência real, sessões reais e piloto, revisão jurídica e decisão de abrir beta. As provas antigas e os aceites não foram alterados. A lista exata, com proibição de retirar futuros bloqueios arbitrariamente, está em `docs/saas/BETA-IMPLEMENTATION-SCOPE.json`.
+
+O escopo reduzido soma **18 frentes de implementação sem bloqueio interno registrado** e **cinco com tarefas obrigatórias para fechar o 100% técnico**:
+- `4.2`: determinar com evidências a origem dos 12 cadastros de pacientes sem `clinic_id`; não atribuir ou excluir sem prova. [Relatório agregado](evidence/unassigned-patients-aggregate-20261101.md).
+- `6.2`: recuperar os **116 objetos históricos faltantes**, completar restauração conjunta e conciliação do Cloud; não foi adiado para beta.
+- `6.3`: baseline técnico reproduzível de Web/banco/Realtime em staging isolado (não teste de carga pública).
+- `6.4`: implementar o mecanismo técnico de aceite de **versões jurídicas aprovadas**; não publicar minutas sem aprovação.
+- `7.4`: candidato de release com controle de versão, integridade, paridade de ambiente e plano de rollback verificável.
+
+**Condição decisiva:** 100% nesta nova barra significa somente que a implementação/rehearsals internos exigidos estão prontos. **Não** significa sistema validado por usuários reais nem autorização de vender. O registro original mantém os dez critérios aguardando homologação, e o bloqueio de lançamento permanece ativo em `scripts/saas-sales-release-gate.mjs`. Beta com dados reais exige aprovação contratual/privacidade e condições adequadas de segurança e recuperação; beta sintético e fechado deve ter seu próprio plano de risco antes de ser disponibilizado.
+
+A nova rotina de cálculo é `scripts/saas-beta-implementation-progress.mjs`; `scripts/sync-saas-dashboard-progress.mjs` alimenta o indicador único. CI verifica a lista fixa de exclusões, os fatos apresentados e que nenhum gate de backup, atribuição de propriedade, staging, aceite ou candidato de release foi escondido.
+
+## Arquivo histórico: evidências sob o indicador anterior de homologação ampla
+
+O conteúdo abaixo documenta avanços históricos sob o critério antigo; permanece preservado para auditoria, mas percentuais nele não substituem o novo indicador único.
+
 # DentalFlow — progresso único do Protocolo SaaS (01/11/2026)
 
 O painel Master apresenta **UMA porcentagem geral de implementação: 78,80%**. Essa é a referência oficial para acompanhar o trabalho até 100%, sem uma segunda barra concorrente.
