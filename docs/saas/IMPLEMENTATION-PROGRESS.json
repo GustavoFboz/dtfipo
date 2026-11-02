@@ -349,6 +349,12 @@
         "evidence": "https://github.com/GustavoFboz/dtfipo/pull/233"
       },
       {
+        "id": "source-locked-beta-preflight-reproducible",
+        "complete": true,
+        "description": "CLI reads source commit, native version parity, Android app ID, complete SQL-migration hashes and 9 important source hashes; blocked release until signatures, full backup, approved terms and verified rollback. Hermetic CLI test and bounded CI preflight, no deploy.",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/239"
+      },
+      {
         "id": "production-release-candidate-verified",
         "complete": false,
         "description": "Exact signed release candidate, native versioning, backend commit and recovery version parity jointly verified and approved"
