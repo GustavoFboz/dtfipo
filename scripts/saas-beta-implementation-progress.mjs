@@ -2,15 +2,36 @@ import {readFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {summarizeImplementationProgress} from './saas-implementation-progress.mjs';
 
+// Fixed audited allowlist: never permit a policy edit to hide a backup,
+// ownership, staging, terms-acceptance or release-candidate engineering gap.
+const APPROVED_DEFERRED_GATE_IDS=Object.freeze({
+ '2.1':['overdue-and-grace','refund-dispute-suspension','reactivation'],
+ '2.2':['arrears-refund-preservation','reactivation-preservation'],
+ '2.3':['physical-device-expiry','physical-device-reauth'],
+ '3.3':['real-android-storage-journey','real-windows-storage-journey','offline-expiry-storage-and-owner-physical'],
+ '4.2':['revocation-and-cross-company-live-probes','positive-financial-replay'],
+ '5.3':['future-activation-real','downgrade-quota-enforcement','ambiguous-failure-recovery'],
+ '6.3':['native-onboarding-pilot','progressive-capacity-approval'],
+ '6.4':['qualified-legal-business-review'],
+ '7.4':['commercial-and-legal-approvals','authorized-pilot-and-sales-release'],
+});
 export function summarizeBetaImplementation(ledger,scope){
   const original=summarizeImplementationProgress(ledger); // validates all 23 criteria and existing evidence
   if(!scope || scope.schema!=='dentalflow-saas-beta-implementation-scope-v1' ||
-    scope.denominator!==original.total_items || !scope.deferred_validation_gates ||
+    scope.denominator!==original.total_items || scope.scope!=='code-and-reproducible-automation-only' || !scope.deferred_validation_gates ||
     Array.isArray(scope.deferred_validation_gates) || typeof scope.deferred_validation_gates!=='object' ||
     scope.manual_release_requires_all_formal_acceptances!==true ||
     scope.real_patient_data_beta_requires_signed_terms_and_lgpd_review!==true ||
     scope.commercial_release_blocked_until_explicit_approval!==true)
     throw Error('BETA_SCOPE_INVALID');
+  const expected=APPROVED_DEFERRED_GATE_IDS;
+  if(Object.keys(scope.deferred_validation_gates).sort().join(',') !== Object.keys(expected).sort().join(','))
+    throw Error('BETA_SCOPE_ALLOWLIST_CHANGED');
+  for(const [criterion, allowed] of Object.entries(expected)){
+    const actual=scope.deferred_validation_gates[criterion].map(x=>x.gate_id);
+    if(actual.length!==allowed.length || actual.sort().join(',')!==[...allowed].sort().join(','))
+      throw Error('BETA_SCOPE_ALLOWLIST_CHANGED');
+  }
   let points=ledger.official_acceptance.accepted_ids.length;
   let deferredCount=0;
   const incomplete=[];
