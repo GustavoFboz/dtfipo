@@ -1,3 +1,9 @@
+# DentalFlow — avanço técnico do aceite versionado (02/11/2026)
+
+**Indicador único de implementação para beta: 94,06%.** O banco de restauração descartável aprovou o ensaio de um contrato de documentos por versão: corpo SHA-256 imutável, aprovação obrigatória para publicação, função RPC com autenticação e propriedade da clínica, recibo idempotente e bloqueio a drafts e a empresas estranhas. O cliente TS foi integrado **inativo por padrão**, sem alterar checkout ou acesso em produção. [Evidência](evidence/versioned-legal-acceptance-engine-20261102.md).
+
+A prova está limitada ao motor técnico; `published-versioned-terms-acceptance` continua não concluído. **Nenhuma minuta jurídica foi aprovada nem publicada**; produção, recuperação dos 116 objetos e parecer externo permanecem pendentes. O gate foi adicionado como entrega técnica independente em 6.4, sem eliminar a exigência de aceite real.
+
 # DentalFlow — avanço de engenharia de 02/11/2026
 
 **Indicador de implementação beta: 93,84%.** A PR #239 implementa verificador de versões Web/Windows/Android, hashes de arquivos relevantes e migrações, além de bloqueadores irremovíveis para assinatura, rollback, backup integral e termos legais. CI própria + testes de manipulação garantem que essa ferramenta não publica instaladores nem altera pagamentos. Este é um marco técnico de 7.4, **não** prova de candidato de distribuição assinado. A autorização comercial segue bloqueada.

@@ -290,6 +290,12 @@
         "evidence": "https://github.com/GustavoFboz/dtfipo/pull/235"
       },
       {
+        "id": "dormant-versioned-receipt-contract-verified",
+        "complete": true,
+        "description": "PostgreSQL disposable restore proves immutable approved-only document versions with SHA-256, owner-scoped and idempotent acceptance receipts, RLS draft denial, cross-tenant rejection; client feature remains disabled, no approved legal content seeded or published.",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/240"
+      },
+      {
         "id": "qualified-legal-business-review",
         "complete": false,
         "description": "Legal privacy/business responsible review and signoff for complete versions, real provider contracts, identity, taxes and commercial offer"

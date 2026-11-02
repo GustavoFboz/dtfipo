@@ -9,6 +9,9 @@ on:
       - "docs/saas/legal/**"
       - "scripts/saas-legal-drafts.test.mjs"
       - "scripts/saas-legal-supplier-retention.test.mjs"
+      - "scripts/saas-legal-versioned-acceptance-safety.test.mjs"
+      - "src/lib/saas-legal-acceptance.ts"
+      - "src/lib/saas-legal-acceptance.test.ts"
       - ".github/workflows/saas-legal-drafts.yml"
 
 permissions:
@@ -24,4 +27,4 @@ jobs:
         with:
           node-version: "22"
       - name: Assert contracts are unapproved internal drafts
-        run: node --test scripts/saas-legal-drafts.test.mjs scripts/saas-legal-supplier-retention.test.mjs
+        run: node --test scripts/saas-legal-drafts.test.mjs scripts/saas-legal-supplier-retention.test.mjs scripts/saas-legal-versioned-acceptance-safety.test.mjs
