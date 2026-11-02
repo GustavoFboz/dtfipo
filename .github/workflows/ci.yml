@@ -117,5 +117,8 @@ jobs:
       - name: Verify patient search order and duplicate-safe lookup
         run: bunx vitest run --configLoader runner src/lib/global-search.test.ts
 
+      - name: Verify private beta error diagnostics
+        run: bunx vitest run --configLoader runner src/lib/lovable-error-reporting.test.ts
+
       - name: Production build
         run: bun run build
