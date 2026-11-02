@@ -105,5 +105,8 @@ jobs:
       # A repo-wide lint gate currently reports thousands of legacy findings,
       # so enabling it here would make unrelated historical debt block this
       # stabilization PR. Track cleanup separately in docs/ROADMAP.md.
+      - name: Verify patient search order and duplicate-safe lookup
+        run: bunx vitest run --configLoader runner src/lib/global-search.test.ts
+
       - name: Production build
         run: bun run build
