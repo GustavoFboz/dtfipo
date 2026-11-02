@@ -114,5 +114,8 @@ jobs:
             exit 1
           fi
 
+      - name: Verify patient search order and duplicate-safe lookup
+        run: bunx vitest run --configLoader runner src/lib/global-search.test.ts
+
       - name: Production build
         run: bun run build

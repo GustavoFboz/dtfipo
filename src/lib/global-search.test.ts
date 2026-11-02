@@ -48,6 +48,15 @@ describe("patient-first global search", () => {
     expect(patientSearchRank("Maria Doroteia Furtado Pereira", "maria per")).toBeLessThan(Infinity);
   });
 
+  it("does not confuse reversed patient names with the typed order", () => {
+    expect(patientSearchRank("Cristina Ana", "Ana Cristina")).toBe(Infinity);
+    expect(patientSearchRank("Ana Maria Cristina", "Ana Cristina")).toBeLessThan(Infinity);
+    expect(rankPatientsForSearch([
+      patient("reverse", "Cristina Ana"),
+      patient("ordered", "Ana Maria Cristina"),
+    ], "Ana Cristina").map((row) => row.id)).toEqual(["ordered"]);
+  });
+
   it("groups only cases still in progress", () => {
     const grouped = groupActiveCasesByPatient([
       { id: "a", patient_id: "p1", case_number: 1, case_label: null, status: "em_andamento", entry_date: "2026-10-01", delivery_date: "2026-10-10" },
