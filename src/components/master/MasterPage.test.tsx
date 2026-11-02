@@ -128,7 +128,9 @@ describe("Master dashboard UI across accounts and sessions", () => {
     expect(text()).not.toContain("56,52%");
     expect(host.querySelectorAll('[role="progressbar"][aria-label="Implementação do Protocolo SaaS"]')).toHaveLength(1);
     expect(host.querySelector('[aria-label="Implementação do Protocolo SaaS"]')?.getAttribute("aria-valuenow")).toBe(String(protocolProgress.overall_progress_percent));
-    expect(text()).toContain("13 de 23 critérios totalmente validados");
+    expect(text()).toContain("18 de 23 frentes sem bloqueio técnico interno identificado");
+    expect(text()).toContain("20 verificações de beta ou aprovações externas estão fora deste cálculo");
+    expect(text()).toContain("Recalibração do indicador");
     expect(text()).toContain("Liberação comercial ainda não autorizada pelo protocolo.");
     await act(async () => emit("SIGNED_OUT",null));
     await settle();
