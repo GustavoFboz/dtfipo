@@ -12,7 +12,7 @@ test('current source yields a reproducible blocked release inventory, not a beta
  assert.equal(a.schema,'dentalflow-saas-beta-release-preflight-v1');
  assert.equal(a.platform_versions.windows,'0.6.8');
  assert.equal(a.platform_versions.android,'0.3.1');
- assert.equal(a.beta_implementation_percent,93.48);
+ assert.equal(a.beta_implementation_percent,93.84);
  assert.equal(a.preflight_status,'blocked');
  assert.equal(a.release_authorized,false);
  assert.equal(a.formal_acceptance_remaining,10);
