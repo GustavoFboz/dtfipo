@@ -29,8 +29,8 @@
       "code": "independent-backup-path",
       "name": "Destino de backup independente e acesso seguro de origem",
       "status": "blocked",
-      "owner_action": "Autorizar o acesso somente leitura ao Storage fora do chat do Lovable, e validar um destino persistente sob seu controle (Google Drive no Windows ou credencial segregada para execução privada). O OAuth do Drive no Lovable não é transferível automaticamente ao GitHub. Nunca enviar segredos neste chat.",
-      "definition_of_done": "Ambiente privado alcança origem e destino, guarda chave AES fora do Drive e passa upload/download criptografado de objeto fictício sem dados clínicos.",
+      "owner_action": "No Lovable More → Storage, abrir cada bucket privado e usar a seleção de itens para Download (ZIP quando múltiplos), começando por case-files. Salvar ZIPs localmente em pasta segura no Windows, sem publicar os arquivos nem chaves no GitHub/chat; preservar nomes e hierarquia. Compartilhar apenas totais e relatório sem dados pessoais. Alternativamente, usar automação local apenas com sessão legítima e autorização explícita, sem extrair credenciais internas gerenciadas pelo Lovable.",
+      "definition_of_done": "Download nativo autenticado de um lote de teste do Storage original concluído no Windows, preservando estrutura e com integridade verificada contra índice privado; destino externo protegido definido e procedimento reproduzível para os demais arquivos. Não requer service role key ou acesso direto a PostgreSQL gerenciados pelo Lovable.",
       "evidence": []
     },
     {
