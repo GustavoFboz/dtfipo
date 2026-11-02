@@ -45,6 +45,9 @@ jobs:
           bun scripts/check-desktop-entitlement-bootstrap-032.mjs
           bun test src/lib/subscriptions.desktop.test.ts
 
+      - name: Verify dormant versioned legal terms client
+        run: bunx vitest run --configLoader runner src/lib/saas-legal-acceptance.test.ts
+
       - name: Verify private Storage and cross-company UI cache isolation
         run: bunx vitest run --configLoader runner src/lib/storage.test.ts src/lib/api.storage.test.ts src/lib/private-file-reference.test.ts src/lib/private-file-access.test.ts src/components/StorageUploadReservations.test.tsx src/components/StorageManagementPage.owner-boundary.test.tsx
 
