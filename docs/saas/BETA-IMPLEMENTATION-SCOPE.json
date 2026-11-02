@@ -1,0 +1,130 @@
+{
+  "schema": "dentalflow-saas-beta-implementation-scope-v1",
+  "recorded_at": "2026-11-01",
+  "scope": "code-and-reproducible-automation-only",
+  "denominator": 23,
+  "deferred_validation_gates": {
+    "2.1": [
+      {
+        "gate_id": "overdue-and-grace",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      },
+      {
+        "gate_id": "refund-dispute-suspension",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      },
+      {
+        "gate_id": "reactivation",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      }
+    ],
+    "2.2": [
+      {
+        "gate_id": "arrears-refund-preservation",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      },
+      {
+        "gate_id": "reactivation-preservation",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      }
+    ],
+    "2.3": [
+      {
+        "gate_id": "physical-device-expiry",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      },
+      {
+        "gate_id": "physical-device-reauth",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      }
+    ],
+    "3.3": [
+      {
+        "gate_id": "real-android-storage-journey",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      },
+      {
+        "gate_id": "real-windows-storage-journey",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      },
+      {
+        "gate_id": "offline-expiry-storage-and-owner-physical",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      }
+    ],
+    "4.2": [
+      {
+        "gate_id": "revocation-and-cross-company-live-probes",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      },
+      {
+        "gate_id": "positive-financial-replay",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      }
+    ],
+    "5.3": [
+      {
+        "gate_id": "future-activation-real",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      },
+      {
+        "gate_id": "downgrade-quota-enforcement",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      },
+      {
+        "gate_id": "ambiguous-failure-recovery",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      }
+    ],
+    "6.3": [
+      {
+        "gate_id": "native-onboarding-pilot",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      },
+      {
+        "gate_id": "progressive-capacity-approval",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      }
+    ],
+    "6.4": [
+      {
+        "gate_id": "qualified-legal-business-review",
+        "category": "external_approval_before_real_data_beta",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      }
+    ],
+    "7.4": [
+      {
+        "gate_id": "commercial-and-legal-approvals",
+        "category": "external_approval_before_real_data_beta",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      },
+      {
+        "gate_id": "authorized-pilot-and-sales-release",
+        "category": "external_or_beta_validation",
+        "reason": "Requires authorized provider interaction, physical client/device, genuine elapsed time or independent professional sign-off; not proof of implementation."
+      }
+    ]
+  },
+  "manual_release_requires_all_formal_acceptances": true,
+  "real_patient_data_beta_requires_signed_terms_and_lgpd_review": true,
+  "commercial_release_blocked_until_explicit_approval": true,
+  "note": "Scope change is a re-baseline, not new delivered work. Deferred gates remain open in the original ledger, must be tracked and tested. Missing historical backup objects, unassigned patient provenance and pre-beta engineering remain blockers."
+}
