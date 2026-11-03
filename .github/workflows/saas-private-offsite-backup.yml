@@ -1,0 +1,52 @@
+name: DentalFlow Private Offsite ZIP Encryption
+
+on:
+  pull_request:
+    branches: [main, "saas/stage-03-asaas-checkout"]
+    paths:
+      - "scripts/recovery/private_offsite_bundle.py"
+      - "scripts/recovery/private_offsite_bundle_gui.py"
+      - "scripts/recovery/test_private_offsite_bundle.py"
+      - "docs/saas/PRIVATE-OFFSITE-BACKUP-WINDOWS.md"
+      - ".github/workflows/saas-private-offsite-backup.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install cryptography (no user inputs or keys)
+        run: python -m pip install --disable-pip-version-check "cryptography>=42,<50"
+      - name: Verify encryption, full readback, wrong keys and tamper detection
+        run: python -m unittest discover -s scripts/recovery -p "test_private_offsite_bundle.py" -v
+
+  build-windows-offline:
+    runs-on: windows-latest
+    timeout-minutes: 16
+    needs: synthetic-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install packager (synthetic code only)
+        run: python -m pip install --disable-pip-version-check "cryptography>=42,<50" "pyinstaller>=6.16,<7"
+      - name: Run tests on Windows too
+        run: python -m unittest discover -s scripts/recovery -p "test_private_offsite_bundle.py" -v
+      - name: Build offline Windows GUI
+        run: python -m PyInstaller --noconfirm --onefile --windowed --name DentalFlow-Backup-Cifrado scripts/recovery/private_offsite_bundle_gui.py
+      - name: Publish unsigned executable with no data, names or credentials
+        uses: actions/upload-artifact@v4
+        with:
+          name: DentalFlow-Backup-Cifrado-Windows-unsigned
+          path: dist/DentalFlow-Backup-Cifrado.exe
+          if-no-files-found: error
+          retention-days: 7
