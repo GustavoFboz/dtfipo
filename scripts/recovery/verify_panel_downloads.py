@@ -18,6 +18,7 @@ from collections import Counter
 from pathlib import Path
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.exceptions import InvalidTag
 
 INDEX_AAD = b"dentalflow-recovery-v1:dentalflow-storage-index-20261029"
 INDEX_MAGIC = b"DFREC001"
@@ -44,7 +45,7 @@ def _load_index(index_path: Path, key_path: Path):
         raise ValueError(FAILURE)
     try:
         inventory = json.loads(AESGCM(key).decrypt(blob[8:20], blob[20:], INDEX_AAD))
-    except (ValueError, KeyError, UnicodeDecodeError, json.JSONDecodeError):
+    except (ValueError, KeyError, UnicodeDecodeError, json.JSONDecodeError, InvalidTag):
         raise ValueError(FAILURE) from None
     return inventory
 
