@@ -99,8 +99,49 @@ def main():
 
         threading.Thread(target=worker, daemon=True).start()
 
-    run = ttk.Button(outer, text="Criptografar e conferir localmente", command=start)
-    run.pack(anchor="w", pady=(18, 12))
+    def verify_external_download():
+        folder = filedialog.askdirectory(title="Escolha a pasta CIFRADA baixada de volta do Google Drive")
+        if not folder:
+            return
+        keyfile = filedialog.askopenfilename(title="Escolha a NOVA chave privada deste pacote cifrado")
+        if not keyfile:
+            return
+        run.configure(state="disabled")
+        check.configure(state="disabled")
+        status.set("Conferindo autenticação e hashes de todos os arquivos cifrados…")
+        detail.set("Somente leitura: o programa não envia arquivos para nenhum serviço.")
+
+        def worker():
+            try:
+                report = verify_bundle(folder, keyfile)
+                error = False
+            except Exception:
+                report, error = None, True
+            def finished():
+                run.configure(state="normal")
+                check.configure(state="normal")
+                if error:
+                    status.set("O pacote não foi validado. Confira a chave e os arquivos baixados.")
+                    detail.set("Não apague o pacote original nem marque a cópia externa como concluída.")
+                else:
+                    status.set(
+                        f"Pacote cifrado autenticado: {report['verified_files']} partes, "
+                        f"{report['verified_plaintext_bytes']:,} bytes.".replace(",", ".")
+                    )
+                    detail.set(
+                        "A conferência de uma cópia baixada do Drive foi concluída. "
+                        "Este programa não verifica a origem do download, nem restaura o banco."
+                    )
+            root.after(0, finished)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    buttons = ttk.Frame(outer)
+    buttons.pack(anchor="w", pady=(18, 12))
+    run = ttk.Button(buttons, text="Criptografar e conferir localmente", command=start)
+    run.pack(side="left")
+    check = ttk.Button(buttons, text="Conferir pacote cifrado baixado do Drive", command=verify_external_download)
+    check.pack(side="left", padx=(12, 0))
     ttk.Label(
         outer,
         text=("Depois do upload ao Google Drive, o backup só estará validado externamente após "
