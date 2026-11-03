@@ -27,18 +27,22 @@
     {
       "id": 2,
       "code": "independent-backup-path",
-      "name": "Destino de backup independente e acesso seguro de origem",
-      "status": "blocked",
-      "owner_action": "No Lovable More → Storage, abrir cada bucket privado e usar a seleção de itens para Download (ZIP quando múltiplos), começando por case-files. Salvar ZIPs localmente em pasta segura no Windows, sem publicar os arquivos nem chaves no GitHub/chat; preservar nomes e hierarquia. Compartilhar apenas totais e relatório sem dados pessoais. Alternativamente, usar automação local apenas com sessão legítima e autorização explícita, sem extrair credenciais internas gerenciadas pelo Lovable.",
-      "definition_of_done": "Download nativo autenticado de um lote de teste do Storage original concluído no Windows, preservando estrutura e com integridade verificada contra índice privado; destino externo protegido definido e procedimento reproduzível para os demais arquivos. Não requer service role key ou acesso direto a PostgreSQL gerenciados pelo Lovable.",
-      "evidence": []
+      "name": "Exportação autenticada e verificação local do Storage",
+      "status": "done",
+      "owner_action": "Concluído: o proprietário baixou 13 ZIPs de case-files pelo painel nativo e validou localmente 115/116 arquivos históricos; próximo trabalho pendente está exclusivamente na etapa 3, que inclui o arquivo isolado restante, armazenamento criptografado fora do Cloud e restauração completa.",
+      "definition_of_done": "Rota real de download autenticado em múltiplos ZIPs comprovada no Windows contra índice privado: 115/116 identificados, 92 correspondências com ETag MD5, 23 sem digest de origem, zero arquivos/ZIPs inválidos; Google Drive privado escolhido como destino posterior. Isso valida o fluxo local, não garante cópia externa nem recuperabilidade.",
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/issues/241",
+        "https://github.com/GustavoFboz/dtfipo/pull/251",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/41558717231"
+      ]
     },
     {
       "id": 3,
       "code": "recover-and-restore",
       "name": "Completar 116 anexos, backup atual e recuperação isolada",
       "status": "pending",
-      "owner_action": "Somente se necessário, disponibilizar espaço privado e confirmar a posse dos volumes antigos e chave, nunca publicá-los no GitHub.",
+      "owner_action": "Baixar o único arquivo do bucket database_export_05_09_26 (773.383 bytes) pelo painel nativo e guardá-lo na mesma pasta privada dos 13 ZIPs; executar novamente o Verificador até localizar 116/116. Em seguida, conferir os 23 sem digest de origem, proteger os downloads por cifragem e realizar restauração integrada em staging privado, sem enviar dados ou chave ao GitHub/chat.",
       "definition_of_done": "116/116 objetos (1.968.840.906 bytes) recebidos e autenticados, 708/708 históricos reconciliados, alterações posteriores inventariadas, banco atual + anexos restaurados juntos em ambiente descartável e reversão de dados simulada.",
       "evidence": []
     },
