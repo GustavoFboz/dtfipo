@@ -42,9 +42,23 @@
       "code": "recover-and-restore",
       "name": "Completar 116 anexos, backup atual e recuperação isolada",
       "status": "pending",
-      "owner_action": "Baixar o único arquivo do bucket database_export_05_09_26 (773.383 bytes) pelo painel nativo e guardá-lo na mesma pasta privada dos 13 ZIPs; executar novamente o Verificador até localizar 116/116. Em seguida, conferir os 23 sem digest de origem, proteger os downloads por cifragem e realizar restauração integrada em staging privado, sem enviar dados ou chave ao GitHub/chat.",
+      "owner_action": "116/116 arquivos históricos pendentes já identificados no Windows, zero ZIPs/arquivos inválidos (92 ETag MD5; 24 sem digest de origem), sem presumir validação criptográfica integral. Próxima ação: proteger os 14 downloads em novo pacote AES-256-GCM, guardar chave separada, enviar apenas o cifrado ao Drive e validar download de retorno. Depois restaurar banco atual+708 objetos históricos+delta em staging isolado.",
       "definition_of_done": "116/116 objetos (1.968.840.906 bytes) recebidos e autenticados, 708/708 históricos reconciliados, alterações posteriores inventariadas, banco atual + anexos restaurados juntos em ambiente descartável e reversão de dados simulada.",
-      "evidence": []
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/issues/241",
+        "https://github.com/GustavoFboz/dtfipo/pull/253"
+      ],
+      "checkpoint": {
+        "historical_missing_objects_locally_found": 116,
+        "historical_missing_objects": 116,
+        "etag_md5_matches": 92,
+        "without_source_digest": 24,
+        "invalid_downloaded_objects": 0,
+        "invalid_downloaded_archives": 0,
+        "external_encrypted_copy_verified": false,
+        "current_live_database_storage_restore_verified": false,
+        "release_authorized": false
+      }
     },
     {
       "id": 4,
