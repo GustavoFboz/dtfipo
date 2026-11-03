@@ -64,8 +64,8 @@ def main():
             f"· ainda faltam {report['missing_after_local_check']}"
         )
         summary.set(
-            f"Correspondência MD5: {report['strong_md5_source_matches']} · "
-            f"somente nome/tamanho/CRC: {report['name_size_crc_only']} · "
+            f"ETag MD5 equivalente: {report['etag_md5_matches']} · "
+            f"sem digest de origem: {report['name_size_no_source_digest']} · "
             f"arquivos inválidos: {report['mismatched_or_corrupt_entries']} · "
             f"ZIPs inválidos: {report['invalid_archives']}.\n"
             "Este resultado não significa restauração nem publicação autorizada."
