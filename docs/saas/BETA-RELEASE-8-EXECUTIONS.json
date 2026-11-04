@@ -42,7 +42,7 @@
       "code": "recover-and-restore",
       "name": "Completar 116 anexos, backup atual e recuperação isolada",
       "status": "pending",
-      "owner_action": "Etapa 3 em progresso: cópia cifrada externa (14 partes/2.712.484.560 bytes) teve readback autenticado; metadados SHA-256 dos 708 registros dos 4 buckets históricos correspondem à origem viva. Faltam exportação PRIVADA do banco atual pelo painel Lovable, autenticação adicional de 24 arquivos sem digest de origem, decisão sobre 21 artefatos históricos de exportação e recuperação conjunta em staging isolado. Nenhuma chave ou arquivo clínico deve ser enviado ao GitHub/chat.",
+      "owner_action": "Export atual do banco criado no Lovable em 04/11/2026 e download confirmado pelo proprietário; metadata 1 objeto/2.439.186 bytes. Agora cifrar o arquivo em pacote AES-256-GCM NOVO, separado dos anexos, com chave nova fora do Drive; upload somente do pacote cifrado e verificação de download externo. Depois ensaiar restauração isolada conjunta (banco atual+Storage), sem divulgar o export, chaves ou dados pessoais no GitHub/chat.",
       "definition_of_done": "116/116 objetos (1.968.840.906 bytes) recebidos e autenticados, 708/708 históricos reconciliados, alterações posteriores inventariadas, banco atual + anexos restaurados juntos em ambiente descartável e reversão de dados simulada.",
       "evidence": [
         "https://github.com/GustavoFboz/dtfipo/issues/241",
@@ -103,6 +103,17 @@
           "clinical_case_repair_authorized": false,
           "real_staging_restore_verified": false,
           "evidence": "https://github.com/GustavoFboz/dtfipo/issues/241"
+        },
+        "current_database_export": {
+          "verified_metadata_only": true,
+          "source_bucket": "database_export_04_11_26",
+          "object_count": 1,
+          "bytes": 2439186,
+          "created_at_utc": "2026-11-04T21:58:48Z",
+          "owner_download_reported": true,
+          "encrypted_offsite_copy_verified": false,
+          "actual_dump_format_verified": false,
+          "integrated_recovery_verified": false
         }
       }
     },
