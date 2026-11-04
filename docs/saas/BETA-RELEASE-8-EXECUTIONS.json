@@ -42,7 +42,7 @@
       "code": "recover-and-restore",
       "name": "Completar 116 anexos, backup atual e recuperação isolada",
       "status": "pending",
-      "owner_action": "116/116 arquivos históricos pendentes já identificados no Windows, zero ZIPs/arquivos inválidos (92 ETag MD5; 24 sem digest de origem), sem presumir validação criptográfica integral. Próxima ação: proteger os 14 downloads em novo pacote AES-256-GCM, guardar chave separada, enviar apenas o cifrado ao Drive e validar download de retorno. Depois restaurar banco atual+708 objetos históricos+delta em staging isolado.",
+      "owner_action": "Cópia local criptografada e autenticada concluída: 14 arquivos de download e 2.712.484.560 bytes verificados com nova chave local. Próximo passo do proprietário: enviar SOMENTE as 14 partes .dfenc e catalog.dfenc ao Drive privado; baixar cópia integral e usar Verificar pacote cifrado com a chave separada; não compartilhar chave/ZIPs. Depois conciliar 708 objetos históricos + delta atual, banco e Storage e fazer restauração conjunta.",
       "definition_of_done": "116/116 objetos (1.968.840.906 bytes) recebidos e autenticados, 708/708 históricos reconciliados, alterações posteriores inventariadas, banco atual + anexos restaurados juntos em ambiente descartável e reversão de dados simulada.",
       "evidence": [
         "https://github.com/GustavoFboz/dtfipo/issues/241",
@@ -57,7 +57,16 @@
         "invalid_downloaded_archives": 0,
         "external_encrypted_copy_verified": false,
         "current_live_database_storage_restore_verified": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "local_offsite_bundle": {
+          "encrypted_input_files": 14,
+          "encrypted_plaintext_bytes": 2712484560,
+          "local_aes_gcm_readback_verified": true,
+          "source": "Proprietário confirmou GUI Windows por captura em 03/11/2026; registro agregado em issue #241",
+          "receipt": "https://github.com/GustavoFboz/dtfipo/issues/241",
+          "uploaded_to_drive_verified": false,
+          "drive_readback_verified": false
+        }
       }
     },
     {
