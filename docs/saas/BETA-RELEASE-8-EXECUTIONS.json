@@ -42,7 +42,7 @@
       "code": "recover-and-restore",
       "name": "Completar 116 anexos, backup atual e recuperação isolada",
       "status": "pending",
-      "owner_action": "116/116 arquivos históricos pendentes já identificados no Windows, zero ZIPs/arquivos inválidos (92 ETag MD5; 24 sem digest de origem), sem presumir validação criptográfica integral. Próxima ação: proteger os 14 downloads em novo pacote AES-256-GCM, guardar chave separada, enviar apenas o cifrado ao Drive e validar download de retorno. Depois restaurar banco atual+708 objetos históricos+delta em staging isolado.",
+      "owner_action": "Cópia criptografada externa conferida pelo proprietário: 15 objetos no Drive (14 partes .dfenc + catalog.dfenc), novo download e autenticação local bem-sucedida para 14 partes / 2.712.484.560 bytes. Não enviar chave ao Drive. Próximo: inventariar delta de objetos, realizar backup consistente do banco atual, verificar arquivos históricos sem digest comparável e restaurar banco+Storage juntos em staging isolado.",
       "definition_of_done": "116/116 objetos (1.968.840.906 bytes) recebidos e autenticados, 708/708 históricos reconciliados, alterações posteriores inventariadas, banco atual + anexos restaurados juntos em ambiente descartável e reversão de dados simulada.",
       "evidence": [
         "https://github.com/GustavoFboz/dtfipo/issues/241",
@@ -55,9 +55,26 @@
         "without_source_digest": 24,
         "invalid_downloaded_objects": 0,
         "invalid_downloaded_archives": 0,
-        "external_encrypted_copy_verified": false,
+        "external_encrypted_copy_verified": true,
         "current_live_database_storage_restore_verified": false,
-        "release_authorized": false
+        "release_authorized": false,
+        "owner_verified_cloud_readback": {
+          "uploaded_encrypted_files": 15,
+          "encrypted_data_parts": 14,
+          "plaintext_bytes_authenticated": 2712484560,
+          "verification_method": "Cópia baixada do Google Drive e conferida localmente por AES-256-GCM + SHA-256, segundo captura fornecida pelo proprietário",
+          "drive_provider_independent_api_audit": false,
+          "source_data_recovered_directly_into_staging": false
+        },
+        "current_storage_aggregate": {
+          "objects": 729,
+          "bytes": 12304790800,
+          "objects_created_after_2026_10_29": 20,
+          "aggregate_metadata_only": true,
+          "net_count_difference_from_historical_snapshot": 21,
+          "bucket_count": 5,
+          "source": "SELECT aggregate storage.objects; no clinical filenames read"
+        }
       }
     },
     {
