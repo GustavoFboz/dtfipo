@@ -90,6 +90,19 @@
           "bytes": 3846707569,
           "original_snapshot_scope": false,
           "copy_external_confirmed": false
+        },
+        "recovery_linkage_preflight": {
+          "checked_on": "2026-11-04",
+          "storage_file_references": 702,
+          "storage_file_missing_objects": 0,
+          "storage_file_broken_case_patient_clinic_relations": 0,
+          "case_attachment_rows": 613,
+          "case_attachment_missing_objects": 0,
+          "case_attachment_records_with_historic_missing_case": 4,
+          "distinct_missing_historic_cases": 1,
+          "clinical_case_repair_authorized": false,
+          "real_staging_restore_verified": false,
+          "evidence": "https://github.com/GustavoFboz/dtfipo/issues/241"
         }
       }
     },
