@@ -42,7 +42,7 @@
       "code": "recover-and-restore",
       "name": "Completar 116 anexos, backup atual e recuperação isolada",
       "status": "pending",
-      "owner_action": "Cópia criptografada externa conferida pelo proprietário: 15 objetos no Drive (14 partes .dfenc + catalog.dfenc), novo download e autenticação local bem-sucedida para 14 partes / 2.712.484.560 bytes. Não enviar chave ao Drive. Próximo: inventariar delta de objetos, realizar backup consistente do banco atual, verificar arquivos históricos sem digest comparável e restaurar banco+Storage juntos em staging isolado.",
+      "owner_action": "Etapa 3 em progresso: cópia cifrada externa (14 partes/2.712.484.560 bytes) teve readback autenticado; metadados SHA-256 dos 708 registros dos 4 buckets históricos correspondem à origem viva. Faltam exportação PRIVADA do banco atual pelo painel Lovable, autenticação adicional de 24 arquivos sem digest de origem, decisão sobre 21 artefatos históricos de exportação e recuperação conjunta em staging isolado. Nenhuma chave ou arquivo clínico deve ser enviado ao GitHub/chat.",
       "definition_of_done": "116/116 objetos (1.968.840.906 bytes) recebidos e autenticados, 708/708 históricos reconciliados, alterações posteriores inventariadas, banco atual + anexos restaurados juntos em ambiente descartável e reversão de dados simulada.",
       "evidence": [
         "https://github.com/GustavoFboz/dtfipo/issues/241",
@@ -74,6 +74,22 @@
           "net_count_difference_from_historical_snapshot": 21,
           "bucket_count": 5,
           "source": "SELECT aggregate storage.objects; no clinical filenames read"
+        },
+        "historical_metadata_sha256": {
+          "original_buckets": 4,
+          "historical_objects": 708,
+          "matching_buckets_version_size_etag": 4,
+          "matching_historical_metadata_objects": 708,
+          "live_object_bytes_authenticated_by_metadata_check": false,
+          "captured_as": "read-only historical-index-vs-live-Cloud query, 2026-11-04",
+          "verification_record": "https://github.com/GustavoFboz/dtfipo/issues/241"
+        },
+        "new_export_bucket": {
+          "bucket_id": "database_export_29_10_26",
+          "objects": 21,
+          "bytes": 3846707569,
+          "original_snapshot_scope": false,
+          "copy_external_confirmed": false
         }
       }
     },
