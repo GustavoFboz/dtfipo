@@ -42,7 +42,7 @@
       "code": "recover-and-restore",
       "name": "Completar 116 anexos, backup atual e recuperação isolada",
       "status": "pending",
-      "owner_action": "Export atual do banco criado no Lovable em 04/11/2026 e download confirmado pelo proprietário; metadata 1 objeto/2.439.186 bytes. Agora cifrar o arquivo em pacote AES-256-GCM NOVO, separado dos anexos, com chave nova fora do Drive; upload somente do pacote cifrado e verificação de download externo. Depois ensaiar restauração isolada conjunta (banco atual+Storage), sem divulgar o export, chaves ou dados pessoais no GitHub/chat.",
+      "owner_action": "Cópia externa criptografada dos anexos (14 partes/2.712.484.560 bytes) e cópia externa criptografada do banco de 04/11 (1 parte/2.439.186 bytes) tiveram readback autenticado pelo proprietário. Chaves independentes, guardadas fora do Drive. Resta inspecionar formato dump em ambiente privado, ensaiar recuperação integrada de banco atual e Storage sem produção/Asaas, resolver quatro anexos históricos com caso ausente e validar versões dos 24 arquivos sem digest antigo. Não publicar até evidência.",
       "definition_of_done": "116/116 objetos (1.968.840.906 bytes) recebidos e autenticados, 708/708 históricos reconciliados, alterações posteriores inventariadas, banco atual + anexos restaurados juntos em ambiente descartável e reversão de dados simulada.",
       "evidence": [
         "https://github.com/GustavoFboz/dtfipo/issues/241",
@@ -111,9 +111,16 @@
           "bytes": 2439186,
           "created_at_utc": "2026-11-04T21:58:48Z",
           "owner_download_reported": true,
-          "encrypted_offsite_copy_verified": false,
+          "encrypted_offsite_copy_verified": true,
           "actual_dump_format_verified": false,
-          "integrated_recovery_verified": false
+          "integrated_recovery_verified": false,
+          "owner_verified_drive_readback": {
+            "parts": 1,
+            "authenticated_plaintext_bytes": 2439186,
+            "authenticity_method": "owner screenshot of Windows local AES-256-GCM package verification after downloading from Google Drive",
+            "provider_connection_independently_audited": false,
+            "raw_database_dump_inspected": false
+          }
         }
       }
     },
