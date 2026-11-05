@@ -1,0 +1,257 @@
+#!/usr/bin/env python3
+"""Isolated, LOCAL database restore rehearsal for a verified DentalFlow backup.
+
+There is NO network or host-volume access inside the PostgreSQL container.
+Never connect to a database URL or a paid provider. The encrypted owner-owned
+database bundle is authenticated in memory and piped only to Docker stdin.
+
+This checks the database dump ONLY, not an integrated Storage restoration.
+It must never certify the beta, even if PostgreSQL restore succeeds.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import io
+import json
+import secrets
+import shutil
+import subprocess
+import sys
+import time
+import zipfile
+from pathlib import Path
+
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.exceptions import InvalidTag
+
+from private_offsite_bundle import (
+    AAD, CHUNK, MAGIC, _key, _manifest_read, _readback,
+)
+
+POSTGRES_IMAGE = "postgres:17-alpine"
+MAX_DATABASE_BYTES = 96 * 1024 * 1024
+ERROR = "DF_ISOLATED_DB_RESTORE_UNVERIFIED"
+FORMAT_ERROR = "DF_DB_EXPORT_UNSUPPORTED_FORMAT"
+
+
+def _fail(message=ERROR):
+    raise ValueError(message)
+
+
+def read_database_export(encrypted_dir: str | Path, private_key: str | Path):
+    """Validate catalog, then decrypt the one encrypted DB file into memory."""
+    directory = Path(encrypted_dir).resolve()
+    keypath = Path(private_key).resolve()
+    if not directory.is_dir() or directory.is_symlink():
+        _fail()
+    if keypath == directory or directory in keypath.parents:
+        _fail()
+    key = _key(keypath)
+    catalog = _manifest_read(directory / "catalog.dfenc", key)
+    files = catalog["files"]
+    if len(files) != 1 or len(list(directory.iterdir())) != 2:
+        _fail()
+    item = files[0]
+    if item["encrypted"] != "part-001.dfenc":
+        _fail()
+    if item["size"] > MAX_DATABASE_BYTES:
+        _fail("DF_DATABASE_TOO_LARGE_FOR_MEMORY_ONLY_CHECK")
+    encrypted = directory / "part-001.dfenc"
+    if not _readback(encrypted, key, "part-001", item):
+        _fail()
+    if encrypted.is_symlink() or encrypted.stat().st_size > MAX_DATABASE_BYTES + 36:
+        _fail()
+    blob = encrypted.read_bytes()
+    if len(blob) < 36 or blob[:8] != MAGIC:
+        _fail()
+    cipher = Cipher(
+        algorithms.AES(key),
+        modes.GCM(blob[8:20], blob[-16:]),
+    ).decryptor()
+    cipher.authenticate_additional_data(AAD + b"part-001")
+    try:
+        plain = cipher.update(blob[20:-16]) + cipher.finalize()
+    except (InvalidTag, ValueError):
+        _fail()
+    if len(plain) != item["size"] or hashlib.sha256(plain).hexdigest() != item["sha256"]:
+        _fail()
+    data, export_type = _unwrap_export(plain)
+    return data, export_type
+
+
+def _unwrap_export(data: bytes):
+    if data.startswith(b"PGDMP"):
+        return data, "pg_custom"
+    if data.startswith(b"PK\x03\x04"):
+        try:
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                members = [m for m in archive.infolist() if not m.is_dir()]
+                if len(members) != 1:
+                    _fail(FORMAT_ERROR)
+                m = members[0]
+                # File paths are never extracted, used as commands, or printed.
+                if (m.flag_bits & 1 or m.file_size > MAX_DATABASE_BYTES or
+                    not m.filename.lower().endswith((".sql", ".dump", ".backup", ".pgdump"))):
+                    _fail(FORMAT_ERROR)
+                with archive.open(m) as f:
+                    raw = f.read(MAX_DATABASE_BYTES + 1)
+                if len(raw) > MAX_DATABASE_BYTES:
+                    _fail(FORMAT_ERROR)
+                return _unwrap_export(raw)
+        except (zipfile.BadZipFile, RuntimeError):
+            _fail(FORMAT_ERROR)
+    # PostgreSQL text dumps normally begin with a comment or SET statement.
+    prefix = data[:4096].lstrip(b"\xef\xbb\xbf\r\n\t ")
+    if (prefix.startswith(b"--") or prefix.startswith(b"SET ") or
+        prefix.startswith(b"CREATE ") or prefix.startswith(b"BEGIN;") or
+        prefix.startswith(b"\\connect")):
+        try:
+            data.decode("utf-8")
+        except UnicodeDecodeError:
+            _fail(FORMAT_ERROR)
+        return data, "sql"
+    _fail(FORMAT_ERROR)
+
+
+def _docker(args: list[str], *, data: bytes | None = None, timeout: int = 120):
+    try:
+        return subprocess.run(
+            ["docker", *args],
+            input=data,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=timeout,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        _fail("DF_DOCKER_UNAVAILABLE_OR_TIMEOUT")
+
+
+def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path):
+    data, export_type = read_database_export(encrypted_dir, private_key)
+    if not shutil.which("docker"):
+        _fail("DF_DOCKER_DESKTOP_NOT_INSTALLED")
+    info = _docker(["info", "--format", "{{.ServerVersion}}"], timeout=15)
+    if info.returncode:
+        _fail("DF_DOCKER_DESKTOP_NOT_RUNNING")
+
+    # The image download happens before any sensitive input enters Docker.
+    pull = _docker(["pull", POSTGRES_IMAGE], timeout=240)
+    if pull.returncode:
+        _fail("DF_POSTGRES_IMAGE_UNAVAILABLE")
+
+    name = "dentalflow-qa-" + secrets.token_hex(7)
+    try:
+        run = _docker([
+            "run", "-d", "--rm",
+            "--name", name,
+            "--network", "none",
+            "--user", "postgres",
+            "--read-only",
+            "--cap-drop=ALL",
+            "--security-opt", "no-new-privileges",
+            "--pids-limit", "256",
+            "--memory", "1g",
+            "--tmpfs", "/var/lib/postgresql/data:rw,uid=70,gid=70,mode=0700,size=512m",
+            "--tmpfs", "/var/run/postgresql:rw,uid=70,gid=70,mode=0770,size=16m",
+            "--tmpfs", "/tmp:rw,mode=1777,size=64m",
+            "-e", "POSTGRES_HOST_AUTH_METHOD=trust",
+            POSTGRES_IMAGE,
+        ], timeout=120)
+        if run.returncode:
+            _fail("DF_ISOLATED_DB_CONTAINER_FAILED")
+        for _ in range(45):
+            ready = _docker(
+                ["exec", name, "pg_isready", "-U", "postgres", "-d", "postgres"], timeout=8
+            )
+            if ready.returncode == 0:
+                break
+            time.sleep(1)
+        else:
+            _fail("DF_ISOLATED_DB_NOT_READY")
+
+        # Restore from STDIN only: no PHI in shell arguments, logs, volumes
+        # or GitHub. The isolated container has no network interface.
+        if export_type == "pg_custom":
+            command = [
+                "pg_restore", "--no-owner", "--no-privileges",
+                "--exit-on-error", "--single-transaction",
+                "-U", "postgres", "-d", "postgres",
+            ]
+        else:
+            command = [
+                "psql", "-v", "ON_ERROR_STOP=1", "-U", "postgres",
+                "-d", "postgres", "-q",
+            ]
+        restored = _docker(["exec", "-i", name, *command], data=data, timeout=240)
+        if restored.returncode:
+            # Logs can contain user details. Do not emit stderr/stdout here.
+            _fail("DF_RESTORE_FAILED_ISOLATED_MISSING_EXTENSION_OR_SQL_ERROR")
+
+        query = """
+          SELECT
+            (SELECT count(*) FROM public.patients),
+            (SELECT count(*) FROM public.cases),
+            (SELECT count(*) FROM public.clinic_appointments),
+            (SELECT count(*) FROM public.storage_files)
+        """
+        tested = _docker(
+            ["exec", name, "psql", "-At", "-F", "|", "-U", "postgres", "-d", "postgres", "-c", query],
+            timeout=20,
+        )
+        if tested.returncode:
+            _fail("DF_RESTORED_SCHEMA_MISSING_CLINICAL_TABLES")
+        cells = tested.stdout.decode("ascii", "strict").strip().split("|")
+        if len(cells) != 4 or any(not c.isdecimal() for c in cells):
+            _fail("DF_RESTORED_TABLE_COUNTS_INVALID")
+        counts = list(map(int, cells))
+        if counts[0] == 0 or counts[1] == 0:
+            _fail("DF_RESTORED_DATA_EMPTY")
+        return {
+            "scope": "isolated-postgresql-database-only",
+            "database_bundle_verified": True,
+            "detected_archive_format": export_type,
+            "local_docker_network_disabled": True,
+            "local_db_has_no_exposed_port": True,
+            "local_db_has_no_host_volume": True,
+            "restored_patients": counts[0],
+            "restored_cases": counts[1],
+            "restored_appointments": counts[2],
+            "restored_storage_metadata_rows": counts[3],
+            "real_storage_file_bytes_restored": False,
+            "integrated_database_storage_restore_verified": False,
+            "billing_or_asaas_replayed": False,
+            "beta_release_authorized": False,
+        }
+    finally:
+        # Whether successful or failed, remove every bit of restored live data.
+        _docker(["rm", "-f", name], timeout=25)
+
+
+def main():
+    ap = argparse.ArgumentParser(description="DentalFlow local database restore, no network")
+    ap.add_argument("encrypted_directory")
+    ap.add_argument("new_private_key")
+    ap.add_argument("--inspect-only", action="store_true")
+    args = ap.parse_args()
+    try:
+        if args.inspect_only:
+            data, export_type = read_database_export(args.encrypted_directory, args.new_private_key)
+            result = {
+                "archive_authenticated": True,
+                "format": export_type,
+                "database_payload_bytes": len(data),
+                "real_restore_performed": False,
+                "paid_beta_authorized": False,
+            }
+        else:
+            result = restore_database_locally(args.encrypted_directory, args.new_private_key)
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+    except Exception:
+        print(ERROR, file=sys.stderr)
+        raise SystemExit(1)
+
+
+if __name__ == "__main__":
+    main()

@@ -121,6 +121,26 @@
             "provider_connection_independently_audited": false,
             "raw_database_dump_inspected": false
           }
+        },
+        "local_isolation_readiness": {
+          "date": "2026-11-05",
+          "qa_project_unpublished": true,
+          "qa_database_users": 0,
+          "qa_patients": 0,
+          "qa_cases": 0,
+          "qa_payments": 0,
+          "qa_storage_objects": 0,
+          "qa_cron_jobs": 0,
+          "qa_billing_scheduler_rows": 0,
+          "qa_disposable_transaction_rolled_back": true,
+          "local_decrypt_and_format_check_implemented": true,
+          "local_docker_no_network_database_restore_synthetic_passed": true,
+          "local_windows_tool_built": true,
+          "live_november_database_restored": false,
+          "actual_storage_bytes_restored": false,
+          "joined_restore_verified": false,
+          "stage3_accepted": false,
+          "evidence": "https://github.com/GustavoFboz/dtfipo/pull/260"
         }
       }
     },
