@@ -1,0 +1,98 @@
+name: DentalFlow Isolated Real DB Restore Tool
+
+on:
+  pull_request:
+    branches:
+      - main
+      - "saas/stage-03-asaas-checkout"
+    paths:
+      - "scripts/recovery/local_staging_restore.py"
+      - "scripts/recovery/local_staging_restore_gui.py"
+      - "scripts/recovery/test_local_staging_restore.py"
+      - "docs/saas/LOCAL-ISOLATED-RESTORE-20261105.md"
+      - ".github/workflows/saas-local-isolated-db-restore.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-security-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install only cryptographic runtime
+        run: python -m pip install "cryptography>=42,<50"
+      - name: Reject tamper, wrong key, unsupported archive and public export
+        run: python -m unittest discover -s scripts/recovery -p "test_local_staging_restore.py" -v
+
+  isolated-docker-restore-synthetic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    needs: synthetic-security-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install runtime
+        run: python -m pip install "cryptography>=42,<50"
+      - name: Real PostgreSQL container, synthetic patient/case rows only
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os,sys,tempfile
+          from pathlib import Path
+          sys.path.insert(0,'scripts/recovery')
+          from private_offsite_bundle import create_bundle
+          from local_staging_restore import restore_database_locally
+          with tempfile.TemporaryDirectory() as t:
+              base=Path(t)
+              (base/'inputs').mkdir()
+              (base/'keys').mkdir()
+              (base/'inputs'/'synthetic.sql').write_bytes(b"""-- PostgreSQL synthetic test only
+          CREATE TABLE public.patients (id int PRIMARY KEY);
+          CREATE TABLE public.cases (id int PRIMARY KEY);
+          CREATE TABLE public.clinic_appointments (id int PRIMARY KEY);
+          CREATE TABLE public.storage_files (id int PRIMARY KEY);
+          INSERT INTO public.patients VALUES (1);
+          INSERT INTO public.cases VALUES (2);
+          INSERT INTO public.clinic_appointments VALUES (3);
+          INSERT INTO public.storage_files VALUES (4);
+          """)
+              create_bundle(base/'inputs',base/'bundle',base/'keys'/'new.bin')
+              out=restore_database_locally(base/'bundle',base/'keys'/'new.bin')
+              assert out['restored_patients']==1 and out['restored_cases']==1
+              assert out['real_storage_file_bytes_restored']==False
+              assert out['integrated_database_storage_restore_verified']==False
+              assert out['beta_release_authorized']==False
+              print("SYNTHETIC_ISOLATED_DB_RESTORE_PASSED:no_host_mount_no_network_no_real_clients")
+          PY
+
+  build-windows-offline:
+    runs-on: windows-latest
+    timeout-minutes: 18
+    needs: synthetic-security-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install packages without user data
+        run: python -m pip install "cryptography>=42,<50" "pyinstaller>=6.16,<7"
+      - name: Confirm Windows private archive checks
+        run: python -m unittest discover -s scripts/recovery -p "test_local_staging_restore.py" -v
+      - name: Compile offline executable
+        run: python -m PyInstaller --noconfirm --onefile --windowed --name DentalFlow-Restauracao-Isolada scripts/recovery/local_staging_restore_gui.py
+      - name: Save unsigned tool, no clinical data or secrets
+        uses: actions/upload-artifact@v4
+        with:
+          name: DentalFlow-Restauracao-Isolada-Windows-unsigned
+          path: dist/DentalFlow-Restauracao-Isolada.exe
+          if-no-files-found: error
+          retention-days: 7
