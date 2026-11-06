@@ -8,17 +8,17 @@ from local_staging_restore import read_database_export, restore_database_locally
 
 def main():
     root=tk.Tk()
-    root.title("DentalFlow — Restauração isolada do banco")
-    root.geometry("920x555")
+    root.title("DentalFlow — Restauração isolada compatível com Supabase")
+    root.geometry("960x555")
     root.minsize(720,500)
 
     outer=ttk.Frame(root,padding=24)
     outer.pack(fill="both",expand=True)
-    ttk.Label(outer,text="DentalFlow · Restauração isolada",font=("Segoe UI",17)).pack(anchor="w",pady=(0,8))
+    ttk.Label(outer,text="DentalFlow · Restauração isolada Supabase",font=("Segoe UI",17)).pack(anchor="w",pady=(0,8))
     ttk.Label(outer,text=(
         "Usa SOMENTE o pacote criptografado do BANCO de 04/11.\n"
         "Nunca envia dados ao ChatGPT, GitHub, Lovable ou Asaas.\n"
-        "Para restaurar, requer Docker Desktop no Windows; PostgreSQL fica sem rede,\n"
+        "Para restaurar, requer Docker Desktop no Windows; Supabase PostgreSQL 17 fica sem rede,\n"
         "sem porta pública e é destruído ao final. Anexos não são importados nesta fase."
     ),wraplength=720).pack(anchor="w",pady=(0,18))
 
@@ -115,7 +115,7 @@ def main():
     buttons=ttk.Frame(outer);buttons.pack(anchor="w",pady=(12,16))
     verify_btn=ttk.Button(buttons,text="1. Verificar formato do banco",command=lambda:action('verify'))
     verify_btn.pack(side="left")
-    restore_btn=ttk.Button(buttons,text="2. Restaurar em PostgreSQL isolado",command=lambda:action('restore'))
+    restore_btn=ttk.Button(buttons,text="2. Restaurar em Supabase PG isolado",command=lambda:action('restore'))
     restore_btn.pack(side="left",padx=(12,0))
     extension_btn=ttk.Button(buttons,text="3. Ver extensões exigidas",command=lambda:action('extensions'))
     extension_btn.pack(side="left",padx=(12,0))
