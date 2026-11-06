@@ -4,6 +4,7 @@ import json
 import os
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 import zipfile
 from pathlib import Path
@@ -12,7 +13,7 @@ from unittest.mock import patch
 from private_offsite_bundle import create_bundle
 from local_staging_restore import (
     ERROR, FORMAT_ERROR, _unwrap_export, read_database_export,
-    restore_database_locally, classify_restore_failure,
+    restore_database_locally, classify_restore_failure, inspect_required_extensions,
 )
 
 class StageLocalRestoreTests(unittest.TestCase):
@@ -111,6 +112,40 @@ INSERT INTO public.storage_files VALUES (4);
                 self.assertNotIn("private", category.lower())
                 self.assertNotIn("real", category.lower())
                 self.assertNotIn("secret", category.lower())
+
+
+    def test_safe_toc_extension_scan_prints_no_clinical_identifiers(self):
+        self._make(b"PGDMP" + b"synthetic only")
+        archive_listing = (b'; Archive created with pg_dump\\n'
+            b'12; 3079 16380 EXTENSION - pgcrypto \\n'
+            b'13; 3079 16381 EXTENSION - uuid-ossp \\n'
+            b'14; 1259 16383 TABLE public sensitive_fake_patient_name postgres\\n'
+            b'15; 0 0 COMMENT - EXTENSION pgcrypto \\n')
+        calls = []
+        def fake_docker(args, *, data=None, timeout=120):
+            calls.append((args, data))
+            if args[0] == "info":
+                return SimpleNamespace(returncode=0, stdout=b"29", stderr=b"")
+            return SimpleNamespace(returncode=0, stdout=archive_listing, stderr=b"")
+        with patch("local_staging_restore.shutil.which",return_value="docker.exe"), \\
+             patch("local_staging_restore._docker",side_effect=fake_docker):
+            result = inspect_required_extensions(self.dest,self.key)
+        self.assertEqual(result["required_extensions"],["pgcrypto","uuid-ossp"])
+        self.assertFalse(result["sql_executed"])
+        self.assertFalse(result["restore_success_verified"])
+        self.assertFalse(result["beta_release_authorized"])
+        self.assertNotIn("sensitive_fake_patient_name",str(result))
+        self.assertIn("--network", calls[1][0])
+        self.assertIn("none", calls[1][0])
+        self.assertIn("--list", calls[1][0])
+        self.assertEqual(calls[1][1],b"PGDMPsynthetic only")
+
+    def test_toc_scan_fails_closed_on_docker_failure(self):
+        self._make(b"PGDMP" + b"synthetic only")
+        with patch("local_staging_restore.shutil.which",return_value="docker.exe"), \\
+             patch("local_staging_restore._docker",return_value=SimpleNamespace(returncode=2,stdout=b"",stderr=b"private info")):
+            with self.assertRaisesRegex(ValueError,"DF_DOCKER_DESKTOP_NOT_RUNNING"):
+                inspect_required_extensions(self.dest,self.key)
 
     def test_never_copies_credentials_to_a_public_artifact(self):
         self._make()
