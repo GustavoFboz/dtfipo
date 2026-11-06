@@ -116,18 +116,18 @@ INSERT INTO public.storage_files VALUES (4);
 
     def test_safe_toc_extension_scan_prints_no_clinical_identifiers(self):
         self._make(b"PGDMP" + b"synthetic only")
-        archive_listing = (b'; Archive created with pg_dump\\n'
-            b'12; 3079 16380 EXTENSION - pgcrypto \\n'
-            b'13; 3079 16381 EXTENSION - uuid-ossp \\n'
-            b'14; 1259 16383 TABLE public sensitive_fake_patient_name postgres\\n'
-            b'15; 0 0 COMMENT - EXTENSION pgcrypto \\n')
+        archive_listing = (b'; Archive created with pg_dump\n'
+            b'12; 3079 16380 EXTENSION - pgcrypto \n'
+            b'13; 3079 16381 EXTENSION - uuid-ossp \n'
+            b'14; 1259 16383 TABLE public sensitive_fake_patient_name postgres\n'
+            b'15; 0 0 COMMENT - EXTENSION pgcrypto \n')
         calls = []
         def fake_docker(args, *, data=None, timeout=120):
             calls.append((args, data))
             if args[0] == "info":
                 return SimpleNamespace(returncode=0, stdout=b"29", stderr=b"")
             return SimpleNamespace(returncode=0, stdout=archive_listing, stderr=b"")
-        with patch("local_staging_restore.shutil.which",return_value="docker.exe"), \\
+        with patch("local_staging_restore.shutil.which",return_value="docker.exe"), \
              patch("local_staging_restore._docker",side_effect=fake_docker):
             result = inspect_required_extensions(self.dest,self.key)
         self.assertEqual(result["required_extensions"],["pgcrypto","uuid-ossp"])
@@ -142,7 +142,7 @@ INSERT INTO public.storage_files VALUES (4);
 
     def test_toc_scan_fails_closed_on_docker_failure(self):
         self._make(b"PGDMP" + b"synthetic only")
-        with patch("local_staging_restore.shutil.which",return_value="docker.exe"), \\
+        with patch("local_staging_restore.shutil.which",return_value="docker.exe"), \
              patch("local_staging_restore._docker",return_value=SimpleNamespace(returncode=2,stdout=b"",stderr=b"private info")):
             with self.assertRaisesRegex(ValueError,"DF_DOCKER_DESKTOP_NOT_RUNNING"):
                 inspect_required_extensions(self.dest,self.key)
