@@ -14,6 +14,7 @@ import argparse
 import hashlib
 import io
 import json
+import re
 import secrets
 import shutil
 import subprocess
@@ -126,6 +127,49 @@ def _docker(args: list[str], *, data: bytes | None = None, timeout: int = 120):
         )
     except (OSError, subprocess.TimeoutExpired):
         _fail("DF_DOCKER_UNAVAILABLE_OR_TIMEOUT")
+
+
+def inspect_required_extensions(encrypted_dir: str | Path, private_key: str | Path):
+    """Only read the pg_restore TOC. Never run archive SQL or print other entries.
+
+    The whole PGDMP may contain private metadata. All pg_restore stdout/stderr
+    is retained locally in memory; only bounded extension identifiers leave.
+    """
+    data, export_type = read_database_export(encrypted_dir, private_key)
+    if export_type != "pg_custom":
+        _fail("DF_EXTENSION_SCAN_REQUIRES_PGDMP")
+    if not shutil.which("docker"):
+        _fail("DF_DOCKER_DESKTOP_NOT_INSTALLED")
+    info = _docker(["info", "--format", "{{.ServerVersion}}"], timeout=15)
+    if info.returncode:
+        _fail("DF_DOCKER_DESKTOP_NOT_RUNNING")
+    # No SQL execution: pg_restore --list parses only the archive's TOC.
+    parsed = _docker([
+        "run", "--rm", "-i", "--network", "none",
+        "--read-only", "--cap-drop", "ALL",
+        "--security-opt", "no-new-privileges",
+        "--pids-limit", "128", "--memory", "256m",
+        "--entrypoint", "pg_restore", POSTGRES_IMAGE, "--list"
+    ], data=data, timeout=45)
+    if parsed.returncode:
+        _fail("DF_EXTENSION_SCAN_TOOL_FAILED")
+    found = set()
+    for match in re.finditer(
+        rb"(?m)^\s*\d+;\s+\d+\s+\d+\s+EXTENSION\s+-\s+([A-Za-z][A-Za-z0-9_-]{0,63})(?=\s|$)",
+        parsed.stdout,
+    ):
+        found.add(match.group(1).decode("ascii").lower())
+    # Fail closed if the archive claims an implausible number of extensions.
+    if len(found)>64:
+        _fail("DF_EXTENSION_SCAN_INVALID_COUNT")
+    return {
+        "scope": "authenticated-archive-toc-only",
+        "required_extensions": sorted(found),
+        "extension_count": len(found),
+        "sql_executed": False,
+        "restore_success_verified": False,
+        "beta_release_authorized": False,
+    }
 
 
 def classify_restore_failure(stderr: bytes) -> str:
