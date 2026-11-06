@@ -1,0 +1,35 @@
+name: DentalFlow Supabase PostgreSQL 17 Extension Compatibility
+
+on:
+  pull_request:
+    branches:
+      - main
+      - saas/stage-03-asaas-checkout
+    paths:
+      - scripts/recovery/check-supabase-postgres-extensions.sh
+      - .github/workflows/saas-supabase-pg17-extension-preflight.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  official-image-six-extension-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pull exact official Supabase Postgres 17.11 image
+        run: docker pull supabase/postgres:17.11.0.018
+      - name: Verify all six extensions without importing or starting a database
+        run: |
+          docker run --rm --network none --read-only \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --entrypoint sh \
+            --mount type=bind,source="$PWD/scripts/recovery/check-supabase-postgres-extensions.sh",target=/tmp/check-ext.sh,readonly \
+            supabase/postgres:17.11.0.018 /tmp/check-ext.sh
+      - name: Confirm CI never uses real patient data
+        run: |
+          echo "Synthetic Docker image inspection only."
+          echo "No archive, key, env credentials or SQL import was used."
