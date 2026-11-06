@@ -4,12 +4,12 @@ import threading
 import re
 import tkinter as tk
 from tkinter import filedialog, ttk
-from local_staging_restore import read_database_export, restore_database_locally
+from local_staging_restore import read_database_export, restore_database_locally, inspect_required_extensions
 
 def main():
     root=tk.Tk()
     root.title("DentalFlow — Restauração isolada do banco")
-    root.geometry("780x530")
+    root.geometry("920x555")
     root.minsize(720,500)
 
     outer=ttk.Frame(root,padding=24)
@@ -48,7 +48,8 @@ def main():
     ttk.Label(outer,textvariable=status,wraplength=720).pack(anchor="w",pady=(12,9))
     ttk.Label(outer,textvariable=summary,wraplength=720).pack(anchor="w",pady=(0,12))
 
-    def action(restore):
+    def action(mode):
+        restore = (mode == 'restore')
         if not bundle.get().strip() or not key.get().strip():
             status.set("Escolha o pacote do banco e a nova chave.")
             return
@@ -57,6 +58,7 @@ def main():
             return
         verify_btn.config(state="disabled")
         restore_btn.config(state="disabled")
+        extension_btn.config(state="disabled")
         status.set("Autenticando backup local e verificando o PostgreSQL isolado…" if restore
                    else "Verificando a assinatura AES-256-GCM do arquivo local…")
         summary.set("Não serão enviados arquivos pela rede.")
@@ -65,6 +67,8 @@ def main():
             try:
                 if restore:
                     report=restore_database_locally(bundle.get(),key.get())
+                elif mode == 'extensions':
+                    report=inspect_required_extensions(bundle.get(),key.get())
                 else:
                     content,kind=read_database_export(bundle.get(),key.get())
                     report={"type":kind,"bytes":len(content)}
@@ -79,11 +83,17 @@ def main():
             def finish():
                 verify_btn.config(state="normal")
                 restore_btn.config(state="normal")
+                extension_btn.config(state="normal")
                 if failure:
                     status.set("Não foi possível concluir. A restauração não foi aprovada.")
                     summary.set("Código de diagnóstico: " + diagnostic + "\n"
                                 "Mantenha os backups intactos; não conecte à produção. "
                                 "Informe apenas este código no chat.")
+                elif mode == 'extensions':
+                    status.set("Extensões exigidas pelo backup: inventário lido sem executar SQL.")
+                    summary.set("Quantidade: " + str(report['extension_count']) + "\n" +
+                                "Extensões: " + (", ".join(report['required_extensions']) or "nenhuma no catálogo") +
+                                "\nBanco e anexos NÃO restaurados. Não alterou produção.")
                 elif restore:
                     status.set("Banco restaurado e conferido localmente em ambiente DESCARTÁVEL.")
                     summary.set(
@@ -103,10 +113,12 @@ def main():
         threading.Thread(target=task,daemon=True).start()
 
     buttons=ttk.Frame(outer);buttons.pack(anchor="w",pady=(12,16))
-    verify_btn=ttk.Button(buttons,text="1. Verificar formato do banco",command=lambda:action(False))
+    verify_btn=ttk.Button(buttons,text="1. Verificar formato do banco",command=lambda:action('verify'))
     verify_btn.pack(side="left")
-    restore_btn=ttk.Button(buttons,text="2. Restaurar em PostgreSQL isolado",command=lambda:action(True))
+    restore_btn=ttk.Button(buttons,text="2. Restaurar em PostgreSQL isolado",command=lambda:action('restore'))
     restore_btn.pack(side="left",padx=(12,0))
+    extension_btn=ttk.Button(buttons,text="3. Ver extensões exigidas",command=lambda:action('extensions'))
+    extension_btn.pack(side="left",padx=(12,0))
 
     ttk.Label(outer,text=(
         "Não inclui instalação de Supabase Auth/Storage/Edge Functions ou dados dos 708 arquivos.\n"
