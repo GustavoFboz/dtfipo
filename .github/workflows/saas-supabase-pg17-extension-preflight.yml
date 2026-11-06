@@ -51,7 +51,7 @@ jobs:
           echo "Unprivileged container UID/GID identified privately."
           cleanup() { docker rm -f dentalflow-supabase-probe >/dev/null 2>&1 || true; }
           trap cleanup EXIT
-          docker run -d --rm --name dentalflow-supabase-probe \
+          docker run -d --name dentalflow-supabase-probe \
             --network none --user postgres --read-only \
             --cap-drop ALL --security-opt no-new-privileges \
             --memory 1g --pids-limit 256 \
