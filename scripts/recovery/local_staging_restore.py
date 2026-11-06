@@ -128,6 +128,41 @@ def _docker(args: list[str], *, data: bytes | None = None, timeout: int = 120):
         _fail("DF_DOCKER_UNAVAILABLE_OR_TIMEOUT")
 
 
+def classify_restore_failure(stderr: bytes) -> str:
+    """Classify PostgreSQL failures in memory. NEVER expose stderr: it may contain PHI."""
+    if not isinstance(stderr, bytes):
+        return "DF_RESTORE_SQL_UNCLASSIFIED"
+    msg = stderr.lower()
+    if any(fragment in msg for fragment in (
+        b"extension", b"could not open extension control file",
+    )) and any(fragment in msg for fragment in (
+        b"is not available", b"could not open extension control file",
+        b"permission denied to create extension", b"does not exist",
+    )):
+        return "DF_RESTORE_REQUIRES_PLATFORM_EXTENSION"
+    if b"unsupported version" in msg or b"unsupported archive" in msg:
+        return "DF_RESTORE_UNSUPPORTED_ARCHIVE_VERSION"
+    if b"unrecognized configuration parameter" in msg:
+        return "DF_RESTORE_REQUIRES_SUPABASE_SETTINGS"
+    if b"role" in msg and b"does not exist" in msg:
+        return "DF_RESTORE_REQUIRES_SUPABASE_ROLES"
+    if b"schema" in msg and b"does not exist" in msg:
+        return "DF_RESTORE_REQUIRES_PLATFORM_SCHEMAS"
+    if b"function" in msg and b"does not exist" in msg:
+        return "DF_RESTORE_REQUIRES_PLATFORM_FUNCTION"
+    if b"type" in msg and b"does not exist" in msg:
+        return "DF_RESTORE_REQUIRES_PLATFORM_TYPE"
+    if b"already exists" in msg:
+        return "DF_RESTORE_OBJECT_CONFLICT"
+    if b"permission denied" in msg or b"must be owner" in msg:
+        return "DF_RESTORE_PRIVILEGE_REQUIREMENT"
+    if b"out of memory" in msg or b"no space left" in msg:
+        return "DF_RESTORE_CONTAINER_RESOURCE_LIMIT"
+    if b"connection" in msg and b"closed" in msg:
+        return "DF_RESTORE_DATABASE_CONNECTION_CLOSED"
+    return "DF_RESTORE_SQL_UNCLASSIFIED"
+
+
 def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path):
     data, export_type = read_database_export(encrypted_dir, private_key)
     if not shutil.which("docker"):
@@ -187,7 +222,7 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
         restored = _docker(["exec", "-i", name, *command], data=data, timeout=240)
         if restored.returncode:
             # Logs can contain user details. Do not emit stderr/stdout here.
-            _fail("DF_RESTORE_FAILED_ISOLATED_MISSING_EXTENSION_OR_SQL_ERROR")
+            _fail(classify_restore_failure(restored.stderr))
 
         query = """
           SELECT

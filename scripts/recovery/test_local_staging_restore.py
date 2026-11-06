@@ -12,7 +12,7 @@ from unittest.mock import patch
 from private_offsite_bundle import create_bundle
 from local_staging_restore import (
     ERROR, FORMAT_ERROR, _unwrap_export, read_database_export,
-    restore_database_locally,
+    restore_database_locally, classify_restore_failure,
 )
 
 class StageLocalRestoreTests(unittest.TestCase):
@@ -91,6 +91,26 @@ INSERT INTO public.storage_files VALUES (4);
         with patch("local_staging_restore.shutil.which",return_value=None):
             with self.assertRaisesRegex(ValueError,"DF_DOCKER_DESKTOP_NOT_INSTALLED"):
                 restore_database_locally(self.dest,self.key)
+
+
+    def test_sanitized_restore_categories_do_not_leak_private_sql_or_names(self):
+        fixtures = [
+            (b'pg_restore: ERROR: extension "private_x" is not available', "DF_RESTORE_REQUIRES_PLATFORM_EXTENSION"),
+            (b'pg_restore: ERROR: role "some-real-owner" does not exist', "DF_RESTORE_REQUIRES_SUPABASE_ROLES"),
+            (b'pg_restore: ERROR: schema "real_private_schema" does not exist', "DF_RESTORE_REQUIRES_PLATFORM_SCHEMAS"),
+            (b'pg_restore: ERROR: function "private_fn" does not exist', "DF_RESTORE_REQUIRES_PLATFORM_FUNCTION"),
+            (b'pg_restore: ERROR: unrecognized configuration parameter "request.jwt.claims"', "DF_RESTORE_REQUIRES_SUPABASE_SETTINGS"),
+            (b'pg_restore: ERROR: relation "private_case" already exists', "DF_RESTORE_OBJECT_CONFLICT"),
+            (b'pg_restore: error: unsupported version (1.99) in file header', "DF_RESTORE_UNSUPPORTED_ARCHIVE_VERSION"),
+            (b'pg_restore: ERROR: some private patient name and secret data', "DF_RESTORE_SQL_UNCLASSIFIED"),
+        ]
+        for payload, expected in fixtures:
+            with self.subTest(expected=expected):
+                category = classify_restore_failure(payload)
+                self.assertEqual(category, expected)
+                self.assertNotIn("private", category.lower())
+                self.assertNotIn("real", category.lower())
+                self.assertNotIn("secret", category.lower())
 
     def test_never_copies_credentials_to_a_public_artifact(self):
         self._make()

@@ -1,6 +1,7 @@
 """Windows GUI for private database restore in an ephemeral offline Docker container."""
 from __future__ import annotations
 import threading
+import re
 import tkinter as tk
 from tkinter import filedialog, ttk
 from local_staging_restore import read_database_export, restore_database_locally
@@ -68,16 +69,21 @@ def main():
                     content,kind=read_database_export(bundle.get(),key.get())
                     report={"type":kind,"bytes":len(content)}
                 failure=False
-            except Exception:
+            except Exception as exc:
                 report=None;failure=True
+                # Only show fixed safe categories, not PostgreSQL stderr or paths.
+                candidate=str(exc) if isinstance(exc, ValueError) else ''
+                diagnostic=(candidate if re.fullmatch(r'DF_[A-Z0-9_]{3,96}',candidate)
+                            else 'DF_ISOLATED_DB_RESTORE_UNVERIFIED')
 
             def finish():
                 verify_btn.config(state="normal")
                 restore_btn.config(state="normal")
                 if failure:
                     status.set("Não foi possível concluir. A restauração não foi aprovada.")
-                    summary.set("Confira o pacote, a chave e o Docker Desktop. "
-                                "Mantenha os backups intactos; não conecte à produção.")
+                    summary.set("Código de diagnóstico: " + diagnostic + "\n"
+                                "Mantenha os backups intactos; não conecte à produção. "
+                                "Informe apenas este código no chat.")
                 elif restore:
                     status.set("Banco restaurado e conferido localmente em ambiente DESCARTÁVEL.")
                     summary.set(
