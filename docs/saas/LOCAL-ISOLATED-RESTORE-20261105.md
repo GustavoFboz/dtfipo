@@ -1,6 +1,6 @@
 # DentalFlow — Restauração local e isolada do banco de 04/11
 
-**Escopo restrito:** preparação e teste do banco atualizado **exclusivamente em PostgreSQL descartável local**, sem usar IA do Lovable, sem enviar dados ao GitHub, sem rede no container, sem Asaas e sem modificar a produção. **Não há restauração integrada de anexos.**
+**Escopo restrito:** preparação e teste do banco atualizado **exclusivamente em PostgreSQL oficial do Supabase, descartável e local**, sem usar IA do Lovable, sem enviar dados ao GitHub, sem rede no container, sem Asaas e sem modificar a produção. **Não há restauração integrada de anexos.**
 
 ## Ambiente do projeto QA (verificação remota somente leitura, 05/11)
 
@@ -13,9 +13,10 @@ O workflow [DentalFlow Isolated Real DB Restore Tool](../../.github/workflows/sa
 1. No Windows, mantenha **o pacote CIFRADO do banco atual**, contendo somente `part-001.dfenc` e `catalog.dfenc`, numa pasta privada local. É o pacote que já foi autenticado após o retorno do Drive (**2.439.186 bytes** de origem). **NÃO** escolher a pasta de anexos com 14 partes.
 2. Mantenha a **nova chave do banco** (`DentalFlow-Chave-Externa-*.bin`) fora do Google Drive, separada do backup. É diferente da chave dos 14 arquivos de anexos e da chave do índice histórico.
 3. Abra **DentalFlow-Restauracao-Isolada.exe**; selecione a pasta cifrada do banco e a chave nova. Pressione **1. Verificar formato do banco**. Esse passo autentica AES-256-GCM, SHA-256 e manifesto e informa se o dump é SQL simples, `PGDMP` ou ZIP de um arquivo de banco, sem gravar plaintext em disco. **Se falhar, não tentar restaurar**.
-4. Para tentar a recuperação real do banco, instale/inicie **Docker Desktop**. O programa baixa (se preciso) a imagem oficial `postgres:17-alpine` **antes** de enviar dados; inicia container com `--network none`, **sem portas abertas, sem volumes do host, rootfs read-only e área de dados temporária**. O dump é transmitido à entrada de `psql` ou `pg_restore` dentro desse container. Não executa SQL em Supabase/Lovable e destrói o container ao sair, inclusive quando ocorre falha.
-5. Marque a autorização de isolamento na GUI e clique **2. Restaurar em PostgreSQL isolado**. Se o dump exigir extensões Supabase que não existam em PostgreSQL puro, o teste **deve falhar**: não desativar verificações e não apontar a ferramenta para o banco real. A saída não imprime mensagens SQL, nomes, documentos ou falhas com conteúdo clínico.
-6. Se o banco restaurar, o programa retorna somente contagens de pacientes, casos, agendamentos e linhas de metadados Storage. Essas contagens são de diagnóstico; **não comprovam recuperação dos arquivos anexos**, nem de autenticação Supabase/Storage Functions.
+4. Para tentar a recuperação real do banco, instale/inicie **Docker Desktop**. O programa baixa (se preciso) a imagem oficial `supabase/postgres:17.11.0.018` **antes** de enviar dados; inicia container com `--network none`, **sem portas abertas, sem volumes do host, camada de escrita efêmera para chave de Vault gerada exclusivamente no teste e área de dados `tmpfs` (memória), destruída no final**. O dump é transmitido à entrada de `psql` ou `pg_restore` dentro desse container. Não executa SQL em Supabase/Lovable e destrói o container ao sair, inclusive quando ocorre falha.
+5. Marque a autorização de isolamento na GUI e clique **2. Restaurar em Supabase PG isolado**. A versão anterior falhou pela extensão ausente; esta usa o PostgreSQL 17 oficial do Supabase com as seis extensões (`pg_cron`, `pg_net`, `pg_stat_statements`, `pgcrypto`, `supabase_vault`, `uuid-ossp`) verificadas por CI. Roles, esquemas e funções adicionais ainda podem provocar falha fechada; nunca apontar a ferramenta para o banco real. A saída não imprime mensagens SQL, nomes, documentos ou falhas com conteúdo clínico.
+6. A chave `supabase_vault` criada pelo PostgreSQL isolado é **temporária e diferente da chave do ambiente original**. Esta ferramenta não verifica a descriptografia de segredos Vault antigos, nem restaura webhooks, Auth e Storage como serviços; nunca usar esse ambiente para cobrança real.
+7. Se o banco restaurar, o programa retorna somente contagens de pacientes, casos, agendamentos e linhas de metadados Storage. Essas contagens são de diagnóstico; **não comprovam recuperação dos arquivos anexos**, nem de autenticação Supabase/Storage Functions.
 
 ## Requisitos para concluir de fato a etapa 3/8
 
@@ -25,6 +26,6 @@ O workflow [DentalFlow Isolated Real DB Restore Tool](../../.github/workflows/sa
 - Reproduzir o cenário de reversão de forma isolada; assegurar nenhuma chamada a Asaas produção e nenhum job/webhook ativo.
 - Submeter evidências agregadas; **somente depois** revisar o aceite 3/8. O beta comercial continua bloqueado.
 
-**Limitações atuais:** o arquivo novo e a chave estão no Windows/Drive do proprietário, **não estão acessíveis para execução neste ambiente ChatGPT**. A GUI permite executar o ensaio diretamente no dispositivo, sem expor dados. O ensaio sintético do workflow GitHub **usa apenas registros inventados**; não se pode descrevê-lo como uma restauração bem-sucedida da produção.
+**Limitações atuais:** a inicialização isolada do PostgreSQL Supabase com seis extensões foi validada em CI com dados fictícios. Não se pode afirmar que o PGDMP real será restaurado até obter o resultado do Windows.  o arquivo novo e a chave estão no Windows/Drive do proprietário, **não estão acessíveis para execução neste ambiente ChatGPT**. A GUI permite executar o ensaio diretamente no dispositivo, sem expor dados. O ensaio sintético do workflow GitHub **usa apenas registros inventados**; não se pode descrevê-lo como uma restauração bem-sucedida da produção.
 
 **Rastreamento:** `docs/saas/BETA-RELEASE-8-EXECUTIONS.json` · [Issue #241](https://github.com/GustavoFboz/dtfipo/issues/241).
