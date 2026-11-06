@@ -91,9 +91,9 @@ def main():
                                 "Informe apenas este código no chat.")
                 elif mode == 'extensions':
                     status.set("Extensões exigidas pelo backup: inventário lido sem executar SQL.")
-                    summary.set("Quantidade: " + str(report['extension_count']) + "\\n" +
+                    summary.set("Quantidade: " + str(report['extension_count']) + "\n" +
                                 "Extensões: " + (", ".join(report['required_extensions']) or "nenhuma no catálogo") +
-                                "\\nBanco e anexos NÃO restaurados. Não alterou produção.")
+                                "\nBanco e anexos NÃO restaurados. Não alterou produção.")
                 elif restore:
                     status.set("Banco restaurado e conferido localmente em ambiente DESCARTÁVEL.")
                     summary.set(
