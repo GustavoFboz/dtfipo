@@ -14,6 +14,7 @@ from private_offsite_bundle import create_bundle
 from local_staging_restore import (
     ERROR, FORMAT_ERROR, _unwrap_export, read_database_export,
     restore_database_locally, classify_restore_failure, inspect_required_extensions,
+    POSTGRES_IMAGE, POSTGRES_USERNAME,
 )
 
 class StageLocalRestoreTests(unittest.TestCase):
@@ -146,6 +147,10 @@ INSERT INTO public.storage_files VALUES (4);
              patch("local_staging_restore._docker",return_value=SimpleNamespace(returncode=2,stdout=b"",stderr=b"private info")):
             with self.assertRaisesRegex(ValueError,"DF_DOCKER_DESKTOP_NOT_RUNNING"):
                 inspect_required_extensions(self.dest,self.key)
+
+    def test_image_pinned_to_supabase_pg17_and_role(self):
+        self.assertEqual(POSTGRES_IMAGE, "supabase/postgres:17.11.0.018")
+        self.assertEqual(POSTGRES_USERNAME, "supabase_admin")
 
     def test_never_copies_credentials_to_a_public_artifact(self):
         self._make()
