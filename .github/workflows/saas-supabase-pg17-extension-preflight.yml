@@ -48,11 +48,11 @@ jobs:
           image="supabase/postgres:17.11.0.018"
           uid="$(docker run --rm --network none --entrypoint id "$image" -u postgres)"
           gid="$(docker run --rm --network none --entrypoint id "$image" -g postgres)"
-          echo "Unprivileged container UID/GID identified privately."
+          echo "Unprivileged container UID/GID identified privately; rootfs layer ephemeral and deleted at cleanup."
           cleanup() { docker rm -f dentalflow-supabase-probe >/dev/null 2>&1 || true; }
           trap cleanup EXIT
           docker run -d --name dentalflow-supabase-probe \
-            --network none --user postgres --read-only \
+            --network none --user postgres \
             --cap-drop ALL --security-opt no-new-privileges \
             --memory 1g --pids-limit 256 \
             --tmpfs "/var/lib/postgresql/data:rw,uid=$uid,gid=$gid,mode=0700,size=512m" \
