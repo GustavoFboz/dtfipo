@@ -30,7 +30,8 @@ from private_offsite_bundle import (
     AAD, CHUNK, MAGIC, _key, _manifest_read, _readback,
 )
 
-POSTGRES_IMAGE = "postgres:17-alpine"
+POSTGRES_IMAGE = "supabase/postgres:17.11.0.018"
+POSTGRES_USERNAME = "supabase_admin"
 MAX_DATABASE_BYTES = 96 * 1024 * 1024
 ERROR = "DF_ISOLATED_DB_RESTORE_UNVERIFIED"
 FORMAT_ERROR = "DF_DB_EXPORT_UNSUPPORTED_FORMAT"
@@ -220,6 +221,20 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
     if pull.returncode:
         _fail("DF_POSTGRES_IMAGE_UNAVAILABLE")
 
+    # Supabase's Vault bootstrap writes an ephemeral local key. The image's
+    # writable container layer is deleted on cleanup; clinical PGDATA stays
+    # strictly in tmpfs. Docker has no network, ports or host mounts.
+    user_id = _docker(["run", "--rm", "--network", "none", "--entrypoint", "id",
+                       POSTGRES_IMAGE, "-u", "postgres"], timeout=20)
+    group_id = _docker(["run", "--rm", "--network", "none", "--entrypoint", "id",
+                        POSTGRES_IMAGE, "-g", "postgres"], timeout=20)
+    if user_id.returncode or group_id.returncode:
+        _fail("DF_SUPABASE_IMAGE_USER_LOOKUP_FAILED")
+    uid = user_id.stdout.decode("ascii", "strict").strip()
+    gid = group_id.stdout.decode("ascii", "strict").strip()
+    if not uid.isdecimal() or not gid.isdecimal():
+        _fail("DF_SUPABASE_IMAGE_USER_LOOKUP_FAILED")
+
     name = "dentalflow-qa-" + secrets.token_hex(7)
     try:
         run = _docker([
@@ -227,22 +242,21 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
             "--name", name,
             "--network", "none",
             "--user", "postgres",
-            "--read-only",
             "--cap-drop=ALL",
             "--security-opt", "no-new-privileges",
             "--pids-limit", "256",
             "--memory", "1g",
-            "--tmpfs", "/var/lib/postgresql/data:rw,uid=70,gid=70,mode=0700,size=512m",
-            "--tmpfs", "/var/run/postgresql:rw,uid=70,gid=70,mode=0770,size=16m",
+            "--tmpfs", f"/var/lib/postgresql/data:rw,uid={uid},gid={gid},mode=0700,size=512m",
+            "--tmpfs", f"/var/run/postgresql:rw,uid={uid},gid={gid},mode=0770,size=16m",
             "--tmpfs", "/tmp:rw,mode=1777,size=64m",
             "-e", "POSTGRES_HOST_AUTH_METHOD=trust",
-            POSTGRES_IMAGE,
+            POSTGRES_IMAGE, "postgres", "-c", "config_file=/etc/postgresql/postgresql.conf",
         ], timeout=120)
         if run.returncode:
             _fail("DF_ISOLATED_DB_CONTAINER_FAILED")
         for _ in range(45):
             ready = _docker(
-                ["exec", name, "pg_isready", "-U", "postgres", "-d", "postgres"], timeout=8
+                ["exec", name, "pg_isready", "-U", POSTGRES_USERNAME, "-d", "postgres"], timeout=8
             )
             if ready.returncode == 0:
                 break
@@ -256,11 +270,11 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
             command = [
                 "pg_restore", "--no-owner", "--no-privileges",
                 "--exit-on-error", "--single-transaction",
-                "-U", "postgres", "-d", "postgres",
+                "-U", POSTGRES_USERNAME, "-d", "postgres",
             ]
         else:
             command = [
-                "psql", "-v", "ON_ERROR_STOP=1", "-U", "postgres",
+                "psql", "-v", "ON_ERROR_STOP=1", "-U", POSTGRES_USERNAME,
                 "-d", "postgres", "-q",
             ]
         restored = _docker(["exec", "-i", name, *command], data=data, timeout=240)
@@ -276,7 +290,7 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
             (SELECT count(*) FROM public.storage_files)
         """
         tested = _docker(
-            ["exec", name, "psql", "-At", "-F", "|", "-U", "postgres", "-d", "postgres", "-c", query],
+            ["exec", name, "psql", "-At", "-F", "|", "-U", POSTGRES_USERNAME, "-d", "postgres", "-c", query],
             timeout=20,
         )
         if tested.returncode:
@@ -294,6 +308,8 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
             "local_docker_network_disabled": True,
             "local_db_has_no_exposed_port": True,
             "local_db_has_no_host_volume": True,
+            "supabase_postgres_17_image": True,
+            "ephemeral_vault_key_isolated_to_container": True,
             "restored_patients": counts[0],
             "restored_cases": counts[1],
             "restored_appointments": counts[2],
