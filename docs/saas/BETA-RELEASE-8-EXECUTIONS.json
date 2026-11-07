@@ -42,7 +42,7 @@
       "code": "recover-and-restore",
       "name": "Completar 116 anexos, backup atual e recuperação isolada",
       "status": "pending",
-      "owner_action": "Restauração real do banco exportado em 04/11 comprovada localmente (PGDMP 2.439.186 bytes): 93 pacientes, 86 casos, 8 agendamentos e 702 metadados Storage. Contêiner descartado após teste. Cópias externas cifradas de banco e anexos já autenticadas; próximo passo obrigatório é recuperar e abrir bytes físicos dos 708 anexos em ambiente isolado e relacioná-los ao banco, verificar 24 objetos sem digest antigo, quatro anexos de caso histórico ausente, e ensaiar rollback integrado. Não solicitar novamente export do banco ou chaves; não publicar beta.",
+      "owner_action": "Restauração real do banco de 04/11 validada isoladamente (93 pacientes, 86 casos, 8 agendamentos, 702 metadados). Nova leitura offline do pacote cifrado dos 116 anexos aprovada pelo proprietário: 14/14 partes, 116/116 objetos, 92 ETag MD5, 24 sem digest histórico, 0 inválidos. Próximo: rever os 592 objetos nos 33 ZIPs históricos e provar restauração conjunta do banco e bytes de Storage; os 24 sem hash de origem exigem cuidado especial. Não repetir download dos 116, nem exportar novamente o banco. Não publicar até ensaio integrado e reversão.",
       "definition_of_done": "116/116 objetos (1.968.840.906 bytes) recebidos e autenticados, 708/708 históricos reconciliados, alterações posteriores inventariadas, banco atual + anexos restaurados juntos em ambiente descartável e reversão de dados simulada.",
       "evidence": [
         "https://github.com/GustavoFboz/dtfipo/issues/241",
@@ -172,12 +172,22 @@
           "ci_synthetic_passed": true,
           "windows_build_passed": true,
           "unsigned_exe_artifact_available": true,
-          "user_real_offsite_recheck_with_new_tool_reported": false,
+          "user_real_offsite_recheck_with_new_tool_reported": true,
           "synthetic_zip_gcm_random_access_verified": true,
           "archive_payloads_written_in_plaintext": false,
           "original_592_volumes_rechecked_by_this_tool": false,
           "joint_database_storage_restore_verified": false,
-          "beta_release_authorized": false
+          "beta_release_authorized": false,
+          "user_real_readback_evidence": "Owner screenshot of DentalFlow Conferencia 116 Offline Windows, 2026-11-07",
+          "offsite_parts_authenticated_real": 14,
+          "recovered_objects_readable_verified_real": 116,
+          "md5_etag_historical_matches_real": 92,
+          "without_historical_source_digest_real": 24,
+          "invalid_entries_real": 0,
+          "invalid_zip_files_real": 0,
+          "historical_24_proven_identical_to_source": false,
+          "user_file_content_uploaded_to_repos": false,
+          "integrated_storage_recovery_verified": false
         }
       }
     },
