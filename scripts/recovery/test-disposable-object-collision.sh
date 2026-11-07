@@ -19,7 +19,12 @@ docker run -d --name "$name" \
 ready=0
 for i in $(seq 1 45); do
   if docker exec "$name" pg_isready -U supabase_admin -d postgres >/dev/null 2>&1; then
-    ready=1; break
+    # Supabase bootstrap starts an ephemeral server, stops it, then starts the
+    # final one. Prevent a transient ready state from racing first SQL.
+    sleep 4
+    if docker exec "$name" psql -At -U supabase_admin -d postgres -c 'select 1' >/dev/null 2>&1; then
+      ready=1; break
+    fi
   fi
   sleep 1
 done
