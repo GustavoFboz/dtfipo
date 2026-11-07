@@ -1,0 +1,64 @@
+name: DentalFlow Stage 3 Integrated Recovery One-Click EXE
+
+on:
+  pull_request:
+    branches: [main, "saas/stage-03-asaas-checkout"]
+    paths:
+      - "scripts/recovery/integrated_stage3.py"
+      - "scripts/recovery/integrated_stage3_gui.py"
+      - "scripts/recovery/test_integrated_stage3.py"
+      - "scripts/recovery/local_staging_restore.py"
+      - ".github/workflows/saas-stage3-integrated-oneclick.yml"
+      - "docs/saas/BETA-STEP3-ONE-PROGRAM-WINDOWS.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install trusted runtimes
+        run: python -m pip install --disable-pip-version-check "cryptography>=42,<50" "Pillow>=11,<13" "pypdfium2>=4.30,<5"
+      - name: Verify only synthetic stage 3 and existing private restore contracts
+        run: |
+          python -m unittest discover -s scripts/recovery -p "test_integrated_stage3.py" -v
+          python -m unittest discover -s scripts/recovery -p "test_local_staging_restore.py" -v
+          python -m unittest discover -s scripts/recovery -p "test_verify_encrypted_116.py" -v
+
+  windows-exe:
+    runs-on: windows-latest
+    timeout-minutes: 22
+    needs: synthetic-security
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install cryptography and readers for sample previews
+        run: python -m pip install --disable-pip-version-check "cryptography>=42,<50" "Pillow>=11,<13" "pypdfium2>=4.30,<5" "pyinstaller>=6.16,<7"
+      - name: Verify synthetic stage 3 contracts on Windows
+        run: python -m unittest discover -s scripts/recovery -p "test_integrated_stage3.py" -v
+      - name: Build one self-contained offline Windows application
+        run: python -m PyInstaller --noconfirm --onefile --windowed --clean --name DentalFlow-Etapa3-Integrada --collect-all pypdfium2 --collect-all PIL scripts/recovery/integrated_stage3_gui.py
+      - name: Check portable executable exists
+        shell: pwsh
+        run: |
+          if (!(Test-Path dist/DentalFlow-Etapa3-Integrada.exe)) { throw "EXE_NOT_BUILT" }
+          $exe = Get-Item dist/DentalFlow-Etapa3-Integrada.exe
+          if ($exe.Length -lt 1000000) { throw "EXE_BUILD_TOO_SMALL" }
+          $digest = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash
+          Write-Host "EXE_SHA256=$digest"
+      - name: Save ONLY one unsigned EXE, no patient data or private keys
+        uses: actions/upload-artifact@v4
+        with:
+          name: DentalFlow-Etapa3-Integrada-Windows-unsigned
+          path: dist/DentalFlow-Etapa3-Integrada.exe
+          retention-days: 14
+          if-no-files-found: error
