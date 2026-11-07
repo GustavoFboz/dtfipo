@@ -217,10 +217,14 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path,
     if info.returncode:
         _fail("DF_DOCKER_DESKTOP_NOT_RUNNING")
 
-    # The image download happens before any sensitive input enters Docker.
-    pull = _docker(["pull", POSTGRES_IMAGE], timeout=240)
-    if pull.returncode:
-        _fail("DF_POSTGRES_IMAGE_UNAVAILABLE")
+    # Prefer an already-cached official image. Pull only before handling
+    # decrypted clinical contents, and only when image is not locally available.
+    # This permits the actual integrated rehearsal to run with internet OFF.
+    cached = _docker(["image", "inspect", POSTGRES_IMAGE], timeout=18)
+    if cached.returncode:
+        pull = _docker(["pull", POSTGRES_IMAGE], timeout=240)
+        if pull.returncode:
+            _fail("DF_POSTGRES_IMAGE_UNAVAILABLE")
 
     # Supabase's Vault bootstrap writes an ephemeral local key. The image's
     # writable container layer is deleted on cleanup; clinical PGDATA stays
