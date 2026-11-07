@@ -19,6 +19,12 @@ INSERT INTO public.profiles(id,clinic_id,role,account_subtype,is_default_admin) 
  ('73900000-0000-4000-8000-000000000002','73900000-0000-4000-8000-000000000020','CEO','CEO',false)
 ON CONFLICT(id) DO UPDATE SET clinic_id=excluded.clinic_id,
  role=excluded.role,account_subtype=excluded.account_subtype;
+-- Mirror the authenticated CEO/admin grant used by the clinical-creation CI fixture.
+-- These roles exist only until ROLLBACK in this disposable database.
+INSERT INTO public.user_roles(user_id,role) VALUES
+ ('73900000-0000-4000-8000-000000000001','admin'),
+ ('73900000-0000-4000-8000-000000000002','admin')
+ON CONFLICT DO NOTHING;
 INSERT INTO public.account_subscriptions
  (scope_type,clinic_id,plan_code,status,billing_day,current_period_start,
   current_period_end,billing_provider,provider_environment)
