@@ -101,7 +101,7 @@ class AuthenticatedZipView(io.RawIOBase):
                 super().close()
 
 
-def verify_encrypted_116(index_file, old_key_file, bundle_dir, offsite_key_file):
+def verify_encrypted_116(index_file, old_key_file, bundle_dir, offsite_key_file, on_progress=None):
     """Only anonymized aggregate results. Input sources are never modified."""
     directory = Path(bundle_dir)
     key_path = Path(offsite_key_file)
@@ -184,6 +184,8 @@ def verify_encrypted_116(index_file, old_key_file, bundle_dir, offsite_key_file)
                             validate(name, stream, entry.file_size)
             except (OSError, RuntimeError, ValueError, EOFError, zipfile.BadZipFile):
                 broken_zips += 1
+        if on_progress is not None:
+            on_progress(i, len(parts))
 
     # Stop on missing, invalid, corrupted or conflicting duplicate bytes.
     if len(verified) != EXPECTED_MISSING or invalid or broken_zips:
