@@ -191,6 +191,21 @@
           "original_24_without_comparable_digest_remain_uncertain": true,
           "production_or_asaas_writes_allowed": false,
           "beta_sales_allowed": false
+        },
+        "future_targeted_integrated_attachment_protocol": {
+          "id": "DF-EID-01",
+          "version": "1.0",
+          "document": "docs/saas/PROTOCOL-INTEGRATED-TARGETED-ATTACHMENTS-DF-EID-01.md",
+          "state": "prepared_not_executed",
+          "sample_target_maximum": 12,
+          "groups": "both historical 592 and recovered 116, plus database-linked items",
+          "restore_04_nov_database_with_storage_sample_required": true,
+          "real_file_open_and_decode_test_required": true,
+          "synthetic_qa_tenant_authorization_required": true,
+          "forced_failure_and_rollback_required": true,
+          "repeat_full_592_integrity_audit_required": false,
+          "guarantees_openability_of_all_708": false,
+          "beta_release_authorized": false
         }
       }
     },
