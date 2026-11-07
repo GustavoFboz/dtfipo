@@ -164,9 +164,13 @@ def verify_encrypted_116(index_file, old_key_file, bundle_dir, offsite_key_file,
             # must be treated as one object, not an archive of other files.
             if basename in historical and historical[basename][1] == receipt["size"]:
                 validate(basename, plaintext, receipt["size"])
+                if on_progress is not None:
+                    on_progress(i, len(parts))
                 continue
             if not receipt["name"].lower().endswith(".zip"):
                 ignored += 1
+                if on_progress is not None:
+                    on_progress(i, len(parts))
                 continue
             try:
                 with zipfile.ZipFile(plaintext, "r", allowZip64=True) as zip_reader:
