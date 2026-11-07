@@ -42,7 +42,7 @@
       "code": "recover-and-restore",
       "name": "Completar 116 anexos, backup atual e recuperação isolada",
       "status": "pending",
-      "owner_action": "Cópia externa criptografada dos anexos (14 partes/2.712.484.560 bytes) e cópia externa criptografada do banco de 04/11 (1 parte/2.439.186 bytes) tiveram readback autenticado pelo proprietário. Chaves independentes, guardadas fora do Drive. Resta inspecionar formato dump em ambiente privado, ensaiar recuperação integrada de banco atual e Storage sem produção/Asaas, resolver quatro anexos históricos com caso ausente e validar versões dos 24 arquivos sem digest antigo. Não publicar até evidência.",
+      "owner_action": "Restauração real do banco exportado em 04/11 comprovada localmente (PGDMP 2.439.186 bytes): 93 pacientes, 86 casos, 8 agendamentos e 702 metadados Storage. Contêiner descartado após teste. Cópias externas cifradas de banco e anexos já autenticadas; próximo passo obrigatório é recuperar e abrir bytes físicos dos 708 anexos em ambiente isolado e relacioná-los ao banco, verificar 24 objetos sem digest antigo, quatro anexos de caso histórico ausente, e ensaiar rollback integrado. Não solicitar novamente export do banco ou chaves; não publicar beta.",
       "definition_of_done": "116/116 objetos (1.968.840.906 bytes) recebidos e autenticados, 708/708 históricos reconciliados, alterações posteriores inventariadas, banco atual + anexos restaurados juntos em ambiente descartável e reversão de dados simulada.",
       "evidence": [
         "https://github.com/GustavoFboz/dtfipo/issues/241",
@@ -112,7 +112,7 @@
           "created_at_utc": "2026-11-04T21:58:48Z",
           "owner_download_reported": true,
           "encrypted_offsite_copy_verified": true,
-          "actual_dump_format_verified": false,
+          "actual_dump_format_verified": true,
           "integrated_recovery_verified": false,
           "owner_verified_drive_readback": {
             "parts": 1,
@@ -120,6 +120,27 @@
             "authenticity_method": "owner screenshot of Windows local AES-256-GCM package verification after downloading from Google Drive",
             "provider_connection_independently_audited": false,
             "raw_database_dump_inspected": false
+          },
+          "dump_format": "pg_custom",
+          "isolated_postgresql_data_restore_verified": true,
+          "isolated_restore_observation": {
+            "source": "owner-provided screenshot of DentalFlow offline restore GUI, 2026-11-06",
+            "database_backup_source_date": "2026-11-04",
+            "database_export_bytes_authenticated": 2439186,
+            "postgres_image": "supabase/postgres:17.11.0.018",
+            "database_patients_restored": 93,
+            "database_cases_restored": 86,
+            "database_appointments_restored": 8,
+            "database_storage_metadata_rows_restored": 702,
+            "container_deleted_at_end_reported_by_tool": true,
+            "historical_baseline_counts_match": true,
+            "actual_storage_object_bytes_restored": false,
+            "supabase_auth_service_restored_or_tested": false,
+            "vault_original_secret_decryption_tested": false,
+            "billing_or_asaas_replayed": false,
+            "integrated_restore_verified": false,
+            "operational_acceptance": false,
+            "beta_publication_authorized": false
           }
         },
         "local_isolation_readiness": {
@@ -136,11 +157,15 @@
           "local_decrypt_and_format_check_implemented": true,
           "local_docker_no_network_database_restore_synthetic_passed": true,
           "local_windows_tool_built": true,
-          "live_november_database_restored": false,
+          "live_november_database_restored": true,
           "actual_storage_bytes_restored": false,
           "joined_restore_verified": false,
           "stage3_accepted": false,
-          "evidence": "https://github.com/GustavoFboz/dtfipo/pull/260"
+          "evidence": "https://github.com/GustavoFboz/dtfipo/pull/260",
+          "restored_real_database_patients": 93,
+          "restored_real_database_cases": 86,
+          "restored_real_database_appointments": 8,
+          "restored_real_database_storage_file_rows": 702
         }
       }
     },
