@@ -264,6 +264,17 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
         else:
             _fail("DF_ISOLATED_DB_NOT_READY")
 
+        # Before decrypting/transmitting private SQL to Docker, assert actual
+        # engine isolation, rather than relying only on the docker run flags.
+        # Docker-managed tmpfs is not a host mount; any bind/volume is rejected.
+        isolation = _docker([
+            "inspect", "--format",
+            "{{.HostConfig.NetworkMode}}|{{len .Mounts}}|{{len .HostConfig.PortBindings}}",
+            name,
+        ], timeout=12)
+        if isolation.returncode or isolation.stdout.strip() != b"none|0|0":
+            _fail("DF_DISPOSABLE_ISOLATION_FAILED")
+
         # Restore from STDIN only: no PHI in shell arguments, logs, volumes
         # or GitHub. The isolated container has no network interface.
         if export_type == "pg_custom":
@@ -328,7 +339,7 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
         }
     finally:
         # Whether successful or failed, remove every bit of restored live data.
-        _docker(["rm", "-f", name], timeout=25)
+        _docker(["rm", "-f", "-v", name], timeout=25)
 
 
 def main():
