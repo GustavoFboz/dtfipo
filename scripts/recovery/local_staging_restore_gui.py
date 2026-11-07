@@ -19,7 +19,7 @@ def main():
         "Usa SOMENTE o pacote criptografado do BANCO de 04/11.\n"
         "Nunca envia dados ao ChatGPT, GitHub, Lovable ou Asaas.\n"
         "Para restaurar, requer Docker Desktop no Windows; Supabase PostgreSQL 17 fica sem rede,\n"
-        "sem porta pública e é destruído ao final. Anexos não são importados nesta fase.\n"\
+        "sem porta pública e é destruído ao final. Anexos não são importados nesta fase.\n"
         "Objetos duplicados são recriados SOMENTE no contêiner descartável."
     ),wraplength=720).pack(anchor="w",pady=(0,18))
 
