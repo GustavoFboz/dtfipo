@@ -208,7 +208,8 @@ def classify_restore_failure(stderr: bytes) -> str:
     return "DF_RESTORE_SQL_UNCLASSIFIED"
 
 
-def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path):
+def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path, *, isolated_callback=None):
+    """Optional private hook runs only AFTER DB restore/isolation checks and BEFORE container removal."""
     data, export_type = read_database_export(encrypted_dir, private_key)
     if not shutil.which("docker"):
         _fail("DF_DOCKER_DESKTOP_NOT_INSTALLED")
@@ -327,7 +328,14 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
         counts = list(map(int, cells))
         if counts[0] == 0 or counts[1] == 0:
             _fail("DF_RESTORED_DATA_EMPTY")
+        # The optional integrated test can now validate local Storage sample bytes
+        # and DB relationships in the SAME isolated, no-network container.
+        # Callback errors fail closed; finally still destroys the container.
+        callback_result = isolated_callback(name) if isolated_callback is not None else {}
+        if not isinstance(callback_result, dict):
+            _fail("DF_INTEGRATED_CALLBACK_INVALID")
         return {
+            **callback_result,
             "scope": "isolated-postgresql-database-only",
             "database_bundle_verified": True,
             "detected_archive_format": export_type,
