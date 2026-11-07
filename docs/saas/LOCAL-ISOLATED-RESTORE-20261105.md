@@ -18,6 +18,16 @@ O workflow [DentalFlow Isolated Real DB Restore Tool](../../.github/workflows/sa
 6. A chave `supabase_vault` criada pelo PostgreSQL isolado é **temporária e diferente da chave do ambiente original**. Esta ferramenta não verifica a descriptografia de segredos Vault antigos, nem restaura webhooks, Auth e Storage como serviços; nunca usar esse ambiente para cobrança real.
 7. Se o banco restaurar, o programa retorna somente contagens de pacientes, casos, agendamentos e linhas de metadados Storage. Essas contagens são de diagnóstico; **não comprovam recuperação dos arquivos anexos**, nem de autenticação Supabase/Storage Functions.
 
+## Tratamento seguro de conflitos no backup PGDMP
+
+Na execução anterior, o proprietário obteve o código `DF_RESTORE_OBJECT_CONFLICT`: o PostgreSQL Supabase inicializa estruturas que também constam no backup `PGDMP` completo. A documentação oficial do Supabase destaca que `pg_dump` bruto pode incluir objetos internos que conflitam com uma instância Supabase já preparada.
+
+A partir da versão de diagnóstico de 06/11, **somente para o formato PGDMP e dentro do contêiner descartável**, a importação usa `pg_restore --clean --if-exists --single-transaction --exit-on-error --no-owner --no-privileges`. O programa não disponibiliza endereço ou senha de banco externo, exige `--network none`, sem portas e sem volumes externos, e verifica esses isolamentos por `docker inspect` antes de transmitir o dump. O servidor é iniciado com `cron.launch_active_jobs=off` e o programa confere essa configuração antes de importar qualquer arquivo, impedindo a execução dos agendamentos copiados durante o ensaio. Na limpeza, executa `docker rm -f -v`; nenhuma operação da rotina atinge o Cloud ou a produção.
+
+O CI gera dados **totalmente fictícios**, reproduz conflito de objetos preexistentes em Supabase PostgreSQL 17, e valida importação transacional. Um teste de ponta a ponta gera um PGDMP fictício, protege-o com o mesmo pacote AES-GCM, depois restaura com a ferramenta real em contêiner separado. Esses testes **não** comprovam ainda a recuperação do banco real de 04/11, das funções especiais, dos serviços Auth/Storage, ou dos anexos.
+
+Se qualquer objeto interno não puder ser removido/recriado, se surgir uma dependência ausente, ou se o PostgreSQL rejeitar SQL, a importação aborta e reverte sua transação **somente nesse contêiner**; o resultado é falha fechada. A chave do Vault criada nesse contêiner é efêmera, não substitui a chave original dos segredos, portanto nenhuma função financeira deve ser considerada recuperada ou autorizada.
+
 ## Requisitos para concluir de fato a etapa 3/8
 
 - Ter acesso autorizado, **privado**, aos 33 volumes históricos cifrados de 29/10 (592 objetos) e aos 14 arquivos cifrados retornados do Drive (116 objetos), com suas chaves **sem upload ao repositório público**.

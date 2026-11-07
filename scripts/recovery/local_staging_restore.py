@@ -251,6 +251,7 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
             "--tmpfs", "/tmp:rw,mode=1777,size=64m",
             "-e", "POSTGRES_HOST_AUTH_METHOD=trust",
             POSTGRES_IMAGE, "postgres", "-c", "config_file=/etc/postgresql/postgresql.conf",
+            "-c", "cron.launch_active_jobs=off",
         ], timeout=120)
         if run.returncode:
             _fail("DF_ISOLATED_DB_CONTAINER_FAILED")
@@ -264,11 +265,36 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
         else:
             _fail("DF_ISOLATED_DB_NOT_READY")
 
+        cron = _docker([
+            "exec", name, "psql", "-At", "-U", POSTGRES_USERNAME,
+            "-d", "postgres", "-c", "SHOW cron.launch_active_jobs;",
+        ], timeout=12)
+        if cron.returncode or cron.stdout.strip().lower() not in (b"off", b"false"):
+            _fail("DF_ISOLATED_CRON_NOT_DISABLED")
+
+        # Before decrypting/transmitting private SQL to Docker, assert actual
+        # engine isolation, rather than relying only on the docker run flags.
+        # Docker-managed tmpfs is not a host mount; any bind/volume is rejected.
+        isolation = _docker([
+            "inspect", "--format",
+            "{{.HostConfig.NetworkMode}}|{{len .Mounts}}|{{len .HostConfig.PortBindings}}",
+            name,
+        ], timeout=12)
+        if isolation.returncode or isolation.stdout.strip() != b"none|0|0":
+            _fail("DF_DISPOSABLE_ISOLATION_FAILED")
+
         # Restore from STDIN only: no PHI in shell arguments, logs, volumes
         # or GitHub. The isolated container has no network interface.
         if export_type == "pg_custom":
+            # A platform PGDMP often contains extensions and schemas that
+            # Supabase bootstrap has already installed. Only THIS new,
+            # no-network, no-volume disposable database may be cleaned.
+            # --single-transaction rolls back all DROP/CREATE statements if
+            # any dependency, privilege or data import fails. Never point
+            # the tool at the actual cloud/clinic database.
             command = [
                 "pg_restore", "--no-owner", "--no-privileges",
+                "--clean", "--if-exists",
                 "--exit-on-error", "--single-transaction",
                 "-U", POSTGRES_USERNAME, "-d", "postgres",
             ]
@@ -310,6 +336,7 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
             "local_db_has_no_host_volume": True,
             "supabase_postgres_17_image": True,
             "ephemeral_vault_key_isolated_to_container": True,
+            "scheduled_jobs_disabled_in_recovery": True,
             "restored_patients": counts[0],
             "restored_cases": counts[1],
             "restored_appointments": counts[2],
@@ -321,7 +348,7 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
         }
     finally:
         # Whether successful or failed, remove every bit of restored live data.
-        _docker(["rm", "-f", name], timeout=25)
+        _docker(["rm", "-f", "-v", name], timeout=25)
 
 
 def main():
