@@ -251,6 +251,7 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
             "--tmpfs", "/tmp:rw,mode=1777,size=64m",
             "-e", "POSTGRES_HOST_AUTH_METHOD=trust",
             POSTGRES_IMAGE, "postgres", "-c", "config_file=/etc/postgresql/postgresql.conf",
+            "-c", "cron.launch_active_jobs=off",
         ], timeout=120)
         if run.returncode:
             _fail("DF_ISOLATED_DB_CONTAINER_FAILED")
@@ -263,6 +264,13 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
             time.sleep(1)
         else:
             _fail("DF_ISOLATED_DB_NOT_READY")
+
+        cron = _docker([
+            "exec", name, "psql", "-At", "-U", POSTGRES_USERNAME,
+            "-d", "postgres", "-c", "SHOW cron.launch_active_jobs;",
+        ], timeout=12)
+        if cron.returncode or cron.stdout.strip().lower() not in (b"off", b"false"):
+            _fail("DF_ISOLATED_CRON_NOT_DISABLED")
 
         # Before decrypting/transmitting private SQL to Docker, assert actual
         # engine isolation, rather than relying only on the docker run flags.
@@ -328,6 +336,7 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
             "local_db_has_no_host_volume": True,
             "supabase_postgres_17_image": True,
             "ephemeral_vault_key_isolated_to_container": True,
+            "scheduled_jobs_disabled_in_recovery": True,
             "restored_patients": counts[0],
             "restored_cases": counts[1],
             "restored_appointments": counts[2],
