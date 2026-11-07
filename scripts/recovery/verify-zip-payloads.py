@@ -65,15 +65,21 @@ def _decrypted_stream_digest(archive, member, key, name):
         total += len(final)
         return total, digest.hexdigest()
 
-def verify_archived_subset(index_path, key_path, volumes_directory):
+def verify_archived_subset(index_path, key_path, volumes_directory, on_progress=None):
     index_path = Path(index_path)
     key_path = Path(key_path)
     vault = Path(volumes_directory)
     info = key_path.lstat()
-    _require(stat.S_ISREG(info.st_mode) and not key_path.is_symlink() and
-             info.st_mode & 0o077 == 0, "RECOVERY_KEY_PERMISSIONS")
+    # NTFS permissions are ACL-based: POSIX mode bits cannot validate them.
+    # Still reject links and any file whose content is not a 32-byte key.
+    _require(stat.S_ISREG(info.st_mode) and not key_path.is_symlink()
+             and (os.name == "nt" or info.st_mode & 0o077 == 0),
+             "RECOVERY_KEY_PERMISSIONS")
     key = key_path.read_bytes()
     _require(len(key) == 32, "RECOVERY_KEY_LENGTH")
+    _require(index_path.is_file() and not index_path.is_symlink()
+             and index_path.stat().st_size <= 8 * 1024 * 1024,
+             "RECOVERY_INDEX_READ_FAILED")
     index = json.loads(_decrypt_small(index_path.read_bytes(), key, INDEX_NAME))
     _require(index.get("version") == 1 and isinstance(index.get("files"), list)
              and isinstance(index.get("parts"), list)
@@ -130,6 +136,8 @@ def verify_archived_subset(index_path, key_path, volumes_directory):
                          "RECOVERY_DECRYPTED_OBJECT_MISMATCH")
                 seen.add(identity)
                 total_plain += size
+        if on_progress is not None:
+            on_progress(i, len(index["parts"]))
     _require(len(seen) == len(expected) and total_plain == index["bytes_verified"],
              "RECOVERY_VERIFIED_TOTAL_MISMATCH")
     return {
