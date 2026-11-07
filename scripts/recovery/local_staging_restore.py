@@ -267,8 +267,15 @@ def restore_database_locally(encrypted_dir: str | Path, private_key: str | Path)
         # Restore from STDIN only: no PHI in shell arguments, logs, volumes
         # or GitHub. The isolated container has no network interface.
         if export_type == "pg_custom":
+            # A platform PGDMP often contains extensions and schemas that
+            # Supabase bootstrap has already installed. Only THIS new,
+            # no-network, no-volume disposable database may be cleaned.
+            # --single-transaction rolls back all DROP/CREATE statements if
+            # any dependency, privilege or data import fails. Never point
+            # the tool at the actual cloud/clinic database.
             command = [
                 "pg_restore", "--no-owner", "--no-privileges",
+                "--clean", "--if-exists",
                 "--exit-on-error", "--single-transaction",
                 "-U", POSTGRES_USERNAME, "-d", "postgres",
             ]
