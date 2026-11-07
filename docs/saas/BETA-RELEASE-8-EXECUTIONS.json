@@ -166,6 +166,18 @@
           "restored_real_database_cases": 86,
           "restored_real_database_appointments": 8,
           "restored_real_database_storage_file_rows": 702
+        },
+        "offsite_116_independent_readback_tool": {
+          "workflow_run": "https://github.com/GustavoFboz/dtfipo/actions/runs/42335108737",
+          "ci_synthetic_passed": true,
+          "windows_build_passed": true,
+          "unsigned_exe_artifact_available": true,
+          "user_real_offsite_recheck_with_new_tool_reported": false,
+          "synthetic_zip_gcm_random_access_verified": true,
+          "archive_payloads_written_in_plaintext": false,
+          "original_592_volumes_rechecked_by_this_tool": false,
+          "joint_database_storage_restore_verified": false,
+          "beta_release_authorized": false
         }
       }
     },
