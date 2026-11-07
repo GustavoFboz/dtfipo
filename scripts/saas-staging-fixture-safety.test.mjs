@@ -18,7 +18,7 @@ test('isolated staging journal never touches financial provider or persists fixt
 
 test('beta step 4 proves authenticated own-case edits and denies cross-company mutations',()=>{
   assert.equal((s.match(/SET LOCAL ROLE authenticated;/g)||[]).length,2);
-  assert.equal((s.match(/UPDATE public\\.cases SET notes=/g)||[]).length,4);
+  assert.equal((s.match(/UPDATE public\.cases SET notes=/g)||[]).length,4);
   assert.match(s,/STAGE4_A_OWN_EDIT_FAILED/);
   assert.match(s,/STAGE4_B_OWN_EDIT_FAILED/);
   assert.match(s,/STAGE4_A_FOREIGN_CASE_EDITED/);
@@ -26,5 +26,5 @@ test('beta step 4 proves authenticated own-case edits and denies cross-company m
   assert.match(s,/STAGE4_A_FOREIGN_PATIENT_RELINKED/);
   assert.match(s,/STAGE4_CASE_ISOLATION_FINAL_FAILED/);
   assert.match(s,/BETA_STAGE4_CASE_CROSS_TENANT_DENIED_2_OWN_EDITS/);
-  assert.match(s,/ROLLBACK;\\s*$/);
+  assert.match(s,/ROLLBACK;\s*$/);
 });
