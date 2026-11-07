@@ -61,6 +61,9 @@ jobs:
       - name: Verify deterministic restore bundle
         run: node scripts/build-restore-bundle.mjs --check
 
+      - name: Validate disposable two-company case isolation fixture
+        run: node --test scripts/saas-staging-fixture-safety.test.mjs
+
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
@@ -153,7 +156,8 @@ jobs:
             > restore-staging-63-journal.log
           grep -Fq "STAGING_FIXTURE_VERIFIED:2_companies_2_SQL_roles_4_patients_4_cases_0_real_clients" \
             restore-staging-63-journal.log
-          echo "SaaS 6.3 disposable fixture journal validated; SQL transaction rolled back."
+          grep -Fq "BETA_STAGE4_CASE_CROSS_TENANT_DENIED_2_OWN_EDITS" restore-staging-63-journal.log
+          echo "SaaS 6.3 and beta step 4 synthetic case isolation passed; SQL transaction rolled back."
 
       - name: Install dormant legal acceptance contract in disposable restored DB
         shell: bash
