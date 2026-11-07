@@ -20,6 +20,8 @@
 | Deploy e rollback (etapa 7) | Verificar SHA servido, versão Web e backend; abortar deploy se ambiente/segredos/schedulers divergem; simular rollback de publicação | Reversão confiável e identificada sem prejudicar clientes reais |
 | Publicação (etapa 8) | Reunir evidências dos 8 P0 do `PAID-BETA-READINESS.json`, aprovação operacional específica e smoke pós-deploy | Vendas por convite autorizadas explicitamente, nunca presumidas |
 
+**Ensaio posterior já protocolado:** [DF-EID-01 — Recuperação integrada direcionada, abertura dos anexos, autorização e rollback](./PROTOCOL-INTEGRATED-TARGETED-ATTACHMENTS-DF-EID-01.md). Estado: **preparado, não executado**; reusa os backups já conferidos, prova funcionamento na amostra, não afirma leitura individual dos 708 arquivos.
+
 **Sequência paralela:** não aguardar a etapa 3 terminar para começar testes sintéticos de casos, Asaas, termos, logging ou plano de rollback. Registrar resultados separados; não transformar porcentagem técnica em aprovação comercial. Repetir teste já aprovado somente se houver mudança relevante de código/infra/dados que o invalide.
 
 **Risco residual explícito:** a amostragem de Storage é teste operacional, não atestado de recuperação byte a byte dos 708 objetos. Se um arquivo específico falhar em beta, interromper novos convites, preservar dados e usar o backup para recuperação controlada. Antes do primeiro tester real, o plano de resposta ao incidente e cópia restaurável devem estar disponíveis.
