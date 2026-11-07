@@ -42,8 +42,8 @@
       "code": "recover-and-restore",
       "name": "Completar 116 anexos, backup atual e recuperação isolada",
       "status": "pending",
-      "owner_action": "Restauração real do banco exportado em 04/11 comprovada localmente (PGDMP 2.439.186 bytes): 93 pacientes, 86 casos, 8 agendamentos e 702 metadados Storage. Contêiner descartado após teste. Cópias externas cifradas de banco e anexos já autenticadas; próximo passo obrigatório é recuperar e abrir bytes físicos dos 708 anexos em ambiente isolado e relacioná-los ao banco, verificar 24 objetos sem digest antigo, quatro anexos de caso histórico ausente, e ensaiar rollback integrado. Não solicitar novamente export do banco ou chaves; não publicar beta.",
-      "definition_of_done": "116/116 objetos (1.968.840.906 bytes) recebidos e autenticados, 708/708 históricos reconciliados, alterações posteriores inventariadas, banco atual + anexos restaurados juntos em ambiente descartável e reversão de dados simulada.",
+      "owner_action": "Não solicitar nova cópia, novo dump ou releitura integral dos 33 ZIPs: os 592 arquivos históricos já foram autenticados previamente; 116/116 arquivos cifrados foram revalidados em 07/11. Avançar diretamente para ensaio integrado mínimo e testagem paralela dos P0 de casos/RLS, Asaas, privacidade, convites e rollback. Solicitar ao proprietário intervenção só em pontos indispensáveis. Beta ainda não autorizado.",
+      "definition_of_done": "Cópias cifradas do banco de 04/11 e dos 708 objetos históricos conferidas pelas evidências já existentes; dados do banco real restaurados em PostgreSQL isolado; ensaio DIRECIONADO de restauração operacional Storage (amostra representativa dos dois grupos com leitura e relação aos casos do banco), prova de controle de acesso, falha segura e reversão. Reexecutar a verificação de todos os 592 objetos somente se aparecer divergência concreta, e NÃO como novo requisito de entrada; conservar 24 sem hash histórico como limitação declarada, exigindo controle adicional quando necessário.",
       "evidence": [
         "https://github.com/GustavoFboz/dtfipo/issues/241",
         "https://github.com/GustavoFboz/dtfipo/pull/253"
@@ -178,6 +178,19 @@
           "original_592_volumes_rechecked_by_this_tool": false,
           "joint_database_storage_restore_verified": false,
           "beta_release_authorized": false
+        },
+        "risk_based_beta_acceleration": {
+          "date": "2026-11-07",
+          "owner_requested_no_redundant_592_zip_reverification": true,
+          "previously_authenticated_historical_objects": 592,
+          "additional_116_offsite_gcm_readback_verified": true,
+          "historical_708_metadata_reconciled": true,
+          "redundant_full_592_reverification_required": false,
+          "optional_592_audit_pr_closed": "https://github.com/GustavoFboz/dtfipo/pull/268",
+          "representative_storage_restore_and_case_link_required": true,
+          "original_24_without_comparable_digest_remain_uncertain": true,
+          "production_or_asaas_writes_allowed": false,
+          "beta_sales_allowed": false
         }
       }
     },
