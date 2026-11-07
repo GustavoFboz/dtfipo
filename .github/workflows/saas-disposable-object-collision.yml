@@ -1,0 +1,26 @@
+name: DentalFlow Disposable Supabase PGDMP Collision Regression
+
+on:
+  pull_request:
+    branches: [main, "saas/stage-03-asaas-checkout"]
+    paths:
+      - "scripts/recovery/test-disposable-object-collision.sh"
+      - ".github/workflows/saas-disposable-object-collision.yml"
+      - "scripts/recovery/local_staging_restore.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-collision-transactional-clean:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reproduce collision and test transactional --clean in Supabase PG17
+        run: bash scripts/recovery/test-disposable-object-collision.sh
+      - name: Verify no production inputs, network or backup files used
+        run: |
+          echo "No user data, real backup, key or production DB in this isolated CI job."
+          test ! -e "DentalFlow-Chave-Externa.bin"
