@@ -58,7 +58,7 @@ BEGIN
  OR EXISTS(SELECT 1 FROM public.patients WHERE id IN
  ('73900000-0000-4000-8000-000000000021','73900000-0000-4000-8000-000000000022'))
  THEN RAISE EXCEPTION 'STAGING_A_CROSS_TENANT_OR_EMPTY_RESULT'; END IF;
-END $;
+END $$;
 -- Beta step 4: real SQL-role case read/edit and negative ownership controls.
 -- Existing synthetic rows only; each mutation is inside the outer ROLLBACK.
 DO $stage4_a$
@@ -107,7 +107,7 @@ BEGIN
  OR EXISTS(SELECT 1 FROM public.patients WHERE id IN
  ('73900000-0000-4000-8000-000000000011','73900000-0000-4000-8000-000000000012'))
  THEN RAISE EXCEPTION 'STAGING_B_CROSS_TENANT_OR_EMPTY_RESULT'; END IF;
-END $;
+END $$;
 DO $stage4_b$
 DECLARE n bigint := 0;
 BEGIN
