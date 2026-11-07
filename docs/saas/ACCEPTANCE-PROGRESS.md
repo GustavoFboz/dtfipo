@@ -1,0 +1,233 @@
+# Progresso dos aceites finais para vendas
+
+Checkpoint de 28/10/2026, **20h48 Manaus**: **5.2 concluído — 13/23 (56,52%),
+10 restantes, 1/7 etapas encerradas**. Cancelamento A e troca de plano/preço B
+executados no Asaas Sandbox com desafios Master/MFA reais, uma escrita por
+pedido e readback. Três jobs passaram **54/54 checks reais**; 701 arquivos,
+dados, pagamentos, faturas e planos pagos atuais preservados. B tem recorrência
+futura de R$5 e termo para 18/12 UTC; permanece Growth/R$449 até a vigência e
+pagamento. A aplicação do downgrade e falhas reais continuam em 5.3. Falta um
+aceite integral para 14/23 (60,87%). [Provas e limites](evidence/master-plan-change-20261028.md).
+
+Checkpoint de 28/10/2026, **20h11 Manaus**: cancelamento Sandbox A concluído
+uma vez com login Master/autenticador reais. Asaas INACTIVE, auditoria única,
+job posterior **18/18**, período pago, três cobranças, ledger e dados preservados;
+701 arquivos antes/depois. A parte de cancelamento de 5.2 está comprovada;
+troca/preço e 5.3 ainda exigem suas provas. **12/23 (52,17%), 11 restantes,
+1/7 etapas encerradas; nenhum novo aceite integral.**
+[Auditoria, recibo e limites](evidence/master-cancellation-20261028.md).
+
+Checkpoint de 28/10/2026, **18h00 Manaus**: plano e preço por vigência
+integrados/publicados pela PR206. Passaram **413 testes locais**, restauração
+limpa de **185 migrações** e **18/18 verificações reais** de observação e
+autorização. Os 700 arquivos, dados, quatro preços e pedido anterior permanecem
+iguais; zero novos termos ou execuções financeiras. **12/23 (52,17%), 11
+restantes, 1/7 etapas encerradas**. Master/AAL2 positivo, pagamento/aplicação,
+downgrade real e aparelhos conservam aceites próprios; API37 falhou no smoke.
+[Publicação, recibo e próximos passos](evidence/plan-price-periods-20261028.md).
+
+Checkpoint de 28/10/2026, **15h57 Manaus**: PR204 integrada e publicada;
+preparo de um cancelamento Sandbox passou **17/17 verificações reais**.
+Pedido autenticado único `awaiting_provider / AWAITING_MASTER`, nenhuma escrita
+financeira, mesmos 700 arquivos e hashes clínicos/financeiros antes/depois.
+**12/23 (52,17%), 11 restantes, 1/7 etapas encerradas, sem novo aceite integral.**
+A ação final depende da sessão Master/autenticador real; troca de plano e os
+demais ciclos continuam pendentes. Android API35 passou, API37 falhou no smoke;
+workflow geral verde não encerra o aceite de aparelhos.
+[Publicação, recibo e próximos passos](evidence/cancellation-preparation-20261028.md).
+
+Checkpoint de 27/10/2026, **12h42 Manaus**: troca autorizada dos 34 arquivos de
+foto e seis avatares concluída. Quarenta cópias com tamanho/hash conferidos,
+quarenta URLs originais recusadas com HTTP400, origens ausentes e mesmos IDs,
+vínculos e cotas. Os 685 arquivos prontos e os hashes clínicos/financeiros
+permanecem preservados. **Item 4.3 concluído: 12/23 (52,17%), 11 restantes,
+1/7 etapas encerradas.** Uma resposta 503 e sua retomada após a trava expirar
+foram preservadas; nenhum job concluído foi repetido.
+[Quarenta recibos, integridade e limites](evidence/private-file-rotation-20261027.md).
+
+Checkpoint de 27/10/2026, 11h08 Manaus: as nove reservas vazias foram liberadas
+individualmente pela sessão gestora real, recuperando 1,04 GiB. Arquivos prontos,
+casos, pacientes e pagamentos preservados por conferência antes/depois.
+**Item 3.2 concluído: 11/23 (47,83%), 12 restantes, 1/7 etapas encerradas.**
+A manutenção passa a tratar um arquivo por vez e parar ao primeiro erro.
+Os quarenta links históricos continuam intactos: a revisão automática recusou
+a preparação sem autorização específica. [Recibo e limites](evidence/reservation-release-20261027.md).
+
+Checkpoint de 26/10/2026, 11h16 Manaus: criação/edição de casos recuperadas e
+publicadas; proteção de imagens publicada e **134/134 verificações reais**
+aprovadas somente com arquivos descartáveis. Nove reservas vazias seguem
+presentes, com liberação já autorizada e execução dependente da sessão gestora.
+Os 40 links históricos continuam intactos, aguardando autorização específica
+após rejeição automática do POST de verificação. **10/23 (43,48%), 13 restantes,
+1/7 etapas encerradas; nenhum aceite parcial foi arredondado.**
+[Publicação, recibos, preservação e ações restantes](evidence/private-file-publication-20261026.md).
+
+Os checkpoints datados abaixo conservam seus resultados históricos.
+
+Atualização de 24/10/2026, 16h38 Manaus: revisão dos dois eventos externos
+concluída individualmente no Master com MFA real e auditoria; webhook ausente
+recuperado pela reconciliação normal no Sandbox, com efeito único e histórico
+preservado. Recuperação, identidade e arquivos passaram **155/155 verificações
+nas três execuções concluídas**; duas tentativas anteriores falhas estão
+preservadas. **Itens 1.1 e 1.3 concluídos; 10/23 (43,48%), 13 restantes,
+1/7 etapas encerradas.** Master/MFA positivos agora têm prova; replay financeiro
+positivo e os demais critérios de 4.2 continuam pendentes. IPO conferida com
+86 casos, 122 itens e 48 movimentações, fingerprint idêntico ao job concluído.
+[Publicação, recibos, decisões e limites](evidence/events-recovery-master-20261024.md).
+
+Continuidade de 24/10, 17h00 Manaus: PR195 publicada, permitindo o executor
+Master usar o Sandbox separado com Produção ativa, sob o mesmo claim AAL2.
+Passaram 123 testes, tipos e CI/restore. Nove reservas antigas conferidas
+individualmente na sessão gestora e por presença/vínculos: zero objetos,
+zero vínculos, 1,04 GiB; liberação aguarda confirmação de abandono. API37
+voltou a falhar no próprio system_server e a PR194 ficou em rascunho.
+**10/23 mantidos**. [Recibos e limites](evidence/administrative-continuity-20261024.md).
+
+Os checkpoints anteriores abaixo conservam seus totais e pendências históricos.
+
+Atualização de 23/10/2026, 11h13 Manaus: fluxos e configurações agora separados
+por empresa, publicados e comprovados em 41 testes novos; com as regressões,
+**227/227 verificações reais** passaram. Histórico conferido por hash em 20
+tabelas; IPO conserva 86 casos, 107 itens e 47 movimentações. São 29 tabelas
+com propriedade e dois catálogos padrão somente para leitura. Master/MFA e
+replay positivos reais e origem dos 12 pacientes continuam pendentes.
+**8/23 (34,78%), 15 em aberto/parciais, 0/7 etapas encerradas.**
+[Publicação, recibos e limites](evidence/company-workflow-publication-20261023.md).
+
+Atualização de 23/10/2026, 09h25 Manaus: estoque e diretórios por empresa
+publicados; **186/186 verificações reais** passaram (58 de propriedade,
+16 de identidade e 112 de arquivos/privacidade). IPO com 107 itens e 47
+movimentações; 22 tabelas conferidas, sem resíduos de teste nem divergência
+diretório/perfil. Doze pacientes sem origem continuam preservados. MFA/Master
+positivos e configurações globais conservam revisão própria; item 4.2 parcial.
+**8/23 (34,78%), 15 em aberto/parciais, 0/7 etapas encerradas.**
+[Publicação, recibos e limites](evidence/company-ownership-publication-20261023.md).
+
+Atualização de 22/10/2026, 10h43 Manaus: privacidade dos marcadores de leitura
+corrigida no banco e publicada pela PR183. **112/112 verificações reais**
+passaram: 84 de Storage e 28 de privacidade/autorização. Histórico preservado,
+fixtures limpas, um pagamento Production e worker saudável. O item 4.2 continua
+parcial, com MFA/Master positivos e onze tabelas legadas ainda em revisão.
+**8/23 (34,78%), 15 em aberto/parciais, 0/7 etapas encerradas.**
+[Prova e limites](evidence/activity-read-publication-20261022.md).
+
+Atualização de 21/10/2026, 23h49 Manaus: após autorização explícita para
+administrar Cloud, publicar em Produção e ajustar a política de senhas, a revisão
+`ef31ce3` foi publicada e o mínimo global de oito caracteres salvo. O job real de
+identidade passou **16/16 verificações**, incluindo a recusa HTTP422 de senha
+curta, confirmação, recuperação, login e logout. **Item 4.1 concluído; 8/23
+(34,78%), 15 em aberto/parciais e 0/7 etapas encerradas.**
+[Prova e limites](evidence/authorized-publication-20261021.md).
+O [roteiro para 100%](TARGET-100-PERCENT.md) mantém os demais aceites próprios.
+
+Baseline de 04/10/2026, 23h06 de Manaus. A porcentagem mede itens com aceite
+integral registrado, não linhas de código nem estimativa de esforço. O plano
+tem 23 itens, derivados das sete etapas apresentadas ao responsável.
+
+Atualização de 08/10/2026: testes restritos integrados; execução real bloqueada
+pela indisponibilidade do Lovable Cloud. A cadência Sandbox aceita em 05/10 é
+histórica e não comprova a disponibilidade atual.
+
+Retomada de 17/10/2026: consultas ao banco e jobs privados voltaram a funcionar;
+288 disparos Sandbox em 24h reconferidos. Identidade: 15/16 verificações reais
+aprovadas; mínimo global de oito caracteres ainda falha. Checkout Sandbox
+criou recursos corretamente, mas o job tratava o retorno HTTPS como envelope
+de server function. A correção foi integrada no PR160 e o job publicado passou
+25/25 verificações reais. Duplicatas/ordem e histórico/documentos têm agora
+prova completa. Armazenamento passou 50/50 checks reais após corrigir preparo
+e leitura de cache. [Provas da rodada de 20%](evidence/acceptance-20-20261017.md).
+**Aceites integrais: 7/23 — 30,43%. Restam 16 itens parciais/em aberto.
+Etapas inteiramente encerradas: 0/7.**
+Existe implementação e evidência parcial, descrita no RELEASE-PLAN.md; não
+reiniciamos o trabalho. Cada aceite novo deve referenciar prova, revisão e data.
+
+Em 19/10, 01h33 Manaus, o primeiro pagamento real foi confirmado no backend:
+R$5 em Produção, checkout pago, `PAYMENT_RECEIVED` processado uma vez sem erro,
+assinatura Inicial ativa e Laboratório selecionado. O titular confirmou acesso
+e plano corretos. **Naquele checkpoint, item 7.3 concluído; 6/23.** O item 7.2
+ainda aguardava o ensaio do alerta operacional de Produção.
+[Prova, revisão e limites](evidence/first-production-payment-20261019.md).
+
+Continuidade operacional de 19/10, 02h24 Manaus: após autorização explícita,
+o ensaio #96 recusou a idade de 901s somente na cópia do snapshot de Produção.
+A notificação GitHub correspondente chegou à INBOX às 02h22m08s, fora de SPAM
+e com DKIM aprovado. A inspeção normal #97 passou às 02h24; cron e registros
+financeiros preservados. **Item 7.2 concluído; 7/23 (30,43%).** Não houve pausa
+real do serviço; backup/restauração, demais ciclos e vendas conservam seus
+aceites próprios. [Prova, revisão e limites](evidence/production-alert-20261019.md).
+
+Os checkpoints de 18/10 abaixo são históricos.
+
+Em 18/10, 16h47 Manaus, a API confirmou o webhook de Produção ativo após
+ativação pelo titular no próprio navegador: fila não interrompida e 13 eventos
+corretos. Backend, GitHub e cron continuam em Produção, com HTTP 200 e
+telemetria saudável; cron Sandbox desativado. Entrega autenticada e compra
+real continuam pendentes; 5/23 preservados.
+[Conferência e próximos passos](evidence/production-webhook-activation-20261018.md).
+
+Tentativa do titular em 18/10, 17h50–17h53: cliente de Produção criado,
+assinatura recusada com `invalid_value`, sem pagamento. O mínimo oficial de
+R$5 impede o teste solicitado de R$1. O titular autorizou R$5/mês às 18h00;
+o catálogo foi ajustado e reconferido às 18h01m52s. A correção explica e bloqueia
+o valor insuficiente antes de criar recursos externos.
+[Diagnóstico e proposta](evidence/production-checkout-minimum-20261018.md).
+
+| Item | Resultado exigido | Status atual |
+| --- | --- | --- |
+| 1.1 | Dois dead letters reconciliados individualmente com o Asaas | Concluído em 24/10, 16h35 Manaus: origem manual externa confirmada pelo titular e diagnóstico Asaas de 05/10; cada evento recebeu decisão real Master/AAL2 e auditoria própria. Ambos ignored/EXTERNAL_MANUAL_SANDBOX_TEST, payload e seis tentativas preservados, zero vínculos e sem replay financeiro. [Decisões e limites](evidence/events-recovery-master-20261024.md) |
+| 1.2 | Duplicatas e eventos fora de ordem | Concluído em Sandbox, 17/10, 14h45 Manaus: duas entregas idênticas adicionais por fixture conservaram uma linha e exatamente a vigência paga. Aviso OVERDUE antigo foi ignorado por SUPERSEDED_PROVIDER_STATUS após GET atual; recuperação e confirmação convergiram para uma linha. [Recibo e revisão](evidence/acceptance-20-20261017.md) |
+| 1.3 | Webhook perdido recuperado | Concluído em 24/10, 16h10 Manaus: pagamento recebido no Asaas Sandbox sem evento nem ledger local observado; reconciliação normal descobriu e aplicou uma vez, repetição preservou ledger e período. Job final 27/27; primeira recuperação B preservada na tentativa parcial e conferida sem nova escrita. Produção mantida. [Recibos e limites](evidence/events-recovery-master-20261024.md) |
+| 2.1 | Estados do ciclo financeiro | Parcial: renovação real comprovada em 24/10 e cancelamento Master/MFA real em 28/10, com uma escrita e Asaas INACTIVE. Atraso/carência, suspensão, estorno/contestação e reativação ainda exigem prova. [Cancelamento](evidence/master-cancellation-20261028.md) |
+| 2.2 | Dados e período pago preservados | Parcial: renovação e cancelamento preservaram histórico, vigência e dados. Cancelamento conferiu 701 arquivos, ledger, três faturas e contrato B intactos; demais ciclos continuam pendentes. [Prova e limites](evidence/master-cancellation-20261028.md) |
+| 2.3 | Acesso nas plataformas e janela offline de 72 horas | Parcial: código, CI/restore, instalador Windows e limpeza offline nos emuladores Android; recuperação API 37/distribuição/aparelhos/iOS pendentes |
+| 3.1 | Upload/exclusão de casos, pacientes, fotos e avatar | Concluído pelas APIs autenticadas em 17/10, 15h06 Manaus: 50/50 checks reais nas duas fixtures USER, quatro buckets, tamanho/hash/cota consistentes, excesso e acesso estrangeiro recusados, oito exclusões e cota zero. Preparo clínico descartável administrativo; sem promoção de papéis. Aparelhos, concorrência/resíduos e links históricos mantêm aceites próprios. [Recibo e revisão](evidence/acceptance-20-20261017.md) |
+| 3.2 | Concorrência, falhas e reservas históricas | Concluído em 27/10, 11h08 Manaus: resiliência publicada comprovada em 26/10; nove liberações individuais na sessão gestora real recuperaram 1.112.944.862 bytes. Zero reservas históricas, mesmos 685 arquivos prontos e hashes de metadados/casos/pacientes/pagamentos preservados. Sem exclusão direta por SQL. [Recibo e limites](evidence/reservation-release-20261027.md) |
+| 3.3 | Armazenamento nas plataformas disponíveis | Pendente de aparelhos |
+| 4.1 | Cadastro, confirmação e recuperação de senha | Concluído em 21/10, 23h49 Manaus: mínimo global de oito caracteres salvo no Auth; job real publicado passou 16/16 checks de cadastro, confirmação, login, recuperação, token único, isolamento e logout. Senha de sete caracteres recusada com HTTP422. Usuário descartável removido; contas existentes preservadas. MFA e arquivos conservam aceites próprios. [Recibo e revisão](evidence/authorized-publication-20261021.md) |
+| 4.2 | Sessões, MFA, isolamento e replay financeiro | Parcial: 29 tabelas possuem empresa e dois catálogos padrão são somente leitura. Master/MFA positivos e duas decisões auditadas comprovados com login real em 24/10; regressões identidade e arquivos/privacidade 128/128. Replay financeiro positivo continua zero; origem dos 12 pacientes sem empresa e demais cenários de sessão permanecem pendentes. [Prova e limites](evidence/events-recovery-master-20261024.md) |
+| 4.3 | Arquivos privados e validade dos links | Concluído em 27/10, 12h42 Manaus: 34 fotos e seis avatares autorizados, 40 cópias verificadas e URLs originais recusadas com HTTP400, origens ausentes e caminhos aposentados. Mesmos 685 arquivos prontos, bytes, metadados de propriedade/vínculo e hashes clínicos/financeiros. As 22 verificações autenticadas de assinatura curta, expiração, renovação e recusa entre empresas foram comprovadas em 26/10. Offline permanece 72h e aparelhos mantêm aceite separado. [Recibos e limites](evidence/private-file-rotation-20261027.md) |
+| 5.1 | Histórico e documentos de cobrança | Concluído em Sandbox, 17/10, 14h45 Manaus: sessões gestoras das duas fixtures consultaram histórico e abriram documento do pagamento validado no provedor (HTTP200); outra clínica foi recusada no histórico e documento (HTTP403). [Recibo e revisão](evidence/acceptance-20-20261017.md) |
+| 5.2 | Solicitações executadas no Asaas | Concluído em 28/10, 20h48 Manaus: cancelamento A e troca Growth→Inicial/R$5 de B confirmados no Asaas com Master/MFA reais, uma escrita por pedido e 54/54 checks reais em três jobs. Preço/data futuros confirmados; faturas, ledger, dados e plano pago atual preservados. Aplicação e pagamento futuros conservam os aceites de 5.3 e ciclo financeiro. [Auditoria, recibos e limites](evidence/master-plan-change-20261028.md) |
+| 5.3 | Downgrade, falhas e execução única | Parcial: downgrade B programado no provedor para 18/12 UTC, limites atuais válidos e execução única comprovada. Growth/R$449 permanece até a vigência/pagamento; faltam aplicação real, limites nessa aplicação e recuperação após falha real ambígua. Ensaios descartáveis continuam regressões. [Prova e limites](evidence/master-plan-change-20261028.md) |
+| 6.1 | Processador regular e alertas comprovados | Concluído em Sandbox, 05/10, 18h17 de Manaus: 24 disparos a cada 5 minutos, 24 respostas HTTP 200 com telemetria saudável, alerta real de heartbeat antigo entregue à caixa do operador e recuperação observada. Produção permanece no gate 7.2. [Prova e limites](evidence/database-scheduler-20261005.md) |
+| 6.2 | Backup, restauração e incidente | Parcial: rotina criptografada e ensaio descartável de dados/arquivos passaram 16/16, incluindo rollback e queda de conexão; falta cópia e recuperação do Cloud real. [Prova e limites](evidence/operational-recovery-20261028.md) |
+| 6.3 | Onboarding, plataformas e capacidade piloto | Em aberto |
+| 6.4 | Documentos comerciais e privacidade revisados | Protocolo preparado; minutas/revisão pendentes |
+| 7.1 | Conta recebedora aprovada | Concluído em 05/10, 13h49 de Manaus: chave real autenticada e general=APPROVED; [prova e revisão](evidence/production-preflight-20261005.md). Pendência bancária registrada separadamente |
+| 7.2 | Secrets, webhook e agendamento de Produção | Concluído em 19/10, 02h24 Manaus: configuração ativa e entrega autenticada comprovadas; cron ativo, HTTP 200 e worker saudável. Ensaio #96 autorizado recusou heartbeat de 901s na cópia, notificação GitHub entregue à INBOX às 02h22m08s com DKIM aprovado e inspeção normal #97 saudável. Ledger/contratos preservados; sem pausa do serviço. [Prova, revisão e limites](evidence/production-alert-20261019.md) |
+| 7.3 | Recebimento, ledger e acesso reais comprovados | Concluído em 19/10, 01h33 Manaus: pagamento real de R$5 em Produção, checkout pago, evento PAYMENT_RECEIVED processado uma vez sem erro e assinatura Inicial ativa. Valor, pagamento e assinatura conferem; Laboratório ativo, cota do plano correta e acesso/plano confirmados pelo titular. [Recibo e revisão](evidence/first-production-payment-20261019.md) |
+| 7.4 | Decisão de liberação para vendas | Pendente dos demais aceites |
+
+Um item aprovado vale 100/23 pontos percentuais. Etapas são encerradas somente
+quando todos os seus itens e riscos aplicáveis têm decisão registrada. Mudanças
+de escopo exigem atualizar denominador e explicar a mudança; não arredondar
+uma prova parcial para concluída nem incluir teste fictício como pagamento real.
+
+Meta solicitada em 05/10, 20h35 de Manaus: chegar a 10/23, sem alterar o
+denominador. O [plano de oito aceites adicionais](TARGET-10-OF-23.md) registra
+as provas e dependências. Consulta de 06/10, 00h35 UTC: os dois eventos externos
+seguem dead_letter, sem auditoria de conclusão. Contador permanece **2/23**.
+
+## Continuidade de 08/10/2026
+
+O [PR154](https://github.com/GustavoFboz/dtfipo/pull/154) integrou validações
+restritas de Auth, checkout/pagamento Sandbox e armazenamento, sem atribuir
+novos aceites. Passaram 414 testes em 22 arquivos, build e CI; a restauração
+reproduz 175 migrações. A política restritiva de leitura de avatares foi aplicada
+ao banco às 19h59min47s UTC. As 38 referências assinadas históricas mantêm o
+tratamento pendente do item 4.3.
+
+A última leitura financeira bem-sucedida (19h55min24s UTC) ainda registrou os
+dois eventos manuais em dead_letter, zero revisões Master e zero pagamentos de
+Produção. O job de identidade preparado às 20h02min36s retornou HTTP403; na
+leitura às 20h03min34s não havia claim, recibo ou usuário descartável. Não
+confundir esse resultado com falha de senha, MFA ou aceite de recuperação.
+
+O diagnóstico das 20h12 UTC comprovou HEALTH_READ_TIMEOUT nos logs publicados
+e backend_unreachable_db na conexão Auth→banco. A causa específica do HTTP403
+continua indeterminada. A recuperação do Cloud é necessária para verificar a
+publicação e retomar esses testes. [Evidências, limites e sequência de retomada](evidence/fixture-cloud-checkpoint-20261008.md).
+
+**Checkpoint histórico de 08/10: 2/23 (8,70%); 21 itens abertos/parciais; 0/7 etapas
+inteiramente encerradas. Os oito aceites adicionais da meta continuam pendentes
+de prova. Produção e a compra real de R$1 não estão liberadas por esta rodada.**

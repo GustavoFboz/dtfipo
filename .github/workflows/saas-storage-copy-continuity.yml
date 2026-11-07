@@ -1,0 +1,42 @@
+name: DentalFlow Storage Copy Continuity
+
+on:
+  pull_request:
+    branches: [main, "saas/stage-03-asaas-checkout"]
+    paths:
+      - "scripts/recovery/audit-external-copy.mjs"
+      - "scripts/recovery/audit-external-copy.test.mjs"
+      - "scripts/recovery/prepare-storage-resume.mjs"
+      - "scripts/recovery/prepare-storage-resume.test.mjs"
+      - "scripts/recovery/download-missing-objects.mjs"
+      - "scripts/recovery/download-missing-objects.test.mjs"
+      - "scripts/recovery/verify-zip-payloads.py"
+      - "tests/recovery/test_verify_zip_payloads.py"
+      - "scripts/recovery/archive.mjs"
+      - ".github/workflows/saas-storage-copy-continuity.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Setup Python for offline ZIP decryption regression
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install audited cryptography dependency
+        run: python -m pip install --disable-pip-version-check "cryptography>=42,<50"
+      - name: Verify streaming encrypted ZIP restore with synthetic payloads
+        run: python -m unittest discover -s tests/recovery -p "test_verify_zip_payloads.py" -v
+      - name: Exercise encrypted checkpoint reader with fictitious data
+        run: node --test scripts/recovery/audit-external-copy.test.mjs scripts/recovery/prepare-storage-resume.test.mjs
+      - name: Verify fail-closed missing-byte encrypted downloader with fake storage
+        run: node --test scripts/recovery/download-missing-objects.test.mjs

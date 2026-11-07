@@ -9,6 +9,7 @@
 //! This keeps arbitrary shell/command injection impossible from the WebView.
 
 use serde::Serialize;
+use base64::{engine::general_purpose, Engine as _};
 
 #[derive(Serialize, Clone)]
 pub struct DesktopPrinter {
@@ -148,6 +149,45 @@ pub fn desktop_list_printers() -> Result<Vec<DesktopPrinter>, String> {
 #[tauri::command]
 pub fn desktop_open_printer_settings() -> Result<(), String> {
     platform::open_printer_settings()
+}
+
+#[tauri::command]
+pub fn desktop_save_pdf(file_name: String, base64_data: String) -> Result<String, String> {
+    let mut safe: String = file_name
+        .chars()
+        .map(|ch| if ch.is_alphanumeric() || matches!(ch, ' ' | '-' | '_' | '.') { ch } else { '_' })
+        .collect();
+    safe = safe.trim().trim_matches('.').to_string();
+    if safe.is_empty() { safe = "Relatorio-DentalFlow.pdf".to_string(); }
+    if !safe.to_ascii_lowercase().ends_with(".pdf") { safe.push_str(".pdf"); }
+
+    let bytes = general_purpose::STANDARD
+        .decode(base64_data.as_bytes())
+        .map_err(|_| "O PDF recebido é inválido.".to_string())?;
+    if bytes.is_empty() { return Err("O PDF está vazio.".to_string()); }
+    if bytes.len() > 32 * 1024 * 1024 { return Err("O PDF excede o limite permitido.".to_string()); }
+
+    let dir = dirs::download_dir()
+        .or_else(|| dirs::home_dir().map(|home| home.join("Downloads")))
+        .ok_or_else(|| "A pasta Downloads do Windows não foi localizada.".to_string())?;
+    std::fs::create_dir_all(&dir)
+        .map_err(|error| format!("Não foi possível preparar a pasta Downloads: {error}"))?;
+
+    let mut target = dir.join(&safe);
+    if target.exists() {
+        let stem = safe.trim_end_matches(".pdf");
+        for index in 1..10_000 {
+            let candidate = dir.join(format!("{stem} ({index}).pdf"));
+            if !candidate.exists() {
+                target = candidate;
+                break;
+            }
+        }
+    }
+
+    std::fs::write(&target, bytes)
+        .map_err(|error| format!("Não foi possível salvar o PDF: {error}"))?;
+    Ok(target.to_string_lossy().to_string())
 }
 
 #[tauri::command]

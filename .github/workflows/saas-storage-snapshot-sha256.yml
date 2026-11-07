@@ -1,0 +1,33 @@
+name: DentalFlow SHA256 Storage Historical Snapshot Audit
+
+on:
+  pull_request:
+    branches: [main, "saas/stage-03-asaas-checkout"]
+    paths:
+      - "scripts/recovery/reconcile-cloud-storage-snapshot.mjs"
+      - "scripts/recovery/reconcile-cloud-storage-snapshot.test.mjs"
+      - "docs/saas/sql/storage-708-sha256-readonly-20261104.sql"
+      - ".github/workflows/saas-storage-snapshot-sha256.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-snapshot-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify SHA-256 mismatches and wrong catalog versions fail closed
+        run: node --test scripts/recovery/reconcile-cloud-storage-snapshot.test.mjs
+      - name: Confirm test bundle holds no encrypted clinical archive or key
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -f "DentalFlow_Chave_2026-10-29.bin"
+          test ! -f "DentalFlow_Anexos_2026-10-29_Indice.dfenc"
+          echo "Synthetic-only SHA-256 reconciliation complete. This is NOT a live restore."

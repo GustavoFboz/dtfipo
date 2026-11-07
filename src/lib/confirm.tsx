@@ -84,9 +84,11 @@ export function promptDialog(options: PromptOptions = {}): Promise<string | null
   });
 }
 
-function resolveTop(value: boolean | string | null) {
+function resolveRequest(id: number, value: boolean | string | null) {
   const [top, ...rest] = currentQueue;
-  if (!top) return;
+  // Radix fires onOpenChange(false) after the button's onClick. That second
+  // callback must not resolve the next request already waiting in the queue.
+  if (!top || top.id !== id) return;
   currentQueue = rest;
   emit();
   (top.resolve as (v: any) => void)(value);
@@ -110,16 +112,16 @@ function ConfirmView({ req }: { req: ConfirmRequest }) {
     destructive = false,
   } = req.options;
   return (
-    <AlertDialog open onOpenChange={(o) => { if (!o) resolveTop(false); }}>
+    <AlertDialog open onOpenChange={(o) => { if (!o) resolveRequest(req.id, false); }}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           {description && <AlertDialogDescription>{description}</AlertDialogDescription>}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => resolveTop(false)}>{cancelText}</AlertDialogCancel>
+          <AlertDialogCancel onClick={() => resolveRequest(req.id, false)}>{cancelText}</AlertDialogCancel>
           <AlertDialogAction
-            onClick={() => resolveTop(true)}
+            onClick={() => resolveRequest(req.id, true)}
             className={destructive ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : undefined}
           >
             {confirmText}
@@ -145,10 +147,10 @@ function PromptView({ req }: { req: PromptRequest }) {
   const submit = () => {
     const v = value.trim();
     if (required && !v) return;
-    resolveTop(v);
+    resolveRequest(req.id, v);
   };
   return (
-    <Dialog open onOpenChange={(o) => { if (!o) resolveTop(null); }}>
+    <Dialog open onOpenChange={(o) => { if (!o) resolveRequest(req.id, null); }}>
       <DialogContent
         onKeyDown={(e) => {
           if (e.key === "Enter") { e.preventDefault(); submit(); }
@@ -165,7 +167,7 @@ function PromptView({ req }: { req: PromptRequest }) {
           onChange={(e) => setValue(e.target.value)}
         />
         <DialogFooter>
-          <Button variant="outline" onClick={() => resolveTop(null)}>{cancelText}</Button>
+          <Button variant="outline" onClick={() => resolveRequest(req.id, null)}>{cancelText}</Button>
           <Button onClick={submit} disabled={required && !value.trim()}>{confirmText}</Button>
         </DialogFooter>
       </DialogContent>

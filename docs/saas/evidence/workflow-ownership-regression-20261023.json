@@ -1,0 +1,252 @@
+{
+  "capability_consumed": true,
+  "claimed_at": "2026-10-23 15:10:25.291468+00",
+  "completed_at": "2026-10-23 15:10:41.619725+00",
+  "id": "698d8d0b-72a2-48a6-b824-a585b45af53b",
+  "kind": "ownership",
+  "status": "completed",
+  "receipt": {
+    "checked_at": "2026-10-23T15:10:41.534Z",
+    "checks": [
+      {
+        "check": "ownership_fixtures_start_without_stock",
+        "passed": true
+      },
+      {
+        "check": "ownership_real_user_not_inventory_manager",
+        "passed": true
+      },
+      {
+        "check": "company_component_categories_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_components_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_implant_component_types_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_implant_systems_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_implant_system_components_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_scan_jigs_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_stock_items_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_stock_item_custom_fields_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_stock_consumption_rules_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_holders_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_burrs_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_burr_usages_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_resin_pots_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_resin_weighings_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_cadistas_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_doctors_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_proteticos_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_foreign_profile_hidden",
+        "passed": true
+      },
+      {
+        "check": "company_stock_owner_spoof_denied",
+        "passed": true
+      },
+      {
+        "check": "company_foreign_stock_preserved",
+        "passed": true
+      },
+      {
+        "check": "company_definer_foreign_stock_denied",
+        "passed": true
+      },
+      {
+        "check": "company_denied_rpc_preserves_both_balances",
+        "passed": true
+      },
+      {
+        "check": "company_own_case_consumes_own_stock",
+        "passed": true
+      },
+      {
+        "check": "company_usage_inherits_owner",
+        "passed": true
+      },
+      {
+        "check": "company_reversal_restores_balance_once",
+        "passed": true
+      },
+      {
+        "check": "company_movements_inherit_owner",
+        "passed": true
+      },
+      {
+        "check": "company_foreign_movements_hidden",
+        "passed": true
+      },
+      {
+        "check": "ownership_real_user_not_inventory_manager",
+        "passed": true
+      },
+      {
+        "check": "company_component_categories_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_components_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_implant_component_types_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_implant_systems_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_implant_system_components_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_scan_jigs_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_stock_items_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_stock_item_custom_fields_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_stock_consumption_rules_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_holders_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_burrs_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_burr_usages_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_resin_pots_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_resin_weighings_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_cadistas_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_doctors_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_proteticos_isolation",
+        "passed": true
+      },
+      {
+        "check": "company_foreign_profile_hidden",
+        "passed": true
+      },
+      {
+        "check": "company_stock_owner_spoof_denied",
+        "passed": true
+      },
+      {
+        "check": "company_foreign_stock_preserved",
+        "passed": true
+      },
+      {
+        "check": "company_definer_foreign_stock_denied",
+        "passed": true
+      },
+      {
+        "check": "company_denied_rpc_preserves_both_balances",
+        "passed": true
+      },
+      {
+        "check": "company_own_case_consumes_own_stock",
+        "passed": true
+      },
+      {
+        "check": "company_usage_inherits_owner",
+        "passed": true
+      },
+      {
+        "check": "company_reversal_restores_balance_once",
+        "passed": true
+      },
+      {
+        "check": "company_movements_inherit_owner",
+        "passed": true
+      },
+      {
+        "check": "company_foreign_movements_hidden",
+        "passed": true
+      },
+      {
+        "check": "company_ownership_fixture_cleanup",
+        "passed": true
+      }
+    ],
+    "contract": "dentalflow-fixture-acceptance-v1",
+    "fixture_ids": [
+      "24e7cdf9-457e-4af2-b1cb-cf366abbddb0",
+      "ee083f63-1621-4b82-b7a4-fd13427c0b14"
+    ],
+    "kind": "ownership",
+    "passed": true
+  }
+}

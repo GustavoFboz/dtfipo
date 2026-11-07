@@ -1,0 +1,95 @@
+{
+  "observed_source": "Lovable Cloud public.saas_fixture_acceptance_jobs",
+  "runtime_commit": "ef31ce3d26ebdf01769e272b3570c2886e0a7937",
+  "job": {
+    "claimed_at": "2026-10-22 03:49:41.778312+00",
+    "completed_at": "2026-10-22 03:49:46.731226+00",
+    "id": "dfebc679-bf17-4646-afab-2ee8171e4afc",
+    "kind": "identity",
+    "receipt": {
+      "checked_at": "2026-10-22T03:49:46.643Z",
+      "checks": [
+        {
+          "check": "magiclink_token_single_use",
+          "http_status": 403,
+          "passed": true
+        },
+        {
+          "check": "fixture_b_real_session",
+          "passed": true
+        },
+        {
+          "check": "fixture_b_company_isolation",
+          "passed": true
+        },
+        {
+          "check": "magiclink_token_single_use",
+          "http_status": 403,
+          "passed": true
+        },
+        {
+          "check": "fixture_a_real_session",
+          "passed": true
+        },
+        {
+          "check": "fixture_a_company_isolation",
+          "passed": true
+        },
+        {
+          "check": "unconfirmed_login_denied",
+          "http_status": 400,
+          "passed": true
+        },
+        {
+          "check": "signup_token_single_use",
+          "http_status": 403,
+          "passed": true
+        },
+        {
+          "check": "signup_confirmation_consumed",
+          "passed": true
+        },
+        {
+          "check": "short_credential_denied",
+          "http_status": 422,
+          "passed": true
+        },
+        {
+          "check": "confirmed_login_succeeded",
+          "passed": true
+        },
+        {
+          "check": "recovery_token_single_use",
+          "http_status": 403,
+          "passed": true
+        },
+        {
+          "check": "previous_credential_denied",
+          "http_status": 400,
+          "passed": true
+        },
+        {
+          "check": "recovered_login_succeeded",
+          "passed": true
+        },
+        {
+          "check": "logout_refresh_denied",
+          "http_status": 400,
+          "passed": true
+        },
+        {
+          "check": "disposable_identity_removed",
+          "passed": true
+        }
+      ],
+      "contract": "dentalflow-fixture-acceptance-v1",
+      "fixture_ids": [
+        "24e7cdf9-457e-4af2-b1cb-cf366abbddb0",
+        "ee083f63-1621-4b82-b7a4-fd13427c0b14"
+      ],
+      "kind": "identity",
+      "passed": true
+    },
+    "status": "completed"
+  }
+}

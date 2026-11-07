@@ -1,0 +1,1010 @@
+{
+  "checkpoint_local": "2026-10-28T20:48:18.184179-04:00",
+  "source": {
+    "execution_pr": 208,
+    "execution_commit": "4fef4b62d4ff9c59c877540adbde7f1568d48ed9",
+    "execution_merge": "c970a53455cfde4b3786881a6db560a456ad57ed",
+    "observation_pr": 209,
+    "observation_commit": "d4a1631212bed3aee3a96d08abc0ed489a2eaf69",
+    "observation_merge": "a6cc79cd6ad727b5d5e22e7bccf658d8a483dca0"
+  },
+  "publication": {
+    "execution": {
+      "status": "pending",
+      "deployment_id": "4ba61635-2135-4f64-9f77-0230ee881a82",
+      "url": "https://dtfipo.lovable.app",
+      "preview_url": "https://id-preview--a8b717e3-87ad-482d-8d4a-de81679507e0.lovable.app"
+    },
+    "manifest": {
+      "checked_at": "2026-10-29T00:28:47.205906+00:00",
+      "http_status": 200,
+      "migrations": 186,
+      "fixture_migration_present": true
+    },
+    "observation": {
+      "status": "pending",
+      "deployment_id": "8afdae7f-6444-4ca6-81db-842fada87f10",
+      "url": "https://dtfipo.lovable.app",
+      "preview_url": "https://id-preview--a8b717e3-87ad-482d-8d4a-de81679507e0.lovable.app"
+    },
+    "confirmed_live": true,
+    "confirmed_by": "real_plan_preparation_receipt_16_and_new_completed_scheduled_receipt_20"
+  },
+  "validation": {
+    "local_tests_passed": 495,
+    "test_files": 25,
+    "typescript": "passed",
+    "production_build": "passed",
+    "stages_06_08_09": "passed",
+    "restore_migrations": 186,
+    "clean_restore": "passed",
+    "ci_execution": {
+      "runs": {
+        "workflow_runs": [
+          {
+            "id": 40793707539,
+            "name": "DentalFlow SaaS Restore Rehearsal",
+            "status": "completed",
+            "conclusion": "success",
+            "run_number": 430,
+            "jobs_url": "https://api.github.com/repos/GustavoFboz/dtfipo/actions/runs/40793707539/jobs",
+            "logs_url": "https://api.github.com/repos/GustavoFboz/dtfipo/actions/runs/40793707539/logs",
+            "workflow_id": 362352952
+          },
+          {
+            "id": 40793707462,
+            "name": "Dental Flow CI",
+            "status": "completed",
+            "conclusion": "success",
+            "run_number": 1591,
+            "jobs_url": "https://api.github.com/repos/GustavoFboz/dtfipo/actions/runs/40793707462/jobs",
+            "logs_url": "https://api.github.com/repos/GustavoFboz/dtfipo/actions/runs/40793707462/logs",
+            "workflow_id": 348904139
+          },
+          {
+            "id": 40793707463,
+            "name": "DentalFlow Android Mobile",
+            "status": "completed",
+            "conclusion": "success",
+            "run_number": 136,
+            "jobs_url": "https://api.github.com/repos/GustavoFboz/dtfipo/actions/runs/40793707463/jobs",
+            "logs_url": "https://api.github.com/repos/GustavoFboz/dtfipo/actions/runs/40793707463/logs",
+            "workflow_id": 356249309
+          },
+          {
+            "id": 40793707471,
+            "name": "DentalFlow Windows Desktop",
+            "status": "completed",
+            "conclusion": "success",
+            "run_number": 596,
+            "jobs_url": "https://api.github.com/repos/GustavoFboz/dtfipo/actions/runs/40793707471/jobs",
+            "logs_url": "https://api.github.com/repos/GustavoFboz/dtfipo/actions/runs/40793707471/logs",
+            "workflow_id": 351660110
+          }
+        ]
+      },
+      "windows": {
+        "jobs": [
+          {
+            "id": 123184889381,
+            "name": "Build Windows installer",
+            "status": "completed",
+            "conclusion": "success",
+            "run_id": 40793707471,
+            "logs_url": null,
+            "steps": [
+              {
+                "name": "Set up job",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 1
+              },
+              {
+                "name": "Checkout",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 2
+              },
+              {
+                "name": "Setup Bun",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 3
+              },
+              {
+                "name": "Setup Rust",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 4
+              },
+              {
+                "name": "Install dependencies",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 5
+              },
+              {
+                "name": "Verify safe native publication",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 6
+              },
+              {
+                "name": "Verify atomic offline cache and outbox expiration",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 7
+              },
+              {
+                "name": "Verify release metadata 0.6.8",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 8
+              },
+              {
+                "name": "Prepare trusted Windows code signing",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 9
+              },
+              {
+                "name": "Build DentalFlow Desktop",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 10
+              },
+              {
+                "name": "Verify embedded frontend",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 11
+              },
+              {
+                "name": "Verify Windows executable and installer",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 12
+              },
+              {
+                "name": "Prepare permanent Windows release",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 13
+              },
+              {
+                "name": "Verify Authenticode signature",
+                "status": "completed",
+                "conclusion": "skipped",
+                "number": 14
+              },
+              {
+                "name": "Upload Windows build",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 15
+              },
+              {
+                "name": "Post Setup Bun",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 29
+              },
+              {
+                "name": "Post Checkout",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 30
+              },
+              {
+                "name": "Complete job",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 31
+              }
+            ]
+          },
+          {
+            "id": 123188646083,
+            "name": "Publish permanent Windows installer",
+            "status": "completed",
+            "conclusion": "skipped",
+            "run_id": 40793707471,
+            "logs_url": null,
+            "steps": null
+          }
+        ]
+      },
+      "android": {
+        "jobs": [
+          {
+            "id": 123184889133,
+            "name": "Build Android APK 0.3.1 (35, default, false)",
+            "status": "completed",
+            "conclusion": "success",
+            "run_id": 40793707463,
+            "logs_url": null,
+            "steps": [
+              {
+                "name": "Set up job",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 1
+              },
+              {
+                "name": "Checkout",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 2
+              },
+              {
+                "name": "Setup Bun",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 3
+              },
+              {
+                "name": "Setup Java",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 4
+              },
+              {
+                "name": "Setup Android SDK",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 5
+              },
+              {
+                "name": "Install dependencies",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 6
+              },
+              {
+                "name": "Verify safe native publication",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 7
+              },
+              {
+                "name": "Verify Capacitor metadata",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 8
+              },
+              {
+                "name": "Build DentalFlow mobile SPA",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 9
+              },
+              {
+                "name": "Generate Capacitor Android project",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 10
+              },
+              {
+                "name": "Set Android app version",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 11
+              },
+              {
+                "name": "Build debug APK",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 12
+              },
+              {
+                "name": "Enable emulator hardware acceleration",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 13
+              },
+              {
+                "name": "Smoke-test installed Android app",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 14
+              },
+              {
+                "name": "Preserve Android startup diagnostics",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 15
+              },
+              {
+                "name": "Prepare APK",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 16
+              },
+              {
+                "name": "Upload Android APK",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 17
+              },
+              {
+                "name": "Post Setup Java",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 32
+              },
+              {
+                "name": "Post Setup Bun",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 33
+              },
+              {
+                "name": "Post Checkout",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 34
+              },
+              {
+                "name": "Complete job",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 35
+              }
+            ]
+          },
+          {
+            "id": 123184889516,
+            "name": "Build Android APK 0.3.1 (37.0, google_apis, true)",
+            "status": "completed",
+            "conclusion": "failure",
+            "run_id": 40793707463,
+            "logs_url": null,
+            "steps": [
+              {
+                "name": "Set up job",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 1
+              },
+              {
+                "name": "Checkout",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 2
+              },
+              {
+                "name": "Setup Bun",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 3
+              },
+              {
+                "name": "Setup Java",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 4
+              },
+              {
+                "name": "Setup Android SDK",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 5
+              },
+              {
+                "name": "Install dependencies",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 6
+              },
+              {
+                "name": "Verify safe native publication",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 7
+              },
+              {
+                "name": "Verify Capacitor metadata",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 8
+              },
+              {
+                "name": "Build DentalFlow mobile SPA",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 9
+              },
+              {
+                "name": "Generate Capacitor Android project",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 10
+              },
+              {
+                "name": "Set Android app version",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 11
+              },
+              {
+                "name": "Build debug APK",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 12
+              },
+              {
+                "name": "Enable emulator hardware acceleration",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 13
+              },
+              {
+                "name": "Smoke-test installed Android app",
+                "status": "completed",
+                "conclusion": "failure",
+                "number": 14
+              },
+              {
+                "name": "Preserve Android startup diagnostics",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 15
+              },
+              {
+                "name": "Prepare APK",
+                "status": "completed",
+                "conclusion": "skipped",
+                "number": 16
+              },
+              {
+                "name": "Upload Android APK",
+                "status": "completed",
+                "conclusion": "skipped",
+                "number": 17
+              },
+              {
+                "name": "Post Setup Java",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 32
+              },
+              {
+                "name": "Post Setup Bun",
+                "status": "completed",
+                "conclusion": "skipped",
+                "number": 33
+              },
+              {
+                "name": "Post Checkout",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 34
+              },
+              {
+                "name": "Complete job",
+                "status": "completed",
+                "conclusion": "success",
+                "number": 35
+              }
+            ]
+          },
+          {
+            "id": 123187492954,
+            "name": "Publish permanent Android installer",
+            "status": "completed",
+            "conclusion": "skipped",
+            "run_id": 40793707463,
+            "logs_url": null,
+            "steps": null
+          }
+        ]
+      }
+    },
+    "ci_observation": {
+      "workflow_runs": [
+        {
+          "id": 40795721143,
+          "name": "DentalFlow SaaS Restore Rehearsal",
+          "status": "completed",
+          "conclusion": "success",
+          "run_number": 432,
+          "jobs_url": "https://api.github.com/repos/GustavoFboz/dtfipo/actions/runs/40795721143/jobs",
+          "logs_url": "https://api.github.com/repos/GustavoFboz/dtfipo/actions/runs/40795721143/logs",
+          "workflow_id": 362352952
+        },
+        {
+          "id": 40795721027,
+          "name": "Dental Flow CI",
+          "status": "completed",
+          "conclusion": "success",
+          "run_number": 1594,
+          "jobs_url": "https://api.github.com/repos/GustavoFboz/dtfipo/actions/runs/40795721027/jobs",
+          "logs_url": "https://api.github.com/repos/GustavoFboz/dtfipo/actions/runs/40795721027/logs",
+          "workflow_id": 348904139
+        },
+        {
+          "id": 40795721025,
+          "name": "DentalFlow Windows Desktop",
+          "status": "completed",
+          "conclusion": "success",
+          "run_number": 597,
+          "jobs_url": "https://api.github.com/repos/GustavoFboz/dtfipo/actions/runs/40795721025/jobs",
+          "logs_url": "https://api.github.com/repos/GustavoFboz/dtfipo/actions/runs/40795721025/logs",
+          "workflow_id": 351660110
+        },
+        {
+          "id": 40795721098,
+          "name": "DentalFlow Android Mobile",
+          "status": "completed",
+          "conclusion": "success",
+          "run_number": 137,
+          "jobs_url": "https://api.github.com/repos/GustavoFboz/dtfipo/actions/runs/40795721098/jobs",
+          "logs_url": "https://api.github.com/repos/GustavoFboz/dtfipo/actions/runs/40795721098/logs",
+          "workflow_id": 356249309
+        }
+      ]
+    }
+  },
+  "action": {
+    "request_id": "8a301cfc-d559-4b01-bf8b-19a38d5aa3e8",
+    "environment": "sandbox",
+    "fixture": "B",
+    "real_master_signin": true,
+    "real_individual_mfa": true,
+    "synthetic_mfa": false,
+    "ui_submission_count": 1,
+    "provider_write_count": 1,
+    "new_payments": 0
+  },
+  "audit": [
+    {
+      "actor_fingerprint": "9e14a2673a8a0bd6561eab2d8a5392c1",
+      "actor_session_present": true,
+      "created_at": "2026-10-29T00:35:11.076361+00:00",
+      "environment": "sandbox",
+      "error_code": null,
+      "finished_at": "2026-10-29T00:35:16.525583+00:00",
+      "invoice_count": 1,
+      "invoice_digest": "892cb1266cdbc0ffd16b2c2ab199c78de8b292356f9c56ca4477dc66cdb059e4",
+      "outcome": "completed",
+      "provider_proof_hash": "24449d5ecf46545fd1e90652977c69c2",
+      "reason": "Homologação Sandbox autorizada: Growth para Inicial por R$5/mês a partir de 2026-12-18 UTC, preservando período pago, faturas e dados.",
+      "reconcile_only": false,
+      "request_id": "8a301cfc-d559-4b01-bf8b-19a38d5aa3e8",
+      "write_started_at": "2026-10-29T00:35:13.425873+00:00"
+    }
+  ],
+  "periods": [
+    {
+      "activated_at": null,
+      "amount_cents": 500,
+      "effective_date": "2026-12-18",
+      "environment": "sandbox",
+      "plan_code": "company_initial",
+      "previous_amount_cents": 44900,
+      "previous_plan_code": "company_growth",
+      "request_id": "8a301cfc-d559-4b01-bf8b-19a38d5aa3e8",
+      "state": "scheduled",
+      "subscription_id": "4579343f-7ba7-49a0-b316-638ef16fbcc5"
+    }
+  ],
+  "pricing": {
+    "periods": [
+      {
+        "amount_cents": 500,
+        "effective_date": "2026-12-18"
+      }
+    ],
+    "provider_amount_cents": 500
+  },
+  "before": {
+    "cancel_execution_count": 1,
+    "cancellation_kind_enabled": true,
+    "cases_hash": "419b08f5b8905de5caa4fa9616ed4db6",
+    "connections": 50,
+    "fixture_contracts": [
+      {
+        "amount_cents": 44900,
+        "clinic_id": "081d3db4-1606-40f7-a878-19b51556317d",
+        "environment": "sandbox",
+        "id": "f089af79-cea4-4821-8497-0e594e67f3cf",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "period_start": "2026-11-18T00:00:00+00:00",
+        "plan_code": "company_growth",
+        "preserved_hash": "0656091b2b0d0f43068a12d24cc2781c",
+        "status": "canceled"
+      },
+      {
+        "amount_cents": 44900,
+        "clinic_id": "3fc86c40-697e-4725-a9e9-633fc882aadc",
+        "environment": "sandbox",
+        "id": "4579343f-7ba7-49a0-b316-638ef16fbcc5",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "period_start": "2026-11-18T00:00:00+00:00",
+        "plan_code": "company_growth",
+        "preserved_hash": "7f99182ee0568d2ed0a7b8c934c9cf25",
+        "status": "active"
+      }
+    ],
+    "nonfixture_contracts_hash": "5f93ae8a05622562813e88f6797b522d",
+    "observed_at": "2026-10-29T00:34:57.332025+00:00",
+    "patients_hash": "d1573a1878b4cc6ab9f2d2b3143b3f2d",
+    "payments_hash": "b2c430d6aaed7c02409aca88b4b649ea",
+    "plan_tables_present": true,
+    "production_health": {
+      "last_healthy_at": "2026-10-29T00:31:03.268455+00:00",
+      "status": "ok"
+    },
+    "requests": [
+      {
+        "clinic_id": "081d3db4-1606-40f7-a878-19b51556317d",
+        "completed_at": "2026-10-29T00:06:20.316957+00:00",
+        "created_at": "2026-10-28T19:56:52.124431+00:00",
+        "environment": "sandbox",
+        "id": "5cd49826-9cec-421d-b511-98519ecdd80e",
+        "kind": "cancel",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "status": "completed",
+        "write_attempted": true
+      },
+      {
+        "clinic_id": "3fc86c40-697e-4725-a9e9-633fc882aadc",
+        "completed_at": null,
+        "created_at": "2026-10-29T00:29:28.501563+00:00",
+        "environment": "sandbox",
+        "id": "8a301cfc-d559-4b01-bf8b-19a38d5aa3e8",
+        "kind": "change_plan",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "status": "awaiting_provider",
+        "write_attempted": false
+      }
+    ],
+    "running_qa_jobs": 0,
+    "storage_hash": "14ddf47d3f3a030d26a698aafc8643d5",
+    "storage_ready_bytes": 8374117446,
+    "storage_ready_files": 701,
+    "storage_reservations": 0,
+    "waiting_locks": 0,
+    "contract_prices_count": 4,
+    "contract_prices_digest_sha256": "1fe09d46e5fa491cd20918122a0afb7e566076a6d39b19bf4e587272e3f54d13"
+  },
+  "after": {
+    "cancel_execution_count": 1,
+    "cancellation_kind_enabled": true,
+    "cases_hash": "419b08f5b8905de5caa4fa9616ed4db6",
+    "connections": 25,
+    "fixture_contracts": [
+      {
+        "amount_cents": 44900,
+        "clinic_id": "081d3db4-1606-40f7-a878-19b51556317d",
+        "environment": "sandbox",
+        "id": "f089af79-cea4-4821-8497-0e594e67f3cf",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "period_start": "2026-11-18T00:00:00+00:00",
+        "plan_code": "company_growth",
+        "preserved_hash": "0656091b2b0d0f43068a12d24cc2781c",
+        "status": "canceled"
+      },
+      {
+        "amount_cents": 44900,
+        "clinic_id": "3fc86c40-697e-4725-a9e9-633fc882aadc",
+        "environment": "sandbox",
+        "id": "4579343f-7ba7-49a0-b316-638ef16fbcc5",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "period_start": "2026-11-18T00:00:00+00:00",
+        "plan_code": "company_growth",
+        "preserved_hash": "7f99182ee0568d2ed0a7b8c934c9cf25",
+        "status": "active"
+      }
+    ],
+    "nonfixture_contracts_hash": "5f93ae8a05622562813e88f6797b522d",
+    "observed_at": "2026-10-29T00:48:18.184179+00:00",
+    "patients_hash": "d1573a1878b4cc6ab9f2d2b3143b3f2d",
+    "payments_hash": "b2c430d6aaed7c02409aca88b4b649ea",
+    "plan_tables_present": true,
+    "production_health": {
+      "last_healthy_at": "2026-10-29T00:46:04.420759+00:00",
+      "status": "ok"
+    },
+    "requests": [
+      {
+        "clinic_id": "081d3db4-1606-40f7-a878-19b51556317d",
+        "completed_at": "2026-10-29T00:06:20.316957+00:00",
+        "created_at": "2026-10-28T19:56:52.124431+00:00",
+        "environment": "sandbox",
+        "id": "5cd49826-9cec-421d-b511-98519ecdd80e",
+        "kind": "cancel",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "status": "completed",
+        "write_attempted": true
+      },
+      {
+        "clinic_id": "3fc86c40-697e-4725-a9e9-633fc882aadc",
+        "completed_at": "2026-10-29T00:35:16.525583+00:00",
+        "created_at": "2026-10-29T00:29:28.501563+00:00",
+        "environment": "sandbox",
+        "id": "8a301cfc-d559-4b01-bf8b-19a38d5aa3e8",
+        "kind": "change_plan",
+        "period_end": "2026-12-18T00:00:00+00:00",
+        "status": "completed",
+        "write_attempted": true
+      }
+    ],
+    "running_qa_jobs": 0,
+    "storage_hash": "14ddf47d3f3a030d26a698aafc8643d5",
+    "storage_ready_bytes": 8374117446,
+    "storage_ready_files": 701,
+    "storage_reservations": 0,
+    "waiting_locks": 0,
+    "contract_prices_count": 4,
+    "contract_prices_digest_sha256": "1fe09d46e5fa491cd20918122a0afb7e566076a6d39b19bf4e587272e3f54d13"
+  },
+  "preserved_fields": [
+    "storage_ready_files",
+    "storage_ready_bytes",
+    "storage_reservations",
+    "storage_hash",
+    "cases_hash",
+    "patients_hash",
+    "payments_hash",
+    "nonfixture_contracts_hash",
+    "fixture_contracts",
+    "contract_prices",
+    "cancel_execution_count"
+  ],
+  "all_preserved_fields_equal": true,
+  "preparation_job": {
+    "capability_consumed": true,
+    "claimed_at": "2026-10-29T00:29:23.618031+00:00",
+    "completed_at": "2026-10-29T00:29:29.123953+00:00",
+    "created_at": "2026-10-29T00:29:15.86778+00:00",
+    "id": "75ee5109-8732-4412-bb42-2cfab6ed6a12",
+    "kind": "plan_change",
+    "receipt": {
+      "checked_at": "2026-10-29T00:29:29.052Z",
+      "checks": [
+        {
+          "check": "fixed_sandbox_growth_contract",
+          "passed": true,
+          "period_end": "2026-12-18T00:00:00+00:00",
+          "resource_id": "4579343f-7ba7-49a0-b316-638ef16fbcc5"
+        },
+        {
+          "check": "paid_ledger_snapshot",
+          "count": 2,
+          "digest": "0659c362535231f8480cdfa51251a175c8d0e0944439813e3d0c853136b80aea",
+          "passed": true
+        },
+        {
+          "check": "no_prior_price_instruction",
+          "passed": true
+        },
+        {
+          "check": "sandbox_delivery_disabled",
+          "passed": true
+        },
+        {
+          "check": "provider_contract_verified",
+          "passed": true
+        },
+        {
+          "check": "provider_calendar_read",
+          "passed": true,
+          "state": "2026-12-18"
+        },
+        {
+          "check": "complete_provider_invoice_snapshot",
+          "count": 2,
+          "digest": "5575025398f8fa3b610d046c83a6e10f8ca97a1f0b123c8d9b0a20fda4d0a117",
+          "passed": true
+        },
+        {
+          "amount_cents": 500,
+          "check": "authenticated_customer_downgrade_quote",
+          "passed": true,
+          "period_end": "2026-12-18T00:00:00+00:00"
+        },
+        {
+          "check": "foreign_company_quote_denied",
+          "passed": true
+        },
+        {
+          "check": "request_history_unambiguous",
+          "passed": true
+        },
+        {
+          "check": "paid_access_preserved",
+          "passed": true
+        },
+        {
+          "check": "authenticated_customer_request",
+          "passed": true,
+          "resource_id": "8a301cfc-d559-4b01-bf8b-19a38d5aa3e8",
+          "state": "awaiting_provider"
+        },
+        {
+          "check": "plan_change_phase",
+          "passed": true,
+          "state": "AWAITING_MASTER"
+        },
+        {
+          "check": "ledger_unchanged_during_preparation",
+          "digest": "0659c362535231f8480cdfa51251a175c8d0e0944439813e3d0c853136b80aea",
+          "passed": true
+        },
+        {
+          "check": "contract_unchanged_during_preparation",
+          "passed": true
+        },
+        {
+          "check": "global_environment_unchanged",
+          "passed": true
+        }
+      ],
+      "contract": "dentalflow-fixture-acceptance-v1",
+      "fixture_ids": [
+        "24e7cdf9-457e-4af2-b1cb-cf366abbddb0",
+        "ee083f63-1621-4b82-b7a4-fd13427c0b14"
+      ],
+      "kind": "plan_change",
+      "passed": true
+    },
+    "status": "completed"
+  },
+  "observation_job": {
+    "capability_consumed": true,
+    "claimed_at": "2026-10-29T00:47:38.590594+00:00",
+    "completed_at": "2026-10-29T00:47:44.626998+00:00",
+    "created_at": "2026-10-29T00:47:31.205655+00:00",
+    "id": "ce553197-17a4-469e-9055-bd552e3a207c",
+    "kind": "plan_change",
+    "receipt": {
+      "checked_at": "2026-10-29T00:47:44.538Z",
+      "checks": [
+        {
+          "check": "fixed_sandbox_growth_contract",
+          "passed": true,
+          "period_end": "2026-12-18T00:00:00+00:00",
+          "resource_id": "4579343f-7ba7-49a0-b316-638ef16fbcc5"
+        },
+        {
+          "check": "paid_ledger_snapshot",
+          "count": 2,
+          "digest": "0659c362535231f8480cdfa51251a175c8d0e0944439813e3d0c853136b80aea",
+          "passed": true
+        },
+        {
+          "check": "price_context_consistent",
+          "passed": true
+        },
+        {
+          "check": "sandbox_delivery_disabled",
+          "passed": true
+        },
+        {
+          "check": "provider_contract_verified",
+          "passed": true
+        },
+        {
+          "check": "provider_calendar_read",
+          "passed": true,
+          "state": "2026-12-18"
+        },
+        {
+          "check": "complete_provider_invoice_snapshot",
+          "count": 2,
+          "digest": "5575025398f8fa3b610d046c83a6e10f8ca97a1f0b123c8d9b0a20fda4d0a117",
+          "passed": true
+        },
+        {
+          "amount_cents": 500,
+          "check": "authenticated_customer_downgrade_quote",
+          "passed": true,
+          "period_end": "2026-12-18T00:00:00+00:00"
+        },
+        {
+          "check": "foreign_company_quote_denied",
+          "passed": true
+        },
+        {
+          "check": "request_history_unambiguous",
+          "passed": true
+        },
+        {
+          "check": "paid_access_preserved",
+          "passed": true
+        },
+        {
+          "check": "existing_customer_request",
+          "passed": true,
+          "resource_id": "8a301cfc-d559-4b01-bf8b-19a38d5aa3e8",
+          "state": "completed"
+        },
+        {
+          "check": "scheduled_term_matches_completed_request",
+          "passed": true
+        },
+        {
+          "check": "master_single_write_and_confirmed_audit",
+          "count": 1,
+          "passed": true
+        },
+        {
+          "amount_cents": 500,
+          "check": "provider_future_price_and_calendar",
+          "passed": true,
+          "state": "2026-12-18"
+        },
+        {
+          "check": "paid_plan_not_applied_early",
+          "passed": true
+        },
+        {
+          "check": "plan_change_phase",
+          "passed": true,
+          "state": "COMPLETED_SCHEDULED"
+        },
+        {
+          "check": "ledger_unchanged_during_preparation",
+          "digest": "0659c362535231f8480cdfa51251a175c8d0e0944439813e3d0c853136b80aea",
+          "passed": true
+        },
+        {
+          "check": "contract_unchanged_during_preparation",
+          "passed": true
+        },
+        {
+          "check": "global_environment_unchanged",
+          "passed": true
+        }
+      ],
+      "contract": "dentalflow-fixture-acceptance-v1",
+      "fixture_ids": [
+        "24e7cdf9-457e-4af2-b1cb-cf366abbddb0",
+        "ee083f63-1621-4b82-b7a4-fd13427c0b14"
+      ],
+      "kind": "plan_change",
+      "passed": true
+    },
+    "status": "completed"
+  },
+  "http_observation": {
+    "status": 200,
+    "repeated": false,
+    "local_capability_removed": true
+  },
+  "real_verification_summary": {
+    "cancellation_checks": 18,
+    "plan_preparation_checks": 16,
+    "plan_observation_checks": 20,
+    "total": 54,
+    "completed_jobs": 3
+  },
+  "screenshot": "screenshots/sandbox-plan-change-master-20261028.jpg",
+  "acceptance": {
+    "completed": 13,
+    "total": 23,
+    "percentage": 56.52,
+    "remaining": 10,
+    "stages_completed": 1,
+    "stages_total": 7,
+    "new_full_criteria": [
+      "5.2"
+    ],
+    "basis": "5.2 Solicitações executadas no Asaas: cancellation A and scheduled plan/price B executed once with real Master/MFA and independently verified provider results. Future paid-plan application and real failure recovery remain in 5.3 and lifecycle criteria.",
+    "next_threshold": {
+      "completed": 14,
+      "percentage": 60.87,
+      "additional_full_criteria_required": 1
+    }
+  },
+  "limits": [
+    "COMPLETED_SCHEDULED is a provider instruction, not a paid/activated future plan.",
+    "Effective date remains 2026-12-18 UTC (2026-12-17 20:00 America/Manaus); no live clock/period override.",
+    "The action audit covers one invoice in its current-period window; the independent full-history observation checks both old invoices.",
+    "Downgrade application/payment and recovery after real ambiguous failure remain open in 5.3; synthetic tests are regressions only.",
+    "No Production financial rollout enabled this round. No Production provider mutation, charge, invoice deletion or reissue.",
+    "API37 smoke failed in PR208 despite overall Android success; API35 and Windows build passed. Physical devices remain separate.",
+    "PR209 changes the QA server only; native CI results are recorded as observed and do not create a device acceptance."
+  ]
+}

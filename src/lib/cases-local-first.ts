@@ -235,10 +235,12 @@ async function buildLocalCase(id: string, input: OfflineCreateInput, siblingId: 
 }
 
 async function queueLocalCaseCreate(owner: string, input: OfflineCreateInput, siblingId: string | null = null) {
-  const id = crypto.randomUUID();
+  const id = input.id ?? input.idempotency_key ?? crypto.randomUUID();
+  const cached = await localCacheGet<CaseRow>(owner, NS, id);
+  if (cached?.payload) return cached.payload;
   const row = await buildLocalCase(id, input, siblingId);
   await upsert(owner, row);
-  const syncInput = { ...input, also_arch: null } as OfflineCreateInput;
+  const syncInput = { ...input, id, idempotency_key: input.idempotency_key ?? id, also_arch: null } as OfflineCreateInput;
   await enqueueOutbox({ ownerId: owner, entityType: ENTITY, entityId: id, operation: "create", payload: { id, input: syncInput } });
   return row;
 }
@@ -246,13 +248,15 @@ async function queueLocalCaseCreate(owner: string, input: OfflineCreateInput, si
 export async function createCaseLocalFirst(input: OfflineCreateInput) {
   if (!isDentalFlowDesktop()) return cloud.createCase(input);
   const owner = await requireDesktopOwnerId();
+  input = { ...input, idempotency_key: input.idempotency_key ?? input.id ?? crypto.randomUUID() };
 
   if (online()) {
     try {
       const created = await cloud.createCase(input);
       if (created?.id) {
-        const full = await cloud.fetchCaseById(created.id).catch(() => null);
-        if (full) await upsert(owner, full);
+        for (const row of created.created_cases ?? [created]) {
+          await upsert(owner, row).catch((error) => console.warn("Case mirror deferred", error));
+        }
       }
       return created;
     } catch (error) {
@@ -378,8 +382,6 @@ async function processCaseEntry(entry: OutboxEntry<CaseOutboxPayload>) {
   switch (entry.operation) {
     case "create": {
       const id = String(payload.id ?? entry.entity_id);
-      const existing = await cloud.fetchCaseById(id).catch(() => null);
-      if (existing) return;
       await cloud.createCase({ ...(payload.input ?? {}), id, also_arch: null } as any);
       return;
     }

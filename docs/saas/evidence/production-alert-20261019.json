@@ -1,0 +1,205 @@
+{
+  "contract": "dentalflow-production-alert-acceptance-v1",
+  "checked_at": "2026-10-19T06:24:40.131Z",
+  "authorization": {
+    "received": true,
+    "user_message": "sim",
+    "received_at": "2026-10-19T02:19:48-04:00",
+    "scope": "Dispatch prepared GitHub controlled alert once on saas/production-alert-drill-20261019; verify email receipt and subsequent healthy inspection, no financial operations."
+  },
+  "source": {
+    "repository": "GustavoFboz/dtfipo",
+    "runtime_head_sha": "19ee74e95eb47ae8d3628cfb205015b451f3e8e4",
+    "preparation_pr": 176,
+    "financial_code_changed": false,
+    "migrations_changed": false
+  },
+  "alert": {
+    "run_id": 39209443430,
+    "run_url": "https://github.com/GustavoFboz/dtfipo/actions/runs/39209443430",
+    "run_number": 96,
+    "event": "workflow_dispatch",
+    "branch": "saas/production-alert-drill-20261019",
+    "dispatch_count": 1,
+    "inspect_job_id": 117919337279,
+    "inspect_conclusion": "success",
+    "drill_job_id": 117919372345,
+    "drill_job_name": "CONTROLLED TEST - Production monitoring alert delivery",
+    "drill_conclusion": "expected_failure",
+    "exit_code": 1,
+    "error_at": "2026-10-19T06:21:43.9617008Z",
+    "error_marker": "CONTROLLED TEST: simulated stale Production heartbeat. Live processing and data were unchanged. This intentional failure verifies the existing GitHub notification delivery.",
+    "live_snapshot_artifact": {
+      "id": 12167440070,
+      "digest": "sha256:37c7e3ee6374c532ffe35ee6fa7493d48df75363d877709b2c57e231903a56d8",
+      "snapshot": {
+        "available": true,
+        "contract": "dentalflow-worker-health-v1",
+        "environment": "production",
+        "checked_at": "2026-10-19T06:21:36.343Z",
+        "worker": {
+          "status": "ok",
+          "started_at": "2026-10-19T06:21:01.829279+00:00",
+          "finished_at": "2026-10-19T06:21:02.088533+00:00",
+          "last_healthy_at": "2026-10-19T06:21:02.088533+00:00",
+          "started_age_seconds": 34,
+          "healthy_age_seconds": 34
+        }
+      }
+    },
+    "simulated_snapshot_artifact": {
+      "id": 12167520186,
+      "digest": "sha256:b7ffb5cbaa26b8f6e93582c01c982dd7e53c51d2dccbbfa3c2a1ac2e5bbdd765",
+      "snapshot": {
+        "available": true,
+        "contract": "dentalflow-worker-health-v1",
+        "environment": "production",
+        "checked_at": "2026-10-19T06:21:36.343Z",
+        "worker": {
+          "status": "ok",
+          "started_at": "2026-10-19T06:21:01.829279+00:00",
+          "finished_at": "2026-10-19T06:21:02.088533+00:00",
+          "last_healthy_at": "2026-10-19T06:21:02.088533+00:00",
+          "started_age_seconds": 34,
+          "healthy_age_seconds": 901
+        },
+        "drill_contract": "dentalflow-production-alert-drill-v1",
+        "simulated_condition": "stale_worker_heartbeat",
+        "actual_healthy_age_seconds": 34,
+        "live_processing_paused": false,
+        "live_data_modified": false
+      }
+    },
+    "only_copied_age_changed": true
+  },
+  "notification": {
+    "received_at": "2026-10-19T06:22:08.000Z",
+    "in_inbox": true,
+    "in_spam": false,
+    "github_sender": true,
+    "dkim_pass": true,
+    "matches_run_39209443430": true,
+    "matches_dedicated_branch": true,
+    "workflow": "SaaS readonly publication probe",
+    "custom_email_sent": false
+  },
+  "recovery": {
+    "run_id": 39209667659,
+    "run_url": "https://github.com/GustavoFboz/dtfipo/actions/runs/39209667659",
+    "run_number": 97,
+    "branch": "saas/stage-03-asaas-checkout",
+    "conclusion": "success",
+    "inspect_job_id": 117920031549,
+    "controlled_drill_conclusion": "skipped",
+    "artifact_id": 12166224507,
+    "artifact_digest": "sha256:84df90b89b2e1293ec4741247cffdbd7b3453d7de7ac1998f77bba6f98cbb893",
+    "health": {
+      "available": true,
+      "contract": "dentalflow-worker-health-v1",
+      "environment": "production",
+      "checked_at": "2026-10-19T06:24:00.055Z",
+      "worker": {
+        "status": "ok",
+        "started_at": "2026-10-19T06:21:01.829279+00:00",
+        "finished_at": "2026-10-19T06:21:02.088533+00:00",
+        "last_healthy_at": "2026-10-19T06:21:02.088533+00:00",
+        "started_age_seconds": 178,
+        "healthy_age_seconds": 177
+      }
+    },
+    "visual_evidence": "dentalflow-monitor-recovery-39209667659.jpg"
+  },
+  "financial_preservation": {
+    "before": {
+      "checked_at": "2026-10-19 06:20:53.243116+00",
+      "production_contract_fingerprint": "f18f64ed7764bc54f49f85bd8246cec3",
+      "production_failed_events": 0,
+      "production_ledger_fingerprint": "41da44f53d453d89886b7f766aeb4aeb",
+      "production_payment_count": 1,
+      "scheduler": {
+        "configured_at": "2026-10-18T20:00:47.230114+00:00",
+        "cron_active": true,
+        "cron_job_id": 2,
+        "enabled": true,
+        "last_dispatched_at": "2026-10-19T06:16:00.443506+00:00",
+        "last_response_http_status": 200,
+        "last_response_timed_out": false,
+        "provider_environment": "production",
+        "schedule": "1-59/5 * * * *"
+      },
+      "worker": {
+        "counters": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "processed": 0,
+          "reconciliationQueued": 0,
+          "reconciliationReview": 0,
+          "reconciliationScanned": 0,
+          "recoveryQueued": 0,
+          "suspended": 0,
+          "workerReview": 0
+        },
+        "last_healthy_at": "2026-10-19T06:16:02.189597+00:00",
+        "status": "ok"
+      }
+    },
+    "after": {
+      "checked_at": "2026-10-19 06:24:40.131593+00",
+      "production_contract_fingerprint": "f18f64ed7764bc54f49f85bd8246cec3",
+      "production_failed_events": 0,
+      "production_ledger_fingerprint": "41da44f53d453d89886b7f766aeb4aeb",
+      "production_payment_count": 1,
+      "scheduler": {
+        "configured_at": "2026-10-18T20:00:47.230114+00:00",
+        "cron_active": true,
+        "cron_job_id": 2,
+        "enabled": true,
+        "last_dispatched_at": "2026-10-19T06:21:00.354034+00:00",
+        "last_response_http_status": 200,
+        "last_response_timed_out": false,
+        "provider_environment": "production",
+        "schedule": "1-59/5 * * * *"
+      },
+      "worker": {
+        "counters": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "processed": 0,
+          "reconciliationQueued": 0,
+          "reconciliationReview": 0,
+          "reconciliationScanned": 0,
+          "recoveryQueued": 0,
+          "suspended": 0,
+          "workerReview": 0
+        },
+        "last_healthy_at": "2026-10-19T06:21:02.088533+00:00",
+        "status": "ok"
+      }
+    },
+    "contract_unchanged": true,
+    "ledger_unchanged": true,
+    "payment_count_unchanged": true,
+    "financial_operations_invoked": false,
+    "cron_paused": false,
+    "heartbeat_modified": false
+  },
+  "limits": [
+    "The negative condition was simulated in a downloaded copy of a healthy Production snapshot; the live worker was never interrupted.",
+    "Real GitHub notification delivery and a subsequent normal healthy inspection were observed; this is not a future delivery-time guarantee.",
+    "This closes item 7.2 only. It does not accept backup/restore of operational data, rollback, financial lifecycle scenarios, physical device tests or release for sales."
+  ],
+  "acceptance": {
+    "item": "7.2",
+    "status": "completed",
+    "completed_at": "2026-10-19",
+    "completed": 7,
+    "total": 23,
+    "display_percent": 30.4,
+    "exact_percent": 30.434782608695656,
+    "remaining": 16,
+    "completed_stages": 0,
+    "total_stages": 7
+  }
+}

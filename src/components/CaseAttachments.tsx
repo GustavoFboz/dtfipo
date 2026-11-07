@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { PrivateImage } from "@/components/PrivateImage";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +15,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import emptyGallery from "@/assets/empty-gallery.png.asset.json";
 import emptyModels from "@/assets/empty-models.png.asset.json";
-import emptyHtml from "@/assets/empty-html.png.asset.json";
+import emptyHtmlAsset from "@/assets/case-empty-html";
+import emptyScansAsset from "@/assets/case-empty-scans.webp";
+import emptyModelsAsset from "@/assets/case-empty-models.webp";
 
 import { toast } from "sonner";
 import {
@@ -298,12 +301,12 @@ const EMPTY_META: Record<UploadKind, { img: string; title: string; hint: string 
     hint: "Arraste imagens para esta aba ou use o botão + para adicionar arquivos à galeria do caso.",
   },
   model: {
-    img: emptyModels.url,
+    img: emptyModelsAsset,
     title: "Nenhum modelo por aqui",
     hint: "Arraste arquivos 3D para esta aba ou use o botão + para adicionar modelos ao caso.",
   },
   scans: {
-    img: emptyModels.url,
+    img: emptyScansAsset,
     title: "Nenhum escaneamento por aqui",
     hint: "Arraste escaneamentos para esta aba ou use o botão + para adicionar arquivos ao caso.",
   },
@@ -313,7 +316,7 @@ const EMPTY_META: Record<UploadKind, { img: string; title: string; hint: string 
     hint: "Arraste arquivos de elementos para esta aba ou use o botão + para adicioná-los ao caso.",
   },
   exocad_html: {
-    img: emptyHtml.url,
+    img: emptyHtmlAsset,
     title: "Nenhum HTML por aqui",
     hint: "Arraste visualizações exocad (.html) para esta aba ou use o botão + para adicioná-las ao caso.",
   },
@@ -325,7 +328,7 @@ function EmptyTabState({ kind }: { kind: UploadKind }) {
     <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-20 min-h-[460px]">
       <img
         src={m.img}
-        alt=""
+        alt={m.title}
         draggable={false}
         className="w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 object-contain mb-6 select-none"
       />
@@ -1179,7 +1182,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
                       }}
                       className="absolute inset-0"
                     >
-                      <img src={g.url} alt={g.name} loading="lazy" draggable={false} className="w-full h-full object-cover transition group-hover:scale-105" />
+                      <PrivateImage src={g.url} alt={g.name} loading="lazy" draggable={false} className="w-full h-full object-cover transition group-hover:scale-105" />
                     </button>
                     {canDelete && (
                       <button type="button"

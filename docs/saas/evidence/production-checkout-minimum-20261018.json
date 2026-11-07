@@ -1,0 +1,54 @@
+{
+  "contract": "dentalflow-production-checkout-minimum-v1",
+  "checked_at": "2026-10-18T21:56:36.946495Z",
+  "requested_amount_cents": 100,
+  "currency": "BRL",
+  "environment": "production",
+  "observed": {
+    "customer_operation_status": "succeeded",
+    "subscription_operation_status": "failed",
+    "subscription_operation_error_code": "invalid_value",
+    "subscription_operation_attempts": 4,
+    "checkout_status": "pending",
+    "checkout_amount_cents": 100,
+    "provider_payment_created": false,
+    "provider_subscription_bound": false,
+    "production_payments": 0,
+    "production_events": 0
+  },
+  "official_limit": {
+    "minimum_amount_cents": 500,
+    "url": "https://central.ajuda.asaas.com/hc/pt-br/articles/31972480144795-Quais-s%C3%A3o-os-limites-para-cria%C3%A7%C3%A3o-de-cobran%C3%A7as",
+    "page_updated_at": "2026-08-19",
+    "checked_on": "2026-10-18"
+  },
+  "limitation": "Provider error description was not persisted. invalid_value plus the submitted R$1 amount and official R$5 minimum identify the applicable price restriction; no new provider write was used to diagnose it.",
+  "change": {
+    "minimum_guard_before_provider_operations": true,
+    "new_production_contracts_only": true,
+    "sandbox_and_bound_contracts_preserved": true,
+    "raw_provider_messages_exposed": false,
+    "catalog_price_changed": true,
+    "higher_price_authorized": true
+  },
+  "applied_catalog": {
+    "authorized_by_owner_at": "2026-10-18T18:00:26-04:00",
+    "checked_at": "2026-10-18T22:01:52.614727Z",
+    "plan_code": "company_initial",
+    "monthly_price_cents": 500,
+    "currency": "BRL",
+    "active": true,
+    "migration": "20261018220200_saas_plan_price_company_initial_500c.sql"
+  },
+  "email_branding": {
+    "default_name_reported": "Hello-World-Starter",
+    "managed_auth_template_updated": false
+  },
+  "acceptance": {
+    "completed": 5,
+    "total": 23,
+    "completed_stages": 0,
+    "total_stages": 7,
+    "receipt_and_access_verified": false
+  }
+}

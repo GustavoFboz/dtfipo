@@ -1,0 +1,14 @@
+{
+  "fixture_storage_rows": 0,
+  "observed_at": "2026-10-22 04:08:12.452849+00",
+  "production_failed_events": 0,
+  "production_payments": 1,
+  "scheduler": {
+    "enabled": true,
+    "last_dispatched_at": "2026-10-22T04:06:00.285804+00:00"
+  },
+  "worker": {
+    "last_healthy_at": "2026-10-22T04:06:02.167608+00:00",
+    "status": "ok"
+  }
+}

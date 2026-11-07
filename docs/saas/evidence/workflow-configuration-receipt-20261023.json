@@ -1,0 +1,184 @@
+{
+  "capability_consumed": true,
+  "claimed_at": "2026-10-23 15:09:26.304091+00",
+  "completed_at": "2026-10-23 15:09:38.19611+00",
+  "id": "c4b93b9e-4c31-4d88-ba9e-b03620c74eab",
+  "kind": "configuration",
+  "status": "completed",
+  "receipt": {
+    "checked_at": "2026-10-23T15:09:38.101Z",
+    "checks": [
+      {
+        "check": "configuration_actual_user_not_manager",
+        "passed": true
+      },
+      {
+        "check": "configuration_phases_isolation",
+        "passed": true
+      },
+      {
+        "check": "configuration_stages_isolation",
+        "passed": true
+      },
+      {
+        "check": "configuration_stage_assignments_isolation",
+        "passed": true
+      },
+      {
+        "check": "configuration_phase_assignments_isolation",
+        "passed": true
+      },
+      {
+        "check": "configuration_stage_return_reasons_isolation",
+        "passed": true
+      },
+      {
+        "check": "configuration_workflow_templates_isolation",
+        "passed": true
+      },
+      {
+        "check": "configuration_workflow_settings_isolation",
+        "passed": true
+      },
+      {
+        "check": "configuration_company_spoof_denied",
+        "passed": true
+      },
+      {
+        "check": "configuration_settings_require_manager",
+        "passed": true
+      },
+      {
+        "check": "configuration_template_requires_manager",
+        "passed": true
+      },
+      {
+        "check": "configuration_reset_requires_manager",
+        "passed": true
+      },
+      {
+        "check": "configuration_shared_case_types_read_only",
+        "passed": true
+      },
+      {
+        "check": "configuration_shared_colors_read_only",
+        "passed": true
+      },
+      {
+        "check": "configuration_foreign_case_rpc_denied",
+        "passed": true
+      },
+      {
+        "check": "configuration_foreign_stage_rpc_denied",
+        "passed": true
+      },
+      {
+        "check": "configuration_denial_preserves_case",
+        "passed": true
+      },
+      {
+        "check": "configuration_authorized_user_advances_own_case",
+        "passed": true
+      },
+      {
+        "check": "configuration_foreign_reason_denied",
+        "passed": true
+      },
+      {
+        "check": "configuration_authorized_user_returns_own_case",
+        "passed": true
+      },
+      {
+        "check": "configuration_actual_user_not_manager",
+        "passed": true
+      },
+      {
+        "check": "configuration_phases_isolation",
+        "passed": true
+      },
+      {
+        "check": "configuration_stages_isolation",
+        "passed": true
+      },
+      {
+        "check": "configuration_stage_assignments_isolation",
+        "passed": true
+      },
+      {
+        "check": "configuration_phase_assignments_isolation",
+        "passed": true
+      },
+      {
+        "check": "configuration_stage_return_reasons_isolation",
+        "passed": true
+      },
+      {
+        "check": "configuration_workflow_templates_isolation",
+        "passed": true
+      },
+      {
+        "check": "configuration_workflow_settings_isolation",
+        "passed": true
+      },
+      {
+        "check": "configuration_company_spoof_denied",
+        "passed": true
+      },
+      {
+        "check": "configuration_settings_require_manager",
+        "passed": true
+      },
+      {
+        "check": "configuration_template_requires_manager",
+        "passed": true
+      },
+      {
+        "check": "configuration_reset_requires_manager",
+        "passed": true
+      },
+      {
+        "check": "configuration_shared_case_types_read_only",
+        "passed": true
+      },
+      {
+        "check": "configuration_shared_colors_read_only",
+        "passed": true
+      },
+      {
+        "check": "configuration_foreign_case_rpc_denied",
+        "passed": true
+      },
+      {
+        "check": "configuration_foreign_stage_rpc_denied",
+        "passed": true
+      },
+      {
+        "check": "configuration_denial_preserves_case",
+        "passed": true
+      },
+      {
+        "check": "configuration_authorized_user_advances_own_case",
+        "passed": true
+      },
+      {
+        "check": "configuration_foreign_reason_denied",
+        "passed": true
+      },
+      {
+        "check": "configuration_authorized_user_returns_own_case",
+        "passed": true
+      },
+      {
+        "check": "configuration_fixture_cleanup",
+        "passed": true
+      }
+    ],
+    "contract": "dentalflow-fixture-acceptance-v1",
+    "fixture_ids": [
+      "24e7cdf9-457e-4af2-b1cb-cf366abbddb0",
+      "ee083f63-1621-4b82-b7a4-fd13427c0b14"
+    ],
+    "kind": "configuration",
+    "passed": true
+  }
+}

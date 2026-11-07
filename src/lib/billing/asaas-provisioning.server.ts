@@ -573,6 +573,16 @@ export async function provisionAsaasResources(
     );
   }
   validateContext(context, dependencies.client.environment);
+  // Asaas' published minimum is R$5 per real charge. Keep Sandbox fixtures
+  // and previously bound contracts intact; never silently raise a new price.
+  // Check before claiming operations or creating even the provider customer.
+  if (context.provider_environment === "production" &&
+      !context.external_subscription_id && context.monthly_price_cents < 500) {
+    throw new AsaasProvisioningError(
+      "ASAAS_CHECKOUT_AMOUNT_BELOW_MINIMUM",
+      "O Asaas aceita cobranças reais a partir de R$ 5,00. O responsável pelo DentalFlow precisa ajustar o valor do plano antes de continuar.",
+    );
+  }
   const nextDueDate = validateNextDueDate(input.nextDueDate);
   const billingType = input.billingType ?? "UNDEFINED";
   if (!["UNDEFINED", "BOLETO", "CREDIT_CARD", "PIX"].includes(billingType)) {

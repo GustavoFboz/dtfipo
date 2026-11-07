@@ -1,0 +1,145 @@
+{
+  "schema": "dentalflow-saas-fixture-checkpoint-v1",
+  "observed_date": "2026-10-08",
+  "timezone": "UTC",
+  "acceptance": {
+    "completed": 2,
+    "total": 23,
+    "percent": 8.7,
+    "remaining": 21,
+    "fully_completed_stages": 0,
+    "total_stages": 7,
+    "new_integral_acceptances": 0,
+    "additional_target_acceptances_still_pending": 8
+  },
+  "implementation": {
+    "pull_request": 154,
+    "url": "https://github.com/GustavoFboz/dtfipo/pull/154",
+    "candidate_sha": "34a61dab12de167fba89f7a594505472afb9f017",
+    "merge_sha": "da4c03ac3c48b182697a57dbd00e66cf83398d36",
+    "connected_head_at_checkpoint": "20fbe922b89b8a275c31d6649fac969d0076115e",
+    "scoped_paths": 16,
+    "local_tests": 414,
+    "local_test_files": 22,
+    "restore_migrations": 175,
+    "checks": {
+      "candidate_ci": {
+        "run_id": 37835744818,
+        "conclusion": "success"
+      },
+      "candidate_restore": {
+        "run_id": 37835752738,
+        "conclusion": "success"
+      },
+      "merge_ci": {
+        "run_id": 37836010196,
+        "conclusion": "success"
+      },
+      "merge_restore": {
+        "run_id": 37836010069,
+        "conclusion": "success"
+      },
+      "current_head_ci": {
+        "run_id": 37837848114,
+        "conclusion": "success"
+      }
+    }
+  },
+  "deployment": {
+    "request_id": "380485e9-c4de-44f9-a41c-758be5e81c39",
+    "request_returned_status": "pending",
+    "published_head_verified": false,
+    "readonly_probe_run": {
+      "run_id": 37836010223,
+      "conclusion": "failure",
+      "http_status": 503
+    }
+  },
+  "live_migration": {
+    "name": "20261008194500_saas_avatar_company_boundary_stage06.sql",
+    "verified_at": "2026-10-08T19:59:47.435156Z",
+    "restrictive_boundary": true,
+    "anon_can_execute": false,
+    "historical_signed_references_pending": 38
+  },
+  "last_successful_financial_read": {
+    "checked_at": "2026-10-08T19:55:24.656926Z",
+    "manual_events_status": "dead_letter",
+    "manual_events_count": 2,
+    "master_external_test_closures": 0,
+    "production_payments": 0
+  },
+  "identity_job": {
+    "id": "a695ca0f-a519-43c5-b412-c1cebf10c717",
+    "request_id": 831,
+    "dispatched_at": "2026-10-08T20:02:36.416435Z",
+    "expires_at": "2026-10-08T20:12:36.416435Z",
+    "http_status": 403,
+    "response": {
+      "available": false
+    },
+    "last_checked_at": "2026-10-08T20:03:34.709286Z",
+    "status_at_last_check": "prepared",
+    "claimed_at": null,
+    "completed_at": null,
+    "receipt": null,
+    "capability_consumed": false,
+    "disposable_auth_users_remaining": 0,
+    "checks_executed": false,
+    "cause_of_403": "unconfirmed"
+  },
+  "fixture_billing_job_dispatched": false,
+  "fixture_storage_job_dispatched": false,
+  "cloud": {
+    "diagnostic_observed_at": "2026-10-08T20:12:00Z",
+    "source": {
+      "plugin": "Lovable",
+      "message_id": "umsg_01m4ej80axf0r81fdhda59dbbw",
+      "thread": "main",
+      "cost_credits": 1.5
+    },
+    "published_health": {
+      "http_status": 503,
+      "code": "HEALTH_READ_TIMEOUT",
+      "read_timeout_seconds": 3,
+      "timestamps": [
+        "2026-10-08T19:59:33Z",
+        "2026-10-08T19:59:41Z",
+        "2026-10-08T19:59:50Z",
+        "2026-10-08T19:59:58Z"
+      ]
+    },
+    "independent_admin_probe": {
+      "code": "backend_unreachable_db",
+      "auth_to_database_http_status": 503
+    },
+    "sql_query_failures_observed": [
+      "504",
+      "UNAVAILABLE"
+    ],
+    "historical_disk_io": {
+      "at": "2026-10-08T15:49:29Z",
+      "budget_percent": 48,
+      "current_metrics_available": false,
+      "confirmed_root_cause": false
+    },
+    "configuration_checks": {
+      "scope": "local_lovable_sandbox_only",
+      "connected_project_url_matches": true,
+      "administrative_key_present": true,
+      "publishable_key_present": true,
+      "published_values_verified": false,
+      "administrative_key_project_match_verified": false
+    },
+    "identity_post_log_at": "2026-10-08T20:04:25Z",
+    "identity_post_reason_available": false
+  },
+  "spend": {
+    "authorized_budget": 5,
+    "auth_configuration_diagnostic": 0.8,
+    "cloud_diagnostic": 1.5,
+    "total_this_continuation": 2.3,
+    "account_balance_verified": false
+  },
+  "production_release_authorized_by_this_checkpoint": false
+}

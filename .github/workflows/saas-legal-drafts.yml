@@ -1,0 +1,30 @@
+name: DentalFlow SaaS Unapproved Legal Drafts
+
+on:
+  pull_request:
+    branches:
+      - main
+      - "saas/stage-03-asaas-checkout"
+    paths:
+      - "docs/saas/legal/**"
+      - "scripts/saas-legal-drafts.test.mjs"
+      - "scripts/saas-legal-supplier-retention.test.mjs"
+      - "scripts/saas-legal-versioned-acceptance-safety.test.mjs"
+      - "src/lib/saas-legal-acceptance.ts"
+      - "src/lib/saas-legal-acceptance.test.ts"
+      - ".github/workflows/saas-legal-drafts.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  draft-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Assert contracts are unapproved internal drafts
+        run: node --test scripts/saas-legal-drafts.test.mjs scripts/saas-legal-supplier-retention.test.mjs scripts/saas-legal-versioned-acceptance-safety.test.mjs

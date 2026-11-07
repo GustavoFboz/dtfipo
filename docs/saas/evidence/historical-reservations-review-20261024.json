@@ -1,0 +1,103 @@
+{
+  "observed_at": "2026-10-24 20:55:12.842471+00",
+  "review_route": "Actual authenticated company manager UI /armazenamento plus readonly database presence checks",
+  "reserved_count": 9,
+  "reserved_bytes": 1112944862,
+  "all_bytes_absent": true,
+  "all_source_links_absent": true,
+  "release_executed": false,
+  "clinical_file_deletion_executed": false,
+  "needs_owner_abandonment_confirmation": true,
+  "reservations": [
+    {
+      "review_number": 1,
+      "bucket": "case-files",
+      "size_bytes": 2324934,
+      "created_at": "2026-09-11 00:55:13.625221+00",
+      "status": "reserved",
+      "bytes_exist": false,
+      "source_link_exists": false,
+      "internal_company": true
+    },
+    {
+      "review_number": 2,
+      "bucket": "case-files",
+      "size_bytes": 13981534,
+      "created_at": "2026-09-11 00:55:13.627853+00",
+      "status": "reserved",
+      "bytes_exist": false,
+      "source_link_exists": false,
+      "internal_company": true
+    },
+    {
+      "review_number": 3,
+      "bucket": "case-files",
+      "size_bytes": 2188334,
+      "created_at": "2026-09-11 00:55:13.634612+00",
+      "status": "reserved",
+      "bytes_exist": false,
+      "source_link_exists": false,
+      "internal_company": true
+    },
+    {
+      "review_number": 4,
+      "bucket": "case-files",
+      "size_bytes": 11376234,
+      "created_at": "2026-09-11 00:55:13.640339+00",
+      "status": "reserved",
+      "bytes_exist": false,
+      "source_link_exists": false,
+      "internal_company": true
+    },
+    {
+      "review_number": 5,
+      "bucket": "case-files",
+      "size_bytes": 262220320,
+      "created_at": "2026-09-11 19:51:33.686076+00",
+      "status": "reserved",
+      "bytes_exist": false,
+      "source_link_exists": false,
+      "internal_company": true
+    },
+    {
+      "review_number": 6,
+      "bucket": "case-files",
+      "size_bytes": 262220320,
+      "created_at": "2026-09-27 17:31:44.787509+00",
+      "status": "reserved",
+      "bytes_exist": false,
+      "source_link_exists": false,
+      "internal_company": true
+    },
+    {
+      "review_number": 7,
+      "bucket": "case-files",
+      "size_bytes": 262380951,
+      "created_at": "2026-09-27 17:34:26.879504+00",
+      "status": "reserved",
+      "bytes_exist": false,
+      "source_link_exists": false,
+      "internal_company": true
+    },
+    {
+      "review_number": 8,
+      "bucket": "case-files",
+      "size_bytes": 262380951,
+      "created_at": "2026-09-27 17:34:38.12409+00",
+      "status": "reserved",
+      "bytes_exist": false,
+      "source_link_exists": false,
+      "internal_company": true
+    },
+    {
+      "review_number": 9,
+      "bucket": "case-files",
+      "size_bytes": 33871284,
+      "created_at": "2026-09-30 11:47:14.221754+00",
+      "status": "reserved",
+      "bytes_exist": false,
+      "source_link_exists": false,
+      "internal_company": true
+    }
+  ]
+}
