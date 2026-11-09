@@ -24,8 +24,9 @@ describe("eight execution phases of limited paid beta",()=>{
   });
   it("rejects skipping a blocked step",()=>{
     const p=clone(plan);
-    p.steps[3].status="done";
-    p.steps[3].evidence=["https://example.org/evidence"];
+    // Step 4 remains pending. Never allow completing step 5 before step 4.
+    p.steps[4].status="done";
+    p.steps[4].evidence=["https://example.org/evidence"];
     assert.throws(()=>assessBetaExecutionPlan(p,readiness),/BETA_EXECUTIONS_UNSUPPORTED_COMPLETE/);
   });
   it("rejects falsely stating production was published",()=>{
