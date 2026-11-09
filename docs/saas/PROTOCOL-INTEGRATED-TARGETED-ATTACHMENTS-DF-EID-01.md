@@ -1,6 +1,6 @@
 # Protocolo DentalFlow — Ensaio Integrado Direcionado de Recuperação e Abertura dos Anexos
 
-**Código:** DF-EID-01 · **Versão:** 1.0 · **Criação:** 07/11/2026 · **Estado:** preparado, **não executado**.
+**Código:** DF-EID-01 · **Versão:** 1.0 · **Criação:** 07/11/2026 · **Estado:** **amostra operacional executada e aprovada**, segundo captura do proprietário de 09/11/2026; controle de acesso autenticado em QA é verificado separadamente na etapa 4.
 **Responsável técnico:** fluxo de testes DentalFlow / GitHub + execução privada autorizada no Windows.
 **Escopo:** continuidade da etapa **3/8** do protocolo SaaS, sem reabrir auditoria criptográfica desnecessária.
 **Gatilho:** executar em janela própria, após preparar a infraestrutura isolada; **não é um novo impedimento para começar paralelamente os testes P0 de casos, Asaas, segurança, privacidade e rollback do beta**.
@@ -48,7 +48,7 @@ Construir lista privada a partir dos inventários autenticados sem imprimir nome
 
 Se um bucket/formato não estiver presente no material de origem, marcar **não aplicável**; não fabricar cobertura.
 
-## 5. Procedimento de execução futuro
+## 5. Procedimento da execução dirigida
 
 | # | Ação | Evidência mínima, sem dados pessoais |
 |---|---|---|
@@ -77,7 +77,14 @@ O **ensaio direcionado** será aprovado apenas quando:
 
 **Alcance do aceite:** comprovação de recuperação operacional **dos arquivos da amostra** + integridade de cópias já autenticadas. Não promete que os 708 abrem individualmente, que as 24 origens estão criptograficamente comprovadas, ou que Auth, Vault, Asaas e deploy estão prontos. O beta ainda depende dos demais P0 e aprovação expressa.
 
-## 7. Formato do registro de execução (a preencher no futuro)
+## 7. Formato de recibo e resultado real de 09/11/2026
+### Resultado real reportado no Windows — 09/11/2026
+
+A captura de tela apresentada pelo proprietário mostrou `SAMPLED_INTEGRATED_OK`, com **93 pacientes, 86 casos, 8 agendamentos, 702 registros de Storage** importados no banco temporário. Foram recuperados e abertos **8 dos 592 arquivos antigos e 4 dos 116 recuperados**, total **12/12 arquivos abertos** e **12 vínculos conferidos**. A interface reportou **reversão OK** e **contêiner removido SIM**. Registro anonimizado: [DF-EID-01 — execução real observada em 09/11](./evidence/df-eid-01-owner-integrated-sample-20261109.md).
+
+**Decisão:** a **recuperação operacional amostral** da etapa 3 está aprovada por evidência do proprietário, sem repetir 592 leituras. O teste de autorização por duas contas com dados sintéticos é necessário na **etapa 4**; o rollback de publicação Web é da **etapa 7**. Não se equipara a amostra à validação de todos os 708, e os 24 sem digest histórico permanecem ressalva. Os campos pendentes do modelo de recibo abaixo ilustram verificações que não foram demonstradas pela GUI, não invalidam a execução concluída em seu escopo.
+
+
 
 \`\`\`text
 Protocolo: DF-EID-01 | Versão: 1.0
@@ -101,6 +108,6 @@ Beta comercial autorizado por este ensaio: NÃO
 
 ## 8. Relação com lançamento
 
-Este documento **é um roteiro para execução posterior**, não uma solicitação de repetir agora os 33 volumes ou os 14 ZIPs. As equipes podem continuar imediatamente os testes críticos das **etapas 4, 5, 6 e 7** em paralelo. O ensaio DF-EID-01 fornece a evidência operacional dirigida da etapa 3 antes do aceite definitivo; a decisão de publicação exige ainda os oito P0 de \`PAID-BETA-READINESS.json\`, não depende de uma nova auditoria byte a byte dos 592 arquivos já autenticados.
+Este documento registra o roteiro **já executado para a recuperação amostral em 09/11**, e não solicita repetir agora os 33 volumes ou os 14 ZIPs. As equipes podem continuar imediatamente os testes críticos das **etapas 4, 5, 6 e 7** em paralelo. O ensaio DF-EID-01 fornece a evidência operacional dirigida da etapa 3 antes do aceite definitivo; a decisão de publicação exige ainda os oito P0 de \`PAID-BETA-READINESS.json\`, não depende de uma nova auditoria byte a byte dos 592 arquivos já autenticados.
 
 **Referências internas:** \`docs/saas/BETA-RELEASE-8-EXECUTIONS.json\`, \`docs/saas/PAID-BETA-FAST-PATH-20261107.md\`, \`docs/saas/evidence/live-database-isolated-restore-20261106.md\`, \`docs/saas/sql/clinical-storage-restore-aggregate-preflight.sql\`, \`docs/saas/OPERATIONAL-RECOVERY.md\`, issue #241.
