@@ -8,10 +8,10 @@ const readiness=JSON.parse(readFileSync(new URL("../docs/saas/PAID-BETA-READINES
 const clone=v=>JSON.parse(JSON.stringify(v));
 
 describe("eight execution phases of limited paid beta",()=>{
-  it("reports two evidenced phases without unlocking sales",()=>{
+  it("reports three evidenced phases without unlocking sales",()=>{
     const r=assessBetaExecutionPlan(plan,readiness);
-    assert.equal(r.completed_label,"2/8");
-    assert.equal(r.next_step,3);
+    assert.equal(r.completed_label,"3/8");
+    assert.equal(r.next_step,4);
     assert.equal(r.next_status,"pending");
     assert.equal(r.release_state,"not_published");
     assert.equal(r.release_authorized_by_this_script,false);
