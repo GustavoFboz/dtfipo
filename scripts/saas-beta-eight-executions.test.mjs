@@ -8,10 +8,10 @@ const readiness=JSON.parse(readFileSync(new URL("../docs/saas/PAID-BETA-READINES
 const clone=v=>JSON.parse(JSON.stringify(v));
 
 describe("eight execution phases of limited paid beta",()=>{
-  it("reports two evidenced phases without unlocking sales",()=>{
+  it("reports three evidenced phases without unlocking sales",()=>{
     const r=assessBetaExecutionPlan(plan,readiness);
-    assert.equal(r.completed_label,"2/8");
-    assert.equal(r.next_step,3);
+    assert.equal(r.completed_label,"3/8");
+    assert.equal(r.next_step,4);
     assert.equal(r.next_status,"pending");
     assert.equal(r.release_state,"not_published");
     assert.equal(r.release_authorized_by_this_script,false);
@@ -24,8 +24,9 @@ describe("eight execution phases of limited paid beta",()=>{
   });
   it("rejects skipping a blocked step",()=>{
     const p=clone(plan);
-    p.steps[3].status="done";
-    p.steps[3].evidence=["https://example.org/evidence"];
+    // Step 4 remains pending. Never allow completing step 5 before step 4.
+    p.steps[4].status="done";
+    p.steps[4].evidence=["https://example.org/evidence"];
     assert.throws(()=>assessBetaExecutionPlan(p,readiness),/BETA_EXECUTIONS_UNSUPPORTED_COMPLETE/);
   });
   it("rejects falsely stating production was published",()=>{

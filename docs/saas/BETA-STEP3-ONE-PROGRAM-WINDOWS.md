@@ -1,6 +1,6 @@
 # DentalFlow — Etapa 3/8 em um programa Windows (DF-EID-01)
 
-**Estado:** utilitário em validação técnica de CI; só marcar concluído após **execução no computador privado** e revisão do recibo. Este programa NÃO publica o beta, NÃO executa Asaas e NÃO acessa produção.
+**Estado atualizado em 09/11/2026:** **ensaio integrado executado no Windows e recuperação operacional amostral aceita**, com base na captura do proprietário: `SAMPLED_INTEGRATED_OK`, 12/12 abertos, 12 vínculos, 93/86/8/702, reversão OK e contêiner descartado. [Evidência agregada](./evidence/df-eid-01-owner-integrated-sample-20261109.md). Este programa NÃO publica o beta, NÃO executa Asaas e NÃO acessa produção.
 
 ## Downloads
 
@@ -44,6 +44,6 @@ Copiar (NÃO mover nem alterar originais) para uma área local privada, fora do 
 - Comparação agregada de vínculos presentes em `storage_files` e `case_attachments`, reproduzindo bytes escolhidos no `tmpfs` do contêiner sem portas/mounts/rede; verificação SHA e reversão SQL real. Os originais nunca são alterados.
 - Os 24 itens recuperados sem digest histórico **continuam sem prova criptográfica de origem**. Quatro vínculos históricos conhecidos são mantidos, sem relink.
 
-**Limitações importantes:** não replica o serviço Supabase Storage integral nem Auth/Vault, não abre todos os 708 individualmente e não testa acesso pela interface Web com duas contas QA. A etapa 4 usa contas e arquivos **fictícios** separados. O aceite final 3/8 só deve ser atualizado após conferir o recibo e as obrigações restantes pertinentes; o utilitário sozinho **não autoriza beta pago**.
+**Limitações importantes:** não replica o serviço Supabase Storage integral nem Auth/Vault, não abre todos os 708 individualmente e não testa acesso pela interface Web com duas contas QA. A etapa 4 usa contas e arquivos **fictícios** separados. A etapa 3 foi aceita em seu **escopo de recuperação amostral comprovado pela GUI**; a etapa 4 continua responsável pelo teste QA/RLS e a etapa 7 pelo rollback Web. O utilitário sozinho **não autoriza beta pago**.
 
 Em caso de erro, nenhuma tentativa automática será feita contra o Cloud. Não recomeçar os 592 testes completos sem discrepância objetiva.

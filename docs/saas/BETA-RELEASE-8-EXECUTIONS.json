@@ -2,14 +2,14 @@
   "schema": "dentalflow-beta-eight-executions-v1",
   "target": "web-paid-invite-only",
   "branch": "saas/stage-03-asaas-checkout",
-  "recorded_at": "2026-11-02",
+  "recorded_at": "2026-11-09",
   "audited_code_sha": "dcbd8ecab67892593036c7008c194287ffd38023",
   "release_state": "not_published",
   "release_url": null,
   "beta_approval_status": "pending",
   "historical_formal_accepted": "13/23",
   "historical_technical_progress_percent": 94.06,
-  "note": "A contagem x/8 é exclusivamente a trilha de execução do beta e NÃO altera aceites formais ou autoriza publicação/cobrança.",
+  "note": "Contador beta 3/8: etapa 3 aceita estritamente no escopo de recuperação operacional amostral demonstrada. NÃO altera 13/23 aceites formais, RLS da etapa 4, rollback Web da etapa 7 ou autoriza publicação/cobrança.",
   "steps": [
     {
       "id": 1,
@@ -41,12 +41,15 @@
       "id": 3,
       "code": "recover-and-restore",
       "name": "Completar 116 anexos, backup atual e recuperação isolada",
-      "status": "pending",
-      "owner_action": "Não solicitar nova cópia, novo dump ou releitura integral dos 33 ZIPs: os 592 arquivos históricos já foram autenticados previamente; 116/116 arquivos cifrados foram revalidados em 07/11. Avançar diretamente para ensaio integrado mínimo e testagem paralela dos P0 de casos/RLS, Asaas, privacidade, convites e rollback. Solicitar ao proprietário intervenção só em pontos indispensáveis. Beta ainda não autorizado.",
-      "definition_of_done": "Cópias cifradas do banco de 04/11 e dos 708 objetos históricos conferidas pelas evidências já existentes; dados do banco real restaurados em PostgreSQL isolado; ensaio DIRECIONADO de restauração operacional Storage (amostra representativa dos dois grupos com leitura e relação aos casos do banco), prova de controle de acesso, falha segura e reversão. Reexecutar a verificação de todos os 592 objetos somente se aparecer divergência concreta, e NÃO como novo requisito de entrada; conservar 24 sem hash histórico como limitação declarada, exigindo controle adicional quando necessário.",
+      "status": "done",
+      "owner_action": "Concluído no Windows em 09/11/2026: proprietário executou o EXE integrado e mostrou SAMPLED_INTEGRATED_OK; não solicitar nova auditoria dos 592. Envio do recibo JSON agregado é opcional como evidência complementar.",
+      "definition_of_done": "Aceite delimitado de recuperação operacional: cópias históricas 592/116 já autenticadas, índice 708/708 conciliado, banco de 04/11 restaurado isoladamente (93/86/8/702), amostra real de 12 anexos reconstituída/aberta e associada ao mesmo banco, reversão SQL e descarte do contêiner confirmados pela interface. Autorização real de dois usuários/RLS e abertura na UI são responsabilidade da etapa 4; reversão de deploy da etapa 7. Não afirmar leitura individual dos 708 nem resolver artificialmente 24 hashes históricos ausentes.",
       "evidence": [
         "https://github.com/GustavoFboz/dtfipo/issues/241",
-        "https://github.com/GustavoFboz/dtfipo/pull/253"
+        "https://github.com/GustavoFboz/dtfipo/pull/253",
+        "https://github.com/GustavoFboz/dtfipo/pull/272",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42379336564",
+        "https://github.com/GustavoFboz/dtfipo/pull/273"
       ],
       "checkpoint": {
         "historical_missing_objects_locally_found": 116,
@@ -141,7 +144,8 @@
             "integrated_restore_verified": false,
             "operational_acceptance": false,
             "beta_publication_authorized": false
-          }
+          },
+          "sampled_integrated_recovery_verified": true
         },
         "local_isolation_readiness": {
           "date": "2026-11-05",
@@ -160,12 +164,14 @@
           "live_november_database_restored": true,
           "actual_storage_bytes_restored": false,
           "joined_restore_verified": false,
-          "stage3_accepted": false,
+          "stage3_accepted": true,
           "evidence": "https://github.com/GustavoFboz/dtfipo/pull/260",
           "restored_real_database_patients": 93,
           "restored_real_database_cases": 86,
           "restored_real_database_appointments": 8,
-          "restored_real_database_storage_file_rows": 702
+          "restored_real_database_storage_file_rows": 702,
+          "sampled_actual_storage_bytes_restored": true,
+          "sampled_joined_restore_verified": true
         },
         "offsite_116_independent_readback_tool": {
           "workflow_run": "https://github.com/GustavoFboz/dtfipo/actions/runs/42335108737",
@@ -196,7 +202,7 @@
           "id": "DF-EID-01",
           "version": "1.0",
           "document": "docs/saas/PROTOCOL-INTEGRATED-TARGETED-ATTACHMENTS-DF-EID-01.md",
-          "state": "prepared_not_executed",
+          "state": "sampled_operational_passed_2026-11-09",
           "sample_target_maximum": 12,
           "groups": "both historical 592 and recovered 116, plus database-linked items",
           "restore_04_nov_database_with_storage_sample_required": true,
@@ -205,7 +211,33 @@
           "forced_failure_and_rollback_required": true,
           "repeat_full_592_integrity_audit_required": false,
           "guarantees_openability_of_all_708": false,
-          "beta_release_authorized": false
+          "beta_release_authorized": false,
+          "sampled_operational_recovery_verified": true,
+          "synthetic_qa_tenant_authorization_remains_stage4": true,
+          "web_deployment_rollback_remains_stage7": true
+        },
+        "local_integrated_sample_observation": {
+          "date": "2026-11-09",
+          "source": "owner-provided local Windows GUI screenshot, aggregate metrics only",
+          "program": "DentalFlow-Etapa3-Integrada.exe",
+          "result_code": "SAMPLED_INTEGRATED_OK",
+          "archived_sample_from_592": 8,
+          "recovered_sample_from_116": 4,
+          "total_sample_opened_by_parser": 12,
+          "matching_db_relationships_reported": 12,
+          "db_patients_restored": 93,
+          "db_cases_restored": 86,
+          "db_appointments_restored": 8,
+          "db_storage_metadata_rows_restored": 702,
+          "sql_rollback_reported": true,
+          "docker_container_deleted_reported": true,
+          "owner_report_independently_audited": false,
+          "all_708_individually_opened": false,
+          "unproven_24_original_hashes_remain": true,
+          "qa_authenticated_rls_tested": false,
+          "deployed_version_rollback_tested": false,
+          "accepted_scope": "sampled operational recovery and disposable SQL rollback only",
+          "evidence": "docs/saas/evidence/df-eid-01-owner-integrated-sample-20261109.md"
         }
       }
     },
