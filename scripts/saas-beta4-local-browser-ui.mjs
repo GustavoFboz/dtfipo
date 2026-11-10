@@ -50,7 +50,7 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
     browser=await chromium.launch({headless:true});
     const result={web_ui_own_case_visible:0,web_ui_cross_tenant_case_hidden:0,
       web_ui_case_detail_opened:0};
-    let external=false;
+    let external=false, externalCategory="RESOURCE";
     for(const actor of actors) {
       const other=actors.find(x=>x!==actor);
       const context=await browser.newContext({viewport:{width:1366,height:900}});
@@ -59,7 +59,18 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
           const url=route.request().url();
           let origin;
           try{origin=new URL(url).origin;}catch{external=true;return route.abort();}
-          if(!allowed.has(origin)){external=true;return route.abort();}
+          if(!allowed.has(origin)){
+            external=true;
+            const host=new URL(url).hostname;
+            // Only return an opaque category; NEVER record an external URL or token.
+            externalCategory=host.endsWith(".supabase.co")?"SUPABASE"
+              : route.request().resourceType()==="font"?"FONT"
+              : route.request().resourceType()==="stylesheet"?"STYLESHEET"
+              : route.request().resourceType()==="image"?"IMAGE"
+              : route.request().resourceType()==="script"?"SCRIPT"
+              : "OTHER";
+            return route.abort();
+          }
           return route.continue();
         });
         const page=await context.newPage();
@@ -85,7 +96,7 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
         result.web_ui_case_detail_opened++;
       } finally { await context.close(); }
     }
-    if(external) fail("QA_LOCAL_BROWSER_ATTEMPTED_EXTERNAL_RESOURCE");
+    if(external) fail("QA_LOCAL_BROWSER_EXTERNAL_"+externalCategory+"_BLOCKED");
     return {...result,ui_web_runtime:"local Vite browser with real synthetic Auth",
       ui_case_creation_form_submitted:false,ui_case_edit_form_submitted:false,
       ui_private_attachment_preview_verified:false,
