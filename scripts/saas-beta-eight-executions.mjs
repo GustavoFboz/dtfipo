@@ -23,7 +23,6 @@ export function assessBetaExecutionPlan(plan, readiness) {
   }
 
   let completed=0;
-  let seenNotDone=false;
   for(let i=0;i<expectedCodes.length;i++){
     const step=plan.steps[i];
     if (!step || step.id!==i+1 || step.code!==expectedCodes[i] ||
@@ -36,16 +35,20 @@ export function assessBetaExecutionPlan(plan, readiness) {
       throw new Error("BETA_EXECUTIONS_STEP_INVALID");
     }
     if(step.status==="done") {
-      if(seenNotDone || step.evidence.length===0) throw new Error("BETA_EXECUTIONS_UNSUPPORTED_COMPLETE");
+      if(step.evidence.length===0) throw new Error("BETA_EXECUTIONS_UNSUPPORTED_COMPLETE");
       completed++;
-    } else seenNotDone=true;
+    }
   }
 
   const last=plan.steps[7];
-  if(last.status!=="done" && (plan.release_state==="published" || plan.release_url !== null))
+  if(last.status!=="done" && (plan.release_state==="published" ||
+      plan.release_url !== null || plan.beta_approval_status==="approved"))
     throw new Error("BETA_EXECUTIONS_FALSE_PUBLICATION");
 
   if(last.status==="done") {
+    // Independent evidence may close steps 4-7 in any order. Publication is
+    // fundamentally different: it cannot occur while ANY prerequisite is open.
+    if(completed!==8) throw new Error("BETA_EXECUTIONS_RELEASE_GATE_BLOCKED");
     if(plan.release_state!=="published" || plan.beta_approval_status!=="approved" ||
         typeof plan.release_url!=="string" ||
         !/^https:\/\//.test(plan.release_url) ||
@@ -62,8 +65,9 @@ export function assessBetaExecutionPlan(plan, readiness) {
     total:8,
     completed_label:`${completed}/8`,
     percent:Number((completed/8*100).toFixed(2)),
-    next_step:completed===8?null:completed+1,
-    next_status:completed===8?null:plan.steps[completed].status,
+    // First still-incomplete step, not an index derived from completed count.
+    next_step:plan.steps.find(x=>x.status!=="done")?.id ?? null,
+    next_status:plan.steps.find(x=>x.status!=="done")?.status ?? null,
     release_state:plan.release_state,
     release_authorized_by_this_script:false,
     commercial_payments_authorized_by_this_script:false
