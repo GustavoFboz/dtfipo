@@ -157,7 +157,8 @@ jobs:
           grep -Fq "STAGING_FIXTURE_VERIFIED:2_companies_2_SQL_roles_4_patients_4_cases_0_real_clients" \
             restore-staging-63-journal.log
           grep -Fq "BETA_STAGE4_CASE_CROSS_TENANT_DENIED_2_OWN_EDITS" restore-staging-63-journal.log
-          echo "SaaS 6.3 and beta step 4 synthetic case isolation passed; SQL transaction rolled back."
+          grep -Fq "BETA_STAGE4_ATTACHMENT_METADATA_ISOLATED_2_OWN_VISIBLE_0_FOREIGN_DELETED" restore-staging-63-journal.log
+          echo "SaaS 6.3 and beta step 4 synthetic case + attachment metadata isolation passed; SQL transaction rolled back."
 
       - name: Install dormant legal acceptance contract in disposable restored DB
         shell: bash
