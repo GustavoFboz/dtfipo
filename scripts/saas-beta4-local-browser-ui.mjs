@@ -96,18 +96,32 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
         if(await page.getByText(foreign,{exact:false}).count()!==0)
           fail("QA_LOCAL_BROWSER_FOREIGN_PATIENT_OR_CASE_RENDERED");
         result.web_ui_cross_tenant_case_hidden++;
-        await ownLabel.click({timeout:15000});
-        const dialog=page.getByRole("dialog").first();
+        // Clicking the patient name opens PatientCasePopover, NOT CaseDetailDialog.
+        // Click the case row itself (non-interactive center), then require
+        // the actual case tab nav; a patient popover must never pass this probe.
+        const row=ownLabel.locator('xpath=ancestor::*[@role="button"][1]');
+        await row.click({timeout:15000});
+        const dialog=page.getByRole("dialog").filter({
+          has:page.getByRole("button",{name:"Escaneamentos",exact:true})
+        }).first();
         await dialog.waitFor({state:"visible",timeout:15000});
         if(!(await dialog.innerText()).includes(own))
           fail("QA_LOCAL_BROWSER_OWN_CASE_DETAIL_MISMATCH");
         result.web_ui_case_detail_opened++;
+        // Require this particular case's private attachment to be listed by
+        // the Web UI, not merely visible in the API response.
+        phase="ATTACHMENT_TAB";
+        await dialog.getByRole("button",{name:"Escaneamentos",exact:true}).first()
+          .click({timeout:15000});
+        phase="ATTACHMENT_LIST";
+        await dialog.getByText("synthetic.stl",{exact:true}).first()
+          .waitFor({state:"visible",timeout:20000});
+        result.web_ui_own_attachment_list_visible++;
         // User-visible EDIT flow, not just an HTTP PATCH injected by the test.
         // Close the details dialog and open the existing case row's kebab menu.
         phase="DETAIL_CLOSE";
         await dialog.getByRole("button",{name:"Fechar",exact:true}).first().click();
         await dialog.waitFor({state:"hidden",timeout:15000});
-        const row=ownLabel.locator('xpath=ancestor::*[@role="button"][1]');
         phase="CASE_MENU";
         await row.locator("button").last().click();
         phase="EDIT_OPEN";
@@ -160,25 +174,6 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
           ||newCases[0].patient_id!==actor.patientId)
           fail("QA_LOCAL_BROWSER_NEW_CASE_NOT_OWNED");
         result.web_ui_new_case_form_submitted++;
-        // Mark a bounded, safe checkpoint before testing an additional tab.
-        // This is NOT a full-test pass (overall workflow still fails closed).
-        process.stdout.write("QA_LOCAL_WEB_CREATE_FORM_CHECKPOINT_OK\\n");
-        // Reopen the original case, not the freshly inserted new one.
-        phase="ATTACHMENT_REOPEN";
-        const originalCase=page.getByText(own,{exact:false}).last();
-        await originalCase.click({timeout:15000});
-        const attachmentDialog=page.getByRole("dialog").first();
-        await attachmentDialog.waitFor({state:"visible",timeout:15000});
-        phase="ATTACHMENT_TAB_FIND";
-        const tab=attachmentDialog.getByRole("button",
-          {name:"Escaneamentos",exact:true});
-        if(await tab.count()===0) fail("QA_LOCAL_BROWSER_ATTACHMENT_TAB_MISSING");
-        phase="ATTACHMENT_TAB_KEYBOARD";
-        await tab.first().press("Enter",{timeout:12000});
-        phase="ATTACHMENT_LIST";
-        await attachmentDialog.getByText("synthetic.stl",{exact:true}).first()
-          .waitFor({state:"visible",timeout:12000});
-        result.web_ui_own_attachment_list_visible++;
       } finally { await context.close(); }
     }
     if(external) fail("QA_LOCAL_BROWSER_EXTERNAL_"+externalCategory+"_BLOCKED");
