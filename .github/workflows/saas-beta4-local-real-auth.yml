@@ -7,6 +7,8 @@ on:
       - "scripts/saas-beta4-local-http-smoke.mjs"
       - "scripts/saas-beta4-local-http-smoke.test.mjs"
       - "scripts/saas-beta4-local-browser-ui.mjs"
+      - "scripts/saas-beta4-case-professional-default.test.mjs"
+      - "src/components/NewCaseDialog.tsx"
       - ".github/workflows/saas-beta4-local-real-auth.yml"
       - "docs/saas/BETA-STEP4-LOCAL-INDEPENDENT-QA.md"
   workflow_dispatch:
@@ -36,7 +38,7 @@ jobs:
         with:
           node-version: "22"
       - name: Prove local-origin and no-accidental-production security contract
-        run: node --test scripts/saas-beta4-local-http-smoke.test.mjs
+        run: node --test scripts/saas-beta4-local-http-smoke.test.mjs scripts/saas-beta4-case-professional-default.test.mjs
       - uses: oven-sh/setup-bun@v2
       - name: Install locked Web app dependencies without deployment
         run: bun install --frozen-lockfile
