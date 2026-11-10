@@ -30,3 +30,14 @@ test('beta step 4 proves authenticated own-case edits and denies cross-company m
   assert.match(s,/BETA_STAGE4_CASE_CROSS_TENANT_DENIED_2_OWN_EDITS/);
   assert.match(s,/ROLLBACK;\s*$/);
 });
+
+test('beta step 4 denies cross-company attachment metadata reads and deletes',()=>{
+  assert.match(s,/INSERT INTO public\.case_attachments/);
+  assert.match(s,/STAGE4_A_ATTACHMENT_READ_BOUNDARY_FAILED/);
+  assert.match(s,/STAGE4_B_ATTACHMENT_READ_BOUNDARY_FAILED/);
+  assert.match(s,/STAGE4_A_FOREIGN_ATTACHMENT_DELETED/);
+  assert.match(s,/STAGE4_B_FOREIGN_ATTACHMENT_DELETED/);
+  assert.match(s,/STAGE4_FOREIGN_ATTACHMENT_NOT_PRESERVED/);
+  assert.match(s,/BETA_STAGE4_ATTACHMENT_METADATA_ISOLATED_2_OWN_VISIBLE_0_FOREIGN_DELETED/);
+  assert.match(s,/ROLLBACK;\s*$/);
+});
