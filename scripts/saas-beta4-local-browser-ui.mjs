@@ -45,6 +45,7 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
     },stdio:"ignore",
   });
   let browser;
+  let phase="INIT";
   try {
     await waitUntilReady(child);
     browser=await chromium.launch({headless:true});
@@ -103,21 +104,28 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
         result.web_ui_case_detail_opened++;
         // Validate real attachment metadata from Storage appears under its own
         // clinical case tab while signed private URLs remain on local Supabase.
+        phase="ATTACHMENT_TAB";
         await dialog.getByRole("button",{name:"Escaneamentos",exact:true}).first().click();
+        phase="ATTACHMENT_LIST";
         await dialog.getByText("synthetic.stl",{exact:true}).first()
           .waitFor({state:"visible",timeout:20000});
         result.web_ui_own_attachment_list_visible++;
         // User-visible EDIT flow, not just an HTTP PATCH injected by the test.
         // Close the details dialog and open the existing case row's kebab menu.
+        phase="DETAIL_CLOSE";
         await dialog.getByRole("button",{name:"Fechar",exact:true}).first().click();
         await dialog.waitFor({state:"hidden",timeout:15000});
         const row=ownLabel.locator('xpath=ancestor::*[@role="button"][1]');
+        phase="CASE_MENU";
         await row.locator("button").last().click();
+        phase="EDIT_OPEN";
         await page.getByRole("menuitem",{name:/Editar caso/i}).click();
         const editor=page.getByRole("dialog").last();
         await editor.getByRole("heading",{name:"Editar caso"}).waitFor({state:"visible",timeout:15000});
         const note="CI-EDIT-"+actor.label;
+        phase="EDIT_FIELD";
         await editor.getByPlaceholder('Ex.: "(25)", "+ Inf."').fill(note,{timeout:12000});
+        phase="EDIT_SAVE";
         await editor.getByRole("button",{name:"Salvar alterações"}).click();
         await editor.waitFor({state:"hidden",timeout:30000});
         const read=await fetch(origin+"/rest/v1/cases?id=eq."+actor.caseId+
@@ -133,17 +141,23 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
         // Exercise the actual new-case Web form against an existing fake
         // patient. This checks more than createCase RPC: button, patient combo,
         // form state, mutation, and newly committed case linked to this company.
+        phase="CREATE_OPEN";
         await page.getByRole("button",{name:"Nova entrada",exact:true}).click();
         const create=page.getByRole("dialog").last();
         await create.getByRole("heading",{name:"Cadastrar novo caso"})
           .waitFor({state:"visible",timeout:15000});
+        phase="CREATE_PATIENT_SELECTOR";
         await create.getByRole("button",
           {name:"Selecione ou digite o nome do paciente"}).click();
+        phase="CREATE_PATIENT_PICK";
         await page.getByRole("button",{name:own,exact:true}).last().click();
         const newLabel="UI-CREATE-"+actor.label;
+        phase="CREATE_LABEL";
         await create.getByPlaceholder('Ex.: "(25)", "+ Inf."').fill(newLabel);
+        phase="CREATE_SAVE";
         await create.getByRole("button",{name:"Cadastrar caso",exact:true}).click();
         await create.waitFor({state:"hidden",timeout:30000});
+        phase="CREATE_READBACK";
         const created=await fetch(origin+"/rest/v1/cases?case_label=eq."+
           encodeURIComponent(newLabel)+"&select=id,patient_id",{
           headers:{"apikey":anonKey,"Authorization":"Bearer "+actor.jwt},
@@ -165,7 +179,7 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
       deployed_ui_verified:false};
   } catch(error) {
     if(/^QA_LOCAL_BROWSER_[A-Z0-9_]+$/.test(error?.message||"")) throw error;
-    fail("QA_LOCAL_BROWSER_FUNCTIONAL_FLOW_FAILED");
+    fail("QA_LOCAL_BROWSER_"+phase+"_FAILED");
   } finally {
     if(browser) await browser.close().catch(()=>undefined);
     if(child.exitCode===null) child.kill("SIGTERM");
