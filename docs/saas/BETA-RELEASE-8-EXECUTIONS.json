@@ -311,7 +311,7 @@
           "date": "2026-11-10",
           "sandbox_provider_really_contacted": false,
           "live_subscription_cycle_tested": false,
-          "asassas_real_payments_created": 0,
+          "asaas_real_payments_created": 0,
           "postgres_restored_rehearsal_passed": true,
           "negative_controls": [
             "price mismatch overdue payment: no ledger/entitlement change",
