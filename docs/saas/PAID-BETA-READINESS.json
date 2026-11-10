@@ -33,7 +33,10 @@
       "id": "approved-contract-and-versioned-consent",
       "description": "Publicar documentos reais aprovados e exigir aceite por versão antes de contratação/dados clínicos reais.",
       "status": "pending",
-      "evidence": []
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/pull/286",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444111"
+      ]
     },
     {
       "id": "deployment-source-and-environment-parity",
@@ -48,13 +51,19 @@
       "id": "privacy-safe-beta-observability",
       "description": "Registrar falhas e métricas sem dados de pacientes, com acesso restrito, retenção definida e aviso adequado.",
       "status": "pending",
-      "evidence": []
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/pull/286",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444111"
+      ]
     },
     {
       "id": "support-invitations-and-emergency-stop",
       "description": "Convites limitados, canal de suporte, alertas e interrupção imediata de novas vendas.",
       "status": "pending",
-      "evidence": []
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/pull/286",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444111"
+      ]
     },
     {
       "id": "owner-authorized-paid-pilot",
