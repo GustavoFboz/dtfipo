@@ -196,12 +196,8 @@ export function NewCaseDialog({
   const photoInput = useRef<HTMLInputElement>(null);
   const [doctorId, setDoctorId] = useState<string>("");
   const [cadistaId, setCadistaId] = useState<string>("");
-  // Pre-fill cadistaId for non-solicitantes during creation
-  useEffect(() => {
-    if (isCreate && !isSolicitante && profile?.id && !cadistaId) {
-      setCadistaId(profile.id);
-    }
-  }, [isCreate, isSolicitante, profile, cadistaId]);
+  // The professional ID is resolved from the authenticated user's cadistas
+  // directory row in the dedicated effect after directory data loads.
   const [caseTypeIds, setCaseTypeIds] = useState<string[]>([]);
   const [toothColorId, setToothColorId] = useState<string>("");
   const [caseLabel, setCaseLabel] = useState<string>("");
