@@ -41,7 +41,8 @@ export function assessBetaExecutionPlan(plan, readiness) {
   }
 
   const last=plan.steps[7];
-  if(last.status!=="done" && (plan.release_state==="published" || plan.release_url !== null))
+  if(last.status!=="done" && (plan.release_state==="published" ||
+      plan.release_url !== null || plan.beta_approval_status==="approved"))
     throw new Error("BETA_EXECUTIONS_FALSE_PUBLICATION");
 
   if(last.status==="done") {
