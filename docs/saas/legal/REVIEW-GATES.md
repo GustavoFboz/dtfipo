@@ -26,6 +26,8 @@
 | L07 — suporte/convite/emergência | Anexo de beta e critério de gate no servidor | Convidados limitados, canais verdadeiros, bloqueio backend de cadastro de empresa e novos checkouts, teste de parada |
 | L08 — aceite versionado | SQL/cliente de recibo com hash SHA-256 já testado em PostgreSQL descartável e protegido por flag | Revisão e implantação controladas, documentação aprovada/publicada, UI real, contrato por representante e recibo válido; **PENDENTE** |
 
+**Observação comercial:** o pagamento de teste de R$5 não define preço comercial nem autorização de venda. A simples preparação desta documentação **não equivale a aceite formal** de termos por representantes ou pacientes.
+
 ## Dados jurídicos que não podemos inventar
 
 A Prestadora deve informar razão social, CNPJ, endereço, representantes, contatos, proposta comercial, canais de suporte e privacidade, estrutura de fornecedor, local de dados e prazos de retenção definidos com jurídico/contador. A inexistência de um e-mail/canal funcional ou ausência de contrato/DPA com subprocessador impede afirmar que a operação está regularizada.
