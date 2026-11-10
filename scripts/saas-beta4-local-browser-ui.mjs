@@ -102,14 +102,6 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
         if(!(await dialog.innerText()).includes(own))
           fail("QA_LOCAL_BROWSER_OWN_CASE_DETAIL_MISMATCH");
         result.web_ui_case_detail_opened++;
-        // Validate real attachment metadata from Storage appears under its own
-        // clinical case tab while signed private URLs remain on local Supabase.
-        phase="ATTACHMENT_TAB";
-        await dialog.getByRole("button",{name:"Escaneamentos",exact:true}).first().click();
-        phase="ATTACHMENT_LIST";
-        await dialog.getByText("synthetic.stl",{exact:true}).first()
-          .waitFor({state:"visible",timeout:20000});
-        result.web_ui_own_attachment_list_visible++;
         // User-visible EDIT flow, not just an HTTP PATCH injected by the test.
         // Close the details dialog and open the existing case row's kebab menu.
         phase="DETAIL_CLOSE";
@@ -168,6 +160,25 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
           ||newCases[0].patient_id!==actor.patientId)
           fail("QA_LOCAL_BROWSER_NEW_CASE_NOT_OWNED");
         result.web_ui_new_case_form_submitted++;
+        // Mark a bounded, safe checkpoint before testing an additional tab.
+        // This is NOT a full-test pass (overall workflow still fails closed).
+        process.stdout.write("QA_LOCAL_WEB_CREATE_FORM_CHECKPOINT_OK\\n");
+        // Reopen the original case, not the freshly inserted new one.
+        phase="ATTACHMENT_REOPEN";
+        const originalCase=page.getByText(own,{exact:false}).last();
+        await originalCase.click({timeout:15000});
+        const attachmentDialog=page.getByRole("dialog").first();
+        await attachmentDialog.waitFor({state:"visible",timeout:15000});
+        phase="ATTACHMENT_TAB_FIND";
+        const tab=attachmentDialog.getByRole("button",
+          {name:"Escaneamentos",exact:true});
+        if(await tab.count()===0) fail("QA_LOCAL_BROWSER_ATTACHMENT_TAB_MISSING");
+        phase="ATTACHMENT_TAB_KEYBOARD";
+        await tab.first().press("Enter",{timeout:12000});
+        phase="ATTACHMENT_LIST";
+        await attachmentDialog.getByText("synthetic.stl",{exact:true}).first()
+          .waitFor({state:"visible",timeout:12000});
+        result.web_ui_own_attachment_list_visible++;
       } finally { await context.close(); }
     }
     if(external) fail("QA_LOCAL_BROWSER_EXTERNAL_"+externalCategory+"_BLOCKED");
