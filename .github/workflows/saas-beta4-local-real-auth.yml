@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   real-local-http-only:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
       SUPABASE_USE_SLIM_IMAGES: "true"
