@@ -9,7 +9,7 @@
   "beta_approval_status": "pending",
   "historical_formal_accepted": "13/23",
   "historical_technical_progress_percent": 94.06,
-  "note": "4/8; etapa 5 recebeu evidência de risco financeiro no DB descartável (CI aprovado). Webhook/renovação real Sandbox permanecem pendentes, P0 e publicação bloqueados.",
+  "note": "4/8; Stage 7 local A-B-A real HTTP asset rollback verified by isolated GitHub Actions. Hosted staging/backend and actual host reversal still pending. No production release or Asaas action.",
   "steps": [
     {
       "id": 1,
@@ -346,9 +346,38 @@
       "code": "staging-deploy-rollback",
       "name": "Ensaiar publicação, comparação de SHA e reversão",
       "status": "pending",
-      "owner_action": "Nenhuma se houver ambiente isolado seguro e prévia técnica; não conectar Asaas de produção ao remix.",
+      "owner_action": "Nenhuma para o ensaio A→B→A concluído em hospedagem HTTP local descartável. Para o aceite integral será necessária uma hospedagem de staging acessível com backend/Auth e rollback da instância integrada; não reativar Asaas Produção.",
       "definition_of_done": "Staging totalmente separado, sem secrets/copied cron de produção, com testes Web funcionais, SHA de frontend/backend provado, rollback real da hospedagem ensaiado; sem tocar dados de produção.",
-      "evidence": []
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/pull/284",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42813055624",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42813055759"
+      ],
+      "checkpoint": {
+        "ephemeral_host_rollback": {
+          "tested_at": "2026-11-10",
+          "result": "success",
+          "run_url": "https://github.com/GustavoFboz/dtfipo/actions/runs/42813055624",
+          "protocol": "DENTALFLOW_BETA7_EPHEMERAL_STATIC_HOST_A_B_A_V1",
+          "source_git_revisions": 2,
+          "real_web_builds": 2,
+          "source_and_asset_sha256_compared": true,
+          "atomic_local_http_host_a_to_b_to_a": true,
+          "old_release_restored_exact_sha_and_bytes": true,
+          "external_host_or_production_touched": false,
+          "backend_ssr_verified": false,
+          "hosted_staging_verified": false,
+          "real_host_deploy_rollback_verified": false,
+          "asaas_invoked": false,
+          "clinical_data_used": false
+        },
+        "remaining": [
+          "Fully isolated hosted staging with separate real Auth/DB/Storage and independent provider secrets",
+          "Frontend/backend deployed SHA and Web functional smoke on same hosting",
+          "Actual integrated host rollback and post-rollback Web/SSR/Auth/API smoke",
+          "Backup/data integrity and source parity verified on hosted environment"
+        ]
+      }
     },
     {
       "id": 8,
