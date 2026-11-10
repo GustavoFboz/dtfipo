@@ -42,6 +42,19 @@ INSERT INTO public.cases(id,patient_id,requested_by,delivery_date) VALUES
  ('73900000-0000-4000-8000-000000000041','73900000-0000-4000-8000-000000000021','73900000-0000-4000-8000-000000000002',current_date+7),
  ('73900000-0000-4000-8000-000000000042','73900000-0000-4000-8000-000000000022','73900000-0000-4000-8000-000000000002',current_date+7);
 
+-- Step 4: two entirely synthetic attachment metadata records, one per clinic.
+-- These are created only in this PostgreSQL transaction and reverted at the end.
+-- This is NOT proof of actual bytes in Supabase Storage or authenticated HTTP.
+INSERT INTO public.case_attachments
+ (id,case_id,file_name,storage_path,size_bytes,mime_type,uploaded_by,kind)
+VALUES
+ ('73900000-0000-4000-8000-000000000051','73900000-0000-4000-8000-000000000031',
+  'synthetic-a.stl','73900000-0000-4000-8000-000000000031/stage4-a.stl',17,'application/octet-stream',
+  '73900000-0000-4000-8000-000000000001','other'),
+ ('73900000-0000-4000-8000-000000000052','73900000-0000-4000-8000-000000000041',
+  'synthetic-b.stl','73900000-0000-4000-8000-000000000041/stage4-b.stl',17,'application/octet-stream',
+  '73900000-0000-4000-8000-000000000002','other');
+
 -- Positive controls: fixture size is intentionally fixed and non-vacuous.
 DO $$
 BEGIN
@@ -65,6 +78,21 @@ BEGIN
  ('73900000-0000-4000-8000-000000000021','73900000-0000-4000-8000-000000000022'))
  THEN RAISE EXCEPTION 'STAGING_A_CROSS_TENANT_OR_EMPTY_RESULT'; END IF;
 END $$;
+-- Authenticated SQL role A can enumerate exactly its own fake attachment, not B's.
+DO $step4_attach_a$
+DECLARE n bigint;
+BEGIN
+ SELECT count(*) INTO n FROM public.case_attachments
+ WHERE id IN ('73900000-0000-4000-8000-000000000051','73900000-0000-4000-8000-000000000052');
+ IF n<>1 OR NOT EXISTS(SELECT 1 FROM public.case_attachments
+   WHERE id='73900000-0000-4000-8000-000000000051')
+ OR EXISTS(SELECT 1 FROM public.case_attachments
+   WHERE id='73900000-0000-4000-8000-000000000052')
+ THEN RAISE EXCEPTION 'STAGE4_A_ATTACHMENT_READ_BOUNDARY_FAILED'; END IF;
+ DELETE FROM public.case_attachments WHERE id='73900000-0000-4000-8000-000000000052';
+ GET DIAGNOSTICS n = ROW_COUNT;
+ IF n<>0 THEN RAISE EXCEPTION 'STAGE4_A_FOREIGN_ATTACHMENT_DELETED'; END IF;
+END $step4_attach_a$;
 -- Beta step 4: real SQL-role case read/edit and negative ownership controls.
 -- Existing synthetic rows only; each mutation is inside the outer ROLLBACK.
 DO $stage4_a$
@@ -115,6 +143,21 @@ BEGIN
  ('73900000-0000-4000-8000-000000000011','73900000-0000-4000-8000-000000000012'))
  THEN RAISE EXCEPTION 'STAGING_B_CROSS_TENANT_OR_EMPTY_RESULT'; END IF;
 END $$;
+-- Authenticated SQL role B has its own positive attachment and cannot delete A's.
+DO $step4_attach_b$
+DECLARE n bigint;
+BEGIN
+ SELECT count(*) INTO n FROM public.case_attachments
+ WHERE id IN ('73900000-0000-4000-8000-000000000051','73900000-0000-4000-8000-000000000052');
+ IF n<>1 OR NOT EXISTS(SELECT 1 FROM public.case_attachments
+   WHERE id='73900000-0000-4000-8000-000000000052')
+ OR EXISTS(SELECT 1 FROM public.case_attachments
+   WHERE id='73900000-0000-4000-8000-000000000051')
+ THEN RAISE EXCEPTION 'STAGE4_B_ATTACHMENT_READ_BOUNDARY_FAILED'; END IF;
+ DELETE FROM public.case_attachments WHERE id='73900000-0000-4000-8000-000000000051';
+ GET DIAGNOSTICS n = ROW_COUNT;
+ IF n<>0 THEN RAISE EXCEPTION 'STAGE4_B_FOREIGN_ATTACHMENT_DELETED'; END IF;
+END $step4_attach_b$;
 DO $stage4_b$
 DECLARE n bigint := 0;
 BEGIN
@@ -149,6 +192,15 @@ BEGIN
     IS DISTINCT FROM '73900000-0000-4000-8000-000000000011'::uuid
  THEN RAISE EXCEPTION 'STAGE4_CASE_ISOLATION_FINAL_FAILED'; END IF;
 END $stage4_final$;
+-- Assert both synthetic metadata records survived forged deletes by opposite roles.
+DO $stage4_attach_final$
+BEGIN
+ IF (SELECT count(*) FROM public.case_attachments
+     WHERE id IN ('73900000-0000-4000-8000-000000000051',
+                  '73900000-0000-4000-8000-000000000052'))<>2
+ THEN RAISE EXCEPTION 'STAGE4_FOREIGN_ATTACHMENT_NOT_PRESERVED'; END IF;
+END $stage4_attach_final$;
 SELECT 'STAGING_FIXTURE_VERIFIED:2_companies_2_SQL_roles_4_patients_4_cases_0_real_clients' AS sanitized_journal;
 SELECT 'BETA_STAGE4_CASE_CROSS_TENANT_DENIED_2_OWN_EDITS' AS sanitized_case_result;
+SELECT 'BETA_STAGE4_ATTACHMENT_METADATA_ISOLATED_2_OWN_VISIBLE_0_FOREIGN_DELETED' AS sanitized_attachment_result;
 ROLLBACK;
