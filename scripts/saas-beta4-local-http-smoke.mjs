@@ -200,7 +200,7 @@ async function checkRealStorage(origin,key,actor,other) {
   const linked=expectStatus(await endpoint(origin,"/rest/v1/case_attachments",
     "POST",key,actor.jwt,{case_id:actor.caseId,file_name:"synthetic.stl",
       storage_path:relative,size_bytes:bytes.length,mime_type:"application/octet-stream",
-      uploaded_by:actor.userId,kind:"other"},{returnRows:true}),"CASE_ATTACHMENT_LINK");
+      uploaded_by:actor.userId,kind:"scans"},{returnRows:true}),"CASE_ATTACHMENT_LINK");
   if (!Array.isArray(linked)||linked.length!==1||linked[0].case_id!==actor.caseId)
     reject("QA_LOCAL_ATTACHMENT_LINK_UNVERIFIED");
   expectStatus(await endpoint(origin,"/rest/v1/rpc/complete_storage_upload",
