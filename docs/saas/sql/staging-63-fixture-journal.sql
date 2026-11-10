@@ -42,15 +42,44 @@ INSERT INTO public.cases(id,patient_id,requested_by,delivery_date) VALUES
  ('73900000-0000-4000-8000-000000000041','73900000-0000-4000-8000-000000000021','73900000-0000-4000-8000-000000000002',current_date+7),
  ('73900000-0000-4000-8000-000000000042','73900000-0000-4000-8000-000000000022','73900000-0000-4000-8000-000000000002',current_date+7);
 
--- Step 4: two entirely synthetic attachment metadata records, one per clinic.
--- These are created only in this PostgreSQL transaction and reverted at the end.
--- This is NOT proof of actual bytes in Supabase Storage or user sessions.
+-- Beta step 4: simulate two entirely fictional Storage objects AND their
+-- required upload reservations inside this disposable transaction.
+-- Privileged fixture preparation does not simulate Auth or real Storage uploads;
+-- the actual tenant boundaries below run with SET LOCAL ROLE authenticated.
+INSERT INTO public.storage_files
+ (clinic_id,bucket,object_path,source_type,case_id,
+  original_name,mime_type,size_bytes,uploaded_by,status)
+VALUES
+ ('73900000-0000-4000-8000-000000000010','case-files',
+  '73900000-0000-4000-8000-000000000031/stage4-a.stl','case_attachment',
+  '73900000-0000-4000-8000-000000000031',
+  'stage4-a.stl','application/octet-stream',17,
+  '73900000-0000-4000-8000-000000000001','reserved'),
+ ('73900000-0000-4000-8000-000000000020','case-files',
+  '73900000-0000-4000-8000-000000000041/stage4-b.stl','case_attachment',
+  '73900000-0000-4000-8000-000000000041',
+  'stage4-b.stl','application/octet-stream',17,
+  '73900000-0000-4000-8000-000000000002','reserved');
+INSERT INTO storage.objects(bucket_id,name,metadata,owner_id) VALUES
+ ('case-files','73900000-0000-4000-8000-000000000031/stage4-a.stl',
+  '{"size":17,"mimetype":"application/octet-stream"}',
+  '73900000-0000-4000-8000-000000000001'),
+ ('case-files','73900000-0000-4000-8000-000000000041/stage4-b.stl',
+  '{"size":17,"mimetype":"application/octet-stream"}',
+  '73900000-0000-4000-8000-000000000002');
+-- The actual attachment INSERT trigger must find the exact reservation,
+-- file size, object metadata and upload actor. Never disable this trigger.
+SELECT set_config('request.jwt.claim.sub','73900000-0000-4000-8000-000000000001',true);
 INSERT INTO public.case_attachments
  (id,case_id,file_name,storage_path,size_bytes,mime_type,uploaded_by,kind)
 VALUES
  ('73900000-0000-4000-8000-000000000051','73900000-0000-4000-8000-000000000031',
   'synthetic-a.stl','73900000-0000-4000-8000-000000000031/stage4-a.stl',17,'application/octet-stream',
-  '73900000-0000-4000-8000-000000000001','other'),
+  '73900000-0000-4000-8000-000000000001','other');
+SELECT set_config('request.jwt.claim.sub','73900000-0000-4000-8000-000000000002',true);
+INSERT INTO public.case_attachments
+ (id,case_id,file_name,storage_path,size_bytes,mime_type,uploaded_by,kind)
+VALUES
  ('73900000-0000-4000-8000-000000000052','73900000-0000-4000-8000-000000000041',
   'synthetic-b.stl','73900000-0000-4000-8000-000000000041/stage4-b.stl',17,'application/octet-stream',
   '73900000-0000-4000-8000-000000000002','other');
