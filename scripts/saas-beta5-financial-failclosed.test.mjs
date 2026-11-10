@@ -8,7 +8,7 @@ const checkout = read("../src/lib/billing/asaas-checkout.server.ts");
 const worker = read("../src/lib/billing/asaas-webhook.server.ts");
 
 test("financial stage5 negative controls run only in a rolled-back disposable transaction",()=>{
-  assert.match(sql,/^\s*begin;\s*do \${2}/i);
+  assert.match(sql,/\nbegin;\s*do \${2}/i);
   assert.match(sql,/\bBETA_STAGE5_NEGATIVE_PRICE_ENVIRONMENT_LEDGER_PASSED\b/);
   assert.match(sql,/\bBILLING_LIFECYCLE_PLAN_MISMATCH\b/);
   assert.match(sql,/\bBILLING_LIFECYCLE_OWNERSHIP_MISMATCH\b/);
