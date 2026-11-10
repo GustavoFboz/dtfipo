@@ -9,7 +9,7 @@
   "beta_approval_status": "pending",
   "historical_formal_accepted": "13/23",
   "historical_technical_progress_percent": 94.06,
-  "note": "4/8; Stage 7 local A-B-A real HTTP asset rollback verified by isolated GitHub Actions. Hosted staging/backend and actual host reversal still pending. No production release or Asaas action.",
+  "note": "4/8. Etapa 6: minutas legais LGPD + termos/DPA, direitos, retenção, fornecedores, RIPD e beta ops integradas com CI; não há aprovação profissional, documentos publicados, aceite real ou autorização de venda.",
   "steps": [
     {
       "id": 1,
@@ -337,9 +337,49 @@
       "code": "legal-privacy-beta-ops",
       "name": "Termos, LGPD, suporte e convites controlados",
       "status": "pending",
-      "owner_action": "Aprovar texto real dos termos e política de privacidade, preços e escopo do beta, aviso aos participantes, canal de suporte e número inicial de empresas convidadas.",
+      "owner_action": "Quando conveniente: fornecer identificação da prestadora (razão social, CNPJ, endereço, representante), contatos de suporte/privacidade, propostas de plano/preço, empresas iniciais do beta; advogado/privacidade devem aprovar os documentos. Nenhuma ação imediata para os rascunhos já integrados. A etapa só concluirá após publicação de textos aprovados, testes de aceite e controles operacionais.",
       "definition_of_done": "Documentos legais efetivos aprovados, publicados e aceitos por versão; registros protegidos, telemetria sem dados clínicos, convites restritos e interruptor para novas adesões.",
-      "evidence": []
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/pull/286",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444111",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444050",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444071"
+      ],
+      "checkpoint": {
+        "legal_lgpd_internal_drafts": {
+          "date": "2026-11-10",
+          "pull_request": "https://github.com/GustavoFboz/dtfipo/pull/286",
+          "test_legal_ci": "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444111",
+          "ci_general": "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444050",
+          "ci_restore": "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444071",
+          "status": "INTERNAL_DRAFT_NOT_FOR_USERS",
+          "saas_terms_drafted": true,
+          "privacy_notice_drafted": true,
+          "dpa_drafted": true,
+          "beta_support_annex_drafted": true,
+          "cookie_notice_drafted": true,
+          "ropa_inventory_preliminary": true,
+          "ripd_preliminary": true,
+          "privacy_incident_retention_rights_runbook_drafted": true,
+          "versioned_legal_acceptance_dormant": true,
+          "legal_review_approved": false,
+          "company_identity_verified": false,
+          "published_documents": false,
+          "real_customer_acceptances": false,
+          "server_invite_gate_verified": false,
+          "real_support_contact_verified": false,
+          "privacy_supplier_contracts_verified": false,
+          "step6_done": false,
+          "production_touched": false
+        },
+        "remaining": [
+          "Razão social/CNPJ/endereço/representante e contatos institucionais reais",
+          "Revisão jurídico/privacidade e bases legais de dados sensíveis/contratos de suboperadores",
+          "Preços e condições comerciais do beta, canal de suporte, retenção e transferência internacional aprovados",
+          "Documentos finais publicados/consultáveis antes do checkout e aceites versionados do representante em QA e ambiente hospedado",
+          "Convites empresariais restritos no backend, telemetria sem dados clínicos e parada emergencial de novas compras comprovada"
+        ]
+      }
     },
     {
       "id": 7,
