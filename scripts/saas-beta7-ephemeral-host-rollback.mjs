@@ -45,7 +45,10 @@ export function inspectBuild(root,sourceSha,{trustedWorkspace=null}={}) {
         if(name.startsWith(".")||name.includes("/.")||name.includes("\\"))
           error("BETA7_UNSAFE_BUILD_FILE");
         const bytes=readFileSync(path);
-        if(!bytes.length)error("BETA7_EMPTY_ASSET");
+        // Vite/Nitro legitimately emit empty _redirects/_headers marker files.
+        // Hash their zero-byte contents too; only executable CSS/JS must be nonempty.
+        if(!bytes.length && /\.(?:js|mjs|css)$/.test(name))
+          error("BETA7_EMPTY_EXECUTABLE_ASSET");
         files.push({path:name,sha256:sha256(bytes),bytes:bytes.length});
       }
     }
