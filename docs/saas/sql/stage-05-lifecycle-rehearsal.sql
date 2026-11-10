@@ -61,6 +61,24 @@ begin
   perform * from public.billing_claim_asaas_events('sandbox', 10);
   select * into v_event from public.billing_events
   where provider_event_id = 'evt_Stage05Overdue';
+  -- Beta 5 negative control: a forged discount for the same invoice must not
+  -- start grace, create any ledger row, or alter the billing entitlement.
+  begin
+    perform public.billing_apply_asaas_payment_lifecycle(
+      v_event.id, v_event.lease_token, 'pay_Stage05Next',
+      'cus_Stage05','sub_Stage05',24899,v_start,'OVERDUE'
+    );
+    raise exception 'Incorrectly priced overdue event was accepted';
+  exception when sqlstate 'P0001' then
+    if sqlerrm <> 'BILLING_LIFECYCLE_PLAN_MISMATCH' then
+      raise;
+    end if;
+  end;
+  if (select status from public.account_subscriptions where id = v_sub) <> 'active'
+    or exists (select 1 from public.billing_payments
+      where provider_payment_id = 'pay_Stage05Next') then
+    raise exception 'Rejected overdue price changed entitlement or ledger';
+  end if;
   v_result := public.billing_apply_asaas_payment_lifecycle(
     v_event.id, v_event.lease_token, 'pay_Stage05Next',
     'cus_Stage05','sub_Stage05',24900,v_start,'OVERDUE'
@@ -115,6 +133,24 @@ begin
     or (select status from public.billing_payments
         where provider_payment_id = 'pay_Stage05Next') <> 'pending' then
     raise exception 'Failed reconciliation mutated paid state';
+  end if;
+  -- Beta 5 negative control: a fake second-cycle price cannot reactivate
+  -- an overdue company or extend its paid period, even with a valid customer.
+  begin
+    perform public.billing_apply_asaas_payment_lifecycle(
+      v_event.id, v_event.lease_token, 'pay_Stage05Next',
+      'cus_Stage05','sub_Stage05',24899,v_start,'CONFIRMED'
+    );
+    raise exception 'Incorrectly priced paid event was accepted';
+  exception when sqlstate 'P0001' then
+    if sqlerrm <> 'BILLING_LIFECYCLE_PLAN_MISMATCH' then
+      raise;
+    end if;
+  end;
+  if (select status from public.account_subscriptions where id = v_sub) <> 'suspended'
+    or (select status from public.billing_payments
+        where provider_payment_id='pay_Stage05Next') <> 'pending' then
+    raise exception 'Rejected paid price changed suspended entitlement';
   end if;
   v_result := public.billing_apply_asaas_payment_lifecycle(
     v_event.id, v_event.lease_token, 'pay_Stage05Next',
@@ -223,6 +259,38 @@ begin
         where provider_event_id = 'evt_Stage05ManualReplay') <> 1 then
     raise exception 'Concurrent or duplicate replay was not blocked';
   end if;
+  -- A valid-looking provider ID from a different Asaas environment may NOT
+  -- touch the Sandbox company or its ledger, even if the actor can claim it.
+  perform public.billing_receive_asaas_event(
+    'production','evt_Stage05CrossEnv','PAYMENT_CONFIRMED',
+    '{"paymentId":"pay_Stage05Next"}'::jsonb
+  );
+  perform * from public.billing_claim_asaas_events('production', 10);
+  select * into v_event from public.billing_events
+  where provider_environment='production'
+    and provider_event_id='evt_Stage05CrossEnv';
+  if v_event.id is null or v_event.status <> 'processing' then
+    raise exception 'Cross-environment event was not claimed in fixture';
+  end if;
+  begin
+    perform public.billing_apply_asaas_payment_lifecycle(
+      v_event.id, v_event.lease_token, 'pay_Stage05Next',
+      'cus_Stage05','sub_Stage05',24900,v_start,'CONFIRMED'
+    );
+    raise exception 'Production event applied to Sandbox company';
+  exception when sqlstate 'P0001' then
+    if sqlerrm <> 'BILLING_LIFECYCLE_OWNERSHIP_MISMATCH' then
+      raise;
+    end if;
+  end;
+  if (select status from public.account_subscriptions where id=v_sub) <> 'canceled'
+    or (select count(*) from public.billing_payments
+        where subscription_id=v_sub) <> 2
+    or (select count(*) from public.billing_payments
+        where subscription_id=v_sub and status='refunded') <> 1 then
+    raise exception 'Cross-environment invoice changed entitlement or ledger';
+  end if;
 end $$;
 select 'passed' as stage_05_lifecycle_rehearsal;
+select 'BETA_STAGE5_NEGATIVE_PRICE_ENVIRONMENT_LEDGER_PASSED' as sanitized_billing_result;
 rollback;
