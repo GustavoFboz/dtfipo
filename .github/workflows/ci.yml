@@ -45,6 +45,13 @@ jobs:
           bun scripts/check-desktop-entitlement-bootstrap-032.mjs
           bun test src/lib/subscriptions.desktop.test.ts
 
+      - name: Verify legal drafts, ANPD safeguards and fail-closed beta 6 approvals
+        run: |
+          node --test scripts/saas-legal-drafts.test.mjs
+          node --test scripts/saas-legal-supplier-retention.test.mjs
+          node --test scripts/saas-legal-versioned-acceptance-safety.test.mjs
+          node --test scripts/saas-beta6-legal-completeness.test.mjs
+
       - name: Verify dormant versioned legal terms client
         run: bunx vitest run --configLoader runner src/lib/saas-legal-acceptance.test.ts
 
