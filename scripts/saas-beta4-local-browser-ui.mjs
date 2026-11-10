@@ -49,7 +49,7 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
     await waitUntilReady(child);
     browser=await chromium.launch({headless:true});
     const result={web_ui_own_case_visible:0,web_ui_cross_tenant_case_hidden:0,
-      web_ui_case_detail_opened:0};
+      web_ui_case_detail_opened:0,web_ui_case_edit_form_submitted:0};
     let external=false, externalCategory="RESOURCE";
     for(const actor of actors) {
       const other=actors.find(x=>x!==actor);
@@ -100,11 +100,35 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
         if(!(await dialog.innerText()).includes(own))
           fail("QA_LOCAL_BROWSER_OWN_CASE_DETAIL_MISMATCH");
         result.web_ui_case_detail_opened++;
+        // User-visible EDIT flow, not just an HTTP PATCH injected by the test.
+        // Close the details dialog and open the existing case row's kebab menu.
+        await dialog.getByRole("button",{name:"Fechar",exact:true}).first().click();
+        await dialog.waitFor({state:"hidden",timeout:15000});
+        const row=ownLabel.locator('xpath=ancestor::*[@role="button"][1]');
+        await row.locator("button").last().click();
+        await page.getByRole("menuitem",{name:/Editar caso/i}).click();
+        const editor=page.getByRole("dialog").last();
+        await editor.getByRole("heading",{name:"Editar caso"}).waitFor({state:"visible",timeout:15000});
+        const note="CI-EDIT-"+actor.label;
+        await editor.getByPlaceholder('Ex.: "(25)", "+ Inf."').fill(note,{timeout:12000});
+        await editor.getByRole("button",{name:"Salvar alterações"}).click();
+        await editor.waitFor({state:"hidden",timeout:30000});
+        const read=await fetch(origin+"/rest/v1/cases?id=eq."+actor.caseId+
+          "&select=id,case_label",{
+            headers:{"apikey":anonKey,"Authorization":"Bearer "+actor.jwt},
+            cache:"no-store",signal:AbortSignal.timeout(10000)});
+        if(!read.ok) fail("QA_LOCAL_BROWSER_OWN_EDIT_READBACK_HTTP");
+        const updated=await read.json();
+        if(!Array.isArray(updated)||updated.length!==1||
+          updated[0].id!==actor.caseId||updated[0].case_label!==note)
+          fail("QA_LOCAL_BROWSER_OWN_EDIT_NOT_PERSISTED");
+        result.web_ui_case_edit_form_submitted++;
       } finally { await context.close(); }
     }
     if(external) fail("QA_LOCAL_BROWSER_EXTERNAL_"+externalCategory+"_BLOCKED");
     return {...result,ui_web_runtime:"local Vite browser with real synthetic Auth",
-      ui_case_creation_form_submitted:false,ui_case_edit_form_submitted:false,
+      ui_case_creation_form_submitted:false,
+      ui_case_edit_form_submitted:result.web_ui_case_edit_form_submitted===2,
       ui_private_attachment_preview_verified:false,
       deployed_ui_verified:false};
   } catch(error) {
