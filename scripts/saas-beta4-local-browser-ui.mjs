@@ -48,7 +48,7 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
   let phase="INIT";
   try {
     await waitUntilReady(child);
-    browser=await chromium.launch({headless:true});
+    browser=await chromium.launch({headless:true,channel:"chrome"});
     const result={web_ui_own_case_visible:0,web_ui_cross_tenant_case_hidden:0,
       web_ui_case_detail_opened:0,web_ui_case_edit_form_submitted:0,
       web_ui_new_case_form_submitted:0,web_ui_own_attachment_list_visible:0};
