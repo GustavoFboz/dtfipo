@@ -34,6 +34,18 @@ test("fail closed on invalid revisions and missing outputs",()=>{
   }finally{x.dispose();}
 });
 
+test("Nitro-generated empty metadata markers are valid hashed build files, unlike empty JavaScript",()=>{
+  const x=fixture();
+  try{
+    writeFileSync(join(x.a,".output","public","_headers"),"");
+    const a=inspectBuild(x.a,"a".repeat(40));
+    assert.equal(a.files_count,3);
+    assert(a.paths.get("_headers")?.sha256);
+    writeFileSync(join(x.a,".output","public","assets","empty.js"),"");
+    assert.throws(()=>inspectBuild(x.a,"a".repeat(40)),/BETA7_EMPTY_EXECUTABLE_ASSET/);
+  }finally{x.dispose();}
+});
+
 test("two immutable distinct Web builds are served via loopback as A -> B -> A",async()=>{
   const x=fixture();
   try{
