@@ -49,7 +49,8 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
     await waitUntilReady(child);
     browser=await chromium.launch({headless:true});
     const result={web_ui_own_case_visible:0,web_ui_cross_tenant_case_hidden:0,
-      web_ui_case_detail_opened:0,web_ui_case_edit_form_submitted:0};
+      web_ui_case_detail_opened:0,web_ui_case_edit_form_submitted:0,
+      web_ui_new_case_form_submitted:0,web_ui_own_attachment_list_visible:0};
     let external=false, externalCategory="RESOURCE";
     for(const actor of actors) {
       const other=actors.find(x=>x!==actor);
@@ -100,6 +101,12 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
         if(!(await dialog.innerText()).includes(own))
           fail("QA_LOCAL_BROWSER_OWN_CASE_DETAIL_MISMATCH");
         result.web_ui_case_detail_opened++;
+        // Validate real attachment metadata from Storage appears under its own
+        // clinical case tab while signed private URLs remain on local Supabase.
+        await dialog.getByRole("button",{name:"Escaneamentos",exact:true}).first().click();
+        await dialog.getByText("synthetic.stl",{exact:true}).first()
+          .waitFor({state:"visible",timeout:20000});
+        result.web_ui_own_attachment_list_visible++;
         // User-visible EDIT flow, not just an HTTP PATCH injected by the test.
         // Close the details dialog and open the existing case row's kebab menu.
         await dialog.getByRole("button",{name:"Fechar",exact:true}).first().click();
@@ -123,12 +130,37 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
           updated[0].id!==actor.caseId||updated[0].case_label!==note)
           fail("QA_LOCAL_BROWSER_OWN_EDIT_NOT_PERSISTED");
         result.web_ui_case_edit_form_submitted++;
+        // Exercise the actual new-case Web form against an existing fake
+        // patient. This checks more than createCase RPC: button, patient combo,
+        // form state, mutation, and newly committed case linked to this company.
+        await page.getByRole("button",{name:"Nova entrada",exact:true}).click();
+        const create=page.getByRole("dialog").last();
+        await create.getByRole("heading",{name:"Cadastrar novo caso"})
+          .waitFor({state:"visible",timeout:15000});
+        await create.getByRole("button",
+          {name:"Selecione ou digite o nome do paciente"}).click();
+        await page.getByRole("button",{name:own,exact:true}).last().click();
+        const newLabel="UI-CREATE-"+actor.label;
+        await create.getByPlaceholder('Ex.: "(25)", "+ Inf."').fill(newLabel);
+        await create.getByRole("button",{name:"Cadastrar caso",exact:true}).click();
+        await create.waitFor({state:"hidden",timeout:30000});
+        const created=await fetch(origin+"/rest/v1/cases?case_label=eq."+
+          encodeURIComponent(newLabel)+"&select=id,patient_id",{
+          headers:{"apikey":anonKey,"Authorization":"Bearer "+actor.jwt},
+          cache:"no-store",signal:AbortSignal.timeout(10000)});
+        if(!created.ok) fail("QA_LOCAL_BROWSER_NEW_CASE_READBACK_HTTP");
+        const newCases=await created.json();
+        if(!Array.isArray(newCases)||newCases.length!==1
+          ||newCases[0].patient_id!==actor.patientId)
+          fail("QA_LOCAL_BROWSER_NEW_CASE_NOT_OWNED");
+        result.web_ui_new_case_form_submitted++;
       } finally { await context.close(); }
     }
     if(external) fail("QA_LOCAL_BROWSER_EXTERNAL_"+externalCategory+"_BLOCKED");
     return {...result,ui_web_runtime:"local Vite browser with real synthetic Auth",
-      ui_case_creation_form_submitted:false,
+      ui_case_creation_form_submitted:result.web_ui_new_case_form_submitted===2,
       ui_case_edit_form_submitted:result.web_ui_case_edit_form_submitted===2,
+      ui_private_attachment_list_verified:result.web_ui_own_attachment_list_visible===2,
       ui_private_attachment_preview_verified:false,
       deployed_ui_verified:false};
   } catch(error) {
