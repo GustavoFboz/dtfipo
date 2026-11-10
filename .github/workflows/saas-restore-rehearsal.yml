@@ -136,6 +136,9 @@ jobs:
             psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
             < docs/saas/sql/stage-05-lifecycle-rehearsal.sql \
             | tee restore-stage-05-lifecycle.log
+          grep -Fq "stage_05_lifecycle_rehearsal" restore-stage-05-lifecycle.log
+          grep -Fq "BETA_STAGE5_NEGATIVE_PRICE_ENVIRONMENT_LEDGER_PASSED" restore-stage-05-lifecycle.log
+          echo "Beta 5 negative billing price, ownership and environment controls passed in a rolled-back disposable DB."
 
       - name: Rehearse 4.2 patient company isolation with two real SQL roles
         shell: bash
