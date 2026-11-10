@@ -290,7 +290,7 @@ begin
         where subscription_id=v_sub and status='refunded') <> 1 then
     raise exception 'Cross-environment invoice changed entitlement or ledger';
   end if;
-end $;
+end $$;
 select 'passed' as stage_05_lifecycle_rehearsal;
 select 'BETA_STAGE5_NEGATIVE_PRICE_ENVIRONMENT_LEDGER_PASSED' as sanitized_billing_result;
 rollback;
