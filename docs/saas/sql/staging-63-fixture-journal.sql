@@ -44,7 +44,7 @@ INSERT INTO public.cases(id,patient_id,requested_by,delivery_date) VALUES
 
 -- Step 4: two entirely synthetic attachment metadata records, one per clinic.
 -- These are created only in this PostgreSQL transaction and reverted at the end.
--- This is NOT proof of actual bytes in Supabase Storage or authenticated HTTP.
+-- This is NOT proof of actual bytes in Supabase Storage or user sessions.
 INSERT INTO public.case_attachments
  (id,case_id,file_name,storage_path,size_bytes,mime_type,uploaded_by,kind)
 VALUES
