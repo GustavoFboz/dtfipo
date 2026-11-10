@@ -25,8 +25,10 @@ jobs:
       SUPABASE_USE_SLIM_IMAGES: "true"
       DENTALFLOW_BETA4_LOCAL_TEST: "true"
       DENTALFLOW_BETA4_LOCAL_DB_CONTAINER: supabase_db_dtfipo_beta4_local
-      DENTALFLOW_BETA4_LOCAL_DIR: ${{ runner.temp }}/dentalflow-beta4-local
     steps:
+      - name: Establish runner-local disposable QA directory
+        shell: bash
+        run: echo "DENTALFLOW_BETA4_LOCAL_DIR=$RUNNER_TEMP/dentalflow-beta4-local" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
