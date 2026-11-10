@@ -10,7 +10,7 @@ test('isolated staging journal never touches financial provider or persists fixt
   assert.match(s,/SET LOCAL ROLE authenticated/g);
   assert.match(s,/STAGING_FIXTURE_VERIFIED:2_companies_2_SQL_roles_4_patients_4_cases_0_real_clients/);
   assert.equal((s.match(/@example\.invalid/g)||[]).length,2);
-  assert.doesNotMatch(s,/\b(http|curl|wget|dblink|COPY\s|CREATE\s+EXTENSION|DELETE\s+FROM|TRUNCATE|DROP\s+TABLE)\b/i);
+  assert.doesNotMatch(s,/\b(http|curl|wget|dblink|COPY\s|CREATE\s+EXTENSION|TRUNCATE|DROP\s+TABLE)\b/i);
   assert.match(w,/Build 6\.3 disposable staging fixture and sanitized journal/);
   assert.match(w,/docs\/saas\/sql\/staging-63-fixture-journal\.sql/);
   assert.match(w,/grep -Fq "STAGING_FIXTURE_VERIFIED/);
@@ -39,5 +39,11 @@ test('beta step 4 denies cross-company attachment metadata reads and deletes',()
   assert.match(s,/STAGE4_B_FOREIGN_ATTACHMENT_DELETED/);
   assert.match(s,/STAGE4_FOREIGN_ATTACHMENT_NOT_PRESERVED/);
   assert.match(s,/BETA_STAGE4_ATTACHMENT_METADATA_ISOLATED_2_OWN_VISIBLE_0_FOREIGN_DELETED/);
+  // Only two exact-UUID foreign-delete attempts; all SQL is rolled back.
+  const deletes = s.match(/\bDELETE\s+FROM\s+[^;]+;/gi) || [];
+  assert.equal(deletes.length,2);
+  for(const item of deletes)
+    assert.match(item,/^DELETE FROM public\.case_attachments WHERE id='73900000-0000-4000-8000-00000000005[12]';$/);
+  assert.notEqual(deletes[0],deletes[1]);
   assert.match(s,/ROLLBACK;\s*$/);
 });
