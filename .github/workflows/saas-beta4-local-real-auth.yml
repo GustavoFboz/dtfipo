@@ -42,12 +42,16 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - name: Install locked Web app dependencies without deployment
         run: bun install --frozen-lockfile
-      - name: Install isolated Chromium smoke runner
+      - name: Install Playwright harness using preinstalled runner Chrome (no browser download)
         shell: bash
         run: |
           set -euo pipefail
           npm install --no-save --no-package-lock --ignore-scripts playwright@1.56.1 > /dev/null
-          npx playwright install --with-deps chromium > /dev/null
+          if ! command -v google-chrome-stable > /dev/null 2>&1 && ! command -v google-chrome > /dev/null 2>&1; then
+            echo "::error::QA_LOCAL_BROWSER_SYSTEM_CHROME_MISSING"
+            exit 1
+          fi
+          echo "Browser binary found in stock GitHub runner; no privileged install."
       - uses: supabase/setup-cli@v1
         with:
           version: "2.119.0"
