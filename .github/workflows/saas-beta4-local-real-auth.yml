@@ -1,0 +1,107 @@
+name: DentalFlow SaaS Beta 4 Local Real Auth Integration
+
+on:
+  pull_request:
+    branches: [main, "saas/stage-03-asaas-checkout"]
+    paths:
+      - "scripts/saas-beta4-local-http-smoke.mjs"
+      - "scripts/saas-beta4-local-http-smoke.test.mjs"
+      - ".github/workflows/saas-beta4-local-real-auth.yml"
+      - "docs/saas/BETA-STEP4-LOCAL-INDEPENDENT-QA.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dentalflow-beta4-local-auth-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  real-local-http-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SUPABASE_USE_SLIM_IMAGES: "true"
+      DENTALFLOW_BETA4_LOCAL_TEST: "true"
+      DENTALFLOW_BETA4_LOCAL_DB_CONTAINER: supabase_db_dtfipo_beta4_local
+    steps:
+      - name: Establish runner-local disposable QA directory
+        shell: bash
+        run: echo "DENTALFLOW_BETA4_LOCAL_DIR=$RUNNER_TEMP/dentalflow-beta4-local" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Prove local-origin and no-accidental-production security contract
+        run: node --test scripts/saas-beta4-local-http-smoke.test.mjs
+      - uses: supabase/setup-cli@v1
+        with:
+          version: "2.119.0"
+      - name: Initialize wholly independent local project without GitHub or Lovable secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$DENTALFLOW_BETA4_LOCAL_DIR/supabase"
+          printf 'project_id = "dtfipo_beta4_local"\n' > "$DENTALFLOW_BETA4_LOCAL_DIR/supabase/config.toml"
+          if grep -R -E '(bbyhpwocwamgwcuqqnck|ASAAS_API_KEY|BILLING_WORKER_TOKEN)' "$DENTALFLOW_BETA4_LOCAL_DIR" ; then
+            echo "::error::QA_LOCAL_CONFIG_CONTAINS_PRODUCTION_REFERENCE"
+            exit 1
+          fi
+      - name: Launch local Supabase Auth, REST, Storage and PostgreSQL
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$DENTALFLOW_BETA4_LOCAL_DIR"
+          if ! supabase start > "$RUNNER_TEMP/dentalflow-beta4-start.log" 2>&1; then
+            echo "::error::QA_LOCAL_SUPABASE_START_FAILED"
+            exit 1
+          fi
+          if ! docker inspect "$DENTALFLOW_BETA4_LOCAL_DB_CONTAINER" > /dev/null 2>&1; then
+            echo "::error::QA_LOCAL_CONTAINER_NOT_FOUND"
+            exit 1
+          fi
+          echo "Local isolated Auth/REST/Storage stack is available; no remote credentials used."
+      - name: Apply existing source-controlled backend schema to ephemeral local database
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! docker exec -i "$DENTALFLOW_BETA4_LOCAL_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            < public/restore.sql > "$RUNNER_TEMP/dentalflow-beta4-restore.log" 2>&1; then
+            echo "::error::QA_LOCAL_SCHEMA_RESTORE_FAILED"
+            exit 1
+          fi
+          docker exec "$DENTALFLOW_BETA4_LOCAL_DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
+            -c "NOTIFY pgrst, 'reload schema';" > /dev/null
+          echo "Source-controlled schema restored into a disposable local DB."
+      - name: Run authentic two-clinic case creation/edit/isolation and Storage API proof
+        shell: bash
+        env:
+          CI: "true"
+        run: |
+          set -euo pipefail
+          node scripts/saas-beta4-local-http-smoke.mjs \
+            | tee "$RUNNER_TEMP/dentalflow-beta4-aggregate-report.json"
+      - name: Stop and discard ALL local QA service containers and volumes
+        if: always()
+        shell: bash
+        run: |
+          if [[ -d "$DENTALFLOW_BETA4_LOCAL_DIR/supabase" ]]; then
+            cd "$DENTALFLOW_BETA4_LOCAL_DIR"
+            supabase stop --no-backup > /dev/null 2>&1 || true
+          fi
+          if docker inspect "$DENTALFLOW_BETA4_LOCAL_DB_CONTAINER" > /dev/null 2>&1; then
+            echo "::error::QA_LOCAL_DB_NOT_DISPOSED"
+            exit 1
+          fi
+          echo "All beta4 local clinical test identities and fake data disposed."
+      - name: Publish only a sanitized aggregated pass receipt
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dentalflow-beta4-local-real-http-aggregate
+          path: ${{ runner.temp }}/dentalflow-beta4-aggregate-report.json
+          retention-days: 30
+          if-no-files-found: error
