@@ -2,14 +2,14 @@
   "schema": "dentalflow-beta-eight-executions-v1",
   "target": "web-paid-invite-only",
   "branch": "saas/stage-03-asaas-checkout",
-  "recorded_at": "2026-11-09",
+  "recorded_at": "2026-11-10",
   "audited_code_sha": "dcbd8ecab67892593036c7008c194287ffd38023",
   "release_state": "not_published",
   "release_url": null,
   "beta_approval_status": "pending",
   "historical_formal_accepted": "13/23",
   "historical_technical_progress_percent": 94.06,
-  "note": "3/8 complete. Step 4 real Auth/REST/Storage passed in an entirely isolated GitHub runner, but remains pending until UI Web paths tested. No Lovable, production or Asaas changes.",
+  "note": "4/8 technically accepted only in isolated Web/Auth/Storage QA on runner, after merged clinical fix; actual hosted beta remains not published and no commercial release authorized.",
   "steps": [
     {
       "id": 1,
@@ -245,25 +245,35 @@
       "id": 4,
       "code": "clinical-tenant-security",
       "name": "Validar casos clínicos e isolamento entre empresas",
-      "status": "pending",
-      "owner_action": "Nenhuma ação do proprietário enquanto Lovable estiver pausado. Contrato de casos, JWT real de 2 contas fictícias e Storage API já verificados em CI isolada; resta ensaio da interface Web em staging e verificação dos casos por navegador antes de mudar para done.",
+      "status": "done",
+      "owner_action": "Nenhuma para o aceite técnico isolado da etapa 4. A verificação da versão Web hospedada/ambiente de deploy e os 8 gates P0 de publicação seguem independentes, pendentes e sem autorização de cobrança.",
       "definition_of_done": "Criar/abrir/editar caso no staging, testar permissões com duas empresas e tentativas de acesso cruzado; manter 1 paciente órfão vinculado a agendamento preservado, sem perda ou reatribuição arbitrária.",
       "evidence": [
         "https://github.com/GustavoFboz/dtfipo/pull/274",
         "https://github.com/GustavoFboz/dtfipo/pull/275",
-        "https://github.com/GustavoFboz/dtfipo/actions/runs/42751269610"
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42751269610",
+        "https://github.com/GustavoFboz/dtfipo/pull/277",
+        "https://github.com/GustavoFboz/dtfipo/pull/278",
+        "https://github.com/GustavoFboz/dtfipo/pull/279",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42767499220"
       ],
       "checkpoint": {
         "local_real_http": {
-          "tested_at": "2026-11-09",
-          "source": "GitHub Actions runner; Supabase CLI project dtfipo_beta4_local; no cloud/Asaas",
-          "run_url": "https://github.com/GustavoFboz/dtfipo/actions/runs/42751269610",
+          "tested_at": "2026-11-10",
+          "source": "GitHub Actions ephemeral runner, Supabase CLI real Auth/REST/Storage and Chromium/Chrome Web UI, 2 synthetic tenants, strictly loopback",
+          "run_url": "https://github.com/GustavoFboz/dtfipo/actions/runs/42767499220",
           "status": "success",
           "actors_authenticated": 2,
           "clinics": 2,
           "patients_created": 2,
           "cases_created": 2,
-          "own_case_edits": 2,
+          "case_idempotent_retries_verified": 2,
+          "web_ui_own_case_visible": 2,
+          "web_ui_cross_tenant_case_hidden": 2,
+          "web_ui_case_detail_opened": 2,
+          "web_ui_case_edit_form_submitted": 2,
+          "web_ui_new_case_form_submitted": 2,
+          "web_ui_own_attachment_list_visible": 2,
           "real_storage_uploads_and_downloads": 2,
           "cross_company_reads_denied": 4,
           "cross_company_writes_denied": 4,
@@ -271,13 +281,16 @@
           "foreign_attachment_reads_denied": 2,
           "foreign_attachment_deletes_denied": 2,
           "service_destroyed": true,
-          "web_ui_verified": false,
-          "production_touched": false
+          "web_ui_verified": true,
+          "deployed_web_ui_verified": false,
+          "production_touched": false,
+          "asaas_invoked": false
         },
-        "remaining": [
-          "Browser UI smoke under two authenticated users with new/edit case controls and attachment display",
-          "Cross-clinic UI visibility and functional upload/delete in a staging app",
-          "No changes to the legacy orphan patient linked to an appointment"
+        "post_acceptance_limits": [
+          "Aceite da etapa 4 refere-se somente à QA integral isolada em localhost, não à paridade da instância Web publicada nem à aprovação comercial.",
+          "Abertura de preview 3D e upload/exclusão de anexos pela interface visual ainda exigem smoke hospedado e não são afirmados pelo ensaio; controle de acesso/upload real via API foi aprovado.",
+          "O paciente histórico vinculado a agendamento e todos os dados reais não foram escritos ou modificados; recuperação e integridade permanecem objeto dos gates independentes.",
+          "A etapa 7 e o gate P0 clinical-case-and-tenant-safety continuam bloqueando publicação sem staging/produção equivalentes."
         ]
       }
     },
