@@ -6,6 +6,7 @@ on:
     paths:
       - "scripts/saas-beta4-local-http-smoke.mjs"
       - "scripts/saas-beta4-local-http-smoke.test.mjs"
+      - "scripts/saas-beta4-local-browser-ui.mjs"
       - ".github/workflows/saas-beta4-local-real-auth.yml"
       - "docs/saas/BETA-STEP4-LOCAL-INDEPENDENT-QA.md"
   workflow_dispatch:
@@ -19,11 +20,12 @@ concurrency:
 
 jobs:
   real-local-http-only:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
       SUPABASE_USE_SLIM_IMAGES: "true"
       DENTALFLOW_BETA4_LOCAL_TEST: "true"
+      DENTALFLOW_BETA4_BROWSER_TEST: "true"
       DENTALFLOW_BETA4_LOCAL_DB_CONTAINER: supabase_db_dtfipo_beta4_local
     steps:
       - name: Establish runner-local disposable QA directory
@@ -35,6 +37,15 @@ jobs:
           node-version: "22"
       - name: Prove local-origin and no-accidental-production security contract
         run: node --test scripts/saas-beta4-local-http-smoke.test.mjs
+      - uses: oven-sh/setup-bun@v2
+      - name: Install locked Web app dependencies without deployment
+        run: bun install --frozen-lockfile
+      - name: Install isolated Chromium smoke runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --no-package-lock --ignore-scripts playwright@1.56.1 > /dev/null
+          npx playwright install --with-deps chromium > /dev/null
       - uses: supabase/setup-cli@v1
         with:
           version: "2.119.0"
@@ -76,7 +87,7 @@ jobs:
             psql --username postgres --dbname postgres --set ON_ERROR_STOP=1 \
             -c "NOTIFY pgrst, 'reload schema';" > /dev/null
           echo "Source-controlled schema restored into a disposable local DB."
-      - name: Run authentic two-clinic case creation/edit/isolation and Storage API proof
+      - name: Run two real QA users, REST/Storage and local browser Web UI smoke
         shell: bash
         env:
           CI: "true"

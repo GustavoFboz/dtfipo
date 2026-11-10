@@ -119,7 +119,7 @@ async function createActor(origin,anonKey,serviceKey,label) {
   const me=expectStatus(await endpoint(origin,"/auth/v1/user","GET",anonKey,token.access_token),
     "GET_USER");
   if (me?.id!==id) reject("QA_LOCAL_USER_SESSION_MISMATCH");
-  return {userId:id,jwt:token.access_token,clinicId:randomUUID(),label};
+  return {userId:id,jwt:token.access_token,clinicId:randomUUID(),label,email,password};
 }
 
 async function checkOwnAndForeign(origin,key,actor,other,patientId,caseId) {
@@ -249,6 +249,11 @@ export async function run() {
   await checkOwnAndForeign(origin,local.anonKey,b,a,b.patientId,b.caseId);
   await checkRealStorage(origin,local.anonKey,a,b);
   await checkRealStorage(origin,local.anonKey,b,a);
+  const webUi = process.env.DENTALFLOW_BETA4_BROWSER_TEST === "true"
+    ? await (await import("./saas-beta4-local-browser-ui.mjs")).checkLocalWebUI({
+        origin,anonKey:local.anonKey,adminKey:local.adminKey,actors:[a,b]})
+    : {web_ui_own_case_visible:0,web_ui_cross_tenant_case_hidden:0,
+       web_ui_case_detail_opened:0,web_ui_not_executed:true};
   return {
     protocol:"BETA-4-REAL-LOCAL-HTTP-V1",passed:true,
     actors_authenticated:2,clinics:2,patients_created_by_real_user_rpc:2,
@@ -258,7 +263,8 @@ export async function run() {
     real_storage_upload_and_download_verified:2,real_foreign_storage_download_denied:2,
     foreign_attachment_metadata_reads_denied:2,foreign_attachment_metadata_deletes_denied:2,
     tested_environment:"Supabase CLI local ephemeral HTTP, full REST/Auth/Storage",
-    runtime_ui_verified:false,web_deployment_verified:false,production_touched:false,
+    ...webUi,runtime_ui_verified:webUi.web_ui_case_detail_opened===2,
+    web_deployment_verified:false,production_touched:false,
     asaas_invoked:false,clinical_data_included:false,
     source_claim:"CI integration of temporary synthetic fixtures only, not commercial beta release",
   };
