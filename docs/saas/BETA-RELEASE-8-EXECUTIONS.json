@@ -9,7 +9,7 @@
   "beta_approval_status": "pending",
   "historical_formal_accepted": "13/23",
   "historical_technical_progress_percent": 94.06,
-  "note": "4/8 technically accepted only in isolated Web/Auth/Storage QA on runner, after merged clinical fix; actual hosted beta remains not published and no commercial release authorized.",
+  "note": "4/8; etapa 5 recebeu evidência de risco financeiro no DB descartável (CI aprovado). Webhook/renovação real Sandbox permanecem pendentes, P0 e publicação bloqueados.",
   "steps": [
     {
       "id": 1,
@@ -299,9 +299,38 @@
       "code": "asaas-critical-lifecycle",
       "name": "Validar cobrança, renovação, cancelamento e bloqueios",
       "status": "pending",
-      "owner_action": "Aprovar somente eventual teste financeiro real específico antes da cobrança; em geral usar Sandbox. Confirmar planos e valores pretendidos.",
+      "owner_action": "Nenhuma ação necessária para os testes locais já concluídos. Para homologação final, usar o Asaas Sandbox conectado à hospedagem segura quando disponível; confirmar planos/valores e método de pagamento. Não efetuar cobrança real nem liberar Produção sem aprovação.",
       "definition_of_done": "Webhooks idempotentes, plano/valor, cobrança, renovação, cancelamento, atraso, reativação, bloqueio de acesso, worker e desligamento de novas vendas verificados sem cobrança indevida.",
-      "evidence": []
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/pull/282",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42810806355",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42810806563"
+      ],
+      "checkpoint": {
+        "technical_disposable_finance_verified": {
+          "date": "2026-11-10",
+          "sandbox_provider_really_contacted": false,
+          "live_subscription_cycle_tested": false,
+          "asassas_real_payments_created": 0,
+          "postgres_restored_rehearsal_passed": true,
+          "negative_controls": [
+            "price mismatch overdue payment: no ledger/entitlement change",
+            "price mismatch paid payment: suspended remains blocked",
+            "cross-environment production event references sandbox subscription: denied",
+            "duplicate paid event no duplicated ledger",
+            "refund/cancellation/grace SQL already verified"
+          ],
+          "independent_workflow": "https://github.com/GustavoFboz/dtfipo/actions/runs/42810806355",
+          "no_production_changes": true
+        },
+        "remaining_live_sandbox_checks": [
+          "Real Asaas second-cycle invoice on same subscription and payment settlement from provider",
+          "Webhook delivery, worker processing, one ledger row and monthly entitlement progression",
+          "Real Sandbox overdue/grace/suspension/recovery and cancellation, no duplicate subscription",
+          "Client payment method and period/price parity in actual QA deployment",
+          "Provider real cancellation/readback and emergency-stop verification"
+        ]
+      }
     },
     {
       "id": 6,
