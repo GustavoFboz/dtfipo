@@ -39,7 +39,10 @@
       "id": "deployment-source-and-environment-parity",
       "description": "Verificar SHA/versões Web e backend, migrações e configuração do ambiente servido.",
       "status": "pending",
-      "evidence": []
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/pull/284",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42813055624"
+      ]
     },
     {
       "id": "privacy-safe-beta-observability",
