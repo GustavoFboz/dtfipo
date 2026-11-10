@@ -60,6 +60,12 @@ export async function checkLocalWebUI({origin,anonKey,adminKey,actors}) {
           let origin;
           try{origin=new URL(url).origin;}catch{external=true;return route.abort();}
           if(!allowed.has(origin)){
+            // Cosmetic styles/fonts are optional: block them without treating
+            // a failed external style import as clinical data exfiltration.
+            // All remote scripts, XHR/fetch, documents, images, websockets,
+            // Supabase hosts and other requests remain a hard failure.
+            if(["stylesheet","font"].includes(route.request().resourceType()))
+              return route.abort();
             external=true;
             const host=new URL(url).hostname;
             // Only return an opaque category; NEVER record an external URL or token.
