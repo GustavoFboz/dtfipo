@@ -16,7 +16,10 @@
       "id": "clinical-case-and-tenant-safety",
       "description": "Comprovar criação, abertura e edição dos casos com contas de QA e negar acesso entre empresas.",
       "status": "pending",
-      "evidence": []
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/pull/275",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42751269610"
+      ]
     },
     {
       "id": "recoverable-backup-and-rollback",
