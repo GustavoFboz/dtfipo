@@ -399,6 +399,81 @@ async function markCheckoutReady(input: {
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Server-only beta sales stop. Missing RPC, DB outage, malformed result or
+ * permission error fail CLOSED. Migration must precede application deployment.
+ *
+ * Blocks server checkout handoff for old and new intents, but cannot revoke
+ * already-issued external payment links or interrupt an in-flight provider POST.
+ */
+export async function assertBetaAsaasCheckoutHandoffAllowed(): Promise<void> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await (supabaseAdmin as any).rpc("beta_assert_new_checkout_handoff_allowed");
+  if (error) {
+    if (error.code === "42501" && /BETA_NEW_CHECKOUTS_PAUSED/.test(error.message ?? "")) {
+      throw new CheckoutRequestError(
+        "BETA_NEW_CHECKOUTS_PAUSED",
+        "Novas contratações estão temporariamente suspensas.",
+        423,
+      );
+    }
+    throw new CheckoutRequestError(
+      "BETA_CHECKOUT_GUARD_UNAVAILABLE",
+      "O checkout está temporariamente indisponível por segurança.",
+      503,
+    );
+  }
+  if (data !== true) {
+    throw new CheckoutRequestError(
+      "BETA_CHECKOUT_GUARD_UNAVAILABLE",
+      "O checkout está temporariamente indisponível por segurança.",
+      503,
+    );
+  }
+}
+
+/**
+ * Optional legal documents are never accepted by the application implicitly.
+ * Only receipts for the authenticated company's current published Terms + DPA
+ * can unlock a NEW checkout, when the separate server-only policy enables it.
+ * Migration first, and QA with approved documents before turning the flag on.
+ */
+export async function assertBetaAsaasCheckoutLegalAllowed(
+  checkoutIntentId: string,
+  actorUserId: string,
+): Promise<void> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  let answer: { data: unknown; error: { code?: string; message?: string } | null };
+  try {
+    answer = await (supabaseAdmin as any).rpc("beta_assert_checkout_legal_accepted", {
+      p_checkout_intent_id: checkoutIntentId,
+      p_actor_user_id: actorUserId,
+    });
+  } catch {
+    throw new CheckoutRequestError(
+      "BETA_LEGAL_VERIFICATION_UNAVAILABLE",
+      "Não foi possível verificar os termos com segurança. Tente novamente mais tarde.",
+      503,
+    );
+  }
+  const { data, error } = answer ?? { data: null, error: null };
+  if (error?.code === "42501" &&
+      /BETA_LEGAL_ACCEPTANCE_REQUIRED/.test(error.message ?? "")) {
+    throw new CheckoutRequestError(
+      "BETA_LEGAL_ACCEPTANCE_REQUIRED",
+      "É necessário aceitar os termos vigentes antes de contratar.",
+      423,
+    );
+  }
+  if (error || data !== true) {
+    throw new CheckoutRequestError(
+      "BETA_LEGAL_VERIFICATION_UNAVAILABLE",
+      "Não foi possível verificar os termos com segurança. Tente novamente mais tarde.",
+      503,
+    );
+  }
+}
+
 async function provisionCheckout(
   checkoutIntentId: string,
   actorUserId: string,
@@ -516,6 +591,8 @@ export async function executeAsaasCheckoutRequest(
     if (!UUID_PATTERN.test(checkoutIntentId)) {
       return transportFailure("Checkout inválido.", "INVALID_CHECKOUT_INTENT", 400);
     }
+    await assertBetaAsaasCheckoutHandoffAllowed();
+    await assertBetaAsaasCheckoutLegalAllowed(checkoutIntentId, actorUserId);
     return {
       ok: true,
       checkout: await provisionCheckout(checkoutIntentId, actorUserId),

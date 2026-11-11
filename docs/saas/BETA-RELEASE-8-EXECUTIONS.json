@@ -9,7 +9,7 @@
   "beta_approval_status": "pending",
   "historical_formal_accepted": "13/23",
   "historical_technical_progress_percent": 94.06,
-  "note": "4/8. Etapa 6: minutas legais LGPD + termos/DPA, direitos, retenção, fornecedores, RIPD e beta ops integradas com CI; não há aprovação profissional, documentos publicados, aceite real ou autorização de venda.",
+  "note": "4/8 (50%). Etapa 6: PR #290 concluiu testes sintéticos PostgreSQL e Vitest de convites, parada comercial e recibos versionados de Termos/DPA no servidor, DESLIGADOS por padrão. Sem revisão jurídica, publicação de textos, hospedagem QA, cobrança ou autorização de beta. Etapa 5 continua dependente do Sandbox real.",
   "steps": [
     {
       "id": 1,
@@ -343,7 +343,14 @@
         "https://github.com/GustavoFboz/dtfipo/pull/286",
         "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444111",
         "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444050",
-        "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444071"
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444071",
+        "https://github.com/GustavoFboz/dtfipo/pull/290",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43030116513",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43030116664",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43040131799",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43040131576",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43040131568",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43040131524"
       ],
       "checkpoint": {
         "legal_lgpd_internal_drafts": {
@@ -396,6 +403,47 @@
           "identity_checked": false,
           "contact_checked": false,
           "public_release_of_identity_authorized": false
+        },
+        "dormant_server_invite_and_checkout_guard": {
+          "date": "2026-11-11",
+          "pull_request": "https://github.com/GustavoFboz/dtfipo/pull/290",
+          "state": "DRAFT_NOT_MERGED_OR_DEPLOYED",
+          "flags_default_off": true,
+          "synthetic_postgres17_passed": true,
+          "checkout_server_vitest_and_general_ci_passed": true,
+          "combined_authorization_paths": "web_http_and_server_fn_shared_boundary",
+          "authenticated_company_invites_and_one_use_sql_synthetic_only": true,
+          "old_intent_handoff_blocked_in_synthetic_tests": true,
+          "database_unavailable_fails_closed_in_unit_tests": true,
+          "previously_issued_asaas_payment_links_revoked": false,
+          "hosted_supabase_auth_postgrest_verified": false,
+          "hosted_sandbox_asaas_verified": false,
+          "legal_texts_approved": false,
+          "step6_accepted": false,
+          "production_changes_authorized": false,
+          "postgres_ci": "https://github.com/GustavoFboz/dtfipo/actions/runs/43030116513",
+          "general_ci": "https://github.com/GustavoFboz/dtfipo/actions/runs/43030116664"
+        },
+        "dormant_versioned_legal_receipt_handoff_guard": {
+          "date": "2026-11-11",
+          "reviewed_pull_request": "https://github.com/GustavoFboz/dtfipo/pull/290",
+          "draft_branch_only": true,
+          "enabled_by_default": false,
+          "synthetic_postgres17_versioned_legal_schema_test_passed": true,
+          "synthetic_owner_and_company_separation_passed": true,
+          "synthetic_latest_published_terms_and_dpa_required": true,
+          "synthetic_idempotent_receipts_verified": true,
+          "synthetic_published_immutability_verified": true,
+          "server_side_transport_unit_test_passed": true,
+          "general_ci_and_build_passed": true,
+          "stage_six_completion_not_authorized": true,
+          "legal_review_approved": false,
+          "real_documents_published": false,
+          "hosted_auth_database_verified": false,
+          "staging_production_touched": false,
+          "postgresql_run": "https://github.com/GustavoFboz/dtfipo/actions/runs/43040131799",
+          "general_ci": "https://github.com/GustavoFboz/dtfipo/actions/runs/43040131576",
+          "next_required": "Published, legally approved contracts and pricing; hosted QA with real Auth/RLS and documented customer receipt; backend migrations before code."
         }
       }
     },
