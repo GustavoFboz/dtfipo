@@ -4,7 +4,7 @@
 
 ## 1. Quem somos e como entrar em contato
 
-O serviço DentalFlow é oferecido por `[PENDENTE: nome empresarial]`, CNPJ `[PENDENTE]`, endereço `[PENDENTE]`, contato geral `[PENDENTE]`, canal de privacidade/titulares `[PENDENTE]`. Identidade e contato do encarregado, ou avaliação documentada de dispensa legal aplicável: `[PENDENTE]`. Nenhum e-mail deve ser inventado ou publicado antes de ser controlado pela Prestadora.
+O serviço DentalFlow será oferecido inicialmente por **pessoa física**, com nome civil `[PENDENTE]`, CPF `[PENDENTE: sob guarda privada, exposição pública/contratual a revisar conforme obrigação legal]`, município/UF `[PENDENTE]`, endereço físico profissional/de contato `[PENDENTE]`, e-mail de atendimento `[PENDENTE]` e canal de privacidade/titulares `[PENDENTE]`. A identidade do responsável pelo tratamento não será substituída apenas pela marca “DentalFlow”. CNPJ não é condição presumida nesta versão, mas cumprimento fiscal e transparência ao consumidor continuam sujeitos à lei. Identidade e contato do encarregado, ou avaliação documentada de dispensa legal aplicável ao agente pessoa natural de pequeno porte: `[PENDENTE]`. Nenhum e-mail deve ser inventado ou publicado antes de ser controlado pela Prestadora.
 
 Ao usar o DentalFlow, a pessoa pode estar em duas situações distintas: **usuário profissional** da empresa contratante ou **paciente/demais titular** cujos dados foram incluídos por uma clínica, laboratório ou outro profissional. Esses grupos possuem relações jurídicas e canais de solicitação distintos.
 
