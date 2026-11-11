@@ -77,7 +77,7 @@ EXECUTE FUNCTION public.beta_guard_new_clinic_insert();
 -- (including an already issued/pending checkout intent). Cannot be invoked by
 -- public/anonymous clients. No change to webhooks, renewals or issued invoices.
 CREATE OR REPLACE FUNCTION public.beta_assert_new_checkout_handoff_allowed()
-RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $beta_handoff$
 DECLARE v_paused boolean;
 BEGIN
   SELECT new_checkout_intents_paused INTO v_paused
@@ -86,7 +86,7 @@ BEGIN
     RAISE EXCEPTION 'BETA_NEW_CHECKOUTS_PAUSED' USING ERRCODE = '42501';
   END IF;
   RETURN true;
-END $;
+END $beta_handoff$;
 REVOKE ALL ON FUNCTION public.beta_assert_new_checkout_handoff_allowed() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.beta_assert_new_checkout_handoff_allowed() TO service_role;
 
