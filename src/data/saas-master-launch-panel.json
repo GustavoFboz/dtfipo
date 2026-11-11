@@ -117,7 +117,7 @@
         {
           "id": "synthetic-finance",
           "title": "Ensaios locais de pagamentos, falhas e duplicidade",
-          "status": "prepared"
+          "status": "done"
         },
         {
           "id": "provider-1",
@@ -157,7 +157,7 @@
         {
           "id": "legal-drafts",
           "title": "Minutas internas de Termos, Privacidade e DPA",
-          "status": "prepared"
+          "status": "done"
         },
         {
           "id": "security-review",
@@ -242,7 +242,7 @@
         {
           "id": "local-rollback",
           "title": "Ensaio de reversão A→B→A em servidor local descartável",
-          "status": "prepared"
+          "status": "done"
         },
         {
           "id": "hosted-1",
