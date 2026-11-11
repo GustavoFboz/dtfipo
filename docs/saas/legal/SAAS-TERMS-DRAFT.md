@@ -4,11 +4,11 @@
 
 ## 1. Identificação, partes e vinculação
 
-**Prestador:** pessoa natural identificada por `[PENDENTE: nome civil completo]`, CPF `[PENDENTE: registrar/verificar em canal restrito, nunca no GitHub]`, endereço físico de contato `[PENDENTE: verificar divulgação exigida na oferta e opção legítima de domicílio profissional]`, município/UF `[PENDENTE]`, e-mail de atendimento `[PENDENTE]` e canal de privacidade `[PENDENTE]` (“Prestador”). Não se presume CNPJ, empresa constituída ou imunidade tributária. Dados exigidos por lei na oferta/contrato devem ser disponibilizados pelos meios apropriados após revisão jurídica; não ocultar informações obrigatórias por mera preferência de privacidade.
+**Parte prestadora:** pessoa natural identificada por `[PENDENTE: nome civil completo]`, CPF `[PENDENTE: registrar/verificar em canal restrito, nunca no GitHub]`, endereço físico de contato `[PENDENTE: verificar divulgação exigida na oferta e opção legítima de domicílio profissional]`, município/UF `[PENDENTE]`, e-mail de atendimento `[PENDENTE]` e canal de privacidade `[PENDENTE]` (“Prestadora”). Não se presume CNPJ, empresa constituída ou imunidade tributária. Dados exigidos por lei na oferta/contrato devem ser disponibilizados pelos meios apropriados após revisão jurídica; não ocultar informações obrigatórias por mera preferência de privacidade.
 
 **Cliente:** pessoa jurídica/organização de serviços odontológicos ou laboratório identificada na proposta e na conta DentalFlow, representada por pessoa **com poderes para contratar e vincular a empresa** (“Contratante”). Pessoas convidadas para usar a plataforma são usuários autorizados, e **não** passam a ser representantes legais por essa condição. Registro da prova dos poderes: `[PENDENTE: procedimento e evidência]`.
 
-O Prestador pode exercer a atividade em nome próprio, sujeito a verificar cadastro municipal, tributação, emissão de NFS-e e habilitação do provedor de pagamentos. **Ser pessoa física não reduz direitos dos pacientes nem deveres de segurança e responsabilidade.**
+A pessoa física prestadora pode exercer a atividade em nome próprio, sujeito a verificar cadastro municipal, tributação, emissão de NFS-e e habilitação do provedor de pagamentos. **Ser pessoa física não reduz direitos dos pacientes nem deveres de segurança e responsabilidade.**
 
 A assinatura compreende estes Termos, a **Proposta/Quadro Comercial** com preço e versão imutáveis, o **Aviso de Privacidade** para dados de conta e o **Acordo de Tratamento de Dados (DPA)** para as operações em nome da Contratante; havendo divergência, prevalecerá regra mais específica de proteção dos dados sobre disposição genérica, sem afastar leis imperativas. Ordem contratual final: `[PENDENTE: validação jurídica]`.
 
