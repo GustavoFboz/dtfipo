@@ -10,7 +10,10 @@
       "id": "production-billing-lifecycle",
       "description": "Comprovar cobrança, renovação, cancelamento, inadimplência, reativação, deduplicação e plano/valor no ambiente de produção sem débito indevido.",
       "status": "pending",
-      "evidence": []
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/pull/291",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43033967265"
+      ]
     },
     {
       "id": "clinical-case-and-tenant-safety",

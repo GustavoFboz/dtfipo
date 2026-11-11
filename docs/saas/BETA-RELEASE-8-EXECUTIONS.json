@@ -9,7 +9,7 @@
   "beta_approval_status": "pending",
   "historical_formal_accepted": "13/23",
   "historical_technical_progress_percent": 94.06,
-  "note": "4/8. Etapa 6: minutas legais LGPD + termos/DPA, direitos, retenção, fornecedores, RIPD e beta ops integradas com CI; não há aprovação profissional, documentos publicados, aceite real ou autorização de venda.",
+  "note": "4/8. Etapa 5: prova sintética de verificação GET-only Asaas Sandbox passou na PR #291; sem chave/provider real e QA Lovable DB indisponível, etapa pendente. Etapa 6 PR #290 contém controles de convite/parada ainda não implantados; 0/8 P0 e beta não publicado.",
   "steps": [
     {
       "id": 1,
@@ -304,7 +304,9 @@
       "evidence": [
         "https://github.com/GustavoFboz/dtfipo/pull/282",
         "https://github.com/GustavoFboz/dtfipo/actions/runs/42810806355",
-        "https://github.com/GustavoFboz/dtfipo/actions/runs/42810806563"
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42810806563",
+        "https://github.com/GustavoFboz/dtfipo/pull/291",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43033967265"
       ],
       "checkpoint": {
         "technical_disposable_finance_verified": {
@@ -329,7 +331,26 @@
           "Real Sandbox overdue/grace/suspension/recovery and cancellation, no duplicate subscription",
           "Client payment method and period/price parity in actual QA deployment",
           "Provider real cancellation/readback and emergency-stop verification"
-        ]
+        ],
+        "sandbox_provider_readonly_probe_preparation": {
+          "date": "2026-11-11",
+          "pull_request": "https://github.com/GustavoFboz/dtfipo/pull/291",
+          "synthetic_contract_ci": "https://github.com/GustavoFboz/dtfipo/actions/runs/43033967265",
+          "synthetic_contract_passed": true,
+          "real_provider_api_contacted": false,
+          "provider_second_invoice_confirmed": false,
+          "designed_http_methods": [
+            "GET"
+          ],
+          "production_requests": 0,
+          "sandbox_write_requests": 0,
+          "provider_key_supplied": false,
+          "live_staging_database_accessible": false,
+          "lovabe_qa_diagnostic": "SELECT 1 => Database is possibly not accessible at the moment",
+          "missing": "Provider real readback, real Sandbox payment/webhook/worker/ledger, hosted QA/Supabase and cancellation controls",
+          "stage5_done": false,
+          "beta_sales_authorized": false
+        }
       }
     },
     {
