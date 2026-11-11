@@ -35,7 +35,12 @@
       "status": "pending",
       "evidence": [
         "https://github.com/GustavoFboz/dtfipo/pull/286",
-        "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444111"
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444111",
+        "https://github.com/GustavoFboz/dtfipo/pull/290",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43040131799",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43040131576",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43040131568",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43040131524"
       ]
     },
     {
@@ -65,7 +70,11 @@
         "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444111",
         "https://github.com/GustavoFboz/dtfipo/pull/290",
         "https://github.com/GustavoFboz/dtfipo/actions/runs/43030116513",
-        "https://github.com/GustavoFboz/dtfipo/actions/runs/43030116664"
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43030116664",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43040131799",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43040131576",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43040131568",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43040131524"
       ]
     },
     {
