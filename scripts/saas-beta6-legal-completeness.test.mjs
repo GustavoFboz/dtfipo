@@ -125,3 +125,31 @@ test("sole-person CPF provider is documented with minimal, secure collection and
   assert.equal(steps.steps.find(x=>x.id===6).status,"pending");
   assert.equal(steps.steps.filter(x=>x.status==="done").length,4);
 });
+
+
+test("public GitHub must never receive real sole-person identity or unapproved personal contact",()=>{
+  const state=control.provider_identity_collection_policy;
+  assert.equal(state.private_values_initially_supplied_outside_public_repository,true);
+  assert.equal(state.private_values_verified,false);
+  assert.equal(state.public_disclosure_authorized,false);
+  assert.equal(state.public_support_contact_verified,false);
+  const docs=[
+    "SAAS-TERMS-DRAFT.md","PRIVACY-NOTICE-DRAFT.md","DPA-DRAFT.md",
+    "BETA-PILOT-COMMERCIAL-ANNEX-DRAFT.md","DADOS-PENDENTES-PARA-APROVACAO.md"
+  ];
+  for(const file of docs){
+    const source=read(root+file);
+    // Until publication is authorized, any personal mailbox in a PUBLIC
+    // contract draft is a privacy breach, not a completed legal field.
+    assert.doesNotMatch(source,/\b[\w.+-]+@(?:gmail|outlook|hotmail|yahoo)\.[a-z]{2,}\b/i,
+      "Unapproved personal email in public legal source: "+file);
+    assert.doesNotMatch(source,/\b\d{3}\.\d{3}\.\d{3}-\d{2}\b/,
+      "CPF must never appear in public docs: "+file);
+  }
+  const policy=read(root+"PF-DATA-PUBLICATION-SAFETY.md");
+  assert.match(policy,/visibilidade \*\*pública\*\*/);
+  assert.match(policy,/não foram verificadas/i);
+  assert.match(policy,/histórico público/);
+  assert.equal(steps.steps.find(x=>x.id===6).status,"pending");
+  assert.equal(steps.release_state,"not_published");
+});
