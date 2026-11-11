@@ -368,27 +368,27 @@
           "substeps": [
             {
               "id": "renewal-real-provider",
-              "title": "Authenticated real Sandbox renewal without prior webhook, reconciled to one payment/paid period; no live collection",
+              "title": "Renovação real já observada no Sandbox",
               "status": "done"
             },
             {
               "id": "cancellation-master-mfa",
-              "title": "One real Sandbox cancellation with Master AAL2 and Asaas INACTIVE readback, 18/18 actual checks",
+              "title": "Cancelamento no Asaas com MFA administrativo",
               "status": "done"
             },
             {
               "id": "overdue-and-grace",
-              "title": "Provider-confirmed overdue and grace state to billing-only, with evidence of expected access window",
+              "title": "Atraso e período de tolerância comprovados",
               "status": "pending"
             },
             {
               "id": "refund-dispute-suspension",
-              "title": "Actual authorized refund/dispute plus suspended access, ledger and charged period consistency",
+              "title": "Estorno/contestação e suspensão de acesso",
               "status": "pending"
             },
             {
               "id": "reactivation",
-              "title": "Real authorized reactivation after delinquency/cancellation, renewed access and billing reconciliation",
+              "title": "Reativação da assinatura após inadimplência",
               "status": "pending"
             }
           ]
@@ -402,22 +402,22 @@
           "substeps": [
             {
               "id": "renewal-invariants",
-              "title": "Sandbox renewal completed without missing historical payment/paid period or unexpected duplicated ledger",
+              "title": "Histórico e período pago preservados na renovação",
               "status": "done"
             },
             {
               "id": "cancellation-preservation",
-              "title": "Authenticated Sandbox cancel preserved 701 ready files, patient/case fingerprints, three invoices, ledger and paid-period access",
+              "title": "Dados e período pago preservados no cancelamento",
               "status": "done"
             },
             {
               "id": "arrears-refund-preservation",
-              "title": "Confirm bytes, histories, invoices, paid periods and access are preserved through real overdue/refund transitions",
+              "title": "Preservação dos arquivos durante atraso e estorno",
               "status": "pending"
             },
             {
               "id": "reactivation-preservation",
-              "title": "After real reactivation, independently reconcile clinical data and paid periods without duplicate events",
+              "title": "Conferir dados e período ao reativar o plano",
               "status": "pending"
             }
           ]
@@ -431,27 +431,27 @@
           "substeps": [
             {
               "id": "72h-policy",
-              "title": "Shared 72-hour device-access policy and expiry regression tests",
+              "title": "Regra de acesso offline por até 72 horas",
               "status": "done"
             },
             {
               "id": "native-compilation",
-              "title": "Windows native installer build, Android API35 and Android API37 emulated startup smoke both passed; physical devices, signed distribution and 72h expiration remain unaccepted",
+              "title": "Instaladores e emuladores de Windows/Android",
               "status": "done"
             },
             {
               "id": "consistent-entitlement-guard",
-              "title": "Desktop/shared subscription cache authorization unified, positive CI and merge",
+              "title": "Mesmo bloqueio de assinatura em todas as plataformas",
               "status": "done"
             },
             {
               "id": "physical-device-expiry",
-              "title": "72h expiry, retry and cleanup in physical Windows and Android devices",
+              "title": "Expiração offline após 72 horas nos aparelhos reais",
               "status": "pending"
             },
             {
               "id": "physical-device-reauth",
-              "title": "Physical-device reauthentication, downgrade, suspended subscription and release distribution acceptance",
+              "title": "Novo login e bloqueio/desbloqueio em aparelhos reais",
               "status": "pending"
             }
           ]
@@ -487,32 +487,32 @@
           "substeps": [
             {
               "id": "shared-web-native-storage-app",
-              "title": "Existing shared Storage pages and attachment clients included in web, Tauri Windows and Android builds; native Android 35/37 startup and Windows installer builds verified, but no physical device file transfer",
+              "title": "Arquivos incluídos nos aplicativos Web, Windows e Android",
               "status": "done"
             },
             {
               "id": "private-file-and-quota-contract-in-ci",
-              "title": "Current CI explicitly reruns private reference signing/expiry, upload reservations, quota and deletion fail-closed on shared client code, without claiming native device operations",
+              "title": "Testes de arquivos privados e cotas de espaço",
               "status": "done"
             },
             {
               "id": "storage-tenant-cache-and-auth-owner-scope",
-              "title": "Storage management now binds profile and file queries to Auth user+clinic, filters foreign rows, hides cross-clinic usage snapshots and tests delayed account-switch results",
+              "title": "Arquivos e cache limitados à clínica correta",
               "status": "done"
             },
             {
               "id": "real-android-storage-journey",
-              "title": "Authenticated Android physical upload, download, open, quota failure and signed URL renewal verified",
+              "title": "Enviar, abrir e baixar anexos no Android real",
               "status": "pending"
             },
             {
               "id": "real-windows-storage-journey",
-              "title": "Authenticated Windows physical upload, download, open and native offline cached file verified",
+              "title": "Enviar, abrir e baixar anexos no Windows real",
               "status": "pending"
             },
             {
               "id": "offline-expiry-storage-and-owner-physical",
-              "title": "Physical Windows and Android 72h expiration, re-login, owner swap and local clinical byte purge with unchanged source data",
+              "title": "Limpar cache após expiração e troca de conta",
               "status": "pending"
             }
           ]
@@ -540,42 +540,42 @@
           "substeps": [
             {
               "id": "master-aal2-audit",
-              "title": "Real Master AAL2 factor verification and individual audited reviews in Sandbox on 24/10; no financial replay",
+              "title": "Operações administrativas protegidas por MFA",
               "status": "done"
             },
             {
               "id": "workflow-tenant-presentation-boundary",
-              "title": "Fail-closed stage ownership isolation when a shared case has unknown/orphan stage; negative regression and complete main CI",
+              "title": "Isolamento do fluxo de trabalho por clínica",
               "status": "done"
             },
             {
               "id": "unowned-patient-attribution",
-              "title": "Determine legitimate ownership for 12 existing patients lacking clinic_id, verify evidence and resolve without guesswork",
+              "title": "Procedência dos registros históricos sem clínica",
               "status": "pending"
             },
             {
               "id": "cross-owner-local-cache-regressions",
-              "title": "Installed profile and patient cache reject asynchronous account swaps, and patient outbox requires current real Cloud actor; covered by synthetic race regressions in general CI, not physical device homologation",
+              "title": "Cache local não mistura contas e clínicas",
               "status": "done"
             },
             {
               "id": "positive-control-readonly-qa-harness",
-              "title": "Verified read-only, real-JWT tenant-isolation probe requires accessible patient from each approved QA company before testing cross-tenant denial; isolated hermetic CI is positive, live fixture execution remains pending",
+              "title": "Consulta de teste com controle de acesso positivo",
               "status": "done"
             },
             {
               "id": "two-company-rls-real-role-disposable",
-              "title": "Disposable PostgreSQL actual authenticated SQL role regression verifies own patient positive controls, cross-company read/update/delete denial, no orphan direct inserts, ownership changes rejected and forged company blocked by creation RPC; no real JWT sessions",
+              "title": "Banco de teste bloqueia acessos entre clínicas",
               "status": "done"
             },
             {
               "id": "revocation-and-cross-company-live-probes",
-              "title": "Authenticated multi-account/session revocation and negative cross-tenant access verified in the live permitted environment",
+              "title": "Revogar sessões e negar acessos cruzados no ambiente real",
               "status": "pending"
             },
             {
               "id": "positive-financial-replay",
-              "title": "Real authorized positive financial replay with idempotency and preservation of paid period, ledger and independent companies",
+              "title": "Recuperar operação financeira autorizada sem duplicar valores",
               "status": "pending"
             }
           ]
@@ -619,32 +619,32 @@
           "substeps": [
             {
               "id": "provider-future-schedule",
-              "title": "Master MFA confirmed future Growth-to-Inicial R$5 recurrence in Sandbox Asaas, effective 18/12/2026 UTC, one scheduled local term",
+              "title": "Troca de plano agendada no Asaas",
               "status": "done"
             },
             {
               "id": "one-write-audit",
-              "title": "Single authorized Master operation audited with provider readback and three jobs totalling 54/54 checks",
+              "title": "Uma operação autorizada por solicitação",
               "status": "done"
             },
             {
               "id": "no-early-activation",
-              "title": "Observed Growth R$449 current period kept, future term scheduled, activated_at null and no future charge",
+              "title": "Troca futura não altera o plano antes do prazo",
               "status": "done"
             },
             {
               "id": "future-activation-real",
-              "title": "After 18/12/2026, confirm actual paid new period and scheduled term activation in provider and app",
+              "title": "Aplicação real da troca na próxima vigência",
               "status": "pending"
             },
             {
               "id": "downgrade-quota-enforcement",
-              "title": "Prove quota and access behavior on actual downgrade, without loss of existing clinical bytes",
+              "title": "Limite de espaço correto depois do downgrade",
               "status": "pending"
             },
             {
               "id": "ambiguous-failure-recovery",
-              "title": "Verify real authorized ambiguous provider failure followed by single recovery and no duplicated financial operation",
+              "title": "Recuperar falha incerta sem repetir a cobrança",
               "status": "pending"
             }
           ]
@@ -672,32 +672,32 @@
           "substeps": [
             {
               "id": "encrypted-operations-drill",
-              "title": "Encrypted database and real file-byte recovery in isolated disposable databases; failure rollback",
+              "title": "Ensaio de recuperação cifrada e falha simulada",
               "status": "done"
             },
             {
               "id": "historical-real-db-offline-restore",
-              "title": "29/10 native database export decrypted and independently restored offline: 125 tables, 14,024 rows, 202 foreign keys (historical snapshot only)",
+              "title": "Banco histórico restaurado sem acesso externo",
               "status": "done"
             },
             {
               "id": "historical-archive-physical-integrity",
-              "title": "All 33 private historical ZIPs SHA-256 verified against AES-256-GCM index; additionally 33 manifests and all 592 preserved object payloads (6,489,242,325 content bytes) authenticated/decrypted in-memory and independently checked against hashes, with 116 objects still missing",
+              "title": "Conferência criptográfica dos arquivos históricos",
               "status": "done"
             },
             {
               "id": "storage-full-copy",
-              "title": "All 708 objects of 29/10 frozen inventory copied and authenticated; 592 verified/116 missing",
+              "title": "Cópia integral e autenticada do histórico congelado",
               "status": "pending"
             },
             {
               "id": "full-isolated-recovery",
-              "title": "All database rows and bytes restored and validated together from a consistent snapshot",
+              "title": "Banco e arquivos completos restaurados juntos",
               "status": "pending"
             },
             {
               "id": "current-runtime-reconciliation",
-              "title": "Current Cloud delta reconciled, access and rollback/incident plan validated without touching production",
+              "title": "Conferência da versão atual e plano real de incidente",
               "status": "pending"
             }
           ]
@@ -711,32 +711,32 @@
           "substeps": [
             {
               "id": "bounded-local-pilot-harness",
-              "title": "Loopback-only GET capacity preflight capped at 40 requests, 4 concurrent and 3s per request; hermetic CI enforces refusal of Production/Cloud targets",
+              "title": "Teste local de carga com limites seguros",
               "status": "done"
             },
             {
               "id": "aggregate-db-readonly-baseline",
-              "title": "Actual read-only minimal Cloud PostgreSQL snapshot of current connections, idle transactions and cumulative counters, using reproducible two-SELECT query, with no performance claims",
+              "title": "Leitura limitada da situação do banco atual",
               "status": "done"
             },
             {
               "id": "staging-journal-and-fixtures",
-              "title": "Real restored PostgreSQL disposable staging journal: 2 synthetic companies, 2 SQL-authenticated roles, 4 fake patients and 4 cases; positive own-only reads and rollback verified in CI. This is DB fixture readiness, not HTTP staging, Realtime or capacity proof.",
+              "title": "Empresas e casos fictícios em banco isolado",
               "status": "done"
             },
             {
               "id": "database-realtime-baseline",
-              "title": "Measure Web, database, Realtime, CPU/RAM, connections, errors and cache before and after modest staging load",
+              "title": "Medir tempo de resposta e mensagens em staging",
               "status": "pending"
             },
             {
               "id": "native-onboarding-pilot",
-              "title": "Confirm actual user onboarding and data/file operations from supported Windows and Android physical devices",
+              "title": "Cadastro e arquivos em Windows/Android reais",
               "status": "pending"
             },
             {
               "id": "progressive-capacity-approval",
-              "title": "Repeat load safely in stages with verified latency/error SLO, cost ceiling and explicit rollback/stop rules before scaling",
+              "title": "Aumentar carga com metas de desempenho e reversão",
               "status": "pending"
             }
           ]
@@ -750,32 +750,32 @@
           "substeps": [
             {
               "id": "legal-operational-protocol",
-              "title": "L01-L08 operational legal protocol and preliminary controller/processor role matrix drafted with no claimed regulatory signoff",
+              "title": "Planejamento de privacidade e responsabilidades",
               "status": "done"
             },
             {
               "id": "internal-terms-privacy-dpa-drafts",
-              "title": "Terms SaaS, Privacy Notice, DPA and legal review checklist created as conspicuously unapproved internal drafts with hermetic CI",
+              "title": "Minutas internas de Termos, Privacidade e DPA",
               "status": "done"
             },
             {
               "id": "verified-supplier-retention-incident-register",
-              "title": "Audited source-grounded register for actual Supabase/Lovable/Asaas integrations, code TTLs (72h and 300s), ANPD incident minimum record and notification triage, automated tests and explicit unapproved contracts/regions/clinical retention. Not legal review or compliant incident operation.",
+              "title": "Inventário técnico de fornecedores e incidentes",
               "status": "done"
             },
             {
               "id": "dormant-versioned-receipt-contract-verified",
-              "title": "PostgreSQL disposable restore proves immutable approved-only document versions with SHA-256, owner-scoped and idempotent acceptance receipts, RLS draft denial, cross-tenant rejection; client feature remains disabled, no approved legal content seeded or published.",
+              "title": "Recibos de aceite por versão testados e desativados",
               "status": "done"
             },
             {
               "id": "qualified-legal-business-review",
-              "title": "Legal privacy/business responsible review and signoff for complete versions, real provider contracts, identity, taxes and commercial offer",
+              "title": "Revisão jurídica, comercial e de privacidade",
               "status": "pending"
             },
             {
               "id": "published-versioned-terms-acceptance",
-              "title": "Approved contracts deployed with immutable version, representative identity, timestamp, plan price and retrieval evidence",
+              "title": "Publicar termos aprovados e comprovar aceite",
               "status": "pending"
             }
           ]
@@ -819,32 +819,32 @@
           "substeps": [
             {
               "id": "manual-release-evidence-guard",
-              "title": "Read-only fail-closed release audit checks all 23 acceptance IDs; partial progress never authorizes selling; even complete status requires human launch review",
+              "title": "Bloqueio automático de liberação sem evidências",
               "status": "done"
             },
             {
               "id": "master-release-readiness-disclosure",
-              "title": "Authenticated Master progress panel displays one completion percentage and explicit not-authorized release status without falsely claiming checkout is technically disabled",
+              "title": "Painel informa se vendas estão autorizadas",
               "status": "done"
             },
             {
               "id": "source-locked-beta-preflight-reproducible",
-              "title": "CLI reads source commit, native version parity, Android app ID, complete SQL-migration hashes and 9 important source hashes; blocked release until signatures, full backup, approved terms and verified rollback. Hermetic CLI test and bounded CI preflight, no deploy.",
+              "title": "Conferência de versão e integridade antes do release",
               "status": "done"
             },
             {
               "id": "production-release-candidate-verified",
-              "title": "Exact signed release candidate, native versioning, backend commit and recovery version parity jointly verified and approved",
+              "title": "Versão final assinada e vinculada ao backend",
               "status": "pending"
             },
             {
               "id": "commercial-and-legal-approvals",
-              "title": "Approved offers, prices, final terms, privacy/DPA and account-owner acknowledgement signed",
+              "title": "Preços e contratos aprovados para venda",
               "status": "pending"
             },
             {
               "id": "authorized-pilot-and-sales-release",
-              "title": "Real pilot/access reviews and signed owner decision authorize public beta or sales with rollback and monitoring",
+              "title": "Primeira turma paga autorizada e monitorada",
               "status": "pending"
             }
           ]
