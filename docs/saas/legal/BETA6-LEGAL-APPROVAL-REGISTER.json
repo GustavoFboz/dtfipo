@@ -153,7 +153,7 @@
     }
   ],
   "no_automatic_completion_of_stage6": true,
-  "note": "Prestador PF inicial com dados mínimos sem CNPJ; atenção a deveres LGPD, transparência legal e tributos. Somente minutas; nenhuma pessoa ou CPF foi registrado e nenhuma autorização jurídica/comercial foi dada.",
+  "note": "Initial PF name, city/state and proposed support/privacy email were supplied privately. No personal values should be committed to this public repository; local personalized identification sheets remain with the owner. Ownership/identity, fiscal identification and publishable contact still unverified; all commercial/legal gates remain closed.",
   "provider_legal_form_preference": "individual_cpf_no_cnpj_initial",
   "provider_identity_collection_policy": {
     "initial_request": [
@@ -173,6 +173,11 @@
       "supplier_identification_and_contact_required_by_consumer_law",
       "applicable_municipal_tax_registration_and_invoicing",
       "provider_specific_asaas_pf_kyc"
-    ]
+    ],
+    "private_values_initially_supplied_outside_public_repository": true,
+    "private_values_verified": false,
+    "public_disclosure_authorized": false,
+    "commercial_identification_verified": false,
+    "public_support_contact_verified": false
   }
 }
