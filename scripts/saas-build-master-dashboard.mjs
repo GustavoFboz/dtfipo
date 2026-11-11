@@ -163,10 +163,10 @@ function verifiedSubstep(step,id){
   requireValid(!ids.has(record.id),"SUBSTEP_EVIDENCE_DUPLICATED");
   ids.add(record.id);
  }
- requireValid(reviews.every(record=>["synthetic-finance","provider-1","provider-2","provider-3",
-  "provider-4","provider-5","legal-drafts","security-review","local-rollback",
-  "hosted-1","hosted-2","hosted-3","hosted-4"].includes(record.id)),
-  "UNKNOWN_SUBSTEP_RECEIPT");
+ const allowed=step.id===5?["provider-1","provider-2","provider-3","provider-4","provider-5"]
+  :step.id===6?["security-review"]
+  :step.id===7?["hosted-1","hosted-2","hosted-3","hosted-4"]: [];
+ requireValid(reviews.every(record=>allowed.includes(record.id)),"UNKNOWN_SUBSTEP_RECEIPT");
  return ids.has(id)?"done":"pending";
 }
 function aggregateSteps(step,legal,p0){
