@@ -1,0 +1,48 @@
+name: DentalFlow Beta5 Asaas Sandbox Read-only Probe
+
+on:
+  pull_request:
+    branches: [main, "saas/stage-03-asaas-checkout"]
+    paths:
+      - "scripts/saas-beta5-sandbox-readonly.mjs"
+      - "scripts/saas-beta5-sandbox-readonly.test.mjs"
+      - ".github/workflows/saas-beta5-sandbox-readonly.yml"
+      - "docs/saas/evidence/beta5-sandbox-readonly-preflight.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Prove fail-closed read-only provider contract
+        run: node --test scripts/saas-beta5-sandbox-readonly.test.mjs
+      - name: Prevent false beta step completion
+        run: |
+          node -e "const fs=require('fs');const x=JSON.parse(fs.readFileSync('docs/saas/BETA-RELEASE-8-EXECUTIONS.json'));if(x.steps.find(s=>s.id===5)?.status!=='pending'||x.release_state!=='not_published')process.exit(1)"
+  live-sandbox-get:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ASAAS_SANDBOX_READONLY_API_KEY: ${{ secrets.ASAAS_SANDBOX_READONLY_API_KEY }}
+      ASAAS_SANDBOX_SUBSCRIPTION_ID: ${{ vars.ASAAS_SANDBOX_SUBSCRIPTION_ID }}
+      ASAAS_SANDBOX_EXPECTED_CENTS: ${{ vars.ASAAS_SANDBOX_EXPECTED_CENTS }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: One-shot GET-only Sandbox evidence (no payment or billing writes)
+        run: node scripts/saas-beta5-sandbox-readonly.mjs
