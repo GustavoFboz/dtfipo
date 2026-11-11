@@ -337,7 +337,7 @@
       "code": "legal-privacy-beta-ops",
       "name": "Termos, LGPD, suporte e convites controlados",
       "status": "pending",
-      "owner_action": "Quando conveniente: fornecer identificação da prestadora (razão social, CNPJ, endereço, representante), contatos de suporte/privacidade, propostas de plano/preço, empresas iniciais do beta; advogado/privacidade devem aprovar os documentos. Nenhuma ação imediata para os rascunhos já integrados. A etapa só concluirá após publicação de textos aprovados, testes de aceite e controles operacionais.",
+      "owner_action": "Início como prestador pessoa física confirmado. Por ora informar apenas nome civil, cidade/UF e e-mail controlado para suporte/privacidade; CPF e endereço completo não devem ir ao GitHub ou ao chat. Depois, em canal seguro: identificação fiscal, CNPJ não obrigatório nesta fase, documentação Asaas PF, revisão jurídica/tributária e publicações/aceites testados.",
       "definition_of_done": "Documentos legais efetivos aprovados, publicados e aceitos por versão; registros protegidos, telemetria sem dados clínicos, convites restritos e interruptor para novas adesões.",
       "evidence": [
         "https://github.com/GustavoFboz/dtfipo/pull/286",
@@ -373,12 +373,26 @@
           "production_touched": false
         },
         "remaining": [
-          "Razão social/CNPJ/endereço/representante e contatos institucionais reais",
+          "Nome civil da pessoa física, cidade/UF, e-mail controlado, identificação CPF/endereço em meio apropriado e avaliação fiscal/municipal",
           "Revisão jurídico/privacidade e bases legais de dados sensíveis/contratos de suboperadores",
           "Preços e condições comerciais do beta, canal de suporte, retenção e transferência internacional aprovados",
           "Documentos finais publicados/consultáveis antes do checkout e aceites versionados do representante em QA e ambiente hospedado",
           "Convites empresariais restritos no backend, telemetria sem dados clínicos e parada emergencial de novas compras comprovada"
-        ]
+        ],
+        "provider_individual_initialization": {
+          "date": "2026-11-11",
+          "legal_form": "individual_cpf_no_cnpj_initial",
+          "initial_minimal_fields": [
+            "legal_name",
+            "city_state",
+            "service_privacy_email"
+          ],
+          "identity_received_and_verified": false,
+          "cpf_stored_in_git": false,
+          "legal_review_approved": false,
+          "docs_published": false,
+          "beta_sales_authorized": false
+        }
       }
     },
     {
