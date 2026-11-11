@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchCases, fetchPhases, fetchStages, setCurrentStage, setCurrentPhase, finishCase, deleteCase } from "@/lib/api";
@@ -153,7 +154,7 @@ export function PhasesBoard() {
                         <div className="flex items-start gap-2">
                           <div className="h-7 w-7 rounded-full bg-muted grid place-items-center text-[10px] overflow-hidden shrink-0">
                             {c.patient?.photo_url ? (
-                              <img src={c.patient.photo_url} alt="" className="h-full w-full object-cover" />
+                              <PrivateImage src={c.patient.photo_url} alt="" className="h-full w-full object-cover" />
                             ) : (
                               (c.patient?.name?.[0] ?? "?").toUpperCase()
                             )}

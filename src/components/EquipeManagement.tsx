@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { PrivateImage } from "@/components/PrivateImage";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -7,8 +8,8 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { confirm, promptDialog } from "@/lib/confirm";
-import { fetchProfile, fetchPendingJoinRequests, approveJoinRequest, rejectJoinRequest, adminSetMemberPassword } from "@/lib/api";
-import { listTeamMembers } from "@/lib/team.functions";
+import { fetchProfile, fetchPendingJoinRequests, approveJoinRequest, rejectJoinRequest } from "@/lib/api";
+import { listTeamMembers, setTeamMemberPassword } from "@/lib/team.functions";
 import { fetchTeamMembersLocalFirst } from "@/lib/team-local-first";
 import { isDentalFlowDesktop } from "@/lib/desktop-local";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export function EquipeManagement({ mode = "laboratory" }: { mode?: "laboratory" 
   const desktop = isDentalFlowDesktop();
   const qc = useQueryClient();
   const listTeamMembersFn = useServerFn(listTeamMembers);
+  const setTeamMemberPasswordFn = useServerFn(setTeamMemberPassword);
   const [q, setQ] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [editing, setEditing] = useState<any | null>(null);
@@ -86,9 +88,9 @@ export function EquipeManagement({ mode = "laboratory" }: { mode?: "laboratory" 
         {filtered.map((p: any) => {
           const founder = Boolean(p.is_default_admin || p.is_founder);
           return <article key={p.id} className={`rounded-[26px] border border-slate-200/70 bg-white p-5 transition hover:-translate-y-px hover:shadow-sm dark:border-white/10 dark:bg-slate-950 ${clinicMode ? "hover:border-[#1e8f87]/20" : "hover:border-primary/20"}`}>
-            <div className="flex items-start gap-4"><div className={`grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl text-lg font-light ${clinicMode ? "bg-[#1e8f87]/8 text-[#1e8f87]" : "bg-primary/8 text-primary"}`}>{p.avatar_url ? <img src={p.avatar_url} alt="" className="h-full w-full object-cover" /> : (p.full_name?.[0]?.toUpperCase() ?? <Users2 className="h-5 w-5" />)}</div><div className="min-w-0 flex-1"><h3 className="truncate text-base font-medium text-slate-900 dark:text-white">{p.full_name || "Sem nome"}</h3><div className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.09em] ${clinicMode ? "bg-[#1e8f87]/8 text-[#1e8f87]" : "bg-primary/8 text-primary"}`}>{founder ? "Fundador" : (ROLE_LABEL[p.role] ?? p.role)}</div></div><ShieldCheck className={`h-4 w-4 ${clinicMode ? "text-[#1e8f87]/55" : "text-primary/55"}`} /></div>
+            <div className="flex items-start gap-4"><div className={`grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-2xl text-lg font-light ${clinicMode ? "bg-[#1e8f87]/8 text-[#1e8f87]" : "bg-primary/8 text-primary"}`}>{p.avatar_url ? <PrivateImage src={p.avatar_url} alt="" className="h-full w-full object-cover" /> : (p.full_name?.[0]?.toUpperCase() ?? <Users2 className="h-5 w-5" />)}</div><div className="min-w-0 flex-1"><h3 className="truncate text-base font-medium text-slate-900 dark:text-white">{p.full_name || "Sem nome"}</h3><div className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.09em] ${clinicMode ? "bg-[#1e8f87]/8 text-[#1e8f87]" : "bg-primary/8 text-primary"}`}>{founder ? "Fundador" : (ROLE_LABEL[p.role] ?? p.role)}</div></div><ShieldCheck className={`h-4 w-4 ${clinicMode ? "text-[#1e8f87]/55" : "text-primary/55"}`} /></div>
             <div className="mt-5 space-y-2.5"><Contact icon={AtSign} value={p.email || "E-mail não informado"} accent={accent} /><Contact icon={PhoneCall} value={p.phone || "Telefone não informado"} accent={accent} /></div>
-            {canManageCompanyAccess && <div className="mt-5 flex flex-wrap gap-1 border-t border-slate-100 pt-4 dark:border-white/5"><Button variant="ghost" size="sm" className={`rounded-xl text-xs ${clinicMode ? "text-[#1e8f87] hover:bg-[#1e8f87]/6 hover:text-[#1e8f87]" : "text-primary"}`} onClick={() => setEditing(p)}><Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar</Button><Button variant="ghost" size="sm" className="rounded-xl text-xs text-amber-600 hover:bg-amber-50 hover:text-amber-700" onClick={async () => { const pw = await promptDialog({ title: "Redefinir senha", description: "Informe a nova senha com no mínimo 8 caracteres.", placeholder: "Nova senha", confirmText: "Redefinir", required: true }); if (!pw) return; try { await adminSetMemberPassword(p.id, pw); toast.success("Senha redefinida"); } catch (e: any) { toast.error(e.message); } }}><KeyRound className="mr-1.5 h-3.5 w-3.5" /> Senha</Button>{!founder && <Button variant="ghost" size="sm" className="rounded-xl text-xs text-rose-500 hover:bg-rose-50 hover:text-rose-600" onClick={async () => { if (await confirm({ title: "Excluir membro", description: "Tem certeza que deseja excluir este membro? Esta ação é irreversível.", confirmText: "Excluir", destructive: true })) deleteMember.mutate(p.id); }}><Trash2 className="mr-1.5 h-3.5 w-3.5" /> Remover</Button>}</div>}
+            {canManageCompanyAccess && <div className="mt-5 flex flex-wrap gap-1 border-t border-slate-100 pt-4 dark:border-white/5"><Button variant="ghost" size="sm" className={`rounded-xl text-xs ${clinicMode ? "text-[#1e8f87] hover:bg-[#1e8f87]/6 hover:text-[#1e8f87]" : "text-primary"}`} onClick={() => setEditing(p)}><Pencil className="mr-1.5 h-3.5 w-3.5" /> Editar</Button><Button variant="ghost" size="sm" className="rounded-xl text-xs text-amber-600 hover:bg-amber-50 hover:text-amber-700" onClick={async () => { const pw = await promptDialog({ title: "Redefinir senha", description: "Informe a nova senha com no mínimo 8 caracteres.", placeholder: "Nova senha", confirmText: "Redefinir", required: true }); if (!pw) return; try { const result = await setTeamMemberPasswordFn({ data: { user_id: p.id, password: pw } }); const response = result as { success?: boolean; error?: string; login_email?: string }; if (response?.success === false) throw new Error(response.error ?? "Falha ao redefinir senha"); toast.success(response?.login_email ? `Senha alterada e validada. Login: ${response.login_email}` : "Senha alterada e validada"); } catch (e: any) { toast.error(e.message); } }}><KeyRound className="mr-1.5 h-3.5 w-3.5" /> Senha</Button>{!founder && <Button variant="ghost" size="sm" className="rounded-xl text-xs text-rose-500 hover:bg-rose-50 hover:text-rose-600" onClick={async () => { if (await confirm({ title: "Excluir membro", description: "Tem certeza que deseja excluir este membro? Esta ação é irreversível.", confirmText: "Excluir", destructive: true })) deleteMember.mutate(p.id); }}><Trash2 className="mr-1.5 h-3.5 w-3.5" /> Remover</Button>}</div>}
           </article>;
         })}
       </div>

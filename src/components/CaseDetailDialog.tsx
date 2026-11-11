@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { onAttachmentFocus } from "@/lib/attachment-focus";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -43,7 +44,7 @@ function PatientAvatarView({
   return (
     <div className="relative h-[104px] w-[104px] shrink-0 rounded-full bg-slate-100 dark:bg-neutral-900 border border-slate-200 dark:border-neutral-800 overflow-hidden grid place-items-center">
       {photoUrl ? (
-        <img src={photoUrl} alt={name} className="h-full w-full object-cover" />
+        <PrivateImage src={photoUrl} alt={name} className="h-full w-full object-cover" />
       ) : (
         <span className="text-4xl font-light text-slate-400 dark:text-slate-500">
           {(name || "?").slice(0, 1).toUpperCase()}

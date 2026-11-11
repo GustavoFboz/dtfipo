@@ -1,0 +1,450 @@
+{
+  "schema": "dentalflow-beta-eight-executions-v1",
+  "target": "web-paid-invite-only",
+  "branch": "saas/stage-03-asaas-checkout",
+  "recorded_at": "2026-11-11",
+  "audited_code_sha": "dcbd8ecab67892593036c7008c194287ffd38023",
+  "release_state": "not_published",
+  "release_url": null,
+  "beta_approval_status": "pending",
+  "historical_formal_accepted": "13/23",
+  "historical_technical_progress_percent": 94.06,
+  "note": "4/8. Etapa 6: minutas legais LGPD + termos/DPA, direitos, retenção, fornecedores, RIPD e beta ops integradas com CI; não há aprovação profissional, documentos publicados, aceite real ou autorização de venda.",
+  "steps": [
+    {
+      "id": 1,
+      "code": "source-baseline",
+      "name": "Auditoria de versão, CI e integridade operacional",
+      "status": "done",
+      "owner_action": "Nenhuma",
+      "definition_of_done": "Branch GitHub igual ao SHA da origem Lovable; CI Web saudável; SELECT de RLS, pacientes e faturamento, sem mudanças financeiras ou clínicas.",
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/41491850676",
+        "https://github.com/GustavoFboz/dtfipo/pull/248",
+        "https://github.com/GustavoFboz/dtfipo/issues/241"
+      ]
+    },
+    {
+      "id": 2,
+      "code": "independent-backup-path",
+      "name": "Exportação autenticada e verificação local do Storage",
+      "status": "done",
+      "owner_action": "Concluído: o proprietário baixou 13 ZIPs de case-files pelo painel nativo e validou localmente 115/116 arquivos históricos; próximo trabalho pendente está exclusivamente na etapa 3, que inclui o arquivo isolado restante, armazenamento criptografado fora do Cloud e restauração completa.",
+      "definition_of_done": "Rota real de download autenticado em múltiplos ZIPs comprovada no Windows contra índice privado: 115/116 identificados, 92 correspondências com ETag MD5, 23 sem digest de origem, zero arquivos/ZIPs inválidos; Google Drive privado escolhido como destino posterior. Isso valida o fluxo local, não garante cópia externa nem recuperabilidade.",
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/issues/241",
+        "https://github.com/GustavoFboz/dtfipo/pull/251",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/41558717231"
+      ]
+    },
+    {
+      "id": 3,
+      "code": "recover-and-restore",
+      "name": "Completar 116 anexos, backup atual e recuperação isolada",
+      "status": "done",
+      "owner_action": "Concluído no Windows em 09/11/2026: proprietário executou o EXE integrado e mostrou SAMPLED_INTEGRATED_OK; não solicitar nova auditoria dos 592. Envio do recibo JSON agregado é opcional como evidência complementar.",
+      "definition_of_done": "Aceite delimitado de recuperação operacional: cópias históricas 592/116 já autenticadas, índice 708/708 conciliado, banco de 04/11 restaurado isoladamente (93/86/8/702), amostra real de 12 anexos reconstituída/aberta e associada ao mesmo banco, reversão SQL e descarte do contêiner confirmados pela interface. Autorização real de dois usuários/RLS e abertura na UI são responsabilidade da etapa 4; reversão de deploy da etapa 7. Não afirmar leitura individual dos 708 nem resolver artificialmente 24 hashes históricos ausentes.",
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/issues/241",
+        "https://github.com/GustavoFboz/dtfipo/pull/253",
+        "https://github.com/GustavoFboz/dtfipo/pull/272",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42379336564",
+        "https://github.com/GustavoFboz/dtfipo/pull/273"
+      ],
+      "checkpoint": {
+        "historical_missing_objects_locally_found": 116,
+        "historical_missing_objects": 116,
+        "etag_md5_matches": 92,
+        "without_source_digest": 24,
+        "invalid_downloaded_objects": 0,
+        "invalid_downloaded_archives": 0,
+        "external_encrypted_copy_verified": true,
+        "current_live_database_storage_restore_verified": false,
+        "release_authorized": false,
+        "owner_verified_cloud_readback": {
+          "uploaded_encrypted_files": 15,
+          "encrypted_data_parts": 14,
+          "plaintext_bytes_authenticated": 2712484560,
+          "verification_method": "Cópia baixada do Google Drive e conferida localmente por AES-256-GCM + SHA-256, segundo captura fornecida pelo proprietário",
+          "drive_provider_independent_api_audit": false,
+          "source_data_recovered_directly_into_staging": false
+        },
+        "current_storage_aggregate": {
+          "objects": 729,
+          "bytes": 12304790800,
+          "objects_created_after_2026_10_29": 20,
+          "aggregate_metadata_only": true,
+          "net_count_difference_from_historical_snapshot": 21,
+          "bucket_count": 5,
+          "source": "SELECT aggregate storage.objects; no clinical filenames read"
+        },
+        "historical_metadata_sha256": {
+          "original_buckets": 4,
+          "historical_objects": 708,
+          "matching_buckets_version_size_etag": 4,
+          "matching_historical_metadata_objects": 708,
+          "live_object_bytes_authenticated_by_metadata_check": false,
+          "captured_as": "read-only historical-index-vs-live-Cloud query, 2026-11-04",
+          "verification_record": "https://github.com/GustavoFboz/dtfipo/issues/241"
+        },
+        "new_export_bucket": {
+          "bucket_id": "database_export_29_10_26",
+          "objects": 21,
+          "bytes": 3846707569,
+          "original_snapshot_scope": false,
+          "copy_external_confirmed": false
+        },
+        "recovery_linkage_preflight": {
+          "checked_on": "2026-11-04",
+          "storage_file_references": 702,
+          "storage_file_missing_objects": 0,
+          "storage_file_broken_case_patient_clinic_relations": 0,
+          "case_attachment_rows": 613,
+          "case_attachment_missing_objects": 0,
+          "case_attachment_records_with_historic_missing_case": 4,
+          "distinct_missing_historic_cases": 1,
+          "clinical_case_repair_authorized": false,
+          "real_staging_restore_verified": false,
+          "evidence": "https://github.com/GustavoFboz/dtfipo/issues/241"
+        },
+        "current_database_export": {
+          "verified_metadata_only": true,
+          "source_bucket": "database_export_04_11_26",
+          "object_count": 1,
+          "bytes": 2439186,
+          "created_at_utc": "2026-11-04T21:58:48Z",
+          "owner_download_reported": true,
+          "encrypted_offsite_copy_verified": true,
+          "actual_dump_format_verified": true,
+          "integrated_recovery_verified": false,
+          "owner_verified_drive_readback": {
+            "parts": 1,
+            "authenticated_plaintext_bytes": 2439186,
+            "authenticity_method": "owner screenshot of Windows local AES-256-GCM package verification after downloading from Google Drive",
+            "provider_connection_independently_audited": false,
+            "raw_database_dump_inspected": false
+          },
+          "dump_format": "pg_custom",
+          "isolated_postgresql_data_restore_verified": true,
+          "isolated_restore_observation": {
+            "source": "owner-provided screenshot of DentalFlow offline restore GUI, 2026-11-06",
+            "database_backup_source_date": "2026-11-04",
+            "database_export_bytes_authenticated": 2439186,
+            "postgres_image": "supabase/postgres:17.11.0.018",
+            "database_patients_restored": 93,
+            "database_cases_restored": 86,
+            "database_appointments_restored": 8,
+            "database_storage_metadata_rows_restored": 702,
+            "container_deleted_at_end_reported_by_tool": true,
+            "historical_baseline_counts_match": true,
+            "actual_storage_object_bytes_restored": false,
+            "supabase_auth_service_restored_or_tested": false,
+            "vault_original_secret_decryption_tested": false,
+            "billing_or_asaas_replayed": false,
+            "integrated_restore_verified": false,
+            "operational_acceptance": false,
+            "beta_publication_authorized": false
+          },
+          "sampled_integrated_recovery_verified": true
+        },
+        "local_isolation_readiness": {
+          "date": "2026-11-05",
+          "qa_project_unpublished": true,
+          "qa_database_users": 0,
+          "qa_patients": 0,
+          "qa_cases": 0,
+          "qa_payments": 0,
+          "qa_storage_objects": 0,
+          "qa_cron_jobs": 0,
+          "qa_billing_scheduler_rows": 0,
+          "qa_disposable_transaction_rolled_back": true,
+          "local_decrypt_and_format_check_implemented": true,
+          "local_docker_no_network_database_restore_synthetic_passed": true,
+          "local_windows_tool_built": true,
+          "live_november_database_restored": true,
+          "actual_storage_bytes_restored": false,
+          "joined_restore_verified": false,
+          "stage3_accepted": true,
+          "evidence": "https://github.com/GustavoFboz/dtfipo/pull/260",
+          "restored_real_database_patients": 93,
+          "restored_real_database_cases": 86,
+          "restored_real_database_appointments": 8,
+          "restored_real_database_storage_file_rows": 702,
+          "sampled_actual_storage_bytes_restored": true,
+          "sampled_joined_restore_verified": true
+        },
+        "offsite_116_independent_readback_tool": {
+          "workflow_run": "https://github.com/GustavoFboz/dtfipo/actions/runs/42335108737",
+          "ci_synthetic_passed": true,
+          "windows_build_passed": true,
+          "unsigned_exe_artifact_available": true,
+          "user_real_offsite_recheck_with_new_tool_reported": false,
+          "synthetic_zip_gcm_random_access_verified": true,
+          "archive_payloads_written_in_plaintext": false,
+          "original_592_volumes_rechecked_by_this_tool": false,
+          "joint_database_storage_restore_verified": false,
+          "beta_release_authorized": false
+        },
+        "risk_based_beta_acceleration": {
+          "date": "2026-11-07",
+          "owner_requested_no_redundant_592_zip_reverification": true,
+          "previously_authenticated_historical_objects": 592,
+          "additional_116_offsite_gcm_readback_verified": true,
+          "historical_708_metadata_reconciled": true,
+          "redundant_full_592_reverification_required": false,
+          "optional_592_audit_pr_closed": "https://github.com/GustavoFboz/dtfipo/pull/268",
+          "representative_storage_restore_and_case_link_required": true,
+          "original_24_without_comparable_digest_remain_uncertain": true,
+          "production_or_asaas_writes_allowed": false,
+          "beta_sales_allowed": false
+        },
+        "future_targeted_integrated_attachment_protocol": {
+          "id": "DF-EID-01",
+          "version": "1.0",
+          "document": "docs/saas/PROTOCOL-INTEGRATED-TARGETED-ATTACHMENTS-DF-EID-01.md",
+          "state": "sampled_operational_passed_2026-11-09",
+          "sample_target_maximum": 12,
+          "groups": "both historical 592 and recovered 116, plus database-linked items",
+          "restore_04_nov_database_with_storage_sample_required": true,
+          "real_file_open_and_decode_test_required": true,
+          "synthetic_qa_tenant_authorization_required": true,
+          "forced_failure_and_rollback_required": true,
+          "repeat_full_592_integrity_audit_required": false,
+          "guarantees_openability_of_all_708": false,
+          "beta_release_authorized": false,
+          "sampled_operational_recovery_verified": true,
+          "synthetic_qa_tenant_authorization_remains_stage4": true,
+          "web_deployment_rollback_remains_stage7": true
+        },
+        "local_integrated_sample_observation": {
+          "date": "2026-11-09",
+          "source": "owner-provided local Windows GUI screenshot, aggregate metrics only",
+          "program": "DentalFlow-Etapa3-Integrada.exe",
+          "result_code": "SAMPLED_INTEGRATED_OK",
+          "archived_sample_from_592": 8,
+          "recovered_sample_from_116": 4,
+          "total_sample_opened_by_parser": 12,
+          "matching_db_relationships_reported": 12,
+          "db_patients_restored": 93,
+          "db_cases_restored": 86,
+          "db_appointments_restored": 8,
+          "db_storage_metadata_rows_restored": 702,
+          "sql_rollback_reported": true,
+          "docker_container_deleted_reported": true,
+          "owner_report_independently_audited": false,
+          "all_708_individually_opened": false,
+          "unproven_24_original_hashes_remain": true,
+          "qa_authenticated_rls_tested": false,
+          "deployed_version_rollback_tested": false,
+          "accepted_scope": "sampled operational recovery and disposable SQL rollback only",
+          "evidence": "docs/saas/evidence/df-eid-01-owner-integrated-sample-20261109.md"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "code": "clinical-tenant-security",
+      "name": "Validar casos clínicos e isolamento entre empresas",
+      "status": "done",
+      "owner_action": "Nenhuma para o aceite técnico isolado da etapa 4. A verificação da versão Web hospedada/ambiente de deploy e os 8 gates P0 de publicação seguem independentes, pendentes e sem autorização de cobrança.",
+      "definition_of_done": "Criar/abrir/editar caso no staging, testar permissões com duas empresas e tentativas de acesso cruzado; manter 1 paciente órfão vinculado a agendamento preservado, sem perda ou reatribuição arbitrária.",
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/pull/274",
+        "https://github.com/GustavoFboz/dtfipo/pull/275",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42751269610",
+        "https://github.com/GustavoFboz/dtfipo/pull/277",
+        "https://github.com/GustavoFboz/dtfipo/pull/278",
+        "https://github.com/GustavoFboz/dtfipo/pull/279",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42767499220"
+      ],
+      "checkpoint": {
+        "local_real_http": {
+          "tested_at": "2026-11-10",
+          "source": "GitHub Actions ephemeral runner, Supabase CLI real Auth/REST/Storage and Chromium/Chrome Web UI, 2 synthetic tenants, strictly loopback",
+          "run_url": "https://github.com/GustavoFboz/dtfipo/actions/runs/42767499220",
+          "status": "success",
+          "actors_authenticated": 2,
+          "clinics": 2,
+          "patients_created": 2,
+          "cases_created": 2,
+          "case_idempotent_retries_verified": 2,
+          "web_ui_own_case_visible": 2,
+          "web_ui_cross_tenant_case_hidden": 2,
+          "web_ui_case_detail_opened": 2,
+          "web_ui_case_edit_form_submitted": 2,
+          "web_ui_new_case_form_submitted": 2,
+          "web_ui_own_attachment_list_visible": 2,
+          "real_storage_uploads_and_downloads": 2,
+          "cross_company_reads_denied": 4,
+          "cross_company_writes_denied": 4,
+          "storage_cross_company_reads_denied": 2,
+          "foreign_attachment_reads_denied": 2,
+          "foreign_attachment_deletes_denied": 2,
+          "service_destroyed": true,
+          "web_ui_verified": true,
+          "deployed_web_ui_verified": false,
+          "production_touched": false,
+          "asaas_invoked": false
+        },
+        "post_acceptance_limits": [
+          "Aceite da etapa 4 refere-se somente à QA integral isolada em localhost, não à paridade da instância Web publicada nem à aprovação comercial.",
+          "Abertura de preview 3D e upload/exclusão de anexos pela interface visual ainda exigem smoke hospedado e não são afirmados pelo ensaio; controle de acesso/upload real via API foi aprovado.",
+          "O paciente histórico vinculado a agendamento e todos os dados reais não foram escritos ou modificados; recuperação e integridade permanecem objeto dos gates independentes.",
+          "A etapa 7 e o gate P0 clinical-case-and-tenant-safety continuam bloqueando publicação sem staging/produção equivalentes."
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "code": "asaas-critical-lifecycle",
+      "name": "Validar cobrança, renovação, cancelamento e bloqueios",
+      "status": "pending",
+      "owner_action": "Nenhuma ação necessária para os testes locais já concluídos. Para homologação final, usar o Asaas Sandbox conectado à hospedagem segura quando disponível; confirmar planos/valores e método de pagamento. Não efetuar cobrança real nem liberar Produção sem aprovação.",
+      "definition_of_done": "Webhooks idempotentes, plano/valor, cobrança, renovação, cancelamento, atraso, reativação, bloqueio de acesso, worker e desligamento de novas vendas verificados sem cobrança indevida.",
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/pull/282",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42810806355",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42810806563"
+      ],
+      "checkpoint": {
+        "technical_disposable_finance_verified": {
+          "date": "2026-11-10",
+          "sandbox_provider_really_contacted": false,
+          "live_subscription_cycle_tested": false,
+          "asaas_real_payments_created": 0,
+          "postgres_restored_rehearsal_passed": true,
+          "negative_controls": [
+            "price mismatch overdue payment: no ledger/entitlement change",
+            "price mismatch paid payment: suspended remains blocked",
+            "cross-environment production event references sandbox subscription: denied",
+            "duplicate paid event no duplicated ledger",
+            "refund/cancellation/grace SQL already verified"
+          ],
+          "independent_workflow": "https://github.com/GustavoFboz/dtfipo/actions/runs/42810806355",
+          "no_production_changes": true
+        },
+        "remaining_live_sandbox_checks": [
+          "Real Asaas second-cycle invoice on same subscription and payment settlement from provider",
+          "Webhook delivery, worker processing, one ledger row and monthly entitlement progression",
+          "Real Sandbox overdue/grace/suspension/recovery and cancellation, no duplicate subscription",
+          "Client payment method and period/price parity in actual QA deployment",
+          "Provider real cancellation/readback and emergency-stop verification"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "code": "legal-privacy-beta-ops",
+      "name": "Termos, LGPD, suporte e convites controlados",
+      "status": "pending",
+      "owner_action": "Identificação inicial de pessoa física (nome civil, cidade/UF e e-mail indicado) recebida fora do GitHub público; nenhum dado pessoal deve ser incluído no repositório. Pendente: validar titularidade do e-mail, identificação fiscal/endereço por canal seguro, revisão legal, planos reais e aceite publicado/testado. Não enviar CPF ou documentos neste chat.",
+      "definition_of_done": "Documentos legais efetivos aprovados, publicados e aceitos por versão; registros protegidos, telemetria sem dados clínicos, convites restritos e interruptor para novas adesões.",
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/pull/286",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444111",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444050",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444071"
+      ],
+      "checkpoint": {
+        "legal_lgpd_internal_drafts": {
+          "date": "2026-11-10",
+          "pull_request": "https://github.com/GustavoFboz/dtfipo/pull/286",
+          "test_legal_ci": "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444111",
+          "ci_general": "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444050",
+          "ci_restore": "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444071",
+          "status": "INTERNAL_DRAFT_NOT_FOR_USERS",
+          "saas_terms_drafted": true,
+          "privacy_notice_drafted": true,
+          "dpa_drafted": true,
+          "beta_support_annex_drafted": true,
+          "cookie_notice_drafted": true,
+          "ropa_inventory_preliminary": true,
+          "ripd_preliminary": true,
+          "privacy_incident_retention_rights_runbook_drafted": true,
+          "versioned_legal_acceptance_dormant": true,
+          "legal_review_approved": false,
+          "company_identity_verified": false,
+          "published_documents": false,
+          "real_customer_acceptances": false,
+          "server_invite_gate_verified": false,
+          "real_support_contact_verified": false,
+          "privacy_supplier_contracts_verified": false,
+          "step6_done": false,
+          "production_touched": false
+        },
+        "remaining": [
+          "Nome civil da pessoa física, cidade/UF, e-mail controlado, identificação CPF/endereço em meio apropriado e avaliação fiscal/municipal",
+          "Revisão jurídico/privacidade e bases legais de dados sensíveis/contratos de suboperadores",
+          "Preços e condições comerciais do beta, canal de suporte, retenção e transferência internacional aprovados",
+          "Documentos finais publicados/consultáveis antes do checkout e aceites versionados do representante em QA e ambiente hospedado",
+          "Convites empresariais restritos no backend, telemetria sem dados clínicos e parada emergencial de novas compras comprovada"
+        ],
+        "provider_individual_initialization": {
+          "date": "2026-11-11",
+          "legal_form": "individual_cpf_no_cnpj_initial",
+          "initial_minimal_fields": [
+            "legal_name",
+            "city_state",
+            "service_privacy_email"
+          ],
+          "identity_received_and_verified": false,
+          "cpf_stored_in_git": false,
+          "legal_review_approved": false,
+          "docs_published": false,
+          "beta_sales_authorized": false,
+          "initial_minimal_identification_received_off_public_repository": true,
+          "identity_checked": false,
+          "contact_checked": false,
+          "public_release_of_identity_authorized": false
+        }
+      }
+    },
+    {
+      "id": 7,
+      "code": "staging-deploy-rollback",
+      "name": "Ensaiar publicação, comparação de SHA e reversão",
+      "status": "pending",
+      "owner_action": "Nenhuma para o ensaio A→B→A concluído em hospedagem HTTP local descartável. Para o aceite integral será necessária uma hospedagem de staging acessível com backend/Auth e rollback da instância integrada; não reativar Asaas Produção.",
+      "definition_of_done": "Staging totalmente separado, sem secrets/copied cron de produção, com testes Web funcionais, SHA de frontend/backend provado, rollback real da hospedagem ensaiado; sem tocar dados de produção.",
+      "evidence": [
+        "https://github.com/GustavoFboz/dtfipo/pull/284",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42813055624",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42813055759"
+      ],
+      "checkpoint": {
+        "ephemeral_host_rollback": {
+          "tested_at": "2026-11-10",
+          "result": "success",
+          "run_url": "https://github.com/GustavoFboz/dtfipo/actions/runs/42813055624",
+          "protocol": "DENTALFLOW_BETA7_EPHEMERAL_STATIC_HOST_A_B_A_V1",
+          "source_git_revisions": 2,
+          "real_web_builds": 2,
+          "source_and_asset_sha256_compared": true,
+          "atomic_local_http_host_a_to_b_to_a": true,
+          "old_release_restored_exact_sha_and_bytes": true,
+          "external_host_or_production_touched": false,
+          "backend_ssr_verified": false,
+          "hosted_staging_verified": false,
+          "real_host_deploy_rollback_verified": false,
+          "asaas_invoked": false,
+          "clinical_data_used": false
+        },
+        "remaining": [
+          "Fully isolated hosted staging with separate real Auth/DB/Storage and independent provider secrets",
+          "Frontend/backend deployed SHA and Web functional smoke on same hosting",
+          "Actual integrated host rollback and post-rollback Web/SSR/Auth/API smoke",
+          "Backup/data integrity and source parity verified on hosted environment"
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "code": "paid-beta-publication",
+      "name": "Publicar beta Web por convite e conferir produção",
+      "status": "pending",
+      "owner_action": "Dar autorização operacional final para a publicação e abertura aos convidados após leitura do relatório de riscos residuais.",
+      "definition_of_done": "Oito critérios P0 de PAID-BETA-READINESS.json verificados com provas independentes, aprovação expressa, deploy identificado, smoke autenticado sem dados reais indevidos, suporte e rollback prontos; reportar URL e revisão publicada.",
+      "evidence": []
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "authentication": {
+    "observed_at": "2026-10-24 20:10:26.182618+00",
+    "recent_real_operator_aal2_sessions": 1
+  },
+  "provider_proof_date": "2026-10-05",
+  "financial_replay_executed": false,
+  "rows": [
+    {
+      "attempt_count": 6,
+      "audits": [
+        {
+          "action": "close_external_sandbox_test",
+          "audit_id": "790334c9-6f4a-4f23-bd27-fc67bef48a2e",
+          "operator_enabled": true,
+          "performed_at": "2026-10-24T20:35:06.662017+00:00",
+          "reason": "Evento antigo de atraso da cobrança manual Sandbox, conferida no Asaas em 05/10/2026 como recebida e confirmada pelo titular como teste externo. Sem vínculo SaaS; preservar o evento e encerrar sem replay."
+        }
+      ],
+      "error_message": "EXTERNAL_MANUAL_SANDBOX_TEST",
+      "event_type": "PAYMENT_OVERDUE",
+      "id": "9ad8482e-eb0f-48fd-9ea5-aee5c4b776c2",
+      "ledger_links": 0,
+      "observed_at": "2026-10-24 20:36:12.771779+00",
+      "payload": {
+        "paymentId": "pay_w9733yh2mprx2169"
+      },
+      "processed_at": "2026-10-24 20:35:06.662017+00",
+      "provider_event_id": "evt_071da53af2a9613df04213d0157d6b88&20634814",
+      "status": "ignored"
+    },
+    {
+      "attempt_count": 6,
+      "audits": [
+        {
+          "action": "close_external_sandbox_test",
+          "audit_id": "3638b8c3-a5dc-4999-9413-9db45cf71b1f",
+          "operator_enabled": true,
+          "performed_at": "2026-10-24T20:31:47.651541+00:00",
+          "reason": "Cobrança manual no Sandbox, conferida no diagnóstico Asaas de 05/10/2026 e confirmada pelo titular. Sem vínculo no ledger ou checkout SaaS; encerrar a revisão preservando o evento, sem replay."
+        }
+      ],
+      "error_message": "EXTERNAL_MANUAL_SANDBOX_TEST",
+      "event_type": "PAYMENT_RECEIVED",
+      "id": "ea41bc68-e051-4e52-b547-af2ac70e50a4",
+      "ledger_links": 0,
+      "observed_at": "2026-10-24 20:36:12.771779+00",
+      "payload": {
+        "paymentId": "pay_w9733yh2mprx2169"
+      },
+      "processed_at": "2026-10-24 20:31:47.651541+00",
+      "provider_event_id": "evt_d26e303b238e509335ac9ba210e51b0f&20634931",
+      "status": "ignored"
+    }
+  ]
+}

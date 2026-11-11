@@ -1,0 +1,328 @@
+{
+  "cancellation_scope": {
+    "pr": 195,
+    "head": "7fe64bd98e9ad5cbfe40124dfb1b2034d3f4d49b",
+    "merge": "1c9f8ada80987463718024489e21666af2cdb7f2",
+    "published": {
+      "commit": "1c9f8ada80987463718024489e21666af2cdb7f2",
+      "deployment_id": "a6f02e98-c41e-4095-a7c2-f0025b09b10a",
+      "native_message": "Seu site foi atualizado",
+      "observed_at": "2026-10-24T21:00:39.225Z"
+    },
+    "local_tests": 123,
+    "local_test_files": 7,
+    "types": "passed",
+    "saas_06": "passed",
+    "saas_09": "passed",
+    "web_ci": {
+      "run_id": 40131857937,
+      "conclusion": "success"
+    },
+    "restore": {
+      "run_id": 40131857940,
+      "conclusion": "success",
+      "migrations": 181
+    },
+    "execution_of_provider_cancellation": false
+  },
+  "android_37_attempt": {
+    "pr": 194,
+    "draft": true,
+    "merged": false,
+    "run_id": 40131632224,
+    "jobs": [
+      {
+        "id": 120984371320,
+        "name": "Build Android APK 0.3.1 (37.0, google_apis, true, software)",
+        "status": "completed",
+        "conclusion": "failure",
+        "run_id": 40131632224,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Checkout",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Setup Bun",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Setup Java",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Setup Android SDK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Install dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Verify safe native publication",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Verify Capacitor metadata",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Build DentalFlow mobile SPA",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Generate Capacitor Android project",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10
+          },
+          {
+            "name": "Set Android app version",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11
+          },
+          {
+            "name": "Build debug APK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12
+          },
+          {
+            "name": "Enable emulator hardware acceleration",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13
+          },
+          {
+            "name": "Smoke-test installed Android app",
+            "status": "completed",
+            "conclusion": "failure",
+            "number": 14
+          },
+          {
+            "name": "Preserve Android startup diagnostics",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15
+          },
+          {
+            "name": "Prepare APK",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 16
+          },
+          {
+            "name": "Upload Android APK",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 17
+          },
+          {
+            "name": "Post Setup Java",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 32
+          },
+          {
+            "name": "Post Setup Bun",
+            "status": "completed",
+            "conclusion": "skipped",
+            "number": 33
+          },
+          {
+            "name": "Post Checkout",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 34
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 35
+          }
+        ]
+      },
+      {
+        "id": 120984371498,
+        "name": "Build Android APK 0.3.1 (35, default, false, swiftshader_indirect)",
+        "status": "completed",
+        "conclusion": "success",
+        "run_id": 40131632224,
+        "logs_url": null,
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1
+          },
+          {
+            "name": "Checkout",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2
+          },
+          {
+            "name": "Setup Bun",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3
+          },
+          {
+            "name": "Setup Java",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4
+          },
+          {
+            "name": "Setup Android SDK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5
+          },
+          {
+            "name": "Install dependencies",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6
+          },
+          {
+            "name": "Verify safe native publication",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7
+          },
+          {
+            "name": "Verify Capacitor metadata",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8
+          },
+          {
+            "name": "Build DentalFlow mobile SPA",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 9
+          },
+          {
+            "name": "Generate Capacitor Android project",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 10
+          },
+          {
+            "name": "Set Android app version",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 11
+          },
+          {
+            "name": "Build debug APK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 12
+          },
+          {
+            "name": "Enable emulator hardware acceleration",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 13
+          },
+          {
+            "name": "Smoke-test installed Android app",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 14
+          },
+          {
+            "name": "Preserve Android startup diagnostics",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 15
+          },
+          {
+            "name": "Prepare APK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16
+          },
+          {
+            "name": "Upload Android APK",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17
+          },
+          {
+            "name": "Post Setup Java",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 32
+          },
+          {
+            "name": "Post Setup Bun",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 33
+          },
+          {
+            "name": "Post Checkout",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 34
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 35
+          }
+        ]
+      },
+      {
+        "id": 120985811593,
+        "name": "Publish permanent Android installer",
+        "status": "completed",
+        "conclusion": "skipped",
+        "run_id": 40131632224,
+        "logs_url": null,
+        "steps": null
+      }
+    ],
+    "failure_process": "system_server",
+    "failure_thread": "TaskSnapshotPer",
+    "failure_message": "Assertion failed: !rcEnc->featureInfo()->hasReadColorBufferDma",
+    "new_backend_resolved_failure": false
+  },
+  "official_acceptances": {
+    "completed": 10,
+    "total": 23,
+    "remaining": 13,
+    "stages_completed": 1,
+    "stages_total": 7
+  }
+}

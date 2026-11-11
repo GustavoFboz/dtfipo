@@ -1,0 +1,44 @@
+name: DentalFlow Disposable Supabase PGDMP Collision Regression
+
+on:
+  pull_request:
+    branches: [main, "saas/stage-03-asaas-checkout"]
+    paths:
+      - "scripts/recovery/test-disposable-object-collision.sh"
+      - ".github/workflows/saas-disposable-object-collision.yml"
+      - "scripts/recovery/local_staging_restore.py"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-collision-transactional-clean:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reproduce collision and test transactional --clean in Supabase PG17
+        run: bash scripts/recovery/test-disposable-object-collision.sh
+      - name: Verify no production inputs, network or backup files used
+        run: |
+          echo "No user data, real backup, key or production DB in this isolated CI job."
+          test ! -e "DentalFlow-Chave-Externa.bin"
+
+  encrypted-custom-archive-roundtrip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install only cryptographic runtime
+        run: python -m pip install "cryptography>=42,<50"
+      - name: Fully recover fake PGDMP from encrypted bundle in isolated Supabase
+        run: python scripts/recovery/test-encrypted-pgdmp-synthetic.py
+      - name: Verify this workflow contained no private backup
+        run: |
+          echo "Encrypted roundtrip used only fabricated patient/case IDs."
+          test ! -e "DentalFlow_Anexos_2026-10-29_Indice.dfenc"
+

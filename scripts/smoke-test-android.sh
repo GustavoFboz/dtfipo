@@ -59,7 +59,7 @@ for phase in 1 2; do
   fi
 done
 
-bun scripts/test-android-webview.mjs
+bun scripts/test-android-webview.mjs --offline-expiration
 collect_diagnostics
 if grep -Eq 'FATAL EXCEPTION|Fatal signal|ANR in br\.com\.dentalflow\.mobile|E Capacitor: JavaScript Error:' "$startup_log"; then
   echo "Android runtime failure detected; inspect diagnostic artifacts."

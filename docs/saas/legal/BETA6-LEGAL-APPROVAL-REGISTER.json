@@ -1,0 +1,183 @@
+{
+  "schema": "dentalflow-beta6-legal-approval-register-v1",
+  "reviewed_at": "2026-11-11",
+  "status": "INTERNAL_DRAFT_NOT_FOR_USERS",
+  "legal_review_approved": false,
+  "privacy_review_approved": false,
+  "technical_deployment_approved": false,
+  "commercial_approved": false,
+  "publication_authorized": false,
+  "document_versions_published": false,
+  "external_billing_authorized": false,
+  "customer_acceptances_issued": false,
+  "effective_legal_entity": null,
+  "privacy_contact": null,
+  "incident_contact": null,
+  "approved_support_channel": null,
+  "appointed_dpo_or_documented_exemption": null,
+  "live_prices_approved": false,
+  "actual_supplier_contracts_verified": false,
+  "transfers_assessed": false,
+  "retention_policy_approved": false,
+  "clinical_data_legal_bases_reviewed": false,
+  "beta_invite_gate_server_enforced": false,
+  "new_sales_emergency_stop_tested": false,
+  "documents": [
+    {
+      "id": "saas_terms",
+      "file": "docs/saas/legal/SAAS-TERMS-DRAFT.md",
+      "version": "draft-v0.2",
+      "approved": false,
+      "published": false
+    },
+    {
+      "id": "privacy_notice",
+      "file": "docs/saas/legal/PRIVACY-NOTICE-DRAFT.md",
+      "version": "draft-v0.2",
+      "approved": false,
+      "published": false
+    },
+    {
+      "id": "dpa",
+      "file": "docs/saas/legal/DPA-DRAFT.md",
+      "version": "draft-v0.2",
+      "approved": false,
+      "published": false
+    },
+    {
+      "id": "pilot_annex",
+      "file": "docs/saas/legal/BETA-PILOT-COMMERCIAL-ANNEX-DRAFT.md",
+      "version": "draft-v0.1",
+      "approved": false,
+      "published": false
+    },
+    {
+      "id": "cookie_notice",
+      "file": "docs/saas/legal/COOKIES-AND-TELEMETRY-DRAFT.md",
+      "version": "draft-v0.1",
+      "approved": false,
+      "published": false
+    }
+  ],
+  "blocking_decisions": [
+    {
+      "id": "L01",
+      "subject": "Pessoa física prestadora: nome civil, CPF validado por canal seguro, cidade/UF, meio de contato/endereço exigido na oferta e situação fiscal municipal",
+      "owner_role": "company",
+      "state": "pending",
+      "evidence": null
+    },
+    {
+      "id": "L02",
+      "subject": "Encarregado/dispensa fundamentada, canal de privacidade e segurança",
+      "owner_role": "privacy_legal",
+      "state": "pending",
+      "evidence": null
+    },
+    {
+      "id": "L03",
+      "subject": "Controladores e operadores por fluxo, bases do art. 11, menores",
+      "owner_role": "privacy_legal_and_clinical_controller",
+      "state": "pending",
+      "evidence": null
+    },
+    {
+      "id": "L04",
+      "subject": "Suboperadores e regiões, transferências ANPD 19/2024, contratos",
+      "owner_role": "privacy_security",
+      "state": "pending",
+      "evidence": null
+    },
+    {
+      "id": "L05",
+      "subject": "Retenção clínica/financeira, backup, cache, exportação e resposta a titulares",
+      "owner_role": "privacy_legal_accounting",
+      "state": "pending",
+      "evidence": null
+    },
+    {
+      "id": "L06",
+      "subject": "Preços reais, periodicidade, cancelamento, reembolso, carência",
+      "owner_role": "company_and_accounting",
+      "state": "pending",
+      "evidence": null
+    },
+    {
+      "id": "L07",
+      "subject": "Termos, DPA, Privacidade e anexo do piloto revisados por advogado",
+      "owner_role": "legal",
+      "state": "pending",
+      "evidence": null
+    },
+    {
+      "id": "L08",
+      "subject": "Canais de suporte, incidentes e disponibilidade observável",
+      "owner_role": "operations",
+      "state": "pending",
+      "evidence": null
+    },
+    {
+      "id": "L09",
+      "subject": "Convite de empresas restrito em servidor e parada de novos checkouts",
+      "owner_role": "engineering_security",
+      "state": "pending",
+      "evidence": null
+    },
+    {
+      "id": "L10",
+      "subject": "Telemetry/cookies/SDKs realmente usados auditados sem PHI",
+      "owner_role": "privacy_engineering",
+      "state": "pending",
+      "evidence": null
+    },
+    {
+      "id": "L11",
+      "subject": "Implantação e ensaio do aceite por versão/hash, não retroativo",
+      "owner_role": "engineering_legal",
+      "state": "pending",
+      "evidence": null
+    },
+    {
+      "id": "L12",
+      "subject": "Prova de experiência do usuário: documentos exibidos, pré-cadastro, cópia e reaceite",
+      "owner_role": "qa",
+      "state": "pending",
+      "evidence": null
+    },
+    {
+      "id": "L13",
+      "subject": "Planos de incidentes e direitos testados, fornecedores e retenção aprovados",
+      "owner_role": "security_operations_legal",
+      "state": "pending",
+      "evidence": null
+    }
+  ],
+  "no_automatic_completion_of_stage6": true,
+  "note": "Initial PF name, city/state and proposed support/privacy email were supplied privately. No personal values should be committed to this public repository; local personalized identification sheets remain with the owner. Ownership/identity, fiscal identification and publishable contact still unverified; all commercial/legal gates remain closed.",
+  "provider_legal_form_preference": "individual_cpf_no_cnpj_initial",
+  "provider_identity_collection_policy": {
+    "initial_request": [
+      "legal_name",
+      "municipality_and_state",
+      "controlled_service_and_privacy_email"
+    ],
+    "never_in_git_or_chat": [
+      "cpf_number",
+      "national_id_scan",
+      "full_residential_address",
+      "bank_account",
+      "asaas_secret_key"
+    ],
+    "required_later_through_appropriate_secure_and_legally_compliant_channel": [
+      "cpf_and_identity_verification",
+      "supplier_identification_and_contact_required_by_consumer_law",
+      "applicable_municipal_tax_registration_and_invoicing",
+      "provider_specific_asaas_pf_kyc"
+    ],
+    "private_values_initially_supplied_outside_public_repository": true,
+    "private_values_verified": false,
+    "public_disclosure_authorized": false,
+    "commercial_identification_verified": false,
+    "public_support_contact_verified": false
+  }
+}

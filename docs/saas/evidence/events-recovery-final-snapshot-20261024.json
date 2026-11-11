@@ -1,0 +1,194 @@
+{
+  "cases": 86,
+  "current_storage_job_objects": 0,
+  "fixture_active_storage_records": 0,
+  "fixture_contracts": [
+    {
+      "clinic_id": "3fc86c40-697e-4725-a9e9-633fc882aadc",
+      "paid_invoices": 2,
+      "period_end": "2026-12-18T00:00:00+00:00",
+      "period_start": "2026-11-18T00:00:00+00:00",
+      "plan_code": "company_growth",
+      "status": "active",
+      "subscription_id": "4579343f-7ba7-49a0-b316-638ef16fbcc5"
+    },
+    {
+      "clinic_id": "081d3db4-1606-40f7-a878-19b51556317d",
+      "paid_invoices": 2,
+      "period_end": "2026-12-18T00:00:00+00:00",
+      "period_start": "2026-11-18T00:00:00+00:00",
+      "plan_code": "company_growth",
+      "status": "active",
+      "subscription_id": "f089af79-cea4-4821-8497-0e594e67f3cf"
+    }
+  ],
+  "guarded_tables": [
+    {
+      "count": 4,
+      "table_name": "account_subscriptions"
+    },
+    {
+      "count": 3,
+      "table_name": "billing_payments"
+    },
+    {
+      "count": 104,
+      "table_name": "patients"
+    },
+    {
+      "count": 86,
+      "table_name": "cases"
+    },
+    {
+      "count": 9,
+      "table_name": "component_categories"
+    },
+    {
+      "count": 0,
+      "table_name": "components"
+    },
+    {
+      "count": 4,
+      "table_name": "implant_systems"
+    },
+    {
+      "count": 1,
+      "table_name": "implant_component_types"
+    },
+    {
+      "count": 39,
+      "table_name": "implant_system_components"
+    },
+    {
+      "count": 0,
+      "table_name": "scan_jigs"
+    },
+    {
+      "count": 122,
+      "table_name": "stock_items"
+    },
+    {
+      "count": 58,
+      "table_name": "stock_item_custom_fields"
+    },
+    {
+      "count": 48,
+      "table_name": "stock_movements"
+    },
+    {
+      "count": 2,
+      "table_name": "stock_consumption_rules"
+    },
+    {
+      "count": 2,
+      "table_name": "case_stock_consumptions"
+    },
+    {
+      "count": 0,
+      "table_name": "case_tooth_stock_usage"
+    },
+    {
+      "count": 29,
+      "table_name": "case_implant_teeth"
+    },
+    {
+      "count": 0,
+      "table_name": "holders"
+    },
+    {
+      "count": 0,
+      "table_name": "burrs"
+    },
+    {
+      "count": 0,
+      "table_name": "burr_usages"
+    },
+    {
+      "count": 0,
+      "table_name": "resin_pots"
+    },
+    {
+      "count": 0,
+      "table_name": "resin_weighings"
+    },
+    {
+      "count": 0,
+      "table_name": "user_stock_access"
+    },
+    {
+      "count": 4,
+      "table_name": "cadistas"
+    },
+    {
+      "count": 7,
+      "table_name": "doctors"
+    },
+    {
+      "count": 3,
+      "table_name": "proteticos"
+    },
+    {
+      "count": 13,
+      "table_name": "phases"
+    },
+    {
+      "count": 154,
+      "table_name": "stages"
+    },
+    {
+      "count": 0,
+      "table_name": "phase_assignments"
+    },
+    {
+      "count": 3,
+      "table_name": "stage_assignments"
+    },
+    {
+      "count": 16,
+      "table_name": "stage_return_reasons"
+    },
+    {
+      "count": 16,
+      "table_name": "workflow_templates"
+    },
+    {
+      "count": 4,
+      "table_name": "workflow_settings"
+    }
+  ],
+  "historical_storage_reservations": 9,
+  "ipo_stock_items": 122,
+  "ipo_stock_movements": 48,
+  "non_fixture_business_fingerprint": "b51871071b9d369033d480c06cfd9f58",
+  "observed_at": "2026-10-24 20:38:43.871499+00",
+  "production_failed_events": 0,
+  "production_payments": 1,
+  "production_worker": {
+    "last_healthy_at": "2026-10-24T20:36:02.169272+00:00",
+    "status": "ok"
+  },
+  "replay_audit_count": 0,
+  "running_fixture_jobs": 0,
+  "sandbox_dead_letters": 0,
+  "unowned_patients": 12,
+  "comparison_to_successful_job": "identical",
+  "historical_early_attempt_fingerprint": "56200f4382688b4e8b982ab1c4fbd488",
+  "stock_observation": [
+    {
+      "created_since_first_financial_attempt": 0,
+      "first_created": "2026-08-04 21:16:06.95351+00",
+      "kind": "items",
+      "last_created": "2026-10-23 20:10:28.244118+00",
+      "last_updated": "2026-10-24 15:49:04.03721+00",
+      "total": 122
+    },
+    {
+      "created_since_first_financial_attempt": 0,
+      "first_created": "2026-08-06 03:05:59.209168+00",
+      "kind": "movements",
+      "last_created": "2026-10-24 15:49:04.03721+00",
+      "last_updated": null,
+      "total": 48
+    }
+  ]
+}

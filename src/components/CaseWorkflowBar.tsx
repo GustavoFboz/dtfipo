@@ -15,6 +15,7 @@ import {
   deriveWorkflowKey,
   fetchCaseRequiresSintering,
   fetchWorkflowStagesV2,
+  workflowCompanyStages,
   FLOW_LABELS,
   type WorkflowKey,
 } from "@/lib/workflow-v2";
@@ -88,7 +89,7 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
   );
 
   const { list, displayFlowKey, currentIdx } = useMemo(() => {
-    const source = stages.data ?? [];
+    const source = workflowCompanyStages(stages.data ?? [], currentStageId);
     const currentRecord = source.find((stage: any) => stage.id === currentStageId) as any | undefined;
     const currentRecordFlow = currentRecord?.flow_key as WorkflowKey | null | undefined;
     const effectiveFlowKey = currentRecordFlow && WORKFLOW_KEYS.has(currentRecordFlow)
@@ -99,7 +100,8 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
     // Legacy rows intentionally remain in the database for history and must never
     // be mixed into the visible sequence of a current case.
     const candidates = source.filter((stage: any) =>
-      stage.flow_key === effectiveFlowKey && Boolean(stage.stage_key),
+      stage.flow_key === effectiveFlowKey && Boolean(stage.stage_key)
+        && (!currentRecord?.clinic_id || stage.clinic_id === currentRecord.clinic_id),
     );
 
     const currentRecordVersion = Number(currentRecord?.workflow_version || 0);
@@ -268,7 +270,9 @@ export function CaseWorkflowBar({ caseRow }: { caseRow: CaseRow }) {
 
   const color = currentStage?.color ?? "#1F8AFF";
   const progress = list.length > 0 && currentIdx >= 0 ? ((currentIdx + 1) / list.length) * 100 : 0;
-  const reasonList = reasons.data ?? [];
+  const reasonList = (reasons.data ?? []).filter((reason) =>
+    !currentStage?.clinic_id || reason.clinic_id === currentStage.clinic_id,
+  );
   const priorStages = currentIdx > 0 ? list.slice(0, currentIdx) : [];
   const flowLabel = FLOW_LABELS[displayFlowKey as WorkflowKey]?.title ?? "Fluxo do caso";
 

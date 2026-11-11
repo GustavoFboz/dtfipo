@@ -1,0 +1,30 @@
+name: DentalFlow SaaS Tenant Read-Only Probe
+
+on:
+  pull_request:
+    branches:
+      - main
+      - "saas/stage-03-asaas-checkout"
+    paths:
+      - "scripts/saas-tenant-readonly-probe.mjs"
+      - "scripts/saas-tenant-readonly-probe.test.mjs"
+      - "scripts/saas-case-tenant-readonly-probe.mjs"
+      - "scripts/saas-case-tenant-readonly-probe.test.mjs"
+      - ".github/workflows/saas-tenant-readonly-probe.yml"
+      - "docs/saas/evidence/tenant-readonly-positive-control-20261101.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hermetic-security-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify read-only tenant access probe with synthetic actors
+        run: node --test scripts/saas-tenant-readonly-probe.test.mjs scripts/saas-case-tenant-readonly-probe.test.mjs

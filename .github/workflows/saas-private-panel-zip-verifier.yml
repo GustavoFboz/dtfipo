@@ -1,0 +1,50 @@
+name: DentalFlow Private Storage Panel ZIP Verifier
+
+on:
+  pull_request:
+    branches: [main, "saas/stage-03-asaas-checkout"]
+    paths:
+      - "scripts/recovery/verify_panel_downloads.py"
+      - "scripts/recovery/verify_panel_downloads_gui.py"
+      - "scripts/recovery/test_verify_panel_downloads.py"
+      - "docs/saas/PRIVATE-STORAGE-PANEL-DOWNLOAD.md"
+      - ".github/workflows/saas-private-panel-zip-verifier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  safe-offline-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install verifier runtime (no data or credentials)
+        run: python -m pip install --disable-pip-version-check "cryptography>=42,<50"
+      - name: Test AES-GCM, ZIP CRC, ETag MD5, duplicate and tamper safety
+        run: python -m unittest discover -s scripts/recovery -p "test_verify_panel_downloads.py" -v
+
+  build-offline-windows-checker:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    needs: safe-offline-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install offline Windows packager
+        run: python -m pip install --disable-pip-version-check "cryptography>=42,<50" "pyinstaller>=6.16,<7"
+      - name: Build unsigned local-only GUI
+        run: python -m PyInstaller --noconfirm --onefile --windowed --name DentalFlow-Verificador scripts/recovery/verify_panel_downloads_gui.py
+      - name: Attach executable compiled without user data or secrets
+        uses: actions/upload-artifact@v4
+        with:
+          name: DentalFlow-Verificador-Windows-unsigned
+          path: dist/DentalFlow-Verificador.exe
+          if-no-files-found: error
+          retention-days: 7
