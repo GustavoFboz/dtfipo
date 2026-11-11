@@ -399,6 +399,39 @@ async function markCheckoutReady(input: {
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Server-only beta sales stop. Missing RPC, DB outage, malformed result or
+ * permission error fail CLOSED. Migration must precede application deployment.
+ *
+ * Blocks server checkout handoff for old and new intents, but cannot revoke
+ * already-issued external payment links or interrupt an in-flight provider POST.
+ */
+export async function assertBetaAsaasCheckoutHandoffAllowed(): Promise<void> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await (supabaseAdmin as any).rpc("beta_assert_new_checkout_handoff_allowed");
+  if (error) {
+    if (error.code === "42501" && /BETA_NEW_CHECKOUTS_PAUSED/.test(error.message ?? "")) {
+      throw new CheckoutRequestError(
+        "BETA_NEW_CHECKOUTS_PAUSED",
+        "Novas contratações estão temporariamente suspensas.",
+        423,
+      );
+    }
+    throw new CheckoutRequestError(
+      "BETA_CHECKOUT_GUARD_UNAVAILABLE",
+      "O checkout está temporariamente indisponível por segurança.",
+      503,
+    );
+  }
+  if (data !== true) {
+    throw new CheckoutRequestError(
+      "BETA_CHECKOUT_GUARD_UNAVAILABLE",
+      "O checkout está temporariamente indisponível por segurança.",
+      503,
+    );
+  }
+}
+
 async function provisionCheckout(
   checkoutIntentId: string,
   actorUserId: string,
@@ -516,6 +549,7 @@ export async function executeAsaasCheckoutRequest(
     if (!UUID_PATTERN.test(checkoutIntentId)) {
       return transportFailure("Checkout inválido.", "INVALID_CHECKOUT_INTENT", 400);
     }
+    await assertBetaAsaasCheckoutHandoffAllowed();
     return {
       ok: true,
       checkout: await provisionCheckout(checkoutIntentId, actorUserId),
