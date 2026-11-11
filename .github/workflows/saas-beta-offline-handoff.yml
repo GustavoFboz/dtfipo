@@ -1,0 +1,54 @@
+name: DentalFlow Beta Offline Handoff Audit — no hosting, no provider calls
+
+on:
+  pull_request:
+    branches: [main, "saas/stage-03-asaas-checkout"]
+    paths:
+      - "scripts/saas-beta-offline-handoff.mjs"
+      - "scripts/saas-beta-offline-handoff.test.mjs"
+      - "docs/saas/BETA-ROTEIRO-ATE-LIBERACAO-DA-HOSPEDAGEM.md"
+      - "docs/saas/BETA-RELEASE-8-EXECUTIONS.md"
+      - "docs/saas/BETA-RELEASE-8-EXECUTIONS.json"
+      - "docs/saas/PAID-BETA-READINESS.json"
+      - "docs/saas/legal/BETA6-LEGAL-APPROVAL-REGISTER.json"
+      - ".github/workflows/saas-beta-offline-handoff.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout only source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate 8 stages, 8 commercial P0 and 13 legal blockers with no secrets
+        run: |
+          node --test scripts/saas-beta-eight-executions.test.mjs
+          node --test scripts/saas-paid-beta-pilot-gate.test.mjs
+          node --test scripts/saas-beta-offline-handoff.test.mjs
+      - name: Check that this report cannot authorize the beta or any charges
+        run: |
+          node scripts/saas-beta-offline-handoff.mjs > "$RUNNER_TEMP/df-beta-handoff.json"
+          node - "$RUNNER_TEMP/df-beta-handoff.json" <<'NODE'
+          const fs = require("node:fs");
+          const assert = require("node:assert/strict");
+          const result = JSON.parse(fs.readFileSync(process.argv[2],"utf8"));
+          assert.equal(result.schema,"dentalflow-beta-offline-handoff-v1");
+          assert.equal(result.release_authorized,false);
+          assert.equal(result.commercial_payments_authorized,false);
+          assert.equal(result.no_production_changes,true);
+          assert.equal(result.no_payment_operations,true);
+          assert.equal(result.release_state,"not_published");
+          assert.equal(result.outstanding_p0_count > 0,true);
+          assert.equal(result.stages.length,4);
+          console.log("OFFLINE_BETA_HANDOFF_SAFE: no hosting, Asaas, Supabase or production changes.");
+          NODE
