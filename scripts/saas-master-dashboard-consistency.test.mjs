@@ -39,7 +39,8 @@ test("partial financial and legal preparation cannot inflate the unique launch p
  assert.equal(other_controls.formal_accepted.total,23);
  assert.equal(other_controls.p0.total,8);
  assert.equal(other_controls.legal.total,13);
- assert.ok(stages[4].substeps.some(x=>x.status==="prepared"));
+ assert.ok(stages[4].substeps.some(x=>x.status==="done"));
+ assert.ok(stages[5].substeps.some(x=>x.status==="prepared"));
  assert.ok(stages[4].substeps.some(x=>x.status==="pending"));
  assert.ok(stages[5].substeps.some(x=>x.status==="pending"));
 });
@@ -55,6 +56,36 @@ test("a single newly accepted phase advances only this primary figure and keeps 
  assert.equal(simulated.primary.percent,(simulated.primary.completed/8)*100);
  assert.equal(simulated.primary.sales_authorized,false);
  assert.equal(simulated.other_controls.p0.completed,0);
+});
+
+test("individual real Sandbox/hosting substeps update each round without pretending the whole phase passed",()=>{
+ const data=copy();
+ data.plan.steps[4].checkpoint.verified_substeps=[
+  {id:"provider-1",evidence:["https://github.com/GustavoFboz/dtfipo/actions/runs/123456"]},
+ ];
+ data.plan.steps[6].checkpoint.verified_substeps=[
+  {id:"hosted-1",evidence:["https://github.com/GustavoFboz/dtfipo/issues/241#issuecomment-123"]},
+ ];
+ const updated=buildMasterDashboard(data);
+ assert.equal(updated.stages[4].substeps.find(x=>x.id==="provider-1").status,"done");
+ assert.equal(updated.stages[6].substeps.find(x=>x.id==="hosted-1").status,"done");
+ assert.equal(updated.stages[4].status,"pending");
+ assert.equal(updated.stages[6].status,"pending");
+ assert.equal(updated.primary.percent,sources.plan.steps.filter(x=>x.status==="done").length/8*100);
+ assert.equal(updated.primary.sales_authorized,false);
+});
+
+test("an arbitrary link or duplicate cannot turn a substep green",()=>{
+ const data=copy();
+ data.plan.steps[4].checkpoint.verified_substeps=[
+  {id:"provider-1",evidence:["https://example.invalid/fake-proof"]},
+ ];
+ assert.throws(()=>buildMasterDashboard(data),/SUBSTEP_EVIDENCE_INVALID/);
+ data.plan.steps[4].checkpoint.verified_substeps=[
+  {id:"provider-1",evidence:["https://github.com/GustavoFboz/dtfipo/actions/runs/123"]},
+  {id:"provider-1",evidence:["https://github.com/GustavoFboz/dtfipo/actions/runs/123"]},
+ ];
+ assert.throws(()=>buildMasterDashboard(data),/SUBSTEP_EVIDENCE_DUPLICATED/);
 });
 
 test("false completed stage or unaudited 100% are rejected",()=>{
