@@ -48,6 +48,25 @@ node scripts/saas-build-master-dashboard.mjs --check
 node --test scripts/saas-master-dashboard-consistency.test.mjs
 ```
 
+### Como atualizar subetapas antes de fechar uma etapa inteira
+
+Para as etapas **5 e 7**, é possível comprovar uma subetapa individual e **deixar a etapa geral pendente**. No arquivo oficial `docs/saas/BETA-RELEASE-8-EXECUTIONS.json`, acrescentar ao `checkpoint` da etapa pertinente, **somente após revisão da prova real**, uma lista `verified_substeps`. Exemplo artificial de formato (não incluir este exemplo no estado real):
+
+```json
+{
+  "verified_substeps": [
+    {
+      "id": "provider-1",
+      "evidence": ["https://github.com/GustavoFboz/dtfipo/actions/runs/123456"]
+    }
+  ]
+}
+```
+
+Os IDs possíveis para a etapa 5 são `provider-1` a `provider-5` (segundo ciclo, webhook, atraso/retorno, plano/preço e cancelamento/parada). Para a etapa 7 são `hosted-1` a `hosted-4` (QA isolado, versão/autenticação/casos, rollback hospedado, backup/paridade). A etapa 6 atualiza suas decisões `L01` a `L13` a partir do registro jurídico; a etapa 8 atualiza seus oito P0 pelo registro comercial. Links falsos, repetidos ou fora do repositório autorizado são recusados pelo gerador. Os `verified_substeps` devem apontar para recibos agregados sem prontuários, nunca para dados privados ou tokens. **Adicionar o URL não constitui por si só auditoria independente**: revisar o conteúdo primeiro. Só a comprovação de todos os critérios da etapa permite mudar o status geral para `done`.
+
+A subetapa "ensaio local" já é mostrada como **comprovada no próprio escopo local**, mas não substitui a prova em hospedagem ou no Asaas real. O percentual principal continua ligado apenas aos marcos oficiais.
+
 A CI principal executa `--check` e os testes. Se qualquer registro oficial mudou, mas o painel não foi regenerado, a compilação do PR **falha**. Nenhuma rotina dessa atualização consulta Asaas, Lovable, Storage, credenciais ou dados de pacientes. O painel *não é sincronização ao vivo com o GitHub*: mudanças só aparecem aos usuários depois que a versão revisada foi publicada.
 
 A cópia sanitizada não inclui prontuários, nomes de pacientes, CPFs, chaves, URLs assinadas ou anexos. O nível de detalhe exibido resume nomes e estados; links de evidência ficam nos registros administrativos privados/repositório existente.
