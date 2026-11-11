@@ -432,6 +432,48 @@ export async function assertBetaAsaasCheckoutHandoffAllowed(): Promise<void> {
   }
 }
 
+/**
+ * Optional legal documents are never accepted by the application implicitly.
+ * Only receipts for the authenticated company's current published Terms + DPA
+ * can unlock a NEW checkout, when the separate server-only policy enables it.
+ * Migration first, and QA with approved documents before turning the flag on.
+ */
+export async function assertBetaAsaasCheckoutLegalAllowed(
+  checkoutIntentId: string,
+  actorUserId: string,
+): Promise<void> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  let answer: { data: unknown; error: { code?: string; message?: string } | null };
+  try {
+    answer = await (supabaseAdmin as any).rpc("beta_assert_checkout_legal_accepted", {
+      p_checkout_intent_id: checkoutIntentId,
+      p_actor_user_id: actorUserId,
+    });
+  } catch {
+    throw new CheckoutRequestError(
+      "BETA_LEGAL_VERIFICATION_UNAVAILABLE",
+      "Não foi possível verificar os termos com segurança. Tente novamente mais tarde.",
+      503,
+    );
+  }
+  const { data, error } = answer ?? { data: null, error: null };
+  if (error?.code === "42501" &&
+      /BETA_LEGAL_ACCEPTANCE_REQUIRED/.test(error.message ?? "")) {
+    throw new CheckoutRequestError(
+      "BETA_LEGAL_ACCEPTANCE_REQUIRED",
+      "É necessário aceitar os termos vigentes antes de contratar.",
+      423,
+    );
+  }
+  if (error || data !== true) {
+    throw new CheckoutRequestError(
+      "BETA_LEGAL_VERIFICATION_UNAVAILABLE",
+      "Não foi possível verificar os termos com segurança. Tente novamente mais tarde.",
+      503,
+    );
+  }
+}
+
 async function provisionCheckout(
   checkoutIntentId: string,
   actorUserId: string,
@@ -550,6 +592,7 @@ export async function executeAsaasCheckoutRequest(
       return transportFailure("Checkout inválido.", "INVALID_CHECKOUT_INTENT", 400);
     }
     await assertBetaAsaasCheckoutHandoffAllowed();
+    await assertBetaAsaasCheckoutLegalAllowed(checkoutIntentId, actorUserId);
     return {
       ok: true,
       checkout: await provisionCheckout(checkoutIntentId, actorUserId),
