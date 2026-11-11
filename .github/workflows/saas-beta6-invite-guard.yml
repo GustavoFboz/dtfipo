@@ -7,6 +7,8 @@ on:
     paths:
       - "supabase/migrations/20261111063000_beta_invite_sales_guard.sql"
       - "tests/beta6-invite-gate/**"
+      - "src/lib/billing/asaas-checkout.server.ts"
+      - "src/lib/billing/asaas-beta-sales-guard.server.test.ts"
       - ".github/workflows/saas-beta6-invite-guard.yml"
   workflow_dispatch:
 
