@@ -1,6 +1,6 @@
 {
   "schema": "dentalflow-beta6-legal-approval-register-v1",
-  "reviewed_at": "2026-11-10",
+  "reviewed_at": "2026-11-11",
   "status": "INTERNAL_DRAFT_NOT_FOR_USERS",
   "legal_review_approved": false,
   "privacy_review_approved": false,
@@ -62,7 +62,7 @@
   "blocking_decisions": [
     {
       "id": "L01",
-      "subject": "Prestadora: razão social, CNPJ, endereço, representante e poderes",
+      "subject": "Pessoa física prestadora: nome civil, CPF validado por canal seguro, cidade/UF, meio de contato/endereço exigido na oferta e situação fiscal municipal",
       "owner_role": "company",
       "state": "pending",
       "evidence": null
@@ -153,5 +153,26 @@
     }
   ],
   "no_automatic_completion_of_stage6": true,
-  "note": "Only a proposed legal and privacy package. Release state cannot be inferred from documentation or a dormant acceptance RPC. Signed approvals and verified actual hosting/client flows required."
+  "note": "Prestador PF inicial com dados mínimos sem CNPJ; atenção a deveres LGPD, transparência legal e tributos. Somente minutas; nenhuma pessoa ou CPF foi registrado e nenhuma autorização jurídica/comercial foi dada.",
+  "provider_legal_form_preference": "individual_cpf_no_cnpj_initial",
+  "provider_identity_collection_policy": {
+    "initial_request": [
+      "legal_name",
+      "municipality_and_state",
+      "controlled_service_and_privacy_email"
+    ],
+    "never_in_git_or_chat": [
+      "cpf_number",
+      "national_id_scan",
+      "full_residential_address",
+      "bank_account",
+      "asaas_secret_key"
+    ],
+    "required_later_through_appropriate_secure_and_legally_compliant_channel": [
+      "cpf_and_identity_verification",
+      "supplier_identification_and_contact_required_by_consumer_law",
+      "applicable_municipal_tax_registration_and_invoicing",
+      "provider_specific_asaas_pf_kyc"
+    ]
+  }
 }
