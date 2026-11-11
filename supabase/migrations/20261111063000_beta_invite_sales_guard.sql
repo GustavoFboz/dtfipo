@@ -1,8 +1,9 @@
 -- DentalFlow beta 6/8: PREPARATION ONLY. Do not deploy/enable without staged review.
 -- Both toggles DEFAULT OFF: preserve all existing production onboarding/checkout.
 -- Backend enforcement (not UI): company invitation via confirmed e-mail allowlist.
--- New-intent pause does NOT block already issued payment links; provider handoff
--- still needs a separate emergency stop before commercial launch.
+-- Pause denies new checkout_intents INSERTs and server-side Asaas checkout handoff
+-- including old intents once server guard is deployed. Already-issued Asaas
+-- payment URLs can remain payable; pausing does not cancel provider invoices.
 CREATE TABLE IF NOT EXISTS public.beta_release_policy (
   singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton = true),
   company_invites_required boolean NOT NULL DEFAULT false,
@@ -71,6 +72,23 @@ DROP TRIGGER IF EXISTS beta_guard_new_clinic_insert ON public.clinics;
 CREATE TRIGGER beta_guard_new_clinic_insert
 BEFORE INSERT ON public.clinics FOR EACH ROW
 EXECUTE FUNCTION public.beta_guard_new_clinic_insert();
+
+-- The checkout server calls this RPC with service_role BEFORE any Asaas handoff
+-- (including an already issued/pending checkout intent). Cannot be invoked by
+-- public/anonymous clients. No change to webhooks, renewals or issued invoices.
+CREATE OR REPLACE FUNCTION public.beta_assert_new_checkout_handoff_allowed()
+RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $
+DECLARE v_paused boolean;
+BEGIN
+  SELECT new_checkout_intents_paused INTO v_paused
+    FROM public.beta_release_policy WHERE singleton = true;
+  IF v_paused IS DISTINCT FROM FALSE THEN
+    RAISE EXCEPTION 'BETA_NEW_CHECKOUTS_PAUSED' USING ERRCODE = '42501';
+  END IF;
+  RETURN true;
+END $;
+REVOKE ALL ON FUNCTION public.beta_assert_new_checkout_handoff_allowed() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.beta_assert_new_checkout_handoff_allowed() TO service_role;
 
 -- Intercepts new checkout intent INSERTs even if client bypasses React.
 -- Existing paid subscriptions, invoices, and UPDATE processing are untouched.
