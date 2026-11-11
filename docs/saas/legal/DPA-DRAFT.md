@@ -2,7 +2,7 @@
 
 **MINUTA INTERNA, NÃO ASSINADA, NÃO APROVADA, NÃO VIGENTE — v0.2, 10/11/2026.** Usar como anexo do contrato SaaS apenas após definição jurídica das partes, papéis, instrutores, fornecedores, responsabilidades e anexos. Não constituem instruções válidas dados falsos ou campos pendentes.
 
-**Contratante/Controlador proposto:** `[PENDENTE: nome/razão social, CPF/CNPJ quando aplicável, endereço, representante autorizado e canal de privacidade]`. **Prestador/Operador proposto:** **pessoa física** responsável pelo DentalFlow, `[PENDENTE: nome civil completo]`, CPF `[PENDENTE: guarda privada, não colocar no código]`, endereço profissional/de correspondência `[PENDENTE]` e contato de privacidade `[PENDENTE]`. A condição de pessoa natural não dispensa medidas técnicas, deveres legais, sigilo nem análise de transferência internacional.
+**Contratante/Controlador proposto:** `[PENDENTE: nome/razão social, CPF/CNPJ quando aplicável, endereço, representante autorizado e canal de privacidade]`. **Prestadora/Operadora proposta:** **pessoa física** responsável pelo DentalFlow, `[PENDENTE: nome civil completo]`, CPF `[PENDENTE: guarda privada, não colocar no código]`, endereço profissional/de correspondência `[PENDENTE]` e contato de privacidade `[PENDENTE]`. A condição de pessoa natural não dispensa medidas técnicas, deveres legais, sigilo nem análise de transferência internacional.
 
 ## 1. Papel e interpretação
 
