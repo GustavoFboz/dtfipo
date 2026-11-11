@@ -2,7 +2,7 @@
 
 **MINUTA INTERNA, NÃO ASSINADA, NÃO APROVADA, NÃO VIGENTE — v0.2, 10/11/2026.** Usar como anexo do contrato SaaS apenas após definição jurídica das partes, papéis, instrutores, fornecedores, responsabilidades e anexos. Não constituem instruções válidas dados falsos ou campos pendentes.
 
-**Contratante/Controlador proposto:** `[PENDENTE: razão social, CNPJ, endereço, representante e contato de privacidade]`. **Prestadora/Operadora proposta:** `[PENDENTE: razão social, CNPJ, endereço, representante e contato]`.
+**Contratante/Controlador proposto:** `[PENDENTE: nome/razão social, CPF/CNPJ quando aplicável, endereço, representante autorizado e canal de privacidade]`. **Prestador/Operador proposto:** **pessoa física** responsável pelo DentalFlow, `[PENDENTE: nome civil completo]`, CPF `[PENDENTE: guarda privada, não colocar no código]`, endereço profissional/de correspondência `[PENDENTE]` e contato de privacidade `[PENDENTE]`. A condição de pessoa natural não dispensa medidas técnicas, deveres legais, sigilo nem análise de transferência internacional.
 
 ## 1. Papel e interpretação
 
@@ -81,6 +81,6 @@ Vigência acompanha as operações de tratamento e obrigações remanescentes de
 
 Cada versão deverá ser publicada **somente após aprovação jurídica e comercial documentada**; o sistema deve armazenar documento imutável, SHA-256, data, identidade do representante com poderes, empresa, versão do DPA e da proposta, protocolo de aceite e possibilidade de reabertura/cópia. A existência da RPC SQL ou de uma flag de aceite não comprova publicação nem concordância dos pacientes. Nenhuma assinatura retroativa, caixa pré-marcada ou aceite coletivo silencioso.
 
-**Campos obrigatórios faltantes:** razão social/CNPJ e signatários, matriz real de funções e bases legais, suboperadores e contratos, transferência internacional, canais, retenção/saída, condições de SLA e resposta, revisão jurídica, publicação e implantação testada. **SEM APROVAÇÃO / SEM ASSINATURA.**
+**Campos obrigatórios faltantes:** identidade civil/CPF e assinatura do Prestador PF, identificação e poderes do cliente, matriz real de funções e bases legais, suboperadores e contratos, transferência internacional, canais, retenção/saída, condições de SLA e resposta, revisão jurídica, publicação e implantação testada. **SEM APROVAÇÃO / SEM ASSINATURA.**
 
 **Referências:** [LGPD consolidada](https://www2.camara.leg.br/legin/fed/lei/2018/lei-13709-14-agosto-2018-787077-normaatualizada-pl.html), [ANPD — agentes de tratamento](https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes/guia-orientativo-para-definicoes-dos-agentes-de-tratamento-de-dados-pessoais-e-do-encarregado), [ANPD — transferência internacional](https://www.gov.br/anpd/pt-br/assuntos/assuntos-internacionais/transferencia-internacional-de-dados), [ANPD — incidentes](https://www.gov.br/anpd/pt-br/canais_atendimento/agente-de-tratamento/comunicado-de-incidente-de-seguranca-cis).
