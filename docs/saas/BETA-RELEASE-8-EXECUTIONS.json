@@ -9,7 +9,7 @@
   "beta_approval_status": "pending",
   "historical_formal_accepted": "13/23",
   "historical_technical_progress_percent": 94.06,
-  "note": "4/8. Etapa 6: minutas legais LGPD + termos/DPA, direitos, retenção, fornecedores, RIPD e beta ops integradas com CI; não há aprovação profissional, documentos publicados, aceite real ou autorização de venda.",
+  "note": "4/8 (50%). Etapa 6: minutas LGPD/PF internas e testes de servidor para convites + parada de novos checkouts/Asaas aprovados apenas em CI; PR #290 ainda draft, não implantada. Gates P0 e publicação pendentes.",
   "steps": [
     {
       "id": 1,
@@ -343,7 +343,10 @@
         "https://github.com/GustavoFboz/dtfipo/pull/286",
         "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444111",
         "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444050",
-        "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444071"
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/42842444071",
+        "https://github.com/GustavoFboz/dtfipo/pull/290",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43030116513",
+        "https://github.com/GustavoFboz/dtfipo/actions/runs/43030116664"
       ],
       "checkpoint": {
         "legal_lgpd_internal_drafts": {
@@ -396,6 +399,26 @@
           "identity_checked": false,
           "contact_checked": false,
           "public_release_of_identity_authorized": false
+        },
+        "dormant_server_invite_and_checkout_guard": {
+          "date": "2026-11-11",
+          "pull_request": "https://github.com/GustavoFboz/dtfipo/pull/290",
+          "state": "DRAFT_NOT_MERGED_OR_DEPLOYED",
+          "flags_default_off": true,
+          "synthetic_postgres17_passed": true,
+          "checkout_server_vitest_and_general_ci_passed": true,
+          "combined_authorization_paths": "web_http_and_server_fn_shared_boundary",
+          "authenticated_company_invites_and_one_use_sql_synthetic_only": true,
+          "old_intent_handoff_blocked_in_synthetic_tests": true,
+          "database_unavailable_fails_closed_in_unit_tests": true,
+          "previously_issued_asaas_payment_links_revoked": false,
+          "hosted_supabase_auth_postgrest_verified": false,
+          "hosted_sandbox_asaas_verified": false,
+          "legal_texts_approved": false,
+          "step6_accepted": false,
+          "production_changes_authorized": false,
+          "postgres_ci": "https://github.com/GustavoFboz/dtfipo/actions/runs/43030116513",
+          "general_ci": "https://github.com/GustavoFboz/dtfipo/actions/runs/43030116664"
         }
       }
     },
