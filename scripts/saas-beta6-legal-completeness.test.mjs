@@ -101,3 +101,27 @@ test("all real approvers and subprocessor transfer information remain explicit d
   assert(control.blocking_decisions.some(x=>/jurídico|advogado/.test(x.subject)));
   assert(control.blocking_decisions.some(x=>/Convite|Convite|Convite|convite/.test(x.subject)));
 });
+
+test("sole-person CPF provider is documented with minimal, secure collection and no implicit publication",()=>{
+  assert.equal(control.provider_legal_form_preference,"individual_cpf_no_cnpj_initial");
+  assert.deepEqual(control.provider_identity_collection_policy.initial_request,
+    ["legal_name","municipality_and_state","controlled_service_and_privacy_email"]);
+  assert(control.provider_identity_collection_policy.never_in_git_or_chat.includes("cpf_number"));
+  assert.equal(control.effective_legal_entity,null);
+  assert.equal(control.customer_acceptances_issued,false);
+  assert.equal(control.publication_authorized,false);
+  for(const file of ["SAAS-TERMS-DRAFT.md","PRIVACY-NOTICE-DRAFT.md","DPA-DRAFT.md"]){
+    const text=read(root+file);
+    assert.match(text,/pessoa física/i);
+    assert.match(text,/CPF/);
+    assert.match(text,/PENDENTE/);
+    assert.doesNotMatch(text,/\b[0-9]{3}\.[0-9]{3}\.[0-9]{3}-[0-9]{2}\b/);
+  }
+  const checklist=read(root+"DADOS-PENDENTES-PARA-APROVACAO.md");
+  assert.match(checklist,/apenas três informações/);
+  assert.match(checklist,/Não é necessário informar CPF neste chat/i);
+  assert.match(checklist,/Decreto 7\.962\/2013/);
+  assert.match(checklist,/NFS-e/);
+  assert.equal(steps.steps.find(x=>x.id===6).status,"pending");
+  assert.equal(steps.steps.filter(x=>x.status==="done").length,4);
+});

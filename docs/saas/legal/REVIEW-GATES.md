@@ -17,7 +17,7 @@
 
 | Frente | Evidência preparada | Aceite operacional que falta |
 | --- | --- | --- |
-| L01 — identidade da Prestadora e representantes | Checklist/registro formal | Razão social/CNPJ/endereço, poderes, canais fiscais e suporte |
+| L01 — identificação do prestador pessoa física | Ficha mínima PF (nome, município/UF, e-mail) | CPF verificado em canal seguro, endereço/identificação exigidos na oferta, situação fiscal municipal, canais válidos |
 | L02 — mapa e papéis LGPD | ROPA + inventário e DPA | Validar bases do art. 11, controladores, menores, fornecedores, países e mecanismos de transferência |
 | L03 — termos e preços | Minuta SaaS e Anexo do Beta | Preços reais/ciclos/limites/cancelamento/reembolso; advogado e negócio assinam revisão |
 | L04 — privacidade e DPA | Documentos em v0.2 | Jurídico valida, DPA recebe dados concretos, empresa aprova e cliente/representante autorizado aceita |
@@ -30,7 +30,7 @@
 
 ## Dados jurídicos que não podemos inventar
 
-A Prestadora deve informar razão social, CNPJ, endereço, representantes, contatos, proposta comercial, canais de suporte e privacidade, estrutura de fornecedor, local de dados e prazos de retenção definidos com jurídico/contador. A inexistência de um e-mail/canal funcional ou ausência de contrato/DPA com subprocessador impede afirmar que a operação está regularizada.
+O prestador será inicialmente **pessoa física sem CNPJ**. A ficha inicial pede apenas **nome civil, município/UF e e-mail controlado**; CPF/documento, endereço de contrato e validação cadastral serão tratados **somente em canal restrito**, mas devem constar da contratação/oferta nos termos exigidos pela legislação quando aplicável. Pessoa física não é dispensa automática de inscrição municipal, emissão fiscal ou LGPD. A inexistência de um e-mail/canal funcional ou ausência de contrato/DPA com subprocessador impede afirmar que a operação está regularizada.
 
 A proteção contratual **não significa isenção de responsabilidade**. Termos não podem limitar o direito do paciente, converter consentimento em autorização genérica, eliminar regras de sigilo, permitir acesso interclínicas indevido, afastar LGPD/CDC ou transformar falha de segurança da Prestadora em responsabilidade exclusiva do cliente.
 

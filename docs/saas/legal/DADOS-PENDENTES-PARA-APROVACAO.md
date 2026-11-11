@@ -1,43 +1,26 @@
-# DentalFlow — Ficha de informações para finalizar Termos e LGPD
+# DentalFlow — Dados mínimos para iniciar como pessoa física
 
-**Checklist simplificado para preencher depois, sem bloquear o desenvolvimento atual.** Não compartilhar documentos pessoais, senhas ou dados de pacientes no chat público nem no repositório. A aprovação jurídica e operacional será documentada apenas com protocolos sanitizados.
+**Ficha simplificada, 11/11/2026 — minuta interna.** A escolha atual é **prestador pessoa física (CPF), sem CNPJ**. Não registrar CPF, documento de identidade, endereço residencial detalhado, imagem de documento, conta bancária ou chaves do Asaas em GitHub, logs, testes ou nesta ficha.
 
-## Bloco A — Identidade de quem venderá o DentalFlow
+## Agora: apenas três informações (sem documentos)
 
-1. Nome legal de quem prestará o SaaS (razão social), CNPJ e nome fantasia, se houver. Se a empresa ainda não existir formalmente, isso deve ser resolvido com contador/advogado **antes de vender**.
-2. Endereço empresarial/cidade/UF (dados necessários para o contrato); endereço de correspondência diferente, se houver.
-3. Nome/cargo do representante com poderes para firmar contratos pela Prestadora e canal institucional (telefone/e-mail, sem incluir dados privados desnecessários).
-4. Quem será responsável por proteção de dados (encarregado) **ou** quem fará a análise jurídica formal de eventual dispensa; contato de privacidade/segurança sob controle da empresa.
-5. E-mail/site de suporte verdadeiros, horário possível e responsável/suplente pelo atendimento.
+1. **Nome civil completo do prestador** (como aparece no documento de identidade) — `[PENDENTE]`.
+2. **Cidade e UF do domicílio/atividade** — `[PENDENTE]`. Endereço completo só será avaliado na preparação da oferta/contrato, verificando as informações de localização que a legislação exige sem exposição desnecessária.
+3. **E-mail que você controla para suporte e privacidade** — `[PENDENTE]`. Inicialmente poderá ser o mesmo endereço, desde que seja monitorado e seguro; separar canais futuramente se necessário.
 
-## Bloco B — Como será comercializado
+**Não é necessário informar CPF neste chat.** Quando chegar a hora da contratação ou validação Asaas PF, CPF/documentos devem ir **diretamente ao provedor/fluxo seguro** ou a cofre documental com acesso restrito e consentimento/fundamento apropriado, nunca ao repositório de código. **A lei pode exigir identificar CPF e endereço em ofertas de consumo; revisão jurídica determinará como cumprir, não ocultá-los.**
 
-6. Quais tipos de empresa contratarão (laboratório, clínica, radiologia etc.) e se haverá profissionais/autônomos assinando individualmente.
-7. Planos e preço reais por mês, limites de sessões/usuários, armazenamento, recursos incluídos e eventuais excedentes. **R$5 do teste não é preço final.**
-8. Meio de pagamento permitido, ciclo, vencimento, renovação, atraso, carência, suspensão, reativação, cancelamento, reembolso e emissão fiscal; validar juridicamente e no Asaas Sandbox.
-9. Quantas empresas participarão do primeiro beta e como serão selecionadas; quem decide autorizar/retirar convites.
-10. O que é **beta/teste** e quais limitações serão divulgadas; quais compromissos de suporte e disponibilidade são realmente viáveis.
+## Depois, perto do primeiro beta pago
 
-## Bloco C — Onde os dados serão tratados
+- **Planos/preços e quantidade inicial de empresas convidadas.** Nenhum valor de teste vira preço comercial por padrão.
+- **Asaas:** confirmar identidade/conta PF ativa no provedor, recebimentos e termos; não copiar chave para chat ou CI.
+- **Fiscal:** confirmar com contador/município se há inscrição de autônomo, ISS e emissão de NFS-e por PF; podem existir outras obrigações de formalização para atividade habitual. Não se presumem isenções.
+- **Privacidade:** quem será o contato responsável, mapa real dos fornecedores, base legal dos dados clínicos, prazo de guarda, fluxo de incidente e eventual elegibilidade às regras simplificadas da ANPD para pequeno porte. Mesmo com dispensa de encarregado, manter canal de atendimento aos titulares quando cabível.
+- **Termos:** advogado revisa o contrato de pessoa física, DPA, aviso de privacidade, oferta, direitos de titulares e responsabilidades proporcionais.
+- **Aplicação:** testar acesso aos documentos antes do pagamento, aceite versionado do representante da clínica, convites restringidos **no backend** e parada de novos checkouts sem afetar dados já armazenados.
 
-11. Contas/contratos efetivamente contratados de Supabase, Lovable ou outra hospedagem, Asaas, serviços de e-mail, logs, monitoramento e suporte — razão social/entidade, localização, país, cadeia de subprocessadores e DPA.
-12. Quem decide o tratamento clínico: se clínica, laboratório e profissional são controladores independentes, conjuntos ou operador; como pacientes, escaneamentos, fotos, chat e equipe são compartilhados.
-13. Se existem pacientes menores e se dados clínicos serão usados em diferentes jurisdições; identificar a hipótese legal do art. 11 da LGPD por finalidade clínica, com orientação do advogado e profissionais de saúde.
-14. Quais categorias de documentos têm obrigação de guarda profissional e por quanto tempo; regras fiscais/contábeis, logs, backups e processo de saída/exportação.
-15. Quais dados e informações são enviados para suporte, monitoramento, SMS/e-mail/push, integrações de IA ou serviços externos, se existirem. Não habilitar uso secundário de prontuários por padrão.
+## Critérios da etapa 6
 
-## Bloco D — Quem aprova e como provar
+Documentação e campos PF estruturados **não** são autorização de venda nem publicação. Etapa 6 continua `pending` até identidade/contatos, análise fiscal, textos aprovados, fornecedores/retenção e verificação de aceites e segurança real. Manter 4/8 sem liberação automática.
 
-16. Nome e OAB do advogado/revisor quando contratado; aprovação da Prestadora e do responsável de privacidade; versão final de Termos, Privacidade, DPA e Anexo do Beta.
-17. Comprovação de que o representante da clínica tem poderes; aceite por versão/hash do documento e do preço, data/hora, clínica e usuário.
-18. Testes de backend e UI: documento pode ser lido antes da assinatura, não existe checkbox pré-marcado, documento não aprovado não é oferecido, histórico de versão é acessível; convite de empresa não autorizada é negado.
-19. Responsáveis e teste de parada de novas vendas/checkouts; resposta a incidente, pedidos de titular e backup/exportação sem apagar clínicas ativas.
-20. Aprovação expressa de abertura do beta, **separada** da aprovação documental e dos gates financeiros/hospedagem.
-
-## Ordem recomendada para não sobrecarregar
-
-**Primeira rodada quando for conveniente:** apenas itens 1–5 e 6–10 (identidade, contatos, planos e beta). A engenharia pode preparar a trilha de aceite enquanto jurídico e contador validam 11–20. Não é preciso enviar documentos sigilosos nem responder tudo de uma vez.
-
-**Resultado esperado:** Termos e Privacidade sem colchetes, DPA específico para clientes/fornecedores, condições de preço e suporte efetivas, canal de direitos ativo, mecanismo de aceite por versão em staging, contratos e evidências restritas. Só então a etapa 6 poderá marcar `done`.
-
-**Atenção:** um “termo que proteja a empresa de tudo” é juridicamente irrealista. Documentos equilibrados, decisões rastreáveis e segurança operacional testada dão proteção mais defensável do que cláusulas abusivas que tentem afastar LGPD ou direitos dos pacientes.
+Fontes para conferência: [Decreto 7.962/2013](https://www2.camara.leg.br/legin/fed/decret/2013/decreto-7962-15-marco-2013-775557-publicacaooriginal-139266-pe.html), [ANPD Resolução 2/2022](https://www.gov.br/anpd/pt-br/acesso-a-informacao/institucional/atos-normativos/regulamentacoes_anpd/resolucao-cd-anpd-no-2-de-27-de-janeiro-de-2022), [NFS-e autônomos](https://www.gov.br/pt-br/servicos/emitir-nota-fiscal-de-servico-eletronica), [Asaas PF](https://central.ajuda.asaas.com/hc/pt-br/articles/52773852638875-Quais-documentos-s%C3%A3o-aceitos-para-validar-minha-conta-como-Pessoa-F%C3%ADsica).

@@ -6,7 +6,7 @@
 
 | Campo obrigatório antes de convidar cliente | Estado |
 | --- | --- |
-| Prestadora/razão social, CNPJ, endereço e representante | `[PENDENTE]` |
+| Prestador pessoa física: nome civil, CPF sob guarda restrita, contato/endereço e identificação legal na oferta | `[PENDENTE: validar meio seguro, sem incluir CPF nesta minuta]` |
 | Empresa participante, representante com poderes, contatos e serviços utilizados | `[PENDENTE: por convite]` |
 | Identificador do plano e limites de usuários/sessões/armazenamento | `[PENDENTE: validar contra tabela de produção]` |
 | Valor total, moeda, forma de cobrança, vencimento e tributos | `[PENDENTE: aprovação comercial/fiscal]` |

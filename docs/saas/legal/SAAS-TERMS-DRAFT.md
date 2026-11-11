@@ -1,12 +1,14 @@
-# DentalFlow — Termos de Uso e Contratação SaaS B2B
+# DentalFlow — Termos de Uso e Contratação SaaS (prestador pessoa física / clientes empresariais)
 
 **MINUTA INTERNA NÃO APROVADA / NÃO PUBLICADA / NÃO VIGENTE — v0.2 — 10/11/2026.** Destina-se à revisão jurídica, técnica e comercial. Campos `[PENDENTE: ...]` são condicionantes, não permissões para presumir fatos. A aprovação dos textos por advogado, a identificação da prestadora, as condições comerciais efetivas e o aceite por versão são obrigatórios antes de qualquer contratação comercial. Este documento NÃO significa conformidade LGPD nem liberação do beta.
 
 ## 1. Identificação, partes e vinculação
 
-**Prestadora:** `[PENDENTE: razão social completa]`, CNPJ `[PENDENTE]`, sede `[PENDENTE]`, endereço eletrônico de atendimento `[PENDENTE]` e canal de privacidade `[PENDENTE]` (“Prestadora”).
+**Parte prestadora:** pessoa natural identificada por `[PENDENTE: nome civil completo]`, CPF `[PENDENTE: registrar/verificar em canal restrito, nunca no GitHub]`, endereço físico de contato `[PENDENTE: verificar divulgação exigida na oferta e opção legítima de domicílio profissional]`, município/UF `[PENDENTE]`, e-mail de atendimento `[PENDENTE]` e canal de privacidade `[PENDENTE]` (“Prestadora”). Não se presume CNPJ, empresa constituída ou imunidade tributária. Dados exigidos por lei na oferta/contrato devem ser disponibilizados pelos meios apropriados após revisão jurídica; não ocultar informações obrigatórias por mera preferência de privacidade.
 
 **Cliente:** pessoa jurídica/organização de serviços odontológicos ou laboratório identificada na proposta e na conta DentalFlow, representada por pessoa **com poderes para contratar e vincular a empresa** (“Contratante”). Pessoas convidadas para usar a plataforma são usuários autorizados, e **não** passam a ser representantes legais por essa condição. Registro da prova dos poderes: `[PENDENTE: procedimento e evidência]`.
+
+A pessoa física prestadora pode exercer a atividade em nome próprio, sujeito a verificar cadastro municipal, tributação, emissão de NFS-e e habilitação do provedor de pagamentos. **Ser pessoa física não reduz direitos dos pacientes nem deveres de segurança e responsabilidade.**
 
 A assinatura compreende estes Termos, a **Proposta/Quadro Comercial** com preço e versão imutáveis, o **Aviso de Privacidade** para dados de conta e o **Acordo de Tratamento de Dados (DPA)** para as operações em nome da Contratante; havendo divergência, prevalecerá regra mais específica de proteção dos dados sobre disposição genérica, sem afastar leis imperativas. Ordem contratual final: `[PENDENTE: validação jurídica]`.
 
@@ -82,6 +84,6 @@ O término contratual não prejudica confidencialidade, responsabilidades anteri
 
 Anexos integrantes condicionais: [DPA](DPA-DRAFT.md), [Aviso de Privacidade](PRIVACY-NOTICE-DRAFT.md), [Anexo de Beta, Planos e Suporte](BETA-PILOT-COMMERCIAL-ANNEX-DRAFT.md), [Procedimentos de Direitos/Retenção](LGPD-OPERATIONS-RUNBOOK.md). Links são minutas internas; **não representam documentos atualmente acessíveis aos clientes**.
 
-**PENDÊNCIAS:** razão social/CNPJ/endereço, representante, identificação de controlador/operador, preços e ciclos, condições comerciais efetivas, canais, tratamento de menores, suboperadores/transferências, retenção e saída, acordo de suporte, versão publicada e revisão por advogado/privacidade. **SEM ASSINATURA, PUBLICAÇÃO OU ACEITE.**
+**PENDÊNCIAS:** nome civil e CPF do Prestador (validados fora do GitHub), domicílio/endereço e forma de divulgação legal, registro fiscal municipal e habilitação Asaas PF, identificação de controlador/operador, preços e ciclos, condições comerciais efetivas, canais, tratamento de menores, suboperadores/transferências, retenção e saída, acordo de suporte, versão publicada e revisão por advogado/privacidade. **SEM ASSINATURA, PUBLICAÇÃO OU ACEITE.**
 
 **Fontes para revisão:** [LGPD atualizada](https://www2.camara.leg.br/legin/fed/lei/2018/lei-13709-14-agosto-2018-787077-normaatualizada-pl.html), [ANPD — agentes de tratamento](https://www.gov.br/anpd/pt-br/centrais-de-conteudo/materiais-educativos-e-publicacoes/guia-orientativo-para-definicoes-dos-agentes-de-tratamento-de-dados-pessoais-e-do-encarregado), [CDC eletrônico — Decreto 7.962/2013](https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2013/decreto/d7962.htm), [ANPD — incidentes](https://www.gov.br/anpd/pt-br/canais_atendimento/agente-de-tratamento/comunicado-de-incidente-de-seguranca-cis).

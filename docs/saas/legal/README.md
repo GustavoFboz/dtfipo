@@ -1,6 +1,6 @@
 # DentalFlow — Pacote de conformidade e contratos do beta 6/8
 
-**Versão de trabalho 10/11/2026. MINUTAS INTERNAS, NÃO PUBLICADAS, NÃO VIGENTES.** Este diretório contém os textos para revisão jurídica e segurança, e a documentação técnica necessária para implementá-los sem afirmar conformidade antes de testes, contratos e aprovação.
+**Versão de trabalho 11/11/2026. MINUTAS INTERNAS, NÃO PUBLICADAS, NÃO VIGENTES.** O prestador será inicialmente **pessoa física (CPF), sem CNPJ**. Não registrar CPF ou endereço residencial no GitHub; a ficha inicial exige somente nome civil, cidade/UF e e-mail controlado. Verificar obrigações legais de identificação na oferta, inscrição fiscal e tratamento de dados de saúde antes de vender. Este diretório contém os textos para revisão jurídica e segurança, e a documentação técnica necessária para implementá-los sem afirmar conformidade antes de testes, contratos e aprovação.
 
 ## Documentos para revisão
 
