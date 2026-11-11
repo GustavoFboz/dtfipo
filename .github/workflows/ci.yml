@@ -113,6 +113,11 @@ jobs:
       # A repo-wide lint gate currently reports thousands of legacy findings,
       # so enabling it here would make unrelated historical debt block this
       # stabilization PR. Track cleanup separately in docs/ROADMAP.md.
+      - name: Verify unified Master SaaS panel matches official statuses
+        run: |
+          node scripts/saas-build-master-dashboard.mjs --check
+          node --test scripts/saas-master-dashboard-consistency.test.mjs
+
       - name: Verify paid beta gating never authorizes a sale or deploy
         run: |
           node --test scripts/saas-paid-beta-pilot-gate.test.mjs
