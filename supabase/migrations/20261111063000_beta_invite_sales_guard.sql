@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS public.beta_release_policy (
   singleton boolean PRIMARY KEY DEFAULT true CHECK (singleton = true),
   company_invites_required boolean NOT NULL DEFAULT false,
   new_checkout_intents_paused boolean NOT NULL DEFAULT false,
+  legal_acceptance_required boolean NOT NULL DEFAULT false,
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 INSERT INTO public.beta_release_policy(singleton) VALUES (true)
@@ -89,6 +90,60 @@ BEGIN
 END $beta_handoff$;
 REVOKE ALL ON FUNCTION public.beta_assert_new_checkout_handoff_allowed() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.beta_assert_new_checkout_handoff_allowed() TO service_role;
+
+-- Optional legal acceptance gate, DEFAULT OFF. Enable only after legal documents
+-- are approved, published, displayed to customers and accepted in hosted QA.
+-- This reads the proposed saas_legal_* tables ONLY when enabled; if they are
+-- missing or unavailable, checkout fails closed. It never creates an acceptance.
+CREATE OR REPLACE FUNCTION public.beta_assert_checkout_legal_accepted(
+  p_checkout_intent_id uuid, p_actor_user_id uuid
+) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = ''
+AS $beta_legal$
+DECLARE
+  v_required boolean;
+  v_clinic uuid;
+  v_accepted integer;
+BEGIN
+  SELECT legal_acceptance_required INTO v_required
+    FROM public.beta_release_policy WHERE singleton = true;
+  IF v_required IS FALSE THEN RETURN true; END IF;
+  -- Null/missing policy is a denial, never an implicit waiver.
+  IF v_required IS DISTINCT FROM TRUE THEN
+    RAISE EXCEPTION 'BETA_LEGAL_ACCEPTANCE_REQUIRED' USING ERRCODE='42501';
+  END IF;
+  SELECT ci.clinic_id INTO v_clinic
+  FROM public.checkout_intents ci
+  JOIN public.clinics c ON c.id=ci.clinic_id
+  WHERE ci.id=p_checkout_intent_id AND ci.user_id=p_actor_user_id
+    AND c.owner_id=p_actor_user_id
+    AND ci.status IN ('pending','provider_created');
+  IF v_clinic IS NULL THEN
+    RAISE EXCEPTION 'BETA_LEGAL_ACCEPTANCE_REQUIRED' USING ERRCODE='42501';
+  END IF;
+
+  -- Only the latest approved/published terms and DPA for this clinic/actor.
+  -- A draft, a superseded version, another company's receipt, or just the
+  -- privacy notice is insufficient. Last change wins only by approved dates.
+  SELECT count(*) INTO v_accepted FROM (
+    SELECT DISTINCT ON (document_kind) id, body_sha256
+    FROM public.saas_legal_document_versions
+    WHERE document_kind IN ('saas_terms','dpa') AND status='published'
+      AND published_at <= now()
+    ORDER BY document_kind, published_at DESC, created_at DESC, id DESC
+  ) approved
+  JOIN public.saas_legal_acceptance_receipts r
+    ON r.document_version_id=approved.id AND r.document_sha256=approved.body_sha256
+    AND r.actor_user_id=p_actor_user_id AND r.clinic_id=v_clinic;
+  IF v_accepted IS DISTINCT FROM 2 THEN
+    RAISE EXCEPTION 'BETA_LEGAL_ACCEPTANCE_REQUIRED' USING ERRCODE='42501';
+  END IF;
+  RETURN true;
+END $beta_legal$;
+REVOKE ALL ON FUNCTION public.beta_assert_checkout_legal_accepted(uuid,uuid)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.beta_assert_checkout_legal_accepted(uuid,uuid)
+  TO service_role;
 
 -- Intercepts new checkout intent INSERTs even if client bypasses React.
 -- Existing paid subscriptions, invoices, and UPDATE processing are untouched.
