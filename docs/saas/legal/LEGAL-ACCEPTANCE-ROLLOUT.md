@@ -1,6 +1,6 @@
 # DentalFlow — Especificação de implementação dos Termos versionados
 
-**Plano técnico, NÃO publicado/ativado — 10/11/2026.** O contrato de banco versionado e a função `record_saas_legal_acceptance` já estão preparados para ensaio isolado. A flag `VITE_SAAS_LEGAL_ACCEPTANCE_ENABLED` está desativada por padrão. Aprovar esta documentação **não autoriza ativá-la em produção**, publicar minutas ou criar aceites retroativos.
+**Plano técnico, NÃO publicado/ativado — 11/11/2026.** O Prestador será inicialmente pessoa física, com identidade civil/CPF validados fora do repositório e identificação na oferta segundo exigências legais. O contrato de banco versionado e a função `record_saas_legal_acceptance` já estão preparados para ensaio isolado. A flag `VITE_SAAS_LEGAL_ACCEPTANCE_ENABLED` está desativada por padrão. Aprovar esta documentação **não autoriza ativá-la em produção**, publicar minutas ou criar aceites retroativos.
 
 ## Fluxo obrigatório do cliente empresarial
 
