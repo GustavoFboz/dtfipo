@@ -1,0 +1,34 @@
+name: DentalFlow Beta6 Server Invite Control (Synthetic Only)
+
+on:
+  pull_request:
+    branches:
+      - "saas/stage-03-asaas-checkout"
+    paths:
+      - "supabase/migrations/20261111063000_beta_invite_sales_guard.sql"
+      - "tests/beta6-invite-gate/**"
+      - ".github/workflows/saas-beta6-invite-guard.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-trigger-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Synthetic disposable PG17 gate tests; no billing provider or secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --name df-beta6-invite-test --rm -d -e POSTGRES_PASSWORD=local-synthetic-only postgres:17 >/dev/null
+          trap 'docker rm -f df-beta6-invite-test >/dev/null 2>&1 || true' EXIT
+          for n in $(seq 1 40); do
+            if docker exec df-beta6-invite-test pg_isready -U postgres >/dev/null 2>&1; then break; fi
+            sleep 1
+          done
+          docker exec -i df-beta6-invite-test psql -U postgres -v ON_ERROR_STOP=1 < tests/beta6-invite-gate/fixture.sql
+          docker exec -i df-beta6-invite-test psql -U postgres -v ON_ERROR_STOP=1 < supabase/migrations/20261111063000_beta_invite_sales_guard.sql
+          docker exec -i df-beta6-invite-test psql -U postgres -v ON_ERROR_STOP=1 < tests/beta6-invite-gate/verify.sql
