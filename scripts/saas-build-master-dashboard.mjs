@@ -144,37 +144,62 @@ const upcoming=Object.freeze({
 
 function requireValid(ok,label){if(!ok)throw Error("MASTER_DASHBOARD_"+label);}
 function enumStatus(value,all,label){requireValid(all.includes(value),label);return value;}
+/**
+ * Per-round QA receipts are optional in the canonical step's checkpoint.
+ * A new completed provider/hosted substep is shown only after a reviewed,
+ * sanitized repository evidence URL was saved to that canonical record.
+ * No manual counter is kept in the UI.
+ */
+function verifiedSubstep(step,id){
+ const reviews=step.checkpoint?.verified_substeps ?? [];
+ requireValid(Array.isArray(reviews),"SUBSTEP_RECEIPTS_INVALID");
+ const ids=new Set();
+ for(const record of reviews){
+  requireValid(record && typeof record.id==="string" &&
+    Array.isArray(record.evidence) && record.evidence.length>=1 &&
+    record.evidence.every(url=>typeof url==="string" &&
+      /^https:\/\/github\.com\/GustavoFboz\/dtfipo\/(actions\/runs\/\d+|pull\/\d+|issues\/\d+)(?:#issuecomment-\d+)?$/.test(url)),
+    "SUBSTEP_EVIDENCE_INVALID");
+  requireValid(!ids.has(record.id),"SUBSTEP_EVIDENCE_DUPLICATED");
+  ids.add(record.id);
+ }
+ requireValid(reviews.every(record=>["synthetic-finance","provider-1","provider-2","provider-3",
+  "provider-4","provider-5","legal-drafts","security-review","local-rollback",
+  "hosted-1","hosted-2","hosted-3","hosted-4"].includes(record.id)),
+  "UNKNOWN_SUBSTEP_RECEIPT");
+ return ids.has(id)?"done":"pending";
+}
 function aggregateSteps(step,legal,p0){
  if(step.status==="done")return [{id:"accepted-scope",title:"Aceite da etapa registrado (escopo delimitado)",status:"done"}];
  if(step.id===5){
   const evidence=step.checkpoint?.technical_disposable_finance_verified;
   return [
-   {id:"synthetic-finance",title:"Ensaios locais de pagamentos, falhas e duplicidade",status:evidence?"prepared":"pending"},
+   {id:"synthetic-finance",title:"Ensaios locais de pagamentos, falhas e duplicidade",status:evidence?"done":"pending"},
    ...[
     "Segunda mensalidade no Asaas Sandbox",
     "Webhook, processamento único e período pago",
     "Atraso, suspensão, regularização e cancelamento",
     "Preço, plano e forma de pagamento no aplicativo",
     "Cancelamento e parada de novas vendas reais",
-   ].map((title,i)=>({id:"provider-"+(i+1),title,status:"pending"}))
+   ].map((title,i)=>({id:"provider-"+(i+1),title,status:verifiedSubstep(step,"provider-"+(i+1))}))
   ];
  }
  if(step.id===6){
   return [
-   {id:"legal-drafts",title:"Minutas internas de Termos, Privacidade e DPA",status:step.checkpoint?.legal_lgpd_internal_drafts?"prepared":"pending"},
-   {id:"security-review",title:"Proteções do servidor e recibos jurídicos em PR (não implantados)",status:"prepared"},
+   {id:"legal-drafts",title:"Minutas internas de Termos, Privacidade e DPA",status:step.checkpoint?.legal_lgpd_internal_drafts?"done":"pending"},
+   {id:"security-review",title:"Proteções do servidor e recibos jurídicos em PR (não implantados)",status:verifiedSubstep(step,"security-review")==="done"?"done":"prepared"},
    ...legal.blocking_decisions.map(x=>({id:x.id,title:legalTitles[x.id],status:x.state==="verified"?"done":"pending"}))
   ];
  }
  if(step.id===7){
   return [
-   {id:"local-rollback",title:"Ensaio de reversão A→B→A em servidor local descartável",status:step.checkpoint?.ephemeral_host_rollback?"prepared":"pending"},
+   {id:"local-rollback",title:"Ensaio de reversão A→B→A em servidor local descartável",status:step.checkpoint?.ephemeral_host_rollback?"done":"pending"},
    ...[
     "Hospedagem de testes, contas, banco e anexos separados",
     "Versão servida, login e casos funcionando no mesmo servidor",
     "Publicar e voltar à versão anterior no servidor de testes",
     "Integridade do backup, dos anexos e do código implantado",
-   ].map((title,i)=>({id:"hosted-"+(i+1),title,status:"pending"}))
+   ].map((title,i)=>({id:"hosted-"+(i+1),title,status:verifiedSubstep(step,"hosted-"+(i+1))}))
   ];
  }
  if(step.id===8){
