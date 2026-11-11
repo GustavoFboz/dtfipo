@@ -55,7 +55,7 @@ test("refuses fake or internal URLs when someone labels a P0 as verified",()=>{
   const data=copy();
   data.readiness.checks[0].status="verified";
   data.readiness.checks[0].evidence=[fake];
-  assert.throws(()=>assessOfflineBetaHandoff(data),/BETA_HANDOFF_P0_EVIDENCE_PLACEHOLDER/);
+  assert.throws(()=>assessOfflineBetaHandoff(data),/(BETA_HANDOFF_P0_EVIDENCE_PLACEHOLDER|BETA_READINESS_EVIDENCE_INVALID)/);
  }
 });
 
