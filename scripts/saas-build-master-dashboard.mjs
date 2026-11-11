@@ -142,7 +142,6 @@ const upcoming=Object.freeze({
  "8":"Conferir oito requisitos, autorizar e publicar o beta por convite.",
 });
 
-const riskFlag=false;
 function requireValid(ok,label){if(!ok)throw Error("MASTER_DASHBOARD_"+label);}
 function enumStatus(value,all,label){requireValid(all.includes(value),label);return value;}
 function aggregateSteps(step,legal,p0){
@@ -216,10 +215,16 @@ export function buildMasterDashboard({plan,implementation,technical,p0,legal}){
  }
  const done=plan.steps.filter(x=>x.status==="done").length;
  const p0Verified=p0.checks.filter(x=>x.status==="verified").length;
+ requireValid(p0.checks.every(x=>x.status!=="verified" || (Array.isArray(x.evidence)&&x.evidence.length>0)),"UNSUPPORTED_P0_APPROVAL");
  const legalVerified=legal.blocking_decisions.filter(x=>x.state==="verified").length;
- if(plan.release_state==="published"){
-  requireValid(done===8&&p0Verified===8&&plan.beta_approval_status==="approved",
-    "UNAUTHORIZED_PUBLICATION");
+ if(plan.steps[7].status==="done" || plan.release_state==="published"){
+  requireValid(done===8&&p0Verified===8&&plan.beta_approval_status==="approved"&&
+    plan.release_state==="published"&&typeof plan.release_url==="string"&&
+    /^https:\/\//.test(plan.release_url),"UNAUTHORIZED_PUBLICATION");
+ }
+ if(plan.steps[7].status!=="done"){
+  requireValid(plan.release_state==="not_published"&&plan.beta_approval_status!=="approved",
+    "FALSE_RELEASE_STATE");
  }
  const stages=plan.steps.map(x=>({
    id:x.id,
