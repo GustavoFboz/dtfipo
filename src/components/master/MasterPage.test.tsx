@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { MasterPage } from "./MasterPage";
-import protocolProgress from "@/data/saas-protocol-progress.json";
+import releaseProgress from "@/data/saas-master-launch-panel.json";
 
 const client = vi.hoisted(() => ({
   auth: { getSession: vi.fn(), getUser: vi.fn(), onAuthStateChange: vi.fn(), mfa: {
@@ -121,20 +121,28 @@ afterEach(async () => {
 });
 
 describe("Master dashboard UI across accounts and sessions", () => {
-  it("shows one official SaaS protocol percentage only after Master authentication", async () => {
+  it("shows one launch percentage, full SaaS protocol and next steps only after Master authentication", async () => {
     await render();
-    expect(text()).toContain("Protocolo SaaS — implementação");
-    expect(text()).toContain(new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(protocolProgress.overall_progress_percent) + "%");
+    expect(text()).toContain("Protocolo SaaS");
+    expect(text()).toContain(
+      new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(releaseProgress.primary.percent) + "%"
+    );
+    expect(text()).not.toContain("94,06%");
     expect(text()).not.toContain("56,52%");
-    expect(host.querySelectorAll('[role="progressbar"][aria-label="Implementação do Protocolo SaaS"]')).toHaveLength(1);
-    expect(host.querySelector('[aria-label="Implementação do Protocolo SaaS"]')?.getAttribute("aria-valuenow")).toBe(String(protocolProgress.overall_progress_percent));
-    expect(text()).toContain("18 de 23 frentes sem bloqueio técnico interno identificado");
-    expect(text()).toContain("20 verificações de beta ou aprovações externas estão fora deste cálculo");
-    expect(text()).toContain("Recalibração do indicador");
-    expect(text()).toContain("Liberação comercial ainda não autorizada pelo protocolo.");
-    await act(async () => emit("SIGNED_OUT",null));
+    expect(host.querySelectorAll('[role="progressbar"][aria-label="Progresso único do lançamento beta"]')).toHaveLength(1);
+    expect(host.querySelector('[aria-label="Progresso único do lançamento beta"]')?.getAttribute("aria-valuenow"))
+      .toBe(String(releaseProgress.primary.percent));
+    expect(text()).toContain("Próximos avanços");
+    expect(text()).toContain("Etapas do lançamento");
+    expect(text()).toContain("Protocolo SaaS completo");
+    expect(text()).toContain("13/23");
+    expect(text()).toContain("18/23");
+    expect(text()).toContain("0/8");
+    expect(text()).toContain("0/13");
+    expect(text()).toContain("Beta não publicado");
+    await act(async () => emit("SIGNED_OUT", null));
     await settle();
-    expect(host.querySelector('[aria-label="Progresso do Protocolo SaaS"]')).toBeNull();
+    expect(host.querySelector('[aria-label="Painel único do Protocolo SaaS DentalFlow"]')).toBeNull();
   });
 
   it("refreshes the company status once after an authenticated cancellation without repeating the financial action", async () => {
