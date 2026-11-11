@@ -1,0 +1,47 @@
+{
+  "schema": "dentalflow-saas-master-launch-panel-v1",
+  "recorded_at": "2026-11-11",
+  "beta": {
+    "completed": 4,
+    "total": 8,
+    "release_state": "not_published",
+    "approval_status": "pending"
+  },
+  "formal_acceptance": {
+    "accepted": 13,
+    "total": 23
+  },
+  "release_checks": {
+    "verified": 0,
+    "total": 8
+  },
+  "legal_decisions": {
+    "verified": 0,
+    "total": 13
+  },
+  "pending_launch_steps": [
+    {
+      "id": 5,
+      "name": "Asaas: renovação, atraso e cancelamento reais"
+    },
+    {
+      "id": 6,
+      "name": "Termos, LGPD, convites e suporte"
+    },
+    {
+      "id": 7,
+      "name": "Hospedagem, dados e rollback integrado"
+    },
+    {
+      "id": 8,
+      "name": "Publicação do beta pago por convite"
+    }
+  ],
+  "notes": "Snapshot versionado das fontes oficiais. Nenhuma revisão de CI, teste sintético ou PR draft autoriza venda. O indicador técnico separado é leitura de saas-protocol-progress.json (baseline 01/11).",
+  "source_documents": [
+    "docs/saas/BETA-RELEASE-8-EXECUTIONS.json",
+    "docs/saas/IMPLEMENTATION-PROGRESS.json",
+    "docs/saas/PAID-BETA-READINESS.json",
+    "docs/saas/legal/BETA6-LEGAL-APPROVAL-REGISTER.json"
+  ]
+}
