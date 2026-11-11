@@ -75,8 +75,20 @@ BEGIN
  EXCEPTION WHEN insufficient_privilege THEN refused:=true; END;
  IF NOT refused THEN RAISE EXCEPTION 'BETA_EXPIRED_INVITE_ALLOWED'; END IF;
 
+ -- RPC privilege must never be available directly to authenticated/anon.
+ IF has_function_privilege('authenticated','public.beta_assert_new_checkout_handoff_allowed()','EXECUTE')
+ OR has_function_privilege('anon','public.beta_assert_new_checkout_handoff_allowed()','EXECUTE') THEN
+   RAISE EXCEPTION 'BETA_HANDOFF_RPC_PUBLICLY_EXECUTABLE'; END IF;
+ IF public.beta_assert_new_checkout_handoff_allowed() IS DISTINCT FROM true THEN
+   RAISE EXCEPTION 'BETA_HANDOFF_OPEN_DEFAULT_DENIED'; END IF;
+
  -- A pause stops NEW checkout intents but does not alter existing invoice rows.
  UPDATE public.beta_release_policy SET new_checkout_intents_paused=true;
+ refused:=false;
+ BEGIN
+  PERFORM public.beta_assert_new_checkout_handoff_allowed();
+ EXCEPTION WHEN insufficient_privilege THEN refused:=true; END;
+ IF NOT refused THEN RAISE EXCEPTION 'BETA_ISSUED_INTENT_HANDOFF_ALLOWED_DURING_PAUSE'; END IF;
  refused:=false;
  BEGIN
   INSERT INTO public.checkout_intents(id,user_id)
@@ -89,6 +101,8 @@ BEGIN
  WHERE id='72000000-0000-4000-8000-000000000001' AND status='paid') THEN
   RAISE EXCEPTION 'BETA_EXISTING_INTENT_UPDATE_BLOCKED'; END IF;
  UPDATE public.beta_release_policy SET new_checkout_intents_paused=false;
+ IF public.beta_assert_new_checkout_handoff_allowed() IS DISTINCT FROM true THEN
+  RAISE EXCEPTION 'BETA_HANDOFF_NOT_RESUMED'; END IF;
  INSERT INTO public.checkout_intents(id,user_id)
  VALUES('72000000-0000-4000-8000-000000000003',a);
 
