@@ -1,0 +1,868 @@
+{
+  "schema": "dentalflow-saas-unified-master-dashboard-v2",
+  "recorded_at": "2026-11-11",
+  "primary": {
+    "percent": 50,
+    "completed": 4,
+    "total": 8,
+    "label": "Caminho comprovado até o beta",
+    "release_state": "not_published",
+    "approval_status": "pending",
+    "sales_authorized": false
+  },
+  "other_controls": {
+    "technical_implementation": {
+      "completed": 18,
+      "total": 23,
+      "recorded_at": "2026-11-01",
+      "deferred_external_checks": 20
+    },
+    "formal_accepted": {
+      "completed": 13,
+      "total": 23
+    },
+    "p0": {
+      "completed": 0,
+      "total": 8
+    },
+    "legal": {
+      "completed": 0,
+      "total": 13
+    }
+  },
+  "next_advances": [
+    {
+      "stage": 5,
+      "title": "Validar cobrança, renovação, cancelamento e bloqueios",
+      "action": "Confirmar segunda mensalidade, webhook e período pago no Asaas Sandbox."
+    },
+    {
+      "stage": 6,
+      "title": "Termos, LGPD, suporte e convites controlados",
+      "action": "Aprovar documentos, preços e suporte e testar aceites no sistema."
+    },
+    {
+      "stage": 7,
+      "title": "Ensaiar publicação, comparação de SHA e reversão",
+      "action": "Testar login, arquivos e rollback em hospedagem de QA isolada."
+    }
+  ],
+  "stages": [
+    {
+      "id": 1,
+      "title": "Auditoria de versão, CI e integridade operacional",
+      "status": "done",
+      "brief": "Etapa concluída dentro do escopo registrado.",
+      "substeps": [
+        {
+          "id": "accepted-scope",
+          "title": "Aceite da etapa registrado (escopo delimitado)",
+          "status": "done"
+        }
+      ],
+      "next_action": null,
+      "requires_owner": false
+    },
+    {
+      "id": 2,
+      "title": "Exportação autenticada e verificação local do Storage",
+      "status": "done",
+      "brief": "Etapa concluída dentro do escopo registrado.",
+      "substeps": [
+        {
+          "id": "accepted-scope",
+          "title": "Aceite da etapa registrado (escopo delimitado)",
+          "status": "done"
+        }
+      ],
+      "next_action": null,
+      "requires_owner": false
+    },
+    {
+      "id": 3,
+      "title": "Completar 116 anexos, backup atual e recuperação isolada",
+      "status": "done",
+      "brief": "Etapa concluída dentro do escopo registrado.",
+      "substeps": [
+        {
+          "id": "accepted-scope",
+          "title": "Aceite da etapa registrado (escopo delimitado)",
+          "status": "done"
+        }
+      ],
+      "next_action": null,
+      "requires_owner": false
+    },
+    {
+      "id": 4,
+      "title": "Validar casos clínicos e isolamento entre empresas",
+      "status": "done",
+      "brief": "Etapa concluída dentro do escopo registrado.",
+      "substeps": [
+        {
+          "id": "accepted-scope",
+          "title": "Aceite da etapa registrado (escopo delimitado)",
+          "status": "done"
+        }
+      ],
+      "next_action": null,
+      "requires_owner": false
+    },
+    {
+      "id": 5,
+      "title": "Validar cobrança, renovação, cancelamento e bloqueios",
+      "status": "pending",
+      "brief": "Webhooks idempotentes, plano/valor, cobrança, renovação, cancelamento, atraso, reativação, bloqueio de acesso, worker e desligamento de novas vendas verificados sem cobrança indevida.",
+      "substeps": [
+        {
+          "id": "synthetic-finance",
+          "title": "Ensaios locais de pagamentos, falhas e duplicidade",
+          "status": "done"
+        },
+        {
+          "id": "provider-1",
+          "title": "Segunda mensalidade no Asaas Sandbox",
+          "status": "pending"
+        },
+        {
+          "id": "provider-2",
+          "title": "Webhook, processamento único e período pago",
+          "status": "pending"
+        },
+        {
+          "id": "provider-3",
+          "title": "Atraso, suspensão, regularização e cancelamento",
+          "status": "pending"
+        },
+        {
+          "id": "provider-4",
+          "title": "Preço, plano e forma de pagamento no aplicativo",
+          "status": "pending"
+        },
+        {
+          "id": "provider-5",
+          "title": "Cancelamento e parada de novas vendas reais",
+          "status": "pending"
+        }
+      ],
+      "next_action": "Confirmar segunda mensalidade, webhook e período pago no Asaas Sandbox.",
+      "requires_owner": true
+    },
+    {
+      "id": 6,
+      "title": "Termos, LGPD, suporte e convites controlados",
+      "status": "pending",
+      "brief": "Documentos legais efetivos aprovados, publicados e aceitos por versão; registros protegidos, telemetria sem dados clínicos, convites restritos e interruptor para novas adesões.",
+      "substeps": [
+        {
+          "id": "legal-drafts",
+          "title": "Minutas internas de Termos, Privacidade e DPA",
+          "status": "done"
+        },
+        {
+          "id": "security-review",
+          "title": "Proteções do servidor e recibos jurídicos em PR (não implantados)",
+          "status": "prepared"
+        },
+        {
+          "id": "L01",
+          "title": "Identificação e regularidade da prestadora",
+          "status": "pending"
+        },
+        {
+          "id": "L02",
+          "title": "Responsável e canal de privacidade",
+          "status": "pending"
+        },
+        {
+          "id": "L03",
+          "title": "Responsabilidades e bases legais de saúde",
+          "status": "pending"
+        },
+        {
+          "id": "L04",
+          "title": "Contratos dos fornecedores e transferência de dados",
+          "status": "pending"
+        },
+        {
+          "id": "L05",
+          "title": "Prazos de retenção e atendimento de direitos",
+          "status": "pending"
+        },
+        {
+          "id": "L06",
+          "title": "Preços, cancelamento, reembolso e carência",
+          "status": "pending"
+        },
+        {
+          "id": "L07",
+          "title": "Revisão jurídica dos documentos",
+          "status": "pending"
+        },
+        {
+          "id": "L08",
+          "title": "Canal de suporte e resposta a incidentes",
+          "status": "pending"
+        },
+        {
+          "id": "L09",
+          "title": "Convites e bloqueio de novas vendas",
+          "status": "pending"
+        },
+        {
+          "id": "L10",
+          "title": "Telemetria e cookies sem dados clínicos",
+          "status": "pending"
+        },
+        {
+          "id": "L11",
+          "title": "Aceite de documentos por versão",
+          "status": "pending"
+        },
+        {
+          "id": "L12",
+          "title": "Telas de cadastro e reaceite dos termos",
+          "status": "pending"
+        },
+        {
+          "id": "L13",
+          "title": "Operação de incidentes e direitos validada",
+          "status": "pending"
+        }
+      ],
+      "next_action": "Aprovar documentos, preços e suporte e testar aceites no sistema.",
+      "requires_owner": true
+    },
+    {
+      "id": 7,
+      "title": "Ensaiar publicação, comparação de SHA e reversão",
+      "status": "pending",
+      "brief": "Staging totalmente separado, sem secrets/copied cron de produção, com testes Web funcionais, SHA de frontend/backend provado, rollback real da hospedagem ensaiado; sem tocar dados de produção.",
+      "substeps": [
+        {
+          "id": "local-rollback",
+          "title": "Ensaio de reversão A→B→A em servidor local descartável",
+          "status": "done"
+        },
+        {
+          "id": "hosted-1",
+          "title": "Hospedagem de testes, contas, banco e anexos separados",
+          "status": "pending"
+        },
+        {
+          "id": "hosted-2",
+          "title": "Versão servida, login e casos funcionando no mesmo servidor",
+          "status": "pending"
+        },
+        {
+          "id": "hosted-3",
+          "title": "Publicar e voltar à versão anterior no servidor de testes",
+          "status": "pending"
+        },
+        {
+          "id": "hosted-4",
+          "title": "Integridade do backup, dos anexos e do código implantado",
+          "status": "pending"
+        }
+      ],
+      "next_action": "Testar login, arquivos e rollback em hospedagem de QA isolada.",
+      "requires_owner": true
+    },
+    {
+      "id": 8,
+      "title": "Publicar beta Web por convite e conferir produção",
+      "status": "pending",
+      "brief": "Oito critérios P0 de PAID-BETA-READINESS.json verificados com provas independentes, aprovação expressa, deploy identificado, smoke autenticado sem dados reais indevidos, suporte e rollback prontos; reportar URL e revisão publicada.",
+      "substeps": [
+        {
+          "id": "production-billing-lifecycle",
+          "title": "Cobranças, renovação e cancelamento reais",
+          "status": "pending"
+        },
+        {
+          "id": "clinical-case-and-tenant-safety",
+          "title": "Casos e privacidade entre clínicas",
+          "status": "pending"
+        },
+        {
+          "id": "recoverable-backup-and-rollback",
+          "title": "Cópia recuperável e reversão",
+          "status": "pending"
+        },
+        {
+          "id": "approved-contract-and-versioned-consent",
+          "title": "Termos e DPA aprovados/aceitos",
+          "status": "pending"
+        },
+        {
+          "id": "deployment-source-and-environment-parity",
+          "title": "Versão correta no servidor",
+          "status": "pending"
+        },
+        {
+          "id": "privacy-safe-beta-observability",
+          "title": "Monitoramento sem dados de pacientes",
+          "status": "pending"
+        },
+        {
+          "id": "support-invitations-and-emergency-stop",
+          "title": "Suporte, convites e parada de novas vendas",
+          "status": "pending"
+        },
+        {
+          "id": "owner-authorized-paid-pilot",
+          "title": "Sua autorização final de lançamento",
+          "status": "pending"
+        },
+        {
+          "id": "launch",
+          "title": "Publicar somente com autorização expressa, sem afetar clientes atuais",
+          "status": "pending"
+        }
+      ],
+      "next_action": "Conferir oito requisitos, autorizar e publicar o beta por convite.",
+      "requires_owner": true
+    }
+  ],
+  "protocol_sections": [
+    {
+      "group": 1,
+      "title": "Eventos e recuperação de pagamentos",
+      "items": [
+        {
+          "id": "1.1",
+          "title": "Revisão dos eventos financeiros pendentes",
+          "status": "done",
+          "completed_checks": 1,
+          "total_checks": 1,
+          "substeps": []
+        },
+        {
+          "id": "1.2",
+          "title": "Proteção contra pagamentos duplicados",
+          "status": "done",
+          "completed_checks": 1,
+          "total_checks": 1,
+          "substeps": []
+        },
+        {
+          "id": "1.3",
+          "title": "Recuperação de webhook perdido",
+          "status": "done",
+          "completed_checks": 1,
+          "total_checks": 1,
+          "substeps": []
+        }
+      ]
+    },
+    {
+      "group": 2,
+      "title": "Ciclo financeiro e acesso",
+      "items": [
+        {
+          "id": "2.1",
+          "title": "Renovação, atraso, cancelamento e retorno",
+          "status": "partial",
+          "completed_checks": 2,
+          "total_checks": 5,
+          "substeps": [
+            {
+              "id": "renewal-real-provider",
+              "title": "Renovação real já observada no Sandbox",
+              "status": "done"
+            },
+            {
+              "id": "cancellation-master-mfa",
+              "title": "Cancelamento no Asaas com MFA administrativo",
+              "status": "done"
+            },
+            {
+              "id": "overdue-and-grace",
+              "title": "Atraso e período de tolerância comprovados",
+              "status": "pending"
+            },
+            {
+              "id": "refund-dispute-suspension",
+              "title": "Estorno/contestação e suspensão de acesso",
+              "status": "pending"
+            },
+            {
+              "id": "reactivation",
+              "title": "Reativação da assinatura após inadimplência",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "id": "2.2",
+          "title": "Preservação de dados durante a cobrança",
+          "status": "partial",
+          "completed_checks": 2,
+          "total_checks": 4,
+          "substeps": [
+            {
+              "id": "renewal-invariants",
+              "title": "Histórico e período pago preservados na renovação",
+              "status": "done"
+            },
+            {
+              "id": "cancellation-preservation",
+              "title": "Dados e período pago preservados no cancelamento",
+              "status": "done"
+            },
+            {
+              "id": "arrears-refund-preservation",
+              "title": "Preservação dos arquivos durante atraso e estorno",
+              "status": "pending"
+            },
+            {
+              "id": "reactivation-preservation",
+              "title": "Conferir dados e período ao reativar o plano",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "id": "2.3",
+          "title": "Offline e acesso em Windows e Android",
+          "status": "partial",
+          "completed_checks": 3,
+          "total_checks": 5,
+          "substeps": [
+            {
+              "id": "72h-policy",
+              "title": "Regra de acesso offline por até 72 horas",
+              "status": "done"
+            },
+            {
+              "id": "native-compilation",
+              "title": "Instaladores e emuladores de Windows/Android",
+              "status": "done"
+            },
+            {
+              "id": "consistent-entitlement-guard",
+              "title": "Mesmo bloqueio de assinatura em todas as plataformas",
+              "status": "done"
+            },
+            {
+              "id": "physical-device-expiry",
+              "title": "Expiração offline após 72 horas nos aparelhos reais",
+              "status": "pending"
+            },
+            {
+              "id": "physical-device-reauth",
+              "title": "Novo login e bloqueio/desbloqueio em aparelhos reais",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group": 3,
+      "title": "Arquivos e armazenamento",
+      "items": [
+        {
+          "id": "3.1",
+          "title": "Upload, download e exclusão protegidos",
+          "status": "done",
+          "completed_checks": 1,
+          "total_checks": 1,
+          "substeps": []
+        },
+        {
+          "id": "3.2",
+          "title": "Concorrência, falhas e reservas de espaço",
+          "status": "done",
+          "completed_checks": 1,
+          "total_checks": 1,
+          "substeps": []
+        },
+        {
+          "id": "3.3",
+          "title": "Arquivos reais em todos os aplicativos",
+          "status": "partial",
+          "completed_checks": 3,
+          "total_checks": 6,
+          "substeps": [
+            {
+              "id": "shared-web-native-storage-app",
+              "title": "Arquivos incluídos nos aplicativos Web, Windows e Android",
+              "status": "done"
+            },
+            {
+              "id": "private-file-and-quota-contract-in-ci",
+              "title": "Testes de arquivos privados e cotas de espaço",
+              "status": "done"
+            },
+            {
+              "id": "storage-tenant-cache-and-auth-owner-scope",
+              "title": "Arquivos e cache limitados à clínica correta",
+              "status": "done"
+            },
+            {
+              "id": "real-android-storage-journey",
+              "title": "Enviar, abrir e baixar anexos no Android real",
+              "status": "pending"
+            },
+            {
+              "id": "real-windows-storage-journey",
+              "title": "Enviar, abrir e baixar anexos no Windows real",
+              "status": "pending"
+            },
+            {
+              "id": "offline-expiry-storage-and-owner-physical",
+              "title": "Limpar cache após expiração e troca de conta",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group": 4,
+      "title": "Segurança, identidade e clínicas",
+      "items": [
+        {
+          "id": "4.1",
+          "title": "Cadastro, senha e recuperação de conta",
+          "status": "done",
+          "completed_checks": 1,
+          "total_checks": 1,
+          "substeps": []
+        },
+        {
+          "id": "4.2",
+          "title": "MFA, sessões e separação entre clínicas",
+          "status": "partial",
+          "completed_checks": 5,
+          "total_checks": 8,
+          "substeps": [
+            {
+              "id": "master-aal2-audit",
+              "title": "Operações administrativas protegidas por MFA",
+              "status": "done"
+            },
+            {
+              "id": "workflow-tenant-presentation-boundary",
+              "title": "Isolamento do fluxo de trabalho por clínica",
+              "status": "done"
+            },
+            {
+              "id": "unowned-patient-attribution",
+              "title": "Procedência dos registros históricos sem clínica",
+              "status": "pending"
+            },
+            {
+              "id": "cross-owner-local-cache-regressions",
+              "title": "Cache local não mistura contas e clínicas",
+              "status": "done"
+            },
+            {
+              "id": "positive-control-readonly-qa-harness",
+              "title": "Consulta de teste com controle de acesso positivo",
+              "status": "done"
+            },
+            {
+              "id": "two-company-rls-real-role-disposable",
+              "title": "Banco de teste bloqueia acessos entre clínicas",
+              "status": "done"
+            },
+            {
+              "id": "revocation-and-cross-company-live-probes",
+              "title": "Revogar sessões e negar acessos cruzados no ambiente real",
+              "status": "pending"
+            },
+            {
+              "id": "positive-financial-replay",
+              "title": "Recuperar operação financeira autorizada sem duplicar valores",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "id": "4.3",
+          "title": "Links privados e proteção de arquivos",
+          "status": "done",
+          "completed_checks": 1,
+          "total_checks": 1,
+          "substeps": []
+        }
+      ]
+    },
+    {
+      "group": 5,
+      "title": "Planos, preços e cancelamentos",
+      "items": [
+        {
+          "id": "5.1",
+          "title": "Histórico e documentos de pagamento",
+          "status": "done",
+          "completed_checks": 1,
+          "total_checks": 1,
+          "substeps": []
+        },
+        {
+          "id": "5.2",
+          "title": "Alteração de plano e cancelamento no Asaas",
+          "status": "done",
+          "completed_checks": 1,
+          "total_checks": 1,
+          "substeps": []
+        },
+        {
+          "id": "5.3",
+          "title": "Troca futura de plano e limites de espaço",
+          "status": "partial",
+          "completed_checks": 3,
+          "total_checks": 6,
+          "substeps": [
+            {
+              "id": "provider-future-schedule",
+              "title": "Troca de plano agendada no Asaas",
+              "status": "done"
+            },
+            {
+              "id": "one-write-audit",
+              "title": "Uma operação autorizada por solicitação",
+              "status": "done"
+            },
+            {
+              "id": "no-early-activation",
+              "title": "Troca futura não altera o plano antes do prazo",
+              "status": "done"
+            },
+            {
+              "id": "future-activation-real",
+              "title": "Aplicação real da troca na próxima vigência",
+              "status": "pending"
+            },
+            {
+              "id": "downgrade-quota-enforcement",
+              "title": "Limite de espaço correto depois do downgrade",
+              "status": "pending"
+            },
+            {
+              "id": "ambiguous-failure-recovery",
+              "title": "Recuperar falha incerta sem repetir a cobrança",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group": 6,
+      "title": "Operação, desempenho e LGPD",
+      "items": [
+        {
+          "id": "6.1",
+          "title": "Processador financeiro e alertas",
+          "status": "done",
+          "completed_checks": 1,
+          "total_checks": 1,
+          "substeps": []
+        },
+        {
+          "id": "6.2",
+          "title": "Backup completo, restauração e incidentes",
+          "status": "partial",
+          "completed_checks": 3,
+          "total_checks": 6,
+          "substeps": [
+            {
+              "id": "encrypted-operations-drill",
+              "title": "Ensaio de recuperação cifrada e falha simulada",
+              "status": "done"
+            },
+            {
+              "id": "historical-real-db-offline-restore",
+              "title": "Banco histórico restaurado sem acesso externo",
+              "status": "done"
+            },
+            {
+              "id": "historical-archive-physical-integrity",
+              "title": "Conferência criptográfica dos arquivos históricos",
+              "status": "done"
+            },
+            {
+              "id": "storage-full-copy",
+              "title": "Cópia integral e autenticada do histórico congelado",
+              "status": "pending"
+            },
+            {
+              "id": "full-isolated-recovery",
+              "title": "Banco e arquivos completos restaurados juntos",
+              "status": "pending"
+            },
+            {
+              "id": "current-runtime-reconciliation",
+              "title": "Conferência da versão atual e plano real de incidente",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "id": "6.3",
+          "title": "Onboarding, velocidade e capacidade",
+          "status": "partial",
+          "completed_checks": 3,
+          "total_checks": 6,
+          "substeps": [
+            {
+              "id": "bounded-local-pilot-harness",
+              "title": "Teste local de carga com limites seguros",
+              "status": "done"
+            },
+            {
+              "id": "aggregate-db-readonly-baseline",
+              "title": "Leitura limitada da situação do banco atual",
+              "status": "done"
+            },
+            {
+              "id": "staging-journal-and-fixtures",
+              "title": "Empresas e casos fictícios em banco isolado",
+              "status": "done"
+            },
+            {
+              "id": "database-realtime-baseline",
+              "title": "Medir tempo de resposta e mensagens em staging",
+              "status": "pending"
+            },
+            {
+              "id": "native-onboarding-pilot",
+              "title": "Cadastro e arquivos em Windows/Android reais",
+              "status": "pending"
+            },
+            {
+              "id": "progressive-capacity-approval",
+              "title": "Aumentar carga com metas de desempenho e reversão",
+              "status": "pending"
+            }
+          ]
+        },
+        {
+          "id": "6.4",
+          "title": "Contratos, privacidade e aceite registrado",
+          "status": "partial",
+          "completed_checks": 4,
+          "total_checks": 6,
+          "substeps": [
+            {
+              "id": "legal-operational-protocol",
+              "title": "Planejamento de privacidade e responsabilidades",
+              "status": "done"
+            },
+            {
+              "id": "internal-terms-privacy-dpa-drafts",
+              "title": "Minutas internas de Termos, Privacidade e DPA",
+              "status": "done"
+            },
+            {
+              "id": "verified-supplier-retention-incident-register",
+              "title": "Inventário técnico de fornecedores e incidentes",
+              "status": "done"
+            },
+            {
+              "id": "dormant-versioned-receipt-contract-verified",
+              "title": "Recibos de aceite por versão testados e desativados",
+              "status": "done"
+            },
+            {
+              "id": "qualified-legal-business-review",
+              "title": "Revisão jurídica, comercial e de privacidade",
+              "status": "pending"
+            },
+            {
+              "id": "published-versioned-terms-acceptance",
+              "title": "Publicar termos aprovados e comprovar aceite",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "group": 7,
+      "title": "Produção e liberação comercial",
+      "items": [
+        {
+          "id": "7.1",
+          "title": "Conta Asaas aprovada",
+          "status": "done",
+          "completed_checks": 1,
+          "total_checks": 1,
+          "substeps": []
+        },
+        {
+          "id": "7.2",
+          "title": "Webhook, segredos e rotina em produção",
+          "status": "done",
+          "completed_checks": 1,
+          "total_checks": 1,
+          "substeps": []
+        },
+        {
+          "id": "7.3",
+          "title": "Primeiro pagamento real e liberação de acesso",
+          "status": "done",
+          "completed_checks": 1,
+          "total_checks": 1,
+          "substeps": []
+        },
+        {
+          "id": "7.4",
+          "title": "Versão final, rollback e autorização de venda",
+          "status": "partial",
+          "completed_checks": 3,
+          "total_checks": 6,
+          "substeps": [
+            {
+              "id": "manual-release-evidence-guard",
+              "title": "Bloqueio automático de liberação sem evidências",
+              "status": "done"
+            },
+            {
+              "id": "master-release-readiness-disclosure",
+              "title": "Painel informa se vendas estão autorizadas",
+              "status": "done"
+            },
+            {
+              "id": "source-locked-beta-preflight-reproducible",
+              "title": "Conferência de versão e integridade antes do release",
+              "status": "done"
+            },
+            {
+              "id": "production-release-candidate-verified",
+              "title": "Versão final assinada e vinculada ao backend",
+              "status": "pending"
+            },
+            {
+              "id": "commercial-and-legal-approvals",
+              "title": "Preços e contratos aprovados para venda",
+              "status": "pending"
+            },
+            {
+              "id": "authorized-pilot-and-sales-release",
+              "title": "Primeira turma paga autorizada e monitorada",
+              "status": "pending"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "disclaimers": [
+    "Único percentual representa etapas oficiais até beta; não é a porcentagem técnica histórica.",
+    "Aceites formais e verificações externas não são convertidos automaticamente em etapas concluídas.",
+    "Preparado em PR ou testado com dados fictícios não significa publicado.",
+    "Este painel não habilita nem bloqueia tecnicamente o checkout; liberação comercial depende de decisão separada."
+  ],
+  "source_files": [
+    "docs/saas/BETA-RELEASE-8-EXECUTIONS.json",
+    "docs/saas/IMPLEMENTATION-PROGRESS.json",
+    "docs/saas/PAID-BETA-READINESS.json",
+    "docs/saas/legal/BETA6-LEGAL-APPROVAL-REGISTER.json",
+    "src/data/saas-protocol-progress.json"
+  ]
+}
