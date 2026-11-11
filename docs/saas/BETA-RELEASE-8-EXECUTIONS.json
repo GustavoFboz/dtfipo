@@ -2,7 +2,7 @@
   "schema": "dentalflow-beta-eight-executions-v1",
   "target": "web-paid-invite-only",
   "branch": "saas/stage-03-asaas-checkout",
-  "recorded_at": "2026-11-10",
+  "recorded_at": "2026-11-11",
   "audited_code_sha": "dcbd8ecab67892593036c7008c194287ffd38023",
   "release_state": "not_published",
   "release_url": null,
@@ -337,7 +337,7 @@
       "code": "legal-privacy-beta-ops",
       "name": "Termos, LGPD, suporte e convites controlados",
       "status": "pending",
-      "owner_action": "Início como prestador pessoa física confirmado. Por ora informar apenas nome civil, cidade/UF e e-mail controlado para suporte/privacidade; CPF e endereço completo não devem ir ao GitHub ou ao chat. Depois, em canal seguro: identificação fiscal, CNPJ não obrigatório nesta fase, documentação Asaas PF, revisão jurídica/tributária e publicações/aceites testados.",
+      "owner_action": "Identificação inicial de pessoa física (nome civil, cidade/UF e e-mail indicado) recebida fora do GitHub público; nenhum dado pessoal deve ser incluído no repositório. Pendente: validar titularidade do e-mail, identificação fiscal/endereço por canal seguro, revisão legal, planos reais e aceite publicado/testado. Não enviar CPF ou documentos neste chat.",
       "definition_of_done": "Documentos legais efetivos aprovados, publicados e aceitos por versão; registros protegidos, telemetria sem dados clínicos, convites restritos e interruptor para novas adesões.",
       "evidence": [
         "https://github.com/GustavoFboz/dtfipo/pull/286",
@@ -391,7 +391,11 @@
           "cpf_stored_in_git": false,
           "legal_review_approved": false,
           "docs_published": false,
-          "beta_sales_authorized": false
+          "beta_sales_authorized": false,
+          "initial_minimal_identification_received_off_public_repository": true,
+          "identity_checked": false,
+          "contact_checked": false,
+          "public_release_of_identity_authorized": false
         }
       }
     },
