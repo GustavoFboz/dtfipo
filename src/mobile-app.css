@@ -172,3 +172,41 @@ html[data-dentalflow-mobile-native="true"] textarea,
 html[data-dentalflow-mobile-native="true"] [contenteditable="true"] {
   user-select: text;
 }
+
+
+/* iOS WKWebView login: safe areas, compact screens, landscape and the keyboard.
+   Platform-gated so Android, Web and Windows remain visually unchanged. */
+html[data-dentalflow-native-platform="ios"] .df-auth-screen {
+  min-height: 100dvh;
+  min-width: 0;
+}
+html[data-dentalflow-native-platform="ios"] .df-auth-main {
+  min-height: 100dvh;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-top: max(24px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+}
+html[data-dentalflow-native-platform="ios"] .df-auth-content {
+  min-width: 0;
+}
+html[data-dentalflow-native-platform="ios"] .df-auth-main input {
+  font-size: 16px;
+}
+@media (max-width: 767px) {
+  html[data-dentalflow-native-platform="ios"] .df-auth-main {
+    padding-left: max(18px, env(safe-area-inset-left, 0px));
+    padding-right: max(18px, env(safe-area-inset-right, 0px));
+  }
+}
+@media (max-height: 670px) {
+  html[data-dentalflow-native-platform="ios"] .df-auth-main {
+    align-items: flex-start;
+  }
+  html[data-dentalflow-native-platform="ios"] .df-auth-content {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+}

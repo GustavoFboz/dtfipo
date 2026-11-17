@@ -1,0 +1,119 @@
+name: DentalFlow iOS 0.1.0 - Simulator
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - saas/stage-03-asaas-checkout
+    paths:
+      - "src/routes/auth.tsx"
+      - "src/mobile-app.css"
+      - "src/components/MobileNativeBridge.tsx"
+      - "src/lib/mobile/auth-errors*"
+      - "vite.mobile.config.ts"
+      - "capacitor.config.ts"
+      - "mobile/ios/**"
+      - ".github/workflows/mobile-ios.yml"
+  push:
+    branches:
+      - "mobile/ios-*"
+    paths:
+      - "src/routes/auth.tsx"
+      - "src/mobile-app.css"
+      - "src/components/MobileNativeBridge.tsx"
+      - "src/lib/mobile/auth-errors*"
+      - "mobile/ios/**"
+      - ".github/workflows/mobile-ios.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-ios-simulator:
+    name: Build DentalFlow iOS 0.1.0 (unsigned)
+    runs-on: macos-15
+    timeout-minutes: 55
+    env:
+      CI: "true"
+    steps:
+      - name: Checkout isolated branch
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install unchanged project lockfile
+        run: bun install --frozen-lockfile
+
+      - name: Test safe mobile auth messages
+        run: bunx vitest run src/lib/mobile/auth-errors.test.ts
+
+      - name: Add matching Capacitor iOS package in runner only
+        shell: bash
+        run: |
+          set -euo pipefail
+          CAP_VERSION="$(node -p "require('./node_modules/@capacitor/core/package.json').version")"
+          bun add --dev "@capacitor/ios@$CAP_VERSION"
+
+      - name: Build shared DentalFlow mobile SPA
+        run: bun run build:mobile
+
+      - name: Generate native iOS project and sync WebView assets
+        run: |
+          bunx cap add ios
+          bunx cap sync ios
+
+      - name: Set DentalFlow launch icon
+        shell: bash
+        run: |
+          set -euo pipefail
+          ICON_SET="ios/App/App/Assets.xcassets/AppIcon.appiconset"
+          test -s public/icon-512.png
+          mkdir -p "$ICON_SET"
+          sips -z 1024 1024 public/icon-512.png --out "$ICON_SET/AppIcon-512@2x.png" >/dev/null
+          cat > "$ICON_SET/Contents.json" <<'JSON'
+          {
+            "images": [{"filename": "AppIcon-512@2x.png", "idiom": "universal", "platform": "ios", "size": "1024x1024"}],
+            "info": {"author": "xcode", "version": 1}
+          }
+          JSON
+
+      - name: Compile for iPhone and iPad Simulator (no signing)
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/DentalFlowBuild" \
+            CODE_SIGNING_ALLOWED=NO \
+            MARKETING_VERSION=0.1.0 \
+            CURRENT_PROJECT_VERSION=1 \
+            build
+
+      - name: Package project and Simulator app
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="$RUNNER_TEMP/DentalFlowBuild/Build/Products/Debug-iphonesimulator/App.app"
+          test -d "$APP"
+          (cd "$(dirname "$APP")" && zip -qry "$GITHUB_WORKSPACE/DentalFlow_iOS_0.1.0_Simulator.zip" App.app)
+          tar --exclude='Pods' --exclude='build' -czf DentalFlow_iOS_0.1.0_Xcode.tar.gz ios
+          shasum -a 256 DentalFlow_iOS_0.1.0_Simulator.zip DentalFlow_iOS_0.1.0_Xcode.tar.gz > DentalFlow_iOS_0.1.0_SHA256.txt
+
+      - name: Upload unsigned iOS deliverables
+        uses: actions/upload-artifact@v4
+        with:
+          name: DentalFlow-iOS-0.1.0-Simulator-and-Xcode
+          path: |
+            DentalFlow_iOS_0.1.0_Simulator.zip
+            DentalFlow_iOS_0.1.0_Xcode.tar.gz
+            DentalFlow_iOS_0.1.0_SHA256.txt
+          if-no-files-found: error
+          retention-days: 14

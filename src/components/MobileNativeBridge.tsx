@@ -24,8 +24,19 @@ function notificationId(value: unknown) {
  */
 export function MobileNativeBridge() {
   useEffect(() => {
-    if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return;
+    if (!Capacitor.isNativePlatform()) return;
+    const platform = Capacitor.getPlatform();
+    if (platform !== "android" && platform !== "ios") return;
     document.documentElement.dataset.dentalflowMobileNative = "true";
+    document.documentElement.dataset.dentalflowNativePlatform = platform;
+
+    // Login-first iOS: no permission prompts or Android-only native channels.
+    if (platform === "ios") {
+      return () => {
+        delete document.documentElement.dataset.dentalflowMobileNative;
+        delete document.documentElement.dataset.dentalflowNativePlatform;
+      };
+    }
 
     let disposed = false;
     const handles: Array<{ remove: () => Promise<void> }> = [];
@@ -127,6 +138,7 @@ export function MobileNativeBridge() {
       window.removeEventListener("dentalflow:native-update-notification", onCanonicalNotification as EventListener);
       for (const handle of handles) void handle.remove();
       delete document.documentElement.dataset.dentalflowMobileNative;
+      delete document.documentElement.dataset.dentalflowNativePlatform;
     };
   }, []);
 
