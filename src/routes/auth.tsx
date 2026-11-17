@@ -19,6 +19,8 @@ import {
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
+import { withDesktopCloudTimeout } from "@/lib/desktop-cloud";
+import { readableLoginError } from "@/lib/mobile/auth-errors";
 import { NEW_PASSWORD_MIN_LENGTH, newPasswordError } from "@/lib/auth/password-policy";
 import {
   fetchBillingPlans,
@@ -43,8 +45,15 @@ export const Route = createFileRoute("/auth")({
     returnTo: typeof s.returnTo === "string" && s.returnTo.startsWith("/") && !s.returnTo.startsWith("//") ? s.returnTo : undefined,
   }),
   beforeLoad: async ({ search }) => {
-    const { data } = await supabase.auth.getSession();
-    if (data.session?.user) {
+    // Cloud unavailable must not prevent an unauthenticated user from seeing login.
+    let session = null;
+    try {
+      const { data } = await supabase.auth.getSession();
+      session = data.session;
+    } catch {
+      // No authenticated route is unlocked when the backend cannot be reached.
+    }
+    if (session?.user) {
       // Handles users who had to confirm their e-mail before the account/company
       // linkage could be finalized. The RPC is idempotent.
       await finalizePendingOnboarding().catch(() => undefined);
@@ -64,6 +73,7 @@ function AuthPage() {
   const [loginPassword, setLoginPassword] = useState("");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loadingLogin, setLoadingLogin] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [signupName, setSignupName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
@@ -96,14 +106,30 @@ function AuthPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
+    if (loadingLogin) return;
+    setLoginError(null);
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setLoginError("Você está sem internet. Conecte-se e tente novamente.");
+      return;
+    }
     setLoadingLogin(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email: loginEmail.trim(), password: loginPassword });
-      if (error) return toast.error(error.message);
+      const { data, error } = await withDesktopCloudTimeout(
+        "DentalFlow Login",
+        () => supabase.auth.signInWithPassword({ email: loginEmail.trim(), password: loginPassword }),
+        12_000,
+      );
+      if (error || !data.session?.user) {
+        setLoginError(readableLoginError(error));
+        return;
+      }
       await finalizePendingOnboarding().catch(() => undefined);
       toast.success("Bem-vindo!");
       if (search.returnTo) window.location.replace(search.returnTo);
       else navigate({ to: "/", replace: true });
+    } catch (error) {
+      // No false-success state or uncaught rejection when Lovable Cloud is blocked.
+      setLoginError(readableLoginError(error));
     } finally {
       setLoadingLogin(false);
     }
@@ -198,7 +224,7 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#f4f8f7] text-slate-950 lg:grid lg:grid-cols-[.92fr_1.08fr]">
+    <div className="df-auth-screen min-h-[100dvh] bg-[#f4f8f7] text-slate-950 lg:grid lg:grid-cols-[.92fr_1.08fr]">
       <aside className="relative hidden overflow-hidden bg-[#0b5bd3] p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(112,236,220,.32),transparent_27%),radial-gradient(circle_at_90%_75%,rgba(83,122,255,.22),transparent_32%),linear-gradient(145deg,#0b4fb8,#2D7FF9_58%,#174aa1)]" />
         <div className="relative z-10 flex items-center gap-3 text-[12px] font-semibold uppercase tracking-[0.2em]"><span className="grid h-10 w-10 place-items-center rounded-xl bg-white/12">D</span> DentalFlow</div>
@@ -215,9 +241,9 @@ function AuthPage() {
         <div className="relative z-10 text-[10px] font-medium uppercase tracking-[0.18em] text-white/35">DentalFlow 0.3.2</div>
       </aside>
 
-      <main className="relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-white px-5 py-8 sm:px-8 lg:px-12 dark:bg-[#080b10] dark:text-white">
+      <main className="df-auth-main relative flex min-h-[100dvh] items-center justify-center overflow-hidden bg-white px-5 py-8 sm:px-8 lg:px-12 dark:bg-[#080b10] dark:text-white">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[320px] bg-[radial-gradient(circle_at_50%_-10%,rgba(45,127,249,.18),transparent_65%)] lg:hidden" />
-        <div className="relative w-full max-w-[620px] py-6">
+        <div className="df-auth-content relative w-full max-w-[620px] py-6">
           <div className="mb-8 flex items-center justify-between lg:hidden">
             <div className="flex items-center gap-2.5">
               <span className="grid h-10 w-10 place-items-center rounded-2xl bg-[#2D7FF9] text-sm font-semibold text-white shadow-[0_12px_30px_-12px_rgba(45,127,249,.65)]">D</span>
@@ -239,8 +265,9 @@ function AuthPage() {
             <form onSubmit={handleLogin} className="space-y-5">
               <Field label="E-mail"><Input type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} autoComplete="email" required /></Field>
               <PasswordField label="Senha" value={loginPassword} onChange={setLoginPassword} visible={showLoginPassword} onToggle={() => setShowLoginPassword((v) => !v)} autoComplete="current-password" />
+              {loginError && <p role="alert" aria-live="polite" className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-[12px] leading-relaxed text-destructive">{loginError}</p>}
               <div className="flex justify-end"><Link to="/auth/forgot" search={{ invite: undefined, mode: undefined }} className="text-[12px] text-slate-400 hover:text-[#2D7FF9]">Esqueci minha senha</Link></div>
-              <Button disabled={loadingLogin} className="h-13 w-full rounded-2xl bg-[#2D7FF9] text-white shadow-[0_14px_28px_-14px_rgba(45,127,249,.62)] hover:bg-[#226fe1]">{loadingLogin ? "Entrando…" : "Entrar"}<ArrowRight className="ml-2 h-4 w-4" /></Button>
+              <Button type="submit" disabled={loadingLogin} aria-busy={loadingLogin} className="h-13 w-full rounded-2xl bg-[#2D7FF9] text-white shadow-[0_14px_28px_-14px_rgba(45,127,249,.62)] hover:bg-[#226fe1]">{loadingLogin ? "Entrando…" : "Entrar"}<ArrowRight className="ml-2 h-4 w-4" /></Button>
             </form>
           ) : (
             <form onSubmit={handleSignup} className="space-y-5">
