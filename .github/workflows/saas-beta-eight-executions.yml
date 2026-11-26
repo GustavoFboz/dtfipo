@@ -1,0 +1,34 @@
+name: DentalFlow Beta 8 Execution Tracker
+
+on:
+  pull_request:
+    branches:
+      - main
+      - "saas/stage-03-asaas-checkout"
+    paths:
+      - "docs/saas/BETA-RELEASE-8-EXECUTIONS.json"
+      - "docs/saas/BETA-RELEASE-8-EXECUTIONS.md"
+      - "docs/saas/PAID-BETA-READINESS.json"
+      - "scripts/saas-beta-eight-executions.mjs"
+      - "scripts/saas-beta-eight-executions.test.mjs"
+      - ".github/workflows/saas-beta-eight-executions.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  progress-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify 8-step beta release tracker is fail-closed
+        run: node --test scripts/saas-beta-eight-executions.test.mjs
+      - name: Report exact completed/8 and safe next step
+        run: node scripts/saas-beta-eight-executions.mjs
+      - name: Report independent eight-P0 paid beta gate (no release authority)
+        run: node scripts/saas-paid-beta-pilot-gate.mjs

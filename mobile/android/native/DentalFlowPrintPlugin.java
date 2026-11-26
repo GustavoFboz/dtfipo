@@ -19,6 +19,8 @@ public class DentalFlowPrintPlugin extends Plugin {
     public void printHtml(PluginCall call) {
         String html = call.getString("html");
         String jobName = call.getString("jobName", "DentalFlow - Nota do caso");
+        String paper = call.getString("paper");
+        Boolean landscape = call.getBoolean("landscape", false);
         if (html == null || html.isEmpty()) {
             call.reject("HTML de impressão vazio");
             return;
@@ -33,9 +35,14 @@ public class DentalFlowPrintPlugin extends Plugin {
                     try {
                         PrintManager printManager = (PrintManager) getContext().getSystemService(Context.PRINT_SERVICE);
                         PrintDocumentAdapter adapter = view.createPrintDocumentAdapter(jobName);
-                        PrintAttributes attributes = new PrintAttributes.Builder()
-                                .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
-                                .build();
+                        PrintAttributes.Builder builder = new PrintAttributes.Builder()
+                                .setColorMode(PrintAttributes.COLOR_MODE_COLOR);
+                        if ("a4".equalsIgnoreCase(paper)) {
+                            PrintAttributes.MediaSize media = PrintAttributes.MediaSize.ISO_A4;
+                            if (Boolean.TRUE.equals(landscape)) media = media.asLandscape();
+                            builder.setMediaSize(media);
+                        }
+                        PrintAttributes attributes = builder.build();
                         printManager.print(jobName, adapter, attributes);
                         JSObject result = new JSObject();
                         result.put("started", true);

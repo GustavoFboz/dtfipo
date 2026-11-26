@@ -1,0 +1,88 @@
+{
+  "http_status": 200,
+  "job_id": "977c0da7-bafd-42ab-be8d-233ca226a91f",
+  "receipt": {
+    "contract": "dentalflow-fixture-acceptance-v1",
+    "kind": "identity",
+    "passed": true,
+    "checked_at": "2026-10-23T13:22:53.928Z",
+    "checks": [
+      {
+        "check": "magiclink_token_single_use",
+        "passed": true,
+        "http_status": 403
+      },
+      {
+        "check": "fixture_b_real_session",
+        "passed": true
+      },
+      {
+        "check": "fixture_b_company_isolation",
+        "passed": true
+      },
+      {
+        "check": "magiclink_token_single_use",
+        "passed": true,
+        "http_status": 403
+      },
+      {
+        "check": "fixture_a_real_session",
+        "passed": true
+      },
+      {
+        "check": "fixture_a_company_isolation",
+        "passed": true
+      },
+      {
+        "check": "unconfirmed_login_denied",
+        "passed": true,
+        "http_status": 400
+      },
+      {
+        "check": "signup_token_single_use",
+        "passed": true,
+        "http_status": 403
+      },
+      {
+        "check": "signup_confirmation_consumed",
+        "passed": true
+      },
+      {
+        "check": "short_credential_denied",
+        "passed": true,
+        "http_status": 422
+      },
+      {
+        "check": "confirmed_login_succeeded",
+        "passed": true
+      },
+      {
+        "check": "recovery_token_single_use",
+        "passed": true,
+        "http_status": 403
+      },
+      {
+        "check": "previous_credential_denied",
+        "passed": true,
+        "http_status": 400
+      },
+      {
+        "check": "recovered_login_succeeded",
+        "passed": true
+      },
+      {
+        "check": "logout_refresh_denied",
+        "passed": true,
+        "http_status": 400
+      },
+      {
+        "check": "disposable_identity_removed",
+        "passed": true
+      }
+    ],
+    "fixture_ids": [
+      "24e7cdf9-457e-4af2-b1cb-cf366abbddb0",
+      "ee083f63-1621-4b82-b7a4-fd13427c0b14"
+    ]
+  }
+}

@@ -1,0 +1,390 @@
+{
+  "schema": "dentalflow-saas-implementation-evidence-v1",
+  "recorded_at": "2026-11-01",
+  "source": "docs/saas/ACCEPTANCE-PROGRESS.md",
+  "purpose": "Registro histórico, imutável no status, dos 23 aceites formais e gates técnicos; a barra única Master agora usa também o escopo auditado BETA-IMPLEMENTATION-SCOPE.json, sem alterar os aceites reais.",
+  "denominator": 23,
+  "official_acceptance": {
+    "accepted_ids": [
+      "1.1",
+      "1.2",
+      "1.3",
+      "3.1",
+      "3.2",
+      "4.1",
+      "4.3",
+      "5.1",
+      "5.2",
+      "6.1",
+      "7.1",
+      "7.2",
+      "7.3"
+    ],
+    "evidence": "docs/saas/ACCEPTANCE-PROGRESS.md"
+  },
+  "remaining_ids": [
+    "2.1",
+    "2.2",
+    "2.3",
+    "3.3",
+    "4.2",
+    "5.3",
+    "6.2",
+    "6.3",
+    "6.4",
+    "7.4"
+  ],
+  "reviewed_partial_gates": {
+    "2.3": [
+      {
+        "id": "72h-policy",
+        "complete": true,
+        "description": "Shared 72-hour device-access policy and expiry regression tests",
+        "evidence": "docs/saas/OFFLINE-72-HOURS.md"
+      },
+      {
+        "id": "native-compilation",
+        "complete": true,
+        "description": "Windows native installer build, Android API35 and Android API37 emulated startup smoke both passed; physical devices, signed distribution and 72h expiration remain unaccepted",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/actions/runs/41330255173"
+      },
+      {
+        "id": "consistent-entitlement-guard",
+        "complete": true,
+        "description": "Desktop/shared subscription cache authorization unified, positive CI and merge",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/213"
+      },
+      {
+        "id": "physical-device-expiry",
+        "complete": false,
+        "description": "72h expiry, retry and cleanup in physical Windows and Android devices"
+      },
+      {
+        "id": "physical-device-reauth",
+        "complete": false,
+        "description": "Physical-device reauthentication, downgrade, suspended subscription and release distribution acceptance"
+      }
+    ],
+    "6.2": [
+      {
+        "id": "encrypted-operations-drill",
+        "complete": true,
+        "description": "Encrypted database and real file-byte recovery in isolated disposable databases; failure rollback",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/actions/runs/40808635407"
+      },
+      {
+        "id": "historical-real-db-offline-restore",
+        "complete": true,
+        "description": "29/10 native database export decrypted and independently restored offline: 125 tables, 14,024 rows, 202 foreign keys (historical snapshot only)",
+        "evidence": "docs/saas/STORAGE-COPY-CONTINUITY-20261031.md"
+      },
+      {
+        "id": "historical-archive-physical-integrity",
+        "complete": true,
+        "description": "All 33 private historical ZIPs SHA-256 verified against AES-256-GCM index; additionally 33 manifests and all 592 preserved object payloads (6,489,242,325 content bytes) authenticated/decrypted in-memory and independently checked against hashes, with 116 objects still missing",
+        "evidence": "docs/saas/evidence/copied-592-content-aesgcm-20261101.md"
+      },
+      {
+        "id": "storage-full-copy",
+        "complete": false,
+        "description": "All 708 objects of 29/10 frozen inventory copied and authenticated; 592 verified/116 missing"
+      },
+      {
+        "id": "full-isolated-recovery",
+        "complete": false,
+        "description": "All database rows and bytes restored and validated together from a consistent snapshot"
+      },
+      {
+        "id": "current-runtime-reconciliation",
+        "complete": false,
+        "description": "Current Cloud delta reconciled, access and rollback/incident plan validated without touching production"
+      }
+    ],
+    "4.2": [
+      {
+        "id": "master-aal2-audit",
+        "complete": true,
+        "description": "Real Master AAL2 factor verification and individual audited reviews in Sandbox on 24/10; no financial replay",
+        "evidence": "docs/saas/evidence/events-recovery-master-20261024.md"
+      },
+      {
+        "id": "workflow-tenant-presentation-boundary",
+        "complete": true,
+        "description": "Fail-closed stage ownership isolation when a shared case has unknown/orphan stage; negative regression and complete main CI",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/actions/runs/41267138270"
+      },
+      {
+        "id": "unowned-patient-attribution",
+        "complete": false,
+        "description": "Determine legitimate ownership for 12 existing patients lacking clinic_id, verify evidence and resolve without guesswork"
+      },
+      {
+        "id": "cross-owner-local-cache-regressions",
+        "complete": true,
+        "description": "Installed profile and patient cache reject asynchronous account swaps, and patient outbox requires current real Cloud actor; covered by synthetic race regressions in general CI, not physical device homologation",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/actions/runs/41276846127"
+      },
+      {
+        "id": "positive-control-readonly-qa-harness",
+        "complete": true,
+        "description": "Verified read-only, real-JWT tenant-isolation probe requires accessible patient from each approved QA company before testing cross-tenant denial; isolated hermetic CI is positive, live fixture execution remains pending",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/219"
+      },
+      {
+        "id": "two-company-rls-real-role-disposable",
+        "complete": true,
+        "description": "Disposable PostgreSQL actual authenticated SQL role regression verifies own patient positive controls, cross-company read/update/delete denial, no orphan direct inserts, ownership changes rejected and forged company blocked by creation RPC; no real JWT sessions",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/226"
+      },
+      {
+        "id": "revocation-and-cross-company-live-probes",
+        "complete": false,
+        "description": "Authenticated multi-account/session revocation and negative cross-tenant access verified in the live permitted environment"
+      },
+      {
+        "id": "positive-financial-replay",
+        "complete": false,
+        "description": "Real authorized positive financial replay with idempotency and preservation of paid period, ledger and independent companies"
+      }
+    ],
+    "2.1": [
+      {
+        "id": "renewal-real-provider",
+        "complete": true,
+        "description": "Authenticated real Sandbox renewal without prior webhook, reconciled to one payment/paid period; no live collection",
+        "evidence": "docs/saas/evidence/events-recovery-master-20261024.md"
+      },
+      {
+        "id": "cancellation-master-mfa",
+        "complete": true,
+        "description": "One real Sandbox cancellation with Master AAL2 and Asaas INACTIVE readback, 18/18 actual checks",
+        "evidence": "docs/saas/evidence/master-cancellation-20261028.md"
+      },
+      {
+        "id": "overdue-and-grace",
+        "complete": false,
+        "description": "Provider-confirmed overdue and grace state to billing-only, with evidence of expected access window"
+      },
+      {
+        "id": "refund-dispute-suspension",
+        "complete": false,
+        "description": "Actual authorized refund/dispute plus suspended access, ledger and charged period consistency"
+      },
+      {
+        "id": "reactivation",
+        "complete": false,
+        "description": "Real authorized reactivation after delinquency/cancellation, renewed access and billing reconciliation"
+      }
+    ],
+    "2.2": [
+      {
+        "id": "renewal-invariants",
+        "complete": true,
+        "description": "Sandbox renewal completed without missing historical payment/paid period or unexpected duplicated ledger",
+        "evidence": "docs/saas/evidence/events-recovery-master-20261024.md"
+      },
+      {
+        "id": "cancellation-preservation",
+        "complete": true,
+        "description": "Authenticated Sandbox cancel preserved 701 ready files, patient/case fingerprints, three invoices, ledger and paid-period access",
+        "evidence": "docs/saas/evidence/master-cancellation-20261028.md"
+      },
+      {
+        "id": "arrears-refund-preservation",
+        "complete": false,
+        "description": "Confirm bytes, histories, invoices, paid periods and access are preserved through real overdue/refund transitions"
+      },
+      {
+        "id": "reactivation-preservation",
+        "complete": false,
+        "description": "After real reactivation, independently reconcile clinical data and paid periods without duplicate events"
+      }
+    ],
+    "5.3": [
+      {
+        "id": "provider-future-schedule",
+        "complete": true,
+        "description": "Master MFA confirmed future Growth-to-Inicial R$5 recurrence in Sandbox Asaas, effective 18/12/2026 UTC, one scheduled local term",
+        "evidence": "docs/saas/evidence/master-plan-change-20261028.md"
+      },
+      {
+        "id": "one-write-audit",
+        "complete": true,
+        "description": "Single authorized Master operation audited with provider readback and three jobs totalling 54/54 checks",
+        "evidence": "docs/saas/evidence/master-plan-change-20261028.md"
+      },
+      {
+        "id": "no-early-activation",
+        "complete": true,
+        "description": "Observed Growth R$449 current period kept, future term scheduled, activated_at null and no future charge",
+        "evidence": "docs/saas/evidence/master-plan-change-20261028.md"
+      },
+      {
+        "id": "future-activation-real",
+        "complete": false,
+        "description": "After 18/12/2026, confirm actual paid new period and scheduled term activation in provider and app"
+      },
+      {
+        "id": "downgrade-quota-enforcement",
+        "complete": false,
+        "description": "Prove quota and access behavior on actual downgrade, without loss of existing clinical bytes"
+      },
+      {
+        "id": "ambiguous-failure-recovery",
+        "complete": false,
+        "description": "Verify real authorized ambiguous provider failure followed by single recovery and no duplicated financial operation"
+      }
+    ],
+    "6.3": [
+      {
+        "id": "bounded-local-pilot-harness",
+        "complete": true,
+        "description": "Loopback-only GET capacity preflight capped at 40 requests, 4 concurrent and 3s per request; hermetic CI enforces refusal of Production/Cloud targets",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/223"
+      },
+      {
+        "id": "aggregate-db-readonly-baseline",
+        "complete": true,
+        "description": "Actual read-only minimal Cloud PostgreSQL snapshot of current connections, idle transactions and cumulative counters, using reproducible two-SELECT query, with no performance claims",
+        "evidence": "docs/saas/evidence/db-readonly-baseline-20261101.md"
+      },
+      {
+        "id": "staging-journal-and-fixtures",
+        "complete": true,
+        "description": "Real restored PostgreSQL disposable staging journal: 2 synthetic companies, 2 SQL-authenticated roles, 4 fake patients and 4 cases; positive own-only reads and rollback verified in CI. This is DB fixture readiness, not HTTP staging, Realtime or capacity proof.",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/236"
+      },
+      {
+        "id": "database-realtime-baseline",
+        "complete": false,
+        "description": "Measure Web, database, Realtime, CPU/RAM, connections, errors and cache before and after modest staging load"
+      },
+      {
+        "id": "native-onboarding-pilot",
+        "complete": false,
+        "description": "Confirm actual user onboarding and data/file operations from supported Windows and Android physical devices"
+      },
+      {
+        "id": "progressive-capacity-approval",
+        "complete": false,
+        "description": "Repeat load safely in stages with verified latency/error SLO, cost ceiling and explicit rollback/stop rules before scaling"
+      }
+    ],
+    "6.4": [
+      {
+        "id": "legal-operational-protocol",
+        "complete": true,
+        "description": "L01-L08 operational legal protocol and preliminary controller/processor role matrix drafted with no claimed regulatory signoff",
+        "evidence": "docs/saas/LEGAL-OPERATIONS-PROTOCOL.md"
+      },
+      {
+        "id": "internal-terms-privacy-dpa-drafts",
+        "complete": true,
+        "description": "Terms SaaS, Privacy Notice, DPA and legal review checklist created as conspicuously unapproved internal drafts with hermetic CI",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/222"
+      },
+      {
+        "id": "verified-supplier-retention-incident-register",
+        "complete": true,
+        "description": "Audited source-grounded register for actual Supabase/Lovable/Asaas integrations, code TTLs (72h and 300s), ANPD incident minimum record and notification triage, automated tests and explicit unapproved contracts/regions/clinical retention. Not legal review or compliant incident operation.",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/235"
+      },
+      {
+        "id": "dormant-versioned-receipt-contract-verified",
+        "complete": true,
+        "description": "PostgreSQL disposable restore proves immutable approved-only document versions with SHA-256, owner-scoped and idempotent acceptance receipts, RLS draft denial, cross-tenant rejection; client feature remains disabled, no approved legal content seeded or published.",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/240"
+      },
+      {
+        "id": "qualified-legal-business-review",
+        "complete": false,
+        "description": "Legal privacy/business responsible review and signoff for complete versions, real provider contracts, identity, taxes and commercial offer"
+      },
+      {
+        "id": "published-versioned-terms-acceptance",
+        "complete": false,
+        "description": "Approved contracts deployed with immutable version, representative identity, timestamp, plan price and retrieval evidence"
+      }
+    ],
+    "3.3": [
+      {
+        "id": "shared-web-native-storage-app",
+        "complete": true,
+        "description": "Existing shared Storage pages and attachment clients included in web, Tauri Windows and Android builds; native Android 35/37 startup and Windows installer builds verified, but no physical device file transfer",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/actions/runs/41330255173"
+      },
+      {
+        "id": "private-file-and-quota-contract-in-ci",
+        "complete": true,
+        "description": "Current CI explicitly reruns private reference signing/expiry, upload reservations, quota and deletion fail-closed on shared client code, without claiming native device operations",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/233"
+      },
+      {
+        "id": "storage-tenant-cache-and-auth-owner-scope",
+        "complete": true,
+        "description": "Storage management now binds profile and file queries to Auth user+clinic, filters foreign rows, hides cross-clinic usage snapshots and tests delayed account-switch results",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/233"
+      },
+      {
+        "id": "real-android-storage-journey",
+        "complete": false,
+        "description": "Authenticated Android physical upload, download, open, quota failure and signed URL renewal verified"
+      },
+      {
+        "id": "real-windows-storage-journey",
+        "complete": false,
+        "description": "Authenticated Windows physical upload, download, open and native offline cached file verified"
+      },
+      {
+        "id": "offline-expiry-storage-and-owner-physical",
+        "complete": false,
+        "description": "Physical Windows and Android 72h expiration, re-login, owner swap and local clinical byte purge with unchanged source data"
+      }
+    ],
+    "7.4": [
+      {
+        "id": "manual-release-evidence-guard",
+        "complete": true,
+        "description": "Read-only fail-closed release audit checks all 23 acceptance IDs; partial progress never authorizes selling; even complete status requires human launch review",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/233"
+      },
+      {
+        "id": "master-release-readiness-disclosure",
+        "complete": true,
+        "description": "Authenticated Master progress panel displays one completion percentage and explicit not-authorized release status without falsely claiming checkout is technically disabled",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/233"
+      },
+      {
+        "id": "source-locked-beta-preflight-reproducible",
+        "complete": true,
+        "description": "CLI reads source commit, native version parity, Android app ID, complete SQL-migration hashes and 9 important source hashes; blocked release until signatures, full backup, approved terms and verified rollback. Hermetic CLI test and bounded CI preflight, no deploy.",
+        "evidence": "https://github.com/GustavoFboz/dtfipo/pull/239"
+      },
+      {
+        "id": "production-release-candidate-verified",
+        "complete": false,
+        "description": "Exact signed release candidate, native versioning, backend commit and recovery version parity jointly verified and approved"
+      },
+      {
+        "id": "commercial-and-legal-approvals",
+        "complete": false,
+        "description": "Approved offers, prices, final terms, privacy/DPA and account-owner acknowledgement signed"
+      },
+      {
+        "id": "authorized-pilot-and-sales-release",
+        "complete": false,
+        "description": "Real pilot/access reviews and signed owner decision authorize public beta or sales with rollback and monitoring"
+      }
+    ]
+  },
+  "scoring_policy": {
+    "method": "single-overall-protocol-progress",
+    "detail": "Each of the 23 protocol criteria has equal weight. An accepted criterion counts 1; a reviewed but not fully accepted criterion counts only its independently verified partial gates as completed/N, never a full point until all required acceptance evidence exists. Unreviewed criteria receive no presumed progress. The result is ONE percentage for implementation tracking.",
+    "rounding": "two-decimal-percent",
+    "no_double_count": "An officially accepted item must not appear under reviewed_partial_gates. One evidence must not be scored twice.",
+    "completion_rule": "Este registro permanece vinculado aos 23 aceites formais originais, não ao 100% técnico da barra de implementação beta. Liberação de dados reais e comercialização mantêm autorizações externas obrigatórias.",
+    "caveat": "This is an evidence-based tracking number, not an effort estimate, elapsed-time measure or proof of real device, full backup or provider behavior absent its specific test. The acceptance checklist remains an internal nonpercentage audit record.",
+    "reference_scope": "legacy_full_acceptance_audit_not_dashboard",
+    "beta_implementation_scope": "docs/saas/BETA-IMPLEMENTATION-SCOPE.json"
+  }
+}

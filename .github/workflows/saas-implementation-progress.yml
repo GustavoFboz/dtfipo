@@ -1,0 +1,40 @@
+name: DentalFlow SaaS Implementation Progress
+
+on:
+  pull_request:
+    branches: [main, "saas/stage-03-asaas-checkout"]
+    paths:
+      - "docs/saas/IMPLEMENTATION-PROGRESS.json"
+      - "docs/saas/BETA-IMPLEMENTATION-SCOPE.json"
+      - "docs/saas/sql/unassigned-patients-readonly-summary.sql"
+      - "scripts/saas-implementation-progress.mjs"
+      - "scripts/saas-implementation-progress.test.mjs"
+      - "scripts/saas-beta-implementation-progress.mjs"
+      - "scripts/saas-beta-implementation-progress.test.mjs"
+      - "scripts/sync-saas-dashboard-progress.mjs"
+      - "scripts/saas-sales-release-gate.mjs"
+      - "scripts/saas-sales-release-gate.test.mjs"
+      - "src/data/saas-protocol-progress.json"
+      - "src/components/master/MasterSaasProtocolProgress.tsx"
+      - ".github/workflows/saas-implementation-progress.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-metrics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate strict evidence ledger and its regression tests
+        run: |
+          node --test scripts/saas-implementation-progress.test.mjs scripts/saas-sales-release-gate.test.mjs scripts/saas-beta-implementation-progress.test.mjs
+          node scripts/saas-beta-implementation-progress.mjs
+          node scripts/saas-sales-release-gate.mjs
+          node scripts/saas-implementation-progress.mjs
+          node scripts/sync-saas-dashboard-progress.mjs --check

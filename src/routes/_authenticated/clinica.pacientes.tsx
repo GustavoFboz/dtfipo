@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Plus, Search, UserRound, Users } from "lucide-react";
@@ -77,7 +78,7 @@ function Patients() {
             >
               <div className="flex min-w-0 items-center gap-3">
                 <div className="grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-2xl bg-[#1e8f87]/8 text-[#1e8f87]">
-                  {p.photo_url ? <img src={p.photo_url} alt="" className="h-full w-full object-cover" /> : <UserRound className="h-5 w-5 stroke-[1.5]" />}
+                  {p.photo_url ? <PrivateImage src={p.photo_url} alt="" className="h-full w-full object-cover" /> : <UserRound className="h-5 w-5 stroke-[1.5]" />}
                 </div>
                 <div className="min-w-0"><div className="truncate text-sm font-medium text-slate-900 transition group-hover:text-[#1e8f87] dark:text-white">{p.name}</div><div className="mt-0.5 text-[11px] font-light text-slate-400">{p.birth_date ? `Nascimento ${new Date(`${p.birth_date}T00:00:00`).toLocaleDateString("pt-BR")}` : "Dados clínicos disponíveis"}</div></div>
               </div>

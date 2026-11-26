@@ -1,0 +1,55 @@
+name: DentalFlow Beta Source Rollback Rehearsal (isolated)
+
+on:
+  pull_request:
+    branches: ["saas/stage-03-asaas-checkout"]
+    paths:
+      - ".github/workflows/saas-beta-source-rollback-rehearsal.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout complete history (isolated CI only)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify known production-safe source reversions
+        shell: bash
+        run: |
+          set -euo pipefail
+          for commit in 00e692a39daf9954f2f3f9c06b6edb35db26afb9 2f34b2a80310d71fb894f5c0c5b968b0e6f59553; do
+            git merge-base --is-ancestor "$commit" HEAD
+          done
+          git revert --no-commit -m 1 00e692a39daf9954f2f3f9c06b6edb35db26afb9 2f34b2a80310d71fb894f5c0c5b968b0e6f59553
+          git diff --cached --check
+          if git diff --cached --name-only | grep -Eq '^(supabase/migrations/|src/lib/billing/|src/routes/api/billing/)'; then
+            echo 'Unsafe database or billing change in rollback candidate' >&2
+            exit 1
+          fi
+          test -f scripts/saas-sales-release-gate.mjs
+          echo "Source rollback successfully applied only to this disposable runner"
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Check SaaS 06/09 safeguards after rollback
+        run: |
+          bun run check:saas:stage-06
+          bun run check:saas:stage-09
+      - name: Build reverted web source (not a published deployment)
+        run: bun run build
+      - name: Assert real sales gate stays blocked after rollback
+        run: |
+          node scripts/saas-sales-release-gate.mjs
+          if node scripts/saas-sales-release-gate.mjs --require-eligible; then
+            echo 'Unexpected paid release unlock after rollback' >&2
+            exit 1
+          fi

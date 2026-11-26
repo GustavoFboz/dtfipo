@@ -71,10 +71,12 @@ function store(claims: ProviderOperationClaim[]): AsaasProvisioningStore & {
 }
 
 describe("provisionAsaasResources", () => {
-  it("cria cliente e assinatura mensal uma única vez e persiste ambos os vínculos", async () => {
+  it.each([
+    ["sandbox", 19_900], ["sandbox", 100], ["production", 500],
+  ] as const)("cria uma assinatura mensal única em %s por %i centavos sem alterar o preço", async (environment, amountCents) => {
     const persistence = store([claimed(1), claimed(2)]);
     const client = {
-      environment: "sandbox" as const,
+      environment,
       findCustomersByExternalReference: vi.fn(async () => []),
       createCustomer: vi.fn(async (input: { externalReference: string }) => ({
         id: "cus_CREATED1",
@@ -98,13 +100,13 @@ describe("provisionAsaasResources", () => {
     };
 
     const result = await provisionAsaasResources(
-      context(),
+      context({ provider_environment: environment, monthly_price_cents: amountCents }),
       { nextDueDate: "2026-10-10", billingType: "UNDEFINED" },
       { client, store: persistence },
     );
 
     expect(result).toEqual({
-      environment: "sandbox",
+      environment,
       customerId: "cus_CREATED1",
       subscriptionId: "sub_CREATED1",
       customerReused: false,
@@ -116,7 +118,7 @@ describe("provisionAsaasResources", () => {
       expect.objectContaining({
         customer: "cus_CREATED1",
         cycle: "MONTHLY",
-        value: 199,
+        value: amountCents / 100,
         externalReference: `dentalflow:subscription:${internalSubscriptionId}`,
       }),
     );
@@ -129,10 +131,30 @@ describe("provisionAsaasResources", () => {
     expect(persistence.finishOperation).toHaveBeenCalledTimes(2);
   });
 
-  it("reutiliza vínculos internos sem consultar ou recriar recursos externos", async () => {
+  it.each([100, 499])("recusa novo contrato real de %i centavos antes de criar cliente ou assinatura", async (amountCents) => {
+    const persistence = store([]);
+    const client = {
+      environment: "production" as const,
+      findCustomersByExternalReference: vi.fn(), createCustomer: vi.fn(),
+      findSubscriptionsByExternalReference: vi.fn(), createMonthlySubscription: vi.fn(),
+    };
+    const contract = context({ provider_environment: "production", monthly_price_cents: amountCents });
+    await expect(provisionAsaasResources(contract, { nextDueDate: "2026-10-19" },
+      { client, store: persistence })).rejects.toMatchObject({ code: "ASAAS_CHECKOUT_AMOUNT_BELOW_MINIMUM" });
+    expect(contract.monthly_price_cents).toBe(amountCents);
+    expect(persistence.claimOperation).not.toHaveBeenCalled();
+    expect(persistence.bindCustomer).not.toHaveBeenCalled();
+    expect(persistence.bindSubscription).not.toHaveBeenCalled();
+    expect(client.findCustomersByExternalReference).not.toHaveBeenCalled();
+    expect(client.createCustomer).not.toHaveBeenCalled();
+    expect(client.findSubscriptionsByExternalReference).not.toHaveBeenCalled();
+    expect(client.createMonthlySubscription).not.toHaveBeenCalled();
+  });
+
+  it.each(["sandbox", "production"] as const)("preserva contrato já vinculado de R$1 em %s sem recriar recursos externos", async (environment) => {
     const persistence = store([claimed(1), claimed(2)]);
     const client = {
-      environment: "sandbox" as const,
+      environment,
       findCustomersByExternalReference: vi.fn(),
       createCustomer: vi.fn(),
       findSubscriptionsByExternalReference: vi.fn(),
@@ -140,7 +162,8 @@ describe("provisionAsaasResources", () => {
     };
 
     const result = await provisionAsaasResources(
-      context({ provider_customer_id: "cus_EXISTING1", external_subscription_id: "sub_EXISTING1" }),
+      context({ provider_environment: environment, monthly_price_cents: 100,
+        provider_customer_id: "cus_EXISTING1", external_subscription_id: "sub_EXISTING1" }),
       { nextDueDate: "2026-10-10" },
       { client, store: persistence },
     );

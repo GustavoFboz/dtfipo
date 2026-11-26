@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { CaseChecklistFab } from "@/components/CaseChecklists";
 
@@ -27,7 +28,8 @@ import {
   type CaseActivity,
 } from "@/lib/case-activity";
 import { supabase } from "@/integrations/supabase/client";
-import { uploadCaseAttachment, getCaseAttachmentUrl, markCaseNotificationsRead } from "@/lib/api";
+import { uploadCaseAttachment, markCaseNotificationsRead } from "@/lib/api";
+import { privateFileReference } from "@/lib/private-file-reference";
 import { ReadReceipts, type Reader } from "./ReadReceipts";
 import { cn } from "@/lib/utils";
 import { EmojiStickerPicker } from "./EmojiStickerPicker";
@@ -125,7 +127,6 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   const fileKindRef = useRef<AttachKind>("model");
   const imageKindRef = useRef<"comment_image" | "gallery">("comment_image");
   const [editingImage, setEditingImage] = useState<string | null>(null);
-  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
   const [lightbox, setLightbox] = useState<{ images: { url: string; name: string }[]; index: number } | null>(null);
   const [showEmoji, setShowEmoji] = useState(false);
   const recorder = useAudioTranscription();
@@ -426,44 +427,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
   const [loadingOlder, setLoadingOlder] = useState(false);
 
 
-  // local blob previews resolve to themselves
-  useEffect(() => {
-    if (outgoing.length === 0) return;
-    setSignedUrls((prev) => {
-      const next = { ...prev };
-      let changed = false;
-      for (const o of outgoing) {
-        for (const p of o.images) {
-          if (!next[p.previewUrl]) { next[p.previewUrl] = p.previewUrl; changed = true; }
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [outgoing]);
   const outgoingIds = useMemo(() => new Set(outgoing.map((o) => o.id)), [outgoing]);
-
-
-  // signed urls for comment images
-  useEffect(() => {
-    const pending: { path: string; name: string }[] = [];
-    for (const a of sorted) {
-      const imgs = (a.metadata as { images?: { path: string; name: string }[] } | null)?.images ?? [];
-      for (const img of imgs) {
-        if (!signedUrls[img.path]) pending.push(img);
-      }
-    }
-    if (!pending.length) return;
-    let cancelled = false;
-    (async () => {
-      const out: Record<string, string> = {};
-      await Promise.all(pending.map(async (img) => {
-        try { out[img.path] = await getCaseAttachmentUrl(img.path); } catch { /* ignore */ }
-      }));
-      if (!cancelled) setSignedUrls((prev) => ({ ...prev, ...out }));
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sorted]);
 
   // Busca as leituras novamente quando surgem mensagens novas (chave estável).
   useEffect(() => {
@@ -622,7 +586,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 240;
     if (!nearBottom) return;
     pin();
-  }, [visible, signedUrls, focusActivityId, firstUnreadId]);
+  }, [visible, focusActivityId, firstUnreadId]);
 
 
   return (
@@ -677,9 +641,12 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
           const attFiles =
             (a.metadata as { files?: { att_id: string; name: string; size: number; kind: AttachKind }[] } | null)
               ?.files ?? [];
-          const visibleImages = images
-            .map((img) => ({ url: signedUrls[img.path], name: img.name }))
-            .filter((x) => !!x.url);
+          const visibleImages = images.map((img) => ({
+            url: img.path.startsWith("blob:") || img.path.startsWith("storage://") || /^https?:\/\//.test(img.path)
+              ? img.path
+              : privateFileReference("case-files", img.path),
+            name: img.name,
+          }));
           const groupedWithPrev =
             !!prev && prev.kind === "comment" && (prev.user_id ?? "") === (a.user_id ?? "") && !showDay;
           const nextShowsDay = !!next && dayLabel(a.created_at) !== dayLabel(next.created_at);
@@ -709,7 +676,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
                       "order-1 h-14 w-14 shrink-0 rounded-full grid place-items-center text-[13px] font-semibold text-slate-500 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 overflow-hidden self-end",
                       groupedWithPrev && "invisible"
                     )}>
-                      {url ? <img src={url} alt={name} className="h-full w-full object-cover" /> : initials(name)}
+                      {url ? <PrivateImage src={url} alt={name} className="h-full w-full object-cover" /> : initials(name)}
                     </div>
                   );
                 })()}
@@ -769,7 +736,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
                             onClick={() => setLightbox({ images: visibleImages, index: i })}
                             className="h-28 w-28 rounded-2xl overflow-hidden border border-black/5 bg-muted hover:opacity-90 transition"
                           >
-                            <img src={img.url} alt={img.name} loading="lazy" className="h-full w-full object-cover" />
+                            <PrivateImage src={img.url} alt={img.name} loading="lazy" className="h-full w-full object-cover" />
                           </button>
                         ))}
                       </div>
@@ -806,7 +773,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
                       "order-3 h-14 w-14 shrink-0 rounded-full grid place-items-center text-[13px] font-semibold text-slate-500 dark:text-slate-300 bg-slate-200 dark:bg-slate-700 overflow-hidden self-end",
                       groupedWithPrev && "invisible"
                     )}>
-                      {url ? <img src={url} alt={name} className="h-full w-full object-cover" /> : initials(name)}
+                      {url ? <PrivateImage src={url} alt={name} className="h-full w-full object-cover" /> : initials(name)}
                     </div>
                   );
                 })()}

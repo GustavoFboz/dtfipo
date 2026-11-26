@@ -1,0 +1,272 @@
+{
+  "contract": "dentalflow-production-activation-checkpoint-v1",
+  "checked_at": "2026-10-18T20:11:59.751020Z",
+  "source_commit": "46b268eefed97dfc846f3d95fa410d16f83cf55a",
+  "source_tree": "94ef7b94ea60fc4662b1df464c32f320f25c0c07",
+  "backend": {
+    "deployment_id": "3fdd46c3-cdcb-49a4-a6be-11b5f16029f3",
+    "deployment_request_status": "pending",
+    "runtime_verified_by_guarded_scheduler": true,
+    "environment": "production",
+    "production_enabled": true,
+    "credentials_regenerated": false,
+    "ai_build_prompts_sent": false
+  },
+  "github": {
+    "administrative_login_verified": true,
+    "repository": "GustavoFboz/dtfipo",
+    "variables": {
+      "BILLING_ENVIRONMENT": "production",
+      "BILLING_PRODUCTION_ENABLED": "true"
+    },
+    "secrets_changed": false,
+    "main_changed": false
+  },
+  "preflight": {
+    "run_id": 39160671286,
+    "job_id": 117773117764,
+    "conclusion": "success",
+    "artifact_id": 12147764553,
+    "artifact_sha256": "d51aca6c529fd67a53aa706e8be5a2de8e91dcacc0c98b6ccf817803f53fa137",
+    "account": {
+      "available": true,
+      "contract": "dentalflow-production-preflight-v2",
+      "environment": "production",
+      "checked_at": "2026-10-18T19:51:44.139Z",
+      "configuration_valid": true,
+      "credentials_valid": true,
+      "account": {
+        "general": "APPROVED",
+        "commercialInfo": "APPROVED",
+        "bankAccountInfo": "PENDING",
+        "documentation": "APPROVED"
+      },
+      "account_approved": true,
+      "account_setup_complete": false,
+      "runtime_environment": "sandbox",
+      "production_enabled": false,
+      "webhook_delivery_verified": false,
+      "financial_processing_invoked": false
+    },
+    "webhook": {
+      "available": true,
+      "contract": "dentalflow-production-webhook-preflight-v2",
+      "environment": "production",
+      "checked_at": "2026-10-18T19:51:45.483Z",
+      "configuration_valid": true,
+      "credentials_valid": true,
+      "listing_complete": true,
+      "matching_webhooks": 1,
+      "webhook_configuration_valid": true,
+      "token_verification": "requires_delivery",
+      "webhook_prepared": false,
+      "webhooks": [
+        {
+          "id": "ee2af07c-ec23-4224-893b-390efbc85c8f",
+          "enabled": false,
+          "interrupted": false,
+          "api_version": 3,
+          "send_type": "SEQUENTIALLY",
+          "token_matches": null,
+          "configured_events": [
+            "PAYMENT_REFUNDED",
+            "PAYMENT_OVERDUE",
+            "PAYMENT_CONFIRMED",
+            "PAYMENT_CHARGEBACK_REQUESTED",
+            "SUBSCRIPTION_DELETED",
+            "PAYMENT_AWAITING_CHARGEBACK_REVERSAL",
+            "SUBSCRIPTION_UPDATED",
+            "PAYMENT_REFUND_IN_PROGRESS",
+            "PAYMENT_PARTIALLY_REFUNDED",
+            "PAYMENT_CHARGEBACK_DISPUTE",
+            "SUBSCRIPTION_INACTIVATED",
+            "SUBSCRIPTION_CREATED",
+            "PAYMENT_RECEIVED"
+          ],
+          "missing_automated_events": [],
+          "missing_review_events": [],
+          "unknown_events_count": 0
+        }
+      ],
+      "webhook_delivery_verified": false,
+      "financial_processing_invoked": false
+    }
+  },
+  "bootstrap": {
+    "run_id": 39080225821,
+    "run_attempt": 2,
+    "job_id": 117775088256,
+    "conclusion": "success",
+    "source_commit": "d2481a59ee75fb9308945c005abde309d1ee01c5",
+    "workflow_blob": "a201b26f9e69a11546d73155ebc02ee103cf62df",
+    "workflow_unchanged_at_runtime_source": true,
+    "artifact_id": 12148482980,
+    "artifact_sha256": "fd68ad005dea917670c5b2e929dc91f5377c8eb3ece7a68fcba3c5b7400fb956",
+    "immediate_worker_invocation_requested": false
+  },
+  "scheduler_observations": [
+    {
+      "checked_at": "2026-10-18 20:01:17.48383+00",
+      "production": {
+        "configured_at": "2026-10-18T20:00:47.230114+00:00",
+        "cron_active": true,
+        "cron_job_id": 2,
+        "enabled": true,
+        "last_dispatched_at": "2026-10-18T20:01:00.28815+00:00",
+        "last_response_http_status": 200,
+        "last_response_timed_out": false,
+        "provider_environment": "production",
+        "schedule": "1-59/5 * * * *"
+      },
+      "sandbox": {
+        "configured_at": "2026-10-05T20:20:52.427494+00:00",
+        "cron_active": false,
+        "cron_job_id": 1,
+        "enabled": false,
+        "last_dispatched_at": "2026-10-18T19:56:00.468759+00:00",
+        "last_response_http_status": 200,
+        "last_response_timed_out": false,
+        "provider_environment": "sandbox",
+        "schedule": null
+      }
+    },
+    {
+      "checked_at": "2026-10-18 20:09:49.271404+00",
+      "production": {
+        "configured_at": "2026-10-18T20:00:47.230114+00:00",
+        "cron_active": true,
+        "cron_job_id": 2,
+        "enabled": true,
+        "last_dispatched_at": "2026-10-18T20:06:00.387512+00:00",
+        "last_response_http_status": 200,
+        "last_response_timed_out": false,
+        "provider_environment": "production",
+        "schedule": "1-59/5 * * * *"
+      },
+      "sandbox": {
+        "configured_at": "2026-10-05T20:20:52.427494+00:00",
+        "cron_active": false,
+        "cron_job_id": 1,
+        "enabled": false,
+        "last_dispatched_at": "2026-10-18T19:56:00.468759+00:00",
+        "last_response_http_status": 200,
+        "last_response_timed_out": false,
+        "provider_environment": "sandbox",
+        "schedule": null
+      }
+    },
+    {
+      "checked_at": "2026-10-18 20:11:59.75102+00",
+      "production": {
+        "configured_at": "2026-10-18T20:00:47.230114+00:00",
+        "cron_active": true,
+        "cron_job_id": 2,
+        "enabled": true,
+        "last_dispatched_at": "2026-10-18T20:11:00.455229+00:00",
+        "last_response_http_status": 200,
+        "last_response_timed_out": false,
+        "provider_environment": "production",
+        "schedule": "1-59/5 * * * *"
+      },
+      "sandbox": {
+        "configured_at": "2026-10-05T20:20:52.427494+00:00",
+        "cron_active": false,
+        "cron_job_id": 1,
+        "enabled": false,
+        "last_dispatched_at": "2026-10-18T19:56:00.468759+00:00",
+        "last_response_http_status": 200,
+        "last_response_timed_out": false,
+        "provider_environment": "sandbox",
+        "schedule": null
+      }
+    }
+  ],
+  "health_and_catalog": {
+    "checked_at": "2026-10-18 20:11:34.131886+00",
+    "initial_plan": {
+      "code": "company_initial",
+      "currency": "BRL",
+      "monthly_price_cents": 100
+    },
+    "worker_health": [
+      {
+        "counters": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "processed": 0,
+          "reconciliationQueued": 0,
+          "reconciliationReview": 0,
+          "reconciliationScanned": 0,
+          "recoveryQueued": 0,
+          "suspended": 0,
+          "workerReview": 0
+        },
+        "finished_at": "2026-10-18T20:11:02.698743+00:00",
+        "last_healthy_at": "2026-10-18T20:11:02.698743+00:00",
+        "provider_environment": "production",
+        "started_at": "2026-10-18T20:11:02.330936+00:00",
+        "status": "ok"
+      },
+      {
+        "counters": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "processed": 0,
+          "reconciliationQueued": 0,
+          "reconciliationReview": 0,
+          "reconciliationScanned": 1,
+          "recoveryQueued": 0,
+          "suspended": 0,
+          "workerReview": 0
+        },
+        "finished_at": "2026-10-18T19:56:04.115867+00:00",
+        "last_healthy_at": "2026-10-18T19:56:04.115867+00:00",
+        "provider_environment": "sandbox",
+        "started_at": "2026-10-18T19:56:01.94091+00:00",
+        "status": "ok"
+      }
+    ]
+  },
+  "payments": [
+    {
+      "environment": "production",
+      "paid_payments": 0,
+      "payments": 0
+    },
+    {
+      "environment": "sandbox",
+      "paid_payments": 4,
+      "payments": 4
+    }
+  ],
+  "asaas_ui": {
+    "login_result_after_sms": "unconfirmed",
+    "post_sms_observation": "blocked_by_automatic_approval_review",
+    "provider_error_observed": false,
+    "webhook_changed_by_agent": false,
+    "new_explicit_authorization_required_before_resuming_authentication": true
+  },
+  "validation": {
+    "billing_and_desktop_test_files_passed": 16,
+    "billing_and_desktop_tests_passed": 348,
+    "stage_05_check": "passed",
+    "stage_06_check": "passed",
+    "stage_09_check": "passed",
+    "restore_bundle_check": "passed",
+    "restore_migrations": 175,
+    "product_source_changed": false,
+    "workflow_source_changed": false
+  },
+  "acceptance": {
+    "completed": 5,
+    "total": 23,
+    "completed_stages": 0,
+    "total_stages": 7,
+    "criterion_7_2": "partial",
+    "criterion_7_3": "pending",
+    "real_payment_performed_by_agent": false,
+    "real_receipt_verified": false
+  }
+}

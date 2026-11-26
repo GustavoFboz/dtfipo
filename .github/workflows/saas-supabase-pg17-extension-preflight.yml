@@ -1,0 +1,79 @@
+name: DentalFlow Supabase PostgreSQL 17 Extension Compatibility
+
+on:
+  pull_request:
+    branches:
+      - main
+      - saas/stage-03-asaas-checkout
+    paths:
+      - scripts/recovery/check-supabase-postgres-extensions.sh
+      - .github/workflows/saas-supabase-pg17-extension-preflight.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  official-image-six-extension-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pull exact official Supabase Postgres 17.11 image
+        run: docker pull supabase/postgres:17.11.0.018
+      - name: Verify all six extensions without importing or starting a database
+        run: |
+          docker run --rm --network none --read-only \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --entrypoint sh \
+            --mount type=bind,source="$PWD/scripts/recovery/check-supabase-postgres-extensions.sh",target=/tmp/check-ext.sh,readonly \
+            supabase/postgres:17.11.0.018 /tmp/check-ext.sh
+      - name: Confirm CI never uses real patient data
+        run: |
+          echo "Synthetic Docker image inspection only."
+          echo "No archive, key, env credentials or SQL import was used."
+
+  offline-supabase-db-bootstrap:
+    runs-on: ubuntu-latest
+    needs: official-image-six-extension-preflight
+    timeout-minutes: 13
+    steps:
+      - name: Pull Supabase Postgres image
+        run: docker pull supabase/postgres:17.11.0.018
+      - name: Boot isolated empty database with no exposed port or host mount
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="supabase/postgres:17.11.0.018"
+          uid="$(docker run --rm --network none --entrypoint id "$image" -u postgres)"
+          gid="$(docker run --rm --network none --entrypoint id "$image" -g postgres)"
+          echo "Unprivileged container UID/GID identified privately; rootfs layer ephemeral and deleted at cleanup."
+          cleanup() { docker rm -f dentalflow-supabase-probe >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          docker run -d --name dentalflow-supabase-probe \
+            --network none --user postgres \
+            --cap-drop ALL --security-opt no-new-privileges \
+            --memory 1g --pids-limit 256 \
+            --tmpfs "/var/lib/postgresql/data:rw,uid=$uid,gid=$gid,mode=0700,size=512m" \
+            --tmpfs "/var/run/postgresql:rw,uid=$uid,gid=$gid,mode=0770,size=16m" \
+            --tmpfs "/tmp:rw,mode=1777,size=64m" \
+            -e POSTGRES_HOST_AUTH_METHOD=trust \
+            "$image" postgres -c config_file=/etc/postgresql/postgresql.conf
+          ready=0
+          for i in $(seq 1 45); do
+            if docker exec dentalflow-supabase-probe pg_isready -U supabase_admin -d postgres >/dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo "DF_SUPABASE_POSTGRES_ISOLATED_BOOT_FAILED"
+            docker logs --tail 30 dentalflow-supabase-probe || true
+            exit 1
+          fi
+          docker exec dentalflow-supabase-probe psql -At -U supabase_admin -d postgres -c \
+            "select count(*) from pg_available_extensions where name in ('pg_cron','pg_net','pg_stat_statements','pgcrypto','supabase_vault','uuid-ossp')" \
+            | grep -Fx "6"
+          echo "DF_SUPABASE_POSTGRES_ISOLATED_BOOT_AND_6_EXTENSIONS_AVAILABLE"

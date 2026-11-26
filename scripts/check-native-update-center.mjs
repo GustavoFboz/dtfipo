@@ -21,12 +21,13 @@ const capabilities = read("src-tauri/capabilities/default.json");
 const windowsWorkflow = read(".github/workflows/desktop-windows.yml");
 const androidWorkflow = read(".github/workflows/mobile-android.yml");
 const androidRelease = read("scripts/prepare-android-release.py");
+const publisher = read("scripts/publish-native-release.mjs");
 
 const desktopVersion = String(JSON.parse(tauri).version || "");
 const androidVersion = androidRelease.match(/VERSION = "([^"]+)"/)?.[1] ?? "";
 
-expect(desktopVersion === "0.6.6", "The first Windows update-center release must be 0.6.6.");
-expect(androidVersion === "0.3.0", "The current Android update-center release must be 0.3.0.");
+expect(desktopVersion === "0.6.8", "The current Windows update-center release must be 0.6.8.");
+expect(androidVersion === "0.3.1", "The current Android update-center release must be 0.3.1.");
 expect(cargo.includes(`version = "${desktopVersion}"`), "Tauri and Cargo versions must match.");
 
 expect(
@@ -103,13 +104,12 @@ for (const [workflow, platform, version] of [
     `${platform} release workflow needs permission to publish installers.`,
   );
   expect(
-    workflow.includes("gh release create") && workflow.includes("gh release upload"),
+    workflow.includes(`node scripts/publish-native-release.mjs ${platform}`) &&
+      publisher.includes("['release','create'") && publisher.includes("['release','upload'"),
     `${platform} workflow must publish permanent GitHub Releases.`,
   );
   expect(
-    workflow.includes(`${platform}-v$` + "RELEASE_VERSION") ||
-      workflow.includes(`tag=${platform}-v$VERSION`) ||
-      workflow.includes(`tag=${platform}-v$version`),
+    publisher.includes('`${platform}-v${version}`'),
     `${platform} release tag must remain platform-specific.`,
   );
   expect(

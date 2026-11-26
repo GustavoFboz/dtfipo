@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "@tanstack/react-router";
@@ -96,7 +97,7 @@ export function PatientPhotoLightbox({ patient, trigger }: { patient: Patient | 
       >
         <X className="h-5 w-5" />
       </button>
-      <img
+      <PrivateImage
         src={patient.photo_url}
         alt={patient.name || "Foto do paciente"}
         className="max-h-[88vh] max-w-[92vw] rounded-[28px] object-contain shadow-[0_28px_80px_rgba(15,23,42,0.18)] dark:shadow-2xl"
@@ -165,7 +166,7 @@ export function PatientCasePopover({
           trigger={
             <div className={`h-11 w-11 rounded-full bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-500 text-sm font-light overflow-hidden ring-0 transition ${patient.photo_url ? "hover:ring-4 hover:ring-primary/10 cursor-zoom-in" : "cursor-default"}`}>
               {patient.photo_url ? (
-                <img src={patient.photo_url} alt="" className="h-full w-full object-cover" />
+                <PrivateImage src={patient.photo_url} alt="" className="h-full w-full object-cover" />
               ) : (
                 patientInitial(patient.name)
               )}
@@ -199,7 +200,7 @@ export function PatientCasePopover({
               <div className="flex items-start gap-3">
                 <div className="h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 grid place-items-center text-slate-500 text-base font-light overflow-hidden shrink-0">
                   {patient.photo_url ? (
-                    <img src={patient.photo_url} alt="" className="h-full w-full object-cover" />
+                    <PrivateImage src={patient.photo_url} alt="" className="h-full w-full object-cover" />
                   ) : (
                     patientInitial(patient.name)
                   )}

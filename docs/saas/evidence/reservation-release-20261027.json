@@ -1,0 +1,72 @@
+{
+  "observed_at": "2026-10-27T15:08:08.352216+00:00",
+  "action": "Nine individually reviewed abandoned upload reservations released through the authenticated company manager UI",
+  "review_route": "/armazenamento",
+  "release_api": "release_storage_upload_reservation",
+  "direct_sql_deletion": false,
+  "before": {
+    "observed_at": "2026-10-27T15:01:48.027373+00:00",
+    "reservations": 9,
+    "reserved_bytes": 1112944862,
+    "objects_present": 0,
+    "linked_reservations": 0,
+    "ready_files": 685,
+    "ready_bytes": 8291635177
+  },
+  "after": {
+    "reservations": 0,
+    "reserved_bytes": 0,
+    "ready_files": 685,
+    "ready_bytes": 8291635177,
+    "ui_message": "Nenhum envio pendente."
+  },
+  "preserved_before_and_after": {
+    "ready_storage_metadata_hash": "7d8655c8b325d49fd765fc2078be0bfb",
+    "cases_hash": "15ec1d279f33d97a8555bba18d9ac53b",
+    "patients_except_photo_hash": "ba1aacad3258a47925d11a5a48893fee",
+    "payments_hash": "ad57c47b0d7c6d6061e00a4a256f18d9"
+  },
+  "request_budget": {
+    "reservation_mutations_in_parallel": 1,
+    "release_confirmations": 9,
+    "private_file_maintenance_maximum_concurrency": 1,
+    "private_file_maintenance_stops_after_first_failure": true,
+    "maintenance_pull_request": 201,
+    "maintenance_merge": "0ab3dc0a776aae870e93d385dac35137db12a8a1"
+  },
+  "validation": {
+    "local_regression_tests": 135,
+    "local_test_files": 8,
+    "typecheck": "passed",
+    "local_production_build": "passed",
+    "stage_06": "passed",
+    "stage_09": "passed",
+    "restore_bundle_static_check": "passed: 183 unchanged migrations",
+    "web_ci": {"run_id": 40527851407, "conclusion": "success"},
+    "clean_restore_ci": {
+      "run_id": 40527851504,
+      "attempts": 2,
+      "conclusion": "blocked by container registry rate limit before applying SQL",
+      "new_clean_restore_proof": false
+    }
+  },
+  "historical_private_files": {
+    "photos": 34,
+    "avatars": 6,
+    "bytes": 1273134,
+    "prepared_business_targets": 0,
+    "modified_business_files": 0,
+    "blocked_action": "Prepare one-use jobs for 40 historical private-file address rotations",
+    "automatic_review_reason": "Specific owner approval required for retirement of historical URLs",
+    "specific_approval_pending": true
+  },
+  "acceptance": {
+    "new_complete_criteria": ["3.2"],
+    "completed": 11,
+    "total": 23,
+    "percent": 47.82608695652174,
+    "remaining": 12,
+    "completed_stages": 1,
+    "total_stages": 7
+  }
+}

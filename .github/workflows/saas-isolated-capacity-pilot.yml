@@ -1,0 +1,30 @@
+name: DentalFlow SaaS Isolated Capacity Pilot
+
+on:
+  pull_request:
+    branches:
+      - main
+      - "saas/stage-03-asaas-checkout"
+    paths:
+      - "scripts/saas-isolated-pilot*.mjs"
+      - "scripts/saas-capacity-readonly-baseline.test.mjs"
+      - "scripts/saas-staging-fixture-safety.test.mjs"
+      - "docs/saas/sql/staging-63-fixture-journal.sql"
+      - "docs/saas/sql/readonly-capacity-baseline.sql"
+      - "docs/saas/evidence/isolated-capacity-pilot-20261101.md"
+      - ".github/workflows/saas-isolated-capacity-pilot.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify loopback-only request caps and failure reporting
+        run: node --test scripts/saas-isolated-pilot.test.mjs scripts/saas-capacity-readonly-baseline.test.mjs scripts/saas-staging-fixture-safety.test.mjs

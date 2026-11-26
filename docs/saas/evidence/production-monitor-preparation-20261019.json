@@ -1,0 +1,102 @@
+{
+  "contract": "dentalflow-production-monitor-preparation-v1",
+  "checked_at": "2026-10-19 05:47:29.600437+00",
+  "published_source_baseline": "83db698a51a8ef9496d08ec4e532aaf2a5ab3ce0",
+  "before": {
+    "checked_at": "2026-10-19 05:47:29.600437+00",
+    "production_contract_fingerprint": "f18f64ed7764bc54f49f85bd8246cec3",
+    "production_failed_events": 0,
+    "production_ledger_fingerprint": "41da44f53d453d89886b7f766aeb4aeb",
+    "production_payment_count": 1,
+    "scheduler": {
+      "configured_at": "2026-10-18T20:00:47.230114+00:00",
+      "cron_active": true,
+      "cron_job_id": 2,
+      "enabled": true,
+      "last_dispatched_at": "2026-10-19T05:46:00.417036+00:00",
+      "last_response_http_status": 200,
+      "last_response_timed_out": false,
+      "provider_environment": "production",
+      "schedule": "1-59/5 * * * *"
+    },
+    "worker": {
+      "counters": {
+        "failed": 0,
+        "graceReview": 0,
+        "ignored": 0,
+        "processed": 0,
+        "reconciliationQueued": 0,
+        "reconciliationReview": 0,
+        "reconciliationScanned": 0,
+        "recoveryQueued": 0,
+        "suspended": 0,
+        "workerReview": 0
+      },
+      "last_healthy_at": "2026-10-19T05:46:02.250411+00:00",
+      "status": "ok"
+    }
+  },
+  "false_positive": {
+    "run_id": 39170969003,
+    "job_id": 117803740956,
+    "account_read_succeeded": true,
+    "webhook_read_failed_on_disabled_requirement": true,
+    "job_log_projection": [
+      "2026-10-18T22:09:14.3092181Z Production key authentication confirmed by readonly account-status request.",
+      "2026-10-18T22:09:14.3152877Z ##[notice]General account approval confirmed; an individual registration field still needs review. Inspect sanitized evidence.",
+      "2026-10-18T22:09:14.3164245Z General account approval confirmed. Webhook delivery, financial lifecycle and sales acceptance remain separate gates.",
+      "2026-10-18T22:09:15.7324107Z ##[error]Production webhook configuration is not confirmed as correct and disabled. Inspect sanitized evidence."
+    ],
+    "existing_notification": {
+      "received_at": "2026-10-18T22:09:39.000Z",
+      "in_inbox": true,
+      "in_spam": false,
+      "github_sender": true,
+      "dkim_pass": true,
+      "matches_run_39170969003": true,
+      "workflow": "SaaS Production credentials readonly check",
+      "new_message_sent": false
+    }
+  },
+  "change": {
+    "backend_api_changed": false,
+    "financial_code_changed": false,
+    "github_backend_activation_alignment_required": true,
+    "active_production_requires_enabled_webhook": true,
+    "sandbox_preparation_requires_disabled_webhook": true,
+    "legacy_v2_fields_preserved": true,
+    "new_runtime_projection": [
+      "expected_webhook_enabled",
+      "webhook_runtime_configuration_valid"
+    ]
+  },
+  "controlled_drill": {
+    "status": "prepared_not_dispatched",
+    "dedicated_branch": "saas/production-alert-drill-20261019",
+    "trigger": "workflow_dispatch on the exact dedicated branch only",
+    "uses_current_run_verified_snapshot_only": true,
+    "simulated_healthy_age_seconds": 901,
+    "production_data_writes": false,
+    "processing_pause": false,
+    "credentials_in_drill_job": false,
+    "owner_authorization_for_new_external_notification_received": false
+  },
+  "verification": {
+    "fake_http_preflight_checks_passed": true,
+    "isolated_bash_drill_checks_passed": true,
+    "billing_desktop_tests_passed": 356,
+    "test_files": 17,
+    "stage06_passed": true,
+    "stage09_passed": true,
+    "restore_migrations": 176,
+    "live_corrected_preflight": "await merged workflow run artifact"
+  },
+  "acceptance": {
+    "completed": 6,
+    "total": 23,
+    "display_percent": 26.1,
+    "completed_stages": 0,
+    "total_stages": 7,
+    "item_7_2": "partial"
+  }
+}

@@ -1,0 +1,256 @@
+{
+  "contract": "dentalflow-company-ownership-delivery-v1",
+  "observed_at": "2026-10-22 17:12:51.327529+00",
+  "implementation": {
+    "pull_request": 185,
+    "merged_commit": "c5ed0a22026614573b6132ce040edc4d554db640",
+    "tested_head": "cc26376504f2b141e013ed20565fa6a5144670b9",
+    "migration": "20261022160000_saas_company_stock_ownership_stage07.sql",
+    "owned_tables": 22
+  },
+  "authorization": {
+    "existing_stock_owner_confirmed_by_account_owner": "IPO",
+    "other_accounts_described_by_account_owner_as": "test accounts",
+    "unknown_patient_ownership_inferred": false
+  },
+  "database": {
+    "migration_applied": true,
+    "historical_fields_preserved": true,
+    "schema_assertion": "passed",
+    "directory_company_mismatches": 0,
+    "observed_at": "2026-10-22 17:12:51.327529+00",
+    "owned_table_counts": [
+      {
+        "ipo": 0,
+        "other_company": 0,
+        "table_name": "burr_usages",
+        "total": 0,
+        "unowned": 0
+      },
+      {
+        "ipo": 0,
+        "other_company": 0,
+        "table_name": "burrs",
+        "total": 0,
+        "unowned": 0
+      },
+      {
+        "ipo": 4,
+        "other_company": 0,
+        "table_name": "cadistas",
+        "total": 4,
+        "unowned": 0
+      },
+      {
+        "ipo": 29,
+        "other_company": 0,
+        "table_name": "case_implant_teeth",
+        "total": 29,
+        "unowned": 0
+      },
+      {
+        "ipo": 2,
+        "other_company": 0,
+        "table_name": "case_stock_consumptions",
+        "total": 2,
+        "unowned": 0
+      },
+      {
+        "ipo": 0,
+        "other_company": 0,
+        "table_name": "case_tooth_stock_usage",
+        "total": 0,
+        "unowned": 0
+      },
+      {
+        "ipo": 9,
+        "other_company": 0,
+        "table_name": "component_categories",
+        "total": 9,
+        "unowned": 0
+      },
+      {
+        "ipo": 0,
+        "other_company": 0,
+        "table_name": "components",
+        "total": 0,
+        "unowned": 0
+      },
+      {
+        "ipo": 7,
+        "other_company": 0,
+        "table_name": "doctors",
+        "total": 7,
+        "unowned": 0
+      },
+      {
+        "ipo": 0,
+        "other_company": 0,
+        "table_name": "holders",
+        "total": 0,
+        "unowned": 0
+      },
+      {
+        "ipo": 1,
+        "other_company": 0,
+        "table_name": "implant_component_types",
+        "total": 1,
+        "unowned": 0
+      },
+      {
+        "ipo": 39,
+        "other_company": 0,
+        "table_name": "implant_system_components",
+        "total": 39,
+        "unowned": 0
+      },
+      {
+        "ipo": 4,
+        "other_company": 0,
+        "table_name": "implant_systems",
+        "total": 4,
+        "unowned": 0
+      },
+      {
+        "ipo": 3,
+        "other_company": 0,
+        "table_name": "proteticos",
+        "total": 3,
+        "unowned": 0
+      },
+      {
+        "ipo": 0,
+        "other_company": 0,
+        "table_name": "resin_pots",
+        "total": 0,
+        "unowned": 0
+      },
+      {
+        "ipo": 0,
+        "other_company": 0,
+        "table_name": "resin_weighings",
+        "total": 0,
+        "unowned": 0
+      },
+      {
+        "ipo": 0,
+        "other_company": 0,
+        "table_name": "scan_jigs",
+        "total": 0,
+        "unowned": 0
+      },
+      {
+        "ipo": 2,
+        "other_company": 0,
+        "table_name": "stock_consumption_rules",
+        "total": 2,
+        "unowned": 0
+      },
+      {
+        "ipo": 45,
+        "other_company": 0,
+        "table_name": "stock_item_custom_fields",
+        "total": 45,
+        "unowned": 0
+      },
+      {
+        "ipo": 107,
+        "other_company": 0,
+        "table_name": "stock_items",
+        "total": 107,
+        "unowned": 0
+      },
+      {
+        "ipo": 47,
+        "other_company": 0,
+        "table_name": "stock_movements",
+        "total": 47,
+        "unowned": 0
+      },
+      {
+        "ipo": 0,
+        "other_company": 0,
+        "table_name": "user_stock_access",
+        "total": 0,
+        "unowned": 0
+      }
+    ],
+    "running_acceptance_jobs": 0,
+    "unowned_patients_without_cases": 12
+  },
+  "validation": {
+    "local_tests": {
+      "passed": 218,
+      "files": 12
+    },
+    "typecheck": "passed",
+    "stage06": "passed",
+    "stage09": "passed",
+    "desktop_entitlement_tests": 4,
+    "restore_migrations": 178,
+    "github": {
+      "web": {
+        "run_id": 39807684014,
+        "conclusion": "success"
+      },
+      "restore": {
+        "run_id": 39807683861,
+        "conclusion": "success",
+        "ownership_rehearsal": "success",
+        "backfill_history_rehearsal": "success"
+      },
+      "windows": {
+        "run_id": 39807683772,
+        "build": "success",
+        "permanent_publish": "skipped"
+      },
+      "android": {
+        "run_id": 39807683864,
+        "api35_build_and_startup": "success",
+        "experimental_api37_startup": "failure",
+        "failure_observation": "Emulator system died; not accepted as real-device validation",
+        "permanent_publish": "skipped"
+      }
+    }
+  },
+  "application_publication": {
+    "deployment_id": "53112bd2-363b-4ecb-b791-401aa7d7f969",
+    "requested": true,
+    "initial_status": "pending",
+    "native_project_latest_sha": "c5ed0a22026614573b6132ce040edc4d554db640",
+    "native_project_status": "ready",
+    "native_project_is_published": true,
+    "completion_confirmed": false,
+    "probe_http_status": 403,
+    "limitation": "Execution environment disconnected; terminal and browser unavailable. Project readiness/is_published does not certify this deployment."
+  },
+  "runtime_acceptance_after_migration": {
+    "ownership": "not_run",
+    "identity": "not_run",
+    "storage": "not_run",
+    "new_capability_created": false,
+    "reason": "Published version not confirmed"
+  },
+  "progress": {
+    "completed_criteria": 8,
+    "total_criteria": 23,
+    "criterion_4_2_closed": false,
+    "private_panel_updated": false
+  },
+  "pending": {
+    "patients_without_company": 12,
+    "patients_without_cases": 12,
+    "unknown_patients_unchanged": true,
+    "other_global_configuration_review": [
+      "case_types",
+      "tooth_colors",
+      "workflow_templates"
+    ],
+    "device_and_full_saas_acceptance": "pending"
+  },
+  "privacy": {
+    "aggregate_counts_only": true,
+    "patient_records_included": false,
+    "credentials_included": false
+  }
+}

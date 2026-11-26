@@ -72,14 +72,14 @@ export function PatientCombobox({ patients, selectedId, newName, onSelectExistin
           {filtered.length === 0 && (
             <div className="px-3 py-2 text-xs text-muted-foreground">Nenhum paciente encontrado.</div>
           )}
-          {query.trim() && !exactMatch && (
+          {query.trim() && (
             <button
               type="button"
               onClick={() => { onTypeNew(query.trim()); setOpen(false); setQuery(""); }}
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-left hover:bg-accent border-t border-border bg-muted/30"
             >
               <UserPlus className="h-3.5 w-3.5 text-primary" />
-              <span>Cadastrar novo paciente: <b>{query.trim()}</b></span>
+              <span>{exactMatch ? "Distinguir novo paciente" : "Cadastrar novo paciente"}: <b>{query.trim()}</b></span>
             </button>
           )}
         </div>

@@ -1,4 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { PrivateImage } from "@/components/PrivateImage";
+import { getPrivateFileScope, resolvePrivateFile } from "@/lib/private-file-access";
+import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, X, Download } from "lucide-react";
 import { usePreservePageScroll } from "@/hooks/use-preserve-page-scroll";
 
@@ -12,9 +15,13 @@ export function Lightbox({
   onClose: () => void;
 }) {
   usePreservePageScroll(open);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const cur = images[index] ?? images[0];
+
+  useEffect(() => { setFailedUrl(null); }, [open, cur?.url]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || images.length === 0) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
       if (e.key === "ArrowRight") onIndexChange((index + 1) % images.length);
@@ -24,8 +31,7 @@ export function Lightbox({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, index, images.length, onIndexChange, onClose]);
 
-  if (!open || images.length === 0) return null;
-  const cur = images[index];
+  if (!open || !cur) return null;
   return (
     <div className="fixed inset-0 z-[100] bg-background/90 dark:bg-black/90 backdrop-blur-sm flex items-center justify-center"
       onClick={onClose}>
@@ -39,8 +45,15 @@ export function Lightbox({
         onClick={async (e) => {
           e.stopPropagation();
           try {
-            const res = await fetch(cur.url);
-            const blob = await res.blob();
+            const scope = getPrivateFileScope();
+            const resolution = await resolvePrivateFile(cur.url, scope);
+            let blob: Blob;
+            try {
+              const res = await fetch(resolution.url);
+              if (!res.ok) throw new Error("Não foi possível baixar a imagem.");
+              blob = await res.blob();
+            } finally { resolution.release?.(); }
+            if (getPrivateFileScope() !== scope) throw new Error("Sua sessão mudou. Abra a imagem novamente.");
             const href = URL.createObjectURL(blob);
             const a = document.createElement("a");
             a.href = href;
@@ -50,7 +63,7 @@ export function Lightbox({
             a.remove();
             setTimeout(() => URL.revokeObjectURL(href), 1000);
           } catch {
-            window.open(cur.url, "_blank");
+            toast.error("Não foi possível confirmar o acesso à imagem. Conecte-se e tente novamente.");
           }
         }}
         className="absolute top-4 right-16 text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-accent">
@@ -69,10 +82,21 @@ export function Lightbox({
           </button>
         </>
       )}
-      <img src={cur.url} alt={cur.name} onClick={(e) => e.stopPropagation()}
-        className="max-w-[92vw] max-h-[88vh] object-contain rounded-lg shadow-2xl" />
+      {failedUrl === cur.url ? (
+        <div role="alert" className="max-w-[88vw] rounded-lg bg-muted px-6 py-8 text-center text-sm text-muted-foreground" onClick={(e) => e.stopPropagation()}>
+          Não foi possível exibir esta imagem. Verifique sua conexão e tente abrir novamente.
+        </div>
+      ) : (
+        <PrivateImage
+          src={cur.url}
+          alt={cur.name}
+          onClick={(e) => e.stopPropagation()}
+          onError={() => setFailedUrl(cur.url)}
+          className="max-w-[92vw] max-h-[88vh] object-contain rounded-lg shadow-2xl"
+        />
+      )}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-muted-foreground text-xs px-3 py-1 rounded-full bg-muted border border-border">
-        {cur.name} · {index + 1}/{images.length}
+        {cur.name} · {images.indexOf(cur) + 1}/{images.length}
       </div>
     </div>
   );

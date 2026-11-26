@@ -1,0 +1,54 @@
+name: DentalFlow Recovered 116 Encrypted ZIP Readback
+
+on:
+  pull_request:
+    branches:
+      - main
+      - "saas/stage-03-asaas-checkout"
+    paths:
+      - "scripts/recovery/verify_encrypted_116.py"
+      - "scripts/recovery/verify_encrypted_116_gui.py"
+      - "scripts/recovery/test_verify_encrypted_116.py"
+      - ".github/workflows/saas-encrypted-116-readback.yml"
+      - "docs/saas/evidence/encrypted-116-local-readback-20261107.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fake-gcm-and-zip-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install cryptography
+        run: python -m pip install "cryptography>=42,<50"
+      - name: Test synthetic two-key encrypted ZIPs, authentication, bounded reads and privacy
+        run: python -m unittest discover -s scripts/recovery -p "test_verify_encrypted_116.py" -v
+
+  unsigned-windows-private-verifier:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    needs: fake-gcm-and-zip-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install signed upstream cryptography and build runtime
+        run: python -m pip install "cryptography>=42,<50" "pyinstaller>=6.16,<7"
+      - name: Test fake encrypted ZIP readback on Windows
+        run: python -m unittest discover -s scripts/recovery -p "test_verify_encrypted_116.py" -v
+      - name: Build offline privacy-first Windows GUI
+        run: python -m PyInstaller --noconfirm --onefile --windowed --name DentalFlow-Conferencia-116-Offline scripts/recovery/verify_encrypted_116_gui.py
+      - name: Upload only unsigned executable (no keys, patient documents or private manifests)
+        uses: actions/upload-artifact@v4
+        with:
+          name: DentalFlow-Conferencia-116-Offline-Windows-unsigned
+          path: dist/DentalFlow-Conferencia-116-Offline.exe
+          if-no-files-found: error
+          retention-days: 7

@@ -6,8 +6,10 @@ type ToasterProps = React.ComponentProps<typeof Sonner>;
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
+      {...props}
       className="toaster group"
       position="top-center"
+      visibleToasts={3}
       icons={{
         success: <CheckCircle2 className="h-4 w-4 text-primary" />,
         error: <XCircle className="h-4 w-4 text-destructive" />,
@@ -21,12 +23,12 @@ const Toaster = ({ ...props }: ToasterProps) => {
           // Fundo opaco com tokens do tema — garante contraste em light e dark.
           toast:
             "group toast pointer-events-auto flex items-start gap-3 w-full " +
-            "rounded-2xl border border-border dark:border-white/[0.06] " +
-            "!bg-background !text-foreground " +
-            "shadow-[0_20px_60px_-15px_rgba(0,0,0,0.45)] " +
+            "w-[calc(100vw-2rem)] max-w-[28rem] rounded-2xl border border-white/55 dark:border-white/[0.08] " +
+            "!bg-background/75 !text-foreground backdrop-blur-2xl " +
+            "shadow-[0_20px_60px_-15px_rgba(0,0,0,0.32)] " +
             "p-4",
-          title: "text-sm font-medium leading-tight !text-foreground [&_b]:font-semibold [&_strong]:font-semibold",
-          description: "text-xs leading-relaxed !text-foreground/80 mt-0.5 font-normal [&_b]:font-semibold [&_strong]:font-semibold",
+          title: "whitespace-normal break-words text-sm font-medium leading-tight !text-foreground [&_b]:font-semibold [&_strong]:font-semibold",
+          description: "whitespace-pre-wrap break-words text-xs leading-relaxed !text-foreground/80 mt-0.5 font-normal [&_b]:font-semibold [&_strong]:font-semibold",
           icon: "flex items-center justify-center shrink-0 mt-0.5",
           actionButton:
             "rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground shadow-sm shadow-primary/25 hover:bg-primary/90 transition",
@@ -40,7 +42,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
           info: "[&_[data-icon]]:text-primary",
         },
       }}
-      {...props}
     />
   );
 };

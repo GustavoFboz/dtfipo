@@ -1,0 +1,33 @@
+{
+  "schema": "dentalflow-saas-dashboard-progress-v1",
+  "recorded_at": "2026-11-01",
+  "overall_progress_percent": 94.06,
+  "progress_scope": "beta_implementation",
+  "completed_implementation_criteria": 18,
+  "remaining_implementation_ids": [
+    "4.2",
+    "6.2",
+    "6.3",
+    "6.4",
+    "7.4"
+  ],
+  "deferred_validation_gates": 20,
+  "accepted_items": 13,
+  "total_items": 23,
+  "remaining_items": 10,
+  "pending_ids": [
+    "2.1",
+    "2.2",
+    "2.3",
+    "3.3",
+    "4.2",
+    "5.3",
+    "6.2",
+    "6.3",
+    "6.4",
+    "7.4"
+  ],
+  "reviewed_partial_items": 10,
+  "sales_release_status": "blocked",
+  "note": "Indicador único de IMPLEMENTAÇÃO pronta para beta: gates de engenharia demonstrados por evidências. Ensaios físicos, eventos futuros e aprovação externa ficam fora deste percentual e mantêm bloqueios de lançamento específicos. Mudança de escopo não equivale a trabalho recém-concluído."
+}

@@ -1,0 +1,719 @@
+{
+  "recorded_at": "2026-10-27T16:42:11.816182+00:00",
+  "authorization": {
+    "owner_explicitly_approved": true,
+    "date": "2026-10-27",
+    "scope": {
+      "patient_photos": 34,
+      "avatars": 6
+    },
+    "operation": "Verify a new copy before retiring each original; preserve content, clinical links, identity and quotas"
+  },
+  "runtime": {
+    "source_revision": "a46ee7a97fc1aaab3d93e18b9692b126ce06a8dd",
+    "contract": "dentalflow-private-file-rotation-v1",
+    "concurrency": 1,
+    "stop_on_first_unconfirmed_result": true
+  },
+  "before": {
+    "checked_at": "2026-10-27T15:44:59.103092+00:00",
+    "clinical_cases_hash": "15ec1d279f33d97a8555bba18d9ac53b",
+    "clinical_patients_hash": "ba1aacad3258a47925d11a5a48893fee",
+    "connections": 42,
+    "existing_business_targets": 0,
+    "historical_reservations": 0,
+    "inventory": [
+      {
+        "bucket": "avatars",
+        "bytes": 295821,
+        "eligible": 6,
+        "private_manifest_hash": "4f1ef2bebc546e14c3a72c1ee092406be6488808f8244b75788ee1d11f3dde41",
+        "references": 6
+      },
+      {
+        "bucket": "patient-photos",
+        "bytes": 977313,
+        "eligible": 34,
+        "private_manifest_hash": "49297313e060624a15a0e722167547910e2e63eeb7ef650d0ec3f2e5e4dfda55",
+        "references": 34
+      }
+    ],
+    "payments_hash": "ad57c47b0d7c6d6061e00a4a256f18d9",
+    "profiles_identity_hash": "641bd701e24fb2b2b5cee2538eef62e6",
+    "ready_bytes": 8291635177,
+    "ready_files": 685,
+    "storage_identity_hash": "7044c720f7fb187265dd7c6236485ecd",
+    "waiting_locks": 0
+  },
+  "after": {
+    "buckets": [
+      {
+        "bucket": "avatars",
+        "bytes": 295821,
+        "count": 6
+      },
+      {
+        "bucket": "patient-photos",
+        "bytes": 977313,
+        "count": 34
+      }
+    ],
+    "checked_at": "2026-10-27T16:42:11.816182+00:00",
+    "clinical_cases_hash": "15ec1d279f33d97a8555bba18d9ac53b",
+    "clinical_patients_hash": "ba1aacad3258a47925d11a5a48893fee",
+    "connections": 40,
+    "historical_reservations": 0,
+    "legacy_avatar_references": 0,
+    "legacy_patient_photo_references": 0,
+    "old_url_http_statuses": {
+      "400": 40
+    },
+    "payments_hash": "ad57c47b0d7c6d6061e00a4a256f18d9",
+    "production_health": {
+      "last_healthy_at": "2026-10-27T16:41:02.673712+00:00",
+      "status": "ok"
+    },
+    "profiles_identity_hash": "641bd701e24fb2b2b5cee2538eef62e6",
+    "ready_bytes": 8291635177,
+    "ready_files": 685,
+    "storage_identity_hash": "7044c720f7fb187265dd7c6236485ecd",
+    "targets": {
+      "bytes": 1273134,
+      "canonical_references_verified": 40,
+      "completed_jobs": 40,
+      "consumed_capabilities": 40,
+      "count": 40,
+      "hashes_recorded": 40,
+      "new_objects_verified": 40,
+      "old_objects_remaining": 0,
+      "old_paths_retired": 40,
+      "old_urls_denied": 40,
+      "quota_links_verified": 40,
+      "verified": 40
+    },
+    "waiting_locks": 0
+  },
+  "preserved": {
+    "ready_files": true,
+    "ready_bytes": true,
+    "storage_identity_hash": true,
+    "clinical_cases_hash": true,
+    "clinical_patients_hash": true,
+    "profiles_identity_hash": true,
+    "payments_hash": true
+  },
+  "execution": {
+    "started_at": "2026-10-27T15:47:34.865876+00:00",
+    "finished_at": "2026-10-27T16:41:31.847529+00:00",
+    "successful_one_object_receipts": 40,
+    "total_post_attempts": 41,
+    "receipts": [
+      {
+        "index": 1,
+        "job_id": "d7e63636-5054-435e-88d4-1b18c078982b",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T15:48:28.584922+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 2,
+        "job_id": "ff9e8bca-bc18-4d5e-84c5-72cd00fb14fd",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T15:49:37.862133+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 3,
+        "job_id": "e1d79751-0b0a-4179-915f-9c3228991adb",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T15:50:46.655456+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 4,
+        "job_id": "7b40b57b-087f-4655-8c21-6b68ede3ecba",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T15:51:56.161644+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 5,
+        "job_id": "de93349e-47af-4550-8961-526bfcd84ceb",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T15:53:04.716966+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 6,
+        "job_id": "391859ec-8a9c-4a1e-be49-d29c3b613b41",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T15:54:14.03891+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 7,
+        "job_id": "db9fd8d2-f77c-49d8-90d1-843a24a889f8",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T15:55:25.103791+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 8,
+        "job_id": "c33b861d-baf3-4dd4-adbf-ae1124a5f334",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T15:56:35.607568+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 9,
+        "job_id": "bec8ea38-5d5b-4aae-b41e-8e7ebb09b82e",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T15:57:44.554249+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 10,
+        "job_id": "75ee3445-a497-4c47-8d20-0f14ae7df47f",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T15:58:53.363704+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 11,
+        "job_id": "d768c075-4ad0-4abf-9630-5cacb0088994",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:00:02.36974+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 12,
+        "job_id": "1138cea5-8d69-414a-85af-1a219819aadc",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:01:11.263121+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 13,
+        "job_id": "843a9725-f2a3-4f18-b62c-d6262d83b9a9",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:02:20.342075+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 14,
+        "job_id": "5aca4bd7-1890-4b7d-a092-65632a71edc9",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:03:30.271221+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 15,
+        "job_id": "e814207c-c2e0-40a4-b1b1-cb608368e300",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:13:54.741088+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 16,
+        "job_id": "c93ca94a-4f56-4760-b34b-011b8e2210cd",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:15:05.29107+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 17,
+        "job_id": "a72417f5-01c0-4f52-a908-60aa9bc788b9",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:15:28.821838+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 18,
+        "job_id": "9bfce8bf-4f84-49ed-a8b6-a1bf157b4c70",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:16:37.589483+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 19,
+        "job_id": "00c081d3-0491-4181-a61b-3c731c8053e3",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:17:46.166925+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 20,
+        "job_id": "4a234f5b-645c-42fe-b854-f88ad6431314",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:18:55.076811+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 21,
+        "job_id": "3644d051-d8bc-4e31-8f6c-e1185f08a2d2",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:20:03.783617+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 22,
+        "job_id": "88da2706-d17a-413c-82b1-29b22c50c957",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:21:13.654398+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 23,
+        "job_id": "57e1ebc1-fcc8-45eb-b9fb-b678720147a3",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:22:07.222045+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 24,
+        "job_id": "c1b1a702-f416-4cfb-a0e1-5957ccf89eb0",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:23:15.10878+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 25,
+        "job_id": "f52c3146-f474-443c-8726-9409dc1b587d",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:24:25.030251+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 26,
+        "job_id": "f01c16ad-8129-487a-b255-27c1cb318b96",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:25:33.317311+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 27,
+        "job_id": "135419cb-2241-4769-9b82-db32a13825dd",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:26:43.526965+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 28,
+        "job_id": "abef8dd4-25b6-4e8f-9b78-0dcb546c3b7f",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:27:53.305965+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 29,
+        "job_id": "0f2e1ffd-61f6-4ee7-99be-8dc2b6212583",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:29:02.634397+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 30,
+        "job_id": "f7b6bc0f-f206-4425-aa87-59c12ac1ddcc",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:30:11.809019+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 31,
+        "job_id": "8e3c28cf-02ff-44e2-bd5c-cab95b08506f",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:31:20.65509+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 32,
+        "job_id": "d68c7fc6-4bd0-4970-8b41-97def933a5c7",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:32:30.036122+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 33,
+        "job_id": "10d72fc8-c6e2-4d49-a5ff-e93f39940fe9",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:33:39.175312+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 34,
+        "job_id": "2d90595d-63a0-4912-b981-6f133b98b62c",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:34:48.082073+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 35,
+        "job_id": "776c0277-f77d-4cd7-a03f-02f870a1fc0d",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:35:42.406206+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 36,
+        "job_id": "29fcbfc8-7853-4437-8cb3-e1f9f68292ea",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:36:51.885313+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 37,
+        "job_id": "4a6c408a-261d-4364-b58d-c2d6b785c1e3",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:38:00.948395+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 38,
+        "job_id": "4fc27b6a-7d49-4909-aa16-9d113e6fdd46",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:39:10.952083+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 39,
+        "job_id": "3e98bb57-671c-49ea-8d91-3f7997872761",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:40:20.606122+00:00"
+        },
+        "failures": []
+      },
+      {
+        "index": 40,
+        "job_id": "70f58129-fb23-4aa4-b1fc-3960a648bb4d",
+        "http_status": 200,
+        "receipt": {
+          "contract": "dentalflow-private-file-rotation-v1",
+          "passed": true,
+          "total": 1,
+          "verified": 1,
+          "checked_at": "2026-10-27T16:41:31.000089+00:00"
+        },
+        "failures": []
+      }
+    ]
+  },
+  "interrupted_attempt": {
+    "index": 15,
+    "job_id": "e814207c-c2e0-40a4-b1b1-cb608368e300",
+    "http_status": 503,
+    "error": "HTTP_REQUEST_NOT_CONFIRMED",
+    "observation": {
+      "rows": [
+        {
+          "claimed_at": "2026-10-27 16:03:35.590372+00",
+          "completed_at": null,
+          "id": "e814207c-c2e0-40a4-b1b1-cb608368e300",
+          "receipt": null,
+          "status": "running",
+          "targets": [
+            {
+              "content_hash_recorded": true,
+              "new_object_exists": true,
+              "old_http_status": null,
+              "old_object_exists": false,
+              "reference_matches_new": true,
+              "source_mime": null,
+              "status": "activated"
+            }
+          ]
+        }
+      ]
+    },
+    "original_url_readonly_probe": {
+      "rows": [
+        {
+          "recovery_observation": {
+            "checked_at": "2026-10-27T16:09:12.023383+00:00",
+            "connections": 39,
+            "historical_targets": {
+              "activated": 1,
+              "prepared": 25,
+              "verified": 14
+            },
+            "job": {
+              "completed_at": null,
+              "lease_until": "2026-10-27T16:13:35.590372+00:00",
+              "receipt": null,
+              "status": "running"
+            },
+            "original_url_probe": {
+              "error_present": false,
+              "status": 400,
+              "timed_out": false
+            },
+            "waiting_locks": 0
+          }
+        }
+      ]
+    },
+    "resumption": {
+      "expires_at": "2026-10-27 16:28:46.091618+00",
+      "old_running_lease_expired": true,
+      "prepared_at": "2026-10-27 16:13:46.091618+00",
+      "prepared_jobs": 26
+    },
+    "strategy": "Stopped, inspected persisted state, waited for the existing lease to expire, issued fresh one-use capabilities for the same remaining targets, reused the stored copy/hash/reference, and excluded all fourteen completed jobs. No blind replay."
+  },
+  "validation": {
+    "local_regression_tests": 135,
+    "local_test_files": 8,
+    "stage_06": "passed",
+    "stage_09": "passed",
+    "restore_bundle_static_check": "passed: 183 unchanged migrations",
+    "runtime_or_schema_source_changes": false
+  },
+  "prior_authenticated_short_link_evidence": "private-file-publication-20261026.json: 22 real checks for short signing, expiration, renewal, foreign denial and retired-path reuse within 134/134 Storage/privacy checks",
+  "limits": [
+    "Installed-device storage and offline acceptance remain separate.",
+    "Other financial, operational and commercial criteria remain open."
+  ],
+  "acceptance": {
+    "new_complete_criteria": [
+      "4.3"
+    ],
+    "completed": 12,
+    "total": 23,
+    "percent": 52.17391304347826,
+    "remaining": 11,
+    "completed_stages": 1,
+    "total_stages": 7
+  }
+}

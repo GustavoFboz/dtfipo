@@ -1,0 +1,211 @@
+{
+  "contract": "dentalflow-operational-recovery-evidence-v1",
+  "client_date": "2026-10-28",
+  "client_timezone": "America/Manaus",
+  "source_head_sha": "0dc04f55b3056929a7d15ae79e7bccc11cfec1aa",
+  "tested_pr_merge_sha": "b39ffb3939b1ccfd5b9b4a3bfed0843c7fe50de3",
+  "pr": 211,
+  "ci": {
+    "web": {
+      "run_id": 40808635360,
+      "conclusion": "success"
+    },
+    "schema_restore": {
+      "run_id": 40808635457,
+      "conclusion": "success",
+      "migrations": 186
+    },
+    "operational_recovery": {
+      "run_id": 40808635407,
+      "job_id": 123233450181,
+      "conclusion": "success"
+    }
+  },
+  "local_validation": {
+    "archive_transport_destination_tests": 7,
+    "financial_desktop_tests": 442,
+    "financial_desktop_test_files": 20,
+    "typescript": "passed",
+    "saas_stage_06": "passed",
+    "saas_stage_09": "passed",
+    "desktop_entitlement_bootstrap": "passed"
+  },
+  "operational_drill": {
+    "contract": "dentalflow-operational-recovery-drill-v1",
+    "passed": true,
+    "checked_at": "2026-10-29T02:50:45.841Z",
+    "revision": "b39ffb3939b1ccfd5b9b4a3bfed0843c7fe50de3",
+    "run_id": "40808635407",
+    "environment": "two-disposable-local-supabase-databases-and-real-filesystem",
+    "cloud_data_exported": false,
+    "cloud_storage_api_tested": false,
+    "real_asaas_api_called": false,
+    "production_recovery_accepted": false,
+    "duration_ms": 7214,
+    "backup": {
+      "contract": "dentalflow-operational-recovery-v1",
+      "created_at": "2026-10-29T02:50:38.891Z",
+      "completed_at": "2026-10-29T02:50:39.159Z",
+      "revision": "b39ffb3939b1ccfd5b9b4a3bfed0843c7fe50de3",
+      "tables": 158,
+      "rows": 269,
+      "objects": 3,
+      "object_bytes": 2097208,
+      "schema_sha256": "734f53e47143df86372534e8d463a61c4660e58aebbd2c32775b343c77a7188b",
+      "financial_and_clinical_tables_included": true,
+      "encrypted": "AES-256-GCM",
+      "external_service_settings_restored": false
+    },
+    "restore": {
+      "contract": "dentalflow-operational-recovery-v1",
+      "created_at": "2026-10-29T02:50:38.891Z",
+      "completed_at": "2026-10-29T02:50:39.159Z",
+      "revision": "b39ffb3939b1ccfd5b9b4a3bfed0843c7fe50de3",
+      "tables": 158,
+      "rows": 269,
+      "objects": 3,
+      "object_bytes": 2097208,
+      "schema_sha256": "734f53e47143df86372534e8d463a61c4660e58aebbd2c32775b343c77a7188b",
+      "financial_and_clinical_tables_included": true,
+      "encrypted": "AES-256-GCM",
+      "external_service_settings_restored": false,
+      "foreign_keys_validated": 268,
+      "restored_at": "2026-10-29T02:50:45.540Z",
+      "target": "isolated-local-postgres-and-offline-file-vault",
+      "external_jobs_activated": false
+    },
+    "checks": [
+      {
+        "check": "backup_did_not_mutate_source_database",
+        "passed": true
+      },
+      {
+        "check": "encrypted_bundle_has_private_permissions",
+        "passed": true
+      },
+      {
+        "check": "all_encrypted_entries_authenticated",
+        "passed": true
+      },
+      {
+        "check": "clinical_financial_auth_and_storage_records_included",
+        "passed": true
+      },
+      {
+        "check": "incorrect_guard_did_not_change_destination",
+        "passed": true
+      },
+      {
+        "check": "failed_restore_rolled_back_database_and_removed_only_its_staged_files",
+        "passed": true
+      },
+      {
+        "check": "terminated_backend_rolled_back_without_reconnecting_or_partial_recovery",
+        "passed": true
+      },
+      {
+        "check": "all_table_counts_and_sha256_match_source",
+        "passed": true
+      },
+      {
+        "check": "sequence_next_values_preserved",
+        "passed": true
+      },
+      {
+        "check": "every_restored_binary_size_and_sha256_match",
+        "passed": true
+      },
+      {
+        "check": "bigint_and_generated_values_preserved_exactly",
+        "passed": true
+      },
+      {
+        "check": "paid_history_and_contracts_preserved",
+        "passed": true
+      },
+      {
+        "check": "future_plan_price_preserved_without_early_activation",
+        "passed": true
+      },
+      {
+        "check": "repeat_restore_into_used_destination_denied",
+        "passed": true
+      },
+      {
+        "check": "damaged_archive_rejected",
+        "passed": true
+      },
+      {
+        "check": "source_unchanged_after_incident_and_recovery",
+        "passed": true
+      }
+    ]
+  },
+  "live_readonly_snapshot": {
+    "cancellation_audits": 1,
+    "cancellation_fixture": {
+      "current_period_end": "2026-12-18T00:00:00+00:00",
+      "plan_code": "company_growth",
+      "status": "canceled"
+    },
+    "connections": 23,
+    "export_named_buckets": 1,
+    "lock_waits": 0,
+    "observed_at": "2026-10-29 02:46:52.981432+00",
+    "plan_audits": 1,
+    "plan_fixture": {
+      "current_period_end": "2026-12-18T00:00:00+00:00",
+      "plan_code": "company_growth",
+      "status": "active"
+    },
+    "plan_terms": [
+      {
+        "amount_cents": 500,
+        "effective_date": "2026-12-18",
+        "state": "scheduled"
+      }
+    ],
+    "ready_bytes": "8374117446",
+    "ready_files": 701,
+    "reserved_files": 0,
+    "storage_buckets": 6
+  },
+  "cloud_export_observation": {
+    "daily_backups_visible": 14,
+    "latest_daily_backup_utc": "2026-10-28T13:03:59Z",
+    "native_export_control_visible": true,
+    "opening_export_dialog_timed_out": true,
+    "export_start_confirmed": false,
+    "new_download_confirmed": false,
+    "export_object_metadata": {
+      "created_at_utc": "2026-09-05T00:31:52.197092Z",
+      "objects": 1,
+      "bytes": 773383
+    },
+    "browser_and_execution_environment": "unavailable"
+  },
+  "scope": {
+    "new_http_routes": 0,
+    "new_migrations": 0,
+    "cloud_sql_mutations": 0,
+    "asaas_api_calls": 0,
+    "financial_dates_changed": false,
+    "live_restore_attempted": false,
+    "production_backup_exported": false,
+    "cloud_storage_copied": false,
+    "native_device_acceptance": false,
+    "app_runtime_deployed": false
+  },
+  "acceptance": {
+    "completed": 13,
+    "total": 23,
+    "percent": 56.52,
+    "stage_6_2": "partial",
+    "target_if_6_2_proven": "14/23 = 60.87%"
+  },
+  "remaining": [
+    "Obter exportação atual do banco e cópia consistente dos arquivos do Cloud por caminho autorizado.",
+    "Recuperar a cópia operacional no destino isolado compatível e comparar integridade/acesso.",
+    "Comprovar retomada/rollback operacional sem iniciar processadores financeiros na cópia."
+  ]
+}

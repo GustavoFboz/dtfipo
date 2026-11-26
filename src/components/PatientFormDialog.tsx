@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,
@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { loadCreationAttempt, clearCreationAttempt, type CreationAttempt } from "@/lib/creation-attempt";
+import { requireDesktopOwnerId } from "@/lib/desktop-identity";
 import { savePatientLocalFirst } from "@/lib/patients-local-first";
 import { broadcastEntity } from "@/lib/optimistic";
 import type { Patient } from "@/lib/types";
@@ -46,6 +48,8 @@ export function PatientFormDialog({ trigger, patient, open: openProp, onOpenChan
   const setOpen = onOpenChange ?? setInternalOpen;
   const [f, setF] = useState({ ...empty });
   const editing = !!patient;
+  const attempt = useRef<CreationAttempt | null>(null);
+  const attemptScope = useRef<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -98,9 +102,16 @@ export function PatientFormDialog({ trigger, patient, open: openProp, onOpenChan
         notes: f.notes || null,
       };
 
-      return savePatientLocalFirst(payload, editing ? patient ?? null : null);
+      if (!editing && !attempt.current) {
+        const owner = await requireDesktopOwnerId();
+        attemptScope.current = `patient:${owner}`;
+        attempt.current = loadCreationAttempt(sessionStorage, attemptScope.current);
+      }
+      return savePatientLocalFirst(payload, editing ? patient ?? null : null, attempt.current ?? undefined);
     },
     onSuccess: (res) => {
+      if (!editing && attemptScope.current) clearCreationAttempt(sessionStorage, attemptScope.current);
+      attempt.current = null;
       const row = res.patient;
       const id = row.id;
 
@@ -151,7 +162,7 @@ export function PatientFormDialog({ trigger, patient, open: openProp, onOpenChan
         <DialogHeader>
           <DialogTitle>{editing ? "Editar paciente" : "Novo paciente"}</DialogTitle>
           <DialogDescription>
-            Apenas o nome é obrigatório. Todos os outros campos são opcionais e podem ser ajustados depois.
+            Informe o nome. Se já houver paciente com o mesmo nome, selecione o existente ou informe CPF, RG ou telefone para distinguir o novo cadastro.
           </DialogDescription>
         </DialogHeader>
 

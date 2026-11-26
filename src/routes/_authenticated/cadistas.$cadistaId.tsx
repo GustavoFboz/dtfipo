@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -97,7 +98,7 @@ function CadistaProfilePage() {
           <div className="relative h-24 w-24 rounded-full overflow-hidden border border-slate-200 bg-slate-50 grid place-items-center">
             {profileQ.data?.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <PrivateImage
                 src={profileQ.data.avatar_url}
                 alt={cadistaQ.data?.name ?? ""}
                 className="h-full w-full object-cover"

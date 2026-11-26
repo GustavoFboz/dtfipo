@@ -1,7 +1,7 @@
 import type { Cadista, CaseType, Component, Doctor, Phase, Profile, Stage, ToothColor } from "./types";
 import * as cloud from "./api";
 import { isDentalFlowDesktop, localCacheGet, localCachePut } from "./desktop-local";
-import { canUseDentalFlowCloud, resolveDesktopOwnerId } from "./desktop-identity";
+import { canUseDentalFlowCloud, resolveDesktopIdentity, resolveDesktopOwnerId } from "./desktop-identity";
 
 const NS = "reference-data:v1";
 
@@ -30,22 +30,47 @@ function transient(error: unknown) {
   return ["failed to fetch", "networkerror", "network error", "load failed", "fetch failed", "connection", "offline", "cloud login"].some((x) => message.includes(x));
 }
 
+/**
+ * A profile fetched under another account must never be stored in this owner
+ * namespace. This also stops a late response from account A appearing after
+ * a sign-in to B while the Desktop's native provision still points to A.
+ * A device-only identity never authorizes a cloud request.
+ */
+async function assertReferenceOwner(ownerId: string, key: RefKey, value?: unknown) {
+  if ((await resolveDesktopOwnerId()) !== ownerId) throw new Error("REFERENCE_OWNER_CHANGED");
+  const session = await resolveDesktopIdentity();
+  if (session?.source === "cloud" && session.userId !== ownerId) {
+    throw new Error("REFERENCE_OWNER_CHANGED");
+  }
+  if (key === "profile" && value != null) {
+    if (typeof value !== "object" || !("id" in value) || value.id !== ownerId) {
+      throw new Error("REFERENCE_PROFILE_MISMATCH");
+    }
+  }
+}
+
 async function cached<T>(key: RefKey, loader: () => Promise<T>, fallback: T): Promise<T> {
   if (!isDentalFlowDesktop()) return loader();
   const id = await resolveDesktopOwnerId();
   if (!id) return fallback;
+  await assertReferenceOwner(id, key);
 
   if (online() && (await canUseDentalFlowCloud())) {
     try {
+      await assertReferenceOwner(id, key);
       const value = await loader();
+      await assertReferenceOwner(id, key, value);
       await localCachePut(id, NS, key, value);
+      await assertReferenceOwner(id, key, value);
       return value;
     } catch (error) {
       if (!transient(error)) throw error;
     }
   }
 
+  await assertReferenceOwner(id, key);
   const entry = await localCacheGet<T>(id, NS, key);
+  await assertReferenceOwner(id, key, entry?.payload);
   return entry?.payload ?? fallback;
 }
 

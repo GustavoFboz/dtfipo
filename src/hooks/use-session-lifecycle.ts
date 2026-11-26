@@ -1,8 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { logAuditEvent } from "@/lib/audit";
+import { getProvisionedDesktopIdentity, isDentalFlowDesktop } from "@/lib/desktop-local";
+import { OFFLINE_ACCESS_EXPIRED_EVENT, offlineAccessDeadline } from "@/lib/offline-access-policy";
+import { toast } from "sonner";
 
 const SESSION_REVALIDATE_COOLDOWN_MS = 60_000;
 const SESSION_REVALIDATE_DEBOUNCE_MS = 450;
@@ -13,6 +16,7 @@ const SESSION_REVALIDATE_DEBOUNCE_MS = 450;
  * detectar sessões revogadas, mas é single-flight, debounced e respeita offline.
  */
 export function useSessionLifecycle() {
+  const [offlineBlocked, setOfflineBlocked] = useState(false);
   const qc = useQueryClient();
   const navigate = useNavigate();
 
@@ -23,14 +27,52 @@ export function useSessionLifecycle() {
     let lastValidationAt = 0;
     let activeValidation: Promise<void> | null = null;
     let scheduleTimer: number | null = null;
+    let expiryLogout: Promise<void> | null = null;
+    let expiryWarningShown = false;
+    let deadlineTimer: number | null = null;
 
     const forceLogout = async (reason: string) => {
-      await logAuditEvent("auth.logout", { reason });
+      if (reason !== "offline_expired") await logAuditEvent("auth.logout", { reason });
       await qc.cancelQueries();
       qc.clear();
-      await supabase.auth.signOut();
+      await supabase.auth.signOut(reason === "offline_expired" ? { scope: "local" } : undefined);
+      if (reason === "offline_expired") await getProvisionedDesktopIdentity();
       if (!disposed) {
-        navigate({ to: "/auth", replace: true, search: { invite: undefined, mode: undefined, plan: undefined, profession: undefined, returnTo: undefined } });
+        await navigate({ to: "/auth", replace: true, search: { invite: undefined, mode: undefined, plan: undefined, profession: undefined, returnTo: undefined } });
+      }
+    };
+
+    const onOfflineExpired = () => {
+      if (disposed || expiryLogout) return;
+      setOfflineBlocked(true);
+      expiryLogout = (async () => {
+        toast.dismiss();
+        toast.error("O prazo offline de três dias terminou. Conecte-se e entre novamente.");
+        await forceLogout("offline_expired");
+        if (!disposed) setOfflineBlocked(false);
+      })().catch(() => { /* Fail closed; a restart retries pending cleanup. */ })
+        .finally(() => { expiryLogout = null; });
+    };
+    const checkOfflineDeadline = async () => {
+      if (!isDentalFlowDesktop() || disposed) return;
+      try {
+        const identity = await getProvisionedDesktopIdentity();
+        if (deadlineTimer !== null) window.clearTimeout(deadlineTimer);
+        deadlineTimer = identity ? window.setTimeout(checkOfflineDeadline,
+          Math.min(offlineAccessDeadline(identity) - Date.now(), 2_147_483_647)) : null;
+        if (identity && navigator.onLine === false && !expiryWarningShown) {
+          expiryWarningShown = true;
+          const hours = Math.max(1, Math.ceil((offlineAccessDeadline(identity) - Date.now()) / 3_600_000));
+          toast.warning(`Acesso offline: até ${hours} horas restantes. Ao vencer, os dados locais e alterações não sincronizadas serão apagados. Conecte-se para sincronizar.`, { duration: 15_000 });
+        }
+      } catch {
+        // Cleanup failures retain the expired identity for retry, but may not
+        // keep a clinical screen open. Do not signOut/clear that retry receipt.
+        if (!disposed) {
+          setOfflineBlocked(true);
+          await qc.cancelQueries(); qc.clear();
+          navigate({ to: "/auth", replace: true, search: { invite: undefined, mode: undefined, plan: undefined, profession: undefined, returnTo: undefined } });
+        }
       }
     };
 
@@ -78,13 +120,24 @@ export function useSessionLifecycle() {
 
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("focus", scheduleValidation);
+    window.addEventListener(OFFLINE_ACCESS_EXPIRED_EVENT, onOfflineExpired);
+    window.addEventListener("offline", checkOfflineDeadline);
+    window.addEventListener("focus", checkOfflineDeadline);
+    const expiryTimer = isDentalFlowDesktop() ? window.setInterval(checkOfflineDeadline, 30_000) : null;
+    void checkOfflineDeadline();
 
     return () => {
       disposed = true;
       if (scheduleTimer !== null) window.clearTimeout(scheduleTimer);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("focus", scheduleValidation);
+      window.removeEventListener(OFFLINE_ACCESS_EXPIRED_EVENT, onOfflineExpired);
+      window.removeEventListener("offline", checkOfflineDeadline);
+      window.removeEventListener("focus", checkOfflineDeadline);
+      if (expiryTimer !== null) window.clearInterval(expiryTimer);
+      if (deadlineTimer !== null) window.clearTimeout(deadlineTimer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  return offlineBlocked;
 }

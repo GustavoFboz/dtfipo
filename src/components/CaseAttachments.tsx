@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { PrivateImage } from "@/components/PrivateImage";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +15,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import emptyGallery from "@/assets/empty-gallery.png.asset.json";
 import emptyModels from "@/assets/empty-models.png.asset.json";
-import emptyHtml from "@/assets/empty-html.png.asset.json";
+import emptyHtmlAsset from "@/assets/case-empty-html";
+import emptyScansAsset from "@/assets/case-empty-scans.webp";
+import emptyModelsAsset from "@/assets/case-empty-models.webp";
 
 import { toast } from "sonner";
 import {
@@ -31,6 +34,7 @@ import { addCaseActivity, notifyCaseStakeholders } from "@/lib/case-activity";
 import { supabase } from "@/integrations/supabase/client";
 import { startFileUpload } from "@/lib/upload-manager";
 import { localPreviews } from "@/lib/local-previews";
+import { privateFileReference } from "@/lib/private-file-reference";
 import { confirm } from "@/lib/confirm";
 import { PendingFileDialog } from "./PendingFileDialog";
 
@@ -298,12 +302,12 @@ const EMPTY_META: Record<UploadKind, { img: string; title: string; hint: string 
     hint: "Arraste imagens para esta aba ou use o botão + para adicionar arquivos à galeria do caso.",
   },
   model: {
-    img: emptyModels.url,
+    img: emptyModelsAsset,
     title: "Nenhum modelo por aqui",
     hint: "Arraste arquivos 3D para esta aba ou use o botão + para adicionar modelos ao caso.",
   },
   scans: {
-    img: emptyModels.url,
+    img: emptyScansAsset,
     title: "Nenhum escaneamento por aqui",
     hint: "Arraste escaneamentos para esta aba ou use o botão + para adicionar arquivos ao caso.",
   },
@@ -313,7 +317,7 @@ const EMPTY_META: Record<UploadKind, { img: string; title: string; hint: string 
     hint: "Arraste arquivos de elementos para esta aba ou use o botão + para adicioná-los ao caso.",
   },
   exocad_html: {
-    img: emptyHtml.url,
+    img: emptyHtmlAsset,
     title: "Nenhum HTML por aqui",
     hint: "Arraste visualizações exocad (.html) para esta aba ou use o botão + para adicioná-las ao caso.",
   },
@@ -325,7 +329,7 @@ function EmptyTabState({ kind }: { kind: UploadKind }) {
     <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-20 min-h-[460px]">
       <img
         src={m.img}
-        alt=""
+        alt={m.title}
         draggable={false}
         className="w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 object-contain mb-6 select-none"
       />
@@ -464,7 +468,6 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
   const [viewer, setViewer] = useState<{ path: string; name: string } | null>(null);
   const [viewer3D, setViewer3D] = useState<{ path: string; name: string; id: string; uploadedAt: string } | null>(null);
   const [multi3D, setMulti3D] = useState<Multi3DFile[] | null>(null);
-  const [galleryUrls, setGalleryUrls] = useState<Record<string, string>>({});
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [pendingNotice, setPendingNotice] = useState<string | null>(null);
   const [galleryView, setGalleryView] = useState<"grid" | "list">("grid");
@@ -481,8 +484,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
     onSelect: (ids, additive) => select.setMany(ids, additive),
   });
 
-  // Reset cached signed URLs when switching cases/tabs (forces fresh load on reopen).
-  useEffect(() => { setGalleryUrls({}); select.clear(); }, [caseId, onlyKind]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { select.clear(); }, [caseId, onlyKind]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Vindo de uma miniatura no chat: pré-seleciona e rola até o anexo.
   useEffect(() => {
@@ -886,6 +888,21 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
             </PopoverContent>
           </Popover>
         )}
+        {kind === "gallery" && !isGone && (
+          <Button
+            size="sm"
+            variant="ghost"
+            title="Visualizar imagem"
+            aria-label={`Visualizar imagem ${a.file_name}`}
+            onClick={() => {
+              if (guardPending(a)) return;
+              const imageIndex = galleryItems.findIndex((item) => item.id === a.id);
+              if (imageIndex >= 0) setLightboxIndex(imageIndex);
+            }}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+        )}
         {kind === "exocad_html" && !isGone && (
           <Button size="sm" variant="ghost" onClick={() => { if (!guardPending(a)) setViewer({ path: a.storage_path, name: a.file_name }); }}>
             <Eye className="h-4 w-4" />
@@ -968,33 +985,19 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
     );
   };
 
-  // Carrega URLs assinadas das imagens da galeria. Para itens recém-enviados
-  // (ainda otimistas ou já com preview local), usa o objectUrl em memória —
-  // sem ida ao servidor — para que a miniatura apareça imediatamente.
-  useEffect(() => {
-    const items = grouped.gallery.filter((a) => !a.expired_at);
-    let cancelled = false;
-    (async () => {
-      const out: Record<string, string> = {};
-      await Promise.all(items.map(async (a) => {
-        if (galleryUrls[a.id]) { out[a.id] = galleryUrls[a.id]; return; }
-        const local = localPreviews.get(a.storage_path);
-        if (local) { out[a.id] = local.objectUrl; return; }
-        try { out[a.id] = await getCaseAttachmentUrl(a.storage_path); } catch { /* ignore */ }
-      }));
-      if (!cancelled) setGalleryUrls((prev) => ({ ...prev, ...out }));
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [grouped.gallery]);
-
+  // Referências estáveis deixam a assinatura, renovação e tentativa de
+  // recuperação no resolver compartilhado. Falhas não removem a miniatura.
   const galleryItems = grouped.gallery
     .filter((a) => !a.expired_at)
     .map((a) => {
       const local = localPreviews.get(a.storage_path);
-      return { id: a.id, url: galleryUrls[a.id] ?? local?.objectUrl ?? "", name: a.file_name, att: a };
-    })
-    .filter((g) => !!g.url);
+      return {
+        id: a.id,
+        url: local?.objectUrl ?? privateFileReference("case-files", a.storage_path),
+        name: a.file_name,
+        att: a,
+      };
+    });
 
 
   const visibleUploadKinds = (["scans", "model", "fabrication", "exocad_html", "gallery"] as UploadKind[])
@@ -1168,6 +1171,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
                   >
                     <button
                       type="button"
+                      aria-label={`Ampliar imagem ${g.name}`}
                       onClick={(e) => {
                         if (e.shiftKey || e.metaKey || e.ctrlKey || select.selected.size > 0) {
                           e.preventDefault(); e.stopPropagation();
@@ -1179,7 +1183,7 @@ export function CaseAttachments({ caseId, canUpload = true, hideKinds = [], only
                       }}
                       className="absolute inset-0"
                     >
-                      <img src={g.url} alt={g.name} loading="lazy" draggable={false} className="w-full h-full object-cover transition group-hover:scale-105" />
+                      <PrivateImage src={g.url} alt={g.name} loading="lazy" draggable={false} className="w-full h-full object-cover transition group-hover:scale-105" />
                     </button>
                     {canDelete && (
                       <button type="button"

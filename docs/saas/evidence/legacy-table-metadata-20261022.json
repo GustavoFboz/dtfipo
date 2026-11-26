@@ -1,0 +1,620 @@
+{
+  "date": "2026-10-22",
+  "source": "Readonly catalog metadata only; no directory, patient or inventory row values returned",
+  "scope": "Eleven remaining tables after separate activity read privacy patch",
+  "tables": [
+    {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "user_id",
+          "type": "uuid"
+        }
+      ],
+      "foreign_keys": [
+        "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+      ],
+      "policies": [
+        {
+          "check": "has_role(auth.uid(), 'admin'::app_role)",
+          "kind": "ALL",
+          "mode": "PERMISSIVE",
+          "name": "cadistas_admin_write",
+          "using": "has_role(auth.uid(), 'admin'::app_role)"
+        },
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "cadistas_select_solicitante",
+          "using": "true"
+        },
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "cadistas_staff_select",
+          "using": "(is_staff(auth.uid()) OR (user_id = auth.uid()))"
+        }
+      ],
+      "table_name": "cadistas"
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "abbreviation",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone"
+        }
+      ],
+      "foreign_keys": null,
+      "policies": [
+        {
+          "check": "has_role(auth.uid(), 'admin'::app_role)",
+          "kind": "ALL",
+          "mode": "PERMISSIVE",
+          "name": "case_types_admin_write",
+          "using": "has_role(auth.uid(), 'admin'::app_role)"
+        },
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "case_types_select_solicitante",
+          "using": "true"
+        },
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "case_types_staff_select",
+          "using": "is_staff(auth.uid())"
+        }
+      ],
+      "table_name": "case_types"
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "position",
+          "type": "integer"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone"
+        }
+      ],
+      "foreign_keys": null,
+      "policies": [
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "component_categories_select_solicitante",
+          "using": "true"
+        },
+        {
+          "check": "is_staff(auth.uid())",
+          "kind": "ALL",
+          "mode": "PERMISSIVE",
+          "name": "component_categories_staff_all",
+          "using": "is_staff(auth.uid())"
+        }
+      ],
+      "table_name": "component_categories"
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "category",
+          "type": "text"
+        },
+        {
+          "name": "manufacturer",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone"
+        }
+      ],
+      "foreign_keys": null,
+      "policies": [
+        {
+          "check": null,
+          "kind": "DELETE",
+          "mode": "PERMISSIVE",
+          "name": "components_admin_delete",
+          "using": "has_role(auth.uid(), 'admin'::app_role)"
+        },
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "components_select_solicitante",
+          "using": "true"
+        },
+        {
+          "check": "is_staff(auth.uid())",
+          "kind": "INSERT",
+          "mode": "PERMISSIVE",
+          "name": "components_staff_insert",
+          "using": null
+        },
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "components_staff_select",
+          "using": "is_staff(auth.uid())"
+        },
+        {
+          "check": null,
+          "kind": "UPDATE",
+          "mode": "PERMISSIVE",
+          "name": "components_staff_update",
+          "using": "is_staff(auth.uid())"
+        }
+      ],
+      "table_name": "components"
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "user_id",
+          "type": "uuid"
+        }
+      ],
+      "foreign_keys": [
+        "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL"
+      ],
+      "policies": [
+        {
+          "check": null,
+          "kind": "DELETE",
+          "mode": "PERMISSIVE",
+          "name": "doctors_admin_delete",
+          "using": "has_role(auth.uid(), 'admin'::app_role)"
+        },
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "doctors_select_solicitante",
+          "using": "true"
+        },
+        {
+          "check": "is_staff(auth.uid())",
+          "kind": "INSERT",
+          "mode": "PERMISSIVE",
+          "name": "doctors_staff_insert",
+          "using": null
+        },
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "doctors_staff_select",
+          "using": "is_staff(auth.uid())"
+        },
+        {
+          "check": null,
+          "kind": "UPDATE",
+          "mode": "PERMISSIVE",
+          "name": "doctors_staff_update",
+          "using": "is_staff(auth.uid())"
+        }
+      ],
+      "table_name": "doctors"
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "manufacturer",
+          "type": "text"
+        },
+        {
+          "name": "notes",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "line",
+          "type": "text"
+        },
+        {
+          "name": "sort_order",
+          "type": "integer"
+        }
+      ],
+      "foreign_keys": null,
+      "policies": [
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "implant_systems_select_solicitante",
+          "using": "true"
+        },
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "implant_systems_staff_select",
+          "using": "is_staff(auth.uid())"
+        },
+        {
+          "check": "is_staff(auth.uid())",
+          "kind": "ALL",
+          "mode": "PERMISSIVE",
+          "name": "implant_systems_staff_write",
+          "using": "is_staff(auth.uid())"
+        }
+      ],
+      "table_name": "implant_systems"
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "user_id",
+          "type": "uuid"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone"
+        }
+      ],
+      "foreign_keys": [
+        "FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE"
+      ],
+      "policies": [
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "Proteticos readable by authenticated",
+          "using": "true"
+        }
+      ],
+      "table_name": "proteticos"
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "implant_system_id",
+          "type": "uuid"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "sort_order",
+          "type": "integer"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone"
+        }
+      ],
+      "foreign_keys": [
+        "FOREIGN KEY (implant_system_id) REFERENCES implant_systems(id) ON DELETE CASCADE"
+      ],
+      "policies": [
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "scan_jigs_select_solicitante",
+          "using": "true"
+        },
+        {
+          "check": "is_staff(auth.uid())",
+          "kind": "ALL",
+          "mode": "PERMISSIVE",
+          "name": "scan_jigs_staff_all",
+          "using": "is_staff(auth.uid())"
+        }
+      ],
+      "table_name": "scan_jigs"
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "category",
+          "type": "USER-DEFINED"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "brand",
+          "type": "text"
+        },
+        {
+          "name": "color",
+          "type": "text"
+        },
+        {
+          "name": "block_type",
+          "type": "text"
+        },
+        {
+          "name": "unit",
+          "type": "text"
+        },
+        {
+          "name": "qty_on_hand",
+          "type": "numeric"
+        },
+        {
+          "name": "min_qty",
+          "type": "numeric"
+        },
+        {
+          "name": "component_id",
+          "type": "uuid"
+        },
+        {
+          "name": "notes",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "implant_system_component_id",
+          "type": "uuid"
+        },
+        {
+          "name": "category_id",
+          "type": "uuid"
+        },
+        {
+          "name": "type",
+          "type": "text"
+        },
+        {
+          "name": "last_restocked_at",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "requires_sintering",
+          "type": "boolean"
+        }
+      ],
+      "foreign_keys": [
+        "FOREIGN KEY (category_id) REFERENCES component_categories(id) ON DELETE SET NULL",
+        "FOREIGN KEY (component_id) REFERENCES components(id) ON DELETE SET NULL",
+        "FOREIGN KEY (implant_system_component_id) REFERENCES implant_system_components(id) ON DELETE SET NULL"
+      ],
+      "policies": [
+        {
+          "check": null,
+          "kind": "DELETE",
+          "mode": "PERMISSIVE",
+          "name": "stock_items_admin_delete",
+          "using": "has_role(auth.uid(), 'admin'::app_role)"
+        },
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "stock_items_select_solicitante",
+          "using": "true"
+        },
+        {
+          "check": "has_any_role(auth.uid(), ARRAY['admin'::app_role, 'recepcionista'::app_role, 'protetico'::app_role])",
+          "kind": "INSERT",
+          "mode": "PERMISSIVE",
+          "name": "stock_items_staff_insert",
+          "using": null
+        },
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "stock_items_staff_select",
+          "using": "((is_staff(auth.uid()) AND (NOT is_cadista(auth.uid()))) OR has_role(auth.uid(), 'admin'::app_role))"
+        },
+        {
+          "check": null,
+          "kind": "UPDATE",
+          "mode": "PERMISSIVE",
+          "name": "stock_items_staff_update",
+          "using": "has_any_role(auth.uid(), ARRAY['admin'::app_role, 'recepcionista'::app_role, 'protetico'::app_role])"
+        }
+      ],
+      "table_name": "stock_items"
+    },
+    {
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "code",
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "sort_order",
+          "type": "integer"
+        }
+      ],
+      "foreign_keys": null,
+      "policies": [
+        {
+          "check": null,
+          "kind": "DELETE",
+          "mode": "PERMISSIVE",
+          "name": "tooth_colors_admin_delete",
+          "using": "has_role(auth.uid(), 'admin'::app_role)"
+        },
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "tooth_colors_select_solicitante",
+          "using": "true"
+        },
+        {
+          "check": "is_staff(auth.uid())",
+          "kind": "INSERT",
+          "mode": "PERMISSIVE",
+          "name": "tooth_colors_staff_insert",
+          "using": null
+        },
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "tooth_colors_staff_select",
+          "using": "is_staff(auth.uid())"
+        },
+        {
+          "check": null,
+          "kind": "UPDATE",
+          "mode": "PERMISSIVE",
+          "name": "tooth_colors_staff_update",
+          "using": "is_staff(auth.uid())"
+        }
+      ],
+      "table_name": "tooth_colors"
+    },
+    {
+      "columns": [
+        {
+          "name": "flow_key",
+          "type": "text"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        },
+        {
+          "name": "active_version",
+          "type": "integer"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone"
+        },
+        {
+          "name": "updated_by",
+          "type": "uuid"
+        }
+      ],
+      "foreign_keys": null,
+      "policies": [
+        {
+          "check": null,
+          "kind": "SELECT",
+          "mode": "PERMISSIVE",
+          "name": "workflow_templates_select",
+          "using": "true"
+        },
+        {
+          "check": "current_user_can_manage_workflow()",
+          "kind": "ALL",
+          "mode": "PERMISSIVE",
+          "name": "workflow_templates_write",
+          "using": "current_user_can_manage_workflow()"
+        }
+      ],
+      "table_name": "workflow_templates"
+    }
+  ],
+  "acceptance_4_2": "partial"
+}

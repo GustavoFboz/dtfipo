@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import { createRouter, useRouter } from "@tanstack/react-router";
+import { createRouter, useRouter, type ErrorComponentProps } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { routeTree } from "./routeTree.gen";
 import { installTombstoneGuard } from "@/lib/optimistic";
@@ -47,22 +47,23 @@ if (typeof window !== "undefined") {
   window.addEventListener("unhandledrejection", (e) => globalHandler(e.reason));
 }
 
-function DefaultErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function DefaultErrorComponent({ error, reset }: ErrorComponentProps) {
   const router = useRouter();
+  const normalizedError = error instanceof Error ? error : new Error(String(error));
   useEffect(() => {
-    if (isStaleAssetError(error)) {
+    if (isStaleAssetError(normalizedError)) {
       recoverFromStaleAssets();
     }
-  }, [error]);
+  }, [normalizedError]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-2xl font-bold">Algo deu errado</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {isStaleAssetError(error)
+          {isStaleAssetError(normalizedError)
             ? "Atualizando os arquivos do sistema. Se não recarregar automaticamente, tente novamente."
-            : error.message}
+            : normalizedError.message}
         </p>
         <button
           onClick={() => { recoverFromStaleAssets(); router.invalidate(); reset(); }}

@@ -1,0 +1,214 @@
+{
+  "note": "Tentativas incompletas preservadas. A recuperação da fixture B na primeira tentativa é evidência parcial; nenhuma tentativa falha conta como aceite integral.",
+  "jobs": [
+    {
+      "id": "6737d532-9f3a-46c9-8da7-ffc8a747ff07",
+      "kind": "reconciliation",
+      "status": "failed",
+      "claimed_at": "2026-10-24 19:28:01.937882+00",
+      "completed_at": "2026-10-24 19:28:16.147674+00",
+      "receipt": {
+        "checked_at": "2026-10-24T19:28:16.079Z",
+        "checks": [
+          {
+            "check": "production_runtime_retained",
+            "passed": true
+          },
+          {
+            "check": "sandbox_separate_configuration",
+            "passed": true
+          },
+          {
+            "check": "fixture_notifications_disabled",
+            "passed": true
+          },
+          {
+            "check": "fixture_recurring_contract_verified",
+            "passed": true
+          },
+          {
+            "amount_cents": 44900,
+            "check": "fixture_provider_renewal_invoice",
+            "passed": true,
+            "resource_id": "pay_851esw7e19ls4j4r"
+          },
+          {
+            "check": "fixture_renewal_not_in_ledger",
+            "count": 0,
+            "passed": true,
+            "resource_id": "pay_851esw7e19ls4j4r"
+          },
+          {
+            "check": "fixture_resource_registered",
+            "passed": true
+          },
+          {
+            "amount_cents": 44900,
+            "check": "fixture_provider_renewal_paid",
+            "passed": true,
+            "resource_id": "pay_851esw7e19ls4j4r",
+            "state": "RECEIVED"
+          },
+          {
+            "check": "paid_without_payment_webhook_observed",
+            "count": 0,
+            "passed": true,
+            "resource_id": "pay_851esw7e19ls4j4r"
+          },
+          {
+            "check": "fixture_scoped_worker_succeeded",
+            "http_status": 200,
+            "passed": true
+          },
+          {
+            "check": "normal_reconciler_discovered_missing_payment",
+            "passed": true
+          },
+          {
+            "check": "fixture_scoped_worker_succeeded",
+            "http_status": 200,
+            "passed": true
+          },
+          {
+            "check": "normal_processor_applied_recovery",
+            "passed": true
+          },
+          {
+            "check": "one_recovered_paid_renewal",
+            "count": 1,
+            "passed": true,
+            "period_end": "2026-12-18T00:00:00+00:00",
+            "resource_id": "pay_851esw7e19ls4j4r"
+          },
+          {
+            "check": "recovery_has_processed_audit",
+            "passed": true
+          },
+          {
+            "check": "fixture_scoped_worker_succeeded",
+            "http_status": 200,
+            "passed": true
+          },
+          {
+            "check": "repeated_reconciliation_preserves_ledger",
+            "passed": true
+          },
+          {
+            "check": "previous_paid_periods_preserved",
+            "passed": true
+          },
+          {
+            "check": "renewal_period_extended_once",
+            "passed": true,
+            "period_end": "2026-12-18T00:00:00+00:00"
+          },
+          {
+            "check": "real_fixture_session_keeps_full_access",
+            "passed": true
+          },
+          {
+            "check": "foreign_company_cannot_read_renewal",
+            "passed": true
+          },
+          {
+            "check": "fixture_notifications_disabled",
+            "passed": true
+          },
+          {
+            "check": "fixture_recurring_contract_verified",
+            "passed": true
+          },
+          {
+            "check": "isolated_reconciliation_flow",
+            "code": "FIXTURE_RECONCILIATION_FAILED",
+            "passed": false
+          },
+          {
+            "check": "non_fixture_business_data_preserved",
+            "digest": "56200f4382688b4e8b982ab1c4fbd488",
+            "passed": true
+          },
+          {
+            "check": "global_environment_unchanged",
+            "passed": true
+          }
+        ],
+        "contract": "dentalflow-fixture-acceptance-v1",
+        "fixture_ids": [
+          "24e7cdf9-457e-4af2-b1cb-cf366abbddb0",
+          "ee083f63-1621-4b82-b7a4-fd13427c0b14"
+        ],
+        "kind": "reconciliation",
+        "passed": false
+      }
+    },
+    {
+      "id": "f4c672d9-4cf7-430b-a9c9-05e58022188c",
+      "kind": "reconciliation",
+      "status": "failed",
+      "claimed_at": "2026-10-24 19:38:59.69691+00",
+      "completed_at": "2026-10-24 19:39:10.746658+00",
+      "receipt": {
+        "checked_at": "2026-10-24T19:39:10.673Z",
+        "checks": [
+          {
+            "check": "production_runtime_retained",
+            "passed": true
+          },
+          {
+            "check": "sandbox_separate_configuration",
+            "passed": true
+          },
+          {
+            "check": "fixture_notifications_disabled",
+            "passed": true
+          },
+          {
+            "check": "fixture_recurring_contract_verified",
+            "passed": true
+          },
+          {
+            "check": "already_renewed_fixture_no_extra_charge",
+            "passed": true,
+            "period_end": "2026-12-18T00:00:00+00:00",
+            "state": "NO_EXTRA_PROVIDER_WRITE"
+          },
+          {
+            "check": "fixture_notifications_disabled",
+            "passed": true
+          },
+          {
+            "check": "fixture_recurring_contract_verified",
+            "passed": true
+          },
+          {
+            "check": "invoice_generation_readback_without_retry",
+            "passed": false
+          },
+          {
+            "check": "isolated_reconciliation_flow",
+            "code": "INVOICE_GENERATION_READBACK_WITHOUT_RETRY",
+            "passed": false,
+            "state": "RENEWAL_GENERATION_READBACK"
+          },
+          {
+            "check": "non_fixture_business_data_preserved",
+            "digest": "56200f4382688b4e8b982ab1c4fbd488",
+            "passed": true
+          },
+          {
+            "check": "global_environment_unchanged",
+            "passed": true
+          }
+        ],
+        "contract": "dentalflow-fixture-acceptance-v1",
+        "fixture_ids": [
+          "24e7cdf9-457e-4af2-b1cb-cf366abbddb0",
+          "ee083f63-1621-4b82-b7a4-fd13427c0b14"
+        ],
+        "kind": "reconciliation",
+        "passed": false
+      }
+    }
+  ]
+}

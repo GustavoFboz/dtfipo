@@ -11,6 +11,7 @@ export type WorkflowSettings = {
 
 export type WorkflowStage = {
   id: string;
+  clinic_id?: string | null;
   name: string;
   color: string | null;
   position: number;
@@ -22,6 +23,7 @@ export type WorkflowStage = {
 
 export type ReturnReason = {
   id: string;
+  clinic_id?: string | null;
   label: string;
   position: number;
 };
@@ -44,10 +46,13 @@ export async function fetchWorkflowSettings(): Promise<WorkflowSettings> {
   }) as WorkflowSettings;
 }
 
-export async function updateWorkflowSettings(patch: Partial<WorkflowSettings>) {
-  const { error } = await supabase
-    .from("workflow_settings" as any)
-    .upsert({ id: true, ...patch, updated_at: new Date().toISOString() });
+export async function updateWorkflowSettings(patch: Partial<WorkflowSettings>, expectedClinicId?: string) {
+  const values = Object.fromEntries(
+    ["phases_enabled", "stages_enabled", "auto_advance_enabled", "progress_bar_enabled"]
+      .filter((key) => patch[key as keyof WorkflowSettings] !== undefined)
+      .map((key) => [key, patch[key as keyof WorkflowSettings]]),
+  );
+  const { error } = await supabase.rpc("update_company_workflow_settings" as any, { _patch: values, ...expectedClinicId ? { _expected_clinic: expectedClinicId } : {} });
   if (error) throw error;
 }
 
@@ -55,7 +60,7 @@ export async function updateWorkflowSettings(patch: Partial<WorkflowSettings>) {
 export async function fetchWorkflowStages(): Promise<WorkflowStage[]> {
   const { data, error } = await supabase
     .from("stages" as any)
-    .select("id,name,color,position,phase_id,requires_implant_components,requirements,condition_key")
+    .select("id,clinic_id,name,color,position,phase_id,requires_implant_components,requirements,condition_key")
     .order("position");
   if (error) throw error;
   return (data ?? []) as unknown as WorkflowStage[];
@@ -151,7 +156,7 @@ export async function returnCaseWorkflow(caseId: string, reasonId: string, opts?
 export async function fetchReturnReasons(): Promise<ReturnReason[]> {
   const { data, error } = await supabase
     .from("stage_return_reasons" as any)
-    .select("id,label,position")
+    .select("id,clinic_id,label,position")
     .order("position");
   if (error) throw error;
   return (data ?? []) as unknown as ReturnReason[];

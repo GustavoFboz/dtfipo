@@ -1,0 +1,134 @@
+name: DentalFlow Beta 7 Ephemeral Web Hosting Rollback A-B-A (no production)
+
+on:
+  pull_request:
+    branches: [main, "saas/stage-03-asaas-checkout"]
+    paths:
+      - ".github/workflows/saas-beta7-ephemeral-hosted-rollback.yml"
+      - "scripts/saas-beta7-ephemeral-host-rollback.mjs"
+      - "scripts/saas-beta7-ephemeral-host-rollback.test.mjs"
+      - "docs/saas/evidence/beta-stage7-ephemeral-hosting-rollback-20261110.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: beta7-ephemeral-rollback-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ephemeral-static-host-a-b-a:
+    name: Two real Web builds, local HTTP hosting A-B-A, same SHA restored
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      CI: "true"
+      DENTALFLOW_BETA7_LOCAL_TEST: "true"
+      VITE_SUPABASE_URL: "http://127.0.0.1:54321"
+      VITE_SUPABASE_PUBLISHABLE_KEY: "synthetic-ephemeral-publishable-key-not-for-deployment"
+      ASAAS_ENVIRONMENT: "sandbox"
+      ASAAS_PRODUCTION_ENABLED: "false"
+      BILLING_PRODUCTION_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test fail-closed local host and rollback harness
+        run: node --test scripts/saas-beta7-ephemeral-host-rollback.test.mjs
+      - uses: oven-sh/setup-bun@v2
+      - name: Prepare two genuine historical Git revisions in disposable worktrees
+        shell: bash
+        run: |
+          set -euo pipefail
+          workspace="$RUNNER_TEMP/dentalflow-beta7-host"
+          echo "DENTALFLOW_BETA7_WORKSPACE=$workspace" >> "$GITHUB_ENV"
+          mkdir -p "$workspace"
+          # Two actual commits with different NewCaseDialog source, never generated canaries.
+          # Select last changed file version and its predecessor as a safe earlier candidate.
+          # The current PR commit is the new desired release.
+          baseline_sha="$(git log -n 2 --format=%H -- src/components/NewCaseDialog.tsx | tail -n 1)"
+          candidate_sha="$(git rev-parse HEAD)"
+          if ! [[ "$baseline_sha" =~ ^[0-9a-f]{40}$ ]] || ! [[ "$candidate_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::BETA7_SOURCE_SHA_INVALID";exit 1
+          fi
+          if ! git merge-base --is-ancestor "$baseline_sha" "$candidate_sha";then
+            echo "::error::BETA7_BASELINE_NOT_ANCESTOR";exit 1
+          fi
+          if git diff --quiet "$baseline_sha" "$candidate_sha" -- src/components/NewCaseDialog.tsx;then
+            echo "::error::BETA7_NO_DISTINCT_CLINICAL_SOURCE_HISTORY";exit 1
+          fi
+          git worktree add --detach "$workspace/baseline" "$baseline_sha" > /dev/null
+          git worktree add --detach "$workspace/candidate" "$candidate_sha" > /dev/null
+          echo "Two genuine, different Git revisions checked out into ephemeral workspace."
+      - name: Produce immutable older DentalFlow Web bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$DENTALFLOW_BETA7_WORKSPACE/baseline"
+          if ! bun install --frozen-lockfile > "$RUNNER_TEMP/beta7-baseline-install.log" 2>&1; then
+            echo "::error::BETA7_BASELINE_DEPENDENCIES_FAILED";exit 1
+          fi
+          if ! bun run build > "$RUNNER_TEMP/beta7-baseline-build.log" 2>&1; then
+            echo "::error::BETA7_BASELINE_BUILD_FAILED";exit 1
+          fi
+          test -d .output/public
+          echo "Old source Web build generated locally; no release endpoint contacted."
+      - name: Produce immutable candidate DentalFlow Web bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$DENTALFLOW_BETA7_WORKSPACE/candidate"
+          if ! bun install --frozen-lockfile > "$RUNNER_TEMP/beta7-candidate-install.log" 2>&1; then
+            echo "::error::BETA7_CANDIDATE_DEPENDENCIES_FAILED";exit 1
+          fi
+          if ! bun run build > "$RUNNER_TEMP/beta7-candidate-build.log" 2>&1; then
+            echo "::error::BETA7_CANDIDATE_BUILD_FAILED";exit 1
+          fi
+          test -d .output/public
+          echo "Candidate source Web build generated locally; no release endpoint contacted."
+      - name: Real localhost HTTP hosting A -> B -> rollback A; prove exact digest and no billing API
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/saas-beta7-ephemeral-host-rollback.mjs \
+            > "$RUNNER_TEMP/dentalflow-beta7-safe-aggregate.json"
+          node - "$RUNNER_TEMP/dentalflow-beta7-safe-aggregate.json" <<'NODE'
+          const fs=require('node:fs');
+          const assert=require('node:assert/strict');
+          const receipt=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          assert.equal(receipt.passed,true);
+          assert.equal(receipt.network_origin,'loopback_only');
+          assert.equal(receipt.production_host_rolled_back,false);
+          assert.equal(receipt.release_authorized,false);
+          assert.equal(receipt.asaas_invoked,false);
+          assert.equal(receipt.backend_ssr_served,false);
+          assert.deepEqual(receipt.phases.map(x=>x.phase),
+            ['prior','deploy_candidate','rollback_prior']);
+          assert.equal(receipt.phases[0].source_sha,receipt.phases[2].source_sha);
+          assert.equal(receipt.phases[0].content_sha256,receipt.phases[2].content_sha256);
+          assert.notEqual(receipt.phases[0].source_sha,receipt.phases[1].source_sha);
+          assert.notEqual(receipt.phases[0].content_sha256,receipt.phases[1].content_sha256);
+          console.log('Beta 7 ephemeral host A/B/A asset and source rollback passed; no publication.');
+          NODE
+      - name: Remove worktrees and staging artifacts
+        if: always()
+        shell: bash
+        run: |
+          workspace="$RUNNER_TEMP/dentalflow-beta7-host"
+          git worktree remove --force "$workspace/baseline" > /dev/null 2>&1 || true
+          git worktree remove --force "$workspace/candidate" > /dev/null 2>&1 || true
+          rm -rf -- "$workspace"
+          echo "Disposable host, build bundles, worktrees and preview URLs destroyed."
+      - name: Upload sanitized non-production staging receipt only
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dentalflow-beta7-ephemeral-host-rollback-aggregate
+          path: ${{ runner.temp }}/dentalflow-beta7-safe-aggregate.json
+          retention-days: 30
+          if-no-files-found: error

@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-21",
+  "requested_target_percent": 100,
+  "accepted": 7,
+  "total": 23,
+  "remaining": 16,
+  "completed_stages": 0,
+  "total_stages": 7,
+  "baseline_commit": "1e6116a40e1fde5ee06e924b74bdc184a4d45f70",
+  "cloud_source_matches_github": true,
+  "new_acceptances_earned": 0,
+  "local_validation": {
+    "queue_runner_node_tests_passed": 9,
+    "billing_storage_identity_desktop_vitest_passed": 244,
+    "vitest_files_passed": 12,
+    "existing_preflight_fake_http_checks": "passed",
+    "saas_stage_06": "passed",
+    "saas_stage_09": "passed",
+    "desktop_068_entitlement_bootstrap": "passed",
+    "restore_bundle_migrations": 176,
+    "syntax_and_diff_checks": "passed"
+  },
+  "production_observation": {
+    "source": "read-only database queries",
+    "observed_at": "2026-10-21T14:23:04.588780Z",
+    "production_payments": 1,
+    "production_failed_events": 0,
+    "historical_reservations": 9,
+    "latest_storage_job_completed_at": "2026-10-17T19:06:47.169463Z",
+    "worker_observed_at": "2026-10-21T14:24:27.992714Z",
+    "worker_status": "ok",
+    "worker_last_healthy_at": "2026-10-21T14:21:03.206266Z"
+  },
+  "automatic_approval_review": {
+    "publication": "rejected",
+    "cloud_panel_inspection": "rejected",
+    "reason_summary": "The offer to grant access was not accepted as specific authorization to deploy through Lovable or inspect its panel after the prior restriction",
+    "alternative_route_used_to_perform_rejected_action": false
+  },
+  "execution": {
+    "application_published_this_round": false,
+    "global_auth_configuration_changed": false,
+    "reported_queue_diagnostic_executed_live": false,
+    "reported_queue_delivery_logs_read": false,
+    "extended_storage_job_executed_live": false,
+    "production_financial_state_changed": false,
+    "historical_storage_deleted": false
+  },
+  "prepared_work": {
+    "github_manual_queue_diagnostic": true,
+    "fixed_private_get_only": true,
+    "new_credentials_introduced": false,
+    "complete_acceptance_roadmap": "docs/saas/TARGET-100-PERCENT.md"
+  }
+}

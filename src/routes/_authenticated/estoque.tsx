@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { confirm } from "@/lib/confirm";
 import { toast } from "sonner";
 import {
-  Package, Plus, Trash2, Pencil, ArrowUpDown, AlertTriangle, FolderPlus, X, Wrench, Droplet,
+  Package, Plus, Trash2, Pencil, ArrowUpDown, AlertTriangle, FolderPlus, X, Wrench, Droplet, FileText, Printer,
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
@@ -18,6 +18,8 @@ import {
 import { fetchImplantSystems } from "@/lib/implants";
 import { ImplantSystemsDialog } from "@/components/ImplantSystemsDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { StockReportDialog } from "@/components/StockReportDialog";
+import { DEFAULT_STOCK_REPORT_CONFIG, printStockReport } from "@/lib/stock-report";
 
 export const Route = createFileRoute("/_authenticated/estoque")({ component: EstoquePage });
 
@@ -42,6 +44,8 @@ function EstoquePage() {
   const [restocking, setRestocking] = useState<StockItemV2 | null>(null);
   const [managingCats, setManagingCats] = useState(false);
   const [managingImplants, setManagingImplants] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [printingQuickReport, setPrintingQuickReport] = useState(false);
 
   const activeCat = selectedCat ?? cats.data?.[0]?.id ?? null;
   const filteredItems = useMemo(() => {
@@ -84,6 +88,24 @@ function EstoquePage() {
     qc.invalidateQueries({ queryKey: ["stock_cats_v2"] });
   };
 
+  const printQuickReport = async () => {
+    if (!filteredItems.length) return toast.error("Nenhum item para incluir no relatório.");
+    setPrintingQuickReport(true);
+    try {
+      await printStockReport(items.data ?? [], cats.data ?? [], {
+        ...DEFAULT_STOCK_REPORT_CONFIG,
+        categoryId: activeCat ?? "all",
+        query: search,
+        sortBy: sort === "brand" || sort === "name" ? sort : "name",
+        sortDir,
+      });
+    } catch (error) {
+      toast.error((error as Error).message || "Não foi possível preparar a impressão.");
+    } finally {
+      setPrintingQuickReport(false);
+    }
+  };
+
   return (
     <div className="p-6 md:p-10 max-w-[1500px] mx-auto">
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
@@ -95,7 +117,22 @@ function EstoquePage() {
             Categorias livres, itens com campos personalizados e histórico de reposições.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <button
+            onClick={() => void printQuickReport()}
+            disabled={printingQuickReport || !filteredItems.length}
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium border border-primary/20 bg-primary/[0.04] text-primary hover:bg-primary/[0.08] disabled:opacity-50"
+            title="Imprime em A4 a categoria e a busca exibidas agora"
+          >
+            <Printer className="h-3.5 w-3.5" /> {printingQuickReport ? "Preparando…" : "Imprimir A4"}
+          </button>
+          <button
+            onClick={() => setReportOpen(true)}
+            disabled={!items.data?.length}
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium border border-border bg-background hover:bg-accent disabled:opacity-50"
+          >
+            <FileText className="h-3.5 w-3.5" /> Relatório avançado
+          </button>
           <button
             onClick={() => setManagingImplants(true)}
             className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-xs font-medium border border-border bg-background hover:bg-accent"
@@ -289,6 +326,15 @@ function EstoquePage() {
         />
       )}
       <ImplantSystemsDialog open={managingImplants} onOpenChange={setManagingImplants} />
+      {reportOpen && (
+        <StockReportDialog
+          items={items.data ?? []}
+          categories={cats.data ?? []}
+          initialCategoryId={activeCat}
+          initialQuery={search}
+          onClose={() => setReportOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -3,14 +3,13 @@ import type { StockCategory, StockItem, StockMovement, StockMovementType } from 
 import * as cloud from "./stock";
 import {
   clearDoneOutbox,
-  enqueueOutbox,
   getPendingOutbox,
   isDentalFlowDesktop,
-  localCacheGet,
-  localCachePut,
   markOutbox,
   type OutboxEntry,
 } from "./desktop-local";
+
+import {stockCompanyScope, companyStockCacheGet, companyStockCachePut, enqueueCompanyStock, companyStockPayload, StockCompanyScopeError, type StockCompanyScope} from './stock-company-local';
 
 const ITEMS_NS = "stock-items:v1";
 const MOVEMENTS_NS = "stock-movements:v1";
@@ -41,36 +40,27 @@ function uuid() {
   throw new Error("Este dispositivo não oferece geração segura de identificadores locais.");
 }
 
-async function ownerId() {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.user?.id ?? null;
-}
+async function requireOwnerId() { return stockCompanyScope(); }
 
-async function requireOwnerId() {
-  const id = await ownerId();
-  if (!id) throw new Error("Sua sessão local não está disponível. Conecte-se novamente para revalidar este dispositivo.");
-  return id;
-}
-
-async function readItems(owner: string): Promise<StockItem[]> {
-  const entry = await localCacheGet<StockItem[]>(owner, ITEMS_NS, ALL_KEY);
+async function readItems(owner: StockCompanyScope): Promise<StockItem[]> {
+  const entry = await companyStockCacheGet<StockItem[]>(owner, ITEMS_NS, ALL_KEY);
   return Array.isArray(entry?.payload) ? entry.payload : [];
 }
 
-async function writeItems(owner: string, rows: StockItem[]) {
-  await localCachePut(owner, ITEMS_NS, ALL_KEY, [...rows].sort((a, b) => String(a.name).localeCompare(String(b.name), "pt-BR")));
+async function writeItems(owner: StockCompanyScope, rows: StockItem[]) {
+  await companyStockCachePut(owner, ITEMS_NS, ALL_KEY, [...rows].sort((a, b) => String(a.name).localeCompare(String(b.name), "pt-BR")));
 }
 
-async function readMovements(owner: string): Promise<StockMovement[]> {
-  const entry = await localCacheGet<StockMovement[]>(owner, MOVEMENTS_NS, ALL_KEY);
+async function readMovements(owner: StockCompanyScope): Promise<StockMovement[]> {
+  const entry = await companyStockCacheGet<StockMovement[]>(owner, MOVEMENTS_NS, ALL_KEY);
   return Array.isArray(entry?.payload) ? entry.payload : [];
 }
 
-async function writeMovements(owner: string, rows: StockMovement[]) {
-  await localCachePut(owner, MOVEMENTS_NS, ALL_KEY, [...rows].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))));
+async function writeMovements(owner: StockCompanyScope, rows: StockMovement[]) {
+  await companyStockCachePut(owner, MOVEMENTS_NS, ALL_KEY, [...rows].sort((a, b) => String(b.created_at).localeCompare(String(a.created_at))));
 }
 
-async function upsertItem(owner: string, row: StockItem) {
+async function upsertItem(owner: StockCompanyScope, row: StockItem) {
   const current = await readItems(owner);
   const next = current.some((item) => item.id === row.id)
     ? current.map((item) => (item.id === row.id ? row : item))
@@ -78,7 +68,7 @@ async function upsertItem(owner: string, row: StockItem) {
   await writeItems(owner, next);
 }
 
-async function removeItem(owner: string, id: string) {
+async function removeItem(owner: StockCompanyScope, id: string) {
   await writeItems(owner, (await readItems(owner)).filter((item) => item.id !== id));
 }
 
@@ -150,7 +140,7 @@ export async function createStockItemLocalFirst(input: Parameters<typeof cloud.c
 
   const queue = async () => {
     await upsertItem(owner, local);
-    await enqueueOutbox({ ownerId: owner, entityType: ITEM_ENTITY, entityId: id, operation: "create", payload: { id, ...input } });
+    await enqueueCompanyStock({ scope: owner, entityType: ITEM_ENTITY, entityId: id, operation: "create", payload: { id, ...input } });
   };
 
   if (!online()) return queue();
@@ -171,7 +161,7 @@ export async function updateStockItemLocalFirst(id: string, patch: Partial<Stock
 
   const queue = async () => {
     await upsertItem(owner, local);
-    await enqueueOutbox({ ownerId: owner, entityType: ITEM_ENTITY, entityId: id, operation: "update", payload: patch });
+    await enqueueCompanyStock({ scope: owner, entityType: ITEM_ENTITY, entityId: id, operation: "update", payload: patch });
   };
 
   if (!online()) return queue();
@@ -190,7 +180,7 @@ export async function deleteStockItemLocalFirst(id: string) {
 
   const queue = async () => {
     await removeItem(owner, id);
-    await enqueueOutbox({ ownerId: owner, entityType: ITEM_ENTITY, entityId: id, operation: "delete", payload: { id } });
+    await enqueueCompanyStock({ scope: owner, entityType: ITEM_ENTITY, entityId: id, operation: "delete", payload: { id } });
   };
 
   if (!online()) return queue();
@@ -220,7 +210,7 @@ async function queueMovement(itemId: string, type: StockMovementType, qty: numbe
     qty_before: before,
     qty_after: after,
     case_id: caseId ?? null,
-    user_id: owner,
+    user_id: owner.ownerId,
     notes: notes ?? null,
     created_at: new Date().toISOString(),
     item: { ...item, qty_on_hand: after },
@@ -229,7 +219,7 @@ async function queueMovement(itemId: string, type: StockMovementType, qty: numbe
   await Promise.all([
     upsertItem(owner, { ...item, qty_on_hand: after, updated_at: new Date().toISOString() }),
     writeMovements(owner, [movement, ...(await readMovements(owner))]),
-    enqueueOutbox({ ownerId: owner, entityType: MOVEMENT_ENTITY, entityId: movement.id, operation: "create", payload: movement }),
+    enqueueCompanyStock({ scope: owner, entityType: MOVEMENT_ENTITY, entityId: movement.id, operation: "create", payload: movement }),
   ]);
 }
 
@@ -273,21 +263,22 @@ export async function adjustItemLocalFirst(itemId: string, newQty: number, curre
   }
 }
 
-async function syncEntry(owner: string, entry: OutboxEntry<Record<string, any>>) {
-  await markOutbox(owner, entry.id, "syncing");
+async function syncEntry(owner: StockCompanyScope, entry: OutboxEntry<Record<string, any>>) {
+  await markOutbox(owner.ownerId, entry.id, "syncing");
   try {
+    entry = {...entry, payload: await companyStockPayload(owner,entry.payload)};
     if (entry.entity_type === ITEM_ENTITY) {
       const id = entry.entity_id ?? entry.payload.id;
       if (!id) throw new Error("Item local sem identificador.");
       if (entry.operation === "create") {
-        const { data, error } = await (supabase as any).from(ITEM_ENTITY).upsert({ ...entry.payload, id }, { onConflict: "id" }).select().single();
+        const { data, error } = await (supabase as any).from(ITEM_ENTITY).upsert({ ...entry.payload, id, clinic_id: owner.clinicId }, { onConflict: "id" }).select().single();
         if (error) throw error;
         await upsertItem(owner, data as StockItem);
       } else if (entry.operation === "update") {
-        const { data, error } = await (supabase as any).from(ITEM_ENTITY).update(entry.payload).eq("id", id).select().maybeSingle();
+        const { data, error } = await (supabase as any).from(ITEM_ENTITY).update({...entry.payload,clinic_id:owner.clinicId}).eq("id", id).select().maybeSingle();
         if (error) throw error;
         if (!data) {
-          await markOutbox(owner, entry.id, "conflict", "O item de estoque não existe mais no servidor.");
+          await markOutbox(owner.ownerId, entry.id, "conflict", "O item de estoque não existe mais no servidor.");
           return "conflict" as const;
         }
         await upsertItem(owner, data as StockItem);
@@ -301,28 +292,32 @@ async function syncEntry(owner: string, entry: OutboxEntry<Record<string, any>>)
       const id = entry.entity_id ?? payload.id;
       if (!id) throw new Error("Movimento local sem identificador.");
       delete payload.item;
-      const { error } = await (supabase as any).from(MOVEMENT_ENTITY).upsert({ ...payload, id }, { onConflict: "id" });
+      const { error } = await (supabase as any).from(MOVEMENT_ENTITY).upsert({ ...payload, id, clinic_id:owner.clinicId }, { onConflict: "id" });
       if (error) throw error;
     } else {
       return "skip" as const;
     }
 
-    await markOutbox(owner, entry.id, "done");
+    await markOutbox(owner.ownerId, entry.id, "done");
     return "done" as const;
   } catch (error) {
+    if (error instanceof StockCompanyScopeError) {
+      await markOutbox(owner.ownerId,entry.id,"conflict",error.message);
+      return "conflict" as const;
+    }
     const message = String((error as any)?.message ?? error ?? "Erro de sincronização do estoque");
     if (transient(error)) {
-      await markOutbox(owner, entry.id, "pending", message);
+      await markOutbox(owner.ownerId, entry.id, "pending", message);
       return "network" as const;
     }
-    await markOutbox(owner, entry.id, "error", message);
+    await markOutbox(owner.ownerId, entry.id, "error", message);
     return "error" as const;
   }
 }
 
 export async function warmStockLocalCache(): Promise<{ itemsCached: number; movementsCached: number }> {
   if (!isDentalFlowDesktop() || !online()) return { itemsCached: 0, movementsCached: 0 };
-  const owner = await ownerId();
+  const owner = await stockCompanyScope().catch(() => null);
   if (!owner) return { itemsCached: 0, movementsCached: 0 };
   let itemsCached = 0;
   let movementsCached = 0;
@@ -348,10 +343,10 @@ export async function warmStockLocalCache(): Promise<{ itemsCached: number; move
 
 export async function syncPendingStockChanges(): Promise<StockOfflineSyncSummary> {
   if (!isDentalFlowDesktop() || !online()) return { processed: 0, failed: 0, conflicts: 0, itemsCached: 0, movementsCached: 0 };
-  const owner = await ownerId();
+  const owner = await stockCompanyScope().catch(() => null);
   if (!owner) return { processed: 0, failed: 0, conflicts: 0, itemsCached: 0, movementsCached: 0 };
 
-  const entries = (await getPendingOutbox<Record<string, any>>(owner, 500)).filter((entry) => [ITEM_ENTITY, MOVEMENT_ENTITY].includes(entry.entity_type));
+  const entries = (await getPendingOutbox<Record<string, any>>(owner.ownerId, 500)).filter((entry) => [ITEM_ENTITY, MOVEMENT_ENTITY].includes(entry.entity_type));
   let processed = 0;
   let failed = 0;
   let conflicts = 0;
@@ -362,7 +357,7 @@ export async function syncPendingStockChanges(): Promise<StockOfflineSyncSummary
     if (result === "conflict") conflicts += 1;
     if (result === "network") break;
   }
-  if (processed > 0) await clearDoneOutbox(owner);
+  if (processed > 0) await clearDoneOutbox(owner.ownerId);
   const warmed = await warmStockLocalCache();
   return { processed, failed, conflicts, ...warmed };
 }

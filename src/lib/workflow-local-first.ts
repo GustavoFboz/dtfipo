@@ -2,15 +2,17 @@ import * as cloud from "./workflow";
 import type { CaseRow } from "./types";
 import {
   clearDoneOutbox,
-  enqueueOutbox,
   getPendingOutbox,
   isDentalFlowDesktop,
-  localCacheGet,
-  localCachePut,
   markOutbox,
   type OutboxEntry,
 } from "./desktop-local";
-import { requireDesktopOwnerId, resolveDesktopOwnerId } from "./desktop-identity";
+import {stockCompanyScope,assertStockCompany,companyStockCacheGet,companyStockCachePut,
+ enqueueCompanyStock,companyStockPayload,StockCompanyScopeError,type StockCompanyScope} from "./stock-company-local";
+async function localCacheGet<T>(scope:StockCompanyScope,namespace:string,key:string) {return companyStockCacheGet<T>(scope,namespace,key);}
+async function localCachePut<T>(scope:StockCompanyScope,namespace:string,key:string,payload:T) {
+ await companyStockCachePut(scope,namespace,key,payload); await assertStockCompany(scope);
+}
 import { fetchCasesLocalFirst } from "./cases-local-first";
 
 export * from "./workflow";
@@ -44,31 +46,32 @@ function transient(error: unknown) {
   return ["failed to fetch", "networkerror", "network error", "load failed", "fetch failed", "connection", "offline", "timeout"].some((x) => message.includes(x));
 }
 
-async function readList<T>(ownerId: string, namespace: string): Promise<T[]> {
-  const entry = await localCacheGet<T[]>(ownerId, namespace, ALL_KEY);
+async function readList<T>(scope: StockCompanyScope, namespace: string): Promise<T[]> {
+  const entry = await localCacheGet<T[]>(scope, namespace, ALL_KEY);
   return Array.isArray(entry?.payload) ? entry.payload : [];
 }
 
-async function writeList<T>(ownerId: string, namespace: string, rows: T[]) {
-  await localCachePut(ownerId, namespace, ALL_KEY, rows);
+async function writeList<T>(scope: StockCompanyScope, namespace: string, rows: T[]) {
+  await localCachePut(scope, namespace, ALL_KEY, rows);
 }
 
 export async function fetchWorkflowSettingsLocalFirst(): Promise<Settings> {
   if (!isDentalFlowDesktop()) return cloud.fetchWorkflowSettings();
-  const ownerId = await resolveDesktopOwnerId();
+  const scope = await stockCompanyScope();
+  const ownerId = scope.ownerId;
   if (!ownerId) return cloud.fetchWorkflowSettings();
 
   if (online()) {
     try {
       const value = await cloud.fetchWorkflowSettings();
-      await localCachePut(ownerId, SETTINGS_NS, SETTINGS_KEY, value);
+      await localCachePut(scope, SETTINGS_NS, SETTINGS_KEY, value);
       return value;
     } catch (error) {
       if (!transient(error)) throw error;
     }
   }
 
-  const cached = await localCacheGet<Settings>(ownerId, SETTINGS_NS, SETTINGS_KEY);
+  const cached = await localCacheGet<Settings>(scope, SETTINGS_NS, SETTINGS_KEY);
   if (cached?.payload) return cached.payload;
   return {
     id: true,
@@ -82,59 +85,62 @@ export async function fetchWorkflowSettingsLocalFirst(): Promise<Settings> {
 
 export async function updateWorkflowSettingsLocalFirst(patch: Partial<Settings>) {
   if (!isDentalFlowDesktop()) return cloud.updateWorkflowSettings(patch);
-  const ownerId = await requireDesktopOwnerId();
+  const scope = await stockCompanyScope();
+  const ownerId = scope.ownerId;
   const current = await fetchWorkflowSettingsLocalFirst();
   const next = { ...current, ...patch, id: true, updated_at: new Date().toISOString() } as Settings;
 
   if (online()) {
     try {
-      await cloud.updateWorkflowSettings(patch);
+      await cloud.updateWorkflowSettings(patch,scope.clinicId);
       const authoritative = await cloud.fetchWorkflowSettings();
-      await localCachePut(ownerId, SETTINGS_NS, SETTINGS_KEY, authoritative);
+      await localCachePut(scope, SETTINGS_NS, SETTINGS_KEY, authoritative);
       return;
     } catch (error) {
       if (!transient(error)) throw error;
     }
   }
 
-  await localCachePut(ownerId, SETTINGS_NS, SETTINGS_KEY, next);
-  await enqueueOutbox({ ownerId, entityType: ENTITY, operation: "update_settings", payload: { patch } });
+  await localCachePut(scope, SETTINGS_NS, SETTINGS_KEY, next);
+  await enqueueCompanyStock({ scope, entityType: ENTITY, operation: "update_settings", payload: { patch } });
 }
 
 export async function fetchWorkflowStagesLocalFirst(): Promise<Stage[]> {
   if (!isDentalFlowDesktop()) return cloud.fetchWorkflowStages();
-  const ownerId = await resolveDesktopOwnerId();
+  const scope = await stockCompanyScope();
+  const ownerId = scope.ownerId;
   if (!ownerId) return [];
 
   if (online()) {
     try {
       const rows = await cloud.fetchWorkflowStages();
-      await writeList(ownerId, STAGES_NS, rows);
+      await writeList(scope, STAGES_NS, rows);
       return rows;
     } catch (error) {
       if (!transient(error)) throw error;
     }
   }
 
-  return readList<Stage>(ownerId, STAGES_NS);
+  return readList<Stage>(scope, STAGES_NS);
 }
 
 export async function fetchAllStageAssignmentsLocalFirst(): Promise<Assignment[]> {
   if (!isDentalFlowDesktop()) return cloud.fetchAllStageAssignments();
-  const ownerId = await resolveDesktopOwnerId();
+  const scope = await stockCompanyScope();
+  const ownerId = scope.ownerId;
   if (!ownerId) return [];
 
   if (online()) {
     try {
       const rows = await cloud.fetchAllStageAssignments();
-      await writeList(ownerId, ASSIGNMENTS_NS, rows);
+      await writeList(scope, ASSIGNMENTS_NS, rows);
       return rows;
     } catch (error) {
       if (!transient(error)) throw error;
     }
   }
 
-  return readList<Assignment>(ownerId, ASSIGNMENTS_NS);
+  return readList<Assignment>(scope, ASSIGNMENTS_NS);
 }
 
 export async function fetchStageAssigneesLocalFirst(stageId: string) {
@@ -148,49 +154,52 @@ export async function fetchStageAssigneesLocalFirst(stageId: string) {
 
 export async function setStageAssigneesLocalFirst(stageId: string, userIds: string[]) {
   if (!isDentalFlowDesktop()) return cloud.setStageAssignees(stageId, userIds);
-  const ownerId = await requireDesktopOwnerId();
+  const scope = await stockCompanyScope();
+  const ownerId = scope.ownerId;
 
   if (online()) {
     try {
       await cloud.setStageAssignees(stageId, userIds);
       const rows = await cloud.fetchAllStageAssignments();
-      await writeList(ownerId, ASSIGNMENTS_NS, rows);
+      await writeList(scope, ASSIGNMENTS_NS, rows);
       return;
     } catch (error) {
       if (!transient(error)) throw error;
     }
   }
 
-  const current = await readList<Assignment>(ownerId, ASSIGNMENTS_NS);
+  const current = await readList<Assignment>(scope, ASSIGNMENTS_NS);
   const next = [
     ...current.filter((row) => row.stage_id !== stageId),
     ...userIds.map((user_id) => ({ stage_id: stageId, user_id })),
   ];
-  await writeList(ownerId, ASSIGNMENTS_NS, next);
-  await enqueueOutbox({ ownerId, entityType: ENTITY, entityId: stageId, operation: "set_stage_assignees", payload: { stageId, userIds } });
+  await writeList(scope, ASSIGNMENTS_NS, next);
+  await enqueueCompanyStock({ scope, entityType: ENTITY, entityId: stageId, operation: "set_stage_assignees", payload: { stageId, userIds } });
 }
 
 export async function fetchReturnReasonsLocalFirst(): Promise<ReturnReason[]> {
   if (!isDentalFlowDesktop()) return cloud.fetchReturnReasons();
-  const ownerId = await resolveDesktopOwnerId();
+  const scope = await stockCompanyScope();
+  const ownerId = scope.ownerId;
   if (!ownerId) return [];
 
   if (online()) {
     try {
       const rows = await cloud.fetchReturnReasons();
-      await writeList(ownerId, RETURN_REASONS_NS, rows);
+      await writeList(scope, RETURN_REASONS_NS, rows);
       return rows;
     } catch (error) {
       if (!transient(error)) throw error;
     }
   }
 
-  return readList<ReturnReason>(ownerId, RETURN_REASONS_NS);
+  return readList<ReturnReason>(scope, RETURN_REASONS_NS);
 }
 
 export async function fetchMyTasksLocalFirst(): Promise<CaseRow[]> {
   if (!isDentalFlowDesktop()) return cloud.fetchMyTasks();
-  const ownerId = await resolveDesktopOwnerId();
+  const scope = await stockCompanyScope();
+  const ownerId = scope.ownerId;
   if (!ownerId) return [];
 
   if (online()) {
@@ -206,7 +215,7 @@ export async function fetchMyTasksLocalFirst(): Promise<CaseRow[]> {
   }
 
   const [assignments, cases] = await Promise.all([
-    readList<Assignment>(ownerId, ASSIGNMENTS_NS),
+    readList<Assignment>(scope, ASSIGNMENTS_NS),
     fetchCasesLocalFirst("all").catch(() => []),
   ]);
   const stageIds = new Set(assignments.filter((row) => row.user_id === ownerId).map((row) => row.stage_id));
@@ -217,7 +226,8 @@ export async function fetchMyTasksLocalFirst(): Promise<CaseRow[]> {
 
 export async function advanceCaseWorkflowLocalFirst(caseId: string, stageId?: string | null) {
   if (!isDentalFlowDesktop()) return cloud.advanceCaseWorkflow(caseId, stageId);
-  const ownerId = await requireDesktopOwnerId();
+  const scope = await stockCompanyScope();
+  const ownerId = scope.ownerId;
 
   if (online()) {
     try {
@@ -227,8 +237,8 @@ export async function advanceCaseWorkflowLocalFirst(caseId: string, stageId?: st
     }
   }
 
-  await enqueueOutbox({
-    ownerId,
+  await enqueueCompanyStock({
+    scope,
     entityType: ENTITY,
     entityId: caseId,
     operation: "advance_case",
@@ -243,7 +253,8 @@ export async function returnCaseWorkflowLocalFirst(
   opts?: { notes?: string; toStageId?: string | null },
 ) {
   if (!isDentalFlowDesktop()) return cloud.returnCaseWorkflow(caseId, reasonId, opts);
-  const ownerId = await requireDesktopOwnerId();
+  const scope = await stockCompanyScope();
+  const ownerId = scope.ownerId;
 
   if (online()) {
     try {
@@ -253,8 +264,8 @@ export async function returnCaseWorkflowLocalFirst(
     }
   }
 
-  await enqueueOutbox({
-    ownerId,
+  await enqueueCompanyStock({
+    scope,
     entityType: ENTITY,
     entityId: caseId,
     operation: "return_case",
@@ -263,11 +274,11 @@ export async function returnCaseWorkflowLocalFirst(
   return { success: true, offline: true, queued: true } as any;
 }
 
-async function processEntry(entry: OutboxEntry<WorkflowOutboxPayload>) {
-  const payload: any = entry.payload ?? {};
+async function processEntry(entry: OutboxEntry<WorkflowOutboxPayload>,scope:StockCompanyScope) {
+  const payload: any = await companyStockPayload(scope,entry.payload as any);
   switch (entry.operation) {
     case "update_settings":
-      await cloud.updateWorkflowSettings(payload.patch ?? {});
+      await cloud.updateWorkflowSettings(payload.patch ?? {},scope.clinicId);
       return;
     case "set_stage_assignees":
       await cloud.setStageAssignees(String(payload.stageId), Array.isArray(payload.userIds) ? payload.userIds : []);
@@ -288,31 +299,39 @@ async function processEntry(entry: OutboxEntry<WorkflowOutboxPayload>) {
 
 export async function syncPendingWorkflowChanges() {
   if (!isDentalFlowDesktop() || !online()) return { processed: 0, failed: 0, conflicts: 0, datasetsCached: 0 };
-  const ownerId = await resolveDesktopOwnerId();
+  const scope = await stockCompanyScope();
+  const ownerId = scope.ownerId;
   if (!ownerId) return { processed: 0, failed: 0, conflicts: 0, datasetsCached: 0 };
   const pending = (await getPendingOutbox<WorkflowOutboxPayload>(ownerId, 500)).filter((entry) => entry.entity_type === ENTITY);
   let processed = 0;
   let failed = 0;
+  let conflicts = 0;
 
   for (const entry of pending) {
     try {
       await markOutbox(ownerId, entry.id, "syncing");
-      await processEntry(entry);
+      await processEntry(entry,scope);
       await markOutbox(ownerId, entry.id, "done");
       processed += 1;
     } catch (error) {
-      failed += 1;
-      await markOutbox(ownerId, entry.id, "error", String((error as any)?.message ?? error));
+      if(error instanceof StockCompanyScopeError) {
+        conflicts += 1;
+        await markOutbox(ownerId,entry.id,"conflict",error.message);
+      } else {
+        failed += 1;
+        await markOutbox(ownerId, entry.id, "error", String((error as any)?.message ?? error));
+      }
     }
   }
   await clearDoneOutbox(ownerId);
   const datasetsCached = await warmWorkflowLocalCache().catch(() => 0);
-  return { processed, failed, conflicts: 0, datasetsCached };
+  return { processed, failed, conflicts, datasetsCached };
 }
 
 export async function warmWorkflowLocalCache() {
   if (!isDentalFlowDesktop() || !online()) return 0;
-  const ownerId = await resolveDesktopOwnerId();
+  const scope = await stockCompanyScope();
+  const ownerId = scope.ownerId;
   if (!ownerId) return 0;
   const results = await Promise.allSettled([
     cloud.fetchWorkflowSettings(),
@@ -322,19 +341,19 @@ export async function warmWorkflowLocalCache() {
   ]);
   let cached = 0;
   if (results[0].status === "fulfilled") {
-    await localCachePut(ownerId, SETTINGS_NS, SETTINGS_KEY, results[0].value);
+    await localCachePut(scope, SETTINGS_NS, SETTINGS_KEY, results[0].value);
     cached += 1;
   }
   if (results[1].status === "fulfilled") {
-    await writeList(ownerId, STAGES_NS, results[1].value);
+    await writeList(scope, STAGES_NS, results[1].value);
     cached += 1;
   }
   if (results[2].status === "fulfilled") {
-    await writeList(ownerId, ASSIGNMENTS_NS, results[2].value);
+    await writeList(scope, ASSIGNMENTS_NS, results[2].value);
     cached += 1;
   }
   if (results[3].status === "fulfilled") {
-    await writeList(ownerId, RETURN_REASONS_NS, results[3].value);
+    await writeList(scope, RETURN_REASONS_NS, results[3].value);
     cached += 1;
   }
   return cached;

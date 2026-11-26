@@ -1,6 +1,6 @@
 import { Outlet, Link, ClientOnly, createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "@/components/ui/sonner";
@@ -121,7 +121,7 @@ function RootComponent() {
       <DesktopLocalRuntimeBridge />
       <DesktopNotificationSoundBridge />
       <MobileNativeBridge />
-      <SessionLifecycleBridge />
+      <SessionLifecycleBridge>
       <DesktopNativeFrame>
         <TopProgressBar />
         <Outlet />
@@ -129,6 +129,7 @@ function RootComponent() {
         <UploadProgressDock />
         <ConfirmHost />
       </DesktopNativeFrame>
+      </SessionLifecycleBridge>
     </>
   );
   return (
@@ -144,7 +145,13 @@ function RootComponent() {
   );
 }
 
-function SessionLifecycleBridge() {
-  useSessionLifecycle();
-  return null;
+function SessionLifecycleBridge({ children }: { children: ReactNode }) {
+  const blocked = useSessionLifecycle();
+  return blocked ? <div role="alert" className="fixed inset-0 grid place-items-center bg-background p-6 text-foreground" style={{ zIndex: 2147483647 }}>
+    <div className="max-w-md text-center">
+      <h1 className="text-xl font-semibold">Acesso offline bloqueado</h1>
+      <p className="mt-3">Conecte-se à internet e entre novamente. A limpeza dos dados locais precisa ser concluída antes de continuar.</p>
+      <button className="mt-5 rounded-lg bg-primary px-4 py-2 text-primary-foreground" onClick={() => window.location.reload()}>Tentar novamente</button>
+    </div>
+  </div> : children;
 }

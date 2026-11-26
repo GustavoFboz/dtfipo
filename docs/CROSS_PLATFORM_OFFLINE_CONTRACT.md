@@ -17,6 +17,7 @@ A camada de UI não decide onde os dados vivem. Telas importam os contratos púb
 - O cache local é sempre isolado por `owner_id`.
 - Troca/mismatch de conta nunca pode reaproveitar silenciosamente o cache clínico de outro usuário.
 - Offline, somente uma identidade de dispositivo previamente validada e ainda dentro do prazo pode abrir dados locais.
+- A autorização instalada vale no máximo 72 horas após autenticação e confirmação online de acesso integral. Leitura local e refresh de JWT não renovam. No vencimento, bloquear e limpar os dados locais da conta, inclusive outbox, preservando os dados remotos; falhas de limpeza permanecem bloqueadas e exigem retentativa. Ver `docs/saas/OFFLINE-72-HOURS.md` para limites, plataformas e aceites.
 
 ## Dados
 

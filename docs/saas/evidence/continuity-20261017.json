@@ -1,0 +1,141 @@
+{
+  "contract": "dentalflow-saas-continuity-v1",
+  "reviewedAt": "2026-10-17",
+  "sourceCommit": "c6f139072371a2b02e6dd539c6cc8c7eb5ab56f8",
+  "identity": {
+    "rows": [
+      {
+        "claimed_at": "2026-10-17 17:46:47.079697+00",
+        "completed_at": "2026-10-17 17:46:50.443904+00",
+        "http_status": 200,
+        "id": "e1d4bb74-8c88-4cac-a43d-6279be108024",
+        "kind": "identity",
+        "receipt": {
+          "checked_at": "2026-10-17T17:46:50.380Z",
+          "checks": [
+            {
+              "check": "magiclink_token_single_use",
+              "http_status": 403,
+              "passed": true
+            },
+            {
+              "check": "fixture_b_real_session",
+              "passed": true
+            },
+            {
+              "check": "fixture_b_company_isolation",
+              "passed": true
+            },
+            {
+              "check": "magiclink_token_single_use",
+              "http_status": 403,
+              "passed": true
+            },
+            {
+              "check": "fixture_a_real_session",
+              "passed": true
+            },
+            {
+              "check": "fixture_a_company_isolation",
+              "passed": true
+            },
+            {
+              "check": "unconfirmed_login_denied",
+              "http_status": 400,
+              "passed": true
+            },
+            {
+              "check": "signup_token_single_use",
+              "http_status": 403,
+              "passed": true
+            },
+            {
+              "check": "signup_confirmation_consumed",
+              "passed": true
+            },
+            {
+              "check": "short_credential_denied",
+              "passed": false
+            },
+            {
+              "check": "confirmed_login_succeeded",
+              "passed": true
+            },
+            {
+              "check": "recovery_token_single_use",
+              "http_status": 403,
+              "passed": true
+            },
+            {
+              "check": "previous_credential_denied",
+              "http_status": 400,
+              "passed": true
+            },
+            {
+              "check": "recovered_login_succeeded",
+              "passed": true
+            },
+            {
+              "check": "logout_refresh_denied",
+              "http_status": 400,
+              "passed": true
+            },
+            {
+              "check": "disposable_identity_removed",
+              "passed": true
+            }
+          ],
+          "contract": "dentalflow-fixture-acceptance-v1",
+          "fixture_ids": [
+            "24e7cdf9-457e-4af2-b1cb-cf366abbddb0",
+            "ee083f63-1621-4b82-b7a4-fd13427c0b14"
+          ],
+          "kind": "identity",
+          "passed": false
+        },
+        "status": "failed",
+        "timed_out": false
+      }
+    ]
+  },
+  "billing": {
+    "rows": [
+      {
+        "claimed_at": "2026-10-17 17:47:24.843803+00",
+        "completed_at": "2026-10-17 17:47:30.707577+00",
+        "http_status": 200,
+        "id": "fb0ab48d-5d3f-4809-b66d-236247dc2045",
+        "kind": "billing",
+        "receipt": {
+          "checked_at": "2026-10-17T17:47:30.668Z",
+          "checks": [
+            {
+              "check": "billing_flow",
+              "code": "FIXTURE_CHECKOUT_TRANSPORT_FAILED",
+              "http_status": 200,
+              "passed": false
+            },
+            {
+              "check": "business_ledger_contracts_unchanged",
+              "digest": "ab738b218bd4d80589c45eec936315ded1621ee34fc1cbda69df33eaeb44abc8",
+              "passed": true
+            }
+          ],
+          "contract": "dentalflow-fixture-acceptance-v1",
+          "fixture_ids": [
+            "24e7cdf9-457e-4af2-b1cb-cf366abbddb0",
+            "ee083f63-1621-4b82-b7a4-fd13427c0b14"
+          ],
+          "kind": "billing",
+          "passed": false
+        },
+        "status": "failed",
+        "timed_out": false
+      }
+    ]
+  },
+  "acceptedCriteria": 2,
+  "totalCriteria": 23,
+  "stagesClosed": 0,
+  "productionPaymentExecuted": false
+}

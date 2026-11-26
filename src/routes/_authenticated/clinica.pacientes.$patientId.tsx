@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -146,7 +147,7 @@ function PatientDetail() {
         <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full bg-[#1e8f87]/[0.045] blur-2xl" />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center">
           <div className="grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-[30px] bg-[#1e8f87]/8 text-[#1e8f87] shadow-[0_16px_36px_-30px_rgba(15,23,42,.7)]">
-            {p.photo_url ? <img src={p.photo_url} alt={p.name} className="h-full w-full object-cover" /> : <UserRound className="h-9 w-9 stroke-[1.3]" />}
+            {p.photo_url ? <PrivateImage src={p.photo_url} alt={p.name} className="h-full w-full object-cover" /> : <UserRound className="h-9 w-9 stroke-[1.3]" />}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#1e8f87]"><span>Paciente</span><span className="h-1 w-1 rounded-full bg-slate-200" /><span className="text-emerald-600">Ativo</span></div>

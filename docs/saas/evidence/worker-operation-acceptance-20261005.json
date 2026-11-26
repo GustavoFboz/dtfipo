@@ -1,0 +1,648 @@
+{
+  "contract": "dentalflow-operation-acceptance-v1",
+  "acceptance": {
+    "item": "6.1",
+    "status": "accepted",
+    "environment": "sandbox",
+    "reviewed_at": "2026-10-05T22:17:36.583127+00:00",
+    "production_gate": "7.2"
+  },
+  "sources": {
+    "bootstrap_run_id": 37365444013,
+    "bootstrap_job_id": 111961240845,
+    "bootstrap_attempt": 2,
+    "bootstrap_artifact_id": 11368828572,
+    "bootstrap_zip_sha256": "39e9a77587c7c025d24ff622c510ee325d01bd394be0d225be7ccdc29aa842d6",
+    "alert_run_id": 37365443348,
+    "recovery_probe_run_id": 37372084469
+  },
+  "bootstrap_receipt": {
+    "available": true,
+    "contract": "dentalflow-database-scheduler-v1",
+    "environment": "sandbox",
+    "checked_at": "2026-10-05T20:20:52.472Z",
+    "immediate_worker_invoked": false,
+    "api_isolation_verified": true,
+    "scheduler": {
+      "provider_environment": "sandbox",
+      "scheduled": true,
+      "cron_job_id": 1,
+      "schedule": "1-59/5 * * * *"
+    }
+  },
+  "observed_runtime": {
+    "boundary_safe": true,
+    "change_requests_count": 0,
+    "checked_at": "2026-10-05T22:17:36.583127+00:00",
+    "cron_runs": [
+      {
+        "end_time": "2026-10-05T22:16:00.256293+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T22:16:00.162566+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T22:11:00.113125+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T22:11:00.074219+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T22:06:00.119955+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T22:06:00.072893+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T22:01:00.299759+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T22:01:00.167772+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T21:56:00.216097+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T21:56:00.134679+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T21:51:00.164308+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T21:51:00.103532+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T21:46:00.288086+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T21:46:00.186375+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T21:41:00.141368+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T21:41:00.097772+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T21:36:00.119879+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T21:36:00.071713+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T21:31:00.364484+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T21:31:00.254231+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T21:26:00.226028+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T21:26:00.172188+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T21:21:00.276074+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T21:21:00.216228+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T21:16:00.114026+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T21:16:00.070556+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T21:11:00.323433+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T21:11:00.178824+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T21:06:00.262865+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T21:06:00.122884+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T21:01:00.156827+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T21:01:00.107089+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T20:56:00.114037+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T20:56:00.071214+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T20:51:00.357624+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T20:51:00.191874+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T20:46:00.386932+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T20:46:00.195187+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T20:41:00.410875+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T20:41:00.294223+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T20:36:00.245987+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T20:36:00.179738+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T20:31:00.176503+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T20:31:00.15124+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T20:26:00.331513+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T20:26:00.187965+00:00",
+        "status": "succeeded"
+      },
+      {
+        "end_time": "2026-10-05T20:21:00.345373+00:00",
+        "jobid": 1,
+        "start_time": "2026-10-05T20:21:00.2677+00:00",
+        "status": "succeeded"
+      }
+    ],
+    "dead_letters": [
+      {
+        "attempts": 6,
+        "environment": "sandbox",
+        "error_code": "PROVIDER_RECONCILIATION_FAILED",
+        "event_id": "evt_071da53af2a9613df04213d0157d6b88&20634814",
+        "event_type": "PAYMENT_OVERDUE",
+        "id": "9ad8482e-eb0f-48fd-9ea5-aee5c4b776c2"
+      },
+      {
+        "attempts": 6,
+        "environment": "sandbox",
+        "error_code": "PROVIDER_RECONCILIATION_FAILED",
+        "event_id": "evt_d26e303b238e509335ac9ba210e51b0f&20634931",
+        "event_type": "PAYMENT_RECEIVED",
+        "id": "ea41bc68-e051-4e52-b547-af2ac70e50a4"
+      }
+    ],
+    "events": [
+      {
+        "count": 5,
+        "environment": "sandbox",
+        "status": "processed"
+      },
+      {
+        "count": 2,
+        "environment": "sandbox",
+        "status": "dead_letter"
+      }
+    ],
+    "initial_plan": {
+      "active": true,
+      "amount_cents": 100,
+      "currency": "BRL"
+    },
+    "paid_contracts_hash": "1f9c587fe65ffea7a3395edbb40efc54",
+    "payment_ledger_hash": "78fd59357e8cfbf0ee9e82aa608c23cf",
+    "production": null,
+    "production_payments_count": 0,
+    "sandbox": {
+      "configured_at": "2026-10-05T20:20:52.427494+00:00",
+      "cron_active": true,
+      "cron_job_id": 1,
+      "enabled": true,
+      "last_dispatched_at": "2026-10-05T22:16:00.254813+00:00",
+      "last_response_http_status": 200,
+      "last_response_timed_out": false,
+      "provider_environment": "sandbox",
+      "schedule": "1-59/5 * * * *"
+    },
+    "worker_health": [
+      {
+        "counters": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "processed": 0,
+          "reconciliationQueued": 0,
+          "reconciliationReview": 0,
+          "reconciliationScanned": 0,
+          "recoveryQueued": 0,
+          "suspended": 0,
+          "workerReview": 0
+        },
+        "environment": "sandbox",
+        "finished_at": "2026-10-05T22:16:02.507139+00:00",
+        "last_healthy_at": "2026-10-05T22:16:02.507139+00:00",
+        "started_at": "2026-10-05T22:16:02.202369+00:00",
+        "status": "ok"
+      }
+    ]
+  },
+  "worker_http_responses": {
+    "checked_at": "2026-10-05T22:21:52.332262+00:00",
+    "observation_ended_at": "2026-10-05T22:17:36.583127Z",
+    "responses": [
+      {
+        "http_status": 200,
+        "id": 1,
+        "response_record_created_at": "2026-10-05T20:21:00.351338+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 2,
+        "response_record_created_at": "2026-10-05T20:26:00.336922+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 4,
+        "response_record_created_at": "2026-10-05T20:31:00.176361+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 5,
+        "response_record_created_at": "2026-10-05T20:36:00.252011+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 6,
+        "response_record_created_at": "2026-10-05T20:41:00.414975+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 7,
+        "response_record_created_at": "2026-10-05T20:46:00.394472+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 8,
+        "response_record_created_at": "2026-10-05T20:51:00.362509+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 9,
+        "response_record_created_at": "2026-10-05T20:56:00.114224+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 10,
+        "response_record_created_at": "2026-10-05T21:01:00.157363+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 11,
+        "response_record_created_at": "2026-10-05T21:06:00.269151+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 12,
+        "response_record_created_at": "2026-10-05T21:11:00.3385+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 13,
+        "response_record_created_at": "2026-10-05T21:16:00.114976+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 14,
+        "response_record_created_at": "2026-10-05T21:21:00.276517+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 15,
+        "response_record_created_at": "2026-10-05T21:26:00.228299+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 16,
+        "response_record_created_at": "2026-10-05T21:31:00.368905+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 17,
+        "response_record_created_at": "2026-10-05T21:36:00.120005+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 18,
+        "response_record_created_at": "2026-10-05T21:41:00.141169+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 19,
+        "response_record_created_at": "2026-10-05T21:46:00.293952+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 22,
+        "response_record_created_at": "2026-10-05T21:51:00.164056+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 23,
+        "response_record_created_at": "2026-10-05T21:56:00.217916+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 24,
+        "response_record_created_at": "2026-10-05T22:01:00.302489+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 25,
+        "response_record_created_at": "2026-10-05T22:06:00.12056+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 26,
+        "response_record_created_at": "2026-10-05T22:11:00.113813+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      },
+      {
+        "http_status": 200,
+        "id": 28,
+        "response_record_created_at": "2026-10-05T22:16:00.257642+00:00",
+        "timed_out": false,
+        "worker_summary": {
+          "failed": 0,
+          "graceReview": 0,
+          "ignored": 0,
+          "monitoringRecorded": true,
+          "processed": 0,
+          "reconciliationReview": 0,
+          "workerReview": 0
+        }
+      }
+    ]
+  },
+  "response_timestamp_note": "response_record_created_at is net._http_response.created, not proof of HTTP completion; finished_at/last_healthy_at provide worker completion evidence.",
+  "financial_baseline": {
+    "checked_at": "2026-10-05T21:46:28.554843+00:00",
+    "paid_contracts_hash": "1f9c587fe65ffea7a3395edbb40efc54",
+    "payment_ledger_hash": "78fd59357e8cfbf0ee9e82aa608c23cf"
+  },
+  "alert_delivery": {
+    "detected_condition": "stale_worker_heartbeat",
+    "detected_at": "2026-10-05T20:19:13.527Z",
+    "received_at": "2026-10-05T20:19:37.000Z",
+    "sender_is_github": true,
+    "delivered_to_connected_operator_account": true,
+    "github_recipient_is_repository_owner": true,
+    "referenced_run_ids": [
+      "37365443348"
+    ],
+    "inbox": true,
+    "spam": false,
+    "dkim_pass": true,
+    "email_sent_by_assistant": false
+  },
+  "limits": [
+    "Observed cadence is Sandbox only.",
+    "GitHub detection and email delivery do not guarantee future latency.",
+    "Production cadence and webhook authentication remain unproved.",
+    "Backup, operational data restore and rollback remain separate acceptance criteria."
+  ]
+}
