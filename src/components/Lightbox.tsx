@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { PrivateImage } from "@/components/PrivateImage";
 import { getPrivateFileScope, resolvePrivateFile } from "@/lib/private-file-access";
 import { toast } from "sonner";
@@ -15,9 +15,13 @@ export function Lightbox({
   onClose: () => void;
 }) {
   usePreservePageScroll(open);
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const cur = images[index] ?? images[0];
+
+  useEffect(() => { setFailedUrl(null); }, [open, cur?.url]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || images.length === 0) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
       if (e.key === "ArrowRight") onIndexChange((index + 1) % images.length);
@@ -27,8 +31,7 @@ export function Lightbox({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, index, images.length, onIndexChange, onClose]);
 
-  if (!open || images.length === 0) return null;
-  const cur = images[index];
+  if (!open || !cur) return null;
   return (
     <div className="fixed inset-0 z-[100] bg-background/90 dark:bg-black/90 backdrop-blur-sm flex items-center justify-center"
       onClick={onClose}>
@@ -79,10 +82,21 @@ export function Lightbox({
           </button>
         </>
       )}
-      <PrivateImage src={cur.url} alt={cur.name} onClick={(e) => e.stopPropagation()}
-        className="max-w-[92vw] max-h-[88vh] object-contain rounded-lg shadow-2xl" />
+      {failedUrl === cur.url ? (
+        <div role="alert" className="max-w-[88vw] rounded-lg bg-muted px-6 py-8 text-center text-sm text-muted-foreground" onClick={(e) => e.stopPropagation()}>
+          Não foi possível exibir esta imagem. Verifique sua conexão e tente abrir novamente.
+        </div>
+      ) : (
+        <PrivateImage
+          src={cur.url}
+          alt={cur.name}
+          onClick={(e) => e.stopPropagation()}
+          onError={() => setFailedUrl(cur.url)}
+          className="max-w-[92vw] max-h-[88vh] object-contain rounded-lg shadow-2xl"
+        />
+      )}
       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-muted-foreground text-xs px-3 py-1 rounded-full bg-muted border border-border">
-        {cur.name} · {index + 1}/{images.length}
+        {cur.name} · {images.indexOf(cur) + 1}/{images.length}
       </div>
     </div>
   );

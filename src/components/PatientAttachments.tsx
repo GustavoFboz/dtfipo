@@ -21,6 +21,7 @@ import { Upload, FileText, ImageIcon, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
 import type { PatientAttachment } from "@/lib/types";
 import { PrivateImage } from "@/components/PrivateImage";
+import { Lightbox } from "@/components/Lightbox";
 
 const KIND_LABEL: Record<string, string> = {
   scan: "Escaneamento",
@@ -54,6 +55,10 @@ export function PatientAttachments({
     () => (att.data ?? []).filter((item) => !kinds?.length || kinds.includes(item.kind)),
     [att.data, kinds],
   );
+  const previewImages = useMemo(
+    () => visible.filter((item) => !!item.thumbnail_url),
+    [visible],
+  );
   const allowedKindEntries = useMemo(
     () => Object.entries(KIND_LABEL).filter(([value]) => !kinds?.length || kinds.includes(value)),
     [kinds],
@@ -68,6 +73,7 @@ export function PatientAttachments({
   const [desc, setDesc] = useState("");
   const [kind, setKind] = useState(initialKind);
   const [toDelete, setToDelete] = useState<PatientAttachment | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const upload = useMutation({
@@ -167,7 +173,16 @@ export function PatientAttachments({
           {visible.map((a) => (
             <div key={a.id} className="group overflow-hidden rounded-[22px] border border-slate-200/70 bg-white transition hover:border-[#1e8f87]/20 hover:shadow-[0_16px_38px_-32px_rgba(15,23,42,.55)] dark:border-white/10 dark:bg-slate-950">
               <div className="aspect-[4/3] bg-slate-50 grid place-items-center overflow-hidden dark:bg-white/[0.03]">
-                {a.thumbnail_url ? <PrivateImage src={a.thumbnail_url} alt={a.title} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" /> : <FileText className="h-8 w-8 text-slate-200" />}
+                {a.thumbnail_url ? (
+                  <button
+                    type="button"
+                    aria-label={`Ampliar imagem ${a.title}`}
+                    className="h-full w-full cursor-zoom-in"
+                    onClick={() => setPreviewIndex(previewImages.findIndex((item) => item.id === a.id))}
+                  >
+                    <PrivateImage src={a.thumbnail_url} alt={a.title} className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
+                  </button>
+                ) : <FileText className="h-8 w-8 text-slate-200" />}
               </div>
               <div className="p-3.5">
                 <div className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#1e8f87]">{KIND_LABEL[a.kind] ?? a.kind}</div>
@@ -182,6 +197,14 @@ export function PatientAttachments({
           ))}
         </div>
       )}
+
+      <Lightbox
+        open={previewIndex !== null}
+        images={previewImages.map((item) => ({ url: item.thumbnail_url!, name: item.title }))}
+        index={previewIndex ?? 0}
+        onIndexChange={setPreviewIndex}
+        onClose={() => setPreviewIndex(null)}
+      />
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>
