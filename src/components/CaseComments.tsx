@@ -823,7 +823,7 @@ export function CaseComments({ caseId, focusActivityId = null }: { caseId: strin
           <div className="flex flex-wrap gap-2 mb-2">
             {pendingImages.map((p) => (
               <div key={p.id} className="relative h-16 w-16 rounded-lg border border-border overflow-hidden bg-muted group">
-                <img src={p.previewUrl} alt="" className="h-full w-full object-cover" />
+                <PrivateImage src={p.previewUrl} alt="" className="h-full w-full object-cover" />
                 <button type="button" onClick={() => removePending(p.id)}
                   className="absolute top-0.5 right-0.5 h-5 w-5 rounded-full bg-black/60 text-white grid place-items-center hover:bg-black/80">
                   <X className="h-3 w-3" />

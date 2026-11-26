@@ -19,7 +19,7 @@ export function usePrivateFileUrl(reference: string | null | undefined, retry = 
         setResult({ reference, scope, url: resolution.url });
         timer = setTimeout(load, Math.max(1000, resolution.renewAt - Date.now()));
       } catch {
-        if (active && currentRevision === revision) { release?.(); release = undefined; setResult(null); timer = setTimeout(load, 30_000); }
+        if (active && currentRevision === revision) { release?.(); release = undefined; setResult(null); timer = setTimeout(load, 5_000); }
       }
     };
     const reload = () => { clearTimeout(timer); void load(); };
