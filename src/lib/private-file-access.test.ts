@@ -94,6 +94,15 @@ describe("private file signatures belong to the current account", () => {
     await expect(api.resolvePrivateFile(source)).rejects.toThrow("PRIVATE_FILE_SESSION_CHANGED");
     expect(mocks.sign).toHaveBeenCalledTimes(1);
   });
+  it("keeps the in-memory signature when SIGNED_IN repeats for the same user (e.g. window focus)", async () => {
+    const first = await api.resolvePrivateFile(source);
+    listener("SIGNED_IN", session("alice").data.session);
+    const cached = api.peekPrivateFileCache(source, api.getPrivateFileScope());
+    expect(cached?.url).toBe(first.url);
+    const second = await api.resolvePrivateFile(source);
+    expect(second.url).toBe(first.url);
+    expect(mocks.sign).toHaveBeenCalledTimes(1);
+  });
   it("rejects an unobserved identity mismatch", async () => {
     mocks.getSession.mockResolvedValue(session("bob"));
     await expect(api.resolvePrivateFile(source)).rejects.toThrow("PRIVATE_FILE_SESSION_CHANGED");

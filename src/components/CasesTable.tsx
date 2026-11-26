@@ -245,7 +245,7 @@ export function CasesTable({
       return fetchCases(scope, { startDate: dateRange?.start, endDate: dateRange?.end });
     },
     staleTime: 30_000, 
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     refetchInterval: 60_000,
   });
 

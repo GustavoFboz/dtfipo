@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => {
   const scope = { ownerId: "owner-1", generation: 1, ready: true };
   return {
     scope,
+    peek: vi.fn<() => { url: string; renewAt: number; release?: () => void } | null>(() => null),
     resolve: vi.fn(),
     subscribe: vi.fn(() => () => undefined),
   };
@@ -15,6 +16,7 @@ const mocks = vi.hoisted(() => {
 vi.mock("@/lib/private-file-access", () => ({
   getPrivateFileScope: () => mocks.scope,
   getServerPrivateFileScope: () => ({ ownerId: null, generation: 0, ready: false }),
+  peekPrivateFileCache: mocks.peek,
   resolvePrivateFile: mocks.resolve,
   subscribePrivateFileScope: mocks.subscribe,
 }));
@@ -78,5 +80,12 @@ describe("usePrivateFileUrl cancellation", () => {
     await act(async () => { first.resolve({ url: "https://fixture.invalid/first.jpg", renewAt: Date.now() + 60_000, release: firstRelease }); });
     expect(firstRelease).toHaveBeenCalledTimes(1);
     expect(container.querySelector('[data-testid="url"]')?.textContent).toContain("second.jpg");
+  });
+
+  it("reuses a valid cached URL immediately on remount without re-fetching", async () => {
+    mocks.peek.mockReturnValue({ url: "https://fixture.invalid/cached.jpg", renewAt: Date.now() + 60_000 });
+    await act(async () => { root.render(<ResolvedImage reference="storage://patient-photos/p1/photo.jpg" />); });
+    expect(container.querySelector('[data-testid="url"]')?.textContent).toBe("https://fixture.invalid/cached.jpg");
+    expect(mocks.resolve).not.toHaveBeenCalled();
   });
 });

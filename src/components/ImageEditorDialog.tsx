@@ -339,10 +339,12 @@ export function ImageEditorDialog({
                     src={img.src}
                     alt={file ? `Prévia de ${file.name}` : "Prévia da imagem"}
                     draggable={false}
-                    className="absolute left-1/2 top-1/2 origin-center will-change-transform"
+                    className="absolute left-1/2 top-1/2 max-w-none max-h-none origin-center will-change-transform"
                     style={{
                       width: img.naturalWidth,
                       height: img.naturalHeight,
+                      maxWidth: "none",
+                      maxHeight: "none",
                       transform: `translate(-50%, -50%) translate(${offset.x}px, ${offset.y}px) rotate(${rotation}deg) scale(${baseScale * zoom})`,
                     }}
                   />
@@ -372,7 +374,10 @@ export function ImageEditorDialog({
               <canvas
                 ref={annotCanvasRef}
                 className={cn("bg-black touch-none max-w-full", mode === "avatar" ? "rounded-full" : "rounded-xl")}
-                style={{ width: viewport.w, height: mode === "avatar" ? viewport.w : viewport.h }}
+                style={{
+                  width: viewport.w,
+                  aspectRatio: `${viewport.w} / ${mode === "avatar" ? viewport.w : viewport.h}`,
+                }}
                 onPointerDown={(event) => {
                   if (tool !== "draw" || !readyBaseImg || busy) return;
                   (event.target as HTMLElement).setPointerCapture?.(event.pointerId);

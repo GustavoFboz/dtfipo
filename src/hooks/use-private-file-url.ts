@@ -1,8 +1,9 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { getPrivateFileScope, getServerPrivateFileScope, resolvePrivateFile, subscribePrivateFileScope } from "@/lib/private-file-access";
+import { getPrivateFileScope, getServerPrivateFileScope, peekPrivateFileCache, resolvePrivateFile, subscribePrivateFileScope } from "@/lib/private-file-access";
 
 export function usePrivateFileUrl(reference: string | null | undefined, retry = 0) {
   const scope = useSyncExternalStore(subscribePrivateFileScope, getPrivateFileScope, getServerPrivateFileScope);
+  const cached = peekPrivateFileCache?.(reference, scope) ?? null;
   const [result, setResult] = useState<{ reference: string; scope: typeof scope; url: string } | null>(null);
   useEffect(() => {
     let active = true;
@@ -23,9 +24,15 @@ export function usePrivateFileUrl(reference: string | null | undefined, retry = 
       }
     };
     const reload = () => { clearTimeout(timer); void load(); };
-    void load();
+    if (cached && reference) {
+      setResult({ reference, scope, url: cached.url });
+      timer = setTimeout(load, Math.max(1000, cached.renewAt - Date.now()));
+    } else {
+      void load();
+    }
     window.addEventListener("online", reload); window.addEventListener("offline", reload);
     return () => { active = false; clearTimeout(timer); release?.(); window.removeEventListener("online", reload); window.removeEventListener("offline", reload); };
   }, [reference, scope, retry]);
-  return result && result.reference === reference && result.scope === scope ? result.url : undefined;
+  if (result && result.reference === reference && result.scope === scope) return result.url;
+  return cached?.url;
 }

@@ -148,4 +148,35 @@ describe("ImageEditorDialog loading lifecycle", () => {
     expect(onConfirm.mock.calls[0]?.[0]).toBeInstanceOf(Blob);
     expect(revokeObjectUrl).toHaveBeenCalledWith("blob:qa-2");
   });
+
+  it("preserves natural aspect ratio without max-width clamping for portrait and landscape images and matches output canvas", async () => {
+    for (const { name, w, h } of [
+      { name: "portrait.jpg", w: 1000, h: 2000 },
+      { name: "landscape.jpg", w: 2000, h: 1000 },
+    ]) {
+      context.scale.mockClear();
+      context.drawImage.mockClear();
+      const onConfirm = await render(file(name));
+      const source = FakeImage.instances.at(-1)!;
+      source.naturalWidth = w;
+      source.naturalHeight = h;
+      await act(async () => { source.onload?.(new Event("load")); });
+
+      const preview = container.querySelector(`img[alt="Prévia de ${name}"]`) as HTMLImageElement;
+      expect(preview).not.toBeNull();
+      expect(preview.style.width).toBe(`${w}px`);
+      expect(preview.style.height).toBe(`${h}px`);
+      expect(preview.style.maxWidth).toBe("none");
+      expect(preview.style.maxHeight).toBe("none");
+      expect(preview.style.transform).toContain("scale(0.32)");
+
+      await act(async () => { confirmButton().click(); });
+      const cropImg = FakeImage.instances.at(-1)!;
+      await act(async () => { cropImg.onload?.(new Event("load")); });
+
+      expect(context.scale).toHaveBeenCalledWith(0.64, 0.64);
+      expect(context.drawImage).toHaveBeenCalledWith(source, -w / 2, -h / 2);
+      expect(onConfirm).toHaveBeenCalledTimes(1);
+    }
+  });
 });

@@ -36,7 +36,7 @@ function ensureObserver() {
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === "INITIAL_SESSION" && authRevision !== initialRevision) return;
     authRevision++;
-    applyOwner(event === "SIGNED_OUT" ? null : session?.user.id ?? null, event === "SIGNED_OUT" || event === "SIGNED_IN");
+    applyOwner(event === "SIGNED_OUT" ? null : session?.user.id ?? null, event === "SIGNED_OUT");
   });
   void supabase.auth.getSession().then(({ data, error }) => {
     if (authRevision === initialRevision) applyOwner(error ? null : data.session?.user.id ?? null);
@@ -49,6 +49,20 @@ export function subscribePrivateFileScope(listener: () => void) {
 }
 export const getPrivateFileScope = () => scope;
 export const getServerPrivateFileScope = () => emptyScope;
+
+export function peekPrivateFileCache(value: string | null | undefined, expected: Scope): Resolution | null {
+  if (!value || !expected.ready || !expected.ownerId || scope !== expected) return null;
+  let reference: PrivateFileReference | null;
+  try { reference = parsePrivateFileReference(value, storageOrigin()); } catch { return null; }
+  if (!reference) {
+    if (!/^(?:https:\/\/|blob:|data:image\/(?:jpeg|png|gif|webp);base64,)/.test(value)) return null;
+    return { url: value, renewAt: Date.now() + PRIVATE_FILE_URL_TTL_SECONDS * 1000 };
+  }
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return null;
+  const key = JSON.stringify([expected.ownerId, expected.generation, reference.bucket, reference.path]);
+  const cached = memory.get(key);
+  return cached && cached.renewAt > Date.now() ? cached : null;
+}
 
 /** Drop only this account's short signature after an image load failure. A
  * replaced in-flight request cannot repopulate the cache with its late URL. */
