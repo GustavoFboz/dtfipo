@@ -97,7 +97,7 @@ export function PatientPhotoLightbox({ patient, trigger }: { patient: Patient | 
       >
         <X className="h-5 w-5" />
       </button>
-      <img
+      <PrivateImage
         src={patient.photo_url}
         alt={patient.name || "Foto do paciente"}
         className="max-h-[88vh] max-w-[92vw] rounded-[28px] object-contain shadow-[0_28px_80px_rgba(15,23,42,0.18)] dark:shadow-2xl"
