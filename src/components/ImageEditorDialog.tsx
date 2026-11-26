@@ -402,7 +402,7 @@ export function ImageEditorDialog({
           <Button variant="ghost" onClick={onCancel} className="gap-1.5">
             <X className="h-4 w-4" /> Cancelar
           </Button>
-          <Button onClick={confirm} disabled={busy || !img} className="gap-1.5">
+          <Button onClick={confirm} disabled={busy || !img || imageLoading || !!imageError} className="gap-1.5">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Concluir
           </Button>
         </div>
