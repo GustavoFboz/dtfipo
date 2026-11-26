@@ -1,3 +1,4 @@
+import { PrivateImage } from "@/components/PrivateImage";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { CaseChecklistFab } from "@/components/CaseChecklists";
 
