@@ -36,6 +36,8 @@ export function ImageEditorDialog({
   onConfirm,
 }: Props) {
   const [img, setImg] = useState<HTMLImageElement | null>(null);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
   const [tool, setTool] = useState<Tool>("crop");
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
@@ -58,14 +60,51 @@ export function ImageEditorDialog({
 
   const viewport = mode === "avatar" ? { w: 320, h: 320 } : { w: 360, h: 360 };
 
-  // carrega o arquivo
+  // Carregamento resiliente: limpa a imagem anterior, aguarda o decode e
+  // impede que uma resposta atrasada substitua a imagem recém-selecionada.
   useEffect(() => {
-    if (!open || !file) return;
+    let active = true;
+    setImg(null);
+    setImageError(null);
+    if (!open || !file) {
+      setImageLoading(false);
+      return;
+    }
+    setImageLoading(true);
     const url = URL.createObjectURL(file);
-    const i = new Image();
-    i.onload = () => setImg(i);
-    i.src = url;
-    return () => URL.revokeObjectURL(url);
+    const image = new Image();
+    image.onload = () => {
+      if (!active) return;
+      if (!image.naturalWidth || !image.naturalHeight) {
+        setImageError("A imagem selecionada não possui dimensões válidas.");
+        setImageLoading(false);
+        return;
+      }
+      setImg(image);
+      setImageLoading(false);
+    };
+    image.onerror = () => {
+      if (!active) return;
+      setImageError("Não foi possível carregar esta imagem. Selecione outro arquivo ou tente novamente.");
+      setImageLoading(false);
+    };
+    image.src = url;
+    if (typeof image.decode === "function") {
+      image.decode().then(() => {
+        if (active && image.naturalWidth && image.naturalHeight) {
+          setImg(image);
+          setImageLoading(false);
+        }
+      }).catch(() => {
+        // onerror fornece a mensagem visível nos navegadores que rejeitam decode().
+      });
+    }
+    return () => {
+      active = false;
+      image.onload = null;
+      image.onerror = null;
+      URL.revokeObjectURL(url);
+    };
   }, [open, file]);
 
   // reset ao abrir/trocar arquivo
@@ -254,7 +293,7 @@ export function ImageEditorDialog({
                   dragging.current = { x: e.clientX - offset.x, y: e.clientY - offset.y };
                 }}
                 onPointerMove={(e) => {
-                  if (!dragging.current) return;
+                  if (!img || !dragging.current) return;
                   setOffset({ x: e.clientX - dragging.current.x, y: e.clientY - dragging.current.y });
                 }}
                 onPointerUp={() => (dragging.current = null)}
