@@ -289,6 +289,7 @@ export function ImageEditorDialog({
                   borderRadius: mode === "avatar" ? "9999px" : "0.75rem",
                 }}
                 onPointerDown={(e) => {
+                  if (!img) return;
                   (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
                   dragging.current = { x: e.clientX - offset.x, y: e.clientY - offset.y };
                 }}
@@ -299,6 +300,19 @@ export function ImageEditorDialog({
                 onPointerUp={() => (dragging.current = null)}
                 onPointerLeave={() => (dragging.current = null)}
               >
+                {imageLoading && !img && (
+                  <div className="absolute inset-0 grid place-items-center bg-muted text-muted-foreground">
+                    <div className="flex flex-col items-center gap-2 text-xs">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Carregando imagem…
+                    </div>
+                  </div>
+                )}
+                {imageError && !img && (
+                  <div className="absolute inset-0 grid place-items-center bg-muted px-5 text-center text-xs text-destructive">
+                    {imageError}
+                  </div>
+                )}
                 {img && (
                   <img
                     src={img.src}
